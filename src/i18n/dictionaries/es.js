@@ -1414,7 +1414,7 @@ export default {
     visitWebsiteLink: 'Visitar el sitio',
     vigilanceHeadingTemplate: 'Puntos de vigilancia ({{count}})',
     vigilanceAriaLabelTemplate: 'Punto de vigilancia {{ruleName}}',
-    committeeCommentNote: 'Los comentarios de los equipos ya están disponibles debajo de cada bloque en «{{teamsLabel}}».',
+    committeeOpinionsTitle: 'Opinión del comité',
     requiredCommitteesTitle: 'Comité(s) requerido(s) para este proyecto:',
     committeeRequiredHint: 'Comentario requerido según la configuración.',
     committeeOptionalHint: 'Comentario opcional según la configuración.',
