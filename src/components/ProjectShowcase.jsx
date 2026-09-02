@@ -1687,7 +1687,12 @@ export const ProjectShowcase = ({
 }) => {
   const { t, language } = useTranslation();
   const missingInfoLabel = t('projectShowcase.missingInfoLabel');
-  const rawProjectName = typeof projectName === 'string' ? projectName.trim() : '';
+  const answeredProjectNameRaw = getRawAnswer(answers, 'projectName');
+  const answeredProjectName = typeof answeredProjectNameRaw === 'string' ? answeredProjectNameRaw.trim() : '';
+  const fallbackProjectName = typeof projectName === 'string' ? projectName.trim() : '';
+  // Le champ « Nom du projet » du formulaire d'édition écrit dans answers.projectName :
+  // sans cette priorité, une modification enregistrée ne se reflèterait jamais dans le titre affiché.
+  const rawProjectName = answeredProjectName.length > 0 ? answeredProjectName : fallbackProjectName;
   const safeProjectName = rawProjectName.length > 0 ? rawProjectName : missingInfoLabel;
   const isMissingInfoLabel = useCallback(
     (value) => typeof value === 'string' && value.trim() === missingInfoLabel,
