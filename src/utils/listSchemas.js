@@ -171,6 +171,44 @@ export const LIST_SCHEMAS = {
     json: { ActivityScopeJson: ARRAY },
     numbers: [],
     booleans: ['HasCompletedOnboarding']
+  },
+  // Une ligne par règle : la structure (conditions imbriquées, questions par équipe, risques
+  // i18n) est trop profonde pour un mapping colonne par colonne, donc l'objet entier voyage
+  // dans PayloadJson — RuleId/Title n'existent que pour l'indexation et la lecture dans SharePoint.
+  rules: {
+    keyField: 'RuleId',
+    columns: [
+      'Title',
+      'RuleId',
+      'PayloadJson',
+      'SortOrder',
+      'RowVersion',
+      'CreatedByEmail',
+      'UpdatedByEmail',
+      'UpdatedAt'
+    ],
+    json: { PayloadJson: OBJECT },
+    numbers: ['SortOrder', 'RowVersion'],
+    booleans: []
+  },
+  // Une ligne par équipe : forme plate (id/name/contacts/expertise), donc colonnes explicites
+  // plutôt qu'un blob JSON.
+  teams: {
+    keyField: 'TeamId',
+    columns: [
+      'Title',
+      'TeamId',
+      'ContactsJson',
+      'Expertise',
+      'SortOrder',
+      'RowVersion',
+      'CreatedByEmail',
+      'UpdatedByEmail',
+      'UpdatedAt'
+    ],
+    json: { ContactsJson: ARRAY },
+    numbers: ['SortOrder', 'RowVersion'],
+    booleans: []
   }
 };
 

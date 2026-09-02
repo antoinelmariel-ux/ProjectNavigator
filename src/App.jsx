@@ -57,6 +57,8 @@ import { projectMembersProvider } from './utils/projectMembersProvider.js';
 import { userProfileProvider } from './utils/userProfileProvider.js';
 import { showcaseStickyNotesProvider } from './utils/showcaseStickyNotesProvider.js';
 import { complianceCommentsProvider } from './utils/complianceCommentsProvider.js';
+import { rulesProvider } from './utils/rulesProvider.js';
+import { teamsProvider } from './utils/teamsProvider.js';
 import { mergeComplianceComments } from './utils/mergeComplianceComments.js';
 import { createAutosaveQueue } from './utils/autosaveQueue.js';
 import { createRetryQueue } from './utils/retryQueue.js';
@@ -938,6 +940,12 @@ export const App = () => {
   const stickyNotesQueueRef = useRef(null);
   const complianceCommentsQueueRef = useRef(null);
   const userProfileQueueRef = useRef(null);
+  const rulesQueueRef = useRef(null);
+  const teamsQueueRef = useRef(null);
+  // Métadonnées SharePoint (spItemId/RowVersion/SortOrder) par id de règle/équipe — jamais
+  // injectées dans l'objet applicatif consommé par le moteur de règles (rules.js).
+  const ruleServerMetaRef = useRef(new Map());
+  const teamServerMetaRef = useRef(new Map());
   const loadedProjectMembersRef = useRef(new Set());
   const loadedStickyNotesRef = useRef(new Set());
 
@@ -1465,12 +1473,10 @@ const updateProjectFilters = useCallback((updater) => {
 
     const applyReferentials = (slices) => {
       if (Array.isArray(slices.questions)) setQuestions(restoreShowcaseQuestions(slices.questions));
-      if (Array.isArray(slices.rules)) setRules(normalizeRulesTeamReferences(slices.rules));
       if (Array.isArray(slices.riskLevelRules)) setRiskLevelRules(slices.riskLevelRules);
       if (slices.riskWeights && typeof slices.riskWeights === 'object') {
         setRiskWeights(normalizeRiskWeighting(slices.riskWeights));
       }
-      if (Array.isArray(slices.teams)) setTeams(slices.teams);
       if (Array.isArray(slices.showcaseThemes)) setShowcaseThemes(slices.showcaseThemes);
       if (Array.isArray(slices.adminEmails)) setAdminEmails(slices.adminEmails);
       if (slices.projectFilters && typeof slices.projectFilters === 'object') {
@@ -1492,19 +1498,35 @@ const updateProjectFilters = useCallback((updater) => {
 
     const hydrateFromSharePoint = async () => {
       try {
-        const [serverProjects, referentials, complianceCommentsByProject] = await Promise.all([
-          dataProvider.listProjects(),
-          loadReferentials(),
-          // Chargée à part et protégée par son propre repli : un souci sur cette liste ne
-          // doit pas empêcher les projets et référentiels de se charger normalement.
-          complianceCommentsProvider.listAllComments().catch(() => ({}))
-        ]);
+        const [serverProjects, referentials, complianceCommentsByProject, ruleEntries, teamEntries] =
+          await Promise.all([
+            dataProvider.listProjects(),
+            loadReferentials(),
+            // Chargées à part et protégées par leur propre repli : un souci sur l'une de ces
+            // listes (pas encore créée, droits insuffisants) ne doit pas empêcher les projets et
+            // référentiels de se charger normalement.
+            complianceCommentsProvider.listAllComments().catch(() => ({})),
+            rulesProvider.listAllRules().catch(() => []),
+            teamsProvider.listAllTeams().catch(() => [])
+          ]);
 
         if (cancelled) {
           return;
         }
 
         applyReferentials(referentials.slices);
+
+        // Liste vide = jamais publiée (pas encore d'admin cliqué sur « Publier la
+        // configuration ») plutôt qu'un référentiel volontairement vidé : on garde alors les
+        // règles/équipes locales (défauts ou cache) au lieu d'écraser avec un tableau vide.
+        if (ruleEntries.length > 0) {
+          ruleServerMetaRef.current = new Map(ruleEntries.map(({ rule, meta }) => [rule.id, meta]));
+          setRules(normalizeRulesTeamReferences(ruleEntries.map(({ rule }) => rule)));
+        }
+        if (teamEntries.length > 0) {
+          teamServerMetaRef.current = new Map(teamEntries.map(({ team, meta }) => [team.id, meta]));
+          setTeams(teamEntries.map(({ team }) => team));
+        }
 
         const fallbackQuestionsLength = Array.isArray(referentials.slices.questions)
           ? referentials.slices.questions.length
@@ -2527,6 +2549,38 @@ const updateProjectFilters = useCallback((updater) => {
       processItem: (payload) => userProfileProvider.saveProfile(payload.email, payload.patch),
       getItemKey: (payload) => payload.email
     });
+
+    rulesQueueRef.current = createRetryQueue({
+      processItem: async (payload) => {
+        if (payload.action === 'remove') {
+          await rulesProvider.removeRule(payload.ruleId);
+          ruleServerMetaRef.current.delete(payload.ruleId);
+          return;
+        }
+        const { rule, meta } = await rulesProvider.saveRule(payload.rule, {
+          sortOrder: payload.sortOrder,
+          userEmail: currentUserEmail
+        });
+        ruleServerMetaRef.current.set(rule.id, meta);
+      },
+      getItemKey: (payload) => (payload.action === 'remove' ? payload.ruleId : payload.rule.id)
+    });
+
+    teamsQueueRef.current = createRetryQueue({
+      processItem: async (payload) => {
+        if (payload.action === 'remove') {
+          await teamsProvider.removeTeam(payload.teamId);
+          teamServerMetaRef.current.delete(payload.teamId);
+          return;
+        }
+        const { team, meta } = await teamsProvider.saveTeam(payload.team, {
+          sortOrder: payload.sortOrder,
+          userEmail: currentUserEmail
+        });
+        teamServerMetaRef.current.set(team.id, meta);
+      },
+      getItemKey: (payload) => (payload.action === 'remove' ? payload.teamId : payload.team.id)
+    });
   }, [currentUserEmail]);
 
   // Mise à jour optimiste immédiate (l'écran d'onboarding/le profil réagit tout de suite),
@@ -2565,6 +2619,8 @@ const updateProjectFilters = useCallback((updater) => {
       stickyNotesQueueRef.current?.flush();
       complianceCommentsQueueRef.current?.flush();
       userProfileQueueRef.current?.flush();
+      rulesQueueRef.current?.flush();
+      teamsQueueRef.current?.flush();
     };
     const handleOffline = () => setIsOnline(false);
 
@@ -4761,7 +4817,8 @@ const updateProjectFilters = useCallback((updater) => {
         onboardingTourConfig,
         validationCommitteeConfig,
         showcaseThemes,
-        adminEmails
+        adminEmails,
+        userEmail: currentUserEmail
       });
 
       const details = summary.lists
@@ -4782,6 +4839,7 @@ const updateProjectFilters = useCallback((updater) => {
     }
   }, [
     adminEmails,
+    currentUserEmail,
     inspirationFilters,
     inspirationFormFields,
     onboardingTourConfig,
@@ -5401,6 +5459,10 @@ const updateProjectFilters = useCallback((updater) => {
                 activityScope={activityScope}
                 onSharePointReinitialize={handleSharePointReinitialization}
                 sharePointReinitializeState={sharePointReinitState}
+                rulesQueueRef={rulesQueueRef}
+                teamsQueueRef={teamsQueueRef}
+                ruleServerMetaRef={ruleServerMetaRef}
+                teamServerMetaRef={teamServerMetaRef}
               />
             </Suspense>
           </AdminBackOfficeErrorBoundary>

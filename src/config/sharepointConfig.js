@@ -12,7 +12,9 @@ export const sharepointConfig = {
     showcaseStickyNotes: 'CN_ShowcaseStickyNotes',
     filesIndex: 'CN_FilesIndex',
     notificationsQueue: 'CN_NotificationsQueue',
-    userProfiles: 'CN_UserProfiles'
+    userProfiles: 'CN_UserProfiles',
+    rules: 'CN_Rules',
+    teams: 'CN_Teams'
   },
   libraries: {
     app: 'CN-App',

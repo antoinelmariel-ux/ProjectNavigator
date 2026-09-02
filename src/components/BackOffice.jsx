@@ -73,6 +73,7 @@ import { getShowcaseThemeActivationConflicts, normalizeThemeActivation } from '.
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { DEFAULT_LANGUAGE, getLocaleTag } from '../i18n/languages.js';
 import { resolveLocalizedText } from '../utils/localizedContent.js';
+import { isSharePointMode } from '../config/sharepointConfig.js';
 
 const QUESTION_TYPE_KEYS = {
   choice: 'choice',
@@ -661,7 +662,11 @@ export const BackOffice = ({
   isCurrentUserAdmin = false,
   activityScope,
   onSharePointReinitialize,
-  sharePointReinitializeState = { inProgress: false, message: '', status: 'idle' }
+  sharePointReinitializeState = { inProgress: false, message: '', status: 'idle' },
+  rulesQueueRef,
+  teamsQueueRef,
+  ruleServerMetaRef,
+  teamServerMetaRef
 }) => {
   const { t, language } = useTranslation();
   // Aperçu de conditions (onglet questions/règles) : simule les réponses avec le périmètre
@@ -1453,6 +1458,56 @@ export const BackOffice = ({
     setOnboardingTourConfig(normalizeOnboardingConfig(initialOnboardingTourConfig));
   }, [setOnboardingTourConfig]);
 
+  // Écriture réseau vers CN_Rules/CN_Teams : toujours via la file de réessais (jamais de
+  // .catch(console.warn) isolé), et seulement en mode SharePoint — en mode mock, rules/teams
+  // restent des useState locaux persistés dans localStorage comme avant.
+  const enqueueRuleWrite = useCallback((action, payload) => {
+    if (!isSharePointMode()) {
+      return;
+    }
+    const queue = rulesQueueRef?.current;
+    if (!queue || typeof queue.enqueue !== 'function') {
+      return;
+    }
+    queue.enqueue(
+      action === 'remove'
+        ? { action: 'remove', ruleId: payload.ruleId }
+        : { action: 'save', rule: payload.rule, sortOrder: payload.sortOrder }
+    );
+  }, [rulesQueueRef]);
+
+  const enqueueTeamWrite = useCallback((action, payload) => {
+    if (!isSharePointMode()) {
+      return;
+    }
+    const queue = teamsQueueRef?.current;
+    if (!queue || typeof queue.enqueue !== 'function') {
+      return;
+    }
+    queue.enqueue(
+      action === 'remove'
+        ? { action: 'remove', teamId: payload.teamId }
+        : { action: 'save', team: payload.team, sortOrder: payload.sortOrder }
+    );
+  }, [teamsQueueRef]);
+
+  // Aucun glisser-déposer sur rules/teams : l'ordre affiché est l'ordre d'insertion du
+  // tableau. SortOrder reconstitue cet ordre depuis des lignes SharePoint indépendantes —
+  // ajout en fin de liste (max + 1000), duplication au milieu fractionnaire (pas de
+  // renumérotation en masse des lignes suivantes).
+  const nextSortOrder = (list, metaRef) => {
+    const orders = list
+      .map((item) => metaRef?.current?.get(item.id)?.sortOrder)
+      .filter((value) => typeof value === 'number');
+    return (orders.length > 0 ? Math.max(...orders) : 0) + 1000;
+  };
+
+  const midpointSortOrder = (list, metaRef, index) => {
+    const currentOrder = metaRef?.current?.get(list[index]?.id)?.sortOrder ?? index * 1000;
+    const followingOrder = metaRef?.current?.get(list[index + 1]?.id)?.sortOrder;
+    return typeof followingOrder === 'number' ? (currentOrder + followingOrder) / 2 : currentOrder + 500;
+  };
+
   const handleUndo = useCallback(() => {
     const stack = undoStackRef.current;
     if (!stack || stack.length === 0) {
@@ -1493,6 +1548,9 @@ export const BackOffice = ({
             return next;
           });
         }
+        if (entry.item?.id) {
+          enqueueRuleWrite('save', { rule: entry.item, sortOrder: entry.sortOrder ?? nextSortOrder(rules, ruleServerMetaRef) });
+        }
         setUndoMessage(t('backOffice.main.ruleRestoredTemplate', { label: entry.item?.name || entry.item?.id || t('backOffice.main.ruleWordFallback') }));
         setReorderAnnouncement(t('backOffice.main.ruleDeletionUndoneAnnouncement'));
         break;
@@ -1518,6 +1576,9 @@ export const BackOffice = ({
             next.splice(insertIndex, 0, entry.item);
             return next;
           });
+        }
+        if (entry.item?.id) {
+          enqueueTeamWrite('save', { team: entry.item, sortOrder: entry.sortOrder ?? nextSortOrder(teams, teamServerMetaRef) });
         }
         setUndoMessage(t('backOffice.main.teamRestoredTemplate', { label: entry.item?.name || entry.item?.id || t('backOffice.main.teamWordFallback') }));
         setReorderAnnouncement(t('backOffice.main.teamDeletionUndoneAnnouncement'));
@@ -1570,7 +1631,13 @@ export const BackOffice = ({
     setInspirationFilters,
     setReorderAnnouncement,
     t,
-    language
+    language,
+    enqueueRuleWrite,
+    enqueueTeamWrite,
+    ruleServerMetaRef,
+    teamServerMetaRef,
+    rules,
+    teams
   ]);
 
   const confirmDeletion = useCallback((message) => {
@@ -3743,6 +3810,7 @@ export const BackOffice = ({
         return next;
       });
     }
+    enqueueRuleWrite('save', { rule: newRule, sortOrder: nextSortOrder(rules, ruleServerMetaRef) });
   };
 
   const deleteRule = (id) => {
@@ -3762,6 +3830,7 @@ export const BackOffice = ({
       type: 'rule',
       index: targetIndex,
       item: cloneData(target),
+      sortOrder: ruleServerMetaRef?.current?.get(id)?.sortOrder,
       message: t('backOffice.main.ruleDeletedUndoTemplate', { label }),
     });
 
@@ -3769,6 +3838,7 @@ export const BackOffice = ({
     if (editingRule && editingRule.id === id) {
       setEditingRule(null);
     }
+    enqueueRuleWrite('remove', { ruleId: id });
   };
 
   const duplicateRule = (id) => {
@@ -3799,6 +3869,10 @@ export const BackOffice = ({
         return next;
       });
     }
+    enqueueRuleWrite('save', {
+      rule: copiedRule,
+      sortOrder: midpointSortOrder(rules, ruleServerMetaRef, originalIndex)
+    });
   };
 
   const saveRule = (updatedRule) => {
@@ -3812,6 +3886,9 @@ export const BackOffice = ({
       setRules([...rules, updatedRule]);
     }
     setEditingRule(null);
+    const sortOrder = ruleServerMetaRef?.current?.get(updatedRule.id)?.sortOrder
+      ?? nextSortOrder(rules, ruleServerMetaRef);
+    enqueueRuleWrite('save', { rule: updatedRule, sortOrder });
   };
 
   const addTeam = () => {
@@ -3823,6 +3900,7 @@ export const BackOffice = ({
     };
 
     setTeams([...teams, newTeam]);
+    enqueueTeamWrite('save', { team: newTeam, sortOrder: nextSortOrder(teams, teamServerMetaRef) });
   };
 
   const updateTeamField = (index, field, value) => {
@@ -3832,6 +3910,10 @@ export const BackOffice = ({
     }
     next[index] = { ...next[index], [field]: value };
     setTeams(next);
+    const updatedTeam = next[index];
+    const sortOrder = teamServerMetaRef?.current?.get(updatedTeam.id)?.sortOrder
+      ?? nextSortOrder(teams, teamServerMetaRef);
+    enqueueTeamWrite('save', { team: updatedTeam, sortOrder });
   };
 
   const handleTeamContactsChange = (index, teamId, value) => {
@@ -3870,6 +3952,7 @@ export const BackOffice = ({
       type: 'team',
       index: targetIndex,
       item: cloneData(target),
+      sortOrder: teamServerMetaRef?.current?.get(id)?.sortOrder,
       message: t('backOffice.main.teamDeletedUndoTemplate', { label }),
     });
 
@@ -3882,6 +3965,7 @@ export const BackOffice = ({
       delete next[id];
       return next;
     });
+    enqueueTeamWrite('remove', { teamId: id });
   };
 
   return (
