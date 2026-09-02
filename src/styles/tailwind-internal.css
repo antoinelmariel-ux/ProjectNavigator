@@ -679,10 +679,6 @@ a {
   height: 0.625rem;
 }
 
-.h-24 {
-  height: 6rem;
-}
-
 .h-3 {
   height: 0.75rem;
 }
@@ -786,10 +782,6 @@ a {
 
 .leading-tight {
   line-height: 1.25;
-}
-
-.left-0 {
-  left: 0rem;
 }
 
 .left-4 {
@@ -1207,10 +1199,6 @@ a {
 
 .resize-y {
   resize: vertical;
-}
-
-.right-0 {
-  right: 0rem;
 }
 
 .right-6 {
