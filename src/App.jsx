@@ -4898,6 +4898,7 @@ const updateProjectFilters = useCallback((updater) => {
       <div id="tour-onboarding-anchor" className="sr-only" aria-hidden="true">
         {t('app.nav.guideLabel')}
       </div>
+      {!shouldShowOnboarding && (
       <nav className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-4">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -5094,6 +5095,7 @@ const updateProjectFilters = useCallback((updater) => {
           </div>
         </div>
       </nav>
+      )}
 
       {isProfileModalOpen && (
         <div
