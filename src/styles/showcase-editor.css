@@ -147,6 +147,63 @@
   margin-top: 1.5rem;
   padding-top: 1.25rem;
   border-top: 1px solid var(--sge-line);
+  /* le formulaire est long : garder Enregistrer/Annuler visibles évite
+     à l'utilisateur de remonter tout en haut pour valider. */
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  background: var(--sge-surface);
+  box-shadow: 0 -8px 16px -8px rgba(17, 24, 39, 0.12);
+}
+
+/* ---------- navigation rapide entre rubriques ---------- */
+.sge-jumpnav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.sge-jumpnav__item {
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid var(--sge-line);
+  background: var(--sge-ground);
+  color: var(--sge-ink-soft);
+  font-family: var(--sge-font);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
+}
+
+.sge-jumpnav__item:hover {
+  border-color: var(--sge-primary-line);
+  color: var(--sge-primary-strong);
+  background: var(--sge-primary-soft);
+}
+
+/* ---------- en-tête de regroupement de champs ---------- */
+.sge-group-header {
+  grid-column: 1 / -1;
+  margin-top: 0.75rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--sge-line);
+  gap: 0;
+  scroll-margin-top: 1rem;
+}
+
+.sge-group-header:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.sge-group-header__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--sge-primary-strong);
 }
 
 /* ---------- champs ---------- */

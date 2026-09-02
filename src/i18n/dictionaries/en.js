@@ -1652,6 +1652,7 @@ export default {
     editModeActiveLabel: 'Edit mode active',
     adjustInfoTitle: 'Adjust the information shown in the showcase',
     editPanelIntro: 'Each change will be applied to the corresponding questionnaire answers.',
+    jumpNavAriaLabel: 'Quick navigation between sections',
     sectionsOrganizationEyebrow: 'Section organization',
     reorderAddBlocksTitle: 'Reorder and add new blocks',
     dragDropHint: 'Drag and drop to change the order, or use the + button to insert a new section.',
