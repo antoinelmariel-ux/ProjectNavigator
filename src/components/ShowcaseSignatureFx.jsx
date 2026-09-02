@@ -137,9 +137,16 @@ export function ShowcaseSignatureFx({ rootRef }) {
     sizeGL();
 
     /* ---------- 2. éléments pilotés par le défilement ---------- */
+    const stackGroups = Array.prototype.map.call(root.querySelectorAll('.sg-stack'), (stack) =>
+      Array.prototype.slice.call(stack.querySelectorAll('.sg-stack__slot'))
+    );
     const roads = Array.prototype.slice.call(root.querySelectorAll('.sg-road'));
     const counter = root.querySelector('[data-sg-counter]');
     const storySteps = Array.prototype.slice.call(root.querySelectorAll('[data-sg-story-step]'));
+
+    if (reduce) {
+      stackGroups.forEach((slots) => slots.forEach((slot) => slot.style.setProperty('--sg-xp', '1')));
+    }
 
     let scrollP = 0;
 
@@ -147,6 +154,22 @@ export function ShowcaseSignatureFx({ rootRef }) {
       const rect = root.getBoundingClientRect();
       const travel = rect.height - window.innerHeight;
       scrollP = travel > 0 ? Math.min(1, Math.max(0, -rect.top / travel)) : 0;
+
+      if (!reduce) {
+        // chaque carte glisse de la droite vers sa place au fur et à mesure qu'elle
+        // franchit une bande du viewport (pas un simple déclenchement une fois visible),
+        // avec un léger décalage par carte pour une arrivée en cascade
+        for (let g = 0; g < stackGroups.length; g += 1) {
+          const slots = stackGroups[g];
+          for (let i = 0; i < slots.length; i += 1) {
+            const top = slots[i].getBoundingClientRect().top;
+            const start = window.innerHeight * 0.95 + i * 14;
+            const end = window.innerHeight * 0.6;
+            const progress = Math.min(1, Math.max(0, (start - top) / (start - end)));
+            slots[i].style.setProperty('--sg-xp', progress.toFixed(4));
+          }
+        }
+      }
 
       roads.forEach((road) => {
         const fill = road.querySelector('.sg-road__fill');

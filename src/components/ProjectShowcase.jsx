@@ -2899,11 +2899,7 @@ export const ProjectShowcase = ({
                   </div>
                   <div className="sg-stack" style={{ marginTop: '1rem' }}>
                     {solutionBenefits.map((benefit, benefitIndex) => (
-                      <div
-                        key={`${benefit}-${benefitIndex}`}
-                        className="sg-stack__slot sg-rv sg-rv--x"
-                        style={{ '--sg-d': `${(benefitIndex % 3) * 90}ms` }}
-                      >
+                      <div key={`${benefit}-${benefitIndex}`} className="sg-stack__slot">
                         <article className="sg-card">
                           <span className="sg-card__orb" />
                           <div className="sg-card__top">
@@ -3314,11 +3310,7 @@ export const ProjectShowcase = ({
             {items.length > 0 && (
               <div className="sg-stack">
                 {items.map((item, itemIndex) => (
-                  <div
-                    key={`${key}-card-${itemIndex}`}
-                    className="sg-stack__slot sg-rv sg-rv--x"
-                    style={{ '--sg-d': `${(itemIndex % 3) * 90}ms` }}
-                  >
+                  <div key={`${key}-card-${itemIndex}`} className="sg-stack__slot">
                     <article className="sg-card" style={{ '--sg-c1': family.g1, '--sg-c2': family.g2 }}>
                       <span className="sg-card__orb" />
                       <div className="sg-card__top">

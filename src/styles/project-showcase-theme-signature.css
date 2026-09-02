@@ -218,12 +218,6 @@
   transform: none;
 }
 
-/* arrivée horizontale (depuis la droite), utilisée par les cartes de la grille de bénéfices */
-.sg-rv--x {
-  transform: translateX(clamp(28px, 6vw, 64px));
-  transition-duration: 640ms;
-}
-
 /* ---------- bouton ---------- */
 .sg-btn {
   position: relative;
@@ -528,6 +522,15 @@
   .sg-stack {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+/* --sg-xp (0 → 1) est recalculée à chaque frame de défilement dans ShowcaseSignatureFx,
+   la carte glisse donc depuis la droite au rythme exact du scroll plutôt que d'être
+   révélée une fois pour toutes en franchissant un seuil de visibilité */
+.sg-stack__slot {
+  opacity: var(--sg-xp, 0);
+  transform: translateX(calc((1 - var(--sg-xp, 0)) * clamp(28px, 6vw, 64px)));
+  transition: opacity 120ms linear, transform 120ms linear;
 }
 
 .sg-card {
@@ -1286,5 +1289,11 @@
 
   .sg-btn:hover svg {
     transform: none;
+  }
+
+  .sg-stack__slot {
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 }
