@@ -6,8 +6,8 @@
   "type": "module",
   "scripts": {
     "test": "node --test",
-    "lint": "eslint \"src/**/*.{js,jsx}\" \"scripts/**/*.js\"",
-    "lint:fix": "eslint --fix \"src/**/*.{js,jsx}\" \"scripts/**/*.js\"",
+    "lint": "eslint \"src/**/*.{js,jsx}\" \"scripts/**/*.js\" \"e2e/**/*.js\" \"playwright.config.js\"",
+    "lint:fix": "eslint --fix \"src/**/*.{js,jsx}\" \"scripts/**/*.js\" \"e2e/**/*.js\" \"playwright.config.js\"",
     "format": "prettier --write \"src/**/*.{js,jsx,css}\" \"*.html\"",
     "format:check": "prettier --check \"src/**/*.{js,jsx,css}\" \"*.html\"",
     "generate:manifest": "node scripts/generate-module-manifest.js",
