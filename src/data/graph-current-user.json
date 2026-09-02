@@ -1,0 +1,15 @@
+{
+  "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users/$entity",
+  "@microsoft.graph.tips": "This request only returns a subset of the resource's properties. Your app will need to use $select to return non-default properties. To find out what other properties are available for this resource see https://learn.microsoft.com/graph/api/resources/user",
+  "businessPhones": [],
+  "displayName": "LASSAUGE Antoine",
+  "givenName": "Bertrand",
+  "jobTitle": "Resp. des Opérations E&C",
+  "mail": "bertrand.darieux@lfb.fr",
+  "mobilePhone": null,
+  "officeLocation": "A-R02-A2216",
+  "preferredLanguage": null,
+  "surname": "LASSAUGE",
+  "userPrincipalName": "bertrand.darieux@lfb.fr",
+  "id": "084dd7b9-c075-4e44-b110-7ae25ba4373a"
+}

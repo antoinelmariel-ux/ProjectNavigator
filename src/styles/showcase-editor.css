@@ -1,0 +1,655 @@
+/* ==========================================================================
+   Vitrine projet — chrome d'édition
+   Volontairement distinct de la vitrine : l'utilisateur doit voir d'un coup
+   d'œil ce qu'il modifie (la vitrine) et ce avec quoi il le modifie (l'outil).
+   Jetons fixes, alignés sur l'application — ils ne dépendent JAMAIS de la
+   palette du projet, sinon les contrôles changeraient de couleur d'un projet
+   à l'autre et le contraste ne serait plus garanti.
+   ========================================================================== */
+
+.sge {
+  --sge-primary: #2563eb;
+  --sge-primary-strong: #1d4ed8;
+  --sge-primary-soft: #eff6ff;
+  --sge-primary-line: #bfdbfe;
+
+  --sge-surface: #ffffff;
+  --sge-ground: #f9fafb;
+  --sge-ground-strong: #f3f4f6;
+
+  --sge-ink: #111827;
+  --sge-ink-soft: #4b5563;
+  --sge-ink-faint: #6b7280;
+
+  --sge-line: #e5e7eb;
+  --sge-line-strong: #d1d5db;
+
+  --sge-danger: #b91c1c;
+  --sge-danger-soft: #fef2f2;
+  --sge-danger-line: #fecaca;
+
+  /* trois rayons seulement, repris de l'application */
+  --sge-r-sm: 12px;
+  --sge-r-md: 16px;
+  --sge-r-lg: 24px;
+
+  --sge-shadow: 0 1px 2px rgba(17, 24, 39, 0.06), 0 8px 24px rgba(17, 24, 39, 0.08);
+  --sge-shadow-lift: 0 2px 4px rgba(17, 24, 39, 0.08), 0 18px 48px rgba(17, 24, 39, 0.16);
+
+  --sge-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  font-family: var(--sge-font);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--sge-ink);
+
+  /* la couche de fond de la vitrine est positionnée (z-index 0) : sans contexte
+     positionné ici, le chrome serait peint dessous — invisible, alors même que
+     le survol continue de l'atteindre puisque le fond est en pointer-events:none. */
+  position: relative;
+  z-index: 3;
+}
+
+/* ---------- surfaces ----------
+   opaques : elles flottent au-dessus de la vitrine sombre, une surface
+   translucide y perdrait sa lisibilité. */
+.sge-surface {
+  background: var(--sge-surface);
+  border: 1px solid var(--sge-line);
+  border-radius: var(--sge-r-lg);
+  box-shadow: var(--sge-shadow);
+}
+
+.sge-surface--lift {
+  box-shadow: var(--sge-shadow-lift);
+}
+
+.sge-divider {
+  border-top: 1px solid var(--sge-line);
+}
+
+/* ---------- en-têtes ---------- */
+.sge-eyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sge-ink-faint);
+}
+
+.sge-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--sge-ink);
+}
+
+.sge-subtitle {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--sge-ink-soft);
+}
+
+/* ---------- barre d'édition flottante ---------- */
+.sge-bar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  padding: 0.75rem 0;
+}
+
+/* le déclencheur est un bouton du système : on n'ajoute ici que l'élévation,
+   le reste viendrait en conflit avec .sge-btn à spécificité égale */
+.sge-bar__trigger {
+  box-shadow: var(--sge-shadow);
+}
+
+/* ---------- panneau d'édition ---------- */
+.sge-panel {
+  background: var(--sge-surface);
+  border: 1px solid var(--sge-line);
+  border-radius: var(--sge-r-lg);
+  box-shadow: var(--sge-shadow-lift);
+  padding: clamp(1.25rem, 3vw, 1.75rem);
+  margin-bottom: 1.5rem;
+}
+
+.sge-panel__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--sge-line);
+}
+
+.sge-panel__intro {
+  margin-top: 0.35rem;
+  font-size: 0.9rem;
+  color: var(--sge-ink-soft);
+  max-width: 62ch;
+}
+
+.sge-panel__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem 1.25rem;
+  margin-top: 1.25rem;
+}
+
+.sge-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--sge-line);
+}
+
+/* ---------- champs ---------- */
+.sge-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.sge-field--wide {
+  grid-column: 1 / -1;
+}
+
+.sge-field__label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--sge-ink);
+}
+
+.sge-field__helper {
+  font-size: 0.78rem;
+  color: var(--sge-ink-faint);
+}
+
+.sge-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--sge-r-sm);
+  border: 1px solid var(--sge-line);
+  background: var(--sge-surface);
+  color: var(--sge-ink);
+  font-family: var(--sge-font);
+  font-size: 0.92rem;
+  line-height: 1.45;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.sge-input::placeholder {
+  color: var(--sge-ink-faint);
+}
+
+.sge-input:hover {
+  border-color: var(--sge-line-strong);
+}
+
+.sge-input:focus,
+.sge-input:focus-visible {
+  outline: none;
+  border-color: var(--sge-primary);
+  box-shadow: 0 0 0 3px var(--sge-primary-soft);
+}
+
+.sge-input--textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+
+/* ---------- boutons ---------- */
+.sge-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.15rem;
+  border-radius: var(--sge-r-sm);
+  border: 1px solid transparent;
+  font-family: var(--sge-font);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease, transform 120ms ease;
+}
+
+.sge-btn:active {
+  transform: scale(0.98);
+}
+
+.sge-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.sge-btn--primary {
+  background: var(--sge-primary);
+  color: #ffffff;
+}
+
+.sge-btn--primary:hover:not(:disabled) {
+  background: var(--sge-primary-strong);
+}
+
+.sge-btn--outline {
+  background: var(--sge-surface);
+  border-color: var(--sge-line);
+  color: var(--sge-ink);
+}
+
+.sge-btn--outline:hover:not(:disabled) {
+  border-color: var(--sge-primary-line);
+  color: var(--sge-primary-strong);
+}
+
+.sge-btn--ghost {
+  background: transparent;
+  color: var(--sge-ink-soft);
+}
+
+.sge-btn--ghost:hover:not(:disabled) {
+  background: var(--sge-ground-strong);
+  color: var(--sge-ink);
+}
+
+.sge-btn--danger {
+  background: var(--sge-danger-soft);
+  border-color: var(--sge-danger-line);
+  color: var(--sge-danger);
+}
+
+.sge-btn--danger:hover:not(:disabled) {
+  border-color: var(--sge-danger);
+}
+
+.sge-btn__icon {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+}
+
+/* ---------- contrôle segmenté (mode d'affichage) ---------- */
+.sge-segment {
+  display: inline-flex;
+  padding: 3px;
+  gap: 3px;
+  border-radius: 999px;
+  background: var(--sge-ground-strong);
+  border: 1px solid var(--sge-line);
+}
+
+.sge-segment__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: var(--sge-ink-soft);
+  font-family: var(--sge-font);
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.sge-segment__item:hover {
+  color: var(--sge-ink);
+}
+
+.sge-segment__item[aria-pressed='true'] {
+  background: var(--sge-surface);
+  color: var(--sge-primary-strong);
+  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.08);
+}
+
+.sge-segment__count {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--sge-ink-faint);
+}
+
+/* ---------- cases à cocher en grille ---------- */
+.sge-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.6rem;
+}
+
+.sge-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--sge-r-sm);
+  border: 1px solid var(--sge-line);
+  background: var(--sge-surface);
+  color: var(--sge-ink);
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.sge-choice:hover {
+  border-color: var(--sge-line-strong);
+}
+
+.sge-choice--active {
+  border-color: var(--sge-primary-line);
+  background: var(--sge-primary-soft);
+}
+
+.sge-choice__checkbox {
+  margin-top: 0.15rem;
+  accent-color: var(--sge-primary);
+  flex: none;
+}
+
+.sge-choice__text {
+  min-width: 0;
+}
+
+/* ---------- jalons ---------- */
+.sge-ms-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.sge-ms-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: var(--sge-r-sm);
+  border: 1px solid var(--sge-line);
+  background: var(--sge-ground);
+  transition: border-color 160ms ease, background 160ms ease, opacity 160ms ease;
+}
+
+.sge-ms-row--dragging {
+  opacity: 0.45;
+}
+
+.sge-ms-row--drop-target {
+  border-color: var(--sge-primary);
+  background: var(--sge-primary-soft);
+}
+
+.sge-ms-row__date {
+  flex: none;
+  width: 9.5rem;
+}
+
+.sge-ms-row__description {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.sge-ms-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--sge-ink-faint);
+}
+
+.sge-ms-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.6rem;
+  padding: 0.55rem 1rem;
+  border-radius: 999px;
+  border: 1px dashed var(--sge-line-strong);
+  background: transparent;
+  color: var(--sge-ink-soft);
+  font-family: var(--sge-font);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
+}
+
+.sge-ms-add:hover {
+  border-color: var(--sge-primary);
+  color: var(--sge-primary-strong);
+  background: var(--sge-primary-soft);
+}
+
+.sge-ms-add--drop-target {
+  border-style: solid;
+  border-color: var(--sge-primary);
+  background: var(--sge-primary-soft);
+}
+
+.sge-ms-add__icon,
+.sge-ms-remove__icon {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.sge-ms-remove {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--sge-line);
+  background: var(--sge-surface);
+  color: var(--sge-ink-soft);
+  font-family: var(--sge-font);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: border-color 160ms ease, color 160ms ease;
+}
+
+.sge-ms-remove:hover {
+  border-color: var(--sge-danger-line);
+  color: var(--sge-danger);
+}
+
+/* ---------- état vide ---------- */
+.sge-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 2.5rem 1.5rem;
+  border-radius: var(--sge-r-lg);
+  border: 1px dashed var(--sge-line-strong);
+  background: var(--sge-ground);
+  text-align: center;
+}
+
+.sge-empty__title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--sge-ink);
+}
+
+.sge-empty__text {
+  font-size: 0.85rem;
+  color: var(--sge-ink-soft);
+  max-width: 44ch;
+}
+
+/* ---------- fenêtre modale ---------- */
+.sge-modal-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: clamp(1rem, 5vh, 3rem) 1rem;
+  overflow-y: auto;
+  background: rgba(17, 24, 39, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.sge-modal {
+  width: 100%;
+  max-width: 46rem;
+  background: var(--sge-surface);
+  border-radius: var(--sge-r-lg);
+  box-shadow: var(--sge-shadow-lift);
+  padding: clamp(1.25rem, 3vw, 1.75rem);
+}
+
+.sge-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--sge-line);
+}
+
+.sge-modal__body {
+  margin-top: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.sge-modal__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--sge-line);
+}
+
+/* ---------- sélecteur de gabarit ---------- */
+.sge-tpl {
+  display: flex;
+  align-items: stretch;
+  gap: 0.85rem;
+}
+
+.sge-tpl__nav {
+  flex: none;
+  width: 2.75rem;
+  border-radius: var(--sge-r-sm);
+  border: 1px solid var(--sge-line);
+  background: var(--sge-surface);
+  color: var(--sge-ink-soft);
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: border-color 160ms ease, color 160ms ease;
+}
+
+.sge-tpl__nav:hover {
+  border-color: var(--sge-primary-line);
+  color: var(--sge-primary-strong);
+}
+
+.sge-tpl__card {
+  flex: 1 1 auto;
+  min-width: 0;
+  border-radius: var(--sge-r-md);
+  border: 1px solid var(--sge-line);
+  background: var(--sge-ground);
+  padding: 1.1rem;
+}
+
+.sge-tpl__origin {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 0.45rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: var(--sge-primary-soft);
+  border: 1px solid var(--sge-primary-line);
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--sge-primary-strong);
+}
+
+.sge-tpl__preview {
+  margin-top: 0.9rem;
+  border-radius: var(--sge-r-sm);
+  background: var(--sge-surface);
+  border: 1px solid var(--sge-line);
+  padding: 0.9rem;
+}
+
+/* ---------- pastilles de famille de couleur ---------- */
+.sge-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.sge-swatch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid var(--sge-line);
+  background: var(--sge-surface);
+  color: var(--sge-ink-soft);
+  font-family: var(--sge-font);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 160ms ease, color 160ms ease;
+}
+
+.sge-swatch:hover {
+  border-color: var(--sge-line-strong);
+  color: var(--sge-ink);
+}
+
+.sge-swatch[aria-pressed='true'] {
+  border-color: var(--sge-primary);
+  color: var(--sge-primary-strong);
+  background: var(--sge-primary-soft);
+}
+
+.sge-swatch__dot {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 50%;
+  flex: none;
+  box-shadow: inset 0 0 0 1px rgba(17, 24, 39, 0.12);
+}
+
+/* ---------- accessibilité ---------- */
+.sge :focus-visible,
+.sge-modal :focus-visible {
+  outline: 2px solid var(--sge-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sge-btn,
+  .sge-bar__trigger,
+  .sge-input,
+  .sge-choice,
+  .sge-swatch,
+  .sge-ms-row {
+    transition: none;
+  }
+
+  .sge-btn:active,
+  .sge-bar__trigger:active {
+    transform: none;
+  }
+}

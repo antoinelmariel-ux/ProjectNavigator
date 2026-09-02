@@ -1,0 +1,221 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Urbanist:wght@400;500;600;700&display=swap');
+
+[data-showcase-theme="deezer"] {
+  font-family: 'Urbanist', 'Montserrat', system-ui, sans-serif;
+  color: #f8fafc;
+  background: #050509;
+}
+
+[data-showcase-theme="deezer"] .deezer-shell {
+  position: relative;
+  min-height: 100vh;
+  padding: 6rem clamp(1.5rem, 6vw, 5.5rem) 5rem;
+  background: radial-gradient(circle at 10% 20%, rgba(255, 85, 0, 0.25), transparent 45%),
+    radial-gradient(circle at 80% 10%, rgba(255, 31, 107, 0.22), transparent 45%),
+    linear-gradient(160deg, #050509 0%, #0c0c18 45%, #151529 100%);
+  overflow: hidden;
+}
+
+[data-showcase-theme="deezer"] .deezer-shell::before,
+[data-showcase-theme="deezer"] .deezer-shell::after {
+  content: '';
+  position: absolute;
+  inset: -20% -10% 0 -10%;
+  background: radial-gradient(circle at 10% 20%, rgba(255, 85, 0, 0.18), transparent 40%),
+    radial-gradient(circle at 70% 40%, rgba(255, 31, 107, 0.2), transparent 42%),
+    radial-gradient(circle at 40% 80%, rgba(124, 58, 237, 0.22), transparent 46%);
+  animation: deezerGlow 18s linear infinite;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+[data-showcase-theme="deezer"] .deezer-shell::after {
+  inset: -10% -20% 0 -20%;
+  opacity: 0.6;
+  animation-duration: 26s;
+}
+
+@keyframes deezerGlow {
+  0% {
+    transform: translateY(0) translateX(0) scale(1);
+  }
+  50% {
+    transform: translateY(-6%) translateX(4%) scale(1.05);
+  }
+  100% {
+    transform: translateY(0) translateX(0) scale(1);
+  }
+}
+
+[data-showcase-theme="deezer"] .deezer-shell--standalone {
+  padding-top: 7rem;
+}
+
+[data-showcase-theme="deezer"] .deezer-sections {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 4rem;
+}
+
+[data-showcase-theme="deezer"] .deezer-section {
+  position: relative;
+  padding: 2.5rem clamp(1.5rem, 4vw, 3rem);
+  border-radius: 28px;
+  background: rgba(15, 15, 28, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(20px);
+}
+
+[data-showcase-theme="deezer"] .deezer-section--hero {
+  background-attachment: fixed;
+  background-image: radial-gradient(circle at 20% 20%, rgba(255, 85, 0, 0.3), transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(255, 31, 107, 0.3), transparent 48%),
+    linear-gradient(140deg, rgba(10, 10, 20, 0.8), rgba(20, 20, 40, 0.9));
+  border-color: rgba(255, 85, 0, 0.25);
+}
+
+[data-showcase-theme="deezer"] .deezer-eyebrow {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.4em;
+  color: rgba(255, 173, 103, 0.85);
+}
+
+[data-showcase-theme="deezer"] .deezer-title {
+  font-size: clamp(2.5rem, 4vw, 3.5rem);
+  font-weight: 700;
+  margin-top: 0.6rem;
+  background: linear-gradient(120deg, #ff5500, #ff1f6b, #7c3aed);
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+[data-showcase-theme="deezer"] .deezer-subtitle {
+  font-size: 1.1rem;
+  max-width: 42rem;
+  color: rgba(248, 250, 252, 0.8);
+}
+
+[data-showcase-theme="deezer"] .deezer-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.8rem 1.6rem;
+  border-radius: 999px;
+  font-weight: 600;
+  color: #0b0b10;
+  background: linear-gradient(120deg, #ff5500, #ff1f6b);
+  box-shadow: 0 16px 40px rgba(255, 31, 107, 0.35);
+  border: none;
+}
+
+[data-showcase-theme="deezer"] .deezer-highlight-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+[data-showcase-theme="deezer"] .deezer-highlight-card {
+  padding: 1rem 1.2rem;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 0 24px rgba(255, 85, 0, 0.08);
+}
+
+[data-showcase-theme="deezer"] .deezer-highlight-card p {
+  margin: 0;
+}
+
+[data-showcase-theme="deezer"] .deezer-grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin-top: 1.5rem;
+}
+
+[data-showcase-theme="deezer"] .deezer-card {
+  background: rgba(8, 8, 18, 0.8);
+  border-radius: 20px;
+  padding: 1.4rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+}
+
+[data-showcase-theme="deezer"] .deezer-card h3 {
+  margin: 0 0 0.6rem;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+[data-showcase-theme="deezer"] .deezer-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+[data-showcase-theme="deezer"] .deezer-list li::marker {
+  color: #ff5500;
+}
+
+[data-showcase-theme="deezer"] .deezer-timeline {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+[data-showcase-theme="deezer"] .deezer-timeline-item {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+[data-showcase-theme="deezer"] .deezer-timeline-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: linear-gradient(120deg, #ff5500, #ff1f6b);
+  box-shadow: 0 0 12px rgba(255, 85, 0, 0.6);
+  margin-top: 0.4rem;
+}
+
+[data-showcase-theme="deezer"] .deezer-alert {
+  border-left: 3px solid #ff1f6b;
+  padding-left: 1rem;
+  background: rgba(255, 31, 107, 0.08);
+  border-radius: 12px;
+}
+
+[data-showcase-theme="deezer"] .deezer-parallax {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle at 20% 30%, rgba(255, 85, 0, 0.15), transparent 40%),
+    radial-gradient(circle at 80% 70%, rgba(124, 58, 237, 0.18), transparent 45%);
+  opacity: 0.7;
+  transform: translateZ(0);
+  animation: deezerFloat 12s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes deezerFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-showcase-theme="deezer"] .deezer-shell::before,
+  [data-showcase-theme="deezer"] .deezer-shell::after,
+  [data-showcase-theme="deezer"] .deezer-parallax {
+    animation: none;
+  }
+}

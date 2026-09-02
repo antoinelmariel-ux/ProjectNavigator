@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mentions légales · Project Navigator</title>
+    <link rel="stylesheet" href="./src/styles/fonts.css" />
+    <link rel="stylesheet" href="./src/styles/tailwind-internal.css" />
+    <style>
+      :root {
+        color-scheme: light;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: 'Inter', 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont,
+          'Helvetica Neue', Arial, sans-serif;
+        background: linear-gradient(180deg, #f4f7fb 0%, #ffffff 60%);
+        color: #1f2937;
+        line-height: 1.6;
+      }
+
+      a {
+        color: #2563eb;
+        font-weight: 500;
+        text-decoration: none;
+      }
+
+      a:hover {
+        text-decoration: underline;
+      }
+
+      header {
+        background: rgba(255, 255, 255, 0.95);
+        border-bottom: 1px solid #e5e7eb;
+      }
+
+      .header-inner {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 2.25rem 1.5rem 1.75rem;
+        text-align: center;
+      }
+
+      .header-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: #eef2ff;
+        color: #4338ca;
+        padding: 0.35rem 0.9rem;
+        border-radius: 999px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+      }
+
+      header h1 {
+        margin: 1.15rem 0 0.6rem;
+        font-size: clamp(1.85rem, 2.4vw, 2.2rem);
+        color: #0f172a;
+      }
+
+      header p {
+        margin: 0 auto;
+        max-width: 560px;
+        color: #6b7280;
+        font-size: 0.95rem;
+      }
+
+      main {
+        max-width: 960px;
+        margin: -2.5rem auto 4rem;
+        padding: 0 1.5rem;
+      }
+
+      .legal-card {
+        background: #ffffff;
+        border-radius: 1.25rem;
+        box-shadow: 0 25px 60px rgba(15, 23, 42, 0.08);
+        border: 1px solid #eef2f7;
+        padding: clamp(2rem, 2.4vw, 3rem);
+      }
+
+      .legal-section + .legal-section {
+        margin-top: 2.5rem;
+        padding-top: 2.5rem;
+        border-top: 1px solid #f1f5f9;
+      }
+
+      .legal-section h2 {
+        margin: 0;
+        font-size: 1.35rem;
+        color: #0f172a;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .legal-section h2 span.icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 0.75rem;
+        background: #f4f5ff;
+        color: #4338ca;
+        font-size: 1.3rem;
+      }
+
+      .legal-section p {
+        margin: 1rem 0 0;
+      }
+
+      .legal-section ul {
+        margin: 1rem 0 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: 0.6rem;
+      }
+
+      .legal-section li {
+        position: relative;
+        padding-left: 1.6rem;
+        color: #374151;
+      }
+
+      .legal-section li::before {
+        content: '';
+        position: absolute;
+        left: 0.5rem;
+        top: 0.8rem;
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 999px;
+        background: #6366f1;
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+      }
+
+      .legal-highlight {
+        display: grid;
+        gap: 1.25rem;
+        margin-top: 1.5rem;
+        padding: 1.25rem 1.5rem;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 1rem;
+      }
+
+      .legal-highlight strong {
+        color: #1d4ed8;
+      }
+
+      .contact-card {
+        margin-top: 1.5rem;
+        padding: 1.5rem;
+        border-radius: 1rem;
+        background: linear-gradient(145deg, rgba(67, 56, 202, 0.08), rgba(59, 130, 246, 0.08));
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        color: #312e81;
+      }
+
+      .contact-card strong {
+        color: #1e3a8a;
+      }
+
+      footer {
+        margin: 0;
+        padding: 2rem 1.5rem 3rem;
+        background: #ffffff;
+        border-top: 1px solid #e5e7eb;
+        color: #6b7280;
+      }
+
+      .footer-inner {
+        max-width: 960px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        align-items: center;
+        text-align: center;
+      }
+
+      .footer-inner a {
+        color: #4338ca;
+      }
+
+      .return-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        color: #4338ca;
+        font-weight: 600;
+        text-decoration: none;
+      }
+
+      .return-link::before {
+        content: '←';
+        font-weight: 700;
+      }
+
+      @media (max-width: 640px) {
+        .header-inner {
+          padding: 2rem 1.25rem 1.5rem;
+        }
+
+        main {
+          margin-top: 1.25rem;
+        }
+
+        .legal-card {
+          padding: 1.75rem 1.25rem;
+        }
+
+        .legal-section h2 {
+          font-size: 1.2rem;
+        }
+
+        .legal-section h2 span.icon {
+          width: 2.25rem;
+          height: 2.25rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="header-inner">
+        <span class="header-badge">Mentions légales</span>
+        <h1>Confiance et transparence, au service de vos projets</h1>
+        <p>
+          Project Navigator est conçu pour vous guider sereinement dans vos démarches.
+          Retrouvez ici les informations essentielles relatives à l'éditeur, à la
+          protection des données et à vos droits.
+        </p>
+      </div>
+    </header>
+    <main>
+      <article class="legal-card" aria-labelledby="about-title">
+        <section class="legal-section" id="about" aria-labelledby="about-title">
+          <h2 id="about-title"><span class="icon">🧭</span>À propos de Project Navigator</h2>
+          <p>
+            <strong>Project Navigator</strong> est un outil pensé pour vous accompagner pas à
+            pas dans la qualification de vos projets. Il vous aide à identifier les bons
+            interlocuteurs, anticiper vos besoins réglementaires et sécuriser vos délais de
+            validation.
+          </p>
+          <div class="legal-highlight">
+            <p>
+              Cet outil ne se substitue pas à l'avis des équipes Compliance : il vous oriente,
+              simplifie la démarche et vous fait gagner un temps précieux.
+            </p>
+          </div>
+        </section>
+
+        <section class="legal-section" id="editor" aria-labelledby="editor-title">
+          <h2 id="editor-title"><span class="icon">👥</span>Éditeur du site</h2>
+          <p>
+            L'outil est conçu et développé par le <strong>pôle Éthique &amp; Conformité du LFB</strong>.
+          </p>
+          <div class="contact-card">
+            <p>
+              Pour toute question, suggestion ou idée d'amélioration, écrivez à :<br />
+              📩 <strong>Antoine Lassauge</strong> – <em>pôle Éthique &amp; Conformité, LFB</em>
+            </p>
+          </div>
+        </section>
+
+        <section class="legal-section" id="responsibility" aria-labelledby="responsibility-title">
+          <h2 id="responsibility-title"><span class="icon">⚖️</span>Responsabilité</h2>
+          <p>
+            Nous faisons le maximum pour vous proposer une information fiable, à jour et utile.
+            Cependant, malgré notre vigilance, certaines informations peuvent évoluer ou contenir
+            des inexactitudes.
+          </p>
+          <div class="legal-highlight">
+            <p>
+              👉 L'analyse réalisée repose exclusivement sur vos réponses. Elle a une valeur
+              indicative : <strong>seules les équipes Compliance du LFB peuvent valider la conformité
+              officielle de votre projet</strong> avec les lois, règlements et procédures internes en
+              vigueur.
+            </p>
+          </div>
+        </section>
+
+        <section class="legal-section" id="privacy" aria-labelledby="privacy-title">
+          <h2 id="privacy-title"><span class="icon">🔒</span>Protection de vos données personnelles</h2>
+          <p>
+            Nous attachons une grande importance à la confidentialité de vos données. Les informations
+            que vous saisissez sont enregistrées dans des fichiers informatisés par le
+            <strong>Groupe LFB</strong>. Elles servent uniquement à <strong>gérer les projets</strong>
+            et à <strong>faciliter leur revue Compliance</strong>.
+          </p>
+          <ul>
+            <li><strong>Base légale</strong> : exécution du contrat de travail.</li>
+            <li><strong>Accès</strong> : uniquement les employés du Groupe LFB.</li>
+            <li><strong>Durée de conservation</strong> : 5 ans à compter de la soumission aux équipes Compliance.</li>
+          </ul>
+        </section>
+
+        <section class="legal-section" id="rights" aria-labelledby="rights-title">
+          <h2 id="rights-title"><span class="icon">🧾</span>Vos droits</h2>
+          <p>Vous disposez à tout moment des droits suivants :</p>
+          <ul>
+            <li>Accéder à vos données.</li>
+            <li>Les corriger si elles sont inexactes.</li>
+            <li>Demander leur suppression.</li>
+            <li>Limiter ou vous opposer à certains traitements.</li>
+          </ul>
+          <p>
+            Pour en savoir plus sur vos droits, consultez le site de la
+            <a href="https://www.cnil.fr/fr/les-droits-pour-maitriser-vos-donnees-personnelles" target="_blank" rel="noopener">
+              CNIL
+            </a>.
+          </p>
+        </section>
+      </article>
+    </main>
+    <footer>
+      <div class="footer-inner">
+        <a class="return-link" href="./index.html">Retour à l'application</a>
+        <p>Project Navigator · Version v1.0.381 · Tous droits réservés © LFB</p>
+      </div>
+    </footer>
+  </body>
+</html>

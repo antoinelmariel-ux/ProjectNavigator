@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Project Navigator</title>
+    <link rel="preload" href="./src/styles/fonts.css" as="style" />
+    <link rel="preload" href="./src/styles/tailwind-internal.css" as="style" />
+    <link rel="stylesheet" href="./src/styles/fonts.css" />
+    <link rel="stylesheet" href="./src/styles/tailwind-internal.css" />
+    <style>
+      .hv-modal-panel {
+        max-height: calc(100vh - 2rem);
+      }
+
+      @media (min-width: 640px) {
+        .hv-modal-panel {
+          max-height: calc(100vh - 4rem);
+        }
+      }
+
+      .hv-button-draft {
+        background-color: #f59e0b;
+        border: 1px solid #d97706;
+        color: #ffffff;
+      }
+
+      .hv-button-draft:hover {
+        background-color: #d97706;
+      }
+
+      .hv-button-draft:focus-visible {
+        outline: 2px solid #f59e0b;
+        outline-offset: 2px;
+      }
+
+      .loading-spinner {
+        display: inline-block;
+        width: 1.15rem;
+        height: 1.15rem;
+        border: 2px solid #cbd5e1;
+        border-top-color: #2563eb;
+        border-radius: 9999px;
+        animation: cn-spin 0.6s linear infinite;
+      }
+
+      @keyframes cn-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Squelette du premier écran : affiché tant que le manifeste applicatif n'est pas
+         exécuté, pour que l'attente montre la page qui arrive plutôt qu'un vide. */
+      .cn-boot {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #eff6ff 0%, #ffffff 45%, #dbeafe 100%);
+        padding: 0 1rem 3rem;
+      }
+
+      .cn-boot__nav {
+        background: #ffffff;
+        border-bottom: 1px solid #e5e7eb;
+        margin: 0 -1rem 2rem;
+        padding: 1rem 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .cn-boot__inner {
+        max-width: 72rem;
+        margin: 0 auto;
+      }
+
+      .cn-boot__panel {
+        background: #ffffff;
+        border: 1px solid #dbeafe;
+        border-radius: 1.5rem;
+        padding: 1.75rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .cn-boot__cards {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: 1fr;
+      }
+
+      @media (min-width: 768px) {
+        .cn-boot__cards {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      .cn-boot__card {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 1rem;
+        padding: 1.5rem;
+      }
+
+      .cn-line {
+        display: block;
+        height: 0.75rem;
+        border-radius: 9999px;
+        background: #e5e7eb;
+        background-image: linear-gradient(90deg, #e5e7eb 0%, #f3f4f6 40%, #e5e7eb 80%);
+        background-size: 300% 100%;
+        animation: cn-shimmer 1.4s ease-in-out infinite;
+        margin-bottom: 0.75rem;
+      }
+
+      .cn-line--title { height: 1.5rem; width: 60%; }
+      .cn-line--text { width: 85%; }
+      .cn-line--short { width: 40%; }
+      .cn-line--button { height: 2.75rem; width: 12rem; border-radius: 0.75rem; margin-top: 1.25rem; }
+      .cn-line--logo { height: 3rem; width: 4.5rem; border-radius: 0.5rem; margin: 0; }
+      .cn-line:last-child { margin-bottom: 0; }
+
+      @keyframes cn-shimmer {
+        0% { background-position: 100% 0; }
+        100% { background-position: 0 0; }
+      }
+
+      .cn-boot__status {
+        max-width: 72rem;
+        margin: 0 auto 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        font-size: 0.875rem;
+        color: #4b5563;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .loading-spinner {
+          animation-duration: 1.6s;
+        }
+
+        .cn-line {
+          animation: none;
+        }
+      }
+    </style>
+  </head>
+  <body class="bg-gray-100">
+    <div id="root">
+      <div class="cn-boot" role="status" aria-live="polite">
+        <div class="cn-boot__nav">
+          <span class="cn-line cn-line--logo" aria-hidden="true"></span>
+          <span class="cn-line cn-line--short" aria-hidden="true"></span>
+        </div>
+        <p class="cn-boot__status">
+          <span class="loading-spinner" aria-hidden="true"></span>
+          <span id="cn-boot-loading-text">Chargement de Project Navigator&hellip;</span>
+        </p>
+        <div class="cn-boot__inner" aria-hidden="true">
+          <div class="cn-boot__panel">
+            <span class="cn-line cn-line--title"></span>
+            <span class="cn-line cn-line--text"></span>
+            <span class="cn-line cn-line--short"></span>
+            <span class="cn-line cn-line--button"></span>
+          </div>
+          <div class="cn-boot__cards">
+            <div class="cn-boot__card">
+              <span class="cn-line cn-line--title"></span>
+              <span class="cn-line cn-line--text"></span>
+              <span class="cn-line cn-line--short"></span>
+            </div>
+            <div class="cn-boot__card">
+              <span class="cn-line cn-line--title"></span>
+              <span class="cn-line cn-line--text"></span>
+              <span class="cn-line cn-line--short"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Détection de la langue avant le premier rendu React, pour éviter un flash dans la
+         mauvaise langue : voir src/i18n/ pour le mécanisme de traduction complet une fois
+         l'application chargée. -->
+    <script>
+      (function detectAndApplyLanguage() {
+        var SUPPORTED_LANGUAGES = ['en', 'fr', 'de', 'es'];
+        var DEFAULT_LANGUAGE = 'en';
+        var LANGUAGE_STORAGE_KEY = 'complianceNavigatorLanguage';
+        var BOOT_STRINGS = {
+          en: {
+            loading: 'Loading Project Navigator…',
+            errorTitle: 'Unable to display the application',
+            errorMessage:
+              'Automatic loading of the home page failed. Reload the page, then check that all project files are accessible.',
+            errorDetail: 'Technical detail:'
+          },
+          fr: {
+            loading: 'Chargement de Project Navigator…',
+            errorTitle: "Impossible d'afficher l'application",
+            errorMessage:
+              "Le chargement automatique de la page d'accueil a échoué. Rechargez la page, puis vérifiez que tous les fichiers du projet sont bien accessibles.",
+            errorDetail: 'Détail technique :'
+          },
+          de: {
+            loading: 'Project Navigator wird geladen…',
+            errorTitle: 'Anwendung kann nicht angezeigt werden',
+            errorMessage:
+              'Das automatische Laden der Startseite ist fehlgeschlagen. Laden Sie die Seite neu und überprüfen Sie, ob alle Projektdateien zugänglich sind.',
+            errorDetail: 'Technische Details:'
+          },
+          es: {
+            loading: 'Cargando Project Navigator…',
+            errorTitle: 'No se puede mostrar la aplicación',
+            errorMessage:
+              'La carga automática de la página de inicio ha fallado. Vuelva a cargar la página y compruebe que todos los archivos del proyecto sean accesibles.',
+            errorDetail: 'Detalle técnico:'
+          }
+        };
+
+        var extractSubtag = function (code) {
+          return (code || '').split('-')[0].toLowerCase();
+        };
+
+        var detectLanguage = function () {
+          try {
+            var stored = window.localStorage ? window.localStorage.getItem(LANGUAGE_STORAGE_KEY) : null;
+            if (stored && SUPPORTED_LANGUAGES.indexOf(stored) !== -1) {
+              return stored;
+            }
+          } catch (error) {
+            // Stockage indisponible (mode privé, quota...) : on retombe sur la détection navigateur.
+          }
+
+          var candidates =
+            navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language];
+          for (var i = 0; i < candidates.length; i += 1) {
+            var subtag = extractSubtag(candidates[i]);
+            if (SUPPORTED_LANGUAGES.indexOf(subtag) !== -1) {
+              return subtag;
+            }
+          }
+          return DEFAULT_LANGUAGE;
+        };
+
+        var language = detectLanguage();
+        window.__CN_BOOT_LANGUAGE__ = language;
+        document.documentElement.lang = language;
+        window.__CN_BOOT_STRINGS__ = BOOT_STRINGS[language] || BOOT_STRINGS[DEFAULT_LANGUAGE];
+
+        var loadingText = document.getElementById('cn-boot-loading-text');
+        if (loadingText) {
+          loadingText.textContent = window.__CN_BOOT_STRINGS__.loading;
+        }
+      })();
+    </script>
+
+    <script src="./src/vendor/react.production.min.js"></script>
+    <script src="./src/vendor/react-dom.production.min.js"></script>
+    <!-- Code applicatif déjà transpilé (build Babel hors-ligne). Voir scripts/generate-module-manifest.js -->
+    <script src="./src/module-manifest.js"></script>
+    <script src="./src/module-loader.js"></script>
+    <!-- Gros composants (back-office, vitrine, synthèse) chargés après le premier rendu. -->
+    <script defer src="./src/module-manifest.deferred.js"></script>
+    <script>
+      (function bootstrapApplication() {
+        const renderBootstrapError = (error) => {
+          const root = document.getElementById('root');
+          if (!root) {
+            return;
+          }
+
+          var strings = window.__CN_BOOT_STRINGS__ || {
+            errorTitle: "Impossible d'afficher l'application",
+            errorMessage:
+              "Le chargement automatique de la page d'accueil a échoué. Rechargez la page, puis vérifiez que tous les fichiers du projet sont bien accessibles.",
+            errorDetail: 'Détail technique :'
+          };
+
+          root.innerHTML = `
+            <div class="min-h-screen flex items-center justify-center bg-gray-100 p-6">
+              <div class="max-w-lg rounded-2xl border border-red-200 bg-white p-6 shadow-sm">
+                <h1 class="text-lg font-semibold text-red-700">${strings.errorTitle}</h1>
+                <p class="mt-3 text-sm text-gray-700">
+                  ${strings.errorMessage}
+                </p>
+                <p class="mt-2 text-xs text-gray-500">${strings.errorDetail} ${String(error && error.message ? error.message : error)}</p>
+              </div>
+            </div>
+          `;
+        };
+
+        try {
+          if (!window.ModuleLoader || typeof window.ModuleLoader.import !== 'function') {
+            throw new Error('ModuleLoader indisponible.');
+          }
+          if (!window.__COMPLIANCE_NAVIGATOR_MANIFEST__) {
+            throw new Error('Manifest applicatif absent. Lancez « npm run generate:manifest ».');
+          }
+
+          window.ModuleLoader.import('./src/main.jsx');
+        } catch (error) {
+          console.error('Erreur lors du chargement de l\'application :', error);
+          renderBootstrapError(error);
+        }
+      })();
+    </script>
+  </body>
+</html>

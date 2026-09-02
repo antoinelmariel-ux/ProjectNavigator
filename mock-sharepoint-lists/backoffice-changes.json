@@ -1,0 +1,14 @@
+[
+  {
+    "ChangeId": "change-001",
+    "EntityType": "Rule",
+    "EntityId": "rule-legal-001",
+    "PayloadJson": { "severity": "high", "label": "Validation réglementaire" },
+    "ChangeType": "Update",
+    "RequiresValidation": true,
+    "RowVersion": 1,
+    "CreatedByEmail": "admin@entreprise.com",
+    "UpdatedByEmail": "admin@entreprise.com",
+    "UpdatedAt": "2026-01-10T09:24:00.000Z"
+  }
+]

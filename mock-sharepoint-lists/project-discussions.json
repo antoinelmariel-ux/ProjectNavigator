@@ -1,0 +1,14 @@
+[
+  {
+    "MessageId": "msg-001",
+    "ProjectId": "proj-001",
+    "ThreadId": "thread-001",
+    "SenderEmail": "chef.projet@entreprise.com",
+    "RecipientRole": "Compliance",
+    "Message": "Mise à jour effectuée, pouvez-vous revalider ?",
+    "AttachmentsJson": [],
+    "RowVersion": 1,
+    "CreatedAt": "2026-01-10T09:22:00.000Z",
+    "UpdatedAt": "2026-01-10T09:22:00.000Z"
+  }
+]

@@ -1,0 +1,16 @@
+[
+  {
+    "EntryId": "member-001",
+    "ProjectId": "proj-001",
+    "MemberEmail": "chef.projet@entreprise.com",
+    "Role": "Owner",
+    "CanSubmit": true
+  },
+  {
+    "EntryId": "member-002",
+    "ProjectId": "proj-001",
+    "MemberEmail": "compliance@entreprise.com",
+    "Role": "Compliance",
+    "CanSubmit": false
+  }
+]

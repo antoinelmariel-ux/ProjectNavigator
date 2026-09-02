@@ -1,0 +1,15 @@
+[
+  {
+    "CommentId": "comment-001",
+    "ProjectId": "proj-001",
+    "SectionKey": "q12",
+    "Message": "Merci de préciser la source scientifique.",
+    "CommentType": "Question",
+    "ThreadId": "thread-001",
+    "Resolved": false,
+    "RowVersion": 1,
+    "CreatedByEmail": "compliance@entreprise.com",
+    "UpdatedByEmail": "compliance@entreprise.com",
+    "UpdatedAt": "2026-01-10T09:20:00.000Z"
+  }
+]

@@ -1,0 +1,1325 @@
+/* ==========================================================================
+   Vitrine projet — layout « signature »
+   Quatre briques réutilisées partout, une famille de couleur par section.
+   Les teintes par défaut suivent la charte LFB 2026 ; le thème actif peut
+   les surcharger via les variables --showcase-* calculées par buildThemeVariables.
+   ========================================================================== */
+
+.sg-shell {
+  --sg-don: var(--showcase-signature-don, #e10943);
+  --sg-don-deep: var(--showcase-signature-don-deep, #90172a);
+  --sg-don-pale: #f3b6b2;
+  --sg-plasma: var(--showcase-signature-plasma, #f6ae4c);
+  --sg-plasma-deep: #996b14;
+  --sg-gold: var(--showcase-signature-gold, #d6b97e);
+  --sg-gold-light: #e7d3aa;
+  --sg-vie: var(--showcase-signature-vie, #31af80);
+  --sg-vie-deep: #217d60;
+  --sg-rose: #932579;
+  --sg-rose-vif: #d30e7f;
+  --sg-bleu: var(--showcase-signature-bleu, #1a61ab);
+  --sg-bleu-clair: #4790c4;
+  --sg-bleu-nuit: #143455;
+
+  --sg-ink: var(--showcase-signature-ink, #1b1b1b);
+  --sg-ink-rgb: var(--showcase-signature-ink-rgb, 27, 27, 27);
+  --sg-white: #ffffff;
+  --sg-cloud: #f5f4f1;
+  --sg-ink-soft: #4e4d4d;
+  --sg-on-dark: rgba(255, 255, 255, 0.74);
+  --sg-on-dark-faint: rgba(255, 255, 255, 0.52);
+  --sg-line-dark: rgba(255, 255, 255, 0.16);
+  --sg-line-light: rgba(var(--sg-ink-rgb), 0.12);
+
+  --sg-warn-bg: #feead5;
+  --sg-warn-line: #f8c587;
+  --sg-warn-ink: #5e220e;
+  --sg-warn-accent: #e84a16;
+
+  --sg-display: var(--showcase-font-display, 'Bricolage Grotesque', 'Segoe UI', -apple-system, sans-serif);
+  --sg-body: var(--showcase-font-family, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+  --sg-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --sg-spring: cubic-bezier(0.34, 1.32, 0.5, 1);
+
+  position: relative;
+  isolation: isolate;
+  background: var(--sg-ink);
+  color: var(--sg-white);
+  font-family: var(--sg-body);
+  font-size: 17px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  /* "hidden" calcule overflow-y:auto en retour (linkage du spec CSS Overflow),
+     ce qui fait de .sg-shell un conteneur de défilement et casse le
+     position:sticky de tous ses descendants (titre épinglé, cartes empilées).
+     "clip" bloque le débordement horizontal sans ce couplage. */
+  overflow-x: clip;
+}
+
+.sg-shell h1,
+.sg-shell h2,
+.sg-shell h3 {
+  margin: 0;
+  font-family: var(--sg-display);
+  text-wrap: balance;
+}
+
+.sg-shell p {
+  margin: 0;
+}
+
+.sg-shell ul,
+.sg-shell ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sg-shell a:focus-visible,
+.sg-shell button:focus-visible {
+  outline: 2px solid var(--sg-warn-accent);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+
+/* ---------- fond animé ----------
+   couche collante à hauteur d'écran : le canvas reste dimensionné au viewport
+   au lieu de couvrir toute la hauteur de la vitrine. */
+.sg-bg-layer {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  margin-bottom: -100vh;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.sg-bg,
+.sg-bg-fallback,
+.sg-scrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.sg-bg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 0;
+}
+
+.sg-bg-fallback {
+  z-index: 0;
+  background:
+    radial-gradient(60% 50% at 20% 15%, rgba(225, 9, 67, 0.46), transparent 70%),
+    radial-gradient(55% 45% at 80% 40%, rgba(246, 174, 76, 0.42), transparent 70%),
+    radial-gradient(58% 50% at 78% 82%, rgba(26, 97, 171, 0.4), transparent 70%),
+    radial-gradient(60% 55% at 40% 88%, rgba(49, 175, 128, 0.36), transparent 70%),
+    var(--sg-ink);
+}
+
+/* voile de lisibilité : le fond reste une ambiance, jamais un concurrent du texte */
+.sg-scrim {
+  z-index: 1;
+  background:
+    radial-gradient(125% 95% at 50% 42%, rgba(var(--sg-ink-rgb), 0), rgba(var(--sg-ink-rgb), 0.52) 100%),
+    linear-gradient(180deg, rgba(var(--sg-ink-rgb), 0.36), rgba(var(--sg-ink-rgb), 0.06) 32%, rgba(var(--sg-ink-rgb), 0.42));
+}
+
+/* ---------- trame ---------- */
+.sg-wrap {
+  position: relative;
+  z-index: 2;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 clamp(1.25rem, 5vw, 3.5rem);
+}
+
+.sg-band {
+  position: relative;
+  z-index: 2;
+}
+
+.sg-band--dark {
+  background: transparent;
+}
+
+.sg-band--light {
+  background: var(--sg-white);
+  color: var(--sg-ink);
+}
+
+.sg-band--cloud {
+  background: var(--sg-cloud);
+  color: var(--sg-ink);
+}
+
+.sg-band--pad {
+  padding: clamp(5rem, 13vw, 10rem) 0;
+}
+
+/* ---------- typographie ---------- */
+.sg-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55em;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sg-c, var(--sg-gold));
+}
+
+.sg-eyebrow::before {
+  content: '';
+  width: 1.6rem;
+  height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+}
+
+.sg-headline {
+  margin-top: 1.1rem;
+  font-size: clamp(2.3rem, 5.6vw, 4.4rem);
+  font-weight: 800;
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+  max-width: 17ch;
+}
+
+.sg-headline--sm {
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  margin-top: 0.6rem;
+}
+
+.sg-lede {
+  margin-top: 1.5rem;
+  font-size: clamp(1.1rem, 1.9vw, 1.35rem);
+  line-height: 1.55;
+  max-width: 46ch;
+  color: var(--sg-ink-soft);
+}
+
+.sg-band--dark .sg-lede {
+  color: var(--sg-on-dark);
+}
+
+/* ---------- révélations ---------- */
+.sg-rv {
+  opacity: 0;
+  transform: translateY(34px);
+  transition: opacity 900ms var(--sg-ease), transform 900ms var(--sg-ease);
+  transition-delay: var(--sg-d, 0ms);
+}
+
+.sg-rv.is-on {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---------- bouton ---------- */
+.sg-btn {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  font-family: var(--sg-body);
+  font-weight: 600;
+  font-size: 1.02rem;
+  padding: 0.95em 1.9em;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  color: var(--sg-ink);
+  background: linear-gradient(120deg, var(--sg-gold), var(--sg-gold-light));
+  box-shadow: 0 10px 30px rgba(214, 185, 126, 0.32);
+  transition: transform 140ms var(--sg-ease), box-shadow 300ms var(--sg-ease);
+}
+
+.sg-btn:hover {
+  box-shadow: 0 16px 44px rgba(214, 185, 126, 0.46);
+}
+
+.sg-btn:active {
+  transform: scale(0.965);
+}
+
+.sg-btn svg {
+  width: 0.95em;
+  height: 0.95em;
+  transition: transform 300ms var(--sg-spring);
+}
+
+.sg-btn:hover svg {
+  transform: translateX(4px);
+}
+
+.sg-ripple {
+  position: absolute;
+  border-radius: 50%;
+  transform: scale(0);
+  background: rgba(255, 255, 255, 0.55);
+  pointer-events: none;
+  z-index: -1;
+  animation: sg-ripple 620ms var(--sg-ease) forwards;
+}
+
+@keyframes sg-ripple {
+  to {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+/* ---------- hero ---------- */
+.sg-hero {
+  position: relative;
+  z-index: 2;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 6rem 0 4rem;
+}
+
+.sg-hero__title {
+  font-size: clamp(3.6rem, 12vw, 9rem);
+  font-weight: 800;
+  line-height: 0.94;
+  letter-spacing: -0.045em;
+  max-width: 12ch;
+  background-image: linear-gradient(104deg, #ffffff 0%, #f4ead2 42%, var(--sg-gold) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* chaque mot rejoue la tranche exacte du dégradé du titre entier
+   (background-size/position recalés en JS sur la largeur du titre complet) */
+.sg-word {
+  display: inline-block;
+  background-image: inherit;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  opacity: 0;
+  transform: translateY(0.5em) rotate(2deg);
+  transition: opacity 800ms var(--sg-ease), transform 800ms var(--sg-spring);
+  transition-delay: var(--sg-d, 0ms);
+}
+
+.sg-word.is-on {
+  opacity: 1;
+  transform: none;
+}
+
+.sg-hero__sub {
+  margin-top: 1.8rem;
+  font-size: clamp(1.15rem, 2.2vw, 1.5rem);
+  line-height: 1.5;
+  max-width: 34ch;
+  color: var(--sg-on-dark);
+}
+
+.sg-hero__cta {
+  margin-top: 2.6rem;
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.sg-chips {
+  margin-top: clamp(3.5rem, 8vw, 5.5rem);
+  display: flex;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.sg-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.95rem 1.35rem;
+  border-radius: 18px;
+  border: 1px solid var(--sg-line-dark);
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  min-width: 12rem;
+  max-width: 22rem;
+}
+
+.sg-chip__label {
+  font-size: 0.72rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--sg-on-dark-faint);
+}
+
+.sg-chip__value {
+  font-family: var(--sg-display);
+  font-weight: 600;
+  font-size: 1.06rem;
+}
+
+.sg-chip__caption {
+  font-size: 0.82rem;
+  color: var(--sg-on-dark-faint);
+}
+
+.sg-cue {
+  margin-top: clamp(2.5rem, 6vw, 4rem);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sg-on-dark-faint);
+}
+
+.sg-cue__rail {
+  width: 1.6rem;
+  height: 2.6rem;
+  border: 1.5px solid var(--sg-line-dark);
+  border-radius: 999px;
+  position: relative;
+}
+
+.sg-cue__dot {
+  position: absolute;
+  left: 50%;
+  top: 0.4rem;
+  width: 0.3rem;
+  height: 0.3rem;
+  margin-left: -0.15rem;
+  border-radius: 50%;
+  background: var(--sg-plasma);
+  animation: sg-cue 1.9s var(--sg-ease) infinite;
+}
+
+@keyframes sg-cue {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(1.2rem);
+    opacity: 0;
+  }
+}
+
+/* ---------- scrollytelling ---------- */
+.sg-story {
+  position: relative;
+  z-index: 2;
+}
+
+.sg-story__grid {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 clamp(1.25rem, 5vw, 3.5rem);
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: clamp(2rem, 6vw, 5rem);
+  align-items: start;
+}
+
+.sg-story__sticky {
+  position: sticky;
+  top: 28vh;
+  padding: clamp(3rem, 8vw, 6rem) 0;
+}
+
+.sg-story__steps {
+  padding: 26vh 0 38vh;
+  display: grid;
+  gap: 48vh;
+}
+
+.sg-story__steps--compact {
+  padding: 0 0 2rem;
+  gap: 2rem;
+}
+
+.sg-story__step {
+  font-family: var(--sg-display);
+  font-size: clamp(1.35rem, 2.9vw, 2.1rem);
+  font-weight: 400;
+  line-height: 1.32;
+  letter-spacing: -0.015em;
+  color: rgba(255, 255, 255, 0.24);
+  transition: color 600ms var(--sg-ease), transform 700ms var(--sg-ease);
+  transform: translateY(10px);
+}
+
+.sg-story__step.is-on {
+  color: rgba(255, 255, 255, 0.96);
+  transform: none;
+}
+
+.sg-story__counter {
+  font-family: var(--sg-display);
+  font-weight: 800;
+  font-size: clamp(3rem, 7vw, 5rem);
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--sg-c, var(--sg-don));
+}
+
+@media (max-width: 860px) {
+  .sg-story__grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .sg-story__sticky {
+    position: static;
+    padding-bottom: 0;
+  }
+
+  .sg-story__steps {
+    padding: 4vh 0 10vh;
+    gap: 3rem;
+  }
+
+  .sg-story__step {
+    color: rgba(255, 255, 255, 0.9);
+    transform: none;
+  }
+}
+
+/* ==========================================================================
+   BRIQUE A — carte pleine, empilée au défilement
+   ========================================================================== */
+
+/* le libellé de la pile reste visible pendant tout le défilement, pour que les
+   cartes qui se recouvrent restent rattachées à ce qu'elles illustrent ; il se
+   fige au-dessus du point d'ancrage des cartes (16vh), avec un fond plein pour
+   masquer proprement celles qui remontent sous lui */
+.sg-stack-header {
+  position: sticky;
+  top: 6vh;
+  z-index: 4;
+  padding-bottom: 1.4rem;
+  background: var(--sg-white);
+}
+
+.sg-band--cloud .sg-stack-header {
+  background: var(--sg-cloud);
+}
+
+.sg-stack {
+  margin: clamp(3rem, 7vw, 4rem) auto 0;
+  max-width: 30rem;
+  display: grid;
+  gap: 5vh;
+  padding-bottom: 26vh;
+}
+
+.sg-stack__slot {
+  position: sticky;
+  top: calc(16vh + var(--sg-i, 0) * 1.15rem);
+}
+
+.sg-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 28px;
+  padding: clamp(1.7rem, 3.4vw, 2.4rem);
+  aspect-ratio: 1 / 0.94;
+  min-height: 22rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1.6rem;
+  color: var(--sg-white);
+  background: linear-gradient(135deg, var(--sg-c1, var(--sg-plasma-deep)), var(--sg-c2, #6d511a));
+  box-shadow: 0 30px 70px rgba(var(--sg-ink-rgb), 0.34);
+  transform-origin: 50% 0%;
+  transform: scale(var(--sg-s, 1));
+  transition: transform 120ms linear;
+  will-change: transform;
+}
+
+.sg-card--flow {
+  aspect-ratio: auto;
+  min-height: 0;
+}
+
+.sg-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--sg-ink);
+  opacity: var(--sg-dim, 0);
+  transition: opacity 120ms linear;
+  pointer-events: none;
+}
+
+.sg-card__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  position: relative;
+  z-index: 1;
+}
+
+.sg-card__idx {
+  font-family: var(--sg-display);
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 0.14em;
+  opacity: 0.85;
+}
+
+.sg-card__pill {
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.4em 0.9em;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+}
+
+.sg-card__text {
+  position: relative;
+  z-index: 1;
+  font-family: var(--sg-display);
+  font-weight: 600;
+  font-size: clamp(1.3rem, 2.5vw, 1.78rem);
+  line-height: 1.26;
+  letter-spacing: -0.022em;
+  max-width: 22ch;
+}
+
+.sg-card__body {
+  position: relative;
+  z-index: 1;
+  font-size: 1.05rem;
+  line-height: 1.55;
+  max-width: 44ch;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.sg-card__orb {
+  position: absolute;
+  width: 17rem;
+  height: 17rem;
+  border-radius: 50%;
+  right: -5rem;
+  top: -6rem;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.28), transparent 68%);
+  pointer-events: none;
+}
+
+.sg-card__figure {
+  position: relative;
+  z-index: 1;
+  font-family: var(--sg-display);
+  font-weight: 800;
+  font-size: clamp(3.4rem, 9vw, 5.5rem);
+  line-height: 0.92;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ==========================================================================
+   BRIQUE B — carte claire, en grille
+   ========================================================================== */
+.sg-grid {
+  margin-top: clamp(3rem, 7vw, 4.5rem);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: clamp(1rem, 2.5vw, 1.6rem);
+  perspective: 1200px;
+}
+
+.sg-tile {
+  position: relative;
+  padding: 2rem 1.7rem 1.8rem;
+  border-radius: 24px;
+  background: var(--sg-white);
+  border: 1px solid var(--sg-line-light);
+  box-shadow: 0 2px 4px rgba(var(--sg-ink-rgb), 0.05);
+  transform-style: preserve-3d;
+  transition: box-shadow 420ms var(--sg-ease), transform 420ms var(--sg-ease);
+  will-change: transform;
+}
+
+/* filet rentré dans les marges : pas de rognage, la profondeur 3D est préservée */
+.sg-tile::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 1.7rem;
+  right: 1.7rem;
+  height: 3px;
+  border-radius: 0 0 4px 4px;
+  background: var(--sg-c, var(--sg-gold));
+}
+
+.sg-tile:hover {
+  box-shadow: 0 26px 60px rgba(var(--sg-ink-rgb), 0.18);
+}
+
+.sg-tile__glyph {
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--sg-white);
+  font-family: var(--sg-display);
+  font-weight: 800;
+  font-size: 1.05rem;
+  background: linear-gradient(135deg, var(--sg-g1, var(--sg-gold)), var(--sg-g2, var(--sg-plasma-deep)));
+  transform: translateZ(38px);
+}
+
+.sg-tile__glyph svg {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.sg-tile__pill {
+  display: block;
+  margin-top: 1.2rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--sg-ink-soft);
+  transform: translateZ(24px);
+}
+
+.sg-tile__title {
+  margin-top: 0.9rem;
+  font-family: var(--sg-display);
+  font-weight: 700;
+  font-size: 1.3rem;
+  letter-spacing: -0.02em;
+  color: var(--sg-ink);
+  transform: translateZ(18px);
+}
+
+.sg-tile__text {
+  margin-top: 0.7rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--sg-ink);
+  transform: translateZ(18px);
+}
+
+.sg-tile__text--muted {
+  color: var(--sg-ink-soft);
+}
+
+/* visionneuse documentaire — seul gabarit à forme propre */
+.sg-doc {
+  margin-top: 1.2rem;
+  border: 1px solid var(--sg-line-light);
+  border-radius: 14px;
+  background: var(--sg-cloud);
+  overflow: hidden;
+}
+
+.sg-doc__frame {
+  width: 100%;
+  height: clamp(18rem, 46vh, 30rem);
+  border: none;
+  display: block;
+  background: var(--sg-cloud);
+}
+
+.sg-doc__image {
+  width: 100%;
+  max-height: clamp(18rem, 46vh, 30rem);
+  object-fit: contain;
+  display: block;
+}
+
+.sg-doc__empty {
+  aspect-ratio: 16 / 7;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  color: var(--sg-ink-soft);
+  text-align: center;
+  padding: 1rem;
+}
+
+.sg-doc__empty svg {
+  width: 2rem;
+  height: 2rem;
+  color: var(--sg-c, var(--sg-bleu));
+}
+
+.sg-doc__url {
+  font-size: 0.76rem;
+  word-break: break-all;
+  max-width: 34ch;
+  opacity: 0.8;
+}
+
+.sg-doc__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.9rem;
+  font-size: 0.85rem;
+  color: var(--sg-ink-soft);
+}
+
+.sg-doc__link {
+  font-weight: 600;
+  color: var(--sg-c, var(--sg-bleu));
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ==========================================================================
+   BRIQUE C — panneau large
+   ========================================================================== */
+.sg-panel {
+  padding: clamp(2rem, 5vw, 3.2rem);
+  border-radius: 28px;
+  background: linear-gradient(135deg, var(--sg-p1, #f1ede2), var(--sg-p2, #e7d3aa) 60%, var(--sg-p1, #f1ede2));
+  border: 1px solid rgba(var(--sg-ink-rgb), 0.08);
+  border-left: 4px solid var(--sg-c, var(--sg-plasma-deep));
+  color: var(--sg-ink);
+}
+
+.sg-panel--spaced {
+  margin-top: clamp(4rem, 9vw, 6rem);
+}
+
+.sg-panel__lead {
+  margin-top: 1rem;
+  font-family: var(--sg-display);
+  font-size: clamp(1.35rem, 3vw, 2rem);
+  font-weight: 600;
+  line-height: 1.28;
+  letter-spacing: -0.02em;
+  max-width: 26ch;
+}
+
+.sg-panel__body {
+  margin-top: 1.2rem;
+  font-size: 1.05rem;
+  color: var(--sg-ink-soft);
+  max-width: 52ch;
+}
+
+/* seul texte du panneau (pas de lead au-dessus) : marge resserrée et encre
+   pleine, puisqu'il porte le contenu principal et non un simple appui */
+.sg-panel__body--first {
+  margin-top: 0.9rem;
+  color: var(--sg-ink);
+  line-height: 1.55;
+}
+
+/* ==========================================================================
+   « En clair » — accroche + liste ouvertes
+   Ce n'est pas une nouvelle brique générique : c'est le seul bloc de la
+   vitrine qui sort du système, en connaissance de cause, parce qu'il porte
+   le cœur de la présentation (la description de la solution). Un filet de
+   couleur suffit à le distinguer — pas de panneau boîté, qui écraserait un
+   texte pouvant dépasser 700 caractères.
+   ========================================================================== */
+.sg-solution-lead {
+  margin-top: 0.9rem;
+  padding-left: clamp(1.1rem, 2.5vw, 1.5rem);
+  border-left: 3px solid var(--sg-c, var(--sg-plasma-deep));
+}
+
+.sg-solution-lead--split {
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+  gap: clamp(2rem, 5vw, 3.2rem);
+}
+
+@media (max-width: 760px) {
+  .sg-solution-lead--split {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sg-solution-lead__hook {
+  margin: 0;
+  font-family: var(--sg-display);
+  font-weight: 600;
+  font-size: clamp(1.25rem, 2.3vw, 1.55rem);
+  line-height: 1.42;
+  letter-spacing: -0.01em;
+  color: var(--sg-ink);
+}
+
+.sg-solution-lead__list-label {
+  margin: 0 0 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--sg-ink-soft);
+}
+
+.sg-solution-lead__trailing {
+  margin-top: 1rem;
+  font-size: 1rem;
+  color: var(--sg-ink-soft);
+  line-height: 1.6;
+}
+
+/* ==========================================================================
+   BRIQUE D — liste à filets
+   ========================================================================== */
+.sg-rows {
+  margin: 0;
+  display: grid;
+  gap: 0;
+}
+
+.sg-rows li {
+  display: flex;
+  gap: 1.1rem;
+  align-items: flex-start;
+  padding: 1.4rem 0;
+  border-top: 1px solid var(--sg-rows-line, var(--sg-line-light));
+  text-align: left;
+  font-size: 1.05rem;
+}
+
+.sg-rows li:last-child {
+  border-bottom: 1px solid var(--sg-rows-line, var(--sg-line-light));
+}
+
+.sg-rows__idx {
+  font-family: var(--sg-display);
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: var(--sg-c, var(--sg-plasma));
+  padding-top: 0.15rem;
+  flex: none;
+  min-width: 1.6rem;
+}
+
+.sg-rows__tick {
+  flex: none;
+  width: 1.4rem;
+  height: 1.4rem;
+  margin-top: 0.1rem;
+  border-radius: 50%;
+  background: var(--sg-c, var(--sg-vie));
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sg-rows__tick svg {
+  width: 0.78rem;
+  height: 0.78rem;
+}
+
+/* troisième marqueur de la brique D : un point simple, pour une liste de
+   fonctionnalités parallèles (ni classement numéroté, ni case cochée) */
+.sg-rows__dot {
+  flex: none;
+  width: 0.45rem;
+  height: 0.45rem;
+  margin-top: 0.6rem;
+  border-radius: 50%;
+  background: var(--sg-c, var(--sg-vie));
+}
+
+.sg-rows--dark {
+  --sg-rows-line: var(--sg-line-dark);
+}
+
+.sg-rows--dark li {
+  color: var(--sg-on-dark);
+}
+
+.sg-rows--cols {
+  grid-template-columns: repeat(var(--sg-cols, 3), minmax(0, 1fr));
+  gap: 0 clamp(1.2rem, 3vw, 2rem);
+}
+
+.sg-rows--cols li {
+  border-bottom: 1px solid var(--sg-rows-line, var(--sg-line-light));
+}
+
+@media (max-width: 760px) {
+  .sg-rows--cols {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- impact ---------- */
+.sg-impact {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: clamp(2.5rem, 6vw, 5rem);
+  align-items: center;
+}
+
+@media (max-width: 880px) {
+  .sg-impact {
+    grid-template-columns: 1fr;
+    gap: 3rem;
+  }
+}
+
+.sg-impact__value {
+  font-family: var(--sg-display);
+  font-weight: 800;
+  font-size: clamp(4.5rem, 16vw, 11rem);
+  line-height: 0.9;
+  letter-spacing: -0.05em;
+  font-variant-numeric: tabular-nums;
+  background: linear-gradient(104deg, #ffffff 0%, #f4ead2 42%, var(--sg-gold) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.sg-impact__value--sm {
+  font-size: clamp(3.6rem, 10vw, 7rem);
+  margin-top: 1.2rem;
+}
+
+.sg-impact__caption {
+  margin-top: 1.2rem;
+  color: var(--sg-on-dark);
+  font-size: 1.05rem;
+}
+
+/* ---------- équipe ---------- */
+.sg-lead {
+  margin-top: clamp(2.5rem, 6vw, 3.5rem);
+  display: flex;
+  align-items: center;
+  gap: 1.4rem;
+  padding: 1.6rem 1.8rem;
+  border-radius: 24px;
+  background: linear-gradient(120deg, rgba(225, 9, 67, 0.1), rgba(214, 185, 126, 0.22));
+  border: 1px solid var(--sg-line-light);
+  flex-wrap: wrap;
+}
+
+.sg-lead__ring {
+  width: 3.4rem;
+  height: 3.4rem;
+  border-radius: 50%;
+  flex: none;
+  background: conic-gradient(from 180deg, var(--sg-don), var(--sg-plasma), var(--sg-vie), var(--sg-don));
+  padding: 3px;
+}
+
+.sg-lead__ring span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--sg-white);
+  font-family: var(--sg-display);
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--sg-ink);
+}
+
+.sg-lead__name {
+  display: block;
+  font-family: var(--sg-display);
+  font-weight: 700;
+  font-size: 1.4rem;
+  letter-spacing: -0.02em;
+  color: var(--sg-ink);
+}
+
+.sg-lead__role {
+  font-size: 0.95rem;
+  color: var(--sg-ink-soft);
+}
+
+.sg-roster {
+  margin-top: 1.6rem;
+}
+
+.sg-roster li {
+  align-items: center;
+  transition: padding-left 320ms var(--sg-ease);
+}
+
+.sg-roster li:hover {
+  padding-left: 0.7rem;
+}
+
+.sg-roster__seal {
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--sg-display);
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--sg-white);
+  background: linear-gradient(135deg, var(--sg-rose-vif), var(--sg-rose));
+}
+
+.sg-roster__name {
+  display: block;
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--sg-ink);
+}
+
+.sg-roster__role {
+  font-size: 0.92rem;
+  color: var(--sg-ink-soft);
+}
+
+/* ---------- feuille de route ----------
+   sélecteur descendant obligatoire : le reset « .sg-shell ol { padding: 0 } »
+   est plus spécifique que « .sg-road » et écraserait le retrait de l'axe. */
+.sg-shell .sg-road {
+  --sg-rail-x: clamp(1.8rem, 4vw, 2.6rem);
+  --sg-rail-w: 2px;
+  --sg-dot: 0.8rem;
+  --sg-dot-y: 0.45rem;
+  position: relative;
+  margin-top: clamp(3rem, 7vw, 4rem);
+  padding-left: var(--sg-rail-x);
+}
+
+.sg-road__rail {
+  position: absolute;
+  left: 0;
+  top: calc(var(--sg-dot-y) + var(--sg-dot) / 2);
+  bottom: 0;
+  width: var(--sg-rail-w);
+  background: var(--sg-line-dark);
+  overflow: hidden;
+}
+
+.sg-road__fill {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, var(--sg-don), var(--sg-plasma) 45%, var(--sg-vie));
+  transform: scaleY(var(--sg-p, 0));
+  transform-origin: 50% 0%;
+  will-change: transform;
+}
+
+.sg-road__item {
+  position: relative;
+  padding-bottom: clamp(2.2rem, 5vw, 3.2rem);
+}
+
+/* la pastille est centrée sur l'axe du trait quelle que soit la valeur du clamp */
+.sg-road__item::before {
+  content: '';
+  position: absolute;
+  left: calc(-1 * var(--sg-rail-x) + (var(--sg-rail-w) - var(--sg-dot)) / 2);
+  top: var(--sg-dot-y);
+  width: var(--sg-dot);
+  height: var(--sg-dot);
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: var(--sg-ink);
+  border: 2px solid var(--sg-on-dark-faint);
+  transition: background 400ms var(--sg-ease), border-color 400ms var(--sg-ease), transform 400ms var(--sg-spring);
+}
+
+.sg-road__item.is-on::before {
+  transform: scale(1.25);
+  background: var(--sg-vie);
+  border-color: var(--sg-vie);
+}
+
+.sg-road__item--start.is-on::before {
+  background: var(--sg-plasma);
+  border-color: var(--sg-plasma);
+}
+
+.sg-road__item--warn.is-on::before {
+  background: var(--sg-warn-accent);
+  border-color: var(--sg-warn-accent);
+}
+
+.sg-road__date {
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--sg-on-dark-faint);
+}
+
+.sg-road__title {
+  margin-top: 0.4rem;
+  font-family: var(--sg-display);
+  font-weight: 600;
+  font-size: 1.18rem;
+  letter-spacing: -0.015em;
+}
+
+.sg-road__big {
+  margin-top: 0.4rem;
+  font-family: var(--sg-display);
+  font-weight: 600;
+  font-size: clamp(1.15rem, 2.4vw, 1.5rem);
+  letter-spacing: -0.02em;
+}
+
+.sg-warn {
+  margin-top: 1.1rem;
+  max-width: 56ch;
+  padding: 1.3rem 1.5rem;
+  border-radius: 20px;
+  background: var(--sg-warn-bg);
+  border: 1px solid var(--sg-warn-line);
+  color: var(--sg-warn-ink);
+}
+
+.sg-warn__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.sg-warn__tag::before {
+  content: '';
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--sg-warn-accent);
+  box-shadow: 0 0 0 0 rgba(232, 74, 22, 0.6);
+  animation: sg-pulse 2.4s var(--sg-ease) infinite;
+}
+
+@keyframes sg-pulse {
+  70% {
+    box-shadow: 0 0 0 10px rgba(232, 74, 22, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(232, 74, 22, 0);
+  }
+}
+
+.sg-warn p {
+  margin-top: 0.6rem;
+  font-size: 0.96rem;
+  line-height: 1.55;
+  color: #4d2800;
+}
+
+/* ---------- notice ---------- */
+.sg-notice {
+  position: relative;
+  z-index: 2;
+  margin: 0 auto;
+  max-width: 1120px;
+  padding: 1rem clamp(1.25rem, 5vw, 3.5rem);
+}
+
+.sg-notice__inner {
+  border-radius: 18px;
+  border: 1px solid var(--sg-warn-line);
+  background: var(--sg-warn-bg);
+  color: var(--sg-warn-ink);
+  padding: 0.9rem 1.2rem;
+  font-size: 0.95rem;
+}
+
+/* ---------- étiquette de gabarit (aperçu back-office) ---------- */
+.sg-tpl-label {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: 0.9rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sg-ink-soft);
+}
+
+.sg-tpl-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--sg-line-light);
+}
+
+.sg-tpl-label--dark {
+  color: var(--sg-on-dark-faint);
+}
+
+.sg-tpl-label--dark::after {
+  background: var(--sg-line-dark);
+}
+
+/* ---------- accessibilité : mouvement réduit ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .sg-rv {
+    opacity: 1;
+    transform: none;
+    transition: opacity 250ms linear;
+  }
+
+  .sg-cue__dot,
+  .sg-warn__tag::before {
+    animation: none;
+  }
+
+  .sg-ripple {
+    display: none;
+    animation: none;
+  }
+
+  .sg-btn:hover svg {
+    transform: none;
+  }
+
+  .sg-stack__slot {
+    position: static;
+  }
+
+  .sg-stack-header {
+    position: static;
+  }
+
+  .sg-stack {
+    padding-bottom: 0;
+    gap: 1.5rem;
+  }
+
+  .sg-card {
+    transform: none;
+  }
+
+  .sg-card::after {
+    opacity: 0;
+  }
+}

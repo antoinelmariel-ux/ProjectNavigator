@@ -1,0 +1,6 @@
+src/vendor/
+src/module-manifest.js
+src/data/mockSharePointProjects.js
+src/data/mockSharePointInspirations.js
+node_modules/
+showcase-demo.html

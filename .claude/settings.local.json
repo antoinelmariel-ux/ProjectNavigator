@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bash \"/Users/antoinelassauge/Library/Application Support/Claude/local-agent-mode-sessions/skills-plugin/bb283e59-43e8-44eb-9812-59b9b473f911/15bc7e04-2e70-4beb-ba1d-f87d3478fb9e/skills/msgraph/scripts/run.sh\" sample-search --query \"sharepoint list items create update\" --limit 8)"
+    ]
+  }
+}

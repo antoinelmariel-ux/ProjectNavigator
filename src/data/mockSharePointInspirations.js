@@ -1,0 +1,110 @@
+/* Auto-generated from mock-sharepoint-lists. Do not edit manually. */
+export const initialMockSharePointInspirations = [
+  {
+    "InspirationId": "insp-001",
+    "Title": "Aurora Care Hub",
+    "Visibility": "Shared",
+    "InspirationJson": {
+      "title": "Aurora Care Hub",
+      "labName": "Laboratoire Aurora",
+      "target": "Patient",
+      "typology": "Digital",
+      "therapeuticArea": "Immunologie",
+      "country": "France",
+      "description": "Programme digital de suivi.",
+      "link": "https://example.com/aurora-care",
+      "review": "Bonne pratique de parcours patient.",
+      "visibility": "shared",
+      "documents": []
+    },
+    "RowVersion": 1,
+    "CreatedByEmail": "owner@entreprise.com",
+    "UpdatedByEmail": "owner@entreprise.com",
+    "UpdatedAt": "2026-01-10T09:20:00.000Z"
+  },
+  {
+    "InspirationId": "inspiration-plasma-link",
+    "Title": "PlasmaLink Patients",
+    "Visibility": "Shared",
+    "InspirationJson": {
+      "title": "PlasmaLink Patients",
+      "labName": "BioHema Laboratoires",
+      "target": "Patient",
+      "typology": "Digital",
+      "therapeuticArea": "Immunologie",
+      "country": "France",
+      "description": "Programme digital d'accompagnement des patients traités par immunoglobulines issues du plasma. Le dispositif combine un carnet de suivi thérapeutique, des rappels de perfusion, et un espace sécurisé pour poser des questions à l'infirmier référent.",
+      "link": "https://example.com/plasmalink-patients",
+      "review": "Bonne articulation entre service patient et respect de la réglementation sur les données de santé, avec des contenus éducatifs validés par le médical.",
+      "visibility": "shared",
+      "documents": [
+        {
+          "name": "Fiche programme PlasmaLink",
+          "url": "https://example.com/docs/plasmalink-patients.pdf"
+        }
+      ]
+    },
+    "RowVersion": 1,
+    "CreatedByEmail": "owner@entreprise.com",
+    "UpdatedByEmail": "owner@entreprise.com",
+    "UpdatedAt": "2025-02-10T15:20:00.000Z"
+  },
+  {
+    "InspirationId": "inspiration-donor-trace",
+    "Title": "DonorTrace Lab Stories",
+    "Visibility": "Shared",
+    "InspirationJson": {
+      "title": "DonorTrace Lab Stories",
+      "labName": "HemaVita Therapeutics",
+      "target": "Donneur",
+      "typology": "Événementiel",
+      "therapeuticArea": "Hématologie",
+      "country": "Belgique",
+      "description": "Roadshow régional dans les maisons du don pour mettre en lumière la chaîne de transformation du plasma en médicaments dérivés du sang. L'expérience propose des ateliers interactifs, des témoignages de patients et une exposition mobile sur la traçabilité des lots.",
+      "link": "https://example.com/donortrace",
+      "review": "Campagne crédible pour renforcer la fidélisation des donneurs, avec un message pédagogique sur la sécurité et l'utilisation thérapeutique du plasma.",
+      "visibility": "shared",
+      "documents": [
+        {
+          "name": "Kit média DonorTrace",
+          "url": "https://example.com/docs/donortrace-presskit.pdf"
+        },
+        {
+          "name": "Guide d'animation terrain",
+          "url": "https://example.com/docs/donortrace-guide.pdf"
+        }
+      ]
+    },
+    "RowVersion": 1,
+    "CreatedByEmail": "owner@entreprise.com",
+    "UpdatedByEmail": "owner@entreprise.com",
+    "UpdatedAt": "2025-02-05T12:45:00.000Z"
+  },
+  {
+    "InspirationId": "inspiration-clinician-compass",
+    "Title": "Clinician Compass",
+    "Visibility": "Shared",
+    "InspirationJson": {
+      "title": "Clinician Compass",
+      "labName": "Sanguis Pharma",
+      "target": "Professionnel de santé",
+      "typology": "Éducation médicale",
+      "therapeuticArea": "Neurologie",
+      "country": "Suisse",
+      "description": "Série de webinaires et modules e-learning destinés aux neurologues pour optimiser l'usage des immunoglobulines polyvalentes. Le programme couvre les indications validées, la pharmacovigilance et les bonnes pratiques d'administration en hôpital de jour.",
+      "link": "https://example.com/clinician-compass",
+      "review": "Approche rigoureuse et conforme, centrée sur la mise à jour scientifique et la coordination entre établissements.",
+      "visibility": "shared",
+      "documents": [
+        {
+          "name": "Programme scientifique 2025",
+          "url": "https://example.com/docs/clinician-compass-programme.pdf"
+        }
+      ]
+    },
+    "RowVersion": 1,
+    "CreatedByEmail": "owner@entreprise.com",
+    "UpdatedByEmail": "owner@entreprise.com",
+    "UpdatedAt": "2025-02-08T17:10:00.000Z"
+  }
+];
