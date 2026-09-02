@@ -739,6 +739,11 @@ a {
   right: 0;
 }
 
+.inset-y-0 {
+  top: 0;
+  bottom: 0;
+}
+
 .italic {
   font-style: italic;
 }
@@ -1738,10 +1743,6 @@ a {
 
 .top-0 {
   top: 0;
-}
-
-.top-1\/2 {
-  top: 50%;
 }
 
 .tracking-wide {
