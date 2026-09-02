@@ -105,6 +105,35 @@ export async function walkToSynthesis(page, { onQuestion, maxSteps = 60 } = {}) 
   }
 }
 
+// Crée un projet, répond génériquement à tout le questionnaire (jalon + fichier gérés) et
+// ouvre sa vitrine depuis la synthèse. Utilisé par les specs ProjectShowcase.
+export async function createProjectAndOpenShowcase(page) {
+  await page.getByRole('button', { name: /Créer un projet/ }).first().click();
+  await walkToSynthesis(page, {
+    async onQuestion(heading, p) {
+      if (heading.includes('jalons')) {
+        await p.getByRole('button', { name: /Ajouter un jalon/ }).click();
+        await p.locator('input[type="date"]').first().fill('2026-04-01');
+        return true;
+      }
+      if (heading.includes('document')) {
+        await p.locator('input[type="file"]').first().setInputFiles({
+          name: 'doc.txt',
+          mimeType: 'text/plain',
+          buffer: Buffer.from('x')
+        });
+        return true;
+      }
+      return false;
+    }
+  });
+  if ((await page.getByText('Questions obligatoires à compléter').count()) > 0) {
+    await page.getByRole('button', { name: /Accéder à la synthèse/ }).click();
+  }
+  await page.getByRole('button', { name: /Vitrine du projet/ }).click();
+  await expect(page.getByRole('button', { name: 'Partager' })).toBeVisible();
+}
+
 export function collectConsoleErrors(page) {
   const errors = [];
   page.on('pageerror', (error) => errors.push(String(error)));

@@ -413,13 +413,13 @@ const findQuestionById = (questions, id) => {
   return questions.find(question => question?.id === id) || null;
 };
 
-const getFormattedAnswer = (questions, answers, id, missingInfoLabel) => {
+const getFormattedAnswer = (questions, answers, id, missingInfoLabel, language) => {
   const question = findQuestionById(questions, id);
   if (!question) {
     return '';
   }
 
-  const formatted = formatAnswer(question, answers?.[id]);
+  const formatted = formatAnswer(question, answers?.[id], language);
 
   if (typeof formatted === 'string') {
     const trimmed = formatted.trim();
@@ -2509,19 +2509,19 @@ export const ProjectShowcase = ({
     return REQUIRED_SHOWCASE_QUESTION_IDS.filter(id => !available.has(id));
   }, [questions]);
 
-  const slogan = getFormattedAnswer(questions, answers, 'projectSlogan', missingInfoLabel);
-  const targetAudience = getFormattedAnswer(questions, answers, 'targetAudience', missingInfoLabel);
+  const slogan = getFormattedAnswer(questions, answers, 'projectSlogan', missingInfoLabel, language);
+  const targetAudience = getFormattedAnswer(questions, answers, 'targetAudience', missingInfoLabel, language);
   const problemPainPoints = parseProblemPainPoints(getRawAnswer(answers, 'problemPainPoints'));
 
-  const solutionDescription = getFormattedAnswer(questions, answers, 'solutionDescription', missingInfoLabel);
+  const solutionDescription = getFormattedAnswer(questions, answers, 'solutionDescription', missingInfoLabel, language);
   const solutionDescriptionParts = useMemo(
     () => splitSolutionDescription(solutionDescription),
     [solutionDescription]
   );
   const solutionBenefits = splitRichTextIntoBlocks(getRawAnswer(answers, 'solutionBenefits'));
 
-  const innovationProcess = getFormattedAnswer(questions, answers, 'innovationProcess', missingInfoLabel);
-  const visionStatement = getFormattedAnswer(questions, answers, 'visionStatement', missingInfoLabel);
+  const innovationProcess = getFormattedAnswer(questions, answers, 'innovationProcess', missingInfoLabel, language);
+  const visionStatement = getFormattedAnswer(questions, answers, 'visionStatement', missingInfoLabel, language);
   const visionStatementEntries = useMemo(
     () => splitRichTextIntoBlocks(getRawAnswer(answers, 'visionStatement')),
     [answers]
@@ -2530,7 +2530,7 @@ export const ProjectShowcase = ({
     () => splitRichTextIntoBlocks(getRawAnswer(answers, 'innovationProcess')),
     [answers]
   );
-  const budgetEstimate = getFormattedAnswer(questions, answers, 'BUDGET', missingInfoLabel);
+  const budgetEstimate = getFormattedAnswer(questions, answers, 'BUDGET', missingInfoLabel, language);
   const normalizedTimelineDetails = useMemo(() => {
     if (Array.isArray(timelineDetails)) {
       return timelineDetails;
@@ -2562,8 +2562,8 @@ export const ProjectShowcase = ({
     return Number.isFinite(parsed) ? parsed : null;
   }, [budgetEstimate]);
 
-  const teamLead = getFormattedAnswer(questions, answers, 'teamLead', missingInfoLabel);
-  const teamLeadTeam = getFormattedAnswer(questions, answers, 'teamLeadTeam', missingInfoLabel);
+  const teamLead = getFormattedAnswer(questions, answers, 'teamLead', missingInfoLabel, language);
+  const teamLeadTeam = getFormattedAnswer(questions, answers, 'teamLeadTeam', missingInfoLabel, language);
   const teamCoreMembers = splitRichTextIntoBlocks(getRawAnswer(answers, 'teamCoreMembers'));
 
   const rawRunway = useMemo(() => computeRunway(answers, language), [answers, language]);
