@@ -242,11 +242,12 @@ export default {
     reviewPlaceholder: 'Fügen Sie Ihre ausführliche Bewertung dieses inspirierenden Projekts hinzu...',
     descriptionPlaceholder: 'Geben Sie eine ausführliche Beschreibung ein...',
     documentsUploadHint: 'Laden Sie ein oder mehrere Dokumente hoch.',
-    documentsShareNotice: 'Die Dateien werden nach der Migration an SharePoint gesendet.',
+    documentsShareNotice: 'Die Dateien müssen mit den LFB-Mitarbeitern geteilt werden.',
     chooseFiles: 'Dateien auswählen',
     documentFallbackName: 'Dokument',
     pendingSharePointUpload: 'SharePoint-Upload ausstehend',
     importedDocument: 'Importiertes Dokument',
+    uploadFailedMessage: 'Das Hochladen der Datei ist fehlgeschlagen. Bitte versuchen Sie es erneut.',
     removeDocument: 'Entfernen',
     cancel: 'Abbrechen'
   },

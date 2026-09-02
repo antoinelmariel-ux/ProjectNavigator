@@ -240,11 +240,12 @@ export default {
     reviewPlaceholder: 'Add your detailed review of this inspiring project...',
     descriptionPlaceholder: 'Enter a detailed description...',
     documentsUploadHint: 'Upload one or more documents.',
-    documentsShareNotice: 'Files will be sent to SharePoint after migration.',
+    documentsShareNotice: 'Files must be shared with LFB collaborators.',
     chooseFiles: 'Choose files',
     documentFallbackName: 'Document',
     pendingSharePointUpload: 'Pending SharePoint upload',
     importedDocument: 'Imported document',
+    uploadFailedMessage: 'The file upload failed. Please try again.',
     removeDocument: 'Remove',
     cancel: 'Cancel'
   },

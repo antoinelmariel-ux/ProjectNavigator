@@ -242,11 +242,12 @@ export default {
     reviewPlaceholder: 'Ajoutez votre avis détaillé sur ce projet inspirant...',
     descriptionPlaceholder: 'Saisir une description détaillée...',
     documentsUploadHint: 'Téléversez un ou plusieurs documents.',
-    documentsShareNotice: 'Les fichiers seront envoyés vers SharePoint après migration.',
+    documentsShareNotice: 'Les fichiers doivent bien être partagés avec les collaborateurs LFB.',
     chooseFiles: 'Choisir des fichiers',
     documentFallbackName: 'Document',
     pendingSharePointUpload: 'En attente de dépôt SharePoint',
     importedDocument: 'Document importé',
+    uploadFailedMessage: 'Le dépôt du fichier a échoué. Merci de réessayer.',
     removeDocument: 'Retirer',
     cancel: 'Annuler'
   },

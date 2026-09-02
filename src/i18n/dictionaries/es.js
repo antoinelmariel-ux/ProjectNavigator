@@ -241,11 +241,12 @@ export default {
     reviewPlaceholder: 'Agregue su reseña detallada de este proyecto inspirador...',
     descriptionPlaceholder: 'Introduzca una descripción detallada...',
     documentsUploadHint: 'Suba uno o varios documentos.',
-    documentsShareNotice: 'Los archivos se enviarán a SharePoint después de la migración.',
+    documentsShareNotice: 'Los archivos deben compartirse con los colaboradores de LFB.',
     chooseFiles: 'Elegir archivos',
     documentFallbackName: 'Documento',
     pendingSharePointUpload: 'Pendiente de carga en SharePoint',
     importedDocument: 'Documento importado',
+    uploadFailedMessage: 'No se pudo subir el archivo. Inténtelo de nuevo.',
     removeDocument: 'Quitar',
     cancel: 'Cancelar'
   },

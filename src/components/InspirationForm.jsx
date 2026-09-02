@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from '../react.js';
 import { Close } from './icons.js';
 import { RichTextEditor } from './RichTextEditor.jsx';
 import { normalizeInspirationFormConfig } from '../utils/inspirationConfig.js';
+import { createAttachmentFromFile } from '../utils/documentStore.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { getLocaleTag } from '../i18n/languages.js';
 
@@ -93,6 +94,7 @@ export const InspirationForm = ({
   const formTopRef = useRef(null);
   const autosaveTimeoutRef = useRef(null);
   const [formState, setFormState] = useState(() => buildInitialFormState(normalizedConfig));
+  const [documentUploadError, setDocumentUploadError] = useState('');
 
   const labSuggestions = useMemo(() => {
     const suggestions = new Set();
@@ -215,21 +217,41 @@ export const InspirationForm = ({
     setFormState((prev) => ({ ...prev, [fieldId]: value }));
   };
 
-  const handleDocumentUpload = (fieldId, files) => {
+  const handleDocumentUpload = async (fieldId, files) => {
     const uploadedFiles = Array.from(files || []);
     if (uploadedFiles.length === 0) {
       return;
     }
 
-    const uploadedDocuments = uploadedFiles.map((file) => ({
-      name: file.name,
-      fileName: file.name,
-      mimeType: file.type || '',
-      fileSize: Number.isFinite(file.size) ? file.size : null,
-      lastModified: Number.isFinite(file.lastModified) ? file.lastModified : null,
-      source: 'pending_sharepoint_upload',
-      url: ''
-    }));
+    setDocumentUploadError('');
+
+    const uploads = await Promise.all(
+      uploadedFiles.map(async (file) => {
+        try {
+          const attachment = await createAttachmentFromFile(file, {
+            entityType: 'inspiration',
+            entityId: project?.id || 'nouvelle-inspiration'
+          });
+          return {
+            name: attachment.name,
+            fileName: attachment.name,
+            mimeType: attachment.mimeType || '',
+            fileSize: Number.isFinite(attachment.size) ? attachment.size : null,
+            lastModified: Number.isFinite(file.lastModified) ? file.lastModified : null,
+            source: attachment.storage,
+            url: attachment.url
+          };
+        } catch (error) {
+          setDocumentUploadError(error?.message || t('inspirationForm.uploadFailedMessage'));
+          return null;
+        }
+      })
+    );
+
+    const uploadedDocuments = uploads.filter(Boolean);
+    if (uploadedDocuments.length === 0) {
+      return;
+    }
 
     setFormState((prev) => ({
       ...prev,
@@ -447,6 +469,9 @@ export const InspirationForm = ({
                   </div>
                 </div>
                 <p className="text-xs text-amber-600">{t('inspirationForm.documentsShareNotice')}</p>
+                {documentUploadError && (
+                  <p className="text-xs text-red-600">{documentUploadError}</p>
+                )}
                 <label className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-dashed border-blue-300 bg-blue-50 px-4 py-6 text-center text-sm font-medium text-blue-700 hover:bg-blue-100">
                   <input
                     type="file"
@@ -469,11 +494,20 @@ export const InspirationForm = ({
                         <p className="truncate text-sm font-semibold text-gray-700">
                           {doc.name || doc.fileName || t('inspirationForm.documentFallbackName')}
                         </p>
-                        <p className="text-xs text-gray-500">
-                          {doc.source === 'pending_sharepoint_upload'
-                            ? t('inspirationForm.pendingSharePointUpload')
-                            : doc.url || t('inspirationForm.importedDocument')}
-                        </p>
+                        {doc.source === 'pending_sharepoint_upload' ? (
+                          <p className="text-xs text-gray-500">{t('inspirationForm.pendingSharePointUpload')}</p>
+                        ) : doc.url ? (
+                          <a
+                            href={doc.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-600 hover:underline"
+                          >
+                            {t('inspirationForm.importedDocument')}
+                          </a>
+                        ) : (
+                          <p className="text-xs text-gray-500">{t('inspirationForm.importedDocument')}</p>
+                        )}
                       </div>
                       <button
                         type="button"
