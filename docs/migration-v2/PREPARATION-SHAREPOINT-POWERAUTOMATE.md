@@ -67,10 +67,10 @@ Dans le site : **Contenu du site → Nouveau → Bibliothèque de documents**. N
 | Nom | Rôle |
 |---|---|
 | `CN-App` | Les fichiers de l'application (dont `index.aspx`) |
-| `CN-Config` | Les fichiers de paramètres JSON — **créée vide, l'app la remplira toute seule** |
+| `CN-Config` | Les fichiers de paramètres JSON (règles et équipes n'en font plus partie, voir `CN_Rules`/`CN_Teams` étape 4) — **créée vide, l'app la remplira toute seule** |
 | `CN-Documents` | Les pièces jointes ajoutées par les utilisateurs |
 
-## Étape 4 — Créer les 10 listes
+## Étape 4 — Créer les 12 listes
 
 > **Mise à jour du 29/08/2026** : les tableaux `CN_ComplianceComments` et `CN_ShowcaseStickyNotes`
 > ci-dessous avaient chacun deux colonnes manquantes (`Status`/`AttachmentsJson` pour le premier,
@@ -235,6 +235,37 @@ première connexion, et modifiable ensuite depuis la section « Mon profil » de
 | HasCompletedOnboarding | Oui/Non |
 | UpdatedAt | Date et heure |
 
+### `CN_Rules` — les règles de conformité (une ligne par règle)
+Remplace le fichier `rules.json` qu'une version antérieure de ce document proposait de mettre
+dans `CN-Config` : chaque règle est maintenant sa propre ligne, pour que deux administrateurs qui
+modifient chacun une règle différente ne se marchent plus dessus.
+
+| Colonne | Type |
+|---|---|
+| Title | (existante — nom de la règle, pour repérer la ligne dans SharePoint) |
+| RuleId 📌 | Une ligne de texte |
+| PayloadJson | Texte long (la règle entière : conditions, équipes, questions, risques…) |
+| SortOrder | Nombre |
+| RowVersion | Nombre |
+| CreatedByEmail | Une ligne de texte |
+| UpdatedByEmail | Une ligne de texte |
+| UpdatedAt | Date et heure |
+
+### `CN_Teams` — les équipes de conformité (une ligne par équipe)
+Remplace de la même façon le fichier `teams.json`.
+
+| Colonne | Type |
+|---|---|
+| Title | (existante — nom de l'équipe) |
+| TeamId 📌 | Une ligne de texte |
+| ContactsJson | Texte long (liste d'emails, ex. `["dpo@lfb.fr"]`) |
+| Expertise | Texte long |
+| SortOrder | Nombre |
+| RowVersion | Nombre |
+| CreatedByEmail | Une ligne de texte |
+| UpdatedByEmail | Une ligne de texte |
+| UpdatedAt | Date et heure |
+
 💡 **Astuce de vérification** : une fois les listes créées, l'application dispose d'un écran de
 diagnostic (voir étape 6) qui te dira précisément quelle liste ou quelle colonne manque. Inutile
 de tout relire à la main.
@@ -296,9 +327,10 @@ s'arrête quand ton compte change) et vérifie les connexions utilisées en haut
   d'un panneau **« Synchronisation SharePoint »** réservé aux administrateurs, avec :
   - un **diagnostic** : la liste de tout ce qui est attendu (listes, bibliothèques, fichiers de
     configuration) avec ✅ / ❌ — c'est ton outil de vérification de l'étape 4 ;
-  - un bouton **« Publier la configuration vers SharePoint »** qui écrit automatiquement les 7
-    fichiers de paramètres (questions, règles, niveaux de risque, pondérations, équipes, thèmes
-    de vitrine, réglages généraux) dans `CN-Config`, avec confirmation avant tout écrasement ;
+  - un bouton **« Publier la configuration vers SharePoint »** qui écrit automatiquement les 5
+    fichiers de paramètres (questions, niveaux de risque, pondérations, thèmes de vitrine,
+    réglages généraux) dans `CN-Config` avec confirmation avant tout écrasement, **et** publie en
+    même temps chaque règle et chaque équipe comme une ligne dans `CN_Rules`/`CN_Teams` ;
   - un bouton **« Recharger depuis SharePoint »** en cas de conflit entre deux administrateurs.
 - **Aucune connexion demandée aux utilisateurs** : ils sont déjà connectés à SharePoint, l'app
   reconnaît automatiquement qui ils sont.
@@ -312,7 +344,7 @@ C'est très court maintenant. Copie-colle ceci complété dans la conversation a
 ```
 URL du site SharePoint  : https://lfb1.sharepoint.com/sites/........
 URL exacte de la page   : https://lfb1.sharepoint.com/sites/......../CN-App/index.aspx
-Les 10 listes CN_... sont créées avec les noms de colonnes exacts : oui / non
+Les 12 listes CN_... sont créées avec les noms de colonnes exacts : oui / non
 Bibliothèques CN-App / CN-Config / CN-Documents créées          : oui / non
 Flux Power Automate de notifications créé et activé              : oui / non
 Boîte d'envoi utilisée par le flux : ma boîte / boîte partagée : ...............
@@ -324,7 +356,7 @@ Boîte d'envoi utilisée par le flux : ma boîte / boîte partagée : ..........
    affiché, sans écran de connexion.
 2. Back-office → panneau « Synchronisation SharePoint » : le diagnostic doit être entièrement
    vert. Clique « Publier la configuration vers SharePoint » → les fichiers apparaissent dans
-   `CN-Config`.
+   `CN-Config`, et une ligne par règle/équipe apparaît dans `CN_Rules`/`CN_Teams`.
 3. Crée un projet test, réponds à 2–3 questions, enregistre → une ligne apparaît dans
    `CN_Projects`.
 4. Soumets le projet → une ligne `Pending` apparaît dans `CN_NotificationsQueue`, puis passe à

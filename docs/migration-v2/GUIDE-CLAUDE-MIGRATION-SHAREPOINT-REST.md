@@ -26,9 +26,9 @@
 | 1 — Configuration | ✅ Fait | `src/config/sharepointConfig.js`, `src/utils/errors.js` |
 | 2 — Contexte SharePoint | ✅ Fait | `src/utils/spContext.js` ; `main.jsx` résout l'identité avant le premier rendu ; `App.jsx` lit `getCurrentUser()` |
 | 3 — Client REST | ✅ Fait | `src/utils/spRestClient.js` (digest, réessais 429/503, 403→renouvellement, HTML→`SessionExpiredError`, 412→`ConflictError`, pagination) |
-| 4 — Dépôts de listes | ✅ Fait | `src/utils/listSchemas.js` (10 listes déclaratives), `src/utils/listRepository.js` (CRUD + `upsertByKey` RowVersion + IF-MATCH) |
-| 5 — Fournisseurs de données | ✅ Fait | `SharePointRestProvider` (projets) et `SharePointInspirationProvider` ; aiguillage `isSharePointMode()` à l'export ; appels synchrones neutralisés par garde. Complété depuis par trois fournisseurs supplémentaires, même patron : `src/utils/projectMembersProvider.js` (partage de projet), `src/utils/showcaseStickyNotesProvider.js` (post-its, avec réponses et pièces jointes), `src/utils/complianceCommentsProvider.js` (commentaires de conformité, une ligne par commentaire/réponse) |
-| 6 — Référentiels `CN-Config` | ✅ Fait | `src/utils/referentialStore.js` ; `sharePointSetup.js` recâblé (Graph supprimé) ; diagnostic + confirmation avant écrasement dans le handler `App.jsx` |
+| 4 — Dépôts de listes | ✅ Fait | `src/utils/listSchemas.js` (12 listes déclaratives), `src/utils/listRepository.js` (CRUD + `upsertByKey` RowVersion + IF-MATCH) |
+| 5 — Fournisseurs de données | ✅ Fait | `SharePointRestProvider` (projets) et `SharePointInspirationProvider` ; aiguillage `isSharePointMode()` à l'export ; appels synchrones neutralisés par garde. Complété depuis par cinq fournisseurs supplémentaires, même patron : `src/utils/projectMembersProvider.js` (partage de projet), `src/utils/showcaseStickyNotesProvider.js` (post-its, avec réponses et pièces jointes), `src/utils/complianceCommentsProvider.js` (commentaires de conformité, une ligne par commentaire/réponse), `src/utils/rulesProvider.js`/`teamsProvider.js` (règles/équipes, une ligne par élément — voir §6 bis) |
+| 6 — Référentiels `CN-Config` | ✅ Fait | `src/utils/referentialStore.js` (5 fichiers — `rules`/`teams` en sont sortis, migrés vers `CN_Rules`/`CN_Teams` en §6 bis) ; `sharePointSetup.js` recâblé (Graph supprimé) ; diagnostic + confirmation avant écrasement dans le handler `App.jsx` |
 | 7 — Notifications | ✅ Fait | `src/utils/notificationQueue.js`, `src/utils/notificationTemplates.js` (9 types) ; `notify()` unique dans `App.jsx` ; 2 notifications manquantes ajoutées (soumission, ajout de co-porteur). Configuration du flux : [`MODE-OPERATOIRE-POWER-AUTOMATE.md`](MODE-OPERATOIRE-POWER-AUTOMATE.md) |
 | 8 — Hydratation `App.jsx` | ✅ Fait | Effet unique « cache d'abord, serveur ensuite » ; `src/utils/syncMerge.js` ; bannières de statut (`loading` / `partial` / `error` / `session-expired`) ; inspirations chargées depuis la liste. Complété par le chargement en bloc des commentaires de conformité (`complianceCommentsProvider.listAllComments()`, une seule requête pour tous les projets) puis fusion avec le JSON local via `src/utils/mergeComplianceComments.js` (SharePoint prioritaire par équipe/comité, repli local sinon) — protégé par son propre `.catch()` pour ne jamais bloquer le chargement des projets |
 | 9 — Documents | ✅ Fait | `src/utils/documentStore.js` (validation, dossiers, `Files/add`, index `CN_FilesIndex`) ; les pièces jointes des annotations (`App.jsx`) et des commentaires compliance (`SynthesisReport.jsx`) ne sont plus stockées en base64 |
@@ -49,7 +49,8 @@ Tests associés : `test/sharepointConfig.test.mjs`, `test/spRestClient.test.mjs`
 `test/documentStore.test.mjs`, `test/projectMembersProvider.test.mjs`,
 `test/showcaseStickyNotesProvider.test.mjs`, `test/complianceCommentsProvider.test.mjs`,
 `test/mergeComplianceComments.test.mjs`, `test/retryQueue.test.mjs`,
-`test/userProfileProvider.test.mjs` (163 tests verts au total).
+`test/userProfileProvider.test.mjs`, `test/rulesProvider.test.mjs`, `test/teamsProvider.test.mjs`
+(175 tests verts au total).
 
 ⚠️ **Piège CSS confirmé en phase 8** : `scripts/generate-tailwind-lite.js` ne détecte que les
 `className="…"` **littéraux et entre guillemets doubles** (regex `class(?:Name)?\s*=\s*"…"`).
@@ -101,7 +102,7 @@ Navigateur — page https://lfb1.sharepoint.com/sites/<site>/CN-App/index.aspx
  │  (cookies de session SPO envoyés automatiquement — same-origin, aucun jeton à gérer)
  ├─ spRestClient.js ─────► https://lfb1.sharepoint.com/sites/<site>/_api/…
  │    ├─ /web/currentUser                       (identité — remplace graph-current-user.json)
- │    ├─ /web/lists/getbytitle('CN_…')/items    (10 listes de données, cf. §5)
+ │    ├─ /web/lists/getbytitle('CN_…')/items    (12 listes de données, cf. §5)
  │    ├─ /web/GetFileByServerRelativeUrl(…)     (CN-Config : référentiels JSON)
  │    └─ /web/GetFolderByServerRelativeUrl(…)   (CN-Documents : pièces jointes)
  ├─ localStorage ────────► cache de démarrage + brouillon hors-ligne (conservé tel quel)
@@ -120,7 +121,8 @@ Correspondance données actuelles → cible :
 | `backoffice-changes.json` | Liste `CN_BackofficeChanges` |
 | `showcase-sticky-notes.json` | Liste `CN_ShowcaseStickyNotes` |
 | `files-index.json` | Liste `CN_FilesIndex` + fichiers réels dans `CN-Documents` |
-| Référentiels du back-office persistés en delta dans localStorage | Fichiers JSON dans `CN-Config` (§7) |
+| `rules`/`teams` (persistés en delta dans localStorage) | Listes `CN_Rules`/`CN_Teams`, une ligne par élément (§6 bis) |
+| Autres référentiels du back-office persistés en delta dans localStorage | Fichiers JSON dans `CN-Config` (§7) |
 | `src/data/graph-current-user.json` | `GET /_api/web/currentUser` |
 | `sendGraphNotificationEmail` (console.info) | Élément dans `CN_NotificationsQueue` (§8) |
 | localStorage `complianceNavigatorState` | Conservé comme **cache** ; la source de vérité devient SharePoint |
@@ -305,7 +307,7 @@ session expirée, mapping 412 → `ConflictError`, suivi de `odata.nextLink`. Au
 
 ## 5. Phase 4 — Dépôt générique de liste et mappers
 
-Les 10 listes partagent la même mécanique. **Créer `src/utils/listRepository.js`** :
+Les 12 listes partagent la même mécanique. **Créer `src/utils/listRepository.js`** :
 
 ```js
 createListRepository({ listKey, keyField, toEntry, toFields })
@@ -393,6 +395,38 @@ liste, en particulier la sérialisation des colonnes JSON et le cas « chaîne J
 dans `CN_Projects` (vérifiable dans l'interface SharePoint), et une modification croisée depuis
 deux onglets déclenche le parcours `ConflictError` existant.
 
+### 6 bis. `rules`/`teams` en listes par-item (`CN_Rules`, `CN_Teams`)
+
+Contrairement aux autres référentiels du back-office (§7), `rules` et `teams` ne sont **pas**
+des fichiers JSON de `CN-Config` : une ligne par règle / par équipe, comme `CN_Projects`, pour que
+deux admins qui modifient chacun une règle différente n'entrent jamais en conflit sur le même
+ETag de fichier.
+
+- `LIST_SCHEMAS.rules` (`RuleId` clé, `PayloadJson` = l'objet règle entier sérialisé — imbrication
+  trop profonde pour un mapping colonne par colonne) et `LIST_SCHEMAS.teams` (`TeamId` clé,
+  colonnes plates `ContactsJson`/`Expertise` — forme déjà plate côté app) dans
+  [listSchemas.js](../../src/utils/listSchemas.js). Les deux portent une colonne `SortOrder` :
+  il n'y a pas de glisser-déposer sur rules/teams, l'ordre affiché est l'ordre d'insertion du
+  tableau, et `SortOrder` est ce qui permet de reconstituer cet ordre depuis des lignes
+  indépendantes.
+- `src/utils/rulesProvider.js` / `teamsProvider.js` : même patron que
+  `projectMembersProvider.js` (`getRepository(...)`, `upsertByKey` pour la concurrence RowVersion
+  + ETag), avec `listAllRules()`/`listAllTeams()` (un seul `getAll()` non filtré, comme
+  `complianceCommentsProvider.listAllComments()`) plutôt qu'un chargement par projet.
+- `App.jsx` charge les deux listes dans le même `Promise.all` que `dataProvider.listProjects()`/
+  `loadReferentials()` et garde les métadonnées serveur (`spItemId`/`rowVersion`/`sortOrder`) dans
+  des `useRef` séparés (`ruleServerMetaRef`/`teamServerMetaRef`) — jamais fusionnées dans l'objet
+  règle/équipe que consomme `analyzeAnswers` (`src/utils/rules.js`). Liste vide au premier chargement
+  = pas encore publiée (pas un référentiel volontairement vidé) : on garde alors les règles/équipes
+  locales plutôt que d'écraser avec un tableau vide.
+- Écriture : `rulesQueueRef`/`teamsQueueRef` (deux `createRetryQueue(...)` de plus dans `App.jsx`),
+  alimentées depuis `BackOffice.jsx` à chaque mutation existante (`addRule`, `deleteRule`,
+  `duplicateRule`, `saveRule`, `addTeam`, `updateTeamField`, `deleteTeam`, et la pile d'annulation)
+  — le `setRules`/`setTeams` optimiste local ne change pas, seul un `enqueue(...)`
+  supplémentaire s'ajoute, gardé derrière `isSharePointMode()`.
+- En mode mock/local, rien ne change : `rules`/`teams` restent des `useState` initialisés depuis
+  `src/data/rules.js`/`teams.js` et persistés en delta dans `complianceNavigatorState`.
+
 ---
 
 ## 7. Phase 6 — Référentiels dans la bibliothèque `CN-Config`
@@ -404,12 +438,15 @@ Les référentiels administrés en back-office (aujourd'hui persistés en delta 
 | Fichier dans `CN-Config` | Contenu (état d'`App.jsx`) |
 |---|---|
 | `questions.json` | `questions` |
-| `rules.json` | `rules` |
 | `risk-level-rules.json` | `riskLevelRules` |
 | `risk-weighting.json` | `riskWeights` |
-| `teams.json` | `teams` |
 | `showcase-themes.json` | `showcaseThemes` |
 | `settings.json` | `adminEmails`, `onboardingTourConfig`, `validationCommitteeConfig`, `inspirationFormFields` |
+
+> `rules` et `teams` ne sont **pas** dans ce tableau : ils ont été migrés vers des listes
+> par-item (`CN_Rules`/`CN_Teams`, une ligne par règle/équipe) plutôt que des fichiers, pour une
+> concurrence optimiste par règle plutôt que sur tout le fichier — voir §6 bis ci-dessus
+> (`src/utils/rulesProvider.js`/`teamsProvider.js`).
 
 **Créer `src/utils/referentialStore.js`** :
 
@@ -461,9 +498,10 @@ Créer un panneau dédié dans `BackOffice.jsx`, visible **uniquement** si `isCu
 - `BackOffice.jsx` fait partie du manifest **différé** : aucun changement à `DEFERRED_MODULES`,
   mais bien régénérer le manifest.
 
-**Fait quand** : sur une bibliothèque `CN-Config` vide, un admin clique « Publier » et les 7
-fichiers apparaissent ; une modification de question depuis un poste A est visible sur un poste B
-après rechargement ; deux publications concurrentes produisent un conflit, jamais un écrasement
+**Fait quand** : sur une bibliothèque `CN-Config` vide, un admin clique « Publier » et les 5
+fichiers apparaissent (plus les lignes `CN_Rules`/`CN_Teams`, publiées par le même bouton — voir
+§6 bis) ; une modification de question depuis un poste A est visible sur un poste B après
+rechargement ; deux publications concurrentes produisent un conflit, jamais un écrasement
 silencieux.
 
 ---
@@ -569,7 +607,8 @@ chemin, et il est téléchargeable depuis un autre poste.
 5. **Checklist du mode SharePoint** (sur le site réel) :
    - [ ] Ouverture de `.../CN-App/index.aspx` : aucune fenêtre de connexion, nom réel affiché.
    - [ ] Back-office → « Synchronisation SharePoint » : diagnostic tout vert, puis publication de
-         la configuration → 7 fichiers créés dans `CN-Config`.
+         la configuration → 5 fichiers créés dans `CN-Config`, et une ligne par règle/équipe dans
+         `CN_Rules`/`CN_Teams`.
    - [ ] Création + sauvegarde d'un projet → ligne visible dans `CN_Projects`.
    - [ ] Soumission → élément `Pending` dans `CN_NotificationsQueue` → e-mail reçu → `Sent`.
    - [ ] Modification back-office → fichier mis à jour dans `CN-Config`, visible d'un second compte.

@@ -1,7 +1,7 @@
 # Vérification de la configuration SharePoint
 
 Ce document sert à **vérifier que le site SharePoint est correctement configuré** (les 3
-bibliothèques et les 10 listes attendues par l'application, avec toutes leurs colonnes), et à
+bibliothèques et les 12 listes attendues par l'application, avec toutes leurs colonnes), et à
 **créer automatiquement ce qui manque**, sans avoir à cliquer liste par liste, colonne par colonne.
 
 La configuration de référence ci-dessous est extraite de
@@ -59,7 +59,7 @@ colonnes utilisées par le code — c'est la source de vérité. Le document jum
 | `CN-Config` | Fichiers de paramètres JSON (remplie par l'app) |
 | `CN-Documents` | Pièces jointes ajoutées par les utilisateurs |
 
-### 10 listes
+### 12 listes
 
 `Title` existe par défaut sur toute liste et n'est jamais recréée. 📌 = colonne indexée par le
 script (nécessaire au-delà de 5 000 éléments).
@@ -76,9 +76,12 @@ script (nécessaire au-delà de 5 000 éléments).
 | `CN_FilesIndex` | FileId, EntityType📌, EntityId📌, Path, UploadedBy, UploadedAt (date), Checksum |
 | `CN_NotificationsQueue` | NotificationType, ToEmails (texte long), CcEmails (texte long), Body (texte long), ProjectId, Status📌 (Choix : Pending/Sent/Error, défaut Pending), SentAt (date), ErrorMessage (texte long) |
 | `CN_UserProfiles` | UserEmail📌, ActivityScopeJson (texte long), PreferredLanguage, HasCompletedOnboarding (oui/non), UpdatedAt (date) |
+| `CN_Rules` | RuleId📌, PayloadJson (texte long), SortOrder (nombre), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
+| `CN_Teams` | TeamId📌, ContactsJson (texte long), Expertise (texte long), SortOrder (nombre), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
 
 (Les colonnes en **gras** sont celles corrigées le 29/08/2026, voir l'encart d'avertissement en
-haut de ce document.)
+haut de ce document. `CN_Rules`/`CN_Teams` remplacent les fichiers `rules.json`/`teams.json` qui
+existaient auparavant dans `CN-Config` — une ligne par règle/équipe plutôt qu'un fichier unique.)
 
 ## Le script
 
@@ -330,6 +333,31 @@ haut de ce document.)
         { name: 'ActivityScopeJson', type: 'Note' },
         { name: 'PreferredLanguage', type: 'Text', defaultValue: 'en' },
         { name: 'HasCompletedOnboarding', type: 'Boolean' },
+        { name: 'UpdatedAt', type: 'DateTime' }
+      ]
+    },
+    {
+      title: 'CN_Rules',
+      fields: [
+        { name: 'RuleId', type: 'Text', indexed: true },
+        { name: 'PayloadJson', type: 'Note' },
+        { name: 'SortOrder', type: 'Number' },
+        { name: 'RowVersion', type: 'Number' },
+        { name: 'CreatedByEmail', type: 'Text' },
+        { name: 'UpdatedByEmail', type: 'Text' },
+        { name: 'UpdatedAt', type: 'DateTime' }
+      ]
+    },
+    {
+      title: 'CN_Teams',
+      fields: [
+        { name: 'TeamId', type: 'Text', indexed: true },
+        { name: 'ContactsJson', type: 'Note' },
+        { name: 'Expertise', type: 'Note' },
+        { name: 'SortOrder', type: 'Number' },
+        { name: 'RowVersion', type: 'Number' },
+        { name: 'CreatedByEmail', type: 'Text' },
+        { name: 'UpdatedByEmail', type: 'Text' },
         { name: 'UpdatedAt', type: 'DateTime' }
       ]
     }

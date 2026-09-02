@@ -21,6 +21,8 @@
 | CN_FilesIndex | Liste | `a0854267-45c9-43a2-8707-bc67fe4d1a19` |
 | CN_NotificationsQueue | Liste | `2c197090-6347-44a8-a51b-a31503cff842` |
 | CN_UserProfiles | Liste | *à créer (voir VERIFICATION-CONFIGURATION-SHAREPOINT.md)* |
+| CN_Rules | Liste | *à créer (voir PREPARATION-SHAREPOINT-POWERAUTOMATE.md, étape 4)* |
+| CN_Teams | Liste | *à créer (voir PREPARATION-SHAREPOINT-POWERAUTOMATE.md, étape 4)* |
 
 ## PROD — à créer
 

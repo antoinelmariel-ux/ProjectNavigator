@@ -63,10 +63,8 @@ const withFetch = async (handler, fn) => {
 test('buildReferentialPayload : un fichier par référentiel, réglages regroupés', () => {
   const payload = buildReferentialPayload({
     questions: [{ id: 'q1' }],
-    rules: [{ id: 'r1' }],
     riskLevelRules: [],
     riskWeights: { a: 1 },
-    teams: [{ id: 't1' }],
     showcaseThemes: [],
     adminEmails: ['a@b.fr'],
     onboardingTourConfig: { steps: [] },
@@ -98,10 +96,8 @@ test('flattenReferentials : redéploie settings.json en tranches applicatives', 
 test('aller-retour build → flatten', () => {
   const state = {
     questions: [{ id: 'q1' }],
-    rules: [],
     riskLevelRules: [],
     riskWeights: {},
-    teams: [],
     showcaseThemes: [],
     adminEmails: ['x@y.fr'],
     onboardingTourConfig: { a: 1 },
@@ -132,7 +128,7 @@ test('loadReferentials : fichier absent listé, fichier présent analysé', asyn
       assert.deepEqual(data.questions, [{ id: 'q1' }]);
       assert.deepEqual(slices.questions, [{ id: 'q1' }]);
       assert.equal(errors.length, 0);
-      assert.ok(missing.includes('rules.json'));
+      assert.ok(missing.includes('risk-level-rules.json'));
       assert.ok(missing.includes('settings.json'));
       assert.ok(!missing.includes('questions.json'));
     }
@@ -142,8 +138,7 @@ test('loadReferentials : fichier absent listé, fichier présent analysé', asyn
 test('loadReferentials : un JSON corrompu est signalé sans bloquer les autres', async () => {
   await withFetch(
     (url) => {
-      // « /rules.json » et non « rules.json » : risk-level-rules.json contient la sous-chaîne.
-      if (url.includes('/rules.json') && url.endsWith('/$value')) {
+      if (url.includes('settings.json') && url.endsWith('/$value')) {
         return makeResponse(200, '{ pas du json', { ETag: '"1"' });
       }
       if (url.includes('questions.json') && url.endsWith('/$value')) {
@@ -155,7 +150,7 @@ test('loadReferentials : un JSON corrompu est signalé sans bloquer les autres',
       const { data, errors } = await loadReferentials();
       assert.deepEqual(data.questions, []);
       assert.equal(errors.length, 1);
-      assert.equal(errors[0].file, 'rules.json');
+      assert.equal(errors[0].file, 'settings.json');
       assert.match(errors[0].message, /pas un JSON valide/);
     }
   );
@@ -175,10 +170,8 @@ test('publishAllReferentials : crée les fichiers absents via Files/add', async 
     async (calls) => {
       const results = await publishAllReferentials({
         questions: [{ id: 'q1' }, { id: 'q2' }],
-        rules: [],
         riskLevelRules: [],
         riskWeights: {},
-        teams: [],
         showcaseThemes: [],
         adminEmails: ['a@b.fr']
       });
@@ -230,16 +223,16 @@ test('publishAllReferentials : un échec est rapporté sans interrompre les autr
       if (init.method === 'GET') {
         return makeResponse(200, { 'odata.etag': '"1"' });
       }
-      if (url.includes("Files/add(url='rules.json'")) {
+      if (url.includes("Files/add(url='risk-level-rules.json'")) {
         return makeResponse(403, { error: { message: 'Accès refusé' } });
       }
       return makeResponse(200, {});
     },
     async () => {
-      const results = await publishAllReferentials({ questions: [], rules: [], teams: [] });
-      const rules = results.find((entry) => entry.key === 'rules');
-      assert.equal(rules.status, 'error');
-      assert.match(rules.message, /Accès refusé/);
+      const results = await publishAllReferentials({ questions: [], riskLevelRules: [] });
+      const riskLevelRules = results.find((entry) => entry.key === 'riskLevelRules');
+      assert.equal(riskLevelRules.status, 'error');
+      assert.match(riskLevelRules.message, /Accès refusé/);
       assert.equal(results.find((entry) => entry.key === 'questions').status, 'published');
     }
   );
@@ -268,7 +261,7 @@ test('diagnoseInstallation : signale listes, bibliothèques et fichiers manquant
       assert.deepEqual(diagnostic.missing, ['CN-Documents']);
       assert.ok(diagnostic.lists.every((entry) => entry.present));
       assert.equal(diagnostic.files.find((entry) => entry.name === 'questions.json').present, true);
-      assert.equal(diagnostic.files.find((entry) => entry.name === 'rules.json').present, false);
+      assert.equal(diagnostic.files.find((entry) => entry.name === 'risk-level-rules.json').present, false);
     }
   );
 });

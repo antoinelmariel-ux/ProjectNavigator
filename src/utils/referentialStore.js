@@ -14,12 +14,13 @@ const SETTINGS_KEYS = [
   'inspirationFilters'
 ];
 
+// `rules` et `teams` ne sont plus des référentiels-fichiers : ils vivent dans les listes
+// SharePoint CN_Rules / CN_Teams (une ligne par règle / par équipe), voir rulesProvider.js et
+// teamsProvider.js — chargés et écrits séparément dans App.jsx, pas via ce module.
 export const REFERENTIAL_FILES = {
   questions: { file: 'questions.json', label: 'Questions' },
-  rules: { file: 'rules.json', label: 'Règles' },
   riskLevelRules: { file: 'risk-level-rules.json', label: 'Niveaux de risque' },
   riskWeights: { file: 'risk-weighting.json', label: 'Pondérations de risque' },
-  teams: { file: 'teams.json', label: 'Équipes' },
   showcaseThemes: { file: 'showcase-themes.json', label: 'Thèmes de vitrine' },
   settings: { file: 'settings.json', label: 'Réglages généraux', keys: SETTINGS_KEYS }
 };
