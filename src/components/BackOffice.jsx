@@ -3497,9 +3497,9 @@ export const BackOffice = ({
         .filter((rule) => rule && rule.id)
         .map((rule) => ({
           value: rule.id,
-          label: rule.name || t('backOffice.main.ruleFallbackNoName')
+          label: resolveLocalizedText(rule.name, language) || t('backOffice.main.ruleFallbackNoName')
         })),
-    [rules, t]
+    [rules, language, t]
   );
 
   const updateComplianceReviewAnswer = useCallback((questionId, valueOrUpdater) => {
