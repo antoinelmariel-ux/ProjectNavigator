@@ -365,6 +365,31 @@ export const HomeScreen = ({
     return projects.some((project) => normalizeEmail(project?.ownerEmail) === currentUserEmail);
   }, [projects, currentUserEmail]);
 
+  // Une inspiration "partagee" reste visible par tous ; une inspiration "personnelle"
+  // ne doit remonter que pour son proprietaire (sauf entrees anciennes sans ownerEmail).
+  const accessibleInspirationProjects = useMemo(() => {
+    if (!Array.isArray(inspirationProjects)) {
+      return [];
+    }
+
+    if (isAdminMode || !currentUserEmail) {
+      return inspirationProjects;
+    }
+
+    return inspirationProjects.filter((project) => {
+      if (project?.visibility === 'shared') {
+        return true;
+      }
+
+      const ownerEmail = normalizeEmail(project?.ownerEmail);
+      if (!ownerEmail) {
+        return true;
+      }
+
+      return ownerEmail === currentUserEmail;
+    });
+  }, [inspirationProjects, isAdminMode, currentUserEmail]);
+
   const normalizedValidationCommitteeConfig = useMemo(
     () => normalizeValidationCommitteeConfig(validationCommitteeConfig),
     [validationCommitteeConfig]
@@ -873,7 +898,7 @@ export const HomeScreen = ({
         });
       }
 
-      inspirationProjects.forEach((project) => {
+      accessibleInspirationProjects.forEach((project) => {
         const values = normalizeInspirationFieldValues(project?.[field.id]);
         values.forEach((value) => {
           if (value.length > 0) {
@@ -886,7 +911,7 @@ export const HomeScreen = ({
     });
 
     return map;
-  }, [normalizedInspirationFilters.fields, inspirationProjects, language]);
+  }, [normalizedInspirationFilters.fields, accessibleInspirationProjects, language]);
 
   const filteredProjects = useMemo(() => {
     if (!Array.isArray(accessibleProjects)) {
@@ -965,7 +990,7 @@ export const HomeScreen = ({
   }, [accessibleProjects, normalizedFilters, filtersState, projectSearch]);
 
   const filteredInspirationProjects = useMemo(() => {
-    if (!Array.isArray(inspirationProjects)) {
+    if (!Array.isArray(accessibleInspirationProjects)) {
       return [];
     }
 
@@ -973,7 +998,7 @@ export const HomeScreen = ({
       ? normalizedInspirationFilters.fields
       : [];
 
-    return inspirationProjects.filter((project) => {
+    return accessibleInspirationProjects.filter((project) => {
       for (let index = 0; index < activeFields.length; index += 1) {
         const field = activeFields[index];
         if (!field || !field.enabled) {
@@ -1005,7 +1030,7 @@ export const HomeScreen = ({
 
       return true;
     });
-  }, [inspirationProjects, normalizedInspirationFilters.fields, inspirationFiltersState]);
+  }, [accessibleInspirationProjects, normalizedInspirationFilters.fields, inspirationFiltersState]);
 
   const submittedProjects = useMemo(() => {
     if (!Array.isArray(projects)) {
@@ -1058,7 +1083,7 @@ export const HomeScreen = ({
   const hasProjects = accessibleProjects.length > 0;
   const hasFilteredProjects = filteredProjects.length > 0;
   const hasSubmittedProjects = submittedProjects.length > 0;
-  const hasInspirationProjects = inspirationProjects.length > 0;
+  const hasInspirationProjects = accessibleInspirationProjects.length > 0;
   const hasFilteredInspirationProjects = filteredInspirationProjects.length > 0;
   const hasPersonalInspirations = personalInspirationProjects.length > 0;
   const hasSharedInspirations = sharedInspirationProjects.length > 0;
