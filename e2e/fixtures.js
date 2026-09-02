@@ -3,10 +3,13 @@
 import { expect } from '@playwright/test';
 
 export async function gotoFresh(page) {
-  await page.addInitScript(() => {
-    window.localStorage.clear();
-  });
+  // Volontairement pas de addInitScript() pour vider le localStorage : ce hook se
+  // réexécuterait à chaque navigation, y compris un page.reload() ultérieur dans le test,
+  // ce qui reviderait le stockage juste après une action que le test cherche à vérifier
+  // justement à travers un rechargement (persistance). Un seul clear + reload suffit.
   await page.goto('/index.html');
+  await page.evaluate(() => window.localStorage.clear());
+  await page.reload();
   await expect(page.getByRole('heading', { name: 'Bienvenue sur Project Navigator' })).toBeVisible();
 }
 
