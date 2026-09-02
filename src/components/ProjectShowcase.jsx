@@ -1309,6 +1309,42 @@ const parseListAnswer = (value) => {
   return normalized;
 };
 
+const PARAGRAPH_BULLET_PATTERN = /^[-•*·–—]\s+/;
+// Coupe en fin de phrase (. ! ? …) uniquement quand ce qui suit ressemble au
+// début d'une nouvelle phrase (majuscule, chiffre, guillemet) : évite de
+// couper sur des abréviations ou décimales isolées.
+const SENTENCE_BOUNDARY_PATTERN = /(?<=[.!?…])\s+(?=[A-ZÀ-ÖØ-Ý0-9«"“(])/;
+
+// Les listes façon "The Problem" viennent d'un champ de texte libre : on
+// découpe d'abord sur les sauts de ligne et les puces déjà présentes, puis,
+// pour ce qui reste en paragraphe, phrase par phrase — jamais sur une simple
+// virgule, qui coupait des phrases en plein milieu.
+const parseParagraphPoints = (value) => {
+  if (!value) {
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap(item => parseParagraphPoints(item));
+  }
+
+  const lines = String(value)
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(line => line.length > 0);
+
+  return lines.flatMap(line => {
+    if (PARAGRAPH_BULLET_PATTERN.test(line)) {
+      return [line.replace(PARAGRAPH_BULLET_PATTERN, '').trim()];
+    }
+
+    return line
+      .split(SENTENCE_BOUNDARY_PATTERN)
+      .map(sentence => sentence.trim())
+      .filter(sentence => sentence.length > 0);
+  }).filter(entry => hasText(entry));
+};
+
 const SOLUTION_BULLET_PATTERN = /^[-•*·]\s+/;
 
 // « En clair » mélange souvent une accroche narrative puis une liste
@@ -2480,7 +2516,7 @@ export const ProjectShowcase = ({
 
   const slogan = getFormattedAnswer(questions, answers, 'projectSlogan', missingInfoLabel);
   const targetAudience = getFormattedAnswer(questions, answers, 'targetAudience', missingInfoLabel);
-  const problemPainPoints = parseListAnswer(getRawAnswer(answers, 'problemPainPoints'));
+  const problemPainPoints = parseParagraphPoints(getRawAnswer(answers, 'problemPainPoints'));
 
   const solutionDescription = getFormattedAnswer(questions, answers, 'solutionDescription', missingInfoLabel);
   const solutionDescriptionParts = useMemo(
