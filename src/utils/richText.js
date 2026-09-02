@@ -207,6 +207,36 @@ export const sanitizeRichText = (value) => {
   return container.innerHTML;
 };
 
+const BLOCK_BOUNDARY_PATTERN = /<br\s*\/?>|<\/?p(?:\s[^>]*)?>|<\/?li(?:\s[^>]*)?>|<\/?ul(?:\s[^>]*)?>|<\/?ol(?:\s[^>]*)?>/gi;
+
+const stripTagsForEmptyCheck = (fragment) =>
+  fragment.replace(/<[^>]+>/g, '').replace(/&nbsp;/gi, ' ').trim();
+
+// Dans l'éditeur riche, Entrée insère une balise <br> (voir RichTextEditor.jsx),
+// jamais un caractère \n : découper une réponse en blocs doit donc reconnaître
+// cette structure HTML (br/p/li/ul/ol), pas seulement un retour à la ligne brut.
+// Le repli sur \n couvre les réponses enregistrées avant l'éditeur riche
+// (ex. le projet de démonstration), toujours du texte brut.
+export const splitRichTextIntoBlocks = (value) => {
+  if (typeof value !== 'string') {
+    return [];
+  }
+
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    return [];
+  }
+
+  const hasHtmlTags = /<\/?[a-z][\s\S]*>/i.test(trimmed);
+  const rawBlocks = hasHtmlTags
+    ? trimmed.split(BLOCK_BOUNDARY_PATTERN)
+    : trimmed.replace(/\r\n/g, '\n').split('\n');
+
+  return rawBlocks
+    .map(block => block.trim())
+    .filter(block => stripTagsForEmptyCheck(block).length > 0);
+};
+
 export const renderRichText = (value) => {
   if (typeof value !== 'string' || value.length === 0) {
     return value;

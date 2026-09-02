@@ -8,6 +8,7 @@ import {
 } from './icons.js';
 import { formatAnswer, getQuestionOptionLabels } from '../utils/questions.js';
 import { renderTextWithLinks } from '../utils/linkify.js';
+import { splitRichTextIntoBlocks } from '../utils/richText.js';
 import { initialShowcaseThemes } from '../data/showcaseThemes.js';
 import { resolveThemeFromActivation } from '../utils/showcase.js';
 import { RichTextEditor } from './RichTextEditor.jsx';
@@ -1292,57 +1293,31 @@ const buildDraftValues = (fields, answers, fallbackProjectName) => {
   return draft;
 };
 
-const parseListAnswer = (value) => {
-  if (!value) {
-    return [];
-  }
-
-  if (Array.isArray(value)) {
-    return value.filter(item => hasText(String(item)));
-  }
-
-  const normalized = String(value)
-    .split(/\r?\n|·|•|;|,/)
-    .map(entry => entry.replace(/^[-•\s]+/, '').trim())
-    .filter(entry => entry.length > 0);
-
-  return normalized;
-};
-
-const PARAGRAPH_BULLET_PATTERN = /^[-•*·–—]\s+/;
+const HTML_TAG_PATTERN = /<[a-z][\s\S]*>/i;
 // Coupe en fin de phrase (. ! ? …) uniquement quand ce qui suit ressemble au
 // début d'une nouvelle phrase (majuscule, chiffre, guillemet) : évite de
 // couper sur des abréviations ou décimales isolées.
 const SENTENCE_BOUNDARY_PATTERN = /(?<=[.!?…])\s+(?=[A-ZÀ-ÖØ-Ý0-9«"“(])/;
 
-// Les listes façon "The Problem" viennent d'un champ de texte libre : on
-// découpe d'abord sur les sauts de ligne et les puces déjà présentes, puis,
-// pour ce qui reste en paragraphe, phrase par phrase — jamais sur une simple
-// virgule, qui coupait des phrases en plein milieu.
-const parseParagraphPoints = (value) => {
-  if (!value) {
-    return [];
-  }
+// "The Problem" découpe plus finement que les autres sections : chaque bloc
+// déjà séparé par splitRichTextIntoBlocks (saut de ligne / <br> / puce) est
+// en plus coupé phrase par phrase quand c'est un simple paragraphe sans mise
+// en forme — jamais sur une virgule, qui coupait des phrases en plein
+// milieu. Un bloc qui porte déjà du HTML (gras, lien) est laissé intact pour
+// ne pas casser son balisage.
+const parseProblemPainPoints = (value) => {
+  const blocks = splitRichTextIntoBlocks(value);
 
-  if (Array.isArray(value)) {
-    return value.flatMap(item => parseParagraphPoints(item));
-  }
-
-  const lines = String(value)
-    .split(/\r?\n/)
-    .map(line => line.trim())
-    .filter(line => line.length > 0);
-
-  return lines.flatMap(line => {
-    if (PARAGRAPH_BULLET_PATTERN.test(line)) {
-      return [line.replace(PARAGRAPH_BULLET_PATTERN, '').trim()];
+  return blocks.flatMap(block => {
+    if (HTML_TAG_PATTERN.test(block)) {
+      return [block];
     }
 
-    return line
+    return block
       .split(SENTENCE_BOUNDARY_PATTERN)
       .map(sentence => sentence.trim())
       .filter(sentence => sentence.length > 0);
-  }).filter(entry => hasText(entry));
+  });
 };
 
 const SOLUTION_BULLET_PATTERN = /^[-•*·]\s+/;
@@ -2516,23 +2491,23 @@ export const ProjectShowcase = ({
 
   const slogan = getFormattedAnswer(questions, answers, 'projectSlogan', missingInfoLabel);
   const targetAudience = getFormattedAnswer(questions, answers, 'targetAudience', missingInfoLabel);
-  const problemPainPoints = parseParagraphPoints(getRawAnswer(answers, 'problemPainPoints'));
+  const problemPainPoints = parseProblemPainPoints(getRawAnswer(answers, 'problemPainPoints'));
 
   const solutionDescription = getFormattedAnswer(questions, answers, 'solutionDescription', missingInfoLabel);
   const solutionDescriptionParts = useMemo(
     () => splitSolutionDescription(solutionDescription),
     [solutionDescription]
   );
-  const solutionBenefits = parseListAnswer(getRawAnswer(answers, 'solutionBenefits'));
+  const solutionBenefits = splitRichTextIntoBlocks(getRawAnswer(answers, 'solutionBenefits'));
 
   const innovationProcess = getFormattedAnswer(questions, answers, 'innovationProcess', missingInfoLabel);
   const visionStatement = getFormattedAnswer(questions, answers, 'visionStatement', missingInfoLabel);
   const visionStatementEntries = useMemo(
-    () => parseListAnswer(getRawAnswer(answers, 'visionStatement')),
+    () => splitRichTextIntoBlocks(getRawAnswer(answers, 'visionStatement')),
     [answers]
   );
   const innovationProcessEntries = useMemo(
-    () => parseListAnswer(getRawAnswer(answers, 'innovationProcess')),
+    () => splitRichTextIntoBlocks(getRawAnswer(answers, 'innovationProcess')),
     [answers]
   );
   const budgetEstimate = getFormattedAnswer(questions, answers, 'BUDGET', missingInfoLabel);
@@ -2569,7 +2544,7 @@ export const ProjectShowcase = ({
 
   const teamLead = getFormattedAnswer(questions, answers, 'teamLead', missingInfoLabel);
   const teamLeadTeam = getFormattedAnswer(questions, answers, 'teamLeadTeam', missingInfoLabel);
-  const teamCoreMembers = parseListAnswer(getRawAnswer(answers, 'teamCoreMembers'));
+  const teamCoreMembers = splitRichTextIntoBlocks(getRawAnswer(answers, 'teamCoreMembers'));
 
   const rawRunway = useMemo(() => computeRunway(answers, language), [answers, language]);
   const animatedWeeks = useAnimatedCounter(rawRunway?.weeks ?? null, { duration: 1200 });
@@ -3195,8 +3170,12 @@ export const ProjectShowcase = ({
     const title = section.title || t('projectShowcase.untitledSectionFallback');
     const columnCount = resolveCustomSectionColumnCount(section.columnCount, section.columns);
     const columns = normalizeCustomSectionColumns(section.columns, columnCount);
-    const activeColumns = columns.filter(column => column.trim().length > 0);
-    const items = Array.isArray(section.items) ? section.items.filter(Boolean) : [];
+    // une colonne ou un item saisi avec des sauts de ligne (Entrée dans l'éditeur
+    // riche) doit produire plusieurs blocs distincts, pas un seul bloc recollé
+    const activeColumns = columns.flatMap(column => splitRichTextIntoBlocks(column));
+    const items = Array.isArray(section.items)
+      ? section.items.filter(Boolean).flatMap(item => splitRichTextIntoBlocks(item))
+      : [];
 
     const tileVars = { '--sg-c': family.c, '--sg-g1': family.g1, '--sg-g2': family.g2 };
 
