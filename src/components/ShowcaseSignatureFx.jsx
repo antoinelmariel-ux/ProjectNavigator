@@ -137,9 +137,6 @@ export function ShowcaseSignatureFx({ rootRef }) {
     sizeGL();
 
     /* ---------- 2. éléments pilotés par le défilement ---------- */
-    const stackGroups = Array.prototype.map.call(root.querySelectorAll('.sg-stack'), (stack) =>
-      Array.prototype.slice.call(stack.querySelectorAll('.sg-card'))
-    );
     const roads = Array.prototype.slice.call(root.querySelectorAll('.sg-road'));
     const counter = root.querySelector('[data-sg-counter]');
     const storySteps = Array.prototype.slice.call(root.querySelectorAll('[data-sg-story-step]'));
@@ -150,24 +147,6 @@ export function ShowcaseSignatureFx({ rootRef }) {
       const rect = root.getBoundingClientRect();
       const travel = rect.height - window.innerHeight;
       scrollP = travel > 0 ? Math.min(1, Math.max(0, -rect.top / travel)) : 0;
-
-      if (!reduce) {
-        // une carte recule et s'assombrit à mesure que la suivante la recouvre,
-        // calculé pile par pile pour ne pas relier deux piles distantes
-        for (let g = 0; g < stackGroups.length; g += 1) {
-          const cards = stackGroups[g];
-          for (let i = 0; i < cards.length; i += 1) {
-            const cur = cards[i].getBoundingClientRect();
-            let covered = 0;
-            if (i + 1 < cards.length && cur.height > 0) {
-              const gap = cards[i + 1].getBoundingClientRect().top - cur.top;
-              covered = 1 - Math.min(1, Math.max(0, gap / cur.height));
-            }
-            cards[i].style.setProperty('--sg-s', (1 - covered * 0.07).toFixed(4));
-            cards[i].style.setProperty('--sg-dim', (covered * 0.45).toFixed(4));
-          }
-        }
-      }
 
       roads.forEach((road) => {
         const fill = road.querySelector('.sg-road__fill');

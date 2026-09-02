@@ -2884,8 +2884,6 @@ export const ProjectShowcase = ({
               )}
               {solutionBenefits.length > 0 && (
                 <div className="sg-rv" style={{ '--sg-d': '240ms', marginTop: 'clamp(3.5rem, 7vw, 5rem)' }}>
-                  {/* reste épinglé pendant tout le défilement de la pile, pour qu'on
-                      comprenne toujours à quoi correspondent les cartes qui se recouvrent */}
                   <div className="sg-stack-header">
                     <p className="sg-eyebrow" style={{ '--sg-c': '#6d511a' }}>
                       {t('projectShowcase.solutionBenefitsEyebrow')}
@@ -2898,8 +2896,8 @@ export const ProjectShowcase = ({
                     {solutionBenefits.map((benefit, benefitIndex) => (
                       <div
                         key={`${benefit}-${benefitIndex}`}
-                        className="sg-stack__slot"
-                        style={{ '--sg-i': benefitIndex }}
+                        className="sg-stack__slot sg-rv sg-rv--x"
+                        style={{ '--sg-d': `${(benefitIndex % 3) * 90}ms` }}
                       >
                         <article className="sg-card">
                           <span className="sg-card__orb" />
@@ -3297,7 +3295,7 @@ export const ProjectShowcase = ({
       );
     }
 
-    // BRIQUE A — pile de cartes : reprend « Notre solution »
+    // BRIQUE A — grille de cartes : reprend « Notre solution »
     if (type === 'stack') {
       return (
         <section key={key} className="sg-band sg-band--light sg-band--pad" data-showcase-section={type}>
@@ -3311,7 +3309,11 @@ export const ProjectShowcase = ({
             {items.length > 0 && (
               <div className="sg-stack">
                 {items.map((item, itemIndex) => (
-                  <div key={`${key}-card-${itemIndex}`} className="sg-stack__slot" style={{ '--sg-i': itemIndex }}>
+                  <div
+                    key={`${key}-card-${itemIndex}`}
+                    className="sg-stack__slot sg-rv sg-rv--x"
+                    style={{ '--sg-d': `${(itemIndex % 3) * 90}ms` }}
+                  >
                     <article className="sg-card" style={{ '--sg-c1': family.g1, '--sg-c2': family.g2 }}>
                       <span className="sg-card__orb" />
                       <div className="sg-card__top">
@@ -3542,25 +3544,20 @@ export const ProjectShowcase = ({
           </div>
         );
 
-      // BRIQUE A — pile de cartes qui se superposent
+      // BRIQUE A — cartes pleine couleur rangées en grille
       case 'stack':
         return (
           <div className={shell}>
-            <div className="relative mx-auto h-24 w-32">
-              {[0, 1, 2].map((card) => (
+            <div className="grid grid-cols-3 gap-1.5">
+              {[0, 1, 2, 3, 4, 5].map((card) => (
                 <div
                   key={`thumb-stack-${card}`}
-                  className="absolute left-0 right-0 rounded-lg bg-gradient-to-br from-sky-600 to-slate-800 shadow-md"
-                  style={{
-                    top: `${card * 14}px`,
-                    height: '62px',
-                    transform: `scale(${1 - (2 - card) * 0.05})`,
-                    opacity: 0.55 + card * 0.225
-                  }}
+                  className="h-8 rounded-md bg-gradient-to-br from-sky-600 to-slate-800 shadow-sm"
+                  style={{ opacity: card < 3 ? 1 : 0.55 }}
                 />
               ))}
             </div>
-            <p className="mt-2 text-center text-xs text-gray-400">{t('projectShowcase.cardsOverlapCaption')}</p>
+            <p className="mt-2 text-center text-xs text-gray-400">{t('projectShowcase.cardsGridCaption')}</p>
           </div>
         );
 

@@ -1497,12 +1497,12 @@ export default {
         placeholderItem3: 'Point clé #3'
       },
       stack: {
-        name: 'Pile de cartes',
-        description: 'Des cartes pleine couleur qui se superposent au défilement, comme la section « Notre solution ».',
+        name: 'Grille de cartes',
+        description: 'Des cartes pleine couleur qui arrivent de la droite au défilement et se rangent en grille, comme la section « Notre solution ».',
         placeholderTitle: 'Les étapes du dispositif',
-        placeholderSubtitle: 'Trois temps forts, empilés au défilement',
+        placeholderSubtitle: 'Trois temps forts, qui glissent depuis la droite au défilement',
         placeholderItem1: 'Première étape du dispositif, décrite en une phrase courte.',
-        placeholderItem2: 'Deuxième étape, qui se superpose à la précédente au défilement.',
+        placeholderItem2: 'Deuxième étape, rangée à côté de la précédente.',
         placeholderItem3: 'Troisième étape, qui referme la séquence.'
       }
     },
@@ -1585,7 +1585,7 @@ export default {
     customSectionSubtitle: 'Section personnalisée',
     standardSectionSubtitle: 'Section standard',
     documentPreviewLabel: 'Aperçu du document',
-    cardsOverlapCaption: 'Les cartes se superposent au défilement',
+    cardsGridCaption: 'Les cartes se rangent en grille au défilement',
     newSectionEyebrow: 'Nouvelle section',
     chooseTemplateTitle: 'Choisissez un modèle puis complétez son contenu',
     thumbnailHint: 'Les miniatures donnent un aperçu rapide du rendu final.',
