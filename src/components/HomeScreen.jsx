@@ -1831,7 +1831,9 @@ export const HomeScreen = ({
                 <label htmlFor="project-search" className="sr-only">
                   {t('home.searchProjectLabel')}
                 </label>
-                <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 text-gray-400" aria-hidden="true" />
+                <div className="pointer-events-none absolute inset-y-0 left-4 flex items-center">
+                  <Search className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                </div>
                 <input
                   id="project-search"
                   type="search"
