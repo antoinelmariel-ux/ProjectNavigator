@@ -1999,14 +1999,14 @@ export const BackOffice = ({
           .filter((question) => question && FILTER_COMPATIBLE_QUESTION_TYPES.has(question.type))
           .map((question) => ({
             value: question.id,
-            label: question.question || question.id,
+            label: resolveLocalizedText(question.question, language) || question.id,
             disabled: usedQuestionIds.has(question.id),
             type: question.type
           }))
       : [];
 
     return options.sort((a, b) => a.label.localeCompare(b.label, 'fr', { sensitivity: 'base' }));
-  }, [questions, normalizedProjectFilters]);
+  }, [questions, normalizedProjectFilters, language]);
 
   const selectedFilterOption = useMemo(() => {
     if (!selectedFilterQuestionId) {
