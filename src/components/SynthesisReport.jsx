@@ -101,8 +101,6 @@ const TEAM_STATUS_RANK = {
   not_concerned: 3
 };
 
-const TEAM_STATUS_COLLAPSED_BY_DEFAULT = new Set(['validated', 'not_concerned']);
-
 const TEAM_PRIORITY_RANK = {
   critical: 0,
   elevated: 1,
@@ -1623,16 +1621,15 @@ export const SynthesisReport = ({
                 const visibleMessages = shouldCollapse ? threadMessages.slice(0, 2) : threadMessages;
                 const isCommentEditorOpen = Boolean(openTeamCommentEditors[team.id]);
                 const isReplyBoxOpen = Boolean(openTeamReplyBoxes[team.id]);
-                const defaultTeamCollapsed = TEAM_STATUS_COLLAPSED_BY_DEFAULT.has(storedEntry.status);
                 const isTeamCollapsed = teamCollapsedOverrides[team.id] !== undefined
                   ? teamCollapsedOverrides[team.id]
-                  : defaultTeamCollapsed;
+                  : true;
                 const teamAccentColor = TEAM_STATUS_ACCENT_COLOR[storedEntry.status] ?? TEAM_STATUS_ACCENT_COLOR[''];
 
                 return (
                   <div
                     key={team.id}
-                    className="bg-white rounded-xl p-6 border-2 border-gray-200 hover:border-blue-300 transition-all"
+                    className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-200 transition-all overflow-hidden"
                     style={{ borderLeftWidth: '4px', borderLeftColor: teamAccentColor }}
                     role="article"
                     aria-label={t('synthesisReport.teamAriaLabelTemplate', { teamName: team.name })}
@@ -1640,16 +1637,18 @@ export const SynthesisReport = ({
                     <button
                       type="button"
                       onClick={() => toggleTeamCollapsed(team.id, isTeamCollapsed)}
-                      className="flex w-full items-start justify-between gap-3 text-left"
+                      className="flex w-full items-start justify-between gap-4 px-6 py-5 text-left hover:bg-gray-50 transition-colors"
                       aria-expanded={!isTeamCollapsed}
                     >
                       <div className="flex min-w-0 items-start gap-3">
-                        <svg
-                          className={`mt-1 h-4 w-4 flex-shrink-0 text-gray-400 transition-transform ${isTeamCollapsed ? '-rotate-90' : ''}`}
-                          viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                        >
-                          <polyline points="6 9 12 15 18 9" />
-                        </svg>
+                        <span className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500">
+                          <svg
+                            className={`h-4 w-4 transition-transform duration-200 ${isTeamCollapsed ? '-rotate-90' : ''}`}
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                          >
+                            <polyline points="6 9 12 15 18 9" />
+                          </svg>
+                        </span>
                         <div className="min-w-0">
                           <h3 className="text-lg font-bold text-gray-800">{team.name}</h3>
                           {isTeamCollapsed && (
@@ -1675,7 +1674,7 @@ export const SynthesisReport = ({
                     </button>
 
                     {!isTeamCollapsed && (
-                      <div className="mt-4">
+                      <div className="border-t border-gray-100 px-6 pb-6 pt-5">
                         <p className="text-sm text-gray-600 mb-3">{renderTextWithLinks(team.expertise)}</p>
                         {teamContactLabel && (
                           <div className="mt-2 text-sm text-blue-600 font-medium flex items-center gap-2">
@@ -2123,285 +2122,172 @@ export const SynthesisReport = ({
             )}
           </div>
 
-          {shouldShowComplianceCommentsSection && (
+          {shouldShowCommitteeSection && (
             <section className="mt-8" aria-labelledby="compliance-comments-heading">
               <div className="bg-white rounded-xl border border-blue-200 p-6 space-y-6">
                 <div className="flex items-center">
                   <Info className="w-6 h-6 mr-2 text-blue-600" />
                   <h2 id="compliance-comments-heading" className="text-2xl font-bold text-gray-800">
-                    {t('synthesisReport.expertCommentTitle')}
+                    {t('synthesisReport.committeeOpinionsTitle')}
                   </h2>
                 </div>
 
-                <p className="text-sm text-gray-500">
-                  {t('synthesisReport.committeeCommentNote', { teamsLabel: teamsHeadingLabel })}
-                </p>
+                <div className="space-y-4">
+                  {requiredValidationCommittees.length > 0 && (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                      <p className="font-medium">{t('synthesisReport.requiredCommitteesTitle')}</p>
+                      <ul className="mt-2 list-disc pl-5 space-y-1">
+                        {requiredValidationCommittees.map((committee) => (
+                          <li key={`required-${committee.id}`}>{committee.name}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {committeesToDisplay.map((committee) => {
+                    const committeeCommentEntry = committeeCommentMap[committee.id] || normalizeCommentEntry();
+                    const committeeDraft = complianceCommentDrafts.committees?.[committee.id] || committeeCommentEntry;
+                    const feedbackMessage = getComplianceFeedbackMessage(`committee-${committee.id}`);
+                    const committeeStatusMeta = getCommentStatusMeta(
+                      canBypassCompliancePerimeter ? committeeDraft.status : committeeCommentEntry.status,
+                      t
+                    );
+                    const isRequired = requiredCommitteeIds.has(committee.id);
+                    const isDirty =
+                      committeeDraft.comment !== committeeCommentEntry.comment
+                      || committeeDraft.status !== committeeCommentEntry.status
+                      || JSON.stringify(normalizeCommentAttachments(committeeDraft.attachments))
+                        !== JSON.stringify(normalizeCommentAttachments(committeeCommentEntry.attachments));
+                    const threadKey = `committee-${committee.id}`;
+                    const threadMessages = getThreadMessages(committeeCommentEntry, committee.name);
+                    const isThreadExpanded = Boolean(expandedThreads[threadKey]);
+                    const shouldCollapse = !isThreadExpanded && shouldCollapseThread(threadMessages);
+                    const visibleMessages = shouldCollapse ? threadMessages.slice(0, 2) : threadMessages;
 
-                {shouldShowCommitteeSection && (
-                  <div className="space-y-4">
-                    {requiredValidationCommittees.length > 0 && (
-                      <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                        <p className="font-medium">{t('synthesisReport.requiredCommitteesTitle')}</p>
-                        <ul className="mt-2 list-disc pl-5 space-y-1">
-                          {requiredValidationCommittees.map((committee) => (
-                            <li key={`required-${committee.id}`}>{committee.name}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {committeesToDisplay.map((committee) => {
-                      const committeeCommentEntry = committeeCommentMap[committee.id] || normalizeCommentEntry();
-                      const committeeDraft = complianceCommentDrafts.committees?.[committee.id] || committeeCommentEntry;
-                      const feedbackMessage = getComplianceFeedbackMessage(`committee-${committee.id}`);
-                      const committeeStatusMeta = getCommentStatusMeta(
-                        canBypassCompliancePerimeter ? committeeDraft.status : committeeCommentEntry.status,
-                        t
-                      );
-                      const isRequired = requiredCommitteeIds.has(committee.id);
-                      const isDirty =
-                        committeeDraft.comment !== committeeCommentEntry.comment
-                        || committeeDraft.status !== committeeCommentEntry.status
-                        || JSON.stringify(normalizeCommentAttachments(committeeDraft.attachments))
-                          !== JSON.stringify(normalizeCommentAttachments(committeeCommentEntry.attachments));
-                      const threadKey = `committee-${committee.id}`;
-                      const threadMessages = getThreadMessages(committeeCommentEntry, committee.name);
-                      const isThreadExpanded = Boolean(expandedThreads[threadKey]);
-                      const shouldCollapse = !isThreadExpanded && shouldCollapseThread(threadMessages);
-                      const visibleMessages = shouldCollapse ? threadMessages.slice(0, 2) : threadMessages;
-
-                      return (
-                        <article key={committee.id} className="rounded-xl border border-gray-200 p-4 bg-gray-50">
-                          <div className="flex flex-wrap items-start justify-between gap-2">
-                            <div>
-                              <h3 className="text-base font-semibold text-gray-800">{committee.name}</h3>
-                              <p className="text-xs text-gray-500">
-                                {isRequired
-                                  ? t('synthesisReport.committeeRequiredHint')
-                                  : t('synthesisReport.committeeOptionalHint')}
-                              </p>
-                            </div>
-                            {committeeStatusMeta && (
-                              <span
-                                className={`px-3 py-1 rounded-full text-xs font-semibold border ${committeeStatusMeta.badgeClass}`}
-                              >
-                                {committeeStatusMeta.label}
-                              </span>
-                            )}
+                    return (
+                      <article key={committee.id} className="rounded-xl border border-gray-200 p-4 bg-gray-50">
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div>
+                            <h3 className="text-base font-semibold text-gray-800">{committee.name}</h3>
+                            <p className="text-xs text-gray-500">
+                              {isRequired
+                                ? t('synthesisReport.committeeRequiredHint')
+                                : t('synthesisReport.committeeOptionalHint')}
+                            </p>
                           </div>
-
-                          {canBypassCompliancePerimeter ? (
-                            <form
-                              onSubmit={(event) =>
-                                handleComplianceCommentSubmit({
-                                  event,
-                                  targetId: committee.id,
-                                  targetType: 'committee'
-                                })
-                              }
-                              className="mt-4 space-y-3"
+                          {committeeStatusMeta && (
+                            <span
+                              className={`px-3 py-1 rounded-full text-xs font-semibold border ${committeeStatusMeta.badgeClass}`}
                             >
-                              <div>
-                                <label
-                                  className="block text-sm font-medium text-gray-700"
-                                  htmlFor={`compliance-committee-status-${committee.id}`}
-                                >
-                                  {t('synthesisReport.statusFieldLabel')}
-                                </label>
-                                <select
-                                  id={`compliance-committee-status-${committee.id}`}
-                                  value={committeeDraft.status}
-                                  onChange={(event) =>
-                                    handleComplianceCommentChange({
-                                      targetId: committee.id,
-                                      targetType: 'committee',
-                                      field: 'status',
-                                      value: event.target.value
-                                    })
-                                  }
-                                  className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                                >
-                                  <option value="">{t('synthesisReport.selectStatusOption')}</option>
-                                  {COMMENT_STATUS_OPTIONS.map((option) => (
-                                    <option key={`status-committee-${committee.id}-${option.value}`} value={option.value}>
-                                      {t(`synthesisReport.${option.labelKey}`)}
-                                    </option>
-                                  ))}
-                                </select>
-                              </div>
-                              <div>
-                                <label
-                                  className="block text-sm font-medium text-gray-700"
-                                  htmlFor={`compliance-committee-comment-${committee.id}`}
-                                >
-                                  {t('synthesisReport.commentFieldLabel')}
-                                </label>
-                                <RichTextEditor
-                                  id={`compliance-committee-comment-${committee.id}`}
-                                  compact
-                                  placeholder={t('synthesisReport.committeeCommentPlaceholder')}
-                                  value={committeeDraft.comment}
-                                  onChange={(value) =>
-                                    handleComplianceCommentChange({
-                                      targetId: committee.id,
-                                      targetType: 'committee',
-                                      field: 'comment',
-                                      value
-                                    })
-                                  }
-                                />
-                                <input
-                                  type="file"
-                                  multiple
-                                  className="mt-2 block w-full text-xs text-gray-600"
-                                  onChange={(event) => {
-                                    handleComplianceCommentFilesChange({
-                                      targetId: committee.id,
-                                      targetType: 'committee',
-                                      files: event.target.files
-                                    });
-                                    event.target.value = '';
-                                  }}
-                                />
-                                {normalizeCommentAttachments(committeeDraft.attachments).length > 0 && (
-                                  <ul className="mt-2 space-y-1 text-xs">
-                                    {normalizeCommentAttachments(committeeDraft.attachments).map((attachment) => (
-                                      <li key={attachment.id} className="flex items-center justify-between gap-2">
-                                        <a href={attachment.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                                          {attachment.name}
-                                        </a>
-                                        <button
-                                          type="button"
-                                          className="text-red-600"
-                                          onClick={() => handleComplianceCommentAttachmentRemove({ targetId: committee.id, targetType: 'committee', attachmentId: attachment.id })}
-                                        >{t('synthesisReport.removeButton')}</button>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                )}
-                              </div>
-                              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                                <p className="text-xs text-gray-500">
-                                  {t('synthesisReport.committeeSavedNote')}
-                                </p>
-                                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                                  <button
-                                    type="submit"
-                                    className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
-                                      canSaveComplianceComment && isDirty
-                                        ? 'bg-blue-600 text-white hover:bg-blue-700'
-                                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                    }`}
-                                    disabled={!canSaveComplianceComment || !isDirty}
-                                  >
-                                    {t('synthesisReport.saveCommentButton')}
-                                  </button>
-                                  {feedbackMessage && (
-                                    <span className="text-xs font-medium text-emerald-700">
-                                      {feedbackMessage}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            </form>
-                          ) : null}
+                              {committeeStatusMeta.label}
+                            </span>
+                          )}
+                        </div>
 
-                          <div className="mt-4 space-y-3">
-                            {visibleMessages.length > 0 ? (
-                              <div className="space-y-3">
-                                {visibleMessages.map((message) => {
-                                  const trimmedMessage = message.message.trim();
-                                  const isTruncated = shouldCollapse && trimmedMessage.length > 240;
-                                  const preview = isTruncated ? `${trimmedMessage.slice(0, 220)}…` : trimmedMessage;
-                                  return (
-                                    <div key={message.id} className="rounded-lg bg-white border border-gray-200 p-3">
-                                      <div className="flex items-center justify-between gap-2 text-xs text-gray-500">
-                                        <span className="font-semibold text-gray-700">{message.authorName}</span>
-                                        {message.createdAt && <span>{formatTimestamp(message.createdAt, language)}</span>}
-                                      </div>
-                                      <p className="mt-2 text-sm text-gray-700 whitespace-pre-line">
-                                        {renderTextWithLinks(preview)}
-                                      </p>
-                                      {normalizeCommentAttachments(message.attachments).length > 0 && (
-                                        <ul className="mt-2 space-y-1 text-xs">
-                                          {normalizeCommentAttachments(message.attachments).map((attachment) => (
-                                            <li key={attachment.id}>
-                                              <a href={attachment.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                                                {attachment.name}
-                                              </a>
-                                            </li>
-                                          ))}
-                                        </ul>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                                {shouldCollapse && (
-                                  <button
-                                    type="button"
-                                    onClick={() => toggleThreadExpanded(threadKey)}
-                                    className="text-xs font-semibold text-blue-600 hover:text-blue-700"
-                                  >
-                                    {t('synthesisReport.seeMore')}
-                                  </button>
-                                )}
-                              </div>
-                            ) : (
-                              <p className="text-sm text-gray-500">
-                                {t('synthesisReport.noCommitteeCommentYet')}
-                              </p>
-                            )}
-                            <div className="border-t border-gray-200 pt-3">
-                              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                                {t('synthesisReport.replyFieldLabel')}
+                        {canBypassCompliancePerimeter ? (
+                          <form
+                            onSubmit={(event) =>
+                              handleComplianceCommentSubmit({
+                                event,
+                                targetId: committee.id,
+                                targetType: 'committee'
+                              })
+                            }
+                            className="mt-4 space-y-3"
+                          >
+                            <div>
+                              <label
+                                className="block text-sm font-medium text-gray-700"
+                                htmlFor={`compliance-committee-status-${committee.id}`}
+                              >
+                                {t('synthesisReport.statusFieldLabel')}
+                              </label>
+                              <select
+                                id={`compliance-committee-status-${committee.id}`}
+                                value={committeeDraft.status}
+                                onChange={(event) =>
+                                  handleComplianceCommentChange({
+                                    targetId: committee.id,
+                                    targetType: 'committee',
+                                    field: 'status',
+                                    value: event.target.value
+                                  })
+                                }
+                                className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                              >
+                                <option value="">{t('synthesisReport.selectStatusOption')}</option>
+                                {COMMENT_STATUS_OPTIONS.map((option) => (
+                                  <option key={`status-committee-${committee.id}-${option.value}`} value={option.value}>
+                                    {t(`synthesisReport.${option.labelKey}`)}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            <div>
+                              <label
+                                className="block text-sm font-medium text-gray-700"
+                                htmlFor={`compliance-committee-comment-${committee.id}`}
+                              >
+                                {t('synthesisReport.commentFieldLabel')}
                               </label>
                               <RichTextEditor
-                                id={`${threadKey}-reply-editor`}
+                                id={`compliance-committee-comment-${committee.id}`}
                                 compact
-                                value={normalizeReplyDraft(complianceReplyDrafts[threadKey]).message}
-                                onChange={(value) => handleComplianceReplyChange(threadKey, value)}
-                                placeholder={t('synthesisReport.replyPlaceholder')}
+                                placeholder={t('synthesisReport.committeeCommentPlaceholder')}
+                                value={committeeDraft.comment}
+                                onChange={(value) =>
+                                  handleComplianceCommentChange({
+                                    targetId: committee.id,
+                                    targetType: 'committee',
+                                    field: 'comment',
+                                    value
+                                  })
+                                }
                               />
                               <input
                                 type="file"
                                 multiple
                                 className="mt-2 block w-full text-xs text-gray-600"
                                 onChange={(event) => {
-                                  handleComplianceReplyFilesChange(threadKey, event.target.files);
+                                  handleComplianceCommentFilesChange({
+                                    targetId: committee.id,
+                                    targetType: 'committee',
+                                    files: event.target.files
+                                  });
                                   event.target.value = '';
                                 }}
                               />
-                              {normalizeReplyDraft(complianceReplyDrafts[threadKey]).attachments.length > 0 && (
+                              {normalizeCommentAttachments(committeeDraft.attachments).length > 0 && (
                                 <ul className="mt-2 space-y-1 text-xs">
-                                  {normalizeReplyDraft(complianceReplyDrafts[threadKey]).attachments.map((attachment) => (
+                                  {normalizeCommentAttachments(committeeDraft.attachments).map((attachment) => (
                                     <li key={attachment.id} className="flex items-center justify-between gap-2">
                                       <a href={attachment.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
                                         {attachment.name}
                                       </a>
-                                      <button type="button" className="text-red-600" onClick={() => handleComplianceReplyAttachmentRemove(threadKey, attachment.id)}>{t('synthesisReport.removeButton')}</button>
+                                      <button
+                                        type="button"
+                                        className="text-red-600"
+                                        onClick={() => handleComplianceCommentAttachmentRemove({ targetId: committee.id, targetType: 'committee', attachmentId: attachment.id })}
+                                      >{t('synthesisReport.removeButton')}</button>
                                     </li>
                                   ))}
                                 </ul>
                               )}
-                              <div className="mt-2 flex items-center gap-3">
+                            </div>
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                              <p className="text-xs text-gray-500">
+                                {t('synthesisReport.committeeSavedNote')}
+                              </p>
+                              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                                 <button
-                                  type="button"
-                                  onClick={() =>
-                                    handleComplianceReplySubmit({ targetId: committee.id, targetType: 'committee' })
-                                  }
-                                  className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
-                                    canSaveComplianceComment
-                                    && (normalizeReplyDraft(complianceReplyDrafts[threadKey]).message.trim().length > 0
-                                      || normalizeReplyDraft(complianceReplyDrafts[threadKey]).attachments.length > 0)
+                                  type="submit"
+                                  className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+                                    canSaveComplianceComment && isDirty
                                       ? 'bg-blue-600 text-white hover:bg-blue-700'
                                       : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                   }`}
-                                  disabled={
-                                    !canSaveComplianceComment
-                                    || (normalizeReplyDraft(complianceReplyDrafts[threadKey]).message.trim().length === 0
-                                      && normalizeReplyDraft(complianceReplyDrafts[threadKey]).attachments.length === 0)
-                                  }
+                                  disabled={!canSaveComplianceComment || !isDirty}
                                 >
-                                  {t('synthesisReport.sendReplyButton')}
+                                  {t('synthesisReport.saveCommentButton')}
                                 </button>
                                 {feedbackMessage && (
                                   <span className="text-xs font-medium text-emerald-700">
@@ -2410,12 +2296,119 @@ export const SynthesisReport = ({
                                 )}
                               </div>
                             </div>
+                          </form>
+                        ) : null}
+
+                        <div className="mt-4 space-y-3">
+                          {visibleMessages.length > 0 ? (
+                            <div className="space-y-3">
+                              {visibleMessages.map((message) => {
+                                const trimmedMessage = message.message.trim();
+                                const isTruncated = shouldCollapse && trimmedMessage.length > 240;
+                                const preview = isTruncated ? `${trimmedMessage.slice(0, 220)}…` : trimmedMessage;
+                                return (
+                                  <div key={message.id} className="rounded-lg bg-white border border-gray-200 p-3">
+                                    <div className="flex items-center justify-between gap-2 text-xs text-gray-500">
+                                      <span className="font-semibold text-gray-700">{message.authorName}</span>
+                                      {message.createdAt && <span>{formatTimestamp(message.createdAt, language)}</span>}
+                                    </div>
+                                    <p className="mt-2 text-sm text-gray-700 whitespace-pre-line">
+                                      {renderTextWithLinks(preview)}
+                                    </p>
+                                    {normalizeCommentAttachments(message.attachments).length > 0 && (
+                                      <ul className="mt-2 space-y-1 text-xs">
+                                        {normalizeCommentAttachments(message.attachments).map((attachment) => (
+                                          <li key={attachment.id}>
+                                            <a href={attachment.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                                              {attachment.name}
+                                            </a>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                              {shouldCollapse && (
+                                <button
+                                  type="button"
+                                  onClick={() => toggleThreadExpanded(threadKey)}
+                                  className="text-xs font-semibold text-blue-600 hover:text-blue-700"
+                                >
+                                  {t('synthesisReport.seeMore')}
+                                </button>
+                              )}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-gray-500">
+                              {t('synthesisReport.noCommitteeCommentYet')}
+                            </p>
+                          )}
+                          <div className="border-t border-gray-200 pt-3">
+                            <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                              {t('synthesisReport.replyFieldLabel')}
+                            </label>
+                            <RichTextEditor
+                              id={`${threadKey}-reply-editor`}
+                              compact
+                              value={normalizeReplyDraft(complianceReplyDrafts[threadKey]).message}
+                              onChange={(value) => handleComplianceReplyChange(threadKey, value)}
+                              placeholder={t('synthesisReport.replyPlaceholder')}
+                            />
+                            <input
+                              type="file"
+                              multiple
+                              className="mt-2 block w-full text-xs text-gray-600"
+                              onChange={(event) => {
+                                handleComplianceReplyFilesChange(threadKey, event.target.files);
+                                event.target.value = '';
+                              }}
+                            />
+                            {normalizeReplyDraft(complianceReplyDrafts[threadKey]).attachments.length > 0 && (
+                              <ul className="mt-2 space-y-1 text-xs">
+                                {normalizeReplyDraft(complianceReplyDrafts[threadKey]).attachments.map((attachment) => (
+                                  <li key={attachment.id} className="flex items-center justify-between gap-2">
+                                    <a href={attachment.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                                      {attachment.name}
+                                    </a>
+                                    <button type="button" className="text-red-600" onClick={() => handleComplianceReplyAttachmentRemove(threadKey, attachment.id)}>{t('synthesisReport.removeButton')}</button>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                            <div className="mt-2 flex items-center gap-3">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleComplianceReplySubmit({ targetId: committee.id, targetType: 'committee' })
+                                }
+                                className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                                  canSaveComplianceComment
+                                  && (normalizeReplyDraft(complianceReplyDrafts[threadKey]).message.trim().length > 0
+                                    || normalizeReplyDraft(complianceReplyDrafts[threadKey]).attachments.length > 0)
+                                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                }`}
+                                disabled={
+                                  !canSaveComplianceComment
+                                  || (normalizeReplyDraft(complianceReplyDrafts[threadKey]).message.trim().length === 0
+                                    && normalizeReplyDraft(complianceReplyDrafts[threadKey]).attachments.length === 0)
+                                }
+                              >
+                                {t('synthesisReport.sendReplyButton')}
+                              </button>
+                              {feedbackMessage && (
+                                <span className="text-xs font-medium text-emerald-700">
+                                  {feedbackMessage}
+                                </span>
+                              )}
+                            </div>
                           </div>
-                        </article>
-                      );
-                    })}
-                  </div>
-                )}
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
 
                 {hasLegacyComplianceComment && (
                   <div className="rounded-xl border border-dashed border-gray-300 p-4 text-sm text-gray-600">

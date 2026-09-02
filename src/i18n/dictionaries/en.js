@@ -1415,7 +1415,7 @@ export default {
     visitWebsiteLink: 'Visit website',
     vigilanceHeadingTemplate: 'Vigilance points ({{count}})',
     vigilanceAriaLabelTemplate: 'Vigilance point {{ruleName}}',
-    committeeCommentNote: 'Team comments are now available under each block in “{{teamsLabel}}”.',
+    committeeOpinionsTitle: 'Committee opinions',
     requiredCommitteesTitle: 'Committee(s) required for this project:',
     committeeRequiredHint: 'Comment required per configuration.',
     committeeOptionalHint: 'Comment optional per configuration.',
