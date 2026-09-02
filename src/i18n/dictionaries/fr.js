@@ -214,7 +214,6 @@ export default {
     reviewPlaceholder: 'Ajoutez un avis détaillé...',
     descriptionPlaceholder: 'Saisissez une description détaillée...',
     addDocument: 'Ajouter un document',
-    documentsShareNotice: 'Les fichiers doivent bien être partagés avec les collaborateurs LFB.',
     documentFallbackName: 'Document',
     richTextEditSuffix: '(édition riche)',
     pageEyebrow: 'Fiche projet inspirant',
@@ -242,11 +241,11 @@ export default {
     reviewPlaceholder: 'Ajoutez votre avis détaillé sur ce projet inspirant...',
     descriptionPlaceholder: 'Saisir une description détaillée...',
     documentsUploadHint: 'Téléversez un ou plusieurs documents.',
-    documentsShareNotice: 'Les fichiers seront envoyés vers SharePoint après migration.',
     chooseFiles: 'Choisir des fichiers',
     documentFallbackName: 'Document',
     pendingSharePointUpload: 'En attente de dépôt SharePoint',
     importedDocument: 'Document importé',
+    uploadFailedMessage: 'Le dépôt du fichier a échoué. Merci de réessayer.',
     removeDocument: 'Retirer',
     cancel: 'Annuler'
   },
@@ -1497,12 +1496,12 @@ export default {
         placeholderItem3: 'Point clé #3'
       },
       stack: {
-        name: 'Pile de cartes',
-        description: 'Des cartes pleine couleur qui se superposent au défilement, comme la section « Notre solution ».',
+        name: 'Grille de cartes',
+        description: 'Des cartes pleine couleur qui arrivent de la droite au défilement et se rangent en grille, comme la section « Notre solution ».',
         placeholderTitle: 'Les étapes du dispositif',
-        placeholderSubtitle: 'Trois temps forts, empilés au défilement',
+        placeholderSubtitle: 'Trois temps forts, qui glissent depuis la droite au défilement',
         placeholderItem1: 'Première étape du dispositif, décrite en une phrase courte.',
-        placeholderItem2: 'Deuxième étape, qui se superpose à la précédente au défilement.',
+        placeholderItem2: 'Deuxième étape, rangée à côté de la précédente.',
         placeholderItem3: 'Troisième étape, qui referme la séquence.'
       }
     },
@@ -1585,7 +1584,7 @@ export default {
     customSectionSubtitle: 'Section personnalisée',
     standardSectionSubtitle: 'Section standard',
     documentPreviewLabel: 'Aperçu du document',
-    cardsOverlapCaption: 'Les cartes se superposent au défilement',
+    cardsGridCaption: 'Les cartes se rangent en grille au défilement',
     newSectionEyebrow: 'Nouvelle section',
     chooseTemplateTitle: 'Choisissez un modèle puis complétez son contenu',
     thumbnailHint: 'Les miniatures donnent un aperçu rapide du rendu final.',

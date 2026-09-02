@@ -51,7 +51,7 @@
   -webkit-font-smoothing: antialiased;
   /* "hidden" calcule overflow-y:auto en retour (linkage du spec CSS Overflow),
      ce qui fait de .sg-shell un conteneur de défilement et casse le
-     position:sticky de tous ses descendants (titre épinglé, cartes empilées).
+     position:sticky de tous ses descendants (nav, titre épinglé du récit).
      "clip" bloque le débordement horizontal sans ce couplage. */
   overflow-x: clip;
 }
@@ -216,6 +216,12 @@
 .sg-rv.is-on {
   opacity: 1;
   transform: none;
+}
+
+/* arrivée horizontale (depuis la droite), utilisée par les cartes de la grille de bénéfices */
+.sg-rv--x {
+  transform: translateX(clamp(28px, 6vw, 64px));
+  transition-duration: 640ms;
 }
 
 /* ---------- bouton ---------- */
@@ -497,71 +503,51 @@
 }
 
 /* ==========================================================================
-   BRIQUE A — carte pleine, empilée au défilement
+   BRIQUE A — cartes en grille, révélées au défilement de la droite vers la gauche
    ========================================================================== */
 
-/* le libellé de la pile reste visible pendant tout le défilement, pour que les
-   cartes qui se recouvrent restent rattachées à ce qu'elles illustrent ; il se
-   fige au-dessus du point d'ancrage des cartes (16vh), avec un fond plein pour
-   masquer proprement celles qui remontent sous lui */
 .sg-stack-header {
-  position: sticky;
-  top: 6vh;
-  z-index: 4;
   padding-bottom: 1.4rem;
-  background: var(--sg-white);
-}
-
-.sg-band--cloud .sg-stack-header {
-  background: var(--sg-cloud);
 }
 
 .sg-stack {
   margin: clamp(3rem, 7vw, 4rem) auto 0;
-  max-width: 30rem;
+  max-width: 58rem;
   display: grid;
-  gap: 5vh;
-  padding-bottom: 26vh;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(1rem, 2.4vw, 1.75rem);
 }
 
-.sg-stack__slot {
-  position: sticky;
-  top: calc(16vh + var(--sg-i, 0) * 1.15rem);
+@media (max-width: 860px) {
+  .sg-stack {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .sg-stack {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .sg-card {
   position: relative;
   overflow: hidden;
-  border-radius: 28px;
-  padding: clamp(1.7rem, 3.4vw, 2.4rem);
-  aspect-ratio: 1 / 0.94;
-  min-height: 22rem;
+  border-radius: 22px;
+  padding: clamp(1.3rem, 2.6vw, 1.75rem);
+  min-height: 13.5rem;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 1.6rem;
+  gap: 1.1rem;
   color: var(--sg-white);
   background: linear-gradient(135deg, var(--sg-c1, var(--sg-plasma-deep)), var(--sg-c2, #6d511a));
-  box-shadow: 0 30px 70px rgba(var(--sg-ink-rgb), 0.34);
-  transform-origin: 50% 0%;
-  transform: scale(var(--sg-s, 1));
-  transition: transform 120ms linear;
-  will-change: transform;
+  box-shadow: 0 18px 40px rgba(var(--sg-ink-rgb), 0.22);
 }
 
 .sg-card--flow {
   aspect-ratio: auto;
   min-height: 0;
-}
-
-.sg-card::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: var(--sg-ink);
-  opacity: var(--sg-dim, 0);
-  transition: opacity 120ms linear;
-  pointer-events: none;
 }
 
 .sg-card__top {
@@ -576,8 +562,8 @@
 .sg-card__idx {
   font-family: var(--sg-display);
   font-weight: 800;
-  font-size: 0.85rem;
-  letter-spacing: 0.14em;
+  font-size: 0.78rem;
+  letter-spacing: 0.13em;
   opacity: 0.85;
 }
 
@@ -596,10 +582,10 @@
   z-index: 1;
   font-family: var(--sg-display);
   font-weight: 600;
-  font-size: clamp(1.3rem, 2.5vw, 1.78rem);
-  line-height: 1.26;
-  letter-spacing: -0.022em;
-  max-width: 22ch;
+  font-size: clamp(1.02rem, 1.7vw, 1.28rem);
+  line-height: 1.32;
+  letter-spacing: -0.018em;
+  max-width: 26ch;
 }
 
 .sg-card__body {
@@ -613,11 +599,11 @@
 
 .sg-card__orb {
   position: absolute;
-  width: 17rem;
-  height: 17rem;
+  width: 11rem;
+  height: 11rem;
   border-radius: 50%;
-  right: -5rem;
-  top: -6rem;
+  right: -3.5rem;
+  top: -4rem;
   background: radial-gradient(circle, rgba(255, 255, 255, 0.28), transparent 68%);
   pointer-events: none;
 }
@@ -1300,26 +1286,5 @@
 
   .sg-btn:hover svg {
     transform: none;
-  }
-
-  .sg-stack__slot {
-    position: static;
-  }
-
-  .sg-stack-header {
-    position: static;
-  }
-
-  .sg-stack {
-    padding-bottom: 0;
-    gap: 1.5rem;
-  }
-
-  .sg-card {
-    transform: none;
-  }
-
-  .sg-card::after {
-    opacity: 0;
   }
 }

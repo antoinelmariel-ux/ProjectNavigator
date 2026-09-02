@@ -214,7 +214,6 @@ export default {
     reviewPlaceholder: 'Fügen Sie eine ausführliche Bewertung hinzu...',
     descriptionPlaceholder: 'Geben Sie eine ausführliche Beschreibung ein...',
     addDocument: 'Dokument hinzufügen',
-    documentsShareNotice: 'Die Dateien müssen mit den LFB-Mitarbeitern geteilt werden.',
     documentFallbackName: 'Dokument',
     richTextEditSuffix: '(Rich-Text-Bearbeitung)',
     pageEyebrow: 'Inspirierendes Projektblatt',
@@ -242,11 +241,11 @@ export default {
     reviewPlaceholder: 'Fügen Sie Ihre ausführliche Bewertung dieses inspirierenden Projekts hinzu...',
     descriptionPlaceholder: 'Geben Sie eine ausführliche Beschreibung ein...',
     documentsUploadHint: 'Laden Sie ein oder mehrere Dokumente hoch.',
-    documentsShareNotice: 'Die Dateien werden nach der Migration an SharePoint gesendet.',
     chooseFiles: 'Dateien auswählen',
     documentFallbackName: 'Dokument',
     pendingSharePointUpload: 'SharePoint-Upload ausstehend',
     importedDocument: 'Importiertes Dokument',
+    uploadFailedMessage: 'Das Hochladen der Datei ist fehlgeschlagen. Bitte versuchen Sie es erneut.',
     removeDocument: 'Entfernen',
     cancel: 'Abbrechen'
   },
@@ -1498,12 +1497,12 @@ export default {
         placeholderItem3: 'Kernpunkt Nr. 3'
       },
       stack: {
-        name: 'Kartenstapel',
-        description: 'Vollfarbige Karten, die sich beim Scrollen überlagern, wie der Abschnitt „Unsere Lösung“.',
+        name: 'Kartenraster',
+        description: 'Vollfarbige Karten, die beim Scrollen von rechts hereingleiten und sich im Raster anordnen, wie der Abschnitt „Unsere Lösung“.',
         placeholderTitle: 'Die Etappen des Vorhabens',
-        placeholderSubtitle: 'Drei Höhepunkte, beim Scrollen gestapelt',
+        placeholderSubtitle: 'Drei Höhepunkte, die beim Scrollen von rechts hereingleiten',
         placeholderItem1: 'Erste Etappe des Vorhabens, in einem kurzen Satz beschrieben.',
-        placeholderItem2: 'Zweite Etappe, die sich beim Scrollen mit der vorherigen überlagert.',
+        placeholderItem2: 'Zweite Etappe, neben der vorherigen platziert.',
         placeholderItem3: 'Dritte Etappe, die die Abfolge abschließt.'
       }
     },
@@ -1586,7 +1585,7 @@ export default {
     customSectionSubtitle: 'Benutzerdefinierter Abschnitt',
     standardSectionSubtitle: 'Standardabschnitt',
     documentPreviewLabel: 'Dokumentvorschau',
-    cardsOverlapCaption: 'Die Karten überlagern sich beim Scrollen',
+    cardsGridCaption: 'Die Karten reihen sich beim Scrollen im Raster an',
     newSectionEyebrow: 'Neuer Abschnitt',
     chooseTemplateTitle: 'Wählen Sie eine Vorlage und füllen Sie deren Inhalt aus',
     thumbnailHint: 'Die Miniaturansichten geben eine schnelle Vorschau des Endergebnisses.',

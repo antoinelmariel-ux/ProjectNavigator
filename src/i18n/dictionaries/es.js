@@ -214,7 +214,6 @@ export default {
     reviewPlaceholder: 'Agregue una reseña detallada...',
     descriptionPlaceholder: 'Introduzca una descripción detallada...',
     addDocument: 'Añadir un documento',
-    documentsShareNotice: 'Los archivos deben compartirse con los colaboradores de LFB.',
     documentFallbackName: 'Documento',
     richTextEditSuffix: '(edición de texto enriquecido)',
     pageEyebrow: 'Ficha de proyecto inspirador',
@@ -241,11 +240,11 @@ export default {
     reviewPlaceholder: 'Agregue su reseña detallada de este proyecto inspirador...',
     descriptionPlaceholder: 'Introduzca una descripción detallada...',
     documentsUploadHint: 'Suba uno o varios documentos.',
-    documentsShareNotice: 'Los archivos se enviarán a SharePoint después de la migración.',
     chooseFiles: 'Elegir archivos',
     documentFallbackName: 'Documento',
     pendingSharePointUpload: 'Pendiente de carga en SharePoint',
     importedDocument: 'Documento importado',
+    uploadFailedMessage: 'No se pudo subir el archivo. Inténtelo de nuevo.',
     removeDocument: 'Quitar',
     cancel: 'Cancelar'
   },
@@ -1487,12 +1486,12 @@ export default {
         placeholderItem3: 'Punto clave n.º 3'
       },
       stack: {
-        name: 'Pila de tarjetas',
-        description: 'Tarjetas a todo color que se superponen al desplazarse, como la sección «Nuestra solución».',
+        name: 'Cuadrícula de tarjetas',
+        description: 'Tarjetas a todo color que llegan desde la derecha al desplazarse y se organizan en cuadrícula, como la sección «Nuestra solución».',
         placeholderTitle: 'Las etapas del dispositivo',
-        placeholderSubtitle: 'Tres momentos clave, apilados al desplazarse',
+        placeholderSubtitle: 'Tres momentos clave, que llegan desde la derecha al desplazarse',
         placeholderItem1: 'Primera etapa del dispositivo, descrita en una frase corta.',
-        placeholderItem2: 'Segunda etapa, que se superpone a la anterior al desplazarse.',
+        placeholderItem2: 'Segunda etapa, colocada junto a la anterior.',
         placeholderItem3: 'Tercera etapa, que cierra la secuencia.'
       }
     },
@@ -1575,7 +1574,7 @@ export default {
     customSectionSubtitle: 'Sección personalizada',
     standardSectionSubtitle: 'Sección estándar',
     documentPreviewLabel: 'Vista previa del documento',
-    cardsOverlapCaption: 'Las tarjetas se superponen al desplazarse',
+    cardsGridCaption: 'Las tarjetas se organizan en cuadrícula al desplazarse',
     newSectionEyebrow: 'Nueva sección',
     chooseTemplateTitle: 'Elija una plantilla y complete su contenido',
     thumbnailHint: 'Las miniaturas ofrecen una vista previa rápida del resultado final.',

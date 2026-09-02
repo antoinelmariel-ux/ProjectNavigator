@@ -679,10 +679,6 @@ a {
   height: 0.625rem;
 }
 
-.h-24 {
-  height: 6rem;
-}
-
 .h-3 {
   height: 0.75rem;
 }
@@ -705,6 +701,10 @@ a {
 
 .h-6 {
   height: 1.5rem;
+}
+
+.h-7 {
+  height: 1.75rem;
 }
 
 .h-8 {
@@ -786,10 +786,6 @@ a {
 
 .leading-tight {
   line-height: 1.25;
-}
-
-.left-0 {
-  left: 0rem;
 }
 
 .left-4 {
@@ -999,6 +995,10 @@ a {
   order: -9999;
 }
 
+.overflow-hidden {
+  overflow: hidden;
+}
+
 .overflow-y-auto {
   overflow-y: auto;
 }
@@ -1107,6 +1107,10 @@ a {
   padding-top: 1rem;
 }
 
+.pt-5 {
+  padding-top: 1.25rem;
+}
+
 .pt-6 {
   padding-top: 1.5rem;
 }
@@ -1207,10 +1211,6 @@ a {
 
 .resize-y {
   resize: vertical;
-}
-
-.right-0 {
-  right: 0rem;
 }
 
 .right-6 {
@@ -1380,11 +1380,6 @@ a {
 .text-amber-500 {
   --tw-text-opacity: 1;
   color: rgba(245,158,11, var(--tw-text-opacity));
-}
-
-.text-amber-600 {
-  --tw-text-opacity: 1;
-  color: rgba(217,119,6, var(--tw-text-opacity));
 }
 
 .text-amber-700 {
@@ -1892,6 +1887,10 @@ a {
 
 .w-6 {
   width: 1.5rem;
+}
+
+.w-7 {
+  width: 1.75rem;
 }
 
 .w-8 {
@@ -2572,6 +2571,11 @@ a {
 
 .hover\:shadow-lg:hover {
   --tw-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+
+.hover\:shadow-md:hover {
+  --tw-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
   box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
 }
 

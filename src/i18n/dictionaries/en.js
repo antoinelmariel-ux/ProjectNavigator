@@ -214,7 +214,6 @@ export default {
     reviewPlaceholder: 'Add a detailed review...',
     descriptionPlaceholder: 'Enter a detailed description...',
     addDocument: 'Add a document',
-    documentsShareNotice: 'Files must be shared with LFB collaborators.',
     documentFallbackName: 'Document',
     richTextEditSuffix: '(rich text editing)',
     pageEyebrow: 'Inspiring project sheet',
@@ -240,11 +239,11 @@ export default {
     reviewPlaceholder: 'Add your detailed review of this inspiring project...',
     descriptionPlaceholder: 'Enter a detailed description...',
     documentsUploadHint: 'Upload one or more documents.',
-    documentsShareNotice: 'Files will be sent to SharePoint after migration.',
     chooseFiles: 'Choose files',
     documentFallbackName: 'Document',
     pendingSharePointUpload: 'Pending SharePoint upload',
     importedDocument: 'Imported document',
+    uploadFailedMessage: 'The file upload failed. Please try again.',
     removeDocument: 'Remove',
     cancel: 'Cancel'
   },
@@ -1487,12 +1486,12 @@ export default {
         placeholderItem3: 'Key point #3'
       },
       stack: {
-        name: 'Card stack',
-        description: 'Full-color cards that overlap while scrolling, like the "Our solution" section.',
+        name: 'Card grid',
+        description: 'Full-color cards that slide in from the right while scrolling and line up in a grid, like the "Our solution" section.',
         placeholderTitle: 'The stages of the plan',
-        placeholderSubtitle: 'Three highlights, stacked as you scroll',
+        placeholderSubtitle: 'Three highlights, sliding in from the right as you scroll',
         placeholderItem1: 'First stage of the plan, described in one short sentence.',
-        placeholderItem2: 'Second stage, which overlaps the previous one while scrolling.',
+        placeholderItem2: 'Second stage, placed next to the previous one.',
         placeholderItem3: 'Third stage, which closes the sequence.'
       }
     },
@@ -1575,7 +1574,7 @@ export default {
     customSectionSubtitle: 'Custom section',
     standardSectionSubtitle: 'Standard section',
     documentPreviewLabel: 'Document preview',
-    cardsOverlapCaption: 'The cards overlap while scrolling',
+    cardsGridCaption: 'The cards line up in a grid as you scroll',
     newSectionEyebrow: 'New section',
     chooseTemplateTitle: 'Choose a template then fill in its content',
     thumbnailHint: 'The thumbnails give a quick preview of the final result.',
