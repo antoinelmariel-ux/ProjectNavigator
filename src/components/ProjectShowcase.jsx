@@ -10,6 +10,7 @@ import { formatAnswer, getQuestionOptionLabels } from '../utils/questions.js';
 import { renderTextWithLinks } from '../utils/linkify.js';
 import { splitRichTextIntoBlocks } from '../utils/richText.js';
 import { initialShowcaseThemes } from '../data/showcaseThemes.js';
+import { resolveLocalizedText } from '../utils/localizedContent.js';
 import { resolveThemeFromActivation } from '../utils/showcase.js';
 import { RichTextEditor } from './RichTextEditor.jsx';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
@@ -474,13 +475,17 @@ const formatDaysValue = (days, language, t) => {
   return `${formatNumberFR(Math.round(days), {}, language)} ${t('projectShowcase.daysAbbrev')}`;
 };
 
-const resolveQuestionTitle = (questions, id) => {
+const resolveQuestionTitle = (questions, id, language) => {
   if (!id) {
     return '';
   }
 
   const question = findQuestionById(questions, id);
-  return question?.question || id;
+  if (!question) {
+    return id;
+  }
+
+  return resolveLocalizedText(question.question, language) || id;
 };
 
 const formatTimingRequirementSummary = (questions, constraint, language, t) => {
@@ -488,8 +493,8 @@ const formatTimingRequirementSummary = (questions, constraint, language, t) => {
     return '';
   }
 
-  const startLabel = resolveQuestionTitle(questions, constraint.startQuestion);
-  const endLabel = resolveQuestionTitle(questions, constraint.endQuestion);
+  const startLabel = resolveQuestionTitle(questions, constraint.startQuestion, language);
+  const endLabel = resolveQuestionTitle(questions, constraint.endQuestion, language);
 
   const requirementParts = [];
   if (typeof constraint.minimumWeeks === 'number') {
@@ -4427,7 +4432,7 @@ export const ProjectShowcase = ({
           const fieldId = field.id;
           const question = field.question;
           const type = question?.type || field.fallbackType || 'text';
-          const label = question?.question || (field.fallbackLabelKey ? t(`projectShowcase.fieldFallbackLabels.${field.fallbackLabelKey}`) : fieldId);
+          const label = resolveLocalizedText(question?.question, language) || (field.fallbackLabelKey ? t(`projectShowcase.fieldFallbackLabels.${field.fallbackLabelKey}`) : fieldId);
           const fieldValue = draftValues[fieldId];
           const options = getQuestionOptionLabels(question);
           const isLong = type === 'long_text';
