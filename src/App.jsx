@@ -4273,101 +4273,101 @@ const updateProjectFilters = useCallback((updater) => {
   }, [handleOpenProject, showcaseProjectContext, setScreen]);
 
   const handleUpdateProjectShowcaseAnswers = useCallback((updates) => {
+    const projectId = showcaseProjectContext?.projectId;
+    const project = projectId ? projects.find(entry => entry.id === projectId) : null;
+
     if (
       !showcaseProjectContext ||
-      !showcaseProjectContext.projectId ||
+      !projectId ||
       (showcaseProjectContext.status !== 'draft' && !isAdminMode)
-      || !canManageProject(projects.find(entry => entry.id === showcaseProjectContext.projectId))
+      || !canManageProject(project)
+      || !project
+      || (project.status !== 'draft' && !isAdminMode)
     ) {
       return;
     }
 
-    const projectId = showcaseProjectContext.projectId;
-    let contextPatch = null;
-    let hasProjectChanges = false;
+    // Le patch est calculé ici, avant tout setState, plutôt que dans le
+    // callback fonctionnel de setProjects : React n'exécute pas forcément ce
+    // callback de façon synchrone, donc muter une variable extérieure depuis
+    // celui-ci pour la relire juste après (comme c'était fait auparavant)
+    // laissait souvent showcaseProjectContext (et donc l'affichage de la
+    // vitrine) figé sur les anciennes réponses après un enregistrement.
+    const { nextAnswers, changed } = applyAnswerUpdates(
+      project.answers || {},
+      updates,
+      questions,
+      shouldShowQuestion,
+      {
+        shouldPreserveQuestion: (question) => !question?.showcase
+      }
+    );
+    if (!changed) {
+      return;
+    }
+
+    const relevantQuestions = questions.filter(question => shouldShowQuestion(question, nextAnswers));
+    const {
+      totalMandatoryQuestions: totalQuestions,
+      answeredMandatoryQuestions: answeredQuestions
+    } = computeMandatoryProgress(relevantQuestions, nextAnswers);
+
+    const updatedAnalysis = analyzeAnswers(nextAnswers, rules, riskLevelRules, riskWeights);
+    const timelineDetails = updatedAnalysis?.timeline?.details || [];
+    const relevantTeamsIds = Array.isArray(updatedAnalysis?.teams) ? updatedAnalysis.teams : [];
+    const relevantTeams = teams.filter(team => relevantTeamsIds.includes(team.id));
+    const inferredName = extractProjectName(nextAnswers, questions);
+    const sanitizedName = inferredName && inferredName.trim().length > 0
+      ? inferredName.trim()
+      : project.projectName;
+
+    const lastQuestionIndex = totalQuestions > 0
+      ? Math.min(Math.max(project.lastQuestionIndex ?? totalQuestions - 1, 0), totalQuestions - 1)
+      : project.lastQuestionIndex ?? 0;
+
+    const contextPatch = {
+      projectName: sanitizedName,
+      answers: nextAnswers,
+      analysis: updatedAnalysis,
+      relevantTeams,
+      timelineDetails,
+      questions: relevantQuestions.length > 0 ? relevantQuestions : null
+    };
+
+    const now = new Date().toISOString();
+
+    const updatedProject = {
+      ...project,
+      answers: nextAnswers,
+      analysis: updatedAnalysis,
+      projectName: sanitizedName,
+      totalQuestions,
+      answeredQuestions: Math.min(answeredQuestions, totalQuestions || answeredQuestions),
+      lastQuestionIndex,
+      lastUpdated: now
+    };
 
     setProjects(prevProjects => {
-      const project = prevProjects.find(entry => entry.id === projectId);
-      if (!project || (project.status !== 'draft' && !isAdminMode)) {
+      if (!prevProjects.some(entry => entry.id === projectId)) {
         return prevProjects;
       }
-
-      const { nextAnswers, changed } = applyAnswerUpdates(
-        project.answers || {},
-        updates,
-        questions,
-        shouldShowQuestion,
-        {
-          shouldPreserveQuestion: (question) => !question?.showcase
-        }
-      );
-      if (!changed) {
-        return prevProjects;
-      }
-
-      hasProjectChanges = true;
-
-      const relevantQuestions = questions.filter(question => shouldShowQuestion(question, nextAnswers));
-      const {
-        totalMandatoryQuestions: totalQuestions,
-        answeredMandatoryQuestions: answeredQuestions
-      } = computeMandatoryProgress(relevantQuestions, nextAnswers);
-
-      const updatedAnalysis = analyzeAnswers(nextAnswers, rules, riskLevelRules, riskWeights);
-      const timelineDetails = updatedAnalysis?.timeline?.details || [];
-      const relevantTeamsIds = Array.isArray(updatedAnalysis?.teams) ? updatedAnalysis.teams : [];
-      const relevantTeams = teams.filter(team => relevantTeamsIds.includes(team.id));
-      const inferredName = extractProjectName(nextAnswers, questions);
-      const sanitizedName = inferredName && inferredName.trim().length > 0
-        ? inferredName.trim()
-        : project.projectName;
-
-      const lastQuestionIndex = totalQuestions > 0
-        ? Math.min(Math.max(project.lastQuestionIndex ?? totalQuestions - 1, 0), totalQuestions - 1)
-        : project.lastQuestionIndex ?? 0;
-
-      contextPatch = {
-        projectName: sanitizedName,
-        answers: nextAnswers,
-        analysis: updatedAnalysis,
-        relevantTeams,
-        timelineDetails,
-        questions: relevantQuestions.length > 0 ? relevantQuestions : null
-      };
-
-      const now = new Date().toISOString();
-
-      const updatedProject = {
-        ...project,
-        answers: nextAnswers,
-        analysis: updatedAnalysis,
-        projectName: sanitizedName,
-        totalQuestions,
-        answeredQuestions: Math.min(answeredQuestions, totalQuestions || answeredQuestions),
-        lastQuestionIndex,
-        lastUpdated: now
-      };
 
       return [updatedProject, ...prevProjects.filter(entry => entry.id !== projectId)];
     });
 
-    if (contextPatch) {
-      setShowcaseProjectContext(prev => {
-        if (!prev || prev.projectId !== projectId) {
-          return prev;
-        }
+    setShowcaseProjectContext(prev => {
+      if (!prev || prev.projectId !== projectId) {
+        return prev;
+      }
 
-        return {
-          ...prev,
-          ...contextPatch,
-          questions: contextPatch.questions ? contextPatch.questions : prev.questions
-        };
-      });
-    }
+      return {
+        ...prev,
+        ...contextPatch,
+        questions: contextPatch.questions ? contextPatch.questions : prev.questions
+      };
+    });
 
-    if (hasProjectChanges) {
-      setHasUnsavedChanges(true);
-    }
+    setHasUnsavedChanges(true);
   }, [
     analyzeAnswers,
     canManageProject,
