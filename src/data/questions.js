@@ -2993,7 +2993,7 @@ export const initialQuestions = [
           {
             "question": "q19",
             "operator": "equals",
-            "value": "Bot IA"
+            "value": "outil_d_ia_ex_bot_ia"
           },
           {
             "question": "q19",
@@ -3201,7 +3201,7 @@ export const initialQuestions = [
           {
             "question": "q19",
             "operator": "equals",
-            "value": "Bot IA"
+            "value": "outil_d_ia_ex_bot_ia"
           },
           {
             "question": "q19",

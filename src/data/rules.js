@@ -190,7 +190,7 @@ export const initialRules = [
             "type": "question",
             "question": "q19",
             "operator": "equals",
-            "value": "Bot IA"
+            "value": "outil_d_ia_ex_bot_ia"
           },
           {
             "type": "question",
@@ -1720,7 +1720,7 @@ export const initialRules = [
         "type": "question",
         "question": "q11",
         "operator": "equals",
-        "value": "Extrait de de sites internet"
+        "value": "extrait_de_sites_internet"
       }
     ],
     "conditionGroups": [
@@ -1731,7 +1731,7 @@ export const initialRules = [
             "type": "question",
             "question": "q11",
             "operator": "equals",
-            "value": "Extrait de de sites internet"
+            "value": "extrait_de_sites_internet"
           }
         ]
       }
@@ -2989,7 +2989,7 @@ export const initialRules = [
         "type": "question",
         "question": "q19",
         "operator": "equals",
-        "value": "Bot IA"
+        "value": "outil_d_ia_ex_bot_ia"
       },
       {
         "type": "question",
@@ -3012,7 +3012,7 @@ export const initialRules = [
             "type": "question",
             "question": "q19",
             "operator": "equals",
-            "value": "Bot IA"
+            "value": "outil_d_ia_ex_bot_ia"
           },
           {
             "type": "question",
@@ -3066,7 +3066,7 @@ export const initialRules = [
         "type": "question",
         "question": "q19",
         "operator": "equals",
-        "value": "Bot IA"
+        "value": "outil_d_ia_ex_bot_ia"
       },
       {
         "type": "question",
@@ -3089,7 +3089,7 @@ export const initialRules = [
             "type": "question",
             "question": "q19",
             "operator": "equals",
-            "value": "Bot IA"
+            "value": "outil_d_ia_ex_bot_ia"
           },
           {
             "type": "question",
@@ -3221,7 +3221,7 @@ export const initialRules = [
         "type": "question",
         "question": "q19",
         "operator": "equals",
-        "value": "Bot IA"
+        "value": "outil_d_ia_ex_bot_ia"
       },
       {
         "type": "question",
@@ -3238,7 +3238,7 @@ export const initialRules = [
             "type": "question",
             "question": "q19",
             "operator": "equals",
-            "value": "Bot IA"
+            "value": "outil_d_ia_ex_bot_ia"
           },
           {
             "type": "question",
@@ -3920,7 +3920,7 @@ export const initialRules = [
         "type": "question",
         "question": "q19",
         "operator": "equals",
-        "value": "Bot IA"
+        "value": "outil_d_ia_ex_bot_ia"
       }
     ],
     "conditionGroups": [
@@ -3943,7 +3943,7 @@ export const initialRules = [
             "type": "question",
             "question": "q19",
             "operator": "equals",
-            "value": "Bot IA"
+            "value": "outil_d_ia_ex_bot_ia"
           }
         ]
       }
