@@ -58,5 +58,13 @@ export default [
       sourceType: 'module',
       globals: { ...globals.node }
     }
+  },
+  {
+    files: ['e2e/**/*.js', 'playwright.config.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      globals: { ...globals.node }
+    }
   }
 ];
