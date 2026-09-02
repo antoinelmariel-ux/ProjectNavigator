@@ -251,7 +251,6 @@ export const InspirationDetail = ({
           >
             {t('inspirationDetail.addDocument')}
           </button>
-          <p className="text-xs text-amber-600">{t('inspirationDetail.documentsShareNotice')}</p>
         </div>
       );
     }
