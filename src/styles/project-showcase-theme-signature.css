@@ -68,8 +68,11 @@
   margin: 0;
 }
 
-.sg-shell ul,
-.sg-shell ol {
+/* Exclut le contenu ".prose" (RichTextEditor) : ce reset vise les listes de
+   mise en page (nav, cartes), pas les puces/numeros saisis par l'utilisateur
+   dans un champ de texte riche, qui doivent rester visibles. */
+.sg-shell ul:not(.prose *),
+.sg-shell ol:not(.prose *) {
   margin: 0;
   padding: 0;
   list-style: none;

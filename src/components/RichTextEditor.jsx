@@ -125,12 +125,40 @@ export const RichTextEditor = ({
     [handleInput]
   );
 
+  const isSelectionInsideListItem = useCallback(() => {
+    if (typeof window === 'undefined' || !editorRef.current) {
+      return false;
+    }
+
+    const selection = typeof window.getSelection === 'function' ? window.getSelection() : null;
+    if (!selection || selection.rangeCount === 0) {
+      return false;
+    }
+
+    let node = selection.getRangeAt(0).startContainer;
+    if (node && node.nodeType === 3) {
+      node = node.parentNode;
+    }
+
+    while (node && node !== editorRef.current) {
+      if (node.nodeName === 'LI') {
+        return true;
+      }
+      node = node.parentNode;
+    }
+
+    return false;
+  }, []);
+
   // Par défaut, un navigateur répond à Entrée seule en ouvrant un nouveau bloc
   // (une balise <div>), qui ne fait pas partie des balises autorisées par
   // sanitizeRichText : elle est retirée au nettoyage suivant sans rien laisser
   // à sa place, et les deux lignes se retrouvent recollées. On intercepte donc
   // Entrée seule pour insérer directement le même retour à la ligne simple
-  // (<br>) que Shift+Entrée, qui lui est déjà accepté.
+  // (<br>) que Shift+Entrée, qui lui est déjà accepté. Dans une liste, on
+  // laisse au contraire le navigateur gérer Entrée nativement : c'est ce qui
+  // crée une nouvelle puce (<li>) et permet d'en sortir en validant une puce
+  // vide, un comportement qu'un <br> forcé empêcherait entièrement.
   const handleKeyDown = useCallback(
     (event) => {
       const isPlainEnter =
@@ -142,7 +170,7 @@ export const RichTextEditor = ({
         && !event.isComposing
         && event.keyCode !== 229; // saisie via IME (clavier chinois/japonais/coréen) en cours
 
-      if (!isPlainEnter || !commandIsAvailable()) {
+      if (!isPlainEnter || !commandIsAvailable() || isSelectionInsideListItem()) {
         return;
       }
 
@@ -150,8 +178,20 @@ export const RichTextEditor = ({
       document.execCommand('insertLineBreak');
       handleInput();
     },
-    [handleInput]
+    [handleInput, isSelectionInsideListItem]
   );
+
+  // Un clic sur un bouton de la barre d'outils lui donne le focus par défaut,
+  // ce qui fait perdre la sélection/le curseur dans l'éditeur : les
+  // caractères tapés juste après n'atterrissent plus dedans (les touches
+  // lettres sont ignorées par un bouton focalisé). preventDefault sur le
+  // mousedown empêche ce transfert de focus sans empêcher le clic.
+  const preserveEditorFocus = useCallback((event) => {
+    if (event.button !== 0) {
+      return;
+    }
+    event.preventDefault();
+  }, []);
 
   const applyCommand = useCallback(
     (command, argument = null) => {
@@ -235,19 +275,39 @@ export const RichTextEditor = ({
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
-        <button type="button" className={BUTTON_BASE_CLASSES} onClick={() => applyCommand('bold')}>
+        <button
+          type="button"
+          className={BUTTON_BASE_CLASSES}
+          onMouseDown={preserveEditorFocus}
+          onClick={() => applyCommand('bold')}
+        >
           <span className="font-semibold">G</span>
           <span className="sr-only">{t('richTextEditor.bold')}</span>
         </button>
-        <button type="button" className={BUTTON_BASE_CLASSES} onClick={() => applyCommand('italic')}>
+        <button
+          type="button"
+          className={BUTTON_BASE_CLASSES}
+          onMouseDown={preserveEditorFocus}
+          onClick={() => applyCommand('italic')}
+        >
           <span className="italic">I</span>
           <span className="sr-only">{t('richTextEditor.italic')}</span>
         </button>
-        <button type="button" className={BUTTON_BASE_CLASSES} onClick={() => applyCommand('underline')}>
+        <button
+          type="button"
+          className={BUTTON_BASE_CLASSES}
+          onMouseDown={preserveEditorFocus}
+          onClick={() => applyCommand('underline')}
+        >
           <span className="underline">U</span>
           <span className="sr-only">{t('richTextEditor.underline')}</span>
         </button>
-        <button type="button" className={BUTTON_BASE_CLASSES} onClick={() => applyCommand('insertUnorderedList')}>
+        <button
+          type="button"
+          className={BUTTON_BASE_CLASSES}
+          onMouseDown={preserveEditorFocus}
+          onClick={() => applyCommand('insertUnorderedList')}
+        >
           <svg
             aria-hidden="true"
             fill="#000000"
@@ -282,6 +342,7 @@ export const RichTextEditor = ({
             if (event.button !== 0) {
               return;
             }
+            event.preventDefault();
             captureSelection();
           }}
           onClick={handleAddLink}
@@ -289,7 +350,12 @@ export const RichTextEditor = ({
           <span aria-hidden="true">🔗</span>
           <span className="sr-only">{t('richTextEditor.insertLink')}</span>
         </button>
-        <button type="button" className={BUTTON_BASE_CLASSES} onClick={() => applyCommand('removeFormat')}>
+        <button
+          type="button"
+          className={BUTTON_BASE_CLASSES}
+          onMouseDown={preserveEditorFocus}
+          onClick={() => applyCommand('removeFormat')}
+        >
           <span aria-hidden="true">⟲</span>
           <span className="sr-only">{t('richTextEditor.clearFormatting')}</span>
         </button>
