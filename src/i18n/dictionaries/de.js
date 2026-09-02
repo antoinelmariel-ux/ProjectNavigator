@@ -1663,6 +1663,7 @@ export default {
     editModeActiveLabel: 'Bearbeitungsmodus aktiv',
     adjustInfoTitle: 'Passen Sie die im Showcase angezeigten Informationen an',
     editPanelIntro: 'Jede Änderung wird auf die entsprechenden Fragebogenantworten angewendet.',
+    jumpNavAriaLabel: 'Schnellnavigation zwischen den Abschnitten',
     sectionsOrganizationEyebrow: 'Organisation der Abschnitte',
     reorderAddBlocksTitle: 'Neu anordnen und neue Blöcke hinzufügen',
     dragDropHint: 'Ziehen und ablegen, um die Reihenfolge zu ändern, oder die Schaltfläche + verwenden, um einen neuen Abschnitt einzufügen.',

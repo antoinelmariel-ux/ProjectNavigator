@@ -1959,11 +1959,21 @@ export const ProjectShowcase = ({
       }
 
       const sectionFields = sectionFieldsById[sectionId] || [];
+      if (sectionFields.length === 0) {
+        return;
+      }
+
+      const option = SHOWCASE_SECTION_OPTIONS.find(section => section.id === sectionId);
+      blocks.push({
+        type: 'group-header',
+        id: sectionId,
+        title: option ? getSectionOptionLabel(t, option.id) : sectionId
+      });
       sectionFields.forEach(field => blocks.push({ type: 'field', field }));
     });
 
     return blocks;
-  }, [customSectionFormMap, sectionFieldsById, sectionOrder]);
+  }, [customSectionFormMap, sectionFieldsById, sectionOrder, t]);
 
   const handleOpenSectionModal = useCallback((insertionIndex = null) => {
     setPendingInsertionIndex(insertionIndex);
@@ -4088,6 +4098,20 @@ export const ProjectShowcase = ({
           {t('projectShowcase.editPanelIntro')}
         </p>
       </div>
+      <nav className="sge-jumpnav" aria-label={t('projectShowcase.jumpNavAriaLabel')}>
+        {sectionDescriptors.map((section) => (
+          <button
+            key={`jump-${section.id}`}
+            type="button"
+            className="sge-jumpnav__item"
+            onClick={() => {
+              document.getElementById(`sge-group-${section.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
+          >
+            {section.title}
+          </button>
+        ))}
+      </nav>
       <div className="mb-6 rounded-2xl border border-gray-200 bg-gray-50/60 p-4 shadow-inner">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -4167,6 +4191,14 @@ export const ProjectShowcase = ({
       </div>
       <div className="sge-panel__grid">
         {editFormBlocks.map((block) => {
+          if (block.type === 'group-header') {
+            return (
+              <div key={`group-header-${block.id}`} id={`sge-group-${block.id}`} className="sge-field sge-field--wide sge-group-header">
+                <h4 className="sge-group-header__title">{block.title}</h4>
+              </div>
+            );
+          }
+
           if (block.type === 'custom') {
             const section = block.section;
             const templateConfig = resolveTemplateConfig(section.type);
@@ -4176,6 +4208,7 @@ export const ProjectShowcase = ({
             return (
               <div
                 key={`custom-section-${section.id}`}
+                id={`sge-group-${section.id}`}
                 className="sge-field sge-field--wide"
                 data-annotation-target-section={annotationSectionId}
               >

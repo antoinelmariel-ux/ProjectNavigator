@@ -1662,6 +1662,7 @@ export default {
     editModeActiveLabel: 'Mode édition actif',
     adjustInfoTitle: 'Ajustez les informations présentées dans la vitrine',
     editPanelIntro: 'Chaque modification sera appliquée aux réponses du questionnaire correspondant.',
+    jumpNavAriaLabel: 'Navigation rapide entre les rubriques',
     sectionsOrganizationEyebrow: 'Organisation des sections',
     reorderAddBlocksTitle: 'Réorganisez et ajoutez de nouveaux blocs',
     dragDropHint: 'Glissez-déposez pour changer l’ordre ou utilisez le bouton + pour insérer une nouvelle section.',
