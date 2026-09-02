@@ -332,6 +332,8 @@ export default {
     duplicateNoticeSuffix: 'Sie steht nun als Entwurf ganz oben in Ihrer Liste.',
     noProjectsYetTitle: 'Noch kein Projekt gespeichert.',
     noProjectsYetBody: 'Legen Sie jetzt los, um Ihre erste Compliance-Zusammenfassung vorzubereiten.',
+    projectsLoadingTitle: 'Ihre Projekte werden geladen…',
+    projectsLoadingBody: 'Synchronisierung mit SharePoint läuft, einen Moment.',
     searchProjectLabel: 'Ein Projekt nach Name oder Verantwortlichem suchen',
     submittedProjectsHeading: 'Eingereichte Projekte',
     noSubmittedProjects: 'Noch kein Projekt eingereicht.',

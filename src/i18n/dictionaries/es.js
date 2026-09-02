@@ -326,6 +326,8 @@ export default {
     duplicateNoticeSuffix: 'Ahora está en la parte superior de su lista, como borrador.',
     noProjectsYetTitle: 'Aún no hay ningún proyecto guardado.',
     noProjectsYetBody: 'Comience ahora para preparar su primer resumen de cumplimiento.',
+    projectsLoadingTitle: 'Cargando sus proyectos…',
+    projectsLoadingBody: 'Sincronización con SharePoint en curso, un momento.',
     searchProjectLabel: 'Buscar un proyecto por nombre o responsable',
     submittedProjectsHeading: 'Proyectos enviados',
     noSubmittedProjects: 'Aún no se ha enviado ningún proyecto.',
