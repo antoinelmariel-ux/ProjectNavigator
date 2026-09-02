@@ -293,7 +293,8 @@ export const HomeScreen = ({
   tourContext = null,
   currentUser = null,
   teams = [],
-  validationCommitteeConfig = null
+  validationCommitteeConfig = null,
+  isProjectsLoading = false
 }) => {
   const { t, language } = useTranslation();
   const normalizedFilters = useMemo(
@@ -1836,7 +1837,32 @@ export const HomeScreen = ({
             </div>
           )}
 
-          {homeView !== 'inspiration' && !hasProjects && (
+          {homeView !== 'inspiration' && !hasProjects && isProjectsLoading && (
+            <div
+              className="bg-white border border-dashed border-blue-200 rounded-3xl p-8"
+              role="status"
+              aria-live="polite"
+            >
+              <div className="flex items-center justify-center gap-3 text-center text-gray-600">
+                <span className="loading-spinner" aria-hidden="true" />
+                <div>
+                  <p className="text-lg font-medium text-gray-800">{t('home.projectsLoadingTitle')}</p>
+                  <p className="mt-1 text-sm">{t('home.projectsLoadingBody')}</p>
+                </div>
+              </div>
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6" aria-hidden="true">
+                {[0, 1].map((placeholderIndex) => (
+                  <div key={placeholderIndex} className="border rounded-2xl p-6">
+                    <span className="cn-line cn-line--title" />
+                    <span className="cn-line cn-line--text" />
+                    <span className="cn-line cn-line--short" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {homeView !== 'inspiration' && !hasProjects && !isProjectsLoading && (
             <div className="bg-white border border-dashed border-blue-200 rounded-3xl p-8 text-center text-gray-600" role="status" aria-live="polite">
               <p className="text-lg font-medium text-gray-800">{t('home.noProjectsYetTitle')}</p>
               <p className="mt-2">{t('home.noProjectsYetBody')}</p>

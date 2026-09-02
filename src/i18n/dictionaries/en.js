@@ -324,6 +324,8 @@ export default {
     duplicateNoticeSuffix: 'It is now at the top of your list, as a draft.',
     noProjectsYetTitle: 'No project saved yet.',
     noProjectsYetBody: 'Get started now to prepare your first compliance summary.',
+    projectsLoadingTitle: 'Loading your projects…',
+    projectsLoadingBody: 'Syncing with SharePoint, one moment.',
     searchProjectLabel: 'Search a project by name or lead',
     submittedProjectsHeading: 'Submitted projects',
     noSubmittedProjects: 'No project submitted yet.',

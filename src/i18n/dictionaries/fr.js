@@ -330,6 +330,8 @@ export default {
     duplicateNoticeSuffix: 'Elle est en haut de votre liste, en brouillon.',
     noProjectsYetTitle: 'Aucun projet enregistré pour le moment.',
     noProjectsYetBody: 'Lancez-vous dès maintenant pour préparer votre première synthèse compliance.',
+    projectsLoadingTitle: 'Chargement de vos projets…',
+    projectsLoadingBody: 'Synchronisation avec SharePoint en cours, un instant.',
     searchProjectLabel: 'Rechercher un projet par nom ou par lead',
     submittedProjectsHeading: 'Projets soumis',
     noSubmittedProjects: 'Aucun projet soumis pour le moment.',

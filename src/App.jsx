@@ -5490,6 +5490,7 @@ const updateProjectFilters = useCallback((updater) => {
             onReintegrateProjectInCommittee={handleReintegrateProjectInCommittee}
             isAdminMode={isAdminMode}
             tourContext={tourContext}
+            isProjectsLoading={sharePointSync.state === 'loading'}
             />
           </Suspense>
         ) : screen === 'inspiration-form' ? (
