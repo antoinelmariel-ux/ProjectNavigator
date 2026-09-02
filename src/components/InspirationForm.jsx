@@ -468,7 +468,6 @@ export const InspirationForm = ({
                     <p className="text-xs text-gray-500">{t('inspirationForm.documentsUploadHint')}</p>
                   </div>
                 </div>
-                <p className="text-xs text-amber-600">{t('inspirationForm.documentsShareNotice')}</p>
                 {documentUploadError && (
                   <p className="text-xs text-red-600">{documentUploadError}</p>
                 )}
