@@ -1382,11 +1382,6 @@ a {
   color: rgba(245,158,11, var(--tw-text-opacity));
 }
 
-.text-amber-600 {
-  --tw-text-opacity: 1;
-  color: rgba(217,119,6, var(--tw-text-opacity));
-}
-
 .text-amber-700 {
   --tw-text-opacity: 1;
   color: rgba(180,83,9, var(--tw-text-opacity));
