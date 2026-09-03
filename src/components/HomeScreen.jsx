@@ -433,11 +433,11 @@ export const HomeScreen = ({
   const isComplianceActor = isComplianceExpert || isValidationCommitteeMember;
 
   const complianceTriggeredProjects = useMemo(() => {
-    if (!currentUserEmail || !isComplianceActor) {
+    if (!currentUserEmail || !isComplianceActor || !Array.isArray(projects)) {
       return [];
     }
 
-    return accessibleProjects
+    return projects
       .map((project) => {
         const comments = normalizeComplianceComments(project?.answers?.[COMPLIANCE_COMMENTS_KEY]);
         const forcedCommitteeIds = comments.forcedCommitteeIds;
@@ -494,7 +494,7 @@ export const HomeScreen = ({
       .filter((entry) => entry.triggeredPerimeters.length > 0 || entry.isOutOfScopeCandidate)
       .sort((a, b) => getProjectTimestamp(b.project) - getProjectTimestamp(a.project));
   }, [
-    accessibleProjects,
+    projects,
     currentUserEmail,
     currentUserCommittees,
     isComplianceActor,
