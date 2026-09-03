@@ -38,12 +38,12 @@ test('chaque type déclaré possède un gabarit complet', () => {
 test('chaque notification explique ce qui est attendu ET pourquoi elle est reçue', () => {
   Object.values(NOTIFICATION_TYPES).forEach((type) => {
     const { body } = buildNotification({ ...baseContext, type });
-    assert.ok(body.includes('Ce qui est attendu de vous'), `section « attendu » absente pour ${type}`);
+    assert.ok(body.includes('What is expected of you'), `section « attendu » absente pour ${type}`);
     assert.ok(
-      body.includes('Pourquoi recevez-vous ce message ?'),
+      body.includes('Why are you receiving this message?'),
       `section « pourquoi » absente pour ${type}`
     );
-    assert.ok(body.includes('ne pas répondre à cet e-mail'), `mention automatique absente pour ${type}`);
+    assert.ok(body.includes('do not reply to this email'), `mention automatique absente pour ${type}`);
     assert.ok(body.includes('Campagne patients 2026'));
   });
 });
@@ -57,12 +57,12 @@ test('ordre du corps : intro → contenu du message → lien → tableau → att
   });
 
   const positions = {
-    intro: body.indexOf('a déposé un commentaire'),
-    contenu: body.indexOf('Contenu du message'),
-    lien: body.indexOf('Ouvrir le projet dans Project Navigator'),
+    intro: body.indexOf('posted a comment'),
+    contenu: body.indexOf('Message content'),
+    lien: body.indexOf('Open the project in Project Navigator'),
     tableau: body.indexOf('<table'),
-    attendu: body.indexOf('Ce qui est attendu de vous'),
-    pourquoi: body.indexOf('Pourquoi recevez-vous ce message ?')
+    attendu: body.indexOf('What is expected of you'),
+    pourquoi: body.indexOf('Why are you receiving this message?')
   };
 
   Object.entries(positions).forEach(([nom, index]) => {
@@ -83,21 +83,21 @@ test('sans contenu de message, le lien reste avant le tableau', () => {
     appUrl: 'https://lfb1.sharepoint.com/sites/PN/CN-App/index.aspx?projectId=p-1'
   });
 
-  assert.ok(!body.includes('Contenu du message'));
+  assert.ok(!body.includes('Message content'));
   assert.ok(
-    body.indexOf('Ouvrir le projet dans Project Navigator') < body.indexOf('<table'),
+    body.indexOf('Open the project in Project Navigator') < body.indexOf('<table'),
     'le lien doit précéder le tableau récapitulatif'
   );
 });
 
 test('buildNotificationSubject : préfixe, nom de projet et action', () => {
   assert.equal(
-    buildNotificationSubject('Mon projet', 'Projet soumis pour analyse'),
-    '[Project Navigator] Mon projet - Projet soumis pour analyse'
+    buildNotificationSubject('Mon projet', 'Project submitted for review'),
+    '[Project Navigator] Mon projet - Project submitted for review'
   );
   assert.equal(
     buildNotificationSubject('   ', ''),
-    '[Project Navigator] Projet sans nom - Notification'
+    '[Project Navigator] Untitled project - Notification'
   );
 });
 
@@ -127,7 +127,7 @@ test('la soumission cite les équipes concernées dans la justification', () => 
   });
 
   assert.ok(body.includes('Contrôle pub, Juridique France'));
-  assert.ok(body.includes('partie prenante'));
+  assert.ok(body.includes('stakeholder'));
 });
 
 test('le lien vers le projet n’apparaît que s’il est fourni', () => {
@@ -136,11 +136,11 @@ test('le lien vers le projet n’apparaît que s’il est fourni', () => {
     type: NOTIFICATION_TYPES.PROJECT_SHARED,
     appUrl: 'https://lfb1.sharepoint.com/sites/PN/CN-App/index.aspx?projectId=p-1'
   });
-  assert.ok(withLink.body.includes('Ouvrir le projet dans Project Navigator'));
+  assert.ok(withLink.body.includes('Open the project in Project Navigator'));
   assert.ok(withLink.body.includes('projectId=p-1'));
 
   const withoutLink = buildNotification({ ...baseContext, type: NOTIFICATION_TYPES.PROJECT_SHARED });
-  assert.ok(!withoutLink.body.includes('Ouvrir le projet dans Project Navigator'));
+  assert.ok(!withoutLink.body.includes('Open the project in Project Navigator'));
 });
 
 test('un extrait trop long est tronqué', () => {
@@ -168,6 +168,6 @@ test('type inconnu rejeté explicitement', () => {
 
 test('valeurs manquantes remplacées par des libellés neutres', () => {
   const { body, subject } = buildNotification({ type: NOTIFICATION_TYPES.SHOWCASE_COMMENT });
-  assert.ok(subject.includes('Projet sans nom'));
-  assert.ok(body.includes('Un utilisateur'));
+  assert.ok(subject.includes('Untitled project'));
+  assert.ok(body.includes('A user'));
 });

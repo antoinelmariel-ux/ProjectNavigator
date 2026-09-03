@@ -1,4 +1,5 @@
 // Gabarits des notifications envoyées via CN_NotificationsQueue puis Power Automate.
+// Les e-mails de notification doivent être rédigés en anglais (contrainte Power Automate).
 // Chaque message répond à trois questions pour son destinataire : ce qui s’est passé,
 // ce qu’on attend de lui, et pourquoi il reçoit ce message.
 // Les définitions ne produisent que du texte brut ; l’échappement HTML est fait par le
@@ -16,118 +17,118 @@ export const NOTIFICATION_TYPES = {
   COMMITTEE_REINTEGRATION: 'committee-reintegration'
 };
 
-const quoted = (value) => `« ${value} »`;
+const quoted = (value) => `"${value}"`;
 
 export const NOTIFICATION_CATALOG = {
   [NOTIFICATION_TYPES.PROJECT_SUBMITTED_TEAM]: {
-    actionType: 'Projet soumis pour analyse',
+    actionType: 'Project submitted for review',
     intro: (ctx) =>
-      `${ctx.actorName} a soumis le projet ${quoted(ctx.projectName)} pour analyse compliance.`,
+      `${ctx.actorName} submitted the project ${quoted(ctx.projectName)} for compliance review.`,
     expected: () => [
-      'Ouvrir le rapport de synthèse du projet dans Project Navigator.',
-      'Évaluer les points qui relèvent de votre périmètre et identifier les éventuels blocages.',
-      'Déposer vos remarques directement dans le rapport de synthèse : le porteur du projet en sera notifié automatiquement.'
+      'Open the project’s synthesis report in Project Navigator.',
+      'Assess the points that fall within your area and identify any potential blockers.',
+      'Post your remarks directly in the synthesis report: the project owner will be notified automatically.'
     ],
     reason: (ctx) =>
       ctx.teamNames.length > 0
-        ? `le questionnaire de qualification a identifié votre équipe (${ctx.teamNames.join(', ')}) comme partie prenante de ce projet.`
-        : 'votre équipe a été identifiée comme partie prenante de ce projet.'
+        ? `the qualification questionnaire identified your team (${ctx.teamNames.join(', ')}) as a stakeholder for this project.`
+        : 'your team was identified as a stakeholder for this project.'
   },
 
   [NOTIFICATION_TYPES.PROJECT_SUBMITTED_OWNER]: {
-    actionType: 'Confirmation de soumission',
-    intro: (ctx) => `Votre projet ${quoted(ctx.projectName)} a bien été soumis.`,
+    actionType: 'Submission confirmation',
+    intro: (ctx) => `Your project ${quoted(ctx.projectName)} has been submitted successfully.`,
     expected: (ctx) => [
-      'Aucune action immédiate n’est attendue de votre part.',
+      'No immediate action is required from you.',
       ctx.teamNames.length > 0
-        ? `Les équipes compliance concernées ont été prévenues (${ctx.teamNames.join(', ')}) et reviendront vers vous.`
-        : 'Les équipes compliance concernées ont été prévenues et reviendront vers vous.',
-      'Vous recevrez un e-mail dès qu’un commentaire sera déposé sur votre rapport de synthèse.'
+        ? `The relevant compliance teams have been notified (${ctx.teamNames.join(', ')}) and will get back to you.`
+        : 'The relevant compliance teams have been notified and will get back to you.',
+      'You will receive an email as soon as a comment is posted on your synthesis report.'
     ],
-    reason: () => 'vous êtes porteur ou co-porteur de ce projet.'
+    reason: () => 'you are the owner or co-owner of this project.'
   },
 
   [NOTIFICATION_TYPES.PROJECT_SHARED]: {
-    actionType: 'Ajout comme co-porteur',
+    actionType: 'Added as co-owner',
     intro: (ctx) =>
-      `${ctx.actorName} vous a ajouté comme co-porteur du projet ${quoted(ctx.projectName)}.`,
+      `${ctx.actorName} added you as a co-owner of the project ${quoted(ctx.projectName)}.`,
     expected: () => [
-      'Ouvrir le projet pour prendre connaissance des réponses déjà saisies.',
-      'Compléter ou corriger les éléments qui relèvent de votre périmètre.',
-      'Vous recevrez désormais toutes les notifications liées à ce projet.'
+      'Open the project to review the answers already entered.',
+      'Complete or correct the elements that fall within your area.',
+      'You will now receive all notifications related to this project.'
     ],
-    reason: (ctx) => `${ctx.actorName} vous a désigné comme co-porteur de ce projet.`
+    reason: (ctx) => `${ctx.actorName} designated you as a co-owner of this project.`
   },
 
   [NOTIFICATION_TYPES.SHOWCASE_COMMENT]: {
-    actionType: 'Commentaire sur la vitrine',
+    actionType: 'Comment on the showcase',
     intro: (ctx) =>
-      `${ctx.actorName} a déposé un commentaire sur la vitrine du projet ${quoted(ctx.projectName)}.`,
+      `${ctx.actorName} posted a comment on the showcase of the project ${quoted(ctx.projectName)}.`,
     expected: () => [
-      'Lire le commentaire depuis la vitrine du projet.',
-      'Y répondre dans le fil de discussion : l’auteur du commentaire sera notifié.',
-      'Mettre à jour le projet si la remarque appelle une modification.'
+      'Read the comment from the project showcase.',
+      'Reply in the discussion thread: the comment’s author will be notified.',
+      'Update the project if the remark calls for a change.'
     ],
-    reason: () => 'vous êtes porteur ou co-porteur de ce projet.'
+    reason: () => 'you are the owner or co-owner of this project.'
   },
 
   [NOTIFICATION_TYPES.SHOWCASE_COMMENT_REPLY]: {
-    actionType: 'Réponse à votre commentaire',
+    actionType: 'Reply to your comment',
     intro: (ctx) =>
-      `${ctx.actorName} a répondu à votre commentaire sur la vitrine du projet ${quoted(ctx.projectName)}.`,
+      `${ctx.actorName} replied to your comment on the showcase of the project ${quoted(ctx.projectName)}.`,
     expected: () => [
-      'Prendre connaissance de la réponse.',
-      'Poursuivre l’échange dans le fil de discussion si le point n’est pas clos.'
+      'Review the reply.',
+      'Continue the exchange in the discussion thread if the point is not resolved.'
     ],
-    reason: () => 'vous êtes l’auteur du dernier message de ce fil de discussion.'
+    reason: () => 'you are the author of the last message in this discussion thread.'
   },
 
   [NOTIFICATION_TYPES.SYNTHESIS_COMMENT_TO_OWNER]: {
-    actionType: 'Commentaire compliance sur votre rapport',
+    actionType: 'Compliance comment on your report',
     intro: (ctx) =>
-      `${ctx.actorName} a déposé un commentaire sur le rapport de synthèse du projet ${quoted(ctx.projectName)}.`,
+      `${ctx.actorName} posted a comment on the synthesis report of the project ${quoted(ctx.projectName)}.`,
     expected: () => [
-      'Ouvrir le rapport de synthèse et lire le commentaire.',
-      'Apporter les précisions demandées ou ajuster le projet en conséquence.',
-      'Répondre dans le fil de discussion : l’équipe compliance sera notifiée de votre réponse.'
+      'Open the synthesis report and read the comment.',
+      'Provide the requested clarifications or adjust the project accordingly.',
+      'Reply in the discussion thread: the compliance team will be notified of your reply.'
     ],
-    reason: () => 'vous êtes porteur ou co-porteur de ce projet.'
+    reason: () => 'you are the owner or co-owner of this project.'
   },
 
   [NOTIFICATION_TYPES.SYNTHESIS_COMMENT_TO_TEAM]: {
-    actionType: 'Réponse du porteur de projet',
+    actionType: 'Reply from the project owner',
     intro: (ctx) =>
-      `${ctx.actorName} a répondu sur le rapport de synthèse du projet ${quoted(ctx.projectName)}.`,
+      `${ctx.actorName} replied on the synthesis report of the project ${quoted(ctx.projectName)}.`,
     expected: () => [
-      'Prendre connaissance de la réponse du porteur de projet.',
-      'Confirmer que le point est levé, ou poursuivre l’échange dans le fil de discussion.'
+      'Review the project owner’s reply.',
+      'Confirm that the point is resolved, or continue the exchange in the discussion thread.'
     ],
     reason: (ctx) =>
       ctx.teamNames.length > 0
-        ? `votre équipe (${ctx.teamNames.join(', ')}) a déposé un commentaire sur ce rapport de synthèse.`
-        : 'votre équipe a déposé un commentaire sur ce rapport de synthèse.'
+        ? `your team (${ctx.teamNames.join(', ')}) posted a comment on this synthesis report.`
+        : 'your team posted a comment on this synthesis report.'
   },
 
   [NOTIFICATION_TYPES.SYNTHESIS_COMMENT_REPLY]: {
-    actionType: 'Réponse à votre commentaire',
+    actionType: 'Reply to your comment',
     intro: (ctx) =>
-      `${ctx.actorName} a répondu à votre commentaire sur le rapport de synthèse du projet ${quoted(ctx.projectName)}.`,
+      `${ctx.actorName} replied to your comment on the synthesis report of the project ${quoted(ctx.projectName)}.`,
     expected: () => [
-      'Prendre connaissance de la réponse.',
-      'Poursuivre l’échange dans le fil de discussion si le point n’est pas clos.'
+      'Review the reply.',
+      'Continue the exchange in the discussion thread if the point is not resolved.'
     ],
-    reason: () => 'vous êtes l’auteur du dernier message de ce fil de discussion.'
+    reason: () => 'you are the author of the last message in this discussion thread.'
   },
 
   [NOTIFICATION_TYPES.COMMITTEE_REINTEGRATION]: {
-    actionType: 'Réintégration en comité de validation',
+    actionType: 'Reintegrated into the validation committee',
     intro: (ctx) =>
-      `${ctx.actorName} a réintégré le projet ${quoted(ctx.projectName)} au comité de validation.`,
+      `${ctx.actorName} reintegrated the project ${quoted(ctx.projectName)} into the validation committee.`,
     expected: () => [
-      'Vérifier que le dossier est complet avant le passage en comité.',
-      'Préparer les éléments de présentation attendus par le comité.'
+      'Check that the file is complete before the committee review.',
+      'Prepare the presentation materials expected by the committee.'
     ],
-    reason: () => 'vous êtes porteur ou co-porteur de ce projet.'
+    reason: () => 'you are the owner or co-owner of this project.'
   }
 };
 
@@ -143,7 +144,7 @@ export const buildNotificationSubject = (projectName, actionType) => {
   const safeProjectName =
     typeof projectName === 'string' && projectName.trim().length > 0
       ? projectName.trim()
-      : 'Projet sans nom';
+      : 'Untitled project';
   const safeActionType =
     typeof actionType === 'string' && actionType.trim().length > 0
       ? actionType.trim()
@@ -160,7 +161,7 @@ const formatDate = (isoDate) => {
     return '';
   }
   const pad = (value) => String(value).padStart(2, '0');
-  return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} à ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} at ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 };
 
 const factRow = (label, value) =>
@@ -191,22 +192,21 @@ export const buildNotification = ({
 
   const context = {
     projectName:
-      typeof projectName === 'string' && projectName.trim() ? projectName.trim() : 'Projet sans nom',
+      typeof projectName === 'string' && projectName.trim() ? projectName.trim() : 'Untitled project',
     projectId,
-    actorName:
-      typeof actorName === 'string' && actorName.trim() ? actorName.trim() : 'Un utilisateur',
+    actorName: typeof actorName === 'string' && actorName.trim() ? actorName.trim() : 'A user',
     actorEmail,
     ownerEmail,
     teamNames: Array.isArray(teamNames) ? teamNames.filter(Boolean) : []
   };
 
-  const facts = [['Projet', context.projectName]];
+  const facts = [['Project', context.projectName]];
   if (context.ownerEmail) {
-    facts.push(['Porteur du projet', context.ownerEmail]);
+    facts.push(['Project owner', context.ownerEmail]);
   }
-  facts.push(['À l’origine de l’action', context.actorEmail || context.actorName]);
+  facts.push(['Action performed by', context.actorEmail || context.actorName]);
   if (context.teamNames.length > 0) {
-    facts.push(['Équipes concernées', context.teamNames.join(', ')]);
+    facts.push(['Teams involved', context.teamNames.join(', ')]);
   }
   const formattedDate = formatDate(occurredAt);
   if (formattedDate) {
@@ -215,35 +215,35 @@ export const buildNotification = ({
 
   const excerptText = truncate(excerpt);
   const excerptBlock = excerptText
-    ? `<p style="margin:16px 0 4px;color:#555">Contenu du message :</p>` +
+    ? `<p style="margin:16px 0 4px;color:#555">Message content:</p>` +
       `<blockquote style="margin:0;padding:10px 14px;border-left:3px solid #cbd5e1;background:#f8fafc;color:#111">${escapeHtml(
         excerptText
       )}</blockquote>`
     : '';
 
   const linkBlock = appUrl
-    ? `<p style="margin:20px 0"><a href="${escapeHtml(appUrl)}" style="color:#1d4ed8">Ouvrir le projet dans Project Navigator</a></p>`
+    ? `<p style="margin:20px 0"><a href="${escapeHtml(appUrl)}" style="color:#1d4ed8">Open the project in Project Navigator</a></p>`
     : '';
 
   const body =
     '<div style="font-family:Segoe UI,Arial,sans-serif;font-size:14px;line-height:1.5;color:#111">' +
-    '<p>Bonjour,</p>' +
+    '<p>Hello,</p>' +
     `<p>${escapeHtml(definition.intro(context))}</p>` +
     excerptBlock +
     linkBlock +
     `<table role="presentation" style="border-collapse:collapse;margin:16px 0">${facts
       .map(([label, value]) => factRow(label, value))
       .join('')}</table>` +
-    '<p style="margin:16px 0 6px"><strong>Ce qui est attendu de vous</strong></p>' +
+    '<p style="margin:16px 0 6px"><strong>What is expected of you</strong></p>' +
     `<ul style="margin:0 0 8px;padding-left:20px">${definition
       .expected(context)
       .map((line) => `<li style="margin:4px 0">${escapeHtml(line)}</li>`)
       .join('')}</ul>` +
     '<hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0 12px">' +
-    `<p style="font-size:12px;color:#666;margin:0">Pourquoi recevez-vous ce message ? Parce que ${escapeHtml(
+    `<p style="font-size:12px;color:#666;margin:0">Why are you receiving this message? Because ${escapeHtml(
       definition.reason(context)
     )}</p>` +
-    '<p style="font-size:12px;color:#666;margin:6px 0 0">Message automatique envoyé par Project Navigator. Merci de ne pas répondre à cet e-mail : utilisez les fils de discussion de l’application pour échanger.</p>' +
+    '<p style="font-size:12px;color:#666;margin:6px 0 0">Automated message sent by Project Navigator. Please do not reply to this email: use the discussion threads in the application to communicate.</p>' +
     '</div>';
 
   return {
