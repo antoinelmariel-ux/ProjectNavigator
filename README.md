@@ -31,8 +31,19 @@ Autres commandes utiles :
 | Commande | Rôle |
 | --- | --- |
 | `npm test` | Tests unitaires de la logique métier (questions, règles, risque…). Aucune dépendance. |
+| `npm run test:e2e` | Tests de bout en bout Playwright (`e2e/*.spec.js`) : construit l'app, la sert en local, puis parcourt les écrans dans un vrai navigateur. Séparé de `npm test`. |
 | `npm run lint` | Analyse statique (ESLint) du code. |
 | `npm run format` | Mise en forme (Prettier). |
 | `npm run build` | Régénère les mocks, le CSS « lite » et le manifest transpilé. |
 
 L'ouverture de `index.html` reste **zéro-install** pour l'utilisateur final (aucun serveur ni npm requis côté utilisateur) : `npm` ne sert qu'au développement.
+
+### Tests de bout en bout (Playwright)
+
+`npm run test:e2e` lance la suite `e2e/*.spec.js` avec Playwright : elle reconstruit l'application, la sert via un petit serveur statique jetable (`scripts/serve-e2e.js`), puis pilote un vrai navigateur pour vérifier les parcours utilisateurs (questionnaire, synthèse, vitrine, back-office, commentaires compliance…). C'est une suite distincte de `npm test`.
+
+Les tests qui touchent le back-office nécessitent le mot de passe administrateur, jamais committé : ils se désactivent automatiquement en son absence.
+
+```bash
+E2E_ADMIN_PASSWORD='...' npm run test:e2e
+```
