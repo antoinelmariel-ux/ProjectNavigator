@@ -319,6 +319,9 @@ export default {
     open: 'Ouvrir',
     inspiringProjectsHeading: 'Projets inspirants',
     savedProjectsHeading: 'Vos projets enregistrés',
+    publicProjectsHeading: 'Projets partagés par d’autres équipes',
+    publicProjectsSubtitle: 'Projets soumis par d’autres personnes et rendus visibles à tous.',
+    publicProjectsListAriaLabel: 'Liste des projets partagés par d’autres équipes',
     inspirationSectionSubtitle: 'Découvrez les initiatives d’autres laboratoires et gérez vos projets inspirants.',
     projectsSectionSubtitle:
       'Accédez aux brouillons et aux synthèses finalisées pour les reprendre à tout moment.',

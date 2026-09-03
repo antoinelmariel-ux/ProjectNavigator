@@ -337,6 +337,18 @@ export const HomeScreen = ({
   const deleteConfirmButtonRef = useRef(null);
   const previouslyFocusedElementRef = useRef(null);
 
+  const isOwnedOrSharedProject = useCallback((project) => {
+    const ownerEmail = normalizeEmail(project?.ownerEmail);
+    const sharedWith = Array.isArray(project?.sharedWith) ? project.sharedWith : [];
+    const isShared = sharedWith.some((entry) => normalizeEmail(entry) === currentUserEmail);
+
+    if (!ownerEmail && sharedWith.length === 0) {
+      return true;
+    }
+
+    return ownerEmail === currentUserEmail || isShared;
+  }, [currentUserEmail]);
+
   const accessibleProjects = useMemo(() => {
     if (!Array.isArray(projects)) {
       return [];
@@ -346,22 +358,21 @@ export const HomeScreen = ({
       return projects;
     }
 
-    return projects.filter((project) => {
-      if (project?.answers?.[PUBLIC_VISIBILITY_KEY] === true) {
-        return true;
-      }
+    return projects.filter((project) => isOwnedOrSharedProject(project));
+  }, [projects, isAdminMode, currentUserEmail, isOwnedOrSharedProject]);
 
-      const ownerEmail = normalizeEmail(project?.ownerEmail);
-      const sharedWith = Array.isArray(project?.sharedWith) ? project.sharedWith : [];
-      const isShared = sharedWith.some((entry) => normalizeEmail(entry) === currentUserEmail);
+  // Un projet rendu "visible par tous" par un tiers (owner, admin ou comité) n'a rien
+  // à faire dans "Vos projets" : ce bloc reste réservé aux projets qu'on possède ou
+  // qui nous ont été partagés. Il vit dans son propre bloc, plus bas.
+  const otherPublicProjects = useMemo(() => {
+    if (!Array.isArray(projects) || isAdminMode || !currentUserEmail) {
+      return [];
+    }
 
-      if (!ownerEmail && sharedWith.length === 0) {
-        return true;
-      }
-
-      return ownerEmail === currentUserEmail || isShared;
-    });
-  }, [projects, isAdminMode, currentUserEmail]);
+    return projects.filter((project) => (
+      project?.answers?.[PUBLIC_VISIBILITY_KEY] === true && !isOwnedOrSharedProject(project)
+    ));
+  }, [projects, isAdminMode, currentUserEmail, isOwnedOrSharedProject]);
 
   // Piste 11 : l’argumentaire produit ne s’affiche que tant que l’utilisateur n’a pas
   // de projet en propre. Les projets simplement partagés avec lui ne comptent pas.
@@ -1789,6 +1800,20 @@ export const HomeScreen = ({
                 })}
               </div>
             )}
+          </section>
+        )}
+
+        {homeView !== 'inspiration' && otherPublicProjects.length > 0 && (
+          <section aria-labelledby="public-projects-heading" className="space-y-6">
+            <div>
+              <h2 id="public-projects-heading" className="text-2xl font-bold text-gray-900">
+                {t('home.publicProjectsHeading')}
+              </h2>
+              <p className="text-sm text-gray-600">{t('home.publicProjectsSubtitle')}</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6" role="list" aria-label={t('home.publicProjectsListAriaLabel')}>
+              {otherPublicProjects.map(project => renderProjectCard(project))}
+            </div>
           </section>
         )}
 

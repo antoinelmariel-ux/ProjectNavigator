@@ -320,6 +320,9 @@ export default {
     open: 'Öffnen',
     inspiringProjectsHeading: 'Inspirierende Projekte',
     savedProjectsHeading: 'Ihre gespeicherten Projekte',
+    publicProjectsHeading: 'Von anderen Teams geteilte Projekte',
+    publicProjectsSubtitle: 'Von anderen Personen eingereichte und für alle sichtbar gemachte Projekte.',
+    publicProjectsListAriaLabel: 'Liste der von anderen Teams geteilten Projekte',
     inspirationSectionSubtitle:
       'Entdecken Sie Initiativen anderer Labore und verwalten Sie Ihre inspirierenden Projekte.',
     projectsSectionSubtitle:
