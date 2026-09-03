@@ -1,6 +1,7 @@
 import { isSharePointMode } from '../config/sharepointConfig.js';
 import { getRepository } from './listRepository.js';
 import { normalizeEmail } from './normalizeEmail.js';
+import { loadPersistedMockMap, savePersistedMockMap } from './mockProviderPersistence.js';
 
 // Clé déterministe : ajouter deux fois le même email met juste à jour la ligne existante
 // au lieu d’en créer une en double.
@@ -13,9 +14,11 @@ const toMember = (record) => ({
   canSubmit: Boolean(record.CanSubmit)
 });
 
+const MOCK_MEMBERS_STORAGE_KEY = 'complianceNavigatorMockProjectMembers';
+
 class MockProjectMembersProvider {
   constructor() {
-    this.members = new Map();
+    this.members = loadPersistedMockMap(MOCK_MEMBERS_STORAGE_KEY);
   }
 
   async listMembers(projectId) {
@@ -34,11 +37,13 @@ class MockProjectMembersProvider {
       CanSubmit: canSubmit
     };
     this.members.set(entryId, record);
+    savePersistedMockMap(MOCK_MEMBERS_STORAGE_KEY, this.members);
     return toMember(record);
   }
 
   async removeMember(projectId, email) {
     this.members.delete(buildEntryId(projectId, email));
+    savePersistedMockMap(MOCK_MEMBERS_STORAGE_KEY, this.members);
   }
 }
 

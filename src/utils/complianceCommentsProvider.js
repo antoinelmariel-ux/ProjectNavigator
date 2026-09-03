@@ -1,5 +1,6 @@
 import { isSharePointMode } from '../config/sharepointConfig.js';
 import { getRepository } from './listRepository.js';
+import { loadPersistedMockMap, savePersistedMockMap } from './mockProviderPersistence.js';
 
 // Un commentaire racine (team:<id> ou committee:<id>) a un id déterministe : le republier
 // met à jour la même ligne au lieu d’en créer une nouvelle à chaque édition.
@@ -113,9 +114,11 @@ const groupRowsByProject = (rows) => {
   return result;
 };
 
+const MOCK_COMMENTS_STORAGE_KEY = 'complianceNavigatorMockComplianceComments';
+
 class MockComplianceCommentsProvider {
   constructor() {
-    this.rows = new Map();
+    this.rows = loadPersistedMockMap(MOCK_COMMENTS_STORAGE_KEY);
   }
 
   async listComments(projectId) {
@@ -136,6 +139,7 @@ class MockComplianceCommentsProvider {
       const fields = toReplyFields(projectId, sectionKey, rootId, reply, userEmail);
       this.rows.set(fields.CommentId, fields);
     });
+    savePersistedMockMap(MOCK_COMMENTS_STORAGE_KEY, this.rows);
   }
 }
 
