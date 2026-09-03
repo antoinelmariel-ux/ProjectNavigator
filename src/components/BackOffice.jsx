@@ -694,6 +694,11 @@ export const BackOffice = ({
   const [activeTab, setActiveTab] = useState('dashboard');
   const [editingRule, setEditingRule] = useState(null);
   const [editingQuestion, setEditingQuestion] = useState(null);
+  // Id de la question/règle tout juste créée (ou dupliquée) et pas encore confirmée par un
+  // Enregistrer : permet à l'annulation de retirer l'entrée provisoire déjà insérée dans la
+  // liste plutôt que de la laisser trainer (cf. addQuestion/addRule qui insèrent avant édition).
+  const [pendingNewQuestionId, setPendingNewQuestionId] = useState(null);
+  const [pendingNewRuleId, setPendingNewRuleId] = useState(null);
   const [draggedInspirationFieldIndex, setDraggedInspirationFieldIndex] = useState(null);
   const [dragOverInspirationFieldIndex, setDragOverInspirationFieldIndex] = useState(null);
   const [reorderAnnouncement, setReorderAnnouncement] = useState('');
@@ -3685,6 +3690,7 @@ export const BackOffice = ({
 
     setQuestions([...questions, newQuestion]);
     setEditingQuestion(newQuestion);
+    setPendingNewQuestionId(newQuestion?.id ?? null);
     if (newQuestion?.id) {
       setExpandedQuestionIds((prev) => {
         const next = new Set(prev);
@@ -3701,6 +3707,7 @@ export const BackOffice = ({
 
     setQuestions(next);
     setEditingQuestion(newQuestion);
+    setPendingNewQuestionId(newQuestion?.id ?? null);
     setReorderAnnouncement(t('backOffice.main.questionAddedAnnouncementTemplate', { position: targetIndex + 1, total: next.length }));
     if (newQuestion?.id) {
       setExpandedQuestionIds((prev) => {
@@ -3740,6 +3747,7 @@ export const BackOffice = ({
     });
 
     setQuestions((prevQuestions) => prevQuestions.filter((question) => question.id !== id));
+    setPendingNewQuestionId((prevId) => (prevId === id ? null : prevId));
   };
 
   const duplicateQuestion = (id) => {
@@ -3762,6 +3770,7 @@ export const BackOffice = ({
 
     setQuestions(updatedQuestions);
     setEditingQuestion(copiedQuestion);
+    setPendingNewQuestionId(copiedQuestion?.id ?? null);
     if (copiedQuestion?.id) {
       setExpandedQuestionIds((prev) => {
         const next = new Set(prev);
@@ -3785,6 +3794,27 @@ export const BackOffice = ({
       setQuestions([...questions, updatedQuestion]);
     }
     setEditingQuestion(null);
+    setPendingNewQuestionId(null);
+  };
+
+  // Ferme l'éditeur de question ; si la question n'avait jamais été confirmée par un
+  // Enregistrer (création ou duplication tout juste annulée), retire aussi l'entrée
+  // provisoire déjà insérée dans `questions` par addQuestion/addQuestionAtIndex/duplicateQuestion.
+  const cancelQuestionEdit = () => {
+    if (editingQuestion && pendingNewQuestionId === editingQuestion.id) {
+      const cancelledId = editingQuestion.id;
+      setQuestions((prev) => prev.filter((question) => question.id !== cancelledId));
+      setExpandedQuestionIds((prev) => {
+        if (!prev.has(cancelledId)) {
+          return prev;
+        }
+        const next = new Set(prev);
+        next.delete(cancelledId);
+        return next;
+      });
+    }
+    setPendingNewQuestionId(null);
+    setEditingQuestion(null);
   };
 
   const addRule = () => {
@@ -3803,6 +3833,7 @@ export const BackOffice = ({
 
     setRules([...rules, newRule]);
     setEditingRule(newRule);
+    setPendingNewRuleId(newRule?.id ?? null);
     if (newRule?.id) {
       setExpandedRuleIds((prev) => {
         const next = new Set(prev);
@@ -3838,6 +3869,7 @@ export const BackOffice = ({
     if (editingRule && editingRule.id === id) {
       setEditingRule(null);
     }
+    setPendingNewRuleId((prevId) => (prevId === id ? null : prevId));
     enqueueRuleWrite('remove', { ruleId: id });
   };
 
@@ -3862,6 +3894,7 @@ export const BackOffice = ({
 
     setRules(updatedRules);
     setEditingRule(copiedRule);
+    setPendingNewRuleId(copiedRule?.id ?? null);
     if (copiedRule?.id) {
       setExpandedRuleIds((prev) => {
         const next = new Set(prev);
@@ -3886,9 +3919,31 @@ export const BackOffice = ({
       setRules([...rules, updatedRule]);
     }
     setEditingRule(null);
+    setPendingNewRuleId(null);
     const sortOrder = ruleServerMetaRef?.current?.get(updatedRule.id)?.sortOrder
       ?? nextSortOrder(rules, ruleServerMetaRef);
     enqueueRuleWrite('save', { rule: updatedRule, sortOrder });
+  };
+
+  // Ferme l'éditeur de règle ; si la règle n'avait jamais été confirmée par un Enregistrer
+  // (création ou duplication tout juste annulée), retire l'entrée provisoire déjà insérée
+  // dans `rules` par addRule/duplicateRule et corrige l'écriture déjà mise en file d'attente.
+  const cancelRuleEdit = () => {
+    if (editingRule && pendingNewRuleId === editingRule.id) {
+      const cancelledId = editingRule.id;
+      setRules((prev) => prev.filter((rule) => rule.id !== cancelledId));
+      setExpandedRuleIds((prev) => {
+        if (!prev.has(cancelledId)) {
+          return prev;
+        }
+        const next = new Set(prev);
+        next.delete(cancelledId);
+        return next;
+      });
+      enqueueRuleWrite('remove', { ruleId: cancelledId });
+    }
+    setPendingNewRuleId(null);
+    setEditingRule(null);
   };
 
   const addTeam = () => {
@@ -8197,7 +8252,7 @@ export const BackOffice = ({
           <QuestionEditor
             question={editingQuestion}
             onSave={saveQuestion}
-            onCancel={() => setEditingQuestion(null)}
+            onCancel={cancelQuestionEdit}
             allQuestions={questions}
           />
         )}
@@ -8206,7 +8261,7 @@ export const BackOffice = ({
           <RuleEditor
             rule={editingRule}
             onSave={saveRule}
-            onCancel={() => setEditingRule(null)}
+            onCancel={cancelRuleEdit}
             questions={questions}
             teams={teams}
           />

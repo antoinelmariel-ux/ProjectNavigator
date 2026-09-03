@@ -3133,10 +3133,14 @@ const updateProjectFilters = useCallback((updater) => {
   const isAdminMode = mode === 'admin';
   const isAdminHomeView = isAdminMode && adminView === 'home';
   const isAdminBackOfficeView = isAdminMode && adminView === 'back-office';
+  // Un lien de vitrine partagée doit rester consultable par quelqu'un sans profil enregistré
+  // (destinataire externe) : ne jamais lui imposer l'onboarding avant de voir la vitrine.
+  const isOpeningSharedShowcaseLink = Boolean(pendingShowcaseProjectIdRef.current) || screen === 'showcase';
   const shouldShowOnboarding = isHydrated
     && isUserProfileLoaded
     && !userProfileLoadFailed
-    && (!userProfile || !userProfile.hasCompletedOnboarding);
+    && (!userProfile || !userProfile.hasCompletedOnboarding)
+    && !isOpeningSharedShowcaseLink;
   const isActiveProjectEditable = !activeProject
     || (canManageProject(activeProject) && activeProject.status === 'draft')
     || isAdminMode;

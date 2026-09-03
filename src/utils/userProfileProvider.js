@@ -1,6 +1,7 @@
 import { isSharePointMode } from '../config/sharepointConfig.js';
 import { getRepository } from './listRepository.js';
 import { normalizeEmail } from './normalizeEmail.js';
+import { loadPersistedMockMap, savePersistedMockMap } from './mockProviderPersistence.js';
 
 const toProfile = (record) => ({
   email: record.UserEmail,
@@ -17,9 +18,14 @@ const buildRecord = (email, { activityScope, preferredLanguage, hasCompletedOnbo
   UpdatedAt: new Date().toISOString()
 });
 
+const MOCK_PROFILES_STORAGE_KEY = 'complianceNavigatorMockUserProfiles';
+
+// En mode local/mock, sans backend réel, le profil (et donc l'état "onboarding terminé")
+// doit survivre à un rechargement de page comme le reste de l'état applicatif — sans quoi
+// l'écran d'onboarding réapparaît à chaque ouverture malgré des projets déjà enregistrés.
 class MockUserProfileProvider {
   constructor() {
-    this.profiles = new Map();
+    this.profiles = loadPersistedMockMap(MOCK_PROFILES_STORAGE_KEY);
   }
 
   async getProfile(email) {
@@ -32,6 +38,7 @@ class MockUserProfileProvider {
     const previous = this.profiles.get(key) || {};
     const record = buildRecord(email, { ...toProfile({ ...previous }), ...patch });
     this.profiles.set(key, record);
+    savePersistedMockMap(MOCK_PROFILES_STORAGE_KEY, this.profiles);
     return toProfile(record);
   }
 }

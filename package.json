@@ -6,20 +6,22 @@
   "type": "module",
   "scripts": {
     "test": "node --test",
-    "lint": "eslint \"src/**/*.{js,jsx}\" \"scripts/**/*.js\"",
-    "lint:fix": "eslint --fix \"src/**/*.{js,jsx}\" \"scripts/**/*.js\"",
+    "lint": "eslint \"src/**/*.{js,jsx}\" \"scripts/**/*.js\" \"e2e/**/*.js\" \"playwright.config.js\"",
+    "lint:fix": "eslint --fix \"src/**/*.{js,jsx}\" \"scripts/**/*.js\" \"e2e/**/*.js\" \"playwright.config.js\"",
     "format": "prettier --write \"src/**/*.{js,jsx,css}\" \"*.html\"",
     "format:check": "prettier --check \"src/**/*.{js,jsx,css}\" \"*.html\"",
     "generate:manifest": "node scripts/generate-module-manifest.js",
     "generate:mocks": "node scripts/sync-mock-sharepoint-data.js",
     "generate:css": "node scripts/generate-tailwind-lite.js",
-    "build": "npm run generate:mocks && npm run generate:css && npm run generate:manifest"
+    "build": "npm run generate:mocks && npm run generate:css && npm run generate:manifest",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
     "@babel/core": "^7.26.0",
     "@babel/preset-env": "^7.26.0",
     "@babel/preset-react": "^7.26.3",
     "@eslint/js": "^9.18.0",
+    "@playwright/test": "^1.56.1",
     "eslint": "^9.18.0",
     "eslint-plugin-react": "^7.37.4",
     "eslint-plugin-react-hooks": "^5.1.0",

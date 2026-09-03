@@ -58,5 +58,15 @@ export default [
       sourceType: 'module',
       globals: { ...globals.node }
     }
+  },
+  {
+    // Fichiers e2e : exécutés par Node (Playwright), mais certains callbacks
+    // (addInitScript, waitForFunction, page.evaluate) tournent dans le navigateur.
+    files: ['e2e/**/*.js', 'playwright.config.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      globals: { ...globals.node, ...globals.browser }
+    }
   }
 ];

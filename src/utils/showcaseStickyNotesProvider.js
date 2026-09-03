@@ -1,5 +1,6 @@
 import { isSharePointMode } from '../config/sharepointConfig.js';
 import { getRepository } from './listRepository.js';
+import { loadPersistedMockMap, savePersistedMockMap } from './mockProviderPersistence.js';
 
 const toNote = (record) => {
   const anchor = record.AnchorJson && typeof record.AnchorJson === 'object' ? record.AnchorJson : {};
@@ -51,9 +52,11 @@ const toListItem = (note, userEmail) => ({
   UpdatedAt: new Date().toISOString()
 });
 
+const MOCK_STICKY_NOTES_STORAGE_KEY = 'complianceNavigatorMockStickyNotes';
+
 class MockShowcaseStickyNotesProvider {
   constructor() {
-    this.notes = new Map();
+    this.notes = loadPersistedMockMap(MOCK_STICKY_NOTES_STORAGE_KEY);
   }
 
   async listNotes(projectId) {
@@ -65,6 +68,7 @@ class MockShowcaseStickyNotesProvider {
   async upsertNote(note, { userEmail } = {}) {
     const record = toListItem(note, userEmail);
     this.notes.set(record.StickyId, record);
+    savePersistedMockMap(MOCK_STICKY_NOTES_STORAGE_KEY, this.notes);
     return toNote(record);
   }
 }
