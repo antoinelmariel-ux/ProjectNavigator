@@ -320,6 +320,9 @@ export default {
     open: 'Öffnen',
     inspiringProjectsHeading: 'Inspirierende Projekte',
     savedProjectsHeading: 'Ihre gespeicherten Projekte',
+    publicProjectsHeading: 'Von anderen Teams geteilte Projekte',
+    publicProjectsSubtitle: 'Von anderen Personen eingereichte und für alle sichtbar gemachte Projekte.',
+    publicProjectsListAriaLabel: 'Liste der von anderen Teams geteilten Projekte',
     inspirationSectionSubtitle:
       'Entdecken Sie Initiativen anderer Labore und verwalten Sie Ihre inspirierenden Projekte.',
     projectsSectionSubtitle:
@@ -361,6 +364,13 @@ export default {
     duplicateProjectTitle: 'Projekt duplizieren',
     deleteProjectAriaLabel: 'Projekt {{name}} löschen',
     deleteProjectTitle: 'Projekt löschen',
+    visibleToAllBadge: 'Für alle sichtbar',
+    makeVisibleToAll: 'Für alle sichtbar machen',
+    makeVisibleToAllTitle: 'Dieses eingereichte Projekt für alle Nutzer sichtbar machen',
+    makeVisibleToAllAriaLabel: 'Projekt {{name}} für alle sichtbar machen',
+    hideFromAll: 'Privat machen',
+    hideFromAllTitle: 'Öffentliche Sichtbarkeit dieses Projekts entfernen',
+    hideFromAllAriaLabel: 'Öffentliche Sichtbarkeit des Projekts {{name}} entfernen',
     progressLabel: 'Fortschritt',
     progressCount: '{{answered}} von {{total}} Fragen',
     progressAriaLabel: 'Fortschritt des Projekts {{name}}',

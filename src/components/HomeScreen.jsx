@@ -65,6 +65,7 @@ const normalizeInspirationFieldValues = (value) => {
 const DEFAULT_SELECT_FILTER_VALUE = 'all';
 const DEFAULT_TEXT_FILTER_VALUE = '';
 const COMPLIANCE_COMMENTS_KEY = '__compliance_team_comments__';
+const PUBLIC_VISIBILITY_KEY = '__public_visibility__';
 const PROJECTS_PAGE_SIZE = 6;
 const INSPIRATIONS_PAGE_SIZE = 6;
 
@@ -289,6 +290,8 @@ export const HomeScreen = ({
   canShowProjectShowcase,
   onDuplicateProject,
   onReintegrateProjectInCommittee,
+  onToggleProjectVisibility,
+  canSetProjectVisibility,
   isAdminMode = false,
   tourContext = null,
   currentUser = null,
@@ -334,6 +337,18 @@ export const HomeScreen = ({
   const deleteConfirmButtonRef = useRef(null);
   const previouslyFocusedElementRef = useRef(null);
 
+  const isOwnedOrSharedProject = useCallback((project) => {
+    const ownerEmail = normalizeEmail(project?.ownerEmail);
+    const sharedWith = Array.isArray(project?.sharedWith) ? project.sharedWith : [];
+    const isShared = sharedWith.some((entry) => normalizeEmail(entry) === currentUserEmail);
+
+    if (!ownerEmail && sharedWith.length === 0) {
+      return true;
+    }
+
+    return ownerEmail === currentUserEmail || isShared;
+  }, [currentUserEmail]);
+
   const accessibleProjects = useMemo(() => {
     if (!Array.isArray(projects)) {
       return [];
@@ -343,18 +358,21 @@ export const HomeScreen = ({
       return projects;
     }
 
-    return projects.filter((project) => {
-      const ownerEmail = normalizeEmail(project?.ownerEmail);
-      const sharedWith = Array.isArray(project?.sharedWith) ? project.sharedWith : [];
-      const isShared = sharedWith.some((entry) => normalizeEmail(entry) === currentUserEmail);
+    return projects.filter((project) => isOwnedOrSharedProject(project));
+  }, [projects, isAdminMode, currentUserEmail, isOwnedOrSharedProject]);
 
-      if (!ownerEmail && sharedWith.length === 0) {
-        return true;
-      }
+  // Un projet rendu "visible par tous" par un tiers (owner, admin ou comité) n'a rien
+  // à faire dans "Vos projets" : ce bloc reste réservé aux projets qu'on possède ou
+  // qui nous ont été partagés. Il vit dans son propre bloc, plus bas.
+  const otherPublicProjects = useMemo(() => {
+    if (!Array.isArray(projects) || isAdminMode || !currentUserEmail) {
+      return [];
+    }
 
-      return ownerEmail === currentUserEmail || isShared;
-    });
-  }, [projects, isAdminMode, currentUserEmail]);
+    return projects.filter((project) => (
+      project?.answers?.[PUBLIC_VISIBILITY_KEY] === true && !isOwnedOrSharedProject(project)
+    ));
+  }, [projects, isAdminMode, currentUserEmail, isOwnedOrSharedProject]);
 
   // Piste 11 : l’argumentaire produit ne s’affiche que tant que l’utilisateur n’a pas
   // de projet en propre. Les projets simplement partagés avec lui ne comptent pas.
@@ -1345,6 +1363,11 @@ export const HomeScreen = ({
     const projectTypeDisplay = projectType.length > 0
       ? projectType
       : t('home.projectTypeNotProvided');
+    const isPubliclyVisible = project?.answers?.[PUBLIC_VISIBILITY_KEY] === true;
+    const canToggleVisibility = !isDraft
+      && typeof onToggleProjectVisibility === 'function'
+      && typeof canSetProjectVisibility === 'function'
+      && canSetProjectVisibility(project);
 
     return (
       <article
@@ -1381,6 +1404,23 @@ export const HomeScreen = ({
               >
                 {projectStatus.label}
               </span>
+              {isPubliclyVisible && (
+                <span className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700">
+                  <Eye className="w-3 h-3" aria-hidden="true" />
+                  {t('home.visibleToAllBadge')}
+                </span>
+              )}
+              {canToggleVisibility && (
+                <button
+                  type="button"
+                  onClick={() => onToggleProjectVisibility(project.id)}
+                  className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+                  aria-label={t(isPubliclyVisible ? 'home.hideFromAllAriaLabel' : 'home.makeVisibleToAllAriaLabel', { name: project.projectName || t('home.projectNameFallback') })}
+                  title={t(isPubliclyVisible ? 'home.hideFromAllTitle' : 'home.makeVisibleToAllTitle')}
+                >
+                  {t(isPubliclyVisible ? 'home.hideFromAll' : 'home.makeVisibleToAll')}
+                </button>
+              )}
             </div>
             {typeof onDuplicateProject === 'function' && (
               <button
@@ -1760,6 +1800,20 @@ export const HomeScreen = ({
                 })}
               </div>
             )}
+          </section>
+        )}
+
+        {homeView !== 'inspiration' && otherPublicProjects.length > 0 && (
+          <section aria-labelledby="public-projects-heading" className="space-y-6">
+            <div>
+              <h2 id="public-projects-heading" className="text-2xl font-bold text-gray-900">
+                {t('home.publicProjectsHeading')}
+              </h2>
+              <p className="text-sm text-gray-600">{t('home.publicProjectsSubtitle')}</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6" role="list" aria-label={t('home.publicProjectsListAriaLabel')}>
+              {otherPublicProjects.map(project => renderProjectCard(project))}
+            </div>
           </section>
         )}
 
