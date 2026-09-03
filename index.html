@@ -7,7 +7,7 @@
     <link rel="preload" href="./src/styles/fonts.css" as="style" />
     <link rel="preload" href="./src/styles/tailwind-internal.css" as="style" />
     <link rel="stylesheet" href="./src/styles/fonts.css" />
-    <link rel="stylesheet" href="./src/styles/tailwind-internal.css" />
+    <link id="cn-app-stylesheet" rel="stylesheet" href="./src/styles/tailwind-internal.css" />
     <style>
       .hv-modal-panel {
         max-height: calc(100vh - 2rem);
@@ -263,6 +263,18 @@
     <script defer src="./src/module-manifest.deferred.js"></script>
     <script>
       (function bootstrapApplication() {
+        // Sous http(s) — donc sur SharePoint — le code applicatif est rechargé depuis des
+        // fichiers .txt (des données, pas des scripts) avant le démarrage. C'est ce qui permet
+        // de publier une mise à jour sur un site dont l'autorisation « custom script » a
+        // expiré : les .js ci-dessus ne sont plus remplaçables, les .txt le restent.
+        // Les manifests .js restent chargés et servent de repli : payload absent, tronqué ou
+        // incohérent => l'app démarre sur la version embarquée plutôt que sur un écran d'erreur.
+        // Sous file:// rien ne change : on démarre directement sur les manifests embarqués.
+        var PAYLOAD_TIMEOUT_MS = 15000;
+        var VERSION_PAYLOAD_URL = './src/module-manifest.version.txt';
+        var CORE_PAYLOAD_URL = './src/module-manifest.core.txt';
+        var DEFERRED_PAYLOAD_URL = './src/module-manifest.deferred.txt';
+
         const renderBootstrapError = (error) => {
           const root = document.getElementById('root');
           if (!root) {
@@ -289,19 +301,125 @@
           `;
         };
 
-        try {
-          if (!window.ModuleLoader || typeof window.ModuleLoader.import !== 'function') {
-            throw new Error('ModuleLoader indisponible.');
+        var startApplication = function () {
+          try {
+            if (!window.ModuleLoader || typeof window.ModuleLoader.import !== 'function') {
+              throw new Error('ModuleLoader indisponible.');
+            }
+            if (!window.__COMPLIANCE_NAVIGATOR_MANIFEST__) {
+              throw new Error('Manifest applicatif absent. Lancez « npm run generate:manifest ».');
+            }
+
+            window.ModuleLoader.import('./src/main.jsx');
+          } catch (error) {
+            console.error("Erreur lors du chargement de l'application :", error);
+            renderBootstrapError(error);
           }
-          if (!window.__COMPLIANCE_NAVIGATOR_MANIFEST__) {
-            throw new Error('Manifest applicatif absent. Lancez « npm run generate:manifest ».');
+        };
+
+        // La feuille embarquée est désactivée plutôt que supprimée, et le <style> prend sa
+        // place exacte dans le document : la cascade reste identique (le <style> inline du
+        // <head>, qui suit, continue de l'emporter sur les règles Tailwind).
+        var applyPayloadStyles = function (css) {
+          if (typeof css !== 'string' || !css) {
+            return;
+          }
+          var link = document.getElementById('cn-app-stylesheet');
+          var style = document.createElement('style');
+          style.id = 'cn-app-stylesheet-payload';
+          style.textContent = css;
+          if (link && link.parentNode) {
+            link.parentNode.insertBefore(style, link.nextSibling);
+            link.disabled = true;
+          } else {
+            document.head.appendChild(style);
+          }
+        };
+
+        // Rien n'est écrit tant que les trois fichiers n'ont pas été validés : un déploiement
+        // à moitié copié doit laisser la version embarquée intacte, jamais produire un mélange.
+        var applyPayload = function (version, core, deferred) {
+          if (!core || core.kind !== 'core' || core.version !== version || !core.modules) {
+            throw new Error('Payload cœur incohérent avec la version publiée.');
+          }
+          if (!deferred || deferred.kind !== 'deferred' || deferred.version !== version || !deferred.modules) {
+            throw new Error('Payload différé incohérent avec la version publiée.');
           }
 
-          window.ModuleLoader.import('./src/main.jsx');
-        } catch (error) {
-          console.error('Erreur lors du chargement de l\'application :', error);
-          renderBootstrapError(error);
+          window.__COMPLIANCE_NAVIGATOR_MANIFEST__ = core.modules;
+          Object.assign(window.__COMPLIANCE_NAVIGATOR_MANIFEST__, deferred.modules);
+          window.__CN_MANIFEST_FROM_PAYLOAD__ = true;
+          window.__CN_MANIFEST_VERSION__ = version;
+
+          applyPayloadStyles(core.styles);
+
+          window.__CN_DEFERRED_READY__ = true;
+          try {
+            window.dispatchEvent(new Event('cn:manifest-deferred-ready'));
+          } catch (error) {
+            /* no-op */
+          }
+        };
+
+        var supportsPayload =
+          (window.location.protocol === 'http:' || window.location.protocol === 'https:') &&
+          typeof window.fetch === 'function' &&
+          typeof window.Promise === 'function';
+
+        if (!supportsPayload) {
+          startApplication();
+          return;
         }
+
+        var controller = typeof AbortController === 'function' ? new AbortController() : null;
+        var signal = controller ? controller.signal : undefined;
+        var timeoutId = window.setTimeout(function () {
+          if (controller) {
+            controller.abort();
+          }
+        }, PAYLOAD_TIMEOUT_MS);
+
+        var fetchPayload = function (url, cacheMode) {
+          return fetch(url, { cache: cacheMode, credentials: 'same-origin', signal: signal })
+            .then(function (response) {
+              if (!response.ok) {
+                throw new Error(url + ' → HTTP ' + response.status);
+              }
+              return response.text();
+            })
+            .then(function (text) {
+              return JSON.parse(text);
+            });
+        };
+
+        // Le fichier de version est le marqueur de publication : petit, jamais mis en cache.
+        // Les deux gros payloads sont eux versionnés par l'URL, donc cachables sans risque.
+        fetchPayload(VERSION_PAYLOAD_URL, 'no-store')
+          .then(function (versionFile) {
+            var version = versionFile && versionFile.version;
+            if (!version) {
+              throw new Error('Version de payload absente.');
+            }
+            var query = '?v=' + encodeURIComponent(version);
+            return Promise.all([
+              version,
+              fetchPayload(CORE_PAYLOAD_URL + query, 'default'),
+              fetchPayload(DEFERRED_PAYLOAD_URL + query, 'default')
+            ]);
+          })
+          .then(function (results) {
+            applyPayload(results[0], results[1], results[2]);
+          })
+          .catch(function (error) {
+            console.warn(
+              'Payload de mise à jour inutilisable, repli sur les manifests embarqués :',
+              error
+            );
+          })
+          .then(function () {
+            window.clearTimeout(timeoutId);
+            startApplication();
+          });
       })();
     </script>
   </body>

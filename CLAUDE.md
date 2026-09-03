@@ -32,6 +32,24 @@ The app must open by double-clicking `index.html` under `file://` (deployed via 
 
 ### Core vs. deferred manifest
 
+### The `.txt` payload twins (SharePoint updates without custom script)
+
+`npm run generate:manifest` emits **five** files, not two: the two `.js` manifests plus
+`src/module-manifest.core.txt`, `module-manifest.deferred.txt` and `module-manifest.version.txt`.
+The `.txt` files carry the same transpiled code as JSON (core also embeds `tailwind-internal.css`),
+because a SharePoint site whose "custom script" allowance has lapsed no longer lets you overwrite a
+`.js` — but still lets you overwrite a `.txt`. Under `http(s)` the `index.html` bootstrap downloads
+the three payloads, validates that all three announce the same version, and only then replaces
+`window.__COMPLIANCE_NAVIGATOR_MANIFEST__` before booting; anything missing, stale or inconsistent
+falls back silently to the bundled `.js`. Under `file://` the payload path is skipped entirely.
+
+Consequences when touching this area: `module-manifest.deferred.js` is now wrapped in an
+`if (!window.__CN_MANIFEST_FROM_PAYLOAD__)` guard (without it, the frozen `.js` re-injects stale
+deferred modules over fresher payload ones and breaks BackOffice/Showcase/Synthesis at first click,
+long after boot); `test/manifestPayload.test.mjs` fails if the `.js` and `.txt` outputs diverge; and
+`e2e/manifest-payload.spec.js` covers the boot paths. Deployment procedure:
+[`docs/migration-v2/DEPLOIEMENT-MISE-A-JOUR-SANS-CUSTOM-SCRIPT.md`](docs/migration-v2/DEPLOIEMENT-MISE-A-JOUR-SANS-CUSTOM-SCRIPT.md).
+
 `module-manifest.js` holds most modules ("core"). `module-manifest.deferred.js` holds the 3 heaviest components — `BackOffice.jsx`, `ProjectShowcase.jsx`, `SynthesisReport.jsx` (~40% of the code) — loaded after first paint. The deferred set is the `DEFERRED_MODULES` list in `scripts/generate-module-manifest.js`. `src/lazyComponents.jsx` defines the `React.lazy` wrappers; the deferred ones await the `cn:manifest-deferred-ready` event (flag `window.__CN_DEFERRED_READY__`) before resolving, so mounting them can't race the deferred script. If you add another deferred component, update both `DEFERRED_MODULES` and `lazyComponents.jsx`.
 
 ## Commands
@@ -92,7 +110,7 @@ Any change touching these must keep `npm test` green; the tests pin scoring beha
 
 ## Generated files — never hand-edit
 
-- `src/module-manifest.js`, `src/module-manifest.deferred.js` ← `scripts/generate-module-manifest.js`
+- `src/module-manifest.js`, `src/module-manifest.deferred.js`, `src/module-manifest.core.txt`, `src/module-manifest.deferred.txt`, `src/module-manifest.version.txt` ← `scripts/generate-module-manifest.js` (the five are regenerated together; never publish one format without the other)
 - `src/data/mockSharePointProjects.js`, `mockSharePointInspirations.js` ← `scripts/sync-mock-sharepoint-data.js` (source of truth: `mock-sharepoint-lists/*.json`)
 - `src/styles/tailwind-internal.css` ← `scripts/generate-tailwind-lite.js`. It scans literal `class="..."` attributes *and* the static fragments of template literals / class-name constants, so dynamically-built class names are picked up too. Two warnings are printed at the end of the build and must stay empty: **"Classes Tailwind sans regle"** (a hard-coded class that produces no CSS — add the rule in `baseRule()`) and **"Classes non reconnues"** (a class matching no known prefix and defined in no stylesheet — add its prefix to `knownPrefix` if it is Tailwind, or to `customClassPrefixes` if it is a project class). Run with `--strict` to make either one fail the build.
 
