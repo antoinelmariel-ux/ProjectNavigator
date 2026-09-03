@@ -18,6 +18,19 @@ colonnes utilisées par le code — c'est la source de vérité. Le document jum
 > `AttachmentsJson` sur `CN_ShowcaseStickyNotes`. Sans ces colonnes, les pièces jointes des
 > commentaires compliance, leur statut, et les réponses aux post-its de la vitrine ne seraient pas
 > sauvegardées en mode SharePoint. Lance le script ci-dessous sur DEV pour vérifier et corriger.
+>
+> ⚠️ **Constat du 03/09/2026** : sur `ProjectNavigator_DEV`, les 3 bibliothèques ont bien été
+> créées avec un `Title` contenant un tiret (`CN-App`, visible dans l'interface), mais SharePoint a
+> généré une URL interne **sans tiret** (`.../ProjectNavigator_DEV/CNApp/index.aspx`). Le code
+> qui adresse ces bibliothèques par `getbytitle(...)` (listes, diagnostic) n'est pas affecté, mais
+> `documentStore.js` (pièces jointes → `CN-Documents`) et `referentialStore.js` (fichiers JSON →
+> `CN-Config`) construisaient jusque-là ce chemin en concaténant le nom **configuré** — ils
+> auraient donc 404 dès le premier dépôt de fichier alors même que le diagnostic ci-dessous
+> affichait tout en vert (il ne teste que le `Title`, pas l'URL réelle). Corrigé le 03/09/2026 :
+> `src/utils/spLibraryUrl.js` résout désormais le `ServerRelativeUrl` réel via l'API
+> (`GET .../lists/getbytitle('CN-Config')/rootFolder?$select=ServerRelativeUrl`, mis en cache) au
+> lieu de le reconstruire depuis `sharepointConfig.libraries`. Aucune action requise côté
+> SharePoint : le nom de dossier réel, avec ou sans tiret, n'a plus d'importance.
 
 ## Comment utiliser le script
 
