@@ -1,8 +1,6 @@
-import {
-  getLibraryServerRelativeUrl,
-  sharepointConfig
-} from '../config/sharepointConfig.js';
+import { sharepointConfig } from '../config/sharepointConfig.js';
 import { SharePointError } from './errors.js';
+import { resolveLibraryServerRelativeUrl } from './spLibraryUrl.js';
 import { odataQuote, spGet, spGetAll, spGetWithEtag, spPost, spPut } from './spRestClient.js';
 
 const SETTINGS_KEYS = [
@@ -33,22 +31,22 @@ export const resetReferentialStore = () => {
   etags.clear();
 };
 
-const configFolderPath = () => getLibraryServerRelativeUrl('config');
+const configFolderPath = () => resolveLibraryServerRelativeUrl('config');
 
-const folderApi = () =>
-  `/_api/web/GetFolderByServerRelativeUrl('${odataQuote(configFolderPath())}')`;
+const folderApi = async () =>
+  `/_api/web/GetFolderByServerRelativeUrl('${odataQuote(await configFolderPath())}')`;
 
-const fileApi = (fileName) =>
-  `/_api/web/GetFileByServerRelativeUrl('${odataQuote(`${configFolderPath()}/${fileName}`)}')`;
+const fileApi = async (fileName) =>
+  `/_api/web/GetFileByServerRelativeUrl('${odataQuote(`${await configFolderPath()}/${fileName}`)}')`;
 
 const readEtag = async (fileName) => {
-  const meta = await spGet(fileApi(fileName), { metadata: 'minimal' });
+  const meta = await spGet(await fileApi(fileName), { metadata: 'minimal' });
   return (meta && meta['odata.etag']) || null;
 };
 
 export const readReferentialFile = async (fileName) => {
   try {
-    const result = await spGetWithEtag(`${fileApi(fileName)}/$value`, { raw: true });
+    const result = await spGetWithEtag(`${await fileApi(fileName)}/$value`, { raw: true });
     const etag = result.etag || (await readEtag(fileName));
     let data;
     try {
@@ -69,12 +67,13 @@ export const writeReferentialFile = async (fileName, data, etag) => {
   const body = JSON.stringify(data, null, 2);
 
   if (etag) {
-    await spPut(`${fileApi(fileName)}/$value`, body, { etag, contentType: JSON_CONTENT_TYPE });
+    await spPut(`${await fileApi(fileName)}/$value`, body, { etag, contentType: JSON_CONTENT_TYPE });
   } else {
-    await spPost(`${folderApi()}/Files/add(url='${odataQuote(fileName)}',overwrite=true)`, undefined, {
-      rawBody: body,
-      contentType: JSON_CONTENT_TYPE
-    });
+    await spPost(
+      `${await folderApi()}/Files/add(url='${odataQuote(fileName)}',overwrite=true)`,
+      undefined,
+      { rawBody: body, contentType: JSON_CONTENT_TYPE }
+    );
   }
 
   return readEtag(fileName);
@@ -212,7 +211,7 @@ export const publishAllReferentials = async (state) => {
 
 const listConfigFileNames = async () => {
   try {
-    const payload = await spGet(`${folderApi()}/Files?$select=Name`);
+    const payload = await spGet(`${await folderApi()}/Files?$select=Name`);
     return new Set(((payload && payload.value) || []).map((entry) => entry.Name));
   } catch {
     return null;

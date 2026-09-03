@@ -1,5 +1,6 @@
-import { getLibraryServerRelativeUrl, isSharePointMode } from '../config/sharepointConfig.js';
+import { isSharePointMode } from '../config/sharepointConfig.js';
 import { getRepository } from './listRepository.js';
+import { resolveLibraryServerRelativeUrl } from './spLibraryUrl.js';
 import { getCurrentUser } from './spContext.js';
 import { odataQuote, spGet, spPost } from './spRestClient.js';
 
@@ -83,7 +84,7 @@ export const buildDocumentRelativePath = ({ entityType, entityId, fileName, uniq
   return `${safeType}/${safeId}/${prefix}${safeName}`;
 };
 
-const documentsRoot = () => getLibraryServerRelativeUrl('documents');
+const documentsRoot = () => resolveLibraryServerRelativeUrl('documents');
 
 export const buildDownloadUrl = (serverRelativePath) =>
   `/_api/web/GetFileByServerRelativeUrl('${odataQuote(serverRelativePath)}')/$value`;
@@ -133,7 +134,7 @@ const readFileAsDataUrl = (file) =>
   });
 
 export const uploadDocument = async (file, { entityType, entityId } = {}) => {
-  const root = documentsRoot();
+  const root = await documentsRoot();
   const relativePath = buildDocumentRelativePath({
     entityType,
     entityId,

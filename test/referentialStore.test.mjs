@@ -11,6 +11,7 @@ import {
   resetReferentialStore
 } from '../src/utils/referentialStore.js';
 import { resetSpRestClient } from '../src/utils/spRestClient.js';
+import { resetLibraryUrlCache } from '../src/utils/spLibraryUrl.js';
 import { sharepointConfig } from '../src/config/sharepointConfig.js';
 
 const makeResponse = (status, body, headers = {}) => {
@@ -46,17 +47,22 @@ const withFetch = async (handler, fn) => {
       if (url.endsWith('/_api/contextinfo')) {
         return makeResponse(200, { FormDigestValue: 'D', FormDigestTimeoutSeconds: 1800 });
       }
+      if (url.includes('/rootFolder')) {
+        return makeResponse(200, { ServerRelativeUrl: '/sites/ProjectNavigator_DEV/CN-Config' });
+      }
       return handler(url, init, calls);
     }
   };
   resetSpRestClient();
   resetReferentialStore();
+  resetLibraryUrlCache();
   try {
     return await fn(calls);
   } finally {
     globalThis.window = previous;
     resetSpRestClient();
     resetReferentialStore();
+    resetLibraryUrlCache();
   }
 };
 

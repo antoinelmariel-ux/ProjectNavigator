@@ -12,6 +12,7 @@ import {
   validateFile
 } from '../src/utils/documentStore.js';
 import { resetSpRestClient } from '../src/utils/spRestClient.js';
+import { resetLibraryUrlCache } from '../src/utils/spLibraryUrl.js';
 
 const makeResponse = (status, body, headers = {}) => {
   const normalized = { 'content-type': 'application/json;odata=nometadata' };
@@ -69,6 +70,9 @@ const withEnvironment = async ({ sharePoint }, fn) => {
       if (url.endsWith('/_api/contextinfo')) {
         return makeResponse(200, { FormDigestValue: 'D', FormDigestTimeoutSeconds: 1800 });
       }
+      if (url.includes('/rootFolder')) {
+        return makeResponse(200, { ServerRelativeUrl: '/sites/ProjectNavigator_DEV/CN-Documents' });
+      }
       if (init.method === 'GET' && url.includes('GetFolderByServerRelativeUrl')) {
         return makeResponse(404, { error: { message: 'Folder Not Found.' } });
       }
@@ -77,12 +81,14 @@ const withEnvironment = async ({ sharePoint }, fn) => {
   };
 
   resetSpRestClient();
+  resetLibraryUrlCache();
   try {
     return await fn(calls);
   } finally {
     globalThis.window = previousWindow;
     globalThis.FileReader = previousReader;
     resetSpRestClient();
+    resetLibraryUrlCache();
   }
 };
 
@@ -229,6 +235,9 @@ test('uploadDocument : un échec d’indexation ne perd pas le fichier déposé'
         if (url.endsWith('/_api/contextinfo')) {
           return makeResponse(200, { FormDigestValue: 'D', FormDigestTimeoutSeconds: 1800 });
         }
+        if (url.includes('/rootFolder')) {
+          return makeResponse(200, { ServerRelativeUrl: '/sites/ProjectNavigator_DEV/CN-Documents' });
+        }
         if (url.includes("getbytitle('CN_FilesIndex')")) {
           return makeResponse(500, { error: { message: 'Index indisponible' } });
         }
@@ -239,6 +248,7 @@ test('uploadDocument : un échec d’indexation ne perd pas le fichier déposé'
       }
     };
     resetSpRestClient();
+    resetLibraryUrlCache();
     try {
       const attachment = await uploadDocument(fakeFile('note.pdf', 100), {
         entityType: 'showcase',
@@ -250,6 +260,7 @@ test('uploadDocument : un échec d’indexation ne perd pas le fichier déposé'
       globalThis.window = previousWindow;
       globalThis.FileReader = previousReader;
       resetSpRestClient();
+      resetLibraryUrlCache();
     }
   } finally {
     console.warn = previousWarn;
