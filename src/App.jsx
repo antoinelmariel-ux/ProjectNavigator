@@ -256,6 +256,7 @@ const verifyBackOfficePassword = async (value) => {
 };
 
 const COMPLIANCE_COMMENTS_KEY = '__compliance_team_comments__';
+const PUBLIC_VISIBILITY_KEY = '__public_visibility__';
 const SHOWCASE_COMMENT_EDIT_DEBOUNCE_MS = 1200;
 
 const normalizeRecipientList = (emails = []) => {
@@ -2814,6 +2815,29 @@ const updateProjectFilters = useCallback((updater) => {
 
     return ownerEmail === currentUserEmail || isCoOwner;
   }, [currentUserEmail, isAdminMode]);
+  const canSetProjectVisibility = useCallback((project) => {
+    if (!project) {
+      return false;
+    }
+
+    if (isAdminMode) {
+      return true;
+    }
+
+    if (!currentUserEmail) {
+      return false;
+    }
+
+    const ownerEmail = normalizeEmail(project.ownerEmail || '');
+    if (ownerEmail === currentUserEmail) {
+      return true;
+    }
+
+    return normalizeValidationCommitteeConfig(validationCommitteeConfig).committees.some((committee) => {
+      const committeeEmails = Array.isArray(committee?.emails) ? committee.emails : [];
+      return committeeEmails.some((email) => normalizeEmail(email) === currentUserEmail);
+    });
+  }, [currentUserEmail, isAdminMode, validationCommitteeConfig]);
   const canCloseAnnotationNotes = useMemo(
     () => canManageProject(activeShowcaseProject),
     [activeShowcaseProject, canManageProject]
@@ -4031,6 +4055,37 @@ const updateProjectFilters = useCallback((updater) => {
     setProjects(prevProjects => prevProjects.filter(project => project.id !== projectId));
     setActiveProjectId(prev => (prev === projectId ? null : prev));
   }, []);
+
+  const handleToggleProjectVisibility = useCallback((projectId) => {
+    if (!projectId) {
+      return;
+    }
+
+    const targetProject = projects.find((project) => project?.id === projectId);
+    if (!targetProject || targetProject.status !== 'submitted' || !canSetProjectVisibility(targetProject)) {
+      return;
+    }
+
+    const isCurrentlyPublic = targetProject.answers?.[PUBLIC_VISIBILITY_KEY] === true;
+    const updatedProject = {
+      ...targetProject,
+      answers: {
+        ...(targetProject.answers || {}),
+        [PUBLIC_VISIBILITY_KEY]: !isCurrentlyPublic
+      },
+      lastUpdated: new Date().toISOString()
+    };
+
+    setProjects(prevProjects => prevProjects.map(project => (
+      project.id === projectId ? updatedProject : project
+    )));
+
+    const expectedRowVersion = typeof updatedProject.rowVersion === 'number' ? updatedProject.rowVersion : undefined;
+    autosaveQueueRef.current?.enqueue({
+      project: updatedProject,
+      expectedRowVersion
+    });
+  }, [canSetProjectVisibility, projects]);
 
   const handleDuplicateProject = useCallback((projectId) => {
     if (!projectId) {
@@ -5492,6 +5547,8 @@ const updateProjectFilters = useCallback((updater) => {
             canShowProjectShowcase={canShowProjectShowcase}
             onDuplicateProject={handleDuplicateProject}
             onReintegrateProjectInCommittee={handleReintegrateProjectInCommittee}
+            onToggleProjectVisibility={handleToggleProjectVisibility}
+            canSetProjectVisibility={canSetProjectVisibility}
             isAdminMode={isAdminMode}
             tourContext={tourContext}
             isProjectsLoading={sharePointSync.state === 'loading'}

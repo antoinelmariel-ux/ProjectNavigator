@@ -65,6 +65,7 @@ const normalizeInspirationFieldValues = (value) => {
 const DEFAULT_SELECT_FILTER_VALUE = 'all';
 const DEFAULT_TEXT_FILTER_VALUE = '';
 const COMPLIANCE_COMMENTS_KEY = '__compliance_team_comments__';
+const PUBLIC_VISIBILITY_KEY = '__public_visibility__';
 const PROJECTS_PAGE_SIZE = 6;
 const INSPIRATIONS_PAGE_SIZE = 6;
 
@@ -289,6 +290,8 @@ export const HomeScreen = ({
   canShowProjectShowcase,
   onDuplicateProject,
   onReintegrateProjectInCommittee,
+  onToggleProjectVisibility,
+  canSetProjectVisibility,
   isAdminMode = false,
   tourContext = null,
   currentUser = null,
@@ -344,6 +347,10 @@ export const HomeScreen = ({
     }
 
     return projects.filter((project) => {
+      if (project?.answers?.[PUBLIC_VISIBILITY_KEY] === true) {
+        return true;
+      }
+
       const ownerEmail = normalizeEmail(project?.ownerEmail);
       const sharedWith = Array.isArray(project?.sharedWith) ? project.sharedWith : [];
       const isShared = sharedWith.some((entry) => normalizeEmail(entry) === currentUserEmail);
@@ -1345,6 +1352,11 @@ export const HomeScreen = ({
     const projectTypeDisplay = projectType.length > 0
       ? projectType
       : t('home.projectTypeNotProvided');
+    const isPubliclyVisible = project?.answers?.[PUBLIC_VISIBILITY_KEY] === true;
+    const canToggleVisibility = !isDraft
+      && typeof onToggleProjectVisibility === 'function'
+      && typeof canSetProjectVisibility === 'function'
+      && canSetProjectVisibility(project);
 
     return (
       <article
@@ -1381,6 +1393,23 @@ export const HomeScreen = ({
               >
                 {projectStatus.label}
               </span>
+              {isPubliclyVisible && (
+                <span className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700">
+                  <Eye className="w-3 h-3" aria-hidden="true" />
+                  {t('home.visibleToAllBadge')}
+                </span>
+              )}
+              {canToggleVisibility && (
+                <button
+                  type="button"
+                  onClick={() => onToggleProjectVisibility(project.id)}
+                  className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+                  aria-label={t(isPubliclyVisible ? 'home.hideFromAllAriaLabel' : 'home.makeVisibleToAllAriaLabel', { name: project.projectName || t('home.projectNameFallback') })}
+                  title={t(isPubliclyVisible ? 'home.hideFromAllTitle' : 'home.makeVisibleToAllTitle')}
+                >
+                  {t(isPubliclyVisible ? 'home.hideFromAll' : 'home.makeVisibleToAll')}
+                </button>
+              )}
             </div>
             {typeof onDuplicateProject === 'function' && (
               <button
