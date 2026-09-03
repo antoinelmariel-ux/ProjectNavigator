@@ -557,7 +557,15 @@ export const SynthesisReport = ({
       element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }, [tourContext]);
-  const relevantTeams = teams.filter(team => (analysis?.teams || []).includes(team.id));
+  // Mémoïsé : une nouvelle référence de tableau à chaque rendu casserait l'effet plus bas qui
+  // dépend de relevantTeams pour reconstruire complianceCommentDrafts — sans ça, n'importe quel
+  // rendu non lié (ex : déplier une équipe) écrase le statut/commentaire en cours de saisie en
+  // le retombant sur la dernière valeur persistée avant que l'utilisateur ait pu l'enregistrer.
+  const analysisTeamIds = analysis?.teams;
+  const relevantTeams = useMemo(
+    () => teams.filter(team => (analysisTeamIds || []).includes(team.id)),
+    [teams, analysisTeamIds]
+  );
   const sharedTeamBlocks = useMemo(() => {
     const blocks = Array.isArray(analysis?.sharedTeamBlocks) ? analysis.sharedTeamBlocks : [];
     return blocks.map((block) => {

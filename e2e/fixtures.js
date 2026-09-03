@@ -134,6 +134,79 @@ export async function createProjectAndOpenShowcase(page) {
   await expect(page.getByRole('button', { name: 'Partager' })).toBeVisible();
 }
 
+// Crée un projet, répond génériquement à tout le questionnaire puis le soumet. Utilisé par
+// les specs commentaires experts / validation / repêchage comité.
+export async function createAndSubmitProject(page) {
+  await page.getByRole('button', { name: /Créer un projet/ }).first().click();
+  await walkToSynthesis(page, {
+    async onQuestion(heading, p) {
+      if (heading.includes('jalons')) {
+        await p.getByRole('button', { name: /Ajouter un jalon/ }).click();
+        await p.locator('input[type="date"]').first().fill('2026-04-01');
+        return true;
+      }
+      if (heading.includes('document')) {
+        await p.locator('input[type="file"]').first().setInputFiles({
+          name: 'doc.txt',
+          mimeType: 'text/plain',
+          buffer: Buffer.from('x')
+        });
+        return true;
+      }
+      return false;
+    }
+  });
+  if ((await page.getByText('Questions obligatoires à compléter').count()) > 0) {
+    await page.getByRole('button', { name: /Accéder à la synthèse/ }).click();
+  }
+  await page.getByRole('button', { name: 'Soumettre le projet' }).click();
+  await page.waitForTimeout(400);
+}
+
+// Rend l'utilisateur courant (mock local, bertrand.darieux@lfb.fr) expert compliance de la
+// première équipe ET membre du comité de validation par défaut, tout en gardant l'accès admin
+// complet au back-office (sinon s'ajouter soi-même comme contact d'équipe/comité bascule
+// silencieusement la session en vue "responsable compliance" restreinte — voir allowedTabIds
+// dans BackOffice.jsx — qui masque entre autres l'onglet Administrateurs). L'ordre des étapes
+// (Administrateurs d'abord) est donc important, pas accessoire.
+export async function grantSelfComplianceExpertAndCommitteeAccess(page, adminPassword) {
+  await page.getByRole('button', { name: /Activer le mode administrateur/ }).click();
+  await page.getByRole('heading', { name: 'Accès back-office' }).waitFor();
+  await page.getByLabel('Mot de passe').fill(adminPassword);
+  await page.getByRole('button', { name: 'Déverrouiller' }).click();
+  await page.getByRole('button', { name: /Accéder au Back-office/ }).click();
+  await expect(page.getByRole('heading', { name: 'Back-office' })).toBeVisible();
+
+  await page.getByRole('tab', { name: /Administrateurs/ }).click();
+  const adminEmailsField = page.getByLabel('Adresses e-mail des administrateurs');
+  const existingAdmins = await adminEmailsField.inputValue();
+  await adminEmailsField.fill(existingAdmins + '\nbertrand.darieux@lfb.fr');
+
+  await page.getByRole('tab', { name: /Équipes/ }).click();
+  const contactsTextarea = page.locator('textarea[id$="-contact"]').first();
+  const existingContacts = await contactsTextarea.inputValue();
+  await contactsTextarea.fill(existingContacts + ', bertrand.darieux@lfb.fr');
+  await contactsTextarea.blur();
+
+  await page.getByRole('tab', { name: /Comités de validation/ }).click();
+  const committeeEmailsField = page.getByPlaceholder('ex: comite@company.com, bureau@company.com').first();
+  const existingEmails = await committeeEmailsField.inputValue();
+  await committeeEmailsField.fill(existingEmails + ', bertrand.darieux@lfb.fr');
+  await committeeEmailsField.blur();
+
+  await page.getByRole('button', { name: 'Mode Chef de Projet' }).click();
+  await expect(page.getByRole('button', { name: /Créer un projet/ }).first()).toBeVisible();
+}
+
+// Ouvre le premier projet listé dans la section "Projets déclenchés pour vous" et déplie la
+// carte de l'équipe donnée (les cartes sont repliées par défaut, y compris juste après un
+// enregistrement).
+export async function openTriggeredProjectAndExpandTeam(page, teamName) {
+  await page.getByRole('button', { name: 'Ouvrir' }).first().click();
+  await expect(page.getByRole('heading', { name: 'Synthèse' })).toBeVisible();
+  await page.getByRole('button', { name: new RegExp(teamName) }).first().click();
+}
+
 export function collectConsoleErrors(page) {
   const errors = [];
   page.on('pageerror', (error) => errors.push(String(error)));
