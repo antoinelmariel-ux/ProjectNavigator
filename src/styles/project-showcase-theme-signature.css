@@ -1087,9 +1087,11 @@
 }
 
 /* ---------- feuille de route ----------
-   sélecteur descendant obligatoire : le reset « .sg-shell ol { padding: 0 } »
-   est plus spécifique que « .sg-road » et écraserait le retrait de l'axe. */
-.sg-shell .sg-road {
+   sélecteur à 3 classes obligatoire : le reset « .sg-shell ol:not(.prose *) »
+   a pour spécificité (0,2,1) à cause du :not() — plus élevée que le (0,2,0)
+   de « .sg-shell .sg-road » seul, qui perdait donc le padding-left et
+   désalignait les pastilles du trait vertical. */
+.sg-shell .sg-wrap .sg-road {
   --sg-rail-x: clamp(1.8rem, 4vw, 2.6rem);
   --sg-rail-w: 2px;
   --sg-dot: 0.8rem;
