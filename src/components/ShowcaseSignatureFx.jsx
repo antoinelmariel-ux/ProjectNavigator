@@ -306,7 +306,11 @@ export function ShowcaseSignatureFx({ rootRef }) {
     };
 
     if (counterEls.length) {
-      if (typeof IntersectionObserver === 'undefined') {
+      // Avec prefers-reduced-motion, les autres révélations (sg-rv, roadItems, storySteps)
+      // s'affichent immédiatement sans attendre le défilement : les compteurs doivent suivre
+      // la même règle plutôt que de rester masqués derrière l'IntersectionObserver tant que
+      // la personne n'a pas fait défiler jusqu'à eux.
+      if (reduce || typeof IntersectionObserver === 'undefined') {
         counterEls.forEach(runCount);
       } else {
         const countIO = new IntersectionObserver(
