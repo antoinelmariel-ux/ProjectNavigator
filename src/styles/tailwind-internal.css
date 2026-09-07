@@ -616,10 +616,6 @@ a {
   height: 100%;
 }
 
-.hidden {
-  display: none;
-}
-
 .inline-flex {
   display: inline-flex;
 }
@@ -1795,12 +1791,6 @@ a {
 }
 
 @media (min-width: 640px) {
-  .sm\:inline {
-    display: inline;
-  }
-}
-
-@media (min-width: 640px) {
   .sm\:items-center {
     align-items: center;
   }
@@ -1852,12 +1842,6 @@ a {
 @media (min-width: 640px) {
   .sm\:order-last {
     order: 9999;
-  }
-}
-
-@media (min-width: 640px) {
-  .sm\:order-none {
-    order: 0;
   }
 }
 

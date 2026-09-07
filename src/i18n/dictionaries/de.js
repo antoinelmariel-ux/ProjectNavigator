@@ -31,6 +31,7 @@ export default {
       guideLabel: 'Interaktiver Leitfaden',
       backToHomeAriaLabel: 'Zur Projektübersicht zurückkehren',
       backToHomeLabel: 'Projektübersicht',
+      logoHomeAriaLabel: 'Project Navigator, zur Startseite zurückkehren',
       feedbackAriaLabel: 'Geben Sie Feedback zu Project Navigator (neues Fenster)',
       feedbackLabel: 'Feedback geben',
       switchToProjectModeAriaLabel: 'Zum Projektleiter-Modus wechseln',

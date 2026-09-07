@@ -5097,16 +5097,33 @@ const updateProjectFilters = useCallback((updater) => {
       <nav className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-4">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-center space-x-3 self-center">
-              <img
-                src={HEADER_LOGO_PATH}
-                alt=""
-                className="h-12 w-auto shrink-0 object-contain"
-                aria-hidden="true"
-              />
-              <div>
+            <div className="flex items-center gap-3 self-center">
+              {mode === 'user' && screen === 'home' && (
+                <button
+                  type="button"
+                  onClick={() => setIsProfileModalOpen(true)}
+                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border bg-white border-gray-200 text-gray-700 shadow-sm transition hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  aria-label={t('profile.openButtonAriaLabel')}
+                  title={t('profile.openButtonAriaLabel')}
+                >
+                  <UserCircle className="h-5 w-5" />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setScreen('home')}
+                className="flex items-center space-x-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                aria-label={t('app.nav.logoHomeAriaLabel')}
+                title={t('app.nav.logoHomeAriaLabel')}
+              >
+                <img
+                  src={HEADER_LOGO_PATH}
+                  alt=""
+                  className="h-12 w-auto shrink-0 object-contain"
+                  aria-hidden="true"
+                />
                 <h1 className="text-lg font-bold text-gray-800 sm:text-xl">Project Navigator</h1>
-                    </div>
+              </button>
             </div>
 
             <div
@@ -5114,18 +5131,6 @@ const updateProjectFilters = useCallback((updater) => {
               role="group"
               aria-label={t('app.nav.groupAriaLabel')}
             >
-              {mode === 'user' && (
-                <button
-                  type="button"
-                  onClick={() => setIsProfileModalOpen(true)}
-                  className="order-first self-start sm:order-none sm:self-center inline-flex h-10 px-4 items-center justify-center gap-2 rounded-full border bg-white border-gray-200 text-gray-700 shadow-sm transition hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                  aria-label={t('profile.openButtonAriaLabel')}
-                  title={t('profile.openButtonAriaLabel')}
-                >
-                  <UserCircle className="h-5 w-5" />
-                  <span className="hidden sm:inline">{t('profile.title')}</span>
-                </button>
-              )}
               {screen === 'showcase' && (
                 <button
                   type="button"
@@ -5147,13 +5152,13 @@ const updateProjectFilters = useCallback((updater) => {
                 <button
                   type="button"
                   onClick={handleOpenShowcaseShare}
-                  className="order-first self-start sm:order-last sm:self-center inline-flex h-10 px-4 items-center justify-center rounded-full border bg-white border-blue-100 text-blue-700 shadow-sm transition hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  className="order-first self-start sm:order-last sm:self-center inline-flex h-10 px-4 items-center justify-center gap-2 rounded-full border bg-white border-blue-100 text-blue-700 shadow-sm transition hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   aria-label={t('app.nav.shareShowcase')}
                   title={t('app.nav.shareShowcase')}
                   data-tour-id="showcase-share-trigger"
                 >
                   <Link className="h-5 w-5" />
-                  <span className="sr-only">{t('app.nav.shareSrOnly')}</span>
+                  <span>{t('app.nav.shareSrOnly')}</span>
                 </button>
               )}
               {mode === 'user' && screen === 'showcase' && showcaseProjectContext && (
@@ -5168,69 +5173,69 @@ const updateProjectFilters = useCallback((updater) => {
                   {t('app.nav.reportSummaryLabel')}
                 </button>
               )}
-              {mode === 'user' && (
-                <>
-                  <button
-                    type="button"
-                    onClick={handleStartOnboarding}
-                    className={`w-full sm:w-auto px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition-all flex items-center justify-center gap-2 ${
-                      isOnboardingActive
-                        ? 'bg-blue-600 text-white'
-                        : tourGuideStatus === 'ready'
-                          ? 'bg-white text-blue-600 border border-blue-200 hover:bg-blue-50'
-                          : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
-                    }`}
-                    disabled={tourGuideStatus !== 'ready' || isOnboardingActive}
-                    data-tour-id="nav-onboarding-trigger"
-                    aria-live="polite"
-                    aria-label={
-                      tourGuideStatus === 'loading'
-                        ? t('app.nav.guideLoadingAria')
-                        : tourGuideStatus === 'error'
-                          ? t('app.nav.guideErrorAria')
-                          : t('app.nav.guideLaunchAria')
-                    }
-                    title={
-                      tourGuideStatus === 'error'
-                        ? t('app.nav.guideErrorTitle')
-                        : undefined
-                    }
-                  >
-                    {tourGuideStatus === 'loading' ? (
-                      <span className="loading-spinner" aria-hidden="true" />
-                    ) : (
-                      <Sparkles className="text-lg sm:text-xl" aria-hidden="true" />
-                    )}
-                    <span>
-                      {tourGuideStatus === 'loading'
-                        ? t('app.nav.guidePreparing')
-                        : tourGuideStatus === 'error'
-                          ? t('app.nav.guideUnavailable')
-                          : t('app.nav.guideLabel')}
-                    </span>
-                  </button>
-                  {screen !== 'home' && (
-                    <button
-                      type="button"
-                      onClick={() => setScreen('home')}
-                      className={`w-full sm:w-auto px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition-all bg-gray-100 text-gray-700 hover:bg-gray-200`}
-                      aria-pressed={false}
-                      aria-label={t('app.nav.backToHomeAriaLabel')}
-                    >
-                      {t('app.nav.backToHomeLabel')}
-                    </button>
-                  )}
-                  <a
-                    href="https://forms.cloud.microsoft/e/92Dm7HM5du"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition-all text-white bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 hover:from-pink-600 hover:via-red-600 hover:to-yellow-600 focus-visible:ring-pink-400"
-                    aria-label={t('app.nav.feedbackAriaLabel')}
-                  >
+              {mode === 'user' && screen === 'home' && (
+                <button
+                  type="button"
+                  onClick={handleStartOnboarding}
+                  className={`w-full sm:w-auto px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition-all flex items-center justify-center gap-2 ${
+                    isOnboardingActive
+                      ? 'bg-blue-600 text-white'
+                      : tourGuideStatus === 'ready'
+                        ? 'bg-white text-blue-600 border border-blue-200 hover:bg-blue-50'
+                        : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
+                  }`}
+                  disabled={tourGuideStatus !== 'ready' || isOnboardingActive}
+                  data-tour-id="nav-onboarding-trigger"
+                  aria-live="polite"
+                  aria-label={
+                    tourGuideStatus === 'loading'
+                      ? t('app.nav.guideLoadingAria')
+                      : tourGuideStatus === 'error'
+                        ? t('app.nav.guideErrorAria')
+                        : t('app.nav.guideLaunchAria')
+                  }
+                  title={
+                    tourGuideStatus === 'error'
+                      ? t('app.nav.guideErrorTitle')
+                      : undefined
+                  }
+                >
+                  {tourGuideStatus === 'loading' ? (
+                    <span className="loading-spinner" aria-hidden="true" />
+                  ) : (
                     <Sparkles className="text-lg sm:text-xl" aria-hidden="true" />
-                    <span>{t('app.nav.feedbackLabel')}</span>
-                  </a>
-                </>
+                  )}
+                  <span>
+                    {tourGuideStatus === 'loading'
+                      ? t('app.nav.guidePreparing')
+                      : tourGuideStatus === 'error'
+                        ? t('app.nav.guideUnavailable')
+                        : t('app.nav.guideLabel')}
+                  </span>
+                </button>
+              )}
+              {mode === 'user' && screen !== 'home' && (
+                <button
+                  type="button"
+                  onClick={() => setScreen('home')}
+                  className={`w-full sm:w-auto px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition-all bg-gray-100 text-gray-700 hover:bg-gray-200`}
+                  aria-pressed={false}
+                  aria-label={t('app.nav.backToHomeAriaLabel')}
+                >
+                  {t('app.nav.backToHomeLabel')}
+                </button>
+              )}
+              {mode === 'user' && screen === 'home' && (
+                <a
+                  href="https://forms.cloud.microsoft/e/92Dm7HM5du"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition-all text-white bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 hover:from-pink-600 hover:via-red-600 hover:to-yellow-600 focus-visible:ring-pink-400"
+                  aria-label={t('app.nav.feedbackAriaLabel')}
+                >
+                  <Sparkles className="text-lg sm:text-xl" aria-hidden="true" />
+                  <span>{t('app.nav.feedbackLabel')}</span>
+                </a>
               )}
               {mode === 'admin' && (
                 <button

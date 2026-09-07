@@ -922,6 +922,10 @@
   outline: 1px dashed transparent;
   outline-offset: -1px;
   transition: outline-color 160ms ease, background 160ms ease;
+  /* Sans cette marge, scrollIntoView (clic sur une section du plan, navigation clavier)
+     peut caler le haut du cadre — et donc sa barre d'outils flottante — pile sous la
+     barre d'édition collante, qui la recouvre alors et intercepte les clics. */
+  scroll-margin-top: 9rem;
 }
 
 .sge-frame:hover,
@@ -951,6 +955,10 @@
   left: 0.5rem;
   right: 0.5rem;
   z-index: 20;
+  /* Playwright (et tout scrollIntoView déclenché sur un bouton précis de cette barre)
+     cadre sur cet élément, pas sur .sge-frame : sans sa propre marge, la barre collante
+     peut encore le recouvrir même quand le cadre parent, lui, est déjà bien dégagé. */
+  scroll-margin-top: 9rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -1044,6 +1052,10 @@
   color: var(--sge-ink-soft);
   cursor: pointer;
   transition: background 140ms ease, color 140ms ease;
+  /* Un clic ciblant directement ce bouton (pas le cadre englobant) déclenche son propre
+     scrollIntoView : sans sa propre marge, la barre d'édition collante peut encore le
+     recouvrir même quand .sge-frame, lui, est déjà dégagé. */
+  scroll-margin-top: 9rem;
 }
 
 .sge-frame__tool:hover:not(:disabled) {
