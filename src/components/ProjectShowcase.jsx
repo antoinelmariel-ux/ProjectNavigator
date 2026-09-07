@@ -3312,8 +3312,8 @@ export const ProjectShowcase = ({
 
     const tileVars = { '--sg-c': family.c, '--sg-g1': family.g1, '--sg-g2': family.g2 };
 
-    // BRIQUE C — panneau : « Bloc mise en avant » et « Bloc narratif »
-    if (type === 'highlight' || type === 'story') {
+    // BRIQUE C — panneau : « Bloc mise en avant »
+    if (type === 'highlight') {
       return (
         <section
           key={key}
@@ -3340,6 +3340,50 @@ export const ProjectShowcase = ({
               {section.description && (
                 <p className="sg-panel__body">{renderTextWithLinks(section.description)}</p>
               )}
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    // « Bloc narratif » — reprend la mise en page de « Le problème » (sg-story) : eyebrow +
+    // titre en colonne collante, texte découpé en étapes défilantes. Les étapes n'utilisent
+    // jamais data-sg-counter-step : ce marqueur alimente le compteur unique de la section
+    // « problème » (voir ShowcaseSignatureFx) et le partager ferait dérailler son numéro.
+    if (type === 'story') {
+      const storySteps = editable
+        ? [section.description || '']
+        : splitRichTextIntoBlocks(section.description || '');
+      return (
+        <section key={key} className="sg-story" data-showcase-section={type}>
+          <div className="sg-story__grid">
+            <div className="sg-story__sticky">
+              <p className="sg-eyebrow" style={{ '--sg-c': family.c }}>
+                {t('projectShowcase.templates.story.name')}
+              </p>
+              <h2 className="sg-headline">
+                {editText('title', section.title, {
+                  placeholder: t('projectShowcase.titlePlaceholderFallback')
+                })}
+              </h2>
+              <p className="sg-story__counter" style={{ '--sg-c': family.c }}>
+                {String(index + 1).padStart(2, '0')}
+              </p>
+            </div>
+            <div className="sg-story__steps sg-story__steps--compact">
+              {storySteps.map((step, stepIndex) => (
+                <p
+                  key={`${key}-step-${stepIndex}`}
+                  className={editable ? 'sg-story__step is-on' : 'sg-story__step'}
+                  {...(editable ? {} : { 'data-sg-story-step': true })}
+                >
+                  {editable
+                    ? editText('description', section.description, {
+                        placeholder: t('projectShowcase.templates.story.placeholderDescription')
+                      })
+                    : renderTextWithLinks(step)}
+                </p>
+              ))}
             </div>
           </div>
         </section>
@@ -3726,6 +3770,12 @@ export const ProjectShowcase = ({
 
     pushInserter(0);
     sectionEntries.forEach((entry, index) => {
+      // « notice » n'a ni champ ni réglage : c'est un message purement automatique (voir
+      // hasEditableFields plus haut). Lui dédier un cadre vide en édition n'apprendrait rien
+      // à l'utilisateur et ajouterait un bloc noir sans contenu au milieu du canevas.
+      if (entry.id === 'notice') {
+        return;
+      }
       nodes.push(
         <SectionFrame
           key={`sge-frame-${entry.id}`}
@@ -3786,6 +3836,67 @@ export const ProjectShowcase = ({
     t
   ]);
 
+  // Corps du panneau de sélection des sections visibles en mode Light : partagé entre le
+  // panneau hors édition (sous la barre de mode) et son équivalent affiché depuis la barre
+  // d'édition (sinon « Configurer » resterait sans effet visible une fois en édition).
+  const lightConfigPanelBody = !isLightConfigOpen ? null : (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-semibold text-gray-800">{t('projectShowcase.visibleSectionsLightTitle')}</p>
+          <p className="text-xs text-gray-600">{t('projectShowcase.visibleSectionsLightHint')}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={handleSelectAllSections}
+            className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-700 transition hover:border-blue-200 hover:text-blue-700"
+          >
+            {t('projectShowcase.selectAllButton')}
+          </button>
+          <button
+            type="button"
+            onClick={handleCancelLightConfig}
+            className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-700 transition hover:border-gray-300"
+          >
+            {t('projectShowcase.cancelButton')}
+          </button>
+          <button
+            type="button"
+            onClick={handleValidateLightConfig}
+            className="rounded-full border border-blue-200 bg-blue-600 px-3 py-1 text-xs font-medium text-white shadow-sm transition hover:bg-blue-700"
+          >
+            {t('projectShowcase.validateButton')}
+          </button>
+        </div>
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {LIGHT_VISIBILITY_OPTIONS.map(section => {
+          const checkboxId = `light-section-${section.id}`;
+          const isChecked = pendingLightSections[section.id] !== false;
+          return (
+            <label
+              key={section.id}
+              htmlFor={checkboxId}
+              className="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 bg-white px-3 py-2 shadow-sm transition hover:border-blue-200"
+            >
+              <input
+                id={checkboxId}
+                name={checkboxId}
+                type="checkbox"
+                checked={isChecked}
+                onChange={() => handleTogglePendingSection(section.id)}
+                className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-800">{getSectionOptionLabel(t, section.id)}</span>
+            </label>
+          );
+        })}
+      </div>
+    </div>
+  );
+
   const modeSelectionPanel = resolvedDisplayModeLock || !canConfigureDisplayModes ? null : (
     <div className="sge sge-surface mb-6" data-tour-id="showcase-display-modes">
       <div
@@ -3825,67 +3936,20 @@ export const ProjectShowcase = ({
         </div>
       </div>
 
-      {isLightConfigOpen && (
-        <div className="sge-divider p-4">
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm font-semibold text-gray-800">{t('projectShowcase.visibleSectionsLightTitle')}</p>
-                <p className="text-xs text-gray-600">{t('projectShowcase.visibleSectionsLightHint')}</p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={handleSelectAllSections}
-                  className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-700 transition hover:border-blue-200 hover:text-blue-700"
-                >
-                  {t('projectShowcase.selectAllButton')}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCancelLightConfig}
-                  className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-700 transition hover:border-gray-300"
-                >
-                  {t('projectShowcase.cancelButton')}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleValidateLightConfig}
-                  className="rounded-full border border-blue-200 bg-blue-600 px-3 py-1 text-xs font-medium text-white shadow-sm transition hover:bg-blue-700"
-                >
-                  {t('projectShowcase.validateButton')}
-                </button>
-              </div>
-            </div>
-
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {LIGHT_VISIBILITY_OPTIONS.map(section => {
-                const checkboxId = `light-section-${section.id}`;
-                const isChecked = pendingLightSections[section.id] !== false;
-                return (
-                  <label
-                    key={section.id}
-                    htmlFor={checkboxId}
-                    className="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 bg-white px-3 py-2 shadow-sm transition hover:border-blue-200"
-                  >
-                    <input
-                      id={checkboxId}
-                      name={checkboxId}
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={() => handleTogglePendingSection(section.id)}
-                      className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="text-sm text-gray-800">{getSectionOptionLabel(t, section.id)}</span>
-                  </label>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
+      {lightConfigPanelBody && <div className="sge-divider p-4">{lightConfigPanelBody}</div>}
     </div>
   );
+
+  // Pendant l'édition, la bascule Light/complète vit dans la barre supérieure (voir plus bas) :
+  // ce même panneau de sélection des sections doit donc y rester accessible via son bouton
+  // « Configurer », sinon le mode Light resterait impossible à ajuster une fois en édition.
+  // Masqué pendant l'aperçu (touche P) comme le reste du chrome d'édition : l'aperçu doit
+  // montrer exactement ce qu'un lecteur verra, sans panneau de réglages superposé.
+  const editorLightConfigPanel = isEditorChromeVisible && lightConfigPanelBody ? (
+    <div className="sge sge-surface mb-4 p-4" data-tour-id="showcase-light-config">
+      {lightConfigPanelBody}
+    </div>
+  ) : null;
 
   const extraVisibilityOptions = useMemo(
     () =>
@@ -4883,6 +4947,8 @@ export const ProjectShowcase = ({
       displayMode={displayMode}
       onDisplayModeChange={handleDisplayModeChange}
       canConfigureDisplayModes={canConfigureDisplayModes && !resolvedDisplayModeLock}
+      isLightConfigOpen={isLightConfigOpen}
+      onOpenLightConfig={handleOpenLightConfig}
       isExitConfirmOpen={isExitConfirmOpen}
       onRequestExit={handleRequestExit}
       onCancelExit={() => setIsExitConfirmOpen(false)}
@@ -4948,6 +5014,7 @@ export const ProjectShowcase = ({
       {!isLiveEditing && modeSelectionPanel}
       {editBar}
       {editorBar}
+      {editorLightConfigPanel}
       {isEditorChromeVisible ? (
         <div className={workspaceClassName}>
           {outlinePanel}

@@ -73,7 +73,15 @@ export const ShowcaseOutline = ({
       </div>
       <ol className="sge-outline__list">
         {renderDropZone(0)}
-        {sections.map((section, index) => (
+        {sections.map((section, index) => {
+          // « notice » n'a ni champ ni réglage : le canvas ne lui dédie pas non plus de
+          // cadre (voir ProjectShowcase.jsx). L'omettre ici aussi maintient l'invariant
+          // « le plan suit le canvas » — sinon les deux listes se désynchronisent d'un cran.
+          if (section.id === 'notice') {
+            return <React.Fragment key={section.id}>{renderDropZone(index + 1)}</React.Fragment>;
+          }
+
+          return (
           <React.Fragment key={section.id}>
             <li
               className={`sge-outline__item${section.id === activeSectionId ? ' sge-outline__item--active' : ''}${
@@ -154,7 +162,8 @@ export const ShowcaseOutline = ({
             </li>
             {renderDropZone(index + 1)}
           </React.Fragment>
-        ))}
+          );
+        })}
       </ol>
       {extraVisibilityOptions.length > 0 && (
         <div className="sge-outline__extras">

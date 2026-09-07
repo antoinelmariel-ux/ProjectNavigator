@@ -31,6 +31,7 @@ export default {
       guideLabel: 'Guide interactif',
       backToHomeAriaLabel: 'Retourner à l’accueil des projets',
       backToHomeLabel: 'Accueil projets',
+      logoHomeAriaLabel: 'Project Navigator, retourner à l’accueil',
       feedbackAriaLabel: 'Partagez votre avis sur Project Navigator (nouvelle fenêtre)',
       feedbackLabel: 'Partagez votre avis',
       switchToProjectModeAriaLabel: 'Basculer vers le mode chef de projet',

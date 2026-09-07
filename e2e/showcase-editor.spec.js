@@ -213,6 +213,11 @@ test.describe('Éditeur de vitrine — canvas vivant', () => {
 
     const problem = page.locator('.sge-frame').filter({ hasText: 'Le problème' }).first();
     await problem.scrollIntoViewIfNeeded();
+    // La barre d'outils du cadre n'apparaît (opacity/pointer-events) qu'au survol de
+    // .sge-frame : un .click() direct sur le bouton la cible avant qu'elle ne soit
+    // interactive et se heurte au contenu de la section en dessous (comme un vrai
+    // utilisateur, il faut d'abord survoler le cadre pour la révéler).
+    await problem.hover();
     await problem.locator('button[aria-label="Masquer en vue Light"]').click();
 
     // toujours présente dans le canvas (barrée), sinon impossible de la réafficher
