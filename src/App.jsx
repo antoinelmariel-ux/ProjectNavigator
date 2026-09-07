@@ -2719,8 +2719,37 @@ const updateProjectFilters = useCallback((updater) => {
     return extractProjectName(answers, questions);
   }, [activeProject, answers, questions]);
 
+  // Signature du contenu réellement synchronisable du projet actif (ou, à défaut, du premier
+  // projet) — délibérément SANS rowVersion/lastUpdated. Ces deux champs sont réécrits par
+  // `onStatusChange` ci-dessous à chaque synchronisation réussie (pour que le prochain envoi
+  // porte la bonne version) : les inclure ici créerait une boucle sans fin (une synchronisation
+  // change rowVersion -> le projet change -> l'effet se redéclenche -> nouvelle synchronisation
+  // -> ...), qui se manifestait par un statut « Synchronisation… » clignotant en continu dans
+  // le pied de page. Deux chaînes identiques étant égales par valeur, cette signature ne
+  // change (et ne redéclenche l'effet) que si le contenu utile a vraiment changé.
+  const projectSyncSignature = useMemo(() => {
+    const projectToSync = activeProject || projects[0];
+    if (!projectToSync || projectToSync.isDemo) {
+      return '';
+    }
+
+    return JSON.stringify({
+      id: projectToSync.id,
+      projectName: projectToSync.projectName,
+      answers: projectToSync.answers,
+      analysis: projectToSync.analysis,
+      status: projectToSync.status,
+      totalQuestions: projectToSync.totalQuestions,
+      answeredQuestions: projectToSync.answeredQuestions,
+      lastQuestionIndex: projectToSync.lastQuestionIndex,
+      ownerEmail: projectToSync.ownerEmail,
+      sharedWith: projectToSync.sharedWith,
+      submittedAt: projectToSync.submittedAt
+    });
+  }, [activeProject, projects]);
+
   useEffect(() => {
-    if (!isHydrated || isOnboardingActive || !autosaveQueueRef.current) {
+    if (!isHydrated || isOnboardingActive || !autosaveQueueRef.current || !projectSyncSignature) {
       return undefined;
     }
 
@@ -2728,12 +2757,13 @@ const updateProjectFilters = useCallback((updater) => {
       clearTimeout(autosaveTimeoutRef.current);
     }
 
-    const projectToSync = activeProject || projects[0];
-    if (!projectToSync || projectToSync.isDemo) {
-      return undefined;
-    }
-
     autosaveTimeoutRef.current = setTimeout(() => {
+      const projectToSync = projectsRef.current.find(project => project.id === activeProjectId)
+        || projectsRef.current[0];
+      if (!projectToSync) {
+        return;
+      }
+
       const expectedRowVersion = typeof projectToSync.rowVersion === 'number'
         ? projectToSync.rowVersion
         : undefined;
@@ -2750,19 +2780,7 @@ const updateProjectFilters = useCallback((updater) => {
         autosaveTimeoutRef.current = null;
       }
     };
-  }, [
-    activeProject,
-    projects,
-    isHydrated,
-    isOnboardingActive,
-    answers,
-    analysis,
-    currentQuestionIndex,
-    inspirationProjects,
-    adminView,
-    screen,
-    mode
-  ]);
+  }, [projectSyncSignature, activeProjectId, isHydrated, isOnboardingActive]);
 
   const activeShowcaseProjectId = showcaseProjectContext?.projectId || null;
 
@@ -4144,6 +4162,13 @@ const updateProjectFilters = useCallback((updater) => {
       const answersClone = sourceProject.answers && typeof sourceProject.answers === 'object'
         ? JSON.parse(JSON.stringify(sourceProject.answers))
         : {};
+
+      // Un projet dupliqué est un nouveau projet à évaluer : les échanges/décisions des
+      // experts et comités de conformité, ainsi que la visibilité publique de la vitrine
+      // du projet source, ne doivent pas être hérités (les post-its, eux, ne le sont déjà
+      // pas : ils sont chargés par id de projet réel, jamais copiés).
+      delete answersClone[COMPLIANCE_COMMENTS_KEY];
+      delete answersClone[PUBLIC_VISIBILITY_KEY];
 
       if (currentUserDisplayName) {
         answersClone.teamLead = currentUserDisplayName;
@@ -5696,6 +5721,7 @@ const updateProjectFilters = useCallback((updater) => {
                 )}
               >
                 <LazyProjectShowcase
+                  projectId={showcaseProjectContext.projectId}
                   projectName={showcaseProjectContext.projectName}
                   onClose={handleCloseProjectShowcase}
                   analysis={showcaseProjectContext.analysis}
