@@ -671,6 +671,7 @@ export const BackOffice = ({
   const { t, language } = useTranslation();
   const [onboardingEditingLanguage, setOnboardingEditingLanguage] = useState(language);
   const [teamsEditingLanguage, setTeamsEditingLanguage] = useState(language);
+  const [inspirationEditingLanguage, setInspirationEditingLanguage] = useState(language);
   // Aperçu de conditions (onglet questions/règles) : simule les réponses avec le périmètre
   // d'activité réel de la personne connectée, comme dans le vrai questionnaire.
   const shouldShowQuestion = useCallback(
@@ -2116,14 +2117,14 @@ export const BackOffice = ({
           .filter((field) => field && INSPIRATION_FILTER_COMPATIBLE_FIELD_TYPES.has(field.type))
           .map((field) => ({
             value: field.id,
-            label: field.label || field.id,
+            label: resolveLocalizedText(field.label, language) || field.id,
             disabled: usedQuestionIds.has(field.id),
             type: field.type
           }))
       : [];
 
     return options.sort((a, b) => a.label.localeCompare(b.label, 'fr', { sensitivity: 'base' }));
-  }, [inspirationFormFieldEntries, normalizedInspirationFilters.fields]);
+  }, [inspirationFormFieldEntries, normalizedInspirationFilters.fields, language]);
 
   const selectedInspirationFilterOption = useMemo(() => {
     if (!selectedInspirationFilterQuestionId) {
@@ -2345,7 +2346,7 @@ export const BackOffice = ({
       return;
     }
 
-    const label = field.label || field.id || t('backOffice.main.filterWordFallback');
+    const label = resolveLocalizedText(field.label, language) || field.id || t('backOffice.main.filterWordFallback');
     const confirmationMessage = t('backOffice.main.confirmDeleteFilterTemplate', { label });
     const shouldDelete = confirmDeletion(confirmationMessage);
 
@@ -2367,7 +2368,9 @@ export const BackOffice = ({
       type: 'inspirationFilter',
       item: removedField,
       index,
-      message: t('backOffice.main.filterDeletedUndoTemplate', { label: removedField.label || removedField.id || t('backOffice.main.filterWordFallback') })
+      message: t('backOffice.main.filterDeletedUndoTemplate', {
+        label: resolveLocalizedText(removedField.label, language) || removedField.id || t('backOffice.main.filterWordFallback')
+      })
     });
 
     setInspirationFilters((prev) => {
@@ -2381,7 +2384,7 @@ export const BackOffice = ({
         fields
       };
     });
-  }, [confirmDeletion, normalizedInspirationFilters, pushUndoEntry, setInspirationFilters, t]);
+  }, [confirmDeletion, normalizedInspirationFilters, pushUndoEntry, setInspirationFilters, t, language]);
 
   const handleProjectFilterDefaultSortChange = useCallback((value) => {
     if (typeof setProjectFilters !== 'function') {
@@ -2406,7 +2409,10 @@ export const BackOffice = ({
     setProjectFilters(resetProjectFiltersConfig());
   }, [setProjectFilters]);
 
-  const formatOptionList = (options) => (Array.isArray(options) ? options.join(', ') : '');
+  const formatOptionList = (options, editingLanguage) =>
+    Array.isArray(options)
+      ? options.map((option) => getLocalizedRaw(option?.label, editingLanguage)).join(', ')
+      : '';
 
   const parseOptionList = (value) => {
     if (typeof value !== 'string') {
@@ -2417,6 +2423,23 @@ export const BackOffice = ({
       .split(',')
       .map((option) => option.trim())
       .filter((option) => option.length > 0);
+  };
+
+  // Une option de sélection garde une valeur stable (ce qui est réellement enregistré et comparé
+  // par les filtres), indépendante de son libellé traduit — même principe que value/label sur les
+  // options de questions.js. On ne touche donc qu'au libellé de la langue en cours d'édition ; une
+  // nouvelle entrée dans la liste (comptage plus long qu'avant) crée une nouvelle option.
+  const mergeOptionLabelsFromCommaList = (existingOptions, rawValue, editingLanguage) => {
+    const labels = parseOptionList(rawValue);
+    const existing = Array.isArray(existingOptions) ? existingOptions : [];
+
+    return labels.map((text, index) => {
+      const current = existing[index];
+      if (current && typeof current === 'object') {
+        return { ...current, label: setLocalizedText(current.label, editingLanguage, text) };
+      }
+      return { value: text, label: { [editingLanguage]: text } };
+    });
   };
 
   const sanitizeInspirationFieldId = (value) => {
@@ -2459,22 +2482,31 @@ export const BackOffice = ({
     setInspirationFilters((prev) => updateInspirationFilterField(prev, fieldId, { enabled }));
   }, [setInspirationFilters]);
 
-  const handleInspirationFilterLabelChange = useCallback((fieldId, label) => {
+  const handleInspirationFilterLabelChange = useCallback((fieldId, text) => {
     if (typeof setInspirationFilters !== 'function') {
       return;
     }
 
-    setInspirationFilters((prev) => updateInspirationFilterField(prev, fieldId, { label }));
-  }, [setInspirationFilters]);
+    setInspirationFilters((prev) => {
+      const normalized = normalizeInspirationFiltersConfig(prev);
+      const current = normalized.fields.find((field) => field.id === fieldId);
+      const label = setLocalizedText(current?.label, inspirationEditingLanguage, text);
+      return updateInspirationFilterField(prev, fieldId, { label });
+    });
+  }, [setInspirationFilters, inspirationEditingLanguage]);
 
   const handleInspirationFilterOptionsChange = useCallback((fieldId, rawValue) => {
     if (typeof setInspirationFilters !== 'function') {
       return;
     }
 
-    const options = parseOptionList(rawValue);
-    setInspirationFilters((prev) => updateInspirationFilterField(prev, fieldId, { options }));
-  }, [setInspirationFilters]);
+    setInspirationFilters((prev) => {
+      const normalized = normalizeInspirationFiltersConfig(prev);
+      const current = normalized.fields.find((field) => field.id === fieldId);
+      const options = mergeOptionLabelsFromCommaList(current?.options, rawValue, inspirationEditingLanguage);
+      return updateInspirationFilterField(prev, fieldId, { options });
+    });
+  }, [setInspirationFilters, inspirationEditingLanguage]);
 
   const handleResetInspirationFilters = useCallback(() => {
     if (typeof setInspirationFilters !== 'function') {
@@ -2492,13 +2524,18 @@ export const BackOffice = ({
     setInspirationFormFields((prev) => updateInspirationFormField(prev, fieldId, { enabled }));
   }, [setInspirationFilters, setInspirationFormFields]);
 
-  const handleInspirationFormFieldLabelChange = useCallback((fieldId, label) => {
+  const handleInspirationFormFieldLabelChange = useCallback((fieldId, text) => {
     if (typeof setInspirationFormFields !== 'function') {
       return;
     }
 
-    setInspirationFormFields((prev) => updateInspirationFormField(prev, fieldId, { label }));
-  }, [setInspirationFormFields]);
+    setInspirationFormFields((prev) => {
+      const normalized = normalizeInspirationFormConfig(prev);
+      const current = normalized.fields.find((field) => field.id === fieldId);
+      const label = setLocalizedText(current?.label, inspirationEditingLanguage, text);
+      return updateInspirationFormField(prev, fieldId, { label });
+    });
+  }, [setInspirationFormFields, inspirationEditingLanguage]);
 
   const handleInspirationFormFieldTypeChange = useCallback((fieldId, nextType) => {
     if (typeof setInspirationFormFields !== 'function') {
@@ -2538,7 +2575,9 @@ export const BackOffice = ({
       return;
     }
 
-    const options = parseOptionList(rawValue);
+    const currentFormField = normalizedInspirationFormFields.fields.find((field) => field.id === fieldId);
+    const options = mergeOptionLabelsFromCommaList(currentFormField?.options, rawValue, inspirationEditingLanguage);
+
     setInspirationFormFields((prev) => updateInspirationFormField(prev, fieldId, { options }));
     if (typeof setInspirationFilters === 'function') {
       setInspirationFilters((prev) => {
@@ -2558,7 +2597,7 @@ export const BackOffice = ({
         return nextConfig;
       });
     }
-  }, [setInspirationFormFields]);
+  }, [setInspirationFormFields, setInspirationFilters, normalizedInspirationFormFields, inspirationEditingLanguage]);
 
   const handleAddInspirationFormField = useCallback(() => {
     if (typeof setInspirationFormFields !== 'function') {
@@ -2581,7 +2620,7 @@ export const BackOffice = ({
 
     const nextField = {
       id: fieldId,
-      label,
+      label: { [inspirationEditingLanguage]: label },
       type: normalizedType,
       enabled: Boolean(newInspirationFormField.enabled),
       required: Boolean(newInspirationFormField.required)
@@ -2594,7 +2633,8 @@ export const BackOffice = ({
 
     if (normalizedType === 'select' || normalizedType === 'multi_select') {
       const parsedOptions = parseOptionList(newInspirationFormField.options);
-      nextField.options = parsedOptions.length > 0 ? parsedOptions : ['Option 1', 'Option 2'];
+      const optionTexts = parsedOptions.length > 0 ? parsedOptions : ['Option 1', 'Option 2'];
+      nextField.options = optionTexts.map((text) => ({ value: text, label: { [inspirationEditingLanguage]: text } }));
     }
 
     setInspirationFormFields((prev) => {
@@ -2610,7 +2650,8 @@ export const BackOffice = ({
     inspirationFieldIds,
     newInspirationFormField,
     setInspirationFormFields,
-    suggestedNewInspirationFieldId
+    suggestedNewInspirationFieldId,
+    inspirationEditingLanguage
   ]);
 
   const handleInspirationFormFieldRequiredChange = useCallback((fieldId, required) => {
@@ -4331,6 +4372,12 @@ export const BackOffice = ({
               className="space-y-6"
             >
               <div className="sr-only" aria-live="polite">{reorderAnnouncement}</div>
+              <LanguageEditSwitcher
+                editingLanguage={inspirationEditingLanguage}
+                onChange={setInspirationEditingLanguage}
+                label={t('backOffice.main.inspirationEditingLanguageLabel')}
+                hint={t('backOffice.main.inspirationEditingLanguageHint')}
+              />
               <article className="space-y-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
                 <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="space-y-2">
@@ -4403,7 +4450,7 @@ export const BackOffice = ({
                         const sourceQuestion = inspirationFormFieldEntries.find(
                           (item) => item && item.id === sourceQuestionId
                         );
-                        const sourceLabel = sourceQuestion?.label;
+                        const sourceLabel = resolveLocalizedText(sourceQuestion?.label, language);
 
                         return (
                           <article key={field.id} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -4421,7 +4468,7 @@ export const BackOffice = ({
                                     {field.enabled ? t('backOffice.main.enabledLabel') : t('backOffice.main.disabledLabel')}
                                   </span>
                                 </div>
-                                <h3 className="text-lg font-semibold text-gray-800">{field.label}</h3>
+                                <h3 className="text-lg font-semibold text-gray-800">{resolveLocalizedText(field.label, language) || field.id}</h3>
                                 {sourceQuestionId && (
                                   <p className="text-xs text-gray-500">
                                     {t('backOffice.main.sourceLabelTemplate', { value: sourceQuestionId })}
@@ -4457,7 +4504,7 @@ export const BackOffice = ({
                                 <input
                                   id={labelInputId}
                                   type="text"
-                                  value={field.label}
+                                  value={getLocalizedRaw(field.label, inspirationEditingLanguage)}
                                   onChange={(event) => handleInspirationFilterLabelChange(field.id, event.target.value)}
                                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                                 />
@@ -4477,13 +4524,15 @@ export const BackOffice = ({
                                   <input
                                     id={`inspiration-filter-empty-option-${field.id}`}
                                     type="text"
-                                    value={field.emptyOptionLabel || t('backOffice.main.allValuesDefault')}
+                                    value={getLocalizedRaw(field.emptyOptionLabel, inspirationEditingLanguage) || t('backOffice.main.allValuesDefault')}
                                     onChange={(event) =>
-                                      setInspirationFilters((prev) =>
-                                        updateInspirationFilterField(prev, field.id, {
-                                          emptyOptionLabel: event.target.value
-                                        })
-                                      )
+                                      setInspirationFilters((prev) => {
+                                        const normalized = normalizeInspirationFiltersConfig(prev);
+                                        const current = normalized.fields.find((item) => item.id === field.id);
+                                        return updateInspirationFilterField(prev, field.id, {
+                                          emptyOptionLabel: setLocalizedText(current?.emptyOptionLabel, inspirationEditingLanguage, event.target.value)
+                                        });
+                                      })
                                     }
                                     className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                                   />
@@ -4777,7 +4826,7 @@ export const BackOffice = ({
                                 <span className="font-semibold text-gray-700">{t('backOffice.main.labelFieldLabel')}</span>
                                 <input
                                   type="text"
-                                  value={field.label}
+                                  value={getLocalizedRaw(field.label, inspirationEditingLanguage)}
                                   onChange={(event) => handleInspirationFormFieldLabelChange(field.id, event.target.value)}
                                   className="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                                 />
@@ -4826,7 +4875,7 @@ export const BackOffice = ({
                                 <span className="font-semibold text-gray-700">{t('backOffice.main.optionsCommaSeparatedLabel')}</span>
                                 <input
                                   type="text"
-                                  value={formatOptionList(field.options)}
+                                  value={formatOptionList(field.options, inspirationEditingLanguage)}
                                   onChange={(event) => handleInspirationFormFieldOptionsChange(field.id, event.target.value)}
                                   className="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                                 />
@@ -4846,7 +4895,7 @@ export const BackOffice = ({
                             <button
                               type="button"
                               className="p-2 text-gray-500 hover:text-blue-600 rounded cursor-move"
-                              aria-label={t('backOffice.main.reorderFieldAriaLabelTemplate', { field: field.label || field.id, position: index + 1, total: inspirationFormFieldEntries.length })}
+                              aria-label={t('backOffice.main.reorderFieldAriaLabelTemplate', { field: resolveLocalizedText(field.label, language) || field.id, position: index + 1, total: inspirationFormFieldEntries.length })}
                               aria-describedby={positionId}
                               draggable
                               onDragStart={(event) => handleInspirationFieldDragStart(event, index)}

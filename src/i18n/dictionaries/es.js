@@ -1150,6 +1150,8 @@ export default {
       teamsManagementSubtitle: 'Defina los equipos contactados según los escenarios identificados.',
       teamsEditingLanguageLabel: 'Idioma de edición',
       teamsEditingLanguageHint: 'Si un campo aún no está traducido en este idioma, se mostrará el texto guardado tal cual de forma predeterminada.',
+      inspirationEditingLanguageLabel: 'Idioma de edición',
+      inspirationEditingLanguageHint: 'Si una etiqueta o una opción aún no está traducida en este idioma, se mostrará el texto guardado tal cual de forma predeterminada.',
       addTeamButton: 'Añadir un equipo',
       noTeamRegistered: 'Ningún equipo registrado.',
       teamAriaLabelTemplate: 'Equipo {{name}}',
