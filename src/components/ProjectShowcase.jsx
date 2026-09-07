@@ -1,11 +1,28 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from '../react.js';
 import { ShowcaseSignatureFx } from './ShowcaseSignatureFx.jsx';
 import {
-  CheckCircle,
   Edit,
   Plus,
   Trash2
 } from './icons.js';
+import { SectionFrame } from './showcase/SectionFrame.jsx';
+import { SectionInserter } from './showcase/SectionInserter.jsx';
+import { ShowcaseEditorBar } from './showcase/ShowcaseEditorBar.jsx';
+import { ShowcaseOutline } from './showcase/ShowcaseOutline.jsx';
+import { InlineRichText } from './showcase/InlineRichText.jsx';
+import {
+  buildPreviewAnswers,
+  canRedoHistory,
+  canUndoHistory,
+  clearShowcaseDraft,
+  createHistory,
+  loadShowcaseDraft,
+  moveArrayItem,
+  pushHistory,
+  redoHistory,
+  saveShowcaseDraft,
+  undoHistory
+} from '../utils/showcaseEditor.js';
 import { formatAnswer, getQuestionOptionEntries } from '../utils/questions.js';
 import { renderTextWithLinks } from '../utils/linkify.js';
 import { splitRichTextIntoBlocks } from '../utils/richText.js';
@@ -281,6 +298,63 @@ const resolveDocumentEmbedSrc = (documentUrl, documentType) => {
   return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(documentUrl)}`;
 };
 
+// Titre lisible d'une section personnalisée : son champ « titre » est du texte riche,
+// inutilisable tel quel dans le plan, une infobulle ou un libellé accessible.
+const toPlainText = (value) => {
+  if (typeof value !== 'string') {
+    return '';
+  }
+  return value
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
+// Sous cette largeur, l'inspecteur n'est plus une colonne mais une feuille basse posée
+// sur le canvas : la déployer d'office masquerait la vitrine que l'utilisateur vient
+// d'ouvrir pour la modifier. Doit rester aligné sur la bascule de showcase-editor.css.
+// Fabrique unique d'une section à partir d'un gabarit. Elle sert à trois endroits qui
+// doivent impérativement produire le même bloc : la vignette du sélecteur, l'aperçu
+// fantôme au survol, et la section réellement insérée. Deux implémentations séparées
+// finiraient par diverger — et le fantôme montrerait autre chose que ce qu'on obtient.
+const buildSectionFromTemplate = (t, templateId, id) => {
+  const template = SECTION_TEMPLATES.find(entry => entry.id === templateId) || SECTION_TEMPLATES[0];
+  const meta = getTemplateMeta(t, template.id);
+  const placeholder = meta.placeholder || {};
+  const columnCount = resolveCustomSectionColumnCount(placeholder.columnCount, placeholder.columns);
+
+  return {
+    id,
+    type: template.id,
+    title: placeholder.title || meta.name || '',
+    subtitle: placeholder.subtitle || '',
+    description: placeholder.description || '',
+    accent: placeholder.badge || placeholder.accent || '',
+    accentFamily: DEFAULT_ACCENT_FAMILY,
+    // Le gabarit « chiffre » n'a aucun sens sans valeur : on en pose une d'exemple,
+    // remplaçable directement au clavier dans le canvas.
+    figure: template.id === 'figure' ? placeholder.figure || '87 %' : '',
+    documentUrl: '',
+    documentType: 'pdf',
+    items: Array.isArray(placeholder.items) ? [...placeholder.items] : [],
+    columnCount,
+    columns: normalizeCustomSectionColumns(placeholder.columns, columnCount)
+  };
+};
+
+const SIDE_INSPECTOR_MEDIA_QUERY = '(min-width: 1180px)';
+
+const prefersSideInspector = () => {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return true;
+  }
+  return window.matchMedia(SIDE_INSPECTOR_MEDIA_QUERY).matches;
+};
+
 const resolveTemplateConfig = (templateId) =>
   SECTION_TEMPLATE_CONFIG[templateId] || SECTION_TEMPLATE_CONFIG.highlight;
 
@@ -401,6 +475,56 @@ const areCustomSectionsEqual = (previous, next) => {
       && JSON.stringify(entry.columns || []) === JSON.stringify(candidate.columns || [])
       && entry.type === candidate.type;
   });
+};
+
+// Différence entre le brouillon en cours et ce qui est réellement enregistré. Un seul
+// calcul sert à deux usages : publier, et savoir s'il reste quelque chose à publier —
+// les faire diverger, c'est afficher « tout est publié » sur des modifications perdues.
+const computeShowcaseUpdates = ({
+  answers,
+  editableFields,
+  draftValues,
+  customSections,
+  sectionOrder
+}) => {
+  const updates = {};
+
+  editableFields.forEach(field => {
+    const { id } = field;
+    if (!id) {
+      return;
+    }
+
+    const type = field.question?.type || field.fallbackType || 'text';
+    const emptyValue = type === 'multi_choice' || type === 'milestone_list' ? [] : '';
+    const rawPreviousValue = getRawAnswer(answers, id);
+    const previousValue =
+      rawPreviousValue === undefined || rawPreviousValue === null
+        ? emptyValue
+        : formatValueForDraft(type, rawPreviousValue);
+    const nextValue = draftValues[id] !== undefined ? draftValues[id] : emptyValue;
+
+    if (areFieldValuesEqual(type, previousValue, nextValue)) {
+      return;
+    }
+
+    updates[id] = formatValueForUpdate(type, nextValue);
+  });
+
+  const previousCustomSections = sanitizeCustomSections(answers?.customShowcaseSections);
+  const nextCustomSections = sanitizeCustomSections(customSections);
+  const previousSectionOrder = normalizeSectionOrder(answers?.showcaseSectionOrder, previousCustomSections);
+  const nextSectionOrder = normalizeSectionOrder(sectionOrder, nextCustomSections);
+
+  if (!areCustomSectionsEqual(previousCustomSections, nextCustomSections)) {
+    updates.customShowcaseSections = nextCustomSections;
+  }
+
+  if (previousSectionOrder.join('|') !== nextSectionOrder.join('|')) {
+    updates.showcaseSectionOrder = nextSectionOrder;
+  }
+
+  return updates;
 };
 
 const findQuestionById = (questions, id) => {
@@ -1692,7 +1816,6 @@ export const ProjectShowcase = ({
   // Le champ « Nom du projet » du formulaire d'édition écrit dans answers.projectName :
   // sans cette priorité, une modification enregistrée ne se reflèterait jamais dans le titre affiché.
   const rawProjectName = answeredProjectName.length > 0 ? answeredProjectName : fallbackProjectName;
-  const safeProjectName = rawProjectName.length > 0 ? rawProjectName : missingInfoLabel;
   const isMissingInfoLabel = useCallback(
     (value) => typeof value === 'string' && value.trim() === missingInfoLabel,
     [missingInfoLabel]
@@ -1708,18 +1831,9 @@ export const ProjectShowcase = ({
       : initialShowcaseThemes),
     [showcaseThemes]
   );
-  const selectedTheme = useMemo(
-    () => resolveShowcaseTheme(availableThemes, answers?.showcaseTheme, answers),
-    [answers, answers?.showcaseTheme, availableThemes]
-  );
-  const showcaseThemeId = selectedTheme?.id || FALLBACK_SHOWCASE_THEME.id;
   // la vitrine n'a plus qu'un seul layout ; les thèmes ne portent que des palettes
   const showcaseLayout = 'signature';
   const signatureRootRef = useRef(null);
-  const showcaseThemeVariables = useMemo(
-    () => buildThemeVariables(selectedTheme || FALLBACK_SHOWCASE_THEME),
-    [selectedTheme]
-  );
   const teamNameById = useMemo(() => {
     const map = new Map();
     normalizedTeams.forEach(team => {
@@ -1740,6 +1854,21 @@ export const ProjectShowcase = ({
   );
 
   const [isEditing, setIsEditing] = useState(false);
+  // Section en cours d'édition : une seule à la fois, pour que l'inspecteur n'affiche
+  // jamais plus que les champs de ce que l'utilisateur regarde.
+  const [activeSectionId, setActiveSectionId] = useState(null);
+  const [isPreviewingInEditor, setIsPreviewingInEditor] = useState(false);
+  const [isOutlineOpen, setIsOutlineOpen] = useState(false);
+  const [inserterIndex, setInserterIndex] = useState(null);
+  const [ghostTemplateId, setGhostTemplateId] = useState(null);
+  const [canvasDragIndex, setCanvasDragIndex] = useState(null);
+  const [canvasDropIndex, setCanvasDropIndex] = useState(null);
+  const [isExitConfirmOpen, setIsExitConfirmOpen] = useState(false);
+  const [hasRestoredDraft, setHasRestoredDraft] = useState(false);
+  const [pendingDraft, setPendingDraft] = useState(null);
+  const [isInspectorExpanded, setIsInspectorExpanded] = useState(true);
+  const [editorHistory, setEditorHistory] = useState(() => createHistory(null));
+  const isTimeTravellingRef = useRef(false);
   const [draftValues, setDraftValues] = useState(() =>
     buildDraftValues(editableFields, answers, rawProjectName)
   );
@@ -1759,25 +1888,7 @@ export const ProjectShowcase = ({
   );
   const [pendingLightSections, setPendingLightSections] = useState(lightSections);
   const [isLightConfigOpen, setIsLightConfigOpen] = useState(false);
-  const [sectionDragState, setSectionDragState] = useState({ sourceIndex: null, targetIndex: null });
-  const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
-  const [sectionModalStep, setSectionModalStep] = useState('templates');
-  const [selectedTemplateIndex, setSelectedTemplateIndex] = useState(0);
-  const [pendingInsertionIndex, setPendingInsertionIndex] = useState(null);
   const [documentUploadErrors, setDocumentUploadErrors] = useState({});
-  const [sectionDraft, setSectionDraft] = useState({
-    title: '',
-    subtitle: '',
-    description: '',
-    accent: '',
-    accentFamily: DEFAULT_ACCENT_FAMILY,
-    figure: '',
-    documentUrl: '',
-    documentType: 'pdf',
-    items: [],
-    columnCount: 1,
-    columns: ['']
-  });
 
   const resetMilestoneDragState = useCallback(() => {
     setMilestoneDragState(createEmptyMilestoneDragState());
@@ -1863,8 +1974,8 @@ export const ProjectShowcase = ({
       return undefined;
     }
 
-    const scope = isSectionModalOpen
-      ? `section-modal-${sectionModalStep}`
+    const scope = inserterIndex !== null
+      ? 'section-picker'
       : isLightConfigOpen
         ? 'light-config'
         : `display-${displayMode}`;
@@ -1874,7 +1985,7 @@ export const ProjectShowcase = ({
     return () => {
       onAnnotationScopeChange('');
     };
-  }, [displayMode, isLightConfigOpen, isSectionModalOpen, onAnnotationScopeChange, sectionModalStep]);
+  }, [displayMode, inserterIndex, isLightConfigOpen, onAnnotationScopeChange]);
 
   const handleDisplayModeChange = useCallback((mode) => {
     if (resolvedDisplayModeLock) {
@@ -1969,67 +2080,17 @@ export const ProjectShowcase = ({
     }, {});
   }, [editableFields]);
 
-  const editFormBlocks = useMemo(() => {
-    const blocks = [];
-
-    sectionOrder.forEach(sectionId => {
-      const customSection = customSectionFormMap.get(sectionId);
-      if (customSection) {
-        blocks.push({ type: 'custom', section: customSection });
-        return;
-      }
-
-      const sectionFields = sectionFieldsById[sectionId] || [];
-      if (sectionFields.length === 0) {
-        return;
-      }
-
-      const option = SHOWCASE_SECTION_OPTIONS.find(section => section.id === sectionId);
-      blocks.push({
-        type: 'group-header',
-        id: sectionId,
-        title: option ? getSectionOptionLabel(t, option.id) : sectionId
-      });
-      sectionFields.forEach(field => blocks.push({ type: 'field', field }));
-    });
-
-    return blocks;
-  }, [customSectionFormMap, sectionFieldsById, sectionOrder, t]);
-
-  const handleOpenSectionModal = useCallback((insertionIndex = null) => {
-    setPendingInsertionIndex(insertionIndex);
-    setSectionModalStep('templates');
-    setSectionDraft({
-      title: '',
-      subtitle: '',
-      description: '',
-      accent: '',
-      accentFamily: DEFAULT_ACCENT_FAMILY,
-      figure: '',
-      documentUrl: '',
-      documentType: 'pdf',
-      items: [],
-      columnCount: 1,
-      columns: ['']
-    });
-    setIsSectionModalOpen(true);
+  // `'end'` plutôt qu'un index : l'appelant (le guide interactif) ne connaît pas la
+  // longueur courante de la vitrine, et la résoudre ici obligerait l'effet du guide à
+  // dépendre de `sectionOrder`, donc à se rejouer à chaque réordonnancement.
+  const handleOpenSectionPicker = useCallback((insertionIndex = 'end') => {
+    setInserterIndex(insertionIndex);
+    setGhostTemplateId(null);
   }, []);
 
-  const handleCloseSectionModal = useCallback(() => {
-    setIsSectionModalOpen(false);
-    setSectionModalStep('templates');
-    setPendingInsertionIndex(null);
-    setSectionDraft({
-      title: '',
-      subtitle: '',
-      description: '',
-      accent: '',
-      documentUrl: '',
-      documentType: 'pdf',
-      items: [],
-      columnCount: 1,
-      columns: ['']
-    });
+  const handleCloseSectionPicker = useCallback(() => {
+    setInserterIndex(null);
+    setGhostTemplateId(null);
   }, []);
 
   useEffect(() => {
@@ -2043,133 +2104,6 @@ export const ProjectShowcase = ({
       }
     };
   }, [isEditing, onEditingStateChange]);
-
-  const handleTemplateNavigation = useCallback((direction) => {
-    setSelectedTemplateIndex(previous => {
-      const nextIndex = (previous + direction + SECTION_TEMPLATES.length) % SECTION_TEMPLATES.length;
-      return nextIndex;
-    });
-  }, []);
-
-  const handleConfirmTemplateChoice = useCallback(() => {
-    const template = SECTION_TEMPLATES[selectedTemplateIndex];
-    const placeholder = (template ? getTemplateMeta(t, template.id).placeholder : null) || {};
-    const columnCount = resolveCustomSectionColumnCount(placeholder.columnCount, placeholder.columns);
-    const columns = normalizeCustomSectionColumns(placeholder.columns, columnCount);
-    setSectionDraft({
-      title: placeholder.title || '',
-      subtitle: placeholder.subtitle || '',
-      description: placeholder.description || '',
-      accent: placeholder.accent || '',
-      // Le champ document n'a jamais de valeur par défaut : il n'existe qu'une fois un
-      // fichier réellement déposé (voir handleDocumentUpload), jamais une URL d'exemple.
-      documentUrl: '',
-      documentType: 'pdf',
-      items: Array.isArray(placeholder.items) ? placeholder.items : [],
-      columnCount,
-      columns
-    });
-    setSectionModalStep('form');
-  }, [selectedTemplateIndex, t]);
-
-  const handleSectionDraftChange = useCallback((field, value) => {
-    setSectionDraft(previous => ({
-      ...previous,
-      [field]: value
-    }));
-  }, []);
-
-  const handleSectionDraftColumnCountChange = useCallback((value) => {
-    const nextCount = resolveCustomSectionColumnCount(value);
-    setSectionDraft(previous => ({
-      ...previous,
-      columnCount: nextCount,
-      columns: normalizeCustomSectionColumns(previous.columns, nextCount)
-    }));
-  }, []);
-
-  const handleSectionDraftColumnChange = useCallback((index, value) => {
-    setSectionDraft(previous => {
-      const currentCount = resolveCustomSectionColumnCount(previous.columnCount, previous.columns);
-      const columns = normalizeCustomSectionColumns(previous.columns, currentCount);
-      columns[index] = value;
-      return {
-        ...previous,
-        columns
-      };
-    });
-  }, []);
-
-  const handleSectionDraftItemChange = useCallback((index, value) => {
-    setSectionDraft(previous => {
-      const items = Array.isArray(previous.items) ? [...previous.items] : [];
-      items[index] = value;
-      return {
-        ...previous,
-        items
-      };
-    });
-  }, []);
-
-  const handleSectionDraftItemAdd = useCallback(() => {
-    setSectionDraft(previous => ({
-      ...previous,
-      items: [...(Array.isArray(previous.items) ? previous.items : []), '']
-    }));
-  }, []);
-
-  const handleSectionDraftItemRemove = useCallback((index) => {
-    setSectionDraft(previous => {
-      const items = Array.isArray(previous.items) ? [...previous.items] : [];
-      items.splice(index, 1);
-      return {
-        ...previous,
-        items
-      };
-    });
-  }, []);
-
-  const handleSubmitNewSection = useCallback((event) => {
-    event.preventDefault();
-    const template = SECTION_TEMPLATES[selectedTemplateIndex];
-    const safeTemplateId = template?.id || SECTION_TEMPLATES[0].id;
-    const newSectionId = `custom-section-${Date.now()}`;
-    const templateName = template ? getTemplateMeta(t, template.id).name : '';
-
-    const newSection = {
-      id: newSectionId,
-      type: safeTemplateId,
-      title: sectionDraft.title?.trim() || templateName || t('projectShowcase.newSectionEyebrow'),
-      subtitle: sectionDraft.subtitle?.trim() || '',
-      description: sectionDraft.description?.trim() || '',
-      accent: sectionDraft.accent?.trim() || '',
-      accentFamily: sectionDraft.accentFamily || DEFAULT_ACCENT_FAMILY,
-      figure: sectionDraft.figure?.trim() || '',
-      documentUrl: sectionDraft.documentUrl?.trim() || '',
-      documentType: sectionDraft.documentType?.trim() || '',
-      items: Array.isArray(sectionDraft.items) ? sectionDraft.items : [],
-      columnCount: resolveCustomSectionColumnCount(sectionDraft.columnCount, sectionDraft.columns),
-      columns: normalizeCustomSectionColumns(
-        sectionDraft.columns,
-        resolveCustomSectionColumnCount(sectionDraft.columnCount, sectionDraft.columns)
-      )
-    };
-
-    setCustomSections(previous => [...sanitizeCustomSections(previous), newSection]);
-    setSectionOrder(previousOrder => {
-      const base = Array.isArray(previousOrder) ? [...previousOrder] : [];
-      const insertionIndex = typeof pendingInsertionIndex === 'number'
-        ? Math.max(0, Math.min(base.length, pendingInsertionIndex))
-        : base.length;
-      base.splice(insertionIndex, 0, newSectionId);
-      return normalizeSectionOrder(base, [...sanitizeCustomSections(customSections), newSection]);
-    });
-    handleCloseSectionModal();
-  }, [customSections, handleCloseSectionModal, pendingInsertionIndex, sectionDraft, selectedTemplateIndex, t]);
-
-  const handleBackToTemplates = useCallback(() => {
-    setSectionModalStep('templates');
-  }, []);
 
   useEffect(() => {
     if (!tourContext?.isActive) {
@@ -2225,11 +2159,9 @@ export const ProjectShowcase = ({
     }
 
     if (activeStep === 'showcase-custom-sections') {
-      if (!isSectionModalOpen) {
-        handleOpenSectionModal();
-      }
-    } else if (isSectionModalOpen && activeStep !== 'showcase-custom-sections') {
-      handleCloseSectionModal();
+      handleOpenSectionPicker('end');
+    } else {
+      handleCloseSectionPicker();
     }
   }, [
     tourContext,
@@ -2240,18 +2172,31 @@ export const ProjectShowcase = ({
     resetMilestoneDragState,
     isEditing,
     setDraftValues,
-    handleOpenSectionModal,
-    handleCloseSectionModal,
-    isSectionModalOpen
+    handleOpenSectionPicker,
+    handleCloseSectionPicker
   ]);
 
   const isLightMode = displayMode === 'light';
   const lightVisibilityIds = useMemo(() => buildLightVisibilityIds(sectionOrder), [sectionOrder]);
-  const canShowBudget = displayMode === 'full' || lightSections.budget !== false;
 
+  const canEdit = typeof onUpdateAnswers === 'function' && !hideEditBar;
+  const isLiveEditing = isEditing && canEdit;
+  // Chrome d'édition visible : on édite *et* on n'est pas passé en aperçu (touche P).
+  // Toute la différence entre « je travaille » et « je juge le rendu » tient à ce booléen.
+  const isEditorChromeVisible = isLiveEditing && !isPreviewingInEditor;
+
+  const canShowBudget = isEditorChromeVisible || displayMode === 'full' || lightSections.budget !== false;
+
+  // Pendant l'édition, une section masquée en vue Light reste rendue (grisée et barrée par
+  // le cadre) : la retirer du canvas priverait l'utilisateur du seul moyen de la réafficher.
   const shouldDisplaySection = useCallback(
-    (sectionId) => displayMode === 'full' || lightSections[sectionId] !== false,
-    [displayMode, lightSections]
+    (sectionId) => isEditorChromeVisible || displayMode === 'full' || lightSections[sectionId] !== false,
+    [displayMode, isEditorChromeVisible, lightSections]
+  );
+
+  const isSectionHiddenInLight = useCallback(
+    (sectionId) => lightSections[sectionId] === false,
+    [lightSections]
   );
 
   const selectedLightSectionsCount = useMemo(
@@ -2259,19 +2204,45 @@ export const ProjectShowcase = ({
     [lightSections, lightVisibilityIds]
   );
 
-  const canEdit = typeof onUpdateAnswers === 'function' && !hideEditBar;
-  const shouldShowPreview = !isEditing || !canEdit;
   const formId = 'project-showcase-edit-form';
 
   const handleStartEditing = useCallback(() => {
-    setDraftValues(buildDraftValues(editableFields, answers, rawProjectName));
+    const nextDraftValues = buildDraftValues(editableFields, answers, rawProjectName);
+    const nextCustomSections = sanitizeCustomSections(answers?.customShowcaseSections);
+    const nextSectionOrder = normalizeSectionOrder(answers?.showcaseSectionOrder, nextCustomSections);
+
+    setDraftValues(nextDraftValues);
+    setCustomSections(nextCustomSections);
+    setSectionOrder(nextSectionOrder);
     resetMilestoneDragState();
+    setEditorHistory(createHistory({
+      draftValues: nextDraftValues,
+      customSections: nextCustomSections,
+      sectionOrder: nextSectionOrder
+    }));
+    isTimeTravellingRef.current = true;
+    setHasRestoredDraft(false);
+    setIsPreviewingInEditor(false);
+    setIsExitConfirmOpen(false);
+    // « notice » n'est qu'un bandeau d'alerte : ouvrir l'inspecteur dessus n'aurait
+    // rien à montrer. En feuille basse, on n'ouvre rien du tout : la vitrine doit rester
+    // visible tant que l'utilisateur n'a pas désigné une section.
+    const sideInspector = prefersSideInspector();
+    setIsInspectorExpanded(sideInspector);
+    setActiveSectionId(
+      sideInspector ? (nextSectionOrder.find(id => id !== 'notice') || nextSectionOrder[0] || null) : null
+    );
     setIsEditing(true);
   }, [answers, editableFields, rawProjectName, resetMilestoneDragState]);
 
   const handleCancelEditing = useCallback(() => {
     setDraftValues(buildDraftValues(editableFields, answers, rawProjectName));
     setIsEditing(false);
+    setActiveSectionId(null);
+    setInserterIndex(null);
+    setGhostTemplateId(null);
+    setIsPreviewingInEditor(false);
+    setIsExitConfirmOpen(false);
     const sanitizedSections = sanitizeCustomSections(answers?.customShowcaseSections);
     setCustomSections(sanitizedSections);
     setSectionOrder(normalizeSectionOrder(answers?.showcaseSectionOrder, sanitizedSections));
@@ -2397,158 +2368,214 @@ export const ProjectShowcase = ({
   const handleRemoveCustomSection = useCallback((sectionId) => {
     setCustomSections(previous => previous.filter(section => section.id !== sectionId));
     setSectionOrder(previous => previous.filter(entry => entry !== sectionId));
+    setActiveSectionId(previous => (previous === sectionId ? null : previous));
   }, []);
 
-  const handleSectionDragStart = useCallback((index, event) => {
-    if (event?.dataTransfer) {
-      event.dataTransfer.effectAllowed = 'move';
-      try {
-        event.dataTransfer.setData('text/plain', String(index));
-      } catch (_error) {
-        // Certains navigateurs bloquent l’écriture : on ignore.
-      }
-    }
-    setSectionDragState({ sourceIndex: index, targetIndex: index });
+  const handleSelectSection = useCallback((sectionId) => {
+    setActiveSectionId(sectionId);
+    setIsInspectorExpanded(true);
+    setInserterIndex(null);
+    setGhostTemplateId(null);
   }, []);
 
-  const handleSectionDragEnter = useCallback((index) => {
-    setSectionDragState(previous => {
-      if (previous.sourceIndex === null || previous.targetIndex === index) {
-        return previous;
-      }
-      return { ...previous, targetIndex: index };
-    });
+  const handleMoveSection = useCallback((fromIndex, toIndex) => {
+    setSectionOrder(previous => moveArrayItem(previous, fromIndex, toIndex));
   }, []);
 
-  const handleSectionDragLeave = useCallback((index, event) => {
-    if (event?.currentTarget?.contains(event?.relatedTarget)) {
+  const handleCanvasDragStart = useCallback((index) => {
+    setCanvasDragIndex(index);
+    setInserterIndex(null);
+    setGhostTemplateId(null);
+  }, []);
+
+  const handleCanvasDragEnd = useCallback(() => {
+    setCanvasDragIndex(null);
+    setCanvasDropIndex(null);
+  }, []);
+
+  const handleCanvasDrop = useCallback((targetIndex) => {
+    if (canvasDragIndex === null) {
       return;
     }
-    setSectionDragState(previous => {
-      if (previous.targetIndex !== index) {
-        return previous;
-      }
-      return { ...previous, targetIndex: previous.sourceIndex };
-    });
+    setSectionOrder(previous => moveArrayItem(previous, canvasDragIndex, targetIndex));
+    setCanvasDragIndex(null);
+    setCanvasDropIndex(null);
+  }, [canvasDragIndex]);
+
+  const handleToggleSectionVisibility = useCallback((sectionId) => {
+    setLightSections(previous => ({
+      ...previous,
+      [sectionId]: previous[sectionId] === false
+    }));
   }, []);
 
-  const handleSectionDragOver = useCallback((event) => {
-    if (sectionDragState.sourceIndex !== null) {
-      event.preventDefault();
-      if (event?.dataTransfer) {
-        event.dataTransfer.dropEffect = 'move';
-      }
-    }
-  }, [sectionDragState.sourceIndex]);
-
-  const handleSectionDrop = useCallback((index, event) => {
-    if (sectionDragState.sourceIndex === null) {
-      return;
-    }
-    event.preventDefault();
-    const sourceIndex = Math.max(0, Math.min(sectionOrder.length - 1, sectionDragState.sourceIndex));
-    const targetIndex = Math.max(0, Math.min(sectionOrder.length - 1, index));
-
-    if (sourceIndex === targetIndex) {
-      setSectionDragState({ sourceIndex: null, targetIndex: null });
+  const handleDuplicateCustomSection = useCallback((sectionId) => {
+    const source = customSections.find(section => section?.id === sectionId);
+    if (!source) {
       return;
     }
 
+    const copyId = `custom-section-${Date.now()}`;
+    const copy = {
+      ...source,
+      id: copyId,
+      items: Array.isArray(source.items) ? [...source.items] : [],
+      columns: Array.isArray(source.columns) ? [...source.columns] : []
+    };
+
+    setCustomSections(previous => [...previous, copy]);
     setSectionOrder(previous => {
-      const next = [...previous];
-      const [removed] = next.splice(sourceIndex, 1);
-      next.splice(targetIndex, 0, removed);
-      return next;
+      const base = Array.isArray(previous) ? [...previous] : [];
+      const position = base.indexOf(sectionId);
+      base.splice(position === -1 ? base.length : position + 1, 0, copyId);
+      return base;
     });
-    setSectionDragState({ sourceIndex: null, targetIndex: null });
-  }, [sectionDragState.sourceIndex, sectionOrder.length]);
+    setActiveSectionId(copyId);
+  }, [customSections]);
+
+  const handleInsertTemplate = useCallback((templateId, insertionIndex) => {
+    const newSectionId = `custom-section-${Date.now()}`;
+    // Exactement le bloc que l'aperçu fantôme vient de montrer à cet endroit.
+    const newSection = buildSectionFromTemplate(t, templateId, newSectionId);
+
+    setCustomSections(previous => [...previous, newSection]);
+    setSectionOrder(previous => {
+      const base = Array.isArray(previous) ? [...previous] : [];
+      const position = insertionIndex === 'end' || typeof insertionIndex !== 'number'
+        ? base.length
+        : Math.max(0, Math.min(base.length, insertionIndex));
+      base.splice(position, 0, newSectionId);
+      return base;
+    });
+
+    setActiveSectionId(newSectionId);
+    setInserterIndex(null);
+    setGhostTemplateId(null);
+  }, [t]);
+
+  const pendingUpdates = useMemo(
+    () =>
+      isLiveEditing
+        ? computeShowcaseUpdates({ answers, editableFields, draftValues, customSections, sectionOrder })
+        : null,
+    [answers, customSections, draftValues, editableFields, isLiveEditing, sectionOrder]
+  );
+
+  const hasUnpublishedChanges = Boolean(pendingUpdates && Object.keys(pendingUpdates).length > 0);
+
+  const editorSnapshot = useMemo(
+    () => ({ draftValues, customSections, sectionOrder }),
+    [customSections, draftValues, sectionOrder]
+  );
 
   const handleSubmitEdit = useCallback(
     (event) => {
-      event.preventDefault();
+      // Appelé aussi bien par la soumission du formulaire de l'inspecteur que par le
+      // bouton « Publier » de la barre, qui vit hors du formulaire.
+      if (event && typeof event.preventDefault === 'function') {
+        event.preventDefault();
+      }
+
       if (!canEdit) {
         setIsEditing(false);
         return;
       }
 
-      const updates = {};
-
-      editableFields.forEach(field => {
-        const { id } = field;
-        if (!id) {
-          return;
-        }
-
-        const type = field.question?.type || field.fallbackType || 'text';
-        const rawPreviousValue = getRawAnswer(answers, id);
-        const previousValue =
-          rawPreviousValue === undefined || rawPreviousValue === null
-            ? (type === 'multi_choice' || type === 'milestone_list' ? [] : '')
-            : formatValueForDraft(type, rawPreviousValue);
-        const nextValue =
-          draftValues[id] !== undefined
-            ? draftValues[id]
-            : (type === 'multi_choice' || type === 'milestone_list' ? [] : '');
-
-        if (areFieldValuesEqual(type, previousValue, nextValue)) {
-          return;
-        }
-
-        updates[id] = formatValueForUpdate(type, nextValue);
+      const updates = computeShowcaseUpdates({
+        answers,
+        editableFields,
+        draftValues,
+        customSections,
+        sectionOrder
       });
-
-      const previousCustomSections = sanitizeCustomSections(answers?.customShowcaseSections);
-      const nextCustomSections = sanitizeCustomSections(customSections);
-      const previousSectionOrder = normalizeSectionOrder(answers?.showcaseSectionOrder, previousCustomSections);
-      const nextSectionOrder = normalizeSectionOrder(sectionOrder, nextCustomSections);
-
-      if (!areCustomSectionsEqual(previousCustomSections, nextCustomSections)) {
-        updates.customShowcaseSections = nextCustomSections;
-      }
-
-      if (!areCustomSectionsEqual(
-        previousSectionOrder.map(id => ({ id })),
-        nextSectionOrder.map(id => ({ id }))
-      )) {
-        updates.showcaseSectionOrder = nextSectionOrder;
-      }
 
       if (Object.keys(updates).length > 0) {
         onUpdateAnswers(updates);
       }
 
+      clearShowcaseDraft(projectId);
+      setHasRestoredDraft(false);
+      setActiveSectionId(null);
+      setInserterIndex(null);
+      setGhostTemplateId(null);
+      setIsPreviewingInEditor(false);
+      setIsExitConfirmOpen(false);
       setIsEditing(false);
     },
-    [answers, canEdit, customSections, draftValues, editableFields, onUpdateAnswers, sectionOrder]
+    [answers, canEdit, customSections, draftValues, editableFields, onUpdateAnswers, projectId, sectionOrder]
   );
+
+  // Superposition « brouillon -> vitrine » : la brique qui rend l'aperçu vivant. Hors
+  // édition, on renvoie `answers` inchangé — la vitrine consultée ou partagée ne doit
+  // dépendre d'aucun état d'édition.
+  const previewAnswers = useMemo(() => {
+    if (!isLiveEditing) {
+      return answers;
+    }
+
+    const fieldValues = {};
+    editableFields.forEach(field => {
+      const { id } = field;
+      if (!id || draftValues[id] === undefined) {
+        return;
+      }
+      const type = field.question?.type || field.fallbackType || 'text';
+      fieldValues[id] = formatValueForUpdate(type, draftValues[id]);
+    });
+
+    return buildPreviewAnswers(answers, {
+      fieldValues,
+      customSections: sanitizedCustomSections,
+      sectionOrder
+    });
+  }, [answers, draftValues, editableFields, isLiveEditing, sanitizedCustomSections, sectionOrder]);
+
+  // Le thème fait partie des champs éditables : il est résolu depuis les réponses d'aperçu
+  // pour que changer de palette repeigne la vitrine immédiatement.
+  const selectedTheme = useMemo(
+    () => resolveShowcaseTheme(availableThemes, previewAnswers?.showcaseTheme, previewAnswers),
+    [availableThemes, previewAnswers]
+  );
+  const showcaseThemeId = selectedTheme?.id || FALLBACK_SHOWCASE_THEME.id;
+  const showcaseThemeVariables = useMemo(
+    () => buildThemeVariables(selectedTheme || FALLBACK_SHOWCASE_THEME),
+    [selectedTheme]
+  );
+
+  const previewProjectNameRaw = getRawAnswer(previewAnswers, 'projectName');
+  const previewProjectName =
+    typeof previewProjectNameRaw === 'string' ? previewProjectNameRaw.trim() : '';
+  const displayedProjectName =
+    previewProjectName.length > 0 ? previewProjectName : fallbackProjectName;
+  const safeProjectName = displayedProjectName.length > 0 ? displayedProjectName : missingInfoLabel;
 
   const missingShowcaseQuestions = useMemo(() => {
     const available = new Set(Array.isArray(questions) ? questions.map(question => question?.id).filter(Boolean) : []);
     return REQUIRED_SHOWCASE_QUESTION_IDS.filter(id => !available.has(id));
   }, [questions]);
 
-  const slogan = getFormattedAnswer(questions, answers, 'projectSlogan', missingInfoLabel, language);
-  const targetAudience = getFormattedAnswer(questions, answers, 'targetAudience', missingInfoLabel, language);
-  const problemPainPoints = parseProblemPainPoints(getRawAnswer(answers, 'problemPainPoints'));
+  const slogan = getFormattedAnswer(questions, previewAnswers, 'projectSlogan', missingInfoLabel, language);
+  const targetAudience = getFormattedAnswer(questions, previewAnswers, 'targetAudience', missingInfoLabel, language);
+  const problemPainPoints = parseProblemPainPoints(getRawAnswer(previewAnswers, 'problemPainPoints'));
 
-  const solutionDescription = getFormattedAnswer(questions, answers, 'solutionDescription', missingInfoLabel, language);
+  const solutionDescription = getFormattedAnswer(questions, previewAnswers, 'solutionDescription', missingInfoLabel, language);
   const solutionDescriptionParts = useMemo(
     () => splitSolutionDescription(solutionDescription),
     [solutionDescription]
   );
-  const solutionBenefits = splitRichTextIntoBlocks(getRawAnswer(answers, 'solutionBenefits'));
+  const solutionBenefits = splitRichTextIntoBlocks(getRawAnswer(previewAnswers, 'solutionBenefits'));
 
-  const innovationProcess = getFormattedAnswer(questions, answers, 'innovationProcess', missingInfoLabel, language);
-  const visionStatement = getFormattedAnswer(questions, answers, 'visionStatement', missingInfoLabel, language);
+  const innovationProcess = getFormattedAnswer(questions, previewAnswers, 'innovationProcess', missingInfoLabel, language);
+  const visionStatement = getFormattedAnswer(questions, previewAnswers, 'visionStatement', missingInfoLabel, language);
   const visionStatementEntries = useMemo(
-    () => splitRichTextIntoBlocks(getRawAnswer(answers, 'visionStatement')),
-    [answers]
+    () => splitRichTextIntoBlocks(getRawAnswer(previewAnswers, 'visionStatement')),
+    [previewAnswers]
   );
   const innovationProcessEntries = useMemo(
-    () => splitRichTextIntoBlocks(getRawAnswer(answers, 'innovationProcess')),
-    [answers]
+    () => splitRichTextIntoBlocks(getRawAnswer(previewAnswers, 'innovationProcess')),
+    [previewAnswers]
   );
-  const budgetEstimate = getFormattedAnswer(questions, answers, 'BUDGET', missingInfoLabel, language);
+  const budgetEstimate = getFormattedAnswer(questions, previewAnswers, 'BUDGET', missingInfoLabel, language);
   const normalizedTimelineDetails = useMemo(() => {
     if (Array.isArray(timelineDetails)) {
       return timelineDetails;
@@ -2580,11 +2607,11 @@ export const ProjectShowcase = ({
     return Number.isFinite(parsed) ? parsed : null;
   }, [budgetEstimate]);
 
-  const teamLead = getFormattedAnswer(questions, answers, 'teamLead', missingInfoLabel, language);
-  const teamLeadTeam = getFormattedAnswer(questions, answers, 'teamLeadTeam', missingInfoLabel, language);
-  const teamCoreMembers = splitRichTextIntoBlocks(getRawAnswer(answers, 'teamCoreMembers'));
+  const teamLead = getFormattedAnswer(questions, previewAnswers, 'teamLead', missingInfoLabel, language);
+  const teamLeadTeam = getFormattedAnswer(questions, previewAnswers, 'teamLeadTeam', missingInfoLabel, language);
+  const teamCoreMembers = splitRichTextIntoBlocks(getRawAnswer(previewAnswers, 'teamCoreMembers'));
 
-  const rawRunway = useMemo(() => computeRunway(answers, language), [answers, language]);
+  const rawRunway = useMemo(() => computeRunway(previewAnswers, language), [previewAnswers, language]);
   const animatedWeeks = useAnimatedCounter(rawRunway?.weeks ?? null, { duration: 1200 });
   const animatedDays = useAnimatedCounter(rawRunway?.days ?? null, { duration: 1200 });
   const runway = useMemo(() => {
@@ -2622,8 +2649,8 @@ export const ProjectShowcase = ({
     [timelineSummaries, vigilanceAlerts]
   );
   const manualMilestones = useMemo(
-    () => buildManualMilestones(getRawAnswer(answers, 'roadmapMilestones'), language),
-    [answers, language]
+    () => buildManualMilestones(getRawAnswer(previewAnswers, 'roadmapMilestones'), language),
+    [previewAnswers, language]
   );
   const heroHighlights = useMemo(
     () =>
@@ -2702,7 +2729,9 @@ export const ProjectShowcase = ({
     }
 
     const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
+      // En édition, Échap désélectionne (voir le gestionnaire de raccourcis de l'éditeur) :
+      // fermer la vitrine entière ferait perdre la session d'édition en cours.
+      if (event.key === 'Escape' && !isLiveEditing) {
         onClose?.();
       }
     };
@@ -2712,7 +2741,7 @@ export const ProjectShowcase = ({
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [onClose, renderInStandalone]);
+  }, [isLiveEditing, onClose, renderInStandalone]);
 
   useEffect(() => {
     if (renderInStandalone) {
@@ -2808,10 +2837,30 @@ export const ProjectShowcase = ({
           >
             <div className="sg-wrap">
               <p className="sg-eyebrow sg-rv">{t('projectShowcase.heroEyebrow')}</p>
-              <h1 className={`sg-hero__title ${missingInfoClass(safeProjectName)}`}>{safeProjectName}</h1>
-              {hasText(slogan) && (
+              <h1 className={`sg-hero__title ${missingInfoClass(safeProjectName)}`}>
+                {isEditorChromeVisible ? (
+                  <InlineRichText
+                    value={typeof draftValues.projectName === 'string' ? draftValues.projectName : ''}
+                    onChange={(nextValue) => handleFieldChange('projectName', nextValue)}
+                    placeholder={t('projectShowcase.fieldFallbackLabels.projectName')}
+                    ariaLabel={t('projectShowcase.fieldFallbackLabels.projectName')}
+                  />
+                ) : (
+                  safeProjectName
+                )}
+              </h1>
+              {(hasText(slogan) || isEditorChromeVisible) && (
                 <p className={`sg-hero__sub sg-rv ${missingInfoClass(slogan)}`} style={{ '--sg-d': '220ms' }}>
-                  {renderTextWithLinks(slogan)}
+                  {isEditorChromeVisible ? (
+                    <InlineRichText
+                      value={typeof draftValues.projectSlogan === 'string' ? draftValues.projectSlogan : ''}
+                      onChange={(nextValue) => handleFieldChange('projectSlogan', nextValue)}
+                      placeholder={t('projectShowcase.fieldFallbackLabels.projectSlogan')}
+                      ariaLabel={t('projectShowcase.fieldFallbackLabels.projectSlogan')}
+                    />
+                  ) : (
+                    renderTextWithLinks(slogan)
+                  )}
                 </p>
               )}
               <div className="sg-hero__cta sg-rv" style={{ '--sg-d': '340ms' }}>
@@ -3165,9 +3214,13 @@ export const ProjectShowcase = ({
     hasTimelineSection,
     hasTimelineSummaries,
     hasVigilanceAlerts,
+    draftValues.projectName,
+    draftValues.projectSlogan,
+    handleFieldChange,
     heroHighlights,
     hideNotice,
     innovationProcess,
+    isEditorChromeVisible,
     innovationProcessEntries,
     problemPainPoints,
     runway,
@@ -3191,10 +3244,47 @@ export const ProjectShowcase = ({
 
   // chaque gabarit personnalisé reprend une section existante : aucune forme nouvelle,
   // seule la famille de couleur choisie par l'utilisateur change.
-  const renderCustomSectionSignature = useCallback((section, index) => {
+  const renderCustomSectionSignature = useCallback((section, index, options = {}) => {
     if (!section) {
       return null;
     }
+
+    // Les vignettes du sélecteur et l'aperçu fantôme réutilisent ce rendu : ils passent
+    // `editable: false` pour rester de simples images de ce qui sera obtenu.
+    const editable = Boolean(options.editable);
+    const editText = (field, value, { placeholder = '', ariaLabel = '', className = '' } = {}) => {
+      if (!editable) {
+        return renderTextWithLinks(value);
+      }
+
+      return (
+        <InlineRichText
+          value={typeof value === 'string' ? value : ''}
+          onChange={(nextValue) => handleCustomSectionFieldChange(section.id, field, nextValue)}
+          placeholder={placeholder}
+          ariaLabel={ariaLabel || placeholder}
+          className={className}
+        />
+      );
+    };
+    const editListEntry = (field, listIndex, value, placeholder) => {
+      if (!editable) {
+        return renderTextWithLinks(value);
+      }
+
+      const onChange = field === 'items'
+        ? (nextValue) => handleCustomSectionItemChange(section.id, listIndex, nextValue)
+        : (nextValue) => handleCustomSectionColumnChange(section.id, listIndex, nextValue);
+
+      return (
+        <InlineRichText
+          value={typeof value === 'string' ? value : ''}
+          onChange={onChange}
+          placeholder={placeholder}
+          ariaLabel={placeholder}
+        />
+      );
+    };
 
     const type = section.type || SECTION_TEMPLATES[0].id;
     const templateConfig = resolveTemplateConfig(type);
@@ -3212,6 +3302,13 @@ export const ProjectShowcase = ({
     const items = Array.isArray(section.items)
       ? section.items.filter(Boolean).flatMap(item => splitRichTextIntoBlocks(item))
       : [];
+    // En édition, les entrées affichées doivent être celles du modèle : après découpage en
+    // blocs, l'index rendu ne désigne plus la valeur à modifier. L'aperçu (touche P) montre
+    // le découpage réel.
+    const renderedColumns = editable ? columns : activeColumns;
+    const renderedItems = editable
+      ? (Array.isArray(section.items) ? section.items : [])
+      : items;
 
     const tileVars = { '--sg-c': family.c, '--sg-g1': family.g1, '--sg-g2': family.g2 };
 
@@ -3228,12 +3325,18 @@ export const ProjectShowcase = ({
               className="sg-panel sg-rv"
               style={{ '--sg-c': family.c, '--sg-p1': family.p1, '--sg-p2': family.p2 }}
             >
-              {showAccent && section.accent && (
+              {showAccent && (editable || section.accent) && (
                 <p className="sg-eyebrow" style={{ '--sg-c': family.c }}>
-                  {renderTextWithLinks(section.accent)}
+                  {editText('accent', section.accent, {
+                    placeholder: t('projectShowcase.badgeFieldLabel')
+                  })}
                 </p>
               )}
-              <p className="sg-panel__lead">{renderTextWithLinks(title)}</p>
+              <p className="sg-panel__lead">
+                {editText('title', section.title, {
+                  placeholder: t('projectShowcase.titlePlaceholderFallback')
+                })}
+              </p>
               {section.description && (
                 <p className="sg-panel__body">{renderTextWithLinks(section.description)}</p>
               )}
@@ -3249,17 +3352,23 @@ export const ProjectShowcase = ({
         <section key={key} className="sg-band sg-band--dark sg-band--pad" data-showcase-section={type}>
           <div className="sg-wrap sg-impact">
             <div>
-              {showAccent && section.accent && (
+              {showAccent && (editable || section.accent) && (
                 <p className="sg-eyebrow sg-rv" style={{ '--sg-c': family.onDark }}>
-                  {renderTextWithLinks(section.accent)}
+                  {editText('accent', section.accent, {
+                    placeholder: t('projectShowcase.badgeFieldLabel')
+                  })}
                 </p>
               )}
               <h2 className="sg-headline sg-headline--sm sg-rv" style={{ '--sg-d': '80ms' }}>
-                {renderTextWithLinks(title)}
+                {editText('title', section.title, {
+                  placeholder: t('projectShowcase.titlePlaceholderFallback')
+                })}
               </h2>
-              {section.figure && (
+              {(editable || section.figure) && (
                 <p className="sg-impact__value sg-impact__value--sm sg-rv" style={{ '--sg-d': '160ms' }}>
-                  {section.figure}
+                  {editText('figure', section.figure, {
+                    placeholder: t('projectShowcase.figureFieldLabel')
+                  })}
                 </p>
               )}
             </div>
@@ -3280,15 +3389,21 @@ export const ProjectShowcase = ({
       return (
         <section key={key} className="sg-band sg-band--cloud sg-band--pad" data-showcase-section={type}>
           <div className="sg-wrap">
-            {section.subtitle && (
+            {(editable || section.subtitle) && (
               <p className="sg-eyebrow sg-rv" style={{ '--sg-c': family.c }}>
-                {renderTextWithLinks(section.subtitle)}
+                {editText('subtitle', section.subtitle, {
+                  placeholder: t('projectShowcase.subtitlePlaceholderFallback')
+                })}
               </p>
             )}
-            <h2 className="sg-headline sg-rv" style={{ '--sg-d': '80ms' }}>{renderTextWithLinks(title)}</h2>
-            {activeColumns.length > 0 && (
+            <h2 className="sg-headline sg-rv" style={{ '--sg-d': '80ms' }}>
+              {editText('title', section.title, {
+                placeholder: t('projectShowcase.titlePlaceholderFallback')
+              })}
+            </h2>
+            {renderedColumns.length > 0 && (
               <div className="sg-grid">
-                {activeColumns.map((column, columnIndex) => (
+                {renderedColumns.map((column, columnIndex) => (
                   <article
                     key={`${key}-col-${columnIndex}`}
                     className="sg-tile sg-rv"
@@ -3296,7 +3411,14 @@ export const ProjectShowcase = ({
                     style={{ ...tileVars, '--sg-d': `${columnIndex * 80}ms` }}
                   >
                     <span className="sg-tile__glyph">{String(columnIndex + 1).padStart(2, '0')}</span>
-                    <p className="sg-tile__text">{renderTextWithLinks(column)}</p>
+                    <p className="sg-tile__text">
+                      {editListEntry(
+                        'columns',
+                        columnIndex,
+                        column,
+                        t('projectShowcase.columnContentPlaceholderTemplate', { index: columnIndex + 1 })
+                      )}
+                    </p>
                   </article>
                 ))}
               </div>
@@ -3312,18 +3434,24 @@ export const ProjectShowcase = ({
         <section key={key} className="sg-band sg-band--light sg-band--pad" data-showcase-section={type}>
           <div className="sg-wrap">
             <p className="sg-eyebrow sg-rv" style={{ '--sg-c': family.c }}>{t('projectShowcase.templates.checklist.name')}</p>
-            <h2 className="sg-headline sg-rv" style={{ '--sg-d': '80ms' }}>{renderTextWithLinks(title)}</h2>
+            <h2 className="sg-headline sg-rv" style={{ '--sg-d': '80ms' }}>
+              {editText('title', section.title, {
+                placeholder: t('projectShowcase.titlePlaceholderFallback')
+              })}
+            </h2>
             {section.description && <p className="sg-lede sg-rv" style={{ '--sg-d': '160ms' }}>{renderTextWithLinks(section.description)}</p>}
-            {items.length > 0 && (
+            {renderedItems.length > 0 && (
               <ul className="sg-rows" style={{ '--sg-c': family.c, marginTop: '1.6rem' }}>
-                {items.map((item, itemIndex) => (
+                {renderedItems.map((item, itemIndex) => (
                   <li key={`${key}-item-${itemIndex}`} className="sg-rv" style={{ '--sg-d': `${itemIndex * 70}ms` }}>
                     <span className="sg-rows__tick" aria-hidden="true">
                       <svg viewBox="0 0 16 16" fill="none">
                         <path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </span>
-                    <span>{renderTextWithLinks(item)}</span>
+                    <span>
+                      {editListEntry('items', itemIndex, item, t('projectShowcase.itemPlaceholder'))}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -3338,15 +3466,21 @@ export const ProjectShowcase = ({
       return (
         <section key={key} className="sg-band sg-band--light sg-band--pad" data-showcase-section={type}>
           <div className="sg-wrap">
-            {section.subtitle && (
+            {(editable || section.subtitle) && (
               <p className="sg-eyebrow sg-rv" style={{ '--sg-c': family.c }}>
-                {renderTextWithLinks(section.subtitle)}
+                {editText('subtitle', section.subtitle, {
+                  placeholder: t('projectShowcase.subtitlePlaceholderFallback')
+                })}
               </p>
             )}
-            <h2 className="sg-headline sg-rv" style={{ '--sg-d': '80ms' }}>{renderTextWithLinks(title)}</h2>
-            {items.length > 0 && (
+            <h2 className="sg-headline sg-rv" style={{ '--sg-d': '80ms' }}>
+              {editText('title', section.title, {
+                placeholder: t('projectShowcase.titlePlaceholderFallback')
+              })}
+            </h2>
+            {renderedItems.length > 0 && (
               <div className="sg-stack">
-                {items.map((item, itemIndex) => (
+                {renderedItems.map((item, itemIndex) => (
                   <div
                     key={`${key}-card-${itemIndex}`}
                     className="sg-stack__slot sg-rv sg-rv--x"
@@ -3357,7 +3491,9 @@ export const ProjectShowcase = ({
                       <div className="sg-card__top">
                         <span className="sg-card__idx">{String(itemIndex + 1).padStart(2, '0')}</span>
                       </div>
-                      <p className="sg-card__text">{renderTextWithLinks(item)}</p>
+                      <p className="sg-card__text">
+                        {editListEntry('items', itemIndex, item, t('projectShowcase.itemPlaceholder'))}
+                      </p>
                     </article>
                   </div>
                 ))}
@@ -3381,10 +3517,24 @@ export const ProjectShowcase = ({
                   <path d="M14 3v5h5" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
                 </svg>
               </span>
-              {showAccent && section.accent && <span className="sg-tile__pill">{renderTextWithLinks(section.accent)}</span>}
-              <p className="sg-tile__title">{renderTextWithLinks(title)}</p>
-              {section.subtitle && (
-                <p className="sg-tile__text sg-tile__text--muted">{renderTextWithLinks(section.subtitle)}</p>
+              {showAccent && (editable || section.accent) && (
+                <span className="sg-tile__pill">
+                  {editText('accent', section.accent, {
+                    placeholder: t('projectShowcase.accentPlaceholderFallback')
+                  })}
+                </span>
+              )}
+              <p className="sg-tile__title">
+                {editText('title', section.title, {
+                  placeholder: t('projectShowcase.titlePlaceholderFallback')
+                })}
+              </p>
+              {(editable || section.subtitle) && (
+                <p className="sg-tile__text sg-tile__text--muted">
+                  {editText('subtitle', section.subtitle, {
+                    placeholder: t('projectShowcase.subtitlePlaceholderFallback')
+                  })}
+                </p>
               )}
               {section.description && (
                 <p className="sg-tile__text sg-tile__text--muted">{renderTextWithLinks(section.description)}</p>
@@ -3437,560 +3587,204 @@ export const ProjectShowcase = ({
         </div>
       </section>
     );
-  }, [t]);
+  }, [handleCustomSectionColumnChange, handleCustomSectionFieldChange, handleCustomSectionItemChange, t]);
 
-  const orderedSections = useMemo(() => {
-    const sections = [];
-    sectionOrder.forEach((sectionId, index) => {
-      if (!shouldDisplaySection(sectionId)) {
-        return;
-      }
+  // Pendant l'édition, le canvas lit les sections *non assainies* : `sanitizeCustomSections`
+  // supprime une section devenue entièrement vide, ce qui la ferait disparaître sous les
+  // doigts de l'utilisateur au moment où il efface son dernier caractère.
+  const canvasCustomSectionMap = isEditorChromeVisible ? customSectionFormMap : customSectionMap;
 
-      if (customSectionMap.has(sectionId)) {
-        const renderedCustom = renderCustomSectionSignature(customSectionMap.get(sectionId), index);
-        if (renderedCustom) {
-          sections.push(renderedCustom);
-        }
-        return;
-      }
-
-      const rendered = renderSignatureSection(sectionId, index);
-      if (rendered) {
-        sections.push(rendered);
-      }
-    });
-
-    return sections;
-  }, [
-    customSectionMap,
-    renderCustomSectionSignature,
-    renderSignatureSection,
-    sectionOrder,
-    shouldDisplaySection
-  ]);
-
-  const sectionDescriptors = useMemo(() => {
-    return sectionOrder.map((sectionId) => {
-      const custom = customSectionMap.get(sectionId);
-      if (custom) {
-        return {
-          id: sectionId,
-          title: custom.title || t('projectShowcase.customBlockFallback'),
-          subtitle: t('projectShowcase.customSectionSubtitle'),
-          isCustom: true
-        };
-      }
-
-      const option = SHOWCASE_SECTION_OPTIONS.find(section => section.id === sectionId);
-      return {
-        id: sectionId,
-        title: option ? getSectionOptionLabel(t, option.id) : sectionId,
-        subtitle: t('projectShowcase.standardSectionSubtitle'),
-        isCustom: false
-      };
-    });
-  }, [customSectionMap, sectionOrder, t]);
-
-  const selectedTemplate = SECTION_TEMPLATES[selectedTemplateIndex] || SECTION_TEMPLATES[0];
-  const selectedTemplateMeta = getTemplateMeta(t, selectedTemplate?.id);
-  const selectedTemplateConfig = resolveTemplateConfig(selectedTemplate?.id);
-  // chaque gabarit reprend une section existante ; l'aperçu suit la même famille de couleur
-  const templateAccentClasses = {
-    highlight: 'from-rose-500/80 via-rose-400/70 to-amber-200/70',
-    'figure': 'from-sky-700/80 via-sky-500/70 to-sky-300/70',
-    columns: 'from-emerald-600/80 via-emerald-400/70 to-teal-200/70',
-    'document-viewer': 'from-amber-600/80 via-amber-400/70 to-amber-200/70',
-    story: 'from-fuchsia-600/80 via-fuchsia-400/70 to-pink-200/70',
-    checklist: 'from-orange-600/80 via-orange-400/70 to-amber-200/70',
-    stack: 'from-sky-700/80 via-sky-500/70 to-cyan-200/70'
-  };
-  const selectedTemplateAccent =
-    templateAccentClasses[selectedTemplate?.id] || templateAccentClasses.highlight;
-
-  const templateOriginLabel = {
-    highlight: t('projectShowcase.templateOrigin.highlight'),
-    'figure': t('projectShowcase.templateOrigin.figure'),
-    columns: t('projectShowcase.templateOrigin.columns'),
-    'document-viewer': t('projectShowcase.templateOrigin.documentViewer'),
-    story: t('projectShowcase.templateOrigin.story'),
-    checklist: t('projectShowcase.templateOrigin.checklist'),
-    stack: t('projectShowcase.templateOrigin.stack')
-  };
-
-  const renderTemplateThumbnail = (templateId) => {
-    const shell = 'sge-tpl__preview';
-
-    switch (templateId) {
-      // BRIQUE A — carte pleine avec grand chiffre
-      case 'figure':
-        return (
-          <div className={shell}>
-            <div className="flex items-center justify-between gap-4 rounded-2xl bg-gradient-to-br from-sky-700 to-slate-800 px-4 py-5">
-              <div className="space-y-2">
-                <div className="h-2 w-14 rounded-full bg-white/50" />
-                <div className="h-2 w-24 rounded-full bg-white/30" />
-              </div>
-              <div className="text-2xl font-bold text-white">87 %</div>
-            </div>
-          </div>
-        );
-
-      // BRIQUE B — grille de cartes claires
-      case 'columns':
-        return (
-          <div className={shell}>
-            <div className="grid grid-cols-3 gap-2">
-              {[0, 1, 2].map((column) => (
-                <div key={`thumb-col-${column}`} className="space-y-2 rounded-lg border border-gray-100 p-2">
-                  <div className="h-1 w-8 rounded-full bg-emerald-500" />
-                  <div className="h-5 w-5 rounded-md bg-gradient-to-br from-emerald-400 to-emerald-700" />
-                  <div className="h-1.5 w-full rounded-full bg-gray-200" />
-                  <div className="h-1.5 w-3/4 rounded-full bg-gray-200" />
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-
-      // BRIQUE B + cadre document
-      case 'document-viewer':
-        return (
-          <div className={shell}>
-            <div className="space-y-2 rounded-lg border border-gray-100 p-3">
-              <div className="h-1 w-10 rounded-full bg-amber-600" />
-              <div className="h-5 w-5 rounded-md bg-gradient-to-br from-amber-300 to-amber-700" />
-              <div className="h-1.5 w-24 rounded-full bg-gray-300" />
-              <div className="flex h-16 items-center justify-center rounded-md bg-gray-50 text-xs text-gray-400">
-                {t('projectShowcase.documentPreviewLabel')}
-              </div>
-            </div>
-          </div>
-        );
-
-      // BRIQUE D — liste à filets cochée
-      case 'checklist':
-        return (
-          <div className={shell}>
-            <div className="space-y-2">
-              {[0, 1, 2].map((row) => (
-                <div key={`thumb-check-${row}`} className="flex items-center gap-2 border-t border-gray-100 pt-2">
-                  <span className="h-3 w-3 rounded-full bg-orange-500" />
-                  <div className="h-1.5 flex-1 rounded-full bg-gray-200" />
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-
-      // BRIQUE A — cartes pleine couleur rangées en grille
-      case 'stack':
-        return (
-          <div className={shell}>
-            <div className="grid grid-cols-3 gap-1.5">
-              {[0, 1, 2, 3, 4, 5].map((card) => (
-                <div
-                  key={`thumb-stack-${card}`}
-                  className="h-8 rounded-md bg-gradient-to-br from-sky-600 to-slate-800 shadow-sm"
-                  style={{ opacity: card < 3 ? 1 : 0.55 }}
-                />
-              ))}
-            </div>
-            <p className="mt-2 text-center text-xs text-gray-400">{t('projectShowcase.cardsGridCaption')}</p>
-          </div>
-        );
-
-      // BRIQUE C — panneau large
-      case 'story':
-      case 'highlight':
-      default:
-        return (
-          <div className={shell}>
-            <div
-              className={`space-y-2 rounded-2xl border-l-4 p-4 ${
-                templateId === 'story'
-                  ? 'border-fuchsia-600 bg-gradient-to-br from-fuchsia-50 to-pink-50'
-                  : 'border-rose-500 bg-gradient-to-br from-rose-50 to-amber-50'
-              }`}
-            >
-              {templateId === 'highlight' && <div className="h-4 w-14 rounded-full bg-white/80" />}
-              <div className="h-2.5 w-32 rounded-full bg-gray-400" />
-              <div className="h-1.5 w-full rounded-full bg-gray-300" />
-              <div className="h-1.5 w-4/5 rounded-full bg-gray-300" />
-              {templateId === 'story' && <div className="h-1.5 w-3/5 rounded-full bg-gray-300" />}
-            </div>
-          </div>
-        );
-    }
-  };
-
-  const previewContent = shouldShowPreview ? (
-    <div className="sg-sections" data-tour-id="showcase-preview">
-      {orderedSections}
-    </div>
-  ) : (
-    <div className="sge-empty">
-      <h2 className="sge-empty__title">{t('projectShowcase.editModeActivatedTitle')}</h2>
-      <p className="sge-empty__text">
-        {t('projectShowcase.editModeActivatedHint')}
-      </p>
-    </div>
+  // La vignette du sélecteur est le composant réel de la vitrine, réduit à l'échelle :
+  // les anciennes vignettes en fil de fer gris ne montraient ni la typographie, ni la
+  // palette, ni la forme réellement obtenues.
+  const renderTemplatePreview = useCallback(
+    (templateId) =>
+      renderCustomSectionSignature(
+        buildSectionFromTemplate(t, templateId, `template-preview-${templateId}`),
+        0
+      ),
+    [renderCustomSectionSignature, t]
   );
 
-  const sectionModal = isSectionModalOpen ? (
-    <div className="sge sge-modal-scrim">
-      <div className="absolute inset-0" onClick={handleCloseSectionModal} aria-hidden="true" />
-      <div
-        className="sge-modal relative z-10"
-        role="dialog"
-        aria-modal="true"
-      >
-        <div className="sge-modal__header">
-          <div>
-            <p className="sge-eyebrow">{t('projectShowcase.newSectionEyebrow')}</p>
-            <h3 className="sge-title" style={{ fontSize: '1.25rem' }}>{t('projectShowcase.chooseTemplateTitle')}</h3>
-            <p className="sge-subtitle">{t('projectShowcase.thumbnailHint')}</p>
-          </div>
-          <button
-            type="button"
-            onClick={handleCloseSectionModal}
-            className="sge-btn sge-btn--ghost"
-          >
-            {t('projectShowcase.closeButton')}
-          </button>
-        </div>
+  const getTemplateLabel = useCallback(
+    (templateId) => {
+      const meta = getTemplateMeta(t, templateId);
+      return { name: meta.name, description: meta.description };
+    },
+    [t]
+  );
 
-        {sectionModalStep === 'templates' ? (
-          <div className="sge-modal__body">
-            <div className="sge-tpl">
-              <button
-                type="button"
-                onClick={() => handleTemplateNavigation(-1)}
-                className="sge-tpl__nav"
-                aria-label={t('projectShowcase.previousTemplateAriaLabel')}
-              >
-                ←
-              </button>
-              <div className="sge-tpl__card">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="sge-eyebrow">{t('projectShowcase.templateCounterTemplate', { index: selectedTemplateIndex + 1, total: SECTION_TEMPLATES.length })}</p>
-                    <h4 className="sge-title" style={{ marginTop: '0.3rem' }}>{selectedTemplateMeta.name}</h4>
-                    <p className="sge-subtitle" style={{ marginTop: '0.25rem' }}>{selectedTemplateMeta.description}</p>
-                    {templateOriginLabel[selectedTemplate?.id] && (
-                      <p className="sge-tpl__origin">{templateOriginLabel[selectedTemplate?.id]}</p>
-                    )}
-                  </div>
-                  <div className={`h-10 w-20 flex-none rounded-lg bg-gradient-to-r ${selectedTemplateAccent}`} />
-                </div>
-                {renderTemplateThumbnail(selectedTemplate?.id)}
-              </div>
-              <button
-                type="button"
-                onClick={() => handleTemplateNavigation(1)}
-                className="sge-tpl__nav"
-                aria-label={t('projectShowcase.nextTemplateAriaLabel')}
-              >
-                →
-              </button>
-            </div>
-            <div className="sge-modal__actions">
-              <button type="button" onClick={handleCloseSectionModal} className="sge-btn sge-btn--ghost">
-                {t('projectShowcase.cancelButton')}
-              </button>
-              <button type="button" onClick={handleConfirmTemplateChoice} className="sge-btn sge-btn--primary">
-                {t('projectShowcase.validateTemplateButton')}
-              </button>
-            </div>
+  const ghostSection = useMemo(
+    () => (ghostTemplateId ? buildSectionFromTemplate(t, ghostTemplateId, '__ghost__') : null),
+    [ghostTemplateId, t]
+  );
+
+  const sectionEntries = useMemo(
+    () =>
+      sectionOrder.map((sectionId, index) => {
+        const custom = canvasCustomSectionMap.get(sectionId);
+        const option = SHOWCASE_SECTION_OPTIONS.find(section => section.id === sectionId);
+        const title = custom
+          ? toPlainText(custom.title) || t('projectShowcase.customBlockFallback')
+          : option
+            ? getSectionOptionLabel(t, option.id)
+            : sectionId;
+
+        return {
+          id: sectionId,
+          index,
+          isCustom: Boolean(custom),
+          // « notice » n'a aucun champ : elle s'affiche d'elle-même selon l'état du projet.
+          // Lui proposer de « renseigner ses champs » serait une fausse piste.
+          hasEditableFields: Boolean(custom) || (sectionFieldsById[sectionId] || []).length > 0,
+          plainTitle: title,
+          templateLabel: custom ? getTemplateMeta(t, custom.type).name : '',
+          isHiddenInLight: isSectionHiddenInLight(sectionId),
+          node: custom
+            ? renderCustomSectionSignature(custom, index, { editable: isEditorChromeVisible })
+            : renderSignatureSection(sectionId, index)
+        };
+      }),
+    [
+      canvasCustomSectionMap,
+      isEditorChromeVisible,
+      isSectionHiddenInLight,
+      renderCustomSectionSignature,
+      renderSignatureSection,
+      sectionFieldsById,
+      sectionOrder,
+      t
+    ]
+  );
+
+  const isDragActive = canvasDragIndex !== null;
+
+  // `'end'` est la valeur posée par les appelants qui ignorent la longueur courante de la
+  // vitrine (le guide interactif). Sans cette résolution, aucun interstice ne se
+  // reconnaissait comme ouvert et le sélecteur ne s'affichait jamais.
+  const resolvedInserterIndex = useMemo(
+    () => (inserterIndex === 'end' ? sectionOrder.length : inserterIndex),
+    [inserterIndex, sectionOrder.length]
+  );
+
+  const renderInserter = useCallback(
+    (index) => (
+      <SectionInserter
+        key={`sge-insert-${index}`}
+        index={index}
+        isOpen={resolvedInserterIndex === index}
+        onOpen={handleOpenSectionPicker}
+        onClose={handleCloseSectionPicker}
+        templates={SECTION_TEMPLATES}
+        renderTemplatePreview={renderTemplatePreview}
+        getTemplateLabel={getTemplateLabel}
+        onInsert={handleInsertTemplate}
+        onHoverTemplate={setGhostTemplateId}
+        isDragActive={isDragActive}
+        isDropTarget={canvasDropIndex === index}
+        onDropSection={handleCanvasDrop}
+      />
+    ),
+    [
+      canvasDropIndex,
+      getTemplateLabel,
+      handleCanvasDrop,
+      handleCloseSectionPicker,
+      handleInsertTemplate,
+      handleOpenSectionPicker,
+      isDragActive,
+      renderTemplatePreview,
+      resolvedInserterIndex
+    ]
+  );
+
+  const previewContent = useMemo(() => {
+    if (!isEditorChromeVisible) {
+      return (
+        <div className="sg-sections" data-tour-id="showcase-preview">
+          {sectionEntries
+            .filter(entry => entry.node && shouldDisplaySection(entry.id))
+            .map(entry => entry.node)}
+        </div>
+      );
+    }
+
+    const nodes = [];
+
+    const pushInserter = (index) => {
+      nodes.push(renderInserter(index));
+      // Aperçu fantôme : le gabarit survolé apparaît à sa place définitive, dans le thème
+      // du projet, avant même d'avoir été ajouté.
+      if (ghostSection && resolvedInserterIndex === index) {
+        nodes.push(
+          <div className="sge-ghost" key={`sge-ghost-${index}`} aria-hidden="true">
+            {renderCustomSectionSignature(ghostSection, index)}
           </div>
-        ) : (
-          <form onSubmit={handleSubmitNewSection} className="mt-6 space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-1">
-                <label htmlFor="section-title" className="text-sm font-medium text-gray-800">{t('projectShowcase.titleFieldLabel')}</label>
-                <RichTextEditor
-                  id="section-title"
-                  value={sectionDraft.title}
-                  onChange={(nextValue) => handleSectionDraftChange('title', nextValue)}
-                  placeholder={selectedTemplateMeta.placeholder?.title || t('projectShowcase.titlePlaceholderFallback')}
-                  compact
-                  ariaLabel={t('projectShowcase.titleSectionAriaLabel')}
-                />
-              </div>
-              {selectedTemplateConfig.showSubtitle && (
-                <div className="space-y-1">
-                  <label htmlFor="section-subtitle" className="text-sm font-medium text-gray-800">{t('projectShowcase.subtitleFieldLabel')}</label>
-                  <RichTextEditor
-                    id="section-subtitle"
-                    value={sectionDraft.subtitle}
-                    onChange={(nextValue) => handleSectionDraftChange('subtitle', nextValue)}
-                    placeholder={selectedTemplateMeta.placeholder?.subtitle || t('projectShowcase.subtitlePlaceholderFallback')}
-                    compact
-                    ariaLabel={t('projectShowcase.subtitleSectionAriaLabel')}
-                  />
-                </div>
-              )}
-              {selectedTemplateConfig.showBadge && (
-                <div className="space-y-1">
-                  <label htmlFor="section-badge" className="text-sm font-medium text-gray-800">{t('projectShowcase.badgeFieldLabel')}</label>
-                  <RichTextEditor
-                    id="section-badge"
-                    value={sectionDraft.accent}
-                    onChange={(nextValue) => handleSectionDraftChange('accent', nextValue)}
-                    placeholder={selectedTemplateMeta.placeholder?.badge || t('projectShowcase.badgeFieldLabel')}
-                    compact
-                    ariaLabel={t('projectShowcase.badgeSectionAriaLabel')}
-                  />
-                </div>
-              )}
-              {selectedTemplateConfig.showAccent && (
-                <div className="space-y-1">
-                  <label htmlFor="section-accent" className="text-sm font-medium text-gray-800">{t('projectShowcase.accentFieldLabel')}</label>
-                  <RichTextEditor
-                    id="section-accent"
-                    value={sectionDraft.accent}
-                    onChange={(nextValue) => handleSectionDraftChange('accent', nextValue)}
-                    placeholder={t('projectShowcase.accentPlaceholderFallback')}
-                    compact
-                    ariaLabel={t('projectShowcase.accentSectionAriaLabel')}
-                  />
-                </div>
-              )}
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-800">{t('projectShowcase.colorFamilyLabel')}</label>
-              <div className="flex flex-wrap gap-2">
-                {SECTION_ACCENT_FAMILIES.map((family) => {
-                  const isActive = (sectionDraft.accentFamily || DEFAULT_ACCENT_FAMILY) === family.id;
-                  return (
-                    <button
-                      key={`draft-family-${family.id}`}
-                      type="button"
-                      onClick={() => handleSectionDraftChange('accentFamily', family.id)}
-                      aria-pressed={isActive}
-                      className="sge-swatch"
-                    >
-                      <span
-                        className="sge-swatch__dot"
-                        style={{ background: `linear-gradient(135deg, ${family.g1}, ${family.g2})` }}
-                      />
-                      {getColorFamilyLabel(t, family.id)}
-                    </button>
-                  );
-                })}
-              </div>
-              <p className="text-xs text-gray-500">
-                {t('projectShowcase.colorFamilyHint')}
+        );
+      }
+    };
+
+    pushInserter(0);
+    sectionEntries.forEach((entry, index) => {
+      nodes.push(
+        <SectionFrame
+          key={`sge-frame-${entry.id}`}
+          sectionId={entry.id}
+          title={entry.plainTitle}
+          templateLabel={entry.templateLabel}
+          index={index}
+          total={sectionEntries.length}
+          isCustom={entry.isCustom}
+          isActive={activeSectionId === entry.id}
+          isHiddenInLight={entry.isHiddenInLight}
+          isDragging={canvasDragIndex === index}
+          onSelect={handleSelectSection}
+          onMove={handleMoveSection}
+          onDuplicate={handleDuplicateCustomSection}
+          onRemove={handleRemoveCustomSection}
+          onToggleVisibility={handleToggleSectionVisibility}
+          onDragStart={handleCanvasDragStart}
+          onDragEnd={handleCanvasDragEnd}
+        >
+          {entry.node || (
+            <div className="sge-frame__empty">
+              <p className="sge-frame__empty-title">{entry.plainTitle}</p>
+              <p className="sge-frame__empty-text">
+                {entry.hasEditableFields
+                  ? t('projectShowcase.editor.emptySectionHint')
+                  : t('projectShowcase.editor.autoSectionHint')}
               </p>
             </div>
-            {selectedTemplate?.id === 'figure' && (
-              <div className="space-y-1">
-                <label htmlFor="section-figure" className="text-sm font-medium text-gray-800">{t('projectShowcase.figureFieldLabel')}</label>
-                <input
-                  id="section-figure"
-                  type="text"
-                  value={sectionDraft.figure || ''}
-                  onChange={(event) => handleSectionDraftChange('figure', event.target.value)}
-                  placeholder="87 %"
-                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-400 focus:ring focus:ring-blue-100"
-                />
-                <p className="text-xs text-gray-500">{t('projectShowcase.figureHint')}</p>
-              </div>
-            )}
-            {selectedTemplateConfig.showDescription && (
-              <div className="space-y-1">
-                <label htmlFor="section-description" className="text-sm font-medium text-gray-800">{t('projectShowcase.descriptionFieldLabel')}</label>
-                <RichTextEditor
-                  id="section-description"
-                  value={sectionDraft.description}
-                  onChange={(nextValue) => handleSectionDraftChange('description', nextValue)}
-                  placeholder={selectedTemplateMeta.placeholder?.description || t('projectShowcase.descriptionPlaceholderFallback')}
-                  ariaLabel={t('projectShowcase.descriptionSectionAriaLabel')}
-                />
-              </div>
-            )}
-            {selectedTemplateConfig.showColumns && (
-              <>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-1">
-                    <label htmlFor="section-column-count" className="text-sm font-medium text-gray-800">{t('projectShowcase.columnCountLabel')}</label>
-                    <select
-                      id="section-column-count"
-                      value={sectionDraft.columnCount}
-                      onChange={(event) => handleSectionDraftColumnCountChange(event.target.value)}
-                      className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-400 focus:ring focus:ring-blue-100"
-                    >
-                      {Array.from({ length: MAX_CUSTOM_SECTION_COLUMNS }, (_, index) => (
-                        <option key={`section-column-count-${index + 1}`} value={index + 1}>
-                          {t(index + 1 > 1 ? 'projectShowcase.columnCountOptionPlural' : 'projectShowcase.columnCountOptionSingular', { count: index + 1 })}
-                        </option>
-                      ))}
-                    </select>
-                    <p className="text-xs text-gray-500">{t('projectShowcase.columnsReflowHint')}</p>
-                  </div>
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  {sectionDraft.columns.map((column, columnIndex) => (
-                    <div key={`section-draft-column-${columnIndex}`} className="space-y-1">
-                      <label
-                        htmlFor={`section-column-${columnIndex}`}
-                        className="text-sm font-medium text-gray-800"
-                      >
-                        {t('projectShowcase.columnContentLabelTemplate', { index: columnIndex + 1 })}
-                      </label>
-                      <RichTextEditor
-                        id={`section-column-${columnIndex}`}
-                        value={column}
-                        onChange={(nextValue) => handleSectionDraftColumnChange(columnIndex, nextValue)}
-                        placeholder={t('projectShowcase.columnContentPlaceholderTemplate', { index: columnIndex + 1 })}
-                        compact
-                        ariaLabel={t('projectShowcase.columnContentLabelTemplate', { index: columnIndex + 1 })}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-            {selectedTemplateConfig.showDocument && (
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-gray-800">
-                    {t('projectShowcase.documentUrlLabel')}
-                  </label>
-                  {documentUploadErrors.draft && (
-                    <p className="text-xs text-red-600">{documentUploadErrors.draft}</p>
-                  )}
-                  {sectionDraft.documentUrl ? (
-                    <div className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm">
-                      <a
-                        href={sectionDraft.documentUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="truncate text-blue-600 hover:underline"
-                      >
-                        {t('projectShowcase.documentUploadedLabel')}
-                      </a>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          handleSectionDraftChange('documentUrl', '');
-                          handleSectionDraftChange('documentType', 'pdf');
-                        }}
-                        className="shrink-0 text-xs font-semibold text-gray-500 hover:text-gray-700"
-                      >
-                        {t('projectShowcase.removeDocumentButton')}
-                      </button>
-                    </div>
-                  ) : (
-                    <label className="flex w-full cursor-pointer items-center justify-center rounded-lg border border-dashed border-blue-300 bg-blue-50 px-3 py-3 text-center text-sm font-medium text-blue-700 hover:bg-blue-100">
-                      <input
-                        type="file"
-                        className="sr-only"
-                        onChange={(event) => {
-                          handleDocumentUpload('draft', handleSectionDraftChange, event.target.files);
-                          event.target.value = '';
-                        }}
-                      />
-                      {t('projectShowcase.chooseDocumentButton')}
-                    </label>
-                  )}
-                  <p className="text-xs text-gray-500">
-                    {t('projectShowcase.documentUrlHint')}
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <label htmlFor="section-document-type" className="text-sm font-medium text-gray-800">
-                    {t('projectShowcase.documentTypeLabel')}
-                  </label>
-                  <select
-                    id="section-document-type"
-                    value={sectionDraft.documentType}
-                    onChange={(event) => handleSectionDraftChange('documentType', event.target.value)}
-                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-400 focus:ring focus:ring-blue-100"
-                  >
-                    {DOCUMENT_VIEWER_TYPES.map(type => (
-                      <option key={type.id} value={type.id}>
-                        {type.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            )}
-            {selectedTemplateConfig.showItems && (
-              <div className="space-y-3">
-                <label className="sge-field__label">
-                  {selectedTemplate?.id === 'stack'
-                    ? t('projectShowcase.stackItemsLabel')
-                    : t('projectShowcase.listItemsLabel')}
-                </label>
-                {Array.isArray(sectionDraft.items) && sectionDraft.items.length > 0 ? (
-                  <div className="space-y-3">
-                    {sectionDraft.items.map((item, itemIndex) => (
-                      <div key={`section-draft-item-${itemIndex}`} className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs font-semibold text-gray-500">{t('projectShowcase.itemNumberLabel', { index: itemIndex + 1 })}</p>
-                          <button
-                            type="button"
-                            onClick={() => handleSectionDraftItemRemove(itemIndex)}
-                            className="inline-flex items-center gap-1 rounded-full border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:border-red-200 hover:text-red-600"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                            {t('projectShowcase.removeButton')}
-                          </button>
-                        </div>
-                        <RichTextEditor
-                          id={`section-items-${itemIndex}`}
-                          value={item}
-                          onChange={(nextValue) => handleSectionDraftItemChange(itemIndex, nextValue)}
-                          placeholder={t('projectShowcase.itemPlaceholder')}
-                          compact
-                          ariaLabel={t('projectShowcase.itemAriaLabelTemplate', { index: itemIndex + 1 })}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-gray-500">{t('projectShowcase.noItemAddedYet')}</p>
-                )}
-                <button
-                  type="button"
-                  onClick={handleSectionDraftItemAdd}
-                  className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700 transition hover:border-blue-200 hover:text-blue-700"
-                >
-                  <Plus className="h-4 w-4" />
-                  {t('projectShowcase.addItemButton')}
-                </button>
-              </div>
-            )}
-            <div className="flex flex-wrap justify-between gap-2">
-              <button
-                type="button"
-                onClick={handleBackToTemplates}
-                className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-gray-300"
-              >
-                {t('projectShowcase.backToTemplatesButton')}
-              </button>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={handleCloseSectionModal}
-                  className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-gray-300"
-                >
-                  {t('projectShowcase.cancelButton')}
-                </button>
-                <button
-                  type="submit"
-                  className="rounded-full border border-blue-200 bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
-                >
-                  {t('projectShowcase.addSectionButton')}
-                </button>
-              </div>
-            </div>
-          </form>
-        )}
+          )}
+        </SectionFrame>
+      );
+      pushInserter(index + 1);
+    });
+
+    return (
+      <div className="sg-sections sge-canvas" data-tour-id="showcase-preview">
+        {nodes}
       </div>
-    </div>
-  ) : null;
+    );
+  }, [
+    activeSectionId,
+    canvasDragIndex,
+    ghostSection,
+    handleCanvasDragEnd,
+    handleCanvasDragStart,
+    handleDuplicateCustomSection,
+    handleMoveSection,
+    handleRemoveCustomSection,
+    handleSelectSection,
+    handleToggleSectionVisibility,
+    isEditorChromeVisible,
+    renderCustomSectionSignature,
+    renderInserter,
+    resolvedInserterIndex,
+    sectionEntries,
+    shouldDisplaySection,
+    t
+  ]);
 
   const modeSelectionPanel = resolvedDisplayModeLock || !canConfigureDisplayModes ? null : (
     <div className="sge sge-surface mb-6" data-tour-id="showcase-display-modes">
@@ -4093,125 +3887,199 @@ export const ProjectShowcase = ({
     </div>
   );
 
-  const editPanel = isEditing && canEdit ? (
-    <form
-      id={formId}
-      onSubmit={handleSubmitEdit}
-      className="sge sge-panel"
-      data-tour-id="showcase-edit-panel"
-    >
-      <div className="sge-panel__header">
-        <div>
-          <p className="sge-eyebrow">{t('projectShowcase.editModeActiveLabel')}</p>
-          <h3 className="sge-title">{t('projectShowcase.adjustInfoTitle')}</h3>
-        </div>
-        <p className="sge-panel__intro">
-          {t('projectShowcase.editPanelIntro')}
-        </p>
-      </div>
-      <nav className="sge-jumpnav" aria-label={t('projectShowcase.jumpNavAriaLabel')}>
-        {sectionDescriptors.map((section) => (
-          <button
-            key={`jump-${section.id}`}
-            type="button"
-            className="sge-jumpnav__item"
-            onClick={() => {
-              document.getElementById(`sge-group-${section.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }}
-          >
-            {section.title}
-          </button>
-        ))}
-      </nav>
-      <div className="mb-6 rounded-2xl border border-gray-200 bg-gray-50/60 p-4 shadow-inner">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="sge-eyebrow">{t('projectShowcase.sectionsOrganizationEyebrow')}</p>
-            <h4 className="text-lg font-semibold text-gray-900">{t('projectShowcase.reorderAddBlocksTitle')}</h4>
-            <p className="text-sm text-gray-600">{t('projectShowcase.dragDropHint')}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => handleOpenSectionModal(0)}
-              className="hidden h-10 w-10 items-center justify-center rounded-full border border-dashed border-gray-300 text-gray-600 transition hover:border-blue-300 hover:text-blue-600 sm:inline-flex"
-              aria-label={t('projectShowcase.addSectionAtStartAriaLabel')}
-            >
-              <Plus className="h-5 w-5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => handleOpenSectionModal(sectionOrder.length)}
-              className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
-            >
-              <Plus className="h-4 w-4" />
-              {t('projectShowcase.newSectionEyebrow')}
-            </button>
-          </div>
-        </div>
-        <ol className="mt-4 space-y-3">
-          {sectionDescriptors.map((section, index) => {
-            const isTarget = sectionDragState.targetIndex === index;
-            return (
-              <li key={section.id} className="space-y-2">
-                <div
-                  draggable
-                  onDragStart={(event) => handleSectionDragStart(index, event)}
-                  onDragEnter={() => handleSectionDragEnter(index)}
-                  onDragOver={handleSectionDragOver}
-                  onDragLeave={(event) => handleSectionDragLeave(index, event)}
-                  onDrop={(event) => handleSectionDrop(index, event)}
-                  className={`flex items-center justify-between gap-3 rounded-xl border bg-white p-3 shadow-sm transition ${
-                    isTarget ? 'border-blue-400 shadow-md ring-1 ring-blue-100' : 'border-gray-200'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-full border border-dashed border-gray-300 text-gray-500">
-                      ☰
-                    </span>
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">{renderTextWithLinks(section.title)}</p>
-                      <p className="text-xs text-gray-500">{section.subtitle}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleOpenSectionModal(index + 1)}
-                      className="flex h-9 w-9 items-center justify-center rounded-full border border-dashed border-gray-300 text-gray-600 transition hover:border-blue-300 hover:text-blue-600"
-                      aria-label={t('projectShowcase.addSectionHereAriaLabel')}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </button>
-                    {section.isCustom && (
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveCustomSection(section.id)}
-                        className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-gray-600 transition hover:border-red-200 hover:text-red-600"
-                        aria-label={t('projectShowcase.removeCustomSectionAriaLabel')}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </li>
-            );
-          })}
-        </ol>
-      </div>
-      <div className="sge-panel__grid">
-        {editFormBlocks.map((block) => {
-          if (block.type === 'group-header') {
-            return (
-              <div key={`group-header-${block.id}`} id={`sge-group-${block.id}`} className="sge-field sge-field--wide sge-group-header">
-                <h4 className="sge-group-header__title">{block.title}</h4>
-              </div>
-            );
-          }
+  const extraVisibilityOptions = useMemo(
+    () =>
+      LIGHT_VISIBILITY_OPTIONS
+        .filter(option => !sectionOrder.includes(option.id))
+        .map(option => ({
+          id: option.id,
+          label: getSectionOptionLabel(t, option.id),
+          isHiddenInLight: isSectionHiddenInLight(option.id)
+        })),
+    [isSectionHiddenInLight, sectionOrder, t]
+  );
 
-          if (block.type === 'custom') {
-            const section = block.section;
+  const applyEditorSnapshot = useCallback((snapshot) => {
+    if (!snapshot) {
+      return;
+    }
+    // Le drapeau empêche l'effet d'historique de ré-empiler l'état qu'il vient de restaurer,
+    // ce qui rendrait « annuler » incapable de remonter au-delà d'un cran.
+    isTimeTravellingRef.current = true;
+    setDraftValues(snapshot.draftValues || {});
+    setCustomSections(Array.isArray(snapshot.customSections) ? snapshot.customSections : []);
+    setSectionOrder(Array.isArray(snapshot.sectionOrder) ? snapshot.sectionOrder : []);
+  }, []);
+
+  const handleUndo = useCallback(() => {
+    if (!canUndoHistory(editorHistory)) {
+      return;
+    }
+    const next = undoHistory(editorHistory);
+    setEditorHistory(next);
+    applyEditorSnapshot(next.present);
+  }, [applyEditorSnapshot, editorHistory]);
+
+  const handleRedo = useCallback(() => {
+    if (!canRedoHistory(editorHistory)) {
+      return;
+    }
+    const next = redoHistory(editorHistory);
+    setEditorHistory(next);
+    applyEditorSnapshot(next.present);
+  }, [applyEditorSnapshot, editorHistory]);
+
+  useEffect(() => {
+    if (!isLiveEditing) {
+      return undefined;
+    }
+
+    if (isTimeTravellingRef.current) {
+      isTimeTravellingRef.current = false;
+      return undefined;
+    }
+
+    // Les frappes successives sont regroupées en un seul pas : sans ce délai, Ctrl+Z ne
+    // défairait qu'un caractère à la fois et l'historique serait inutilisable.
+    const timer = setTimeout(() => {
+      setEditorHistory(previous => (
+        previous.present === editorSnapshot ? previous : pushHistory(previous, editorSnapshot)
+      ));
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [editorSnapshot, isLiveEditing]);
+
+  useEffect(() => {
+    if (!isLiveEditing) {
+      return undefined;
+    }
+
+    const timer = setTimeout(() => {
+      if (hasUnpublishedChanges) {
+        saveShowcaseDraft(projectId, editorSnapshot);
+      } else {
+        clearShowcaseDraft(projectId);
+      }
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [editorSnapshot, hasUnpublishedChanges, isLiveEditing, projectId]);
+
+  // Brouillon laissé par une session précédente : on ne le réapplique jamais d'office —
+  // la vitrine peut être consultée par quelqu'un qui n'a rien à voir avec cette édition.
+  useEffect(() => {
+    if (!canEdit) {
+      setPendingDraft(null);
+      return;
+    }
+    const stored = loadShowcaseDraft(projectId);
+    setPendingDraft(stored && stored.draftValues ? stored : null);
+  }, [canEdit, projectId]);
+
+  const handleResumeDraft = useCallback(() => {
+    if (!pendingDraft) {
+      return;
+    }
+
+    const restoredCustomSections = sanitizeCustomSections(pendingDraft.customSections);
+    const restoredOrder = normalizeSectionOrder(pendingDraft.sectionOrder, restoredCustomSections);
+    const restoredDraftValues = pendingDraft.draftValues || {};
+
+    setDraftValues(restoredDraftValues);
+    setCustomSections(restoredCustomSections);
+    setSectionOrder(restoredOrder);
+    setEditorHistory(createHistory({
+      draftValues: restoredDraftValues,
+      customSections: restoredCustomSections,
+      sectionOrder: restoredOrder
+    }));
+    isTimeTravellingRef.current = true;
+    setHasRestoredDraft(true);
+    setPendingDraft(null);
+    setActiveSectionId(null);
+    setIsInspectorExpanded(prefersSideInspector());
+    setIsPreviewingInEditor(false);
+    setIsExitConfirmOpen(false);
+    setIsEditing(true);
+  }, [pendingDraft]);
+
+  const handleDiscardStoredDraft = useCallback(() => {
+    clearShowcaseDraft(projectId);
+    setPendingDraft(null);
+  }, [projectId]);
+
+  const handleRequestExit = useCallback(() => {
+    if (hasUnpublishedChanges) {
+      setIsExitConfirmOpen(true);
+      return;
+    }
+    handleCancelEditing();
+  }, [handleCancelEditing, hasUnpublishedChanges]);
+
+  const handleDiscardEditing = useCallback(() => {
+    clearShowcaseDraft(projectId);
+    setHasRestoredDraft(false);
+    handleCancelEditing();
+  }, [handleCancelEditing, projectId]);
+
+  useEffect(() => {
+    if (!isLiveEditing || typeof document === 'undefined') {
+      return undefined;
+    }
+
+    const handleEditorKeyDown = (event) => {
+      const target = event.target;
+      const isTextEntry = Boolean(
+        target
+        && (target.isContentEditable
+          || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
+      );
+
+      // Dans un champ, on laisse le navigateur faire son propre annuler : reprendre la main
+      // ferait perdre la frappe en cours au lieu de la corriger.
+      if (isTextEntry) {
+        return;
+      }
+
+      if ((event.ctrlKey || event.metaKey) && (event.key === 'z' || event.key === 'Z')) {
+        event.preventDefault();
+        if (event.shiftKey) {
+          handleRedo();
+        } else {
+          handleUndo();
+        }
+        return;
+      }
+
+      if ((event.ctrlKey || event.metaKey) && (event.key === 'y' || event.key === 'Y')) {
+        event.preventDefault();
+        handleRedo();
+        return;
+      }
+
+      if (event.ctrlKey || event.metaKey || event.altKey) {
+        return;
+      }
+
+      if (event.key === 'p' || event.key === 'P') {
+        event.preventDefault();
+        setIsPreviewingInEditor(previous => !previous);
+      } else if (event.key === 'Escape') {
+        setInserterIndex(null);
+        setGhostTemplateId(null);
+        setActiveSectionId(null);
+      }
+    };
+
+    document.addEventListener('keydown', handleEditorKeyDown);
+
+    return () => {
+      document.removeEventListener('keydown', handleEditorKeyDown);
+    };
+  }, [handleRedo, handleUndo, isLiveEditing]);
+
+  const renderCustomSectionControls = (section) => {
             const templateConfig = resolveTemplateConfig(section.type);
             const sectionTitle = section.title || t('projectShowcase.customBlockFallback');
             const annotationSectionId = section.type || 'custom';
@@ -4496,9 +4364,9 @@ export const ProjectShowcase = ({
                 )}
               </div>
             );
-          }
+  };
 
-          const field = block.field;
+  const renderStandardFieldControl = (field) => {
           const fieldId = field.id;
           const question = field.question;
           const type = question?.type || field.fallbackType || 'text';
@@ -4872,22 +4740,180 @@ export const ProjectShowcase = ({
               {helperText && <p className="sge-field__helper">{helperText}</p>}
             </div>
           );
-        })}
+  };
+
+  const activeSectionEntry = sectionEntries.find(entry => entry.id === activeSectionId) || null;
+  const activeCustomSection = activeSectionId ? customSectionFormMap.get(activeSectionId) : null;
+  const activeStandardFields = activeSectionId ? (sectionFieldsById[activeSectionId] || []) : [];
+
+  const inspectorPanel = isEditorChromeVisible ? (
+    <aside
+      className={`sge sge-inspector${isInspectorExpanded ? '' : ' sge-inspector--collapsed'}`}
+      data-tour-id="showcase-edit-panel"
+      aria-label={t('projectShowcase.editor.inspectorTitle')}
+    >
+      <form id={formId} onSubmit={handleSubmitEdit} className="sge-inspector__form">
+        <div className="sge-inspector__header">
+          <div className="sge-inspector__heading">
+            <p className="sge-eyebrow">{t('projectShowcase.editor.inspectorTitle')}</p>
+            <h3 className="sge-title">
+              {activeSectionEntry
+                ? activeSectionEntry.plainTitle
+                : t('projectShowcase.editor.inspectorEmptyTitle')}
+            </h3>
+          </div>
+          <div className="sge-inspector__actions">
+            {/* Ne sert qu'en feuille basse (sous 1180px), où l'inspecteur recouvre le
+                canvas : masqué en CSS dès que c'est une colonne à part entière. */}
+            <button
+              type="button"
+              className="sge-icon-btn sge-inspector__collapse"
+              aria-expanded={isInspectorExpanded}
+              aria-label={
+                isInspectorExpanded
+                  ? t('projectShowcase.editor.collapseInspector')
+                  : t('projectShowcase.editor.expandInspector')
+              }
+              title={
+                isInspectorExpanded
+                  ? t('projectShowcase.editor.collapseInspector')
+                  : t('projectShowcase.editor.expandInspector')
+              }
+              onClick={() => setIsInspectorExpanded(previous => !previous)}
+            >
+              {isInspectorExpanded ? '▾' : '▴'}
+            </button>
+            {activeSectionEntry && (
+              <button
+                type="button"
+                className="sge-btn sge-btn--ghost sge-btn--sm"
+                onClick={() => {
+                  setActiveSectionId(null);
+                  setIsInspectorExpanded(prefersSideInspector());
+                }}
+              >
+                {t('projectShowcase.closeButton')}
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="sge-inspector__body">
+          {!activeSectionEntry && (
+            <p className="sge-inspector__empty">{t('projectShowcase.editor.inspectorEmptyHint')}</p>
+          )}
+
+          {activeSectionEntry && activeCustomSection && (
+            <React.Fragment>
+              <div className="sge-inspector__group">
+                <p className="sge-field__label">{t('projectShowcase.editor.changeTemplate')}</p>
+                <div className="sge-tplswitch" role="group" aria-label={t('projectShowcase.editor.changeTemplate')}>
+                  {SECTION_TEMPLATES.map(template => {
+                    const isCurrent = (activeCustomSection.type || SECTION_TEMPLATES[0].id) === template.id;
+                    return (
+                      <button
+                        key={`tpl-switch-${template.id}`}
+                        type="button"
+                        className={`sge-tplswitch__item${isCurrent ? ' sge-tplswitch__item--on' : ''}`}
+                        aria-pressed={isCurrent}
+                        onClick={() => handleCustomSectionFieldChange(activeCustomSection.id, 'type', template.id)}
+                      >
+                        <span className="sge-tplswitch__thumb" aria-hidden="true">
+                          <span className="sge-tplswitch__thumb-inner">
+                            {renderTemplatePreview(template.id)}
+                          </span>
+                        </span>
+                        <span className="sge-tplswitch__name">{getTemplateMeta(t, template.id).name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              {renderCustomSectionControls(activeCustomSection)}
+            </React.Fragment>
+          )}
+
+          {activeSectionEntry && !activeCustomSection && (
+            activeStandardFields.length > 0 ? (
+              <div className="sge-inspector__fields">
+                {activeStandardFields.map(field => renderStandardFieldControl(field))}
+              </div>
+            ) : (
+              <p className="sge-inspector__empty">{t('projectShowcase.editor.noSettingsForSection')}</p>
+            )
+          )}
+        </div>
+
+        <p className="sge-inspector__hint">{t('projectShowcase.editor.inlineHint')}</p>
+      </form>
+    </aside>
+  ) : null;
+
+  const outlinePanel = isEditorChromeVisible && isOutlineOpen ? (
+    <ShowcaseOutline
+      sections={sectionEntries}
+      activeSectionId={activeSectionId}
+      onSelect={handleSelectSection}
+      onToggleVisibility={handleToggleSectionVisibility}
+      onMove={handleMoveSection}
+      onInsertAt={handleOpenSectionPicker}
+      onClose={() => setIsOutlineOpen(false)}
+      isDragActive={canvasDragIndex !== null}
+      dropIndex={canvasDropIndex}
+      onDragStart={handleCanvasDragStart}
+      onDragEnd={handleCanvasDragEnd}
+      onDropSection={handleCanvasDrop}
+      extraVisibilityOptions={extraVisibilityOptions}
+    />
+  ) : null;
+
+  const editorBar = isLiveEditing ? (
+    <ShowcaseEditorBar
+      projectName={safeProjectName}
+      isDirty={hasUnpublishedChanges}
+      hasRestoredDraft={hasRestoredDraft}
+      canUndo={canUndoHistory(editorHistory)}
+      canRedo={canRedoHistory(editorHistory)}
+      onUndo={handleUndo}
+      onRedo={handleRedo}
+      isPreviewing={isPreviewingInEditor}
+      onTogglePreview={() => setIsPreviewingInEditor(previous => !previous)}
+      isOutlineOpen={isOutlineOpen}
+      onToggleOutline={() => setIsOutlineOpen(previous => !previous)}
+      displayMode={displayMode}
+      onDisplayModeChange={handleDisplayModeChange}
+      canConfigureDisplayModes={canConfigureDisplayModes && !resolvedDisplayModeLock}
+      isExitConfirmOpen={isExitConfirmOpen}
+      onRequestExit={handleRequestExit}
+      onCancelExit={() => setIsExitConfirmOpen(false)}
+      onDiscard={handleDiscardEditing}
+      onPublish={() => handleSubmitEdit()}
+    />
+  ) : null;
+
+  const draftBanner = canEdit && !isEditing && pendingDraft ? (
+    <div className="sge sge-draft" role="status">
+      <div>
+        <p className="sge-eyebrow">{t('projectShowcase.editor.draftFoundEyebrow')}</p>
+        <p className="sge-draft__text">{t('projectShowcase.editor.draftFoundText')}</p>
       </div>
-      <div className="sge-panel__actions">
-        <button type="button" onClick={handleCancelEditing} className="sge-btn sge-btn--ghost">
-          {t('projectShowcase.cancelButton')}
+      <div className="sge-draft__actions">
+        <button
+          type="button"
+          className="sge-btn sge-btn--ghost sge-btn--sm"
+          onClick={handleDiscardStoredDraft}
+        >
+          {t('projectShowcase.editor.draftDiscard')}
         </button>
         <button
-          type="submit"
-          className="sge-btn sge-btn--primary"
-          data-tour-id="showcase-save-edits"
+          type="button"
+          className="sge-btn sge-btn--primary sge-btn--sm"
+          onClick={handleResumeDraft}
         >
-          <CheckCircle className="sge-btn__icon" />
-          {t('projectShowcase.saveChangesButton')}
+          {t('projectShowcase.editor.draftResume')}
         </button>
       </div>
-    </form>
+    </div>
   ) : null;
 
   const editBar =
@@ -4905,18 +4931,39 @@ export const ProjectShowcase = ({
       </div>
     ) : null;
 
+  const workspaceClassName = [
+    'sge-workspace',
+    outlinePanel ? 'sge-workspace--outline' : '',
+    inspectorPanel ? 'sge-workspace--inspector' : ''
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   const content = (
     <>
       <ShowcaseSignatureFx rootRef={signatureRootRef} />
-      {modeSelectionPanel}
+      {draftBanner}
+      {/* En édition, la bascule Light/complète vit dans la barre supérieure — y compris
+          pendant l'aperçu, sinon deux commandes porteraient le même repère de visite. */}
+      {!isLiveEditing && modeSelectionPanel}
       {editBar}
-      {editPanel}
-      {sectionModal}
-      {previewContent}
+      {editorBar}
+      {isEditorChromeVisible ? (
+        <div className={workspaceClassName}>
+          {outlinePanel}
+          <div className="sge-workspace__canvas">{previewContent}</div>
+          {inspectorPanel}
+        </div>
+      ) : (
+        previewContent
+      )}
     </>
   );
 
-  const shellClassName = 'sg-shell';
+  // `sg-shell--editing` neutralise les animations de révélation : sinon une section
+  // fraîchement insérée resterait invisible (opacity 0) faute d'avoir été observée, et
+  // l'utilisateur éditerait un bloc qu'il ne voit pas.
+  const shellClassName = `sg-shell${isEditorChromeVisible ? ' sg-shell--editing' : ''}`;
   const shellStandaloneClassName = 'sg-shell--standalone';
 
   if (renderInStandalone) {

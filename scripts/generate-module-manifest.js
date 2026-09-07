@@ -23,7 +23,15 @@ const STYLESHEET_FILE = path.join(SRC_DIR, 'styles', 'tailwind-internal.css');
 const DEFERRED_MODULES = new Set([
   'src/components/BackOffice.jsx',
   'src/components/ProjectShowcase.jsx',
-  'src/components/SynthesisReport.jsx'
+  'src/components/SynthesisReport.jsx',
+  // Chrome d'édition de la vitrine : extrait de ProjectShowcase.jsx, il doit rester dans le
+  // même lot différé, sinon le découpage du composant ferait simplement remonter son poids
+  // dans le chemin critique du premier rendu.
+  'src/components/showcase/InlineRichText.jsx',
+  'src/components/showcase/SectionFrame.jsx',
+  'src/components/showcase/SectionInserter.jsx',
+  'src/components/showcase/ShowcaseEditorBar.jsx',
+  'src/components/showcase/ShowcaseOutline.jsx'
 ]);
 
 const ALLOWED_EXTENSIONS = new Set(['.js', '.jsx', '.json']);
