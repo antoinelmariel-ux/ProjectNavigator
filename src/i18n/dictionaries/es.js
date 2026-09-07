@@ -426,6 +426,8 @@ export default {
     fileLabel: 'Suba un archivo de referencia',
     fileSelectedWithSize: 'Archivo seleccionado: {{name}} ({{size}} KB)',
     fileSelectedNoSize: 'Archivo seleccionado: {{name}}',
+    fileUploadingLabel: 'Subiendo el archivo…',
+    fileUploadFailedMessage: 'No se pudo subir el archivo. Inténtelo de nuevo.',
     summaryAriaLabel: 'Resumen del cuestionario',
     summaryHeading: 'Resumen',
     summaryProgressSingular: '{{answered}} de {{total}} pregunta respondida',

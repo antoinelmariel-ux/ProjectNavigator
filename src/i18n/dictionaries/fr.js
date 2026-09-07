@@ -431,6 +431,8 @@ export default {
     fileLabel: 'Téléversez un fichier de référence',
     fileSelectedWithSize: 'Fichier sélectionné : {{name}} ({{size}} Ko)',
     fileSelectedNoSize: 'Fichier sélectionné : {{name}}',
+    fileUploadingLabel: 'Dépôt du fichier en cours…',
+    fileUploadFailedMessage: 'Le dépôt du fichier a échoué. Merci de réessayer.',
     summaryAriaLabel: 'Sommaire du questionnaire',
     summaryHeading: 'Sommaire',
     summaryProgressSingular: '{{answered}} sur {{total}} question renseignée',

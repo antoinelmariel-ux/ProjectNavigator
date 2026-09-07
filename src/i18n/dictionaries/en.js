@@ -425,6 +425,8 @@ export default {
     fileLabel: 'Upload a reference file',
     fileSelectedWithSize: 'Selected file: {{name}} ({{size}} KB)',
     fileSelectedNoSize: 'Selected file: {{name}}',
+    fileUploadingLabel: 'Uploading file…',
+    fileUploadFailedMessage: 'The file upload failed. Please try again.',
     summaryAriaLabel: 'Questionnaire summary',
     summaryHeading: 'Summary',
     summaryProgressSingular: '{{answered}} of {{total}} question answered',

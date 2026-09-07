@@ -5221,7 +5221,7 @@ const updateProjectFilters = useCallback((updater) => {
                     </button>
                   )}
                   <a
-                    href="https://forms.office.com/e/p6PYB1gbpM"
+                    href="https://forms.cloud.microsoft/e/92Dm7HM5du"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition-all text-white bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 hover:from-pink-600 hover:via-red-600 hover:to-yellow-600 focus-visible:ring-pink-400"
@@ -5677,6 +5677,7 @@ const updateProjectFilters = useCallback((updater) => {
             isReturnToSynthesisRequested={returnToSynthesisAfterEdit}
             tourContext={tourContext}
             onFinish={leaveQuestionnaireForSynthesis}
+            projectId={activeProjectId}
             />
           </Suspense>
         ) : screen === 'mandatory-summary' ? (
@@ -5741,7 +5742,7 @@ const updateProjectFilters = useCallback((updater) => {
                 )}
               >
                 <LazyProjectShowcase
-                  projectId={showcaseProjectContext.projectId}
+                  projectId={showcaseProjectContext.projectId || null}
                   projectName={showcaseProjectContext.projectName}
                   onClose={handleCloseProjectShowcase}
                   analysis={showcaseProjectContext.analysis}

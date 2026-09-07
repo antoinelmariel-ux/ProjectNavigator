@@ -434,6 +434,8 @@ export default {
     fileLabel: 'Laden Sie eine Referenzdatei hoch',
     fileSelectedWithSize: 'Ausgewählte Datei: {{name}} ({{size}} KB)',
     fileSelectedNoSize: 'Ausgewählte Datei: {{name}}',
+    fileUploadingLabel: 'Datei wird hochgeladen…',
+    fileUploadFailedMessage: 'Das Hochladen der Datei ist fehlgeschlagen. Bitte versuchen Sie es erneut.',
     summaryAriaLabel: 'Fragebogenübersicht',
     summaryHeading: 'Übersicht',
     summaryProgressSingular: '{{answered}} von {{total}} Frage beantwortet',
