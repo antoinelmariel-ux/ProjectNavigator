@@ -1149,6 +1149,8 @@ export default {
       teamsManagementSubtitle: 'Define the teams contacted based on the identified scenarios.',
       teamsEditingLanguageLabel: 'Editing language',
       teamsEditingLanguageHint: 'If a field isn’t translated yet in this language, the saved text will be shown as-is by default.',
+      inspirationEditingLanguageLabel: 'Editing language',
+      inspirationEditingLanguageHint: 'If a label or option isn’t translated yet in this language, the saved text will be shown as-is by default.',
       addTeamButton: 'Add a team',
       noTeamRegistered: 'No team registered.',
       teamAriaLabelTemplate: 'Team {{name}}',

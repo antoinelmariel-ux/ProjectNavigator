@@ -924,27 +924,33 @@ export const HomeScreen = ({
         return;
       }
 
-      const options = new Set();
+      const labelByValue = new Map();
 
       if (Array.isArray(field.options)) {
         field.options.forEach((option) => {
-          const label = getSafeString(option).trim();
-          if (label.length > 0) {
-            options.add(label);
+          const value = getSafeString(option?.value).trim();
+          if (value.length === 0) {
+            return;
           }
+          const label = resolveLocalizedText(option?.label, language) || value;
+          labelByValue.set(value, label);
         });
       }
 
       accessibleInspirationProjects.forEach((project) => {
         const values = normalizeInspirationFieldValues(project?.[field.id]);
         values.forEach((value) => {
-          if (value.length > 0) {
-            options.add(value);
+          if (value.length > 0 && !labelByValue.has(value)) {
+            labelByValue.set(value, value);
           }
         });
       });
 
-      map.set(field.id, Array.from(options).sort((a, b) => a.localeCompare(b, getLocaleTag(language), { sensitivity: 'base' })));
+      const entries = Array.from(labelByValue.entries())
+        .map(([value, label]) => ({ value, label }))
+        .sort((a, b) => a.label.localeCompare(b.label, getLocaleTag(language), { sensitivity: 'base' }));
+
+      map.set(field.id, entries);
     });
 
     return map;
@@ -1306,12 +1312,19 @@ export const HomeScreen = ({
 
     inspirationFilterFields.forEach((field) => {
       const rawValue = inspirationFiltersState[field.id];
+      const fieldLabel = resolveLocalizedText(field.label, language) || t('home.filterFallback');
       if (field.type === 'select') {
         if (rawValue && rawValue !== DEFAULT_SELECT_FILTER_VALUE) {
+          const matchedOption = Array.isArray(field.options)
+            ? field.options.find((option) => option?.value === rawValue)
+            : null;
+          const displayValue = matchedOption
+            ? resolveLocalizedText(matchedOption.label, language) || String(rawValue)
+            : String(rawValue);
           chips.push({
             id: field.id,
-            label: field.label || t('home.filterFallback'),
-            value: String(rawValue),
+            label: fieldLabel,
+            value: displayValue,
             onClear: () => handleClearInspirationFilter({ id: field.id, type: 'select' })
           });
         }
@@ -1322,7 +1335,7 @@ export const HomeScreen = ({
       if (trimmed.length > 0) {
         chips.push({
           id: field.id,
-          label: field.label || t('home.filterFallback'),
+          label: fieldLabel,
           value: trimmed,
           onClear: () => handleClearInspirationFilter({ id: field.id, type: 'text' })
         });
@@ -1330,7 +1343,7 @@ export const HomeScreen = ({
     });
 
     return chips;
-  }, [inspirationFilterFields, inspirationFiltersState, handleClearInspirationFilter, t]);
+  }, [inspirationFilterFields, inspirationFiltersState, handleClearInspirationFilter, t, language]);
 
   const handleResetFilters = () => {
     setFiltersState(buildInitialFiltersState(normalizedFilters));
@@ -2222,12 +2235,12 @@ export const HomeScreen = ({
 
                       if (field.type === 'select') {
                         const value = inspirationFiltersState[field.id] || DEFAULT_SELECT_FILTER_VALUE;
-                        const optionLabel = field.emptyOptionLabel || t('home.allValues');
+                        const optionLabel = resolveLocalizedText(field.emptyOptionLabel, language) || t('home.allValues');
                         const options = inspirationFilterOptions.get(field.id) || [];
                         return (
                           <div key={field.id} className="flex flex-col gap-2 text-sm text-gray-700">
                             <label htmlFor={fieldId} className="font-semibold text-gray-700">
-                              {field.label}
+                              {resolveLocalizedText(field.label, language) || field.id}
                             </label>
                             <select
                               id={fieldId}
@@ -2239,8 +2252,8 @@ export const HomeScreen = ({
                             >
                               <option value={DEFAULT_SELECT_FILTER_VALUE}>{optionLabel}</option>
                               {options.map(option => (
-                                <option key={option} value={option}>
-                                  {option}
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
                                 </option>
                               ))}
                             </select>
@@ -2253,7 +2266,7 @@ export const HomeScreen = ({
                         : '';
                       return (
                         <label key={field.id} htmlFor={fieldId} className="flex flex-col gap-2 text-sm text-gray-700">
-                          <span className="font-semibold text-gray-700">{field.label}</span>
+                          <span className="font-semibold text-gray-700">{resolveLocalizedText(field.label, language) || field.id}</span>
                           <input
                             id={fieldId}
                             type="text"

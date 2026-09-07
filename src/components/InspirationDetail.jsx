@@ -4,6 +4,7 @@ import { normalizeInspirationFormConfig } from '../utils/inspirationConfig.js';
 import { RichTextEditor } from './RichTextEditor.jsx';
 import { renderRichText } from '../utils/richText.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
+import { resolveLocalizedText } from '../utils/localizedContent.js';
 
 const formatValue = (value, notProvidedLabel) => {
   if (Array.isArray(value)) {
@@ -44,8 +45,20 @@ export const InspirationDetail = ({
   onUpdate,
   onExport
 }) => {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const notProvidedLabel = t('inspirationDetail.notProvided');
+  const resolveFieldLabel = (field) => resolveLocalizedText(field?.label, language) || field?.id || '';
+  const resolveOptionLabel = (field, rawValue) => {
+    if (typeof rawValue !== 'string' || rawValue.trim() === '') {
+      return rawValue;
+    }
+
+    const match = Array.isArray(field?.options)
+      ? field.options.find((option) => option?.value === rawValue)
+      : null;
+
+    return match ? resolveLocalizedText(match.label, language) || rawValue : rawValue;
+  };
   const normalizedConfig = useMemo(
     () => normalizeInspirationFormConfig(formConfig),
     [formConfig]
@@ -101,7 +114,7 @@ export const InspirationDetail = ({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-            {field.label || field.id}
+            {resolveFieldLabel(field)}
           </p>
           {content}
         </div>
@@ -164,8 +177,8 @@ export const InspirationDetail = ({
         >
           <option value="">{emptyOptionLabel}</option>
           {(field.options || []).map((option) => (
-            <option key={option} value={option}>
-              {option}
+            <option key={option.value} value={option.value}>
+              {resolveLocalizedText(option.label, language) || option.value}
             </option>
           ))}
         </select>
@@ -186,8 +199,8 @@ export const InspirationDetail = ({
           className="mt-2 w-full min-h-[140px] rounded-lg border border-gray-300 px-3 py-2 text-sm"
         >
           {(field.options || []).map((option) => (
-            <option key={option} value={option}>
-              {option}
+            <option key={option.value} value={option.value}>
+              {resolveLocalizedText(option.label, language) || option.value}
             </option>
           ))}
         </select>
@@ -204,7 +217,7 @@ export const InspirationDetail = ({
             id={`inspiration-${field.id}`}
             value={value}
             onChange={(nextValue) => handleFieldChange(field.id, nextValue)}
-            ariaLabel={`${field.label} ${t('inspirationDetail.richTextEditSuffix')}`}
+            ariaLabel={`${resolveFieldLabel(field)} ${t('inspirationDetail.richTextEditSuffix')}`}
             placeholder={resolvePlaceholder(field, fallback)}
             compact
           />
@@ -311,7 +324,17 @@ export const InspirationDetail = ({
       const selections = normalizeMultiSelect(value);
       return (
         <p className="mt-2 text-sm text-gray-700">
-          {selections.length > 0 ? selections.join(', ') : notProvidedLabel}
+          {selections.length > 0
+            ? selections.map((selection) => resolveOptionLabel(field, selection)).join(', ')
+            : notProvidedLabel}
+        </p>
+      );
+    }
+
+    if (field.type === 'select') {
+      return (
+        <p className="mt-2 text-sm text-gray-700">
+          {formatValue(resolveOptionLabel(field, value), notProvidedLabel)}
         </p>
       );
     }
@@ -337,6 +360,8 @@ export const InspirationDetail = ({
 
   const visibilityLabel =
     project.visibility === 'shared' ? t('inspirationDetail.visibilityShared') : t('inspirationDetail.visibilityPersonal');
+  const countryField = normalizedConfig.fields.find((field) => field?.id === 'country');
+  const countryDisplay = countryField ? resolveOptionLabel(countryField, project.country) : project.country;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 px-4 py-8 sm:px-8">
@@ -349,7 +374,7 @@ export const InspirationDetail = ({
               </p>
               <h1 className="text-3xl font-bold text-gray-900">{project.title}</h1>
               <p className="mt-1 text-sm text-gray-500">
-                {project.labName} · {project.country}
+                {project.labName} · {countryDisplay}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
