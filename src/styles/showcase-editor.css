@@ -7,7 +7,12 @@
    à l'autre et le contraste ne serait plus garanti.
    ========================================================================== */
 
-.sge {
+/* Les jetons sont aussi portés par la vitrine en édition : les cadres, interstices et
+   sélecteurs sont posés *dans* le rendu, hors de tout conteneur `.sge`. Sans cette
+   déclaration, leurs couleurs retombaient sur celles de la vitrine (texte blanc) et les
+   boutons de la barre de section devenaient invisibles sur leur fond clair. */
+.sge,
+.sg-shell--editing {
   --sge-primary: #2563eb;
   --sge-primary-strong: #1d4ed8;
   --sge-primary-soft: #eff6ff;
@@ -37,7 +42,9 @@
   --sge-shadow-lift: 0 2px 4px rgba(17, 24, 39, 0.08), 0 18px 48px rgba(17, 24, 39, 0.16);
 
   --sge-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
 
+.sge {
   font-family: var(--sge-font);
   font-size: 14px;
   line-height: 1.5;
@@ -708,5 +715,1002 @@
   .sge-btn:active,
   .sge-bar__trigger:active {
     transform: none;
+  }
+}
+
+/* ==========================================================================
+   Éditeur de vitrine — canvas vivant
+   L'utilisateur n'édite plus un formulaire qui décrit la vitrine : il édite la
+   vitrine. Tout ce qui suit est du « chrome » posé au-dessus du rendu réel, et
+   ne doit jamais en décaler la mise en page — sinon l'aperçu cesserait de
+   montrer ce qui sera publié.
+   ========================================================================== */
+
+.sge-btn--sm {
+  padding: 0.45rem 0.8rem;
+  font-size: 0.82rem;
+}
+
+.sge-btn--danger {
+  background: var(--sge-danger);
+  color: #ffffff;
+}
+
+.sge-btn--danger:hover:not(:disabled) {
+  background: #991b1b;
+}
+
+.sge-btn--on {
+  border-color: var(--sge-primary);
+  background: var(--sge-primary-soft);
+  color: var(--sge-primary-strong);
+}
+
+.sge-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.15rem;
+  height: 2.15rem;
+  border-radius: var(--sge-r-sm);
+  border: 1px solid var(--sge-line);
+  background: var(--sge-surface);
+  color: var(--sge-ink-soft);
+  cursor: pointer;
+  transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
+}
+
+.sge-icon-btn:hover:not(:disabled) {
+  border-color: var(--sge-primary-line);
+  color: var(--sge-primary-strong);
+  background: var(--sge-primary-soft);
+}
+
+.sge-icon-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.sge-icon-btn--active {
+  border-color: var(--sge-primary);
+  background: var(--sge-primary-soft);
+  color: var(--sge-primary-strong);
+}
+
+.sge-icon-btn__icon,
+.sge-btn__icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* ---------- barre d'édition collante ---------- */
+.sge-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: var(--sge-surface);
+  border-bottom: 1px solid var(--sge-line);
+  box-shadow: var(--sge-shadow);
+}
+
+.sge-topbar__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem clamp(0.75rem, 2vw, 1.25rem);
+}
+
+.sge-topbar__identity {
+  min-width: 0;
+  margin-right: 0.5rem;
+}
+
+.sge-topbar__name {
+  margin: 0;
+  max-width: 22ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--sge-ink);
+}
+
+.sge-topbar__group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.sge-topbar__legend {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--sge-ink-faint);
+}
+
+.sge-topbar__spacer {
+  flex: 1 1 auto;
+}
+
+.sge-topbar__status {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--sge-ink-faint);
+}
+
+.sge-topbar__status--dirty {
+  color: #92400e;
+}
+
+.sge-topbar__confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.35rem 0.25rem 0.7rem;
+  border: 1px solid var(--sge-danger-line);
+  background: var(--sge-danger-soft);
+  border-radius: 999px;
+}
+
+.sge-topbar__confirm-text {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--sge-danger);
+}
+
+/* ---------- bandeau « brouillon retrouvé » ---------- */
+.sge-draft {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid #fcd34d;
+  background: #fffbeb;
+  border-radius: var(--sge-r-md);
+}
+
+.sge-draft__text {
+  margin: 0.15rem 0 0;
+  font-size: 0.88rem;
+  color: #78350f;
+}
+
+.sge-draft__actions {
+  display: inline-flex;
+  gap: 0.5rem;
+}
+
+/* ---------- espace de travail ---------- */
+.sge-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  position: relative;
+  z-index: 3;
+}
+
+.sge-workspace__canvas {
+  min-width: 0;
+}
+
+@media (min-width: 1180px) {
+  .sge-workspace--inspector {
+    grid-template-columns: minmax(0, 1fr) 23rem;
+  }
+
+  .sge-workspace--outline {
+    grid-template-columns: 15rem minmax(0, 1fr);
+  }
+
+  .sge-workspace--outline.sge-workspace--inspector {
+    grid-template-columns: 15rem minmax(0, 1fr) 23rem;
+  }
+}
+
+/* ---------- cadre d'une section ---------- */
+.sge-canvas {
+  position: relative;
+}
+
+.sge-frame {
+  position: relative;
+  outline: 1px dashed transparent;
+  outline-offset: -1px;
+  transition: outline-color 160ms ease, background 160ms ease;
+}
+
+.sge-frame:hover,
+.sge-frame:focus-visible {
+  outline-color: rgba(37, 99, 235, 0.45);
+}
+
+.sge-frame--active {
+  outline: 2px solid var(--sge-primary);
+  outline-offset: -2px;
+}
+
+.sge-frame--dragging {
+  opacity: 0.45;
+}
+
+/* Une section masquée en vue Light reste visible pendant l'édition, mais doit se
+   distinguer au premier coup d'œil de ce qui sera réellement publié. */
+.sge-frame--hidden .sge-frame__body {
+  opacity: 0.4;
+  filter: grayscale(0.85);
+}
+
+.sge-frame__chrome {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.35rem 0.3rem 0.3rem;
+  border-radius: 999px;
+  border: 1px solid var(--sge-line);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: var(--sge-shadow);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 140ms ease;
+}
+
+.sge-frame:hover > .sge-frame__chrome,
+.sge-frame:focus-within > .sge-frame__chrome,
+.sge-frame--active > .sge-frame__chrome {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.sge-frame__handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  flex: none;
+  border-radius: 999px;
+  color: var(--sge-ink-faint);
+  cursor: grab;
+}
+
+.sge-frame__handle:active {
+  cursor: grabbing;
+}
+
+.sge-frame__handle-icon,
+.sge-frame__tool-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.sge-frame__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.sge-frame__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--sge-ink);
+}
+
+.sge-frame__badge {
+  flex: none;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: var(--sge-ground-strong);
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--sge-ink-faint);
+}
+
+.sge-frame__badge--muted {
+  background: var(--sge-danger-soft);
+  color: var(--sge-danger);
+}
+
+.sge-frame__tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  flex: none;
+}
+
+.sge-frame__tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--sge-ink-soft);
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.sge-frame__tool:hover:not(:disabled) {
+  background: var(--sge-ground-strong);
+  color: var(--sge-ink);
+}
+
+.sge-frame__tool:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.sge-frame__tool--primary:hover:not(:disabled) {
+  background: var(--sge-primary-soft);
+  color: var(--sge-primary-strong);
+}
+
+.sge-frame__tool--danger:hover:not(:disabled) {
+  background: var(--sge-danger-soft);
+  color: var(--sge-danger);
+}
+
+.sge-frame__empty {
+  padding: clamp(2.5rem, 6vw, 4rem) clamp(1.25rem, 5vw, 3.5rem);
+  border: 1px dashed rgba(255, 255, 255, 0.28);
+  border-radius: var(--sge-r-lg);
+  margin: 1rem clamp(1.25rem, 5vw, 3.5rem);
+  text-align: center;
+}
+
+.sge-frame__empty-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.sge-frame__empty-text {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* ---------- interstice d'insertion ---------- */
+.sge-insert {
+  position: relative;
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.75rem;
+  margin: 0;
+}
+
+.sge-insert__rule {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--sge-primary);
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+.sge-insert__button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--sge-primary-line);
+  background: var(--sge-surface);
+  color: var(--sge-primary-strong);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 140ms ease, transform 140ms ease, background 140ms ease;
+}
+
+.sge-insert:hover .sge-insert__rule,
+.sge-insert:focus-within .sge-insert__rule,
+.sge-insert--open .sge-insert__rule,
+.sge-insert--drop .sge-insert__rule {
+  opacity: 1;
+}
+
+.sge-insert:hover .sge-insert__button,
+.sge-insert:focus-within .sge-insert__button,
+.sge-insert--open .sge-insert__button {
+  opacity: 1;
+}
+
+.sge-insert__button:hover {
+  background: var(--sge-primary);
+  color: #ffffff;
+  transform: scale(1.08);
+}
+
+.sge-insert__icon {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+/* Le survol n'existe pas au doigt : sur écran tactile, le bouton reste visible. */
+@media (hover: none) {
+  .sge-insert__button {
+    opacity: 0.75;
+  }
+}
+
+.sge-insert--drag {
+  height: 2.75rem;
+}
+
+/* ---------- sélecteur de gabarit ancré ---------- */
+.sge-picker {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  width: min(46rem, calc(100vw - 2.5rem));
+  padding: 1rem;
+  background: var(--sge-surface);
+  border: 1px solid var(--sge-line);
+  border-radius: var(--sge-r-lg);
+  box-shadow: var(--sge-shadow-lift);
+}
+
+.sge-picker__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.sge-picker__hint {
+  margin: 0.2rem 0 0;
+  font-size: 0.82rem;
+  color: var(--sge-ink-soft);
+}
+
+.sge-picker__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  gap: 0.65rem;
+  max-height: min(26rem, 45vh);
+  overflow-y: auto;
+}
+
+.sge-picker__card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.5rem;
+  text-align: left;
+  border: 1px solid var(--sge-line);
+  border-radius: var(--sge-r-md);
+  background: var(--sge-surface);
+  cursor: pointer;
+  transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+
+.sge-picker__card:hover,
+.sge-picker__card:focus-visible {
+  border-color: var(--sge-primary);
+  box-shadow: var(--sge-shadow);
+  transform: translateY(-2px);
+}
+
+/* Vignette = le composant réel de la vitrine, réduit. La bande sombre du thème est
+   transparente par défaut : on repose ici le fond encre, sinon un gabarit « dark »
+   apparaîtrait vide sur la carte blanche du sélecteur. */
+.sge-picker__preview,
+.sge-tplswitch__thumb {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  height: 4.25rem;
+  border-radius: var(--sge-r-sm);
+  background: #1b1b1b;
+}
+
+.sge-picker__preview-inner,
+.sge-tplswitch__thumb-inner {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1180px;
+  transform: scale(0.13);
+  transform-origin: top left;
+  pointer-events: none;
+}
+
+/* Les bandes de la vitrine respirent beaucoup (jusqu'à 10rem de padding vertical) : à
+   l'échelle de la vignette, cela ne produirait qu'un grand vide sombre au lieu du gabarit. */
+.sge-picker__preview .sg-band--pad,
+.sge-tplswitch__thumb .sg-band--pad {
+  padding: 0.75rem 0;
+}
+
+.sge-picker__preview .sg-rv,
+.sge-tplswitch__thumb .sg-rv,
+.sge-ghost .sg-rv {
+  opacity: 1;
+  transform: none;
+}
+
+.sge-picker__name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--sge-ink);
+}
+
+.sge-picker__desc {
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--sge-ink-faint);
+}
+
+/* ---------- aperçu fantôme ---------- */
+.sge-ghost {
+  position: relative;
+  opacity: 0.5;
+  outline: 2px dashed var(--sge-primary);
+  outline-offset: -2px;
+  pointer-events: none;
+}
+
+/* ---------- inspecteur ---------- */
+.sge-inspector {
+  position: sticky;
+  top: 3.5rem;
+  align-self: start;
+  max-height: calc(100vh - 4rem);
+  margin: 1rem 0.75rem 1rem 0;
+  background: var(--sge-surface);
+  border: 1px solid var(--sge-line);
+  border-radius: var(--sge-r-lg);
+  box-shadow: var(--sge-shadow-lift);
+  overflow: hidden;
+}
+
+.sge-inspector__form {
+  display: flex;
+  flex-direction: column;
+  max-height: inherit;
+}
+
+.sge-inspector__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid var(--sge-line);
+}
+
+.sge-inspector__heading {
+  min-width: 0;
+}
+
+.sge-inspector__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.sge-inspector__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sge-inspector__group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sge-inspector__empty {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--sge-ink-soft);
+}
+
+.sge-inspector__hint {
+  margin: 0;
+  padding: 0.7rem 1rem;
+  border-top: 1px solid var(--sge-line);
+  background: var(--sge-ground);
+  font-size: 0.78rem;
+  color: var(--sge-ink-faint);
+}
+
+/* Sous 1180px il n'y a plus de colonne : l'inspecteur devient une feuille basse,
+   la seule forme utilisable d'un seul pouce. */
+.sge-inspector__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: none;
+}
+
+/* Le repli n'existe que sous forme de feuille basse : en colonne, il n'y a rien à replier. */
+.sge-inspector__collapse {
+  display: none;
+}
+
+@media (max-width: 1179px) {
+  .sge-inspector {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    z-index: 55;
+    margin: 0;
+    max-height: 62vh;
+    border-radius: var(--sge-r-lg) var(--sge-r-lg) 0 0;
+    transition: max-height 200ms ease;
+  }
+
+  .sge-inspector--collapsed {
+    max-height: 3.4rem;
+  }
+
+  .sge-inspector__collapse {
+    display: inline-flex;
+    width: 1.9rem;
+    height: 1.9rem;
+  }
+
+  /* Assez pour dégager le bas du canvas sous la feuille repliée ; déployée, elle
+     recouvre le canvas, comme toute feuille basse. */
+  .sge-workspace__canvas {
+    padding-bottom: 4.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sge-inspector {
+    transition: none;
+  }
+}
+
+/* ---------- changement de gabarit ---------- */
+.sge-tplswitch {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
+  gap: 0.4rem;
+}
+
+.sge-tplswitch__item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.3rem;
+  border: 1px solid var(--sge-line);
+  border-radius: var(--sge-r-sm);
+  background: var(--sge-surface);
+  cursor: pointer;
+  text-align: left;
+}
+
+.sge-tplswitch__item--on {
+  border-color: var(--sge-primary);
+  box-shadow: 0 0 0 2px var(--sge-primary-soft);
+}
+
+.sge-tplswitch__thumb {
+  height: 3.25rem;
+}
+
+.sge-tplswitch__thumb-inner {
+  transform: scale(0.085);
+}
+
+.sge-tplswitch__name {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--sge-ink-soft);
+}
+
+/* ---------- plan ---------- */
+.sge-outline {
+  position: sticky;
+  top: 3.5rem;
+  align-self: start;
+  max-height: calc(100vh - 4rem);
+  overflow-y: auto;
+  margin: 1rem 0 1rem 0.75rem;
+  padding-bottom: 0.5rem;
+  background: var(--sge-surface);
+  border: 1px solid var(--sge-line);
+  border-radius: var(--sge-r-lg);
+  box-shadow: var(--sge-shadow);
+}
+
+.sge-outline__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.75rem 0.85rem;
+  border-bottom: 1px solid var(--sge-line);
+}
+
+.sge-outline__list {
+  list-style: none;
+  margin: 0;
+  padding: 0.35rem 0.5rem;
+}
+
+.sge-outline__drop {
+  height: 0.55rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+}
+
+.sge-outline__drop--active {
+  height: 1.1rem;
+  border: 1px dashed var(--sge-line-strong);
+}
+
+.sge-outline__drop--target {
+  border-color: var(--sge-primary);
+  background: var(--sge-primary-soft);
+}
+
+.sge-outline__insert {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--sge-ink-faint);
+  opacity: 0;
+  cursor: pointer;
+}
+
+.sge-outline__drop:hover .sge-outline__insert,
+.sge-outline__insert:focus-visible {
+  opacity: 1;
+  color: var(--sge-primary-strong);
+}
+
+.sge-outline__insert-icon {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
+.sge-outline__item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.3rem;
+  border-radius: var(--sge-r-sm);
+}
+
+.sge-outline__item--active {
+  background: var(--sge-primary-soft);
+}
+
+.sge-outline__item--hidden .sge-outline__text {
+  text-decoration: line-through;
+  color: var(--sge-ink-faint);
+}
+
+.sge-outline__grip {
+  display: inline-flex;
+  color: var(--sge-ink-faint);
+  cursor: grab;
+}
+
+.sge-outline__grip-icon {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.sge-outline__label {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.2rem 0.15rem;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--sge-font);
+}
+
+.sge-outline__index {
+  flex: none;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--sge-ink-faint);
+}
+
+.sge-outline__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8rem;
+  color: var(--sge-ink);
+}
+
+.sge-outline__actions {
+  display: inline-flex;
+  gap: 0.1rem;
+  flex: none;
+}
+
+.sge-outline__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--sge-ink-faint);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.sge-outline__action:hover:not(:disabled) {
+  background: var(--sge-ground-strong);
+  color: var(--sge-ink);
+}
+
+.sge-outline__action:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.sge-outline__action-icon {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+.sge-outline__extras {
+  padding: 0.5rem 0.85rem 0.25rem;
+  border-top: 1px solid var(--sge-line);
+}
+
+.sge-outline__extra-list {
+  list-style: none;
+  margin: 0.35rem 0 0;
+  padding: 0;
+}
+
+.sge-outline__extra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.15rem 0;
+}
+
+@media (max-width: 1179px) {
+  .sge-outline {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 56;
+    width: min(18rem, 85vw);
+    margin: 0;
+    border-radius: 0;
+    max-height: none;
+  }
+}
+
+/* ---------- champ éditable dans la vitrine ---------- */
+.sge-inline {
+  display: inline-block;
+  min-width: 2ch;
+  border-radius: 4px;
+  outline: 1px dashed transparent;
+  outline-offset: 2px;
+  cursor: text;
+  transition: outline-color 140ms ease, background 140ms ease;
+}
+
+.sge-inline:hover {
+  outline-color: currentColor;
+}
+
+.sge-inline:focus,
+.sge-inline:focus-visible {
+  outline: 2px solid var(--sge-primary);
+  outline-offset: 2px;
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.sge-inline:empty::before {
+  content: attr(data-sge-placeholder);
+  opacity: 0.5;
+}
+
+/* ---------- corrections de spécificité dans la vitrine ----------
+   Le chrome vit à l'intérieur de `.sg-shell`, dont les remises à zéro
+   (`.sg-shell p`, `.sg-shell ol:not(.prose *)`, `.sg-shell h1,h2,h3`) ont une
+   spécificité supérieure à celle d'une classe seule et écrasaient marges,
+   retraits et police du chrome. */
+.sge .sge-title,
+.sge .sge-outline__text,
+.sge .sge-picker__name {
+  font-family: var(--sge-font);
+}
+
+.sge .sge-outline__list {
+  padding: 0.35rem 0.5rem;
+}
+
+.sge .sge-outline__extra-list {
+  margin-top: 0.35rem;
+}
+
+.sge .sge-draft__text {
+  margin-top: 0.15rem;
+}
+
+.sge .sge-picker__hint {
+  margin-top: 0.2rem;
+}
+
+.sg-shell--editing .sge-frame__empty-text {
+  margin-top: 0.35rem;
+}
+
+/* Le chrome posé directement dans la vitrine n'hérite pas de `.sge` : il doit
+   reprendre explicitement la typographie de l'application, sinon il emprunte
+   celle, très typée, de la vitrine. */
+.sge-frame__chrome,
+.sge-insert,
+.sge-picker {
+  font-family: var(--sge-font);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--sge-ink);
+}
+
+/* Sur un écran étroit, la barre d'outils de section consomme presque toute la largeur :
+   le nom du gabarit s'efface pour laisser lisible le titre de la section. */
+@media (max-width: 560px) {
+  .sge-frame__badge {
+    display: none;
+  }
+
+  .sge-frame__chrome {
+    left: 0.25rem;
+    right: 0.25rem;
   }
 }

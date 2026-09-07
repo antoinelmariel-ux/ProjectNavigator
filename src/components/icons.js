@@ -287,3 +287,37 @@ export const UserCircle = createIcon(
 );
 
 export { createIcon };
+
+export const EyeOff = createIcon(
+  <React.Fragment>
+    <path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19" />
+    <path d="M6.61 6.61A18.15 18.15 0 001 12s4 8 11 8a9.12 9.12 0 005.39-1.61" />
+    <path d="M14.12 14.12a3 3 0 11-4.24-4.24" />
+    <line x1="1" y1="1" x2="23" y2="23" />
+  </React.Fragment>
+);
+
+export const Undo = createIcon(
+  <React.Fragment>
+    <polyline points="9 14 4 9 9 4" />
+    <path d="M20 20v-5a6 6 0 00-6-6H4" />
+  </React.Fragment>
+);
+
+export const Redo = createIcon(
+  <React.Fragment>
+    <polyline points="15 14 20 9 15 4" />
+    <path d="M4 20v-5a6 6 0 016-6h10" />
+  </React.Fragment>
+);
+
+export const LayoutList = createIcon(
+  <React.Fragment>
+    <rect x="3" y="4" width="7" height="7" rx="1" />
+    <rect x="3" y="13" width="7" height="7" rx="1" />
+    <line x1="14" y1="6" x2="21" y2="6" />
+    <line x1="14" y1="10" x2="21" y2="10" />
+    <line x1="14" y1="15" x2="21" y2="15" />
+    <line x1="14" y1="19" x2="21" y2="19" />
+  </React.Fragment>
+);

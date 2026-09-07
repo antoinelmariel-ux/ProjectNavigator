@@ -221,6 +221,19 @@
   transform: none;
 }
 
+/* En édition, les révélations sont neutralisées. Elles sont posées par un
+   IntersectionObserver monté une seule fois : une section insérée après coup ne serait
+   jamais observée et resterait donc invisible (opacity 0), alors même que l'utilisateur
+   est en train d'en saisir le contenu. L'aperçu (touche P) quitte ce mode et rejoue les
+   animations telles qu'un lecteur les verra.
+   `!important` est nécessaire : `.sg-rv` porte déjà ces propriétés à spécificité égale. */
+.sg-shell--editing .sg-rv,
+.sg-shell--editing .sg-rv--x {
+  opacity: 1 !important;
+  transform: none !important;
+  transition: none !important;
+}
+
 /* arrivée horizontale (depuis la droite), utilisée par les cartes de la grille de bénéfices */
 .sg-rv--x {
   transform: translateX(clamp(28px, 6vw, 64px));
