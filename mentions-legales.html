@@ -326,9 +326,17 @@
     </main>
     <footer>
       <div class="footer-inner">
-        <a class="return-link" href="./index.html">Retour à l'application</a>
+        <a class="return-link" id="return-link" href="./index.html">Retour à l'application</a>
         <p>Project Navigator · Version v1.0.381 · Tous droits réservés © LFB</p>
       </div>
     </footer>
+    <script>
+      (function () {
+        var isSharePoint = window.location.protocol === 'https:' && /\.sharepoint\.com$/i.test(window.location.hostname || '');
+        if (isSharePoint) {
+          document.getElementById('return-link').setAttribute('href', './index.aspx');
+        }
+      })();
+    </script>
   </body>
 </html>

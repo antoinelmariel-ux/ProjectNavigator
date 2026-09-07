@@ -1,11 +1,15 @@
 import { isSharePointMode } from '../config/sharepointConfig.js';
 import { getRepository } from './listRepository.js';
+import { resolveLocalizedText } from './localizedContent.js';
+import { DEFAULT_LANGUAGE } from '../i18n/languages.js';
 
+// `NameJson`/`Expertise` transportent {en, fr, de, es} (voir listSchemas.js) ; `Title` reste une
+// chaîne simple dérivée pour rester lisible tel quel dans les vues SharePoint natives.
 const toTeam = (record) => ({
   id: record.TeamId,
-  name: record.Title || '',
+  name: record.NameJson && Object.keys(record.NameJson).length > 0 ? record.NameJson : (record.Title || ''),
   contacts: Array.isArray(record.ContactsJson) ? record.ContactsJson : [],
-  expertise: record.Expertise || ''
+  expertise: record.Expertise || {}
 });
 
 const toMeta = (record) => ({
@@ -22,10 +26,11 @@ const sortByOrder = (records) =>
   });
 
 const toRecord = (team, { sortOrder, userEmail } = {}) => ({
-  Title: team.name || '',
+  Title: resolveLocalizedText(team.name, DEFAULT_LANGUAGE) || '',
   TeamId: team.id,
   ContactsJson: Array.isArray(team.contacts) ? team.contacts : [],
-  Expertise: team.expertise || '',
+  NameJson: team.name && typeof team.name === 'object' ? team.name : (team.name ? { [DEFAULT_LANGUAGE]: team.name } : {}),
+  Expertise: team.expertise && typeof team.expertise === 'object' ? team.expertise : (team.expertise ? { [DEFAULT_LANGUAGE]: team.expertise } : {}),
   SortOrder: typeof sortOrder === 'number' ? sortOrder : 0,
   UpdatedByEmail: userEmail || '',
   UpdatedAt: new Date().toISOString()

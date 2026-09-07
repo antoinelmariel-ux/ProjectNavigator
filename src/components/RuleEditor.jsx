@@ -291,7 +291,7 @@ export const RuleEditor = ({ rule, onSave, onCancel, questions, teams }) => {
   };
 
   const primaryTeamId = Array.isArray(editedRule.teams) ? (editedRule.teams[0] || '') : '';
-  const primaryTeamLabel = teams.find((team) => team.id === primaryTeamId)?.name || primaryTeamId;
+  const primaryTeamLabel = resolveLocalizedText(teams.find((team) => team.id === primaryTeamId)?.name, language) || primaryTeamId;
 
   const openRoutingModal = (index) => {
     const route = normalizeRoutingRuleEntry((editedRule.teamRoutingRules || [])[index]);
@@ -968,7 +968,7 @@ export const RuleEditor = ({ rule, onSave, onCancel, questions, teams }) => {
                       )}
                     </div>
                     <div>
-                      <div className="font-semibold text-gray-800">{team.name}</div>
+                      <div className="font-semibold text-gray-800">{resolveLocalizedText(team.name, language)}</div>
                     </div>
                   </div>
                 </button>
@@ -1027,7 +1027,7 @@ export const RuleEditor = ({ rule, onSave, onCancel, questions, teams }) => {
                           {teams
                             .filter((team) => team.id !== primaryTeamId)
                             .map((team) => (
-                              <option key={team.id} value={team.id}>{team.name}</option>
+                              <option key={team.id} value={team.id}>{resolveLocalizedText(team.name, language)}</option>
                             ))}
                         </select>
                       </div>

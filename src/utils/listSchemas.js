@@ -192,13 +192,16 @@ export const LIST_SCHEMAS = {
     booleans: []
   },
   // Une ligne par équipe : forme plate (id/name/contacts/expertise), donc colonnes explicites
-  // plutôt qu'un blob JSON.
+  // plutôt qu'un blob JSON. `Title` reste une chaîne simple dérivée (lisible telle quelle dans
+  // les vues SharePoint natives) ; `NameJson`/`Expertise` transportent le nom et le domaine
+  // d'expertise traduits {en, fr, de, es}.
   teams: {
     keyField: 'TeamId',
     columns: [
       'Title',
       'TeamId',
       'ContactsJson',
+      'NameJson',
       'Expertise',
       'SortOrder',
       'RowVersion',
@@ -206,7 +209,7 @@ export const LIST_SCHEMAS = {
       'UpdatedByEmail',
       'UpdatedAt'
     ],
-    json: { ContactsJson: ARRAY },
+    json: { ContactsJson: ARRAY, NameJson: OBJECT, Expertise: OBJECT },
     numbers: ['SortOrder', 'RowVersion'],
     booleans: []
   }
