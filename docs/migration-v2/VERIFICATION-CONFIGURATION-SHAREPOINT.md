@@ -31,6 +31,15 @@ colonnes utilisées par le code — c'est la source de vérité. Le document jum
 > (`GET .../lists/getbytitle('CN-Config')/rootFolder?$select=ServerRelativeUrl`, mis en cache) au
 > lieu de le reconstruire depuis `sharepointConfig.libraries`. Aucune action requise côté
 > SharePoint : le nom de dossier réel, avec ou sans tiret, n'a plus d'importance.
+>
+> ⚠️ **Constat du 07/09/2026** : le nom d'équipe (`CN_Teams`) est désormais traduisible dans les 4
+> langues de l'app (anglais, français, allemand, espagnol), au même titre que le domaine
+> d'expertise. Cela ajoute une colonne `NameJson` (texte long) qui n'existe pas encore sur un site
+> déjà créé à partir d'une version antérieure de ce document. Sans elle, les traductions du nom
+> d'équipe ne sont pas sauvegardées en mode SharePoint (seule la langue par défaut, reflétée dans
+> `Title`, l'est). Relance le script ci-dessous avec `{ apply: true }` pour la créer — la colonne
+> `Expertise` existante n'a pas besoin d'être recréée : elle continue de transporter le domaine
+> d'expertise, désormais lui aussi sous forme d'objet `{en, fr, de, es}` au lieu d'un texte simple.
 
 ## Comment utiliser le script
 
@@ -90,11 +99,12 @@ script (nécessaire au-delà de 5 000 éléments).
 | `CN_NotificationsQueue` | NotificationType, ToEmails (texte long), CcEmails (texte long), Body (texte long), ProjectId, Status📌 (Choix : Pending/Sent/Error, défaut Pending), SentAt (date), ErrorMessage (texte long) |
 | `CN_UserProfiles` | UserEmail📌, ActivityScopeJson (texte long), PreferredLanguage, HasCompletedOnboarding (oui/non), UpdatedAt (date) |
 | `CN_Rules` | RuleId📌, PayloadJson (texte long), SortOrder (nombre), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
-| `CN_Teams` | TeamId📌, ContactsJson (texte long), Expertise (texte long), SortOrder (nombre), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
+| `CN_Teams` | TeamId📌, ContactsJson (texte long), **NameJson (texte long)**, Expertise (texte long), SortOrder (nombre), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
 
-(Les colonnes en **gras** sont celles corrigées le 29/08/2026, voir l'encart d'avertissement en
-haut de ce document. `CN_Rules`/`CN_Teams` remplacent les fichiers `rules.json`/`teams.json` qui
-existaient auparavant dans `CN-Config` — une ligne par règle/équipe plutôt qu'un fichier unique.)
+(Les colonnes en **gras** sont celles corrigées le 29/08/2026 ou le 07/09/2026, voir les encarts
+d'avertissement en haut de ce document. `CN_Rules`/`CN_Teams` remplacent les fichiers
+`rules.json`/`teams.json` qui existaient auparavant dans `CN-Config` — une ligne par règle/équipe
+plutôt qu'un fichier unique.)
 
 ## Le script
 
@@ -366,6 +376,7 @@ existaient auparavant dans `CN-Config` — une ligne par règle/équipe plutôt 
       fields: [
         { name: 'TeamId', type: 'Text', indexed: true },
         { name: 'ContactsJson', type: 'Note' },
+        { name: 'NameJson', type: 'Note' },
         { name: 'Expertise', type: 'Note' },
         { name: 'SortOrder', type: 'Number' },
         { name: 'RowVersion', type: 'Number' },
