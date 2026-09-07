@@ -571,7 +571,7 @@ export const SynthesisReport = ({
     return blocks.map((block) => {
       const teamIds = Array.isArray(block?.teamIds) ? block.teamIds : [];
       const teamNames = teamIds
-        .map((teamId) => teams.find((team) => team?.id === teamId)?.name || teamId)
+        .map((teamId) => resolveLocalizedText(teams.find((team) => team?.id === teamId)?.name, language) || teamId)
         .filter(Boolean);
       const formattedQuestions = Array.isArray(block?.questions)
         ? block.questions
@@ -713,9 +713,9 @@ export const SynthesisReport = ({
       }
 
       const teamMatch = teams.find(team => team?.id === teamId);
-      return teamMatch?.name || teamId;
+      return resolveLocalizedText(teamMatch?.name, language) || teamId;
     },
-    [teams]
+    [teams, language]
   );
 
   const normalizedProjectStatus =
@@ -1450,15 +1450,17 @@ export const SynthesisReport = ({
                   </button>
                 )}
               </div>
-              <button
-                type="button"
-                onClick={handleSubmitProject}
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold shadow-md transition-all flex items-center justify-center w-full sm:w-auto text-sm sm:text-base"
-                data-tour-id="synthesis-submit"
-              >
-                <Send className="w-4 h-4 mr-2" />
-                {t('synthesisReport.submitProjectButton')}
-              </button>
+              {normalizedProjectStatus !== 'submitted' && (
+                <button
+                  type="button"
+                  onClick={handleSubmitProject}
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold shadow-md transition-all flex items-center justify-center w-full sm:w-auto text-sm sm:text-base"
+                  data-tour-id="synthesis-submit"
+                >
+                  <Send className="w-4 h-4 mr-2" />
+                  {t('synthesisReport.submitProjectButton')}
+                </button>
+              )}
             </div>
           </div>
 
@@ -1623,7 +1625,8 @@ export const SynthesisReport = ({
                 const canEditTeamComment = canBypassCompliancePerimeter || complianceTeamIdsForUser.has(team.id);
                 const canReplyTeamThread = canEditTeamComment || canReplyAsProjectContributor;
                 const threadKey = `team-${team.id}`;
-                const threadMessages = getThreadMessages(storedEntry, team.name);
+                const teamDisplayName = resolveLocalizedText(team.name, language);
+                const threadMessages = getThreadMessages(storedEntry, teamDisplayName);
                 const isThreadExpanded = Boolean(expandedThreads[threadKey]);
                 const shouldCollapse = !isThreadExpanded && shouldCollapseThread(threadMessages);
                 const visibleMessages = shouldCollapse ? threadMessages.slice(0, 2) : threadMessages;
@@ -1640,7 +1643,7 @@ export const SynthesisReport = ({
                     className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-200 transition-all overflow-hidden"
                     style={{ borderLeftWidth: '4px', borderLeftColor: teamAccentColor }}
                     role="article"
-                    aria-label={t('synthesisReport.teamAriaLabelTemplate', { teamName: team.name })}
+                    aria-label={t('synthesisReport.teamAriaLabelTemplate', { teamName: teamDisplayName })}
                   >
                     <button
                       type="button"
@@ -1658,7 +1661,7 @@ export const SynthesisReport = ({
                           </svg>
                         </span>
                         <div className="min-w-0">
-                          <h3 className="text-lg font-bold text-gray-800">{team.name}</h3>
+                          <h3 className="text-lg font-bold text-gray-800">{resolveLocalizedText(team.name, language)}</h3>
                           {isTeamCollapsed && (
                             <p className="text-xs text-gray-500 mt-0.5">
                               {t('synthesisReport.teamCollapsedSummaryTemplate', {
@@ -1683,7 +1686,7 @@ export const SynthesisReport = ({
 
                     {!isTeamCollapsed && (
                       <div className="border-t border-gray-100 px-6 pb-6 pt-5">
-                        <p className="text-sm text-gray-600 mb-3">{renderTextWithLinks(team.expertise)}</p>
+                        <p className="text-sm text-gray-600 mb-3">{renderTextWithLinks(resolveLocalizedText(team.expertise, language))}</p>
                         {teamContactLabel && (
                           <div className="mt-2 text-sm text-blue-600 font-medium flex items-center gap-2">
                             <Mail className="w-4 h-4" />
@@ -1718,7 +1721,7 @@ export const SynthesisReport = ({
                             <div className="flex items-start justify-between gap-2">
                               <div>
                                 <h4 className="text-sm font-semibold text-gray-800">{t('synthesisReport.expertCommentTitle')}</h4>
-                                <p className="text-xs text-gray-500 mt-0.5">{t('synthesisReport.expertCommentSubtitleTemplate', { teamName: team.name })}</p>
+                                <p className="text-xs text-gray-500 mt-0.5">{t('synthesisReport.expertCommentSubtitleTemplate', { teamName: teamDisplayName })}</p>
                               </div>
                               {statusMeta && (
                                 <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${statusMeta.badgeClass}`}>

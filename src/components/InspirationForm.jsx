@@ -83,7 +83,7 @@ export const InspirationForm = ({
   project,
   formConfig,
   existingProjects = [],
-  onAutosave,
+  onSave,
   onCancel
 }) => {
   const { t, language } = useTranslation();
@@ -92,7 +92,6 @@ export const InspirationForm = ({
     [formConfig]
   );
   const formTopRef = useRef(null);
-  const autosaveTimeoutRef = useRef(null);
   const [formState, setFormState] = useState(() => buildInitialFormState(normalizedConfig));
   const [documentUploadError, setDocumentUploadError] = useState('');
 
@@ -131,57 +130,44 @@ export const InspirationForm = ({
     });
   }, [normalizedConfig, project?.id]);
 
-  useEffect(() => {
-    if (!project?.id || typeof onAutosave !== 'function') {
-      return undefined;
+  const handleSave = () => {
+    if (!project?.id || typeof onSave !== 'function') {
+      return;
     }
 
-    if (autosaveTimeoutRef.current) {
-      clearTimeout(autosaveTimeoutRef.current);
-    }
-
-    autosaveTimeoutRef.current = setTimeout(() => {
-      const now = new Date().toISOString();
-      const payload = normalizedConfig.fields.reduce((acc, field) => {
-        if (!field.enabled) {
-          return acc;
-        }
-
-        if (field.type === 'documents') {
-          acc[field.id] = normalizeDocuments(formState[field.id]);
-          return acc;
-        }
-
-        if (field.type === 'multi_select') {
-          acc[field.id] = normalizeMultiSelect(formState[field.id]);
-          return acc;
-        }
-
-        const value = formState[field.id];
-        if (typeof value === 'string') {
-          acc[field.id] = value.trim();
-          return acc;
-        }
-
-        acc[field.id] = value ?? '';
+    const now = new Date().toISOString();
+    const payload = normalizedConfig.fields.reduce((acc, field) => {
+      if (!field.enabled) {
         return acc;
-      }, {});
-
-      payload.visibility = toVisibilityValue(payload.visibility);
-      if (!project?.createdAt) {
-        payload.createdAt = now;
       }
 
-      onAutosave(project.id, payload);
-    }, 500);
-
-    return () => {
-      if (autosaveTimeoutRef.current) {
-        clearTimeout(autosaveTimeoutRef.current);
-        autosaveTimeoutRef.current = null;
+      if (field.type === 'documents') {
+        acc[field.id] = normalizeDocuments(formState[field.id]);
+        return acc;
       }
-    };
-  }, [formState, normalizedConfig.fields, onAutosave, project?.createdAt, project?.id]);
+
+      if (field.type === 'multi_select') {
+        acc[field.id] = normalizeMultiSelect(formState[field.id]);
+        return acc;
+      }
+
+      const value = formState[field.id];
+      if (typeof value === 'string') {
+        acc[field.id] = value.trim();
+        return acc;
+      }
+
+      acc[field.id] = value ?? '';
+      return acc;
+    }, {});
+
+    payload.visibility = toVisibilityValue(payload.visibility);
+    if (!project?.createdAt) {
+      payload.createdAt = now;
+    }
+
+    onSave(project.id, payload);
+  };
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -296,12 +282,12 @@ export const InspirationForm = ({
         </header>
 
         <form
-          onSubmit={(event) => event.preventDefault()}
+          onSubmit={(event) => {
+            event.preventDefault();
+            handleSave();
+          }}
           className="space-y-6 rounded-3xl border border-gray-200 bg-white p-6 shadow-lg"
         >
-          <p className="rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700">
-            {t('inspirationForm.autosaveNotice')}
-          </p>
           <p className="text-xs italic text-gray-400">
             {t('inspirationForm.privacyNotice')}{' '}
             <a
@@ -434,26 +420,34 @@ export const InspirationForm = ({
                   : t('inspirationForm.descriptionPlaceholder');
               const isRichTextField = field.id === 'description' || field.id === 'review';
 
-              return (
+              // Un `<label>` transmet implicitement le focus/clic à son premier élément
+              // « labelable » (input, textarea, button...) : avec un RichTextEditor à
+              // l'intérieur, ce premier élément est un bouton de la barre d'outils (pas la
+              // zone éditable elle-même, qui n'est pas labelable), donc chaque clic dans le
+              // champ volait le focus vers ce bouton au lieu d'y placer le curseur. On utilise
+              // donc un simple `<div>` pour ce champ (le RichTextEditor porte déjà son propre
+              // aria-label), et on garde `<label>` pour le textarea qui, lui, est labelable.
+              return isRichTextField ? (
+                <div key={field.id} className="flex flex-col gap-2 text-sm font-medium text-gray-700">
+                  <span>{renderFieldLabel(field)}</span>
+                  <RichTextEditor
+                    id={`inspiration-${field.id}`}
+                    value={formState[field.id] || ''}
+                    onChange={(value) => updateField(field.id, value)}
+                    placeholder={placeholder}
+                    compact
+                    ariaLabel={field.label}
+                  />
+                </div>
+              ) : (
                 <label key={field.id} className="flex flex-col gap-2 text-sm font-medium text-gray-700">
                   <span>{renderFieldLabel(field)}</span>
-                  {isRichTextField ? (
-                    <RichTextEditor
-                      id={`inspiration-${field.id}`}
-                      value={formState[field.id] || ''}
-                      onChange={(value) => updateField(field.id, value)}
-                      placeholder={placeholder}
-                      compact
-                      ariaLabel={field.label}
-                    />
-                  ) : (
-                    <textarea
-                      value={formState[field.id] || ''}
-                      onChange={(event) => updateField(field.id, event.target.value)}
-                      className="min-h-[140px] rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                      placeholder={placeholder}
-                    />
-                  )}
+                  <textarea
+                    value={formState[field.id] || ''}
+                    onChange={(event) => updateField(field.id, event.target.value)}
+                    className="min-h-[140px] rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    placeholder={placeholder}
+                  />
                 </label>
               );
             })}
@@ -534,6 +528,13 @@ export const InspirationForm = ({
               className="inline-flex items-center justify-center rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50"
             >
               {t('inspirationForm.cancel')}
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+            >
+              {t('inspirationForm.save')}
             </button>
           </div>
         </form>

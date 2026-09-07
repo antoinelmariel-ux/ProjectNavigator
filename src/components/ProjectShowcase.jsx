@@ -6,16 +6,16 @@ import {
   Plus,
   Trash2
 } from './icons.js';
-import { formatAnswer, getQuestionOptionLabels } from '../utils/questions.js';
+import { formatAnswer, getQuestionOptionEntries } from '../utils/questions.js';
 import { renderTextWithLinks } from '../utils/linkify.js';
 import { splitRichTextIntoBlocks } from '../utils/richText.js';
 import { initialShowcaseThemes } from '../data/showcaseThemes.js';
 import { resolveLocalizedText } from '../utils/localizedContent.js';
 import { resolveThemeFromActivation } from '../utils/showcase.js';
+import { createAttachmentFromFile, getFileExtension } from '../utils/documentStore.js';
 import { RichTextEditor } from './RichTextEditor.jsx';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { getLocaleTag } from '../i18n/languages.js';
-import { createAttachmentFromFile, getFileExtension } from '../utils/documentStore.js';
 
 const SHOWCASE_SECTION_OPTIONS = [
   { id: 'notice' },
@@ -91,8 +91,6 @@ const getTemplateMeta = (t, templateId) => {
           title: t('projectShowcase.templates.documentViewer.placeholderTitle'),
           subtitle: t('projectShowcase.templates.documentViewer.placeholderSubtitle'),
           description: t('projectShowcase.templates.documentViewer.placeholderDescription'),
-          documentUrl: 'https://votre-tenant.sharepoint.com/sites/projet/Shared%20Documents/brief.pdf',
-          documentType: 'pdf',
           accent: 'SharePoint'
         }
       };
@@ -238,17 +236,6 @@ const DOCUMENT_VIEWER_TYPES = [
   { id: 'pptx', label: 'PPTX' }
 ];
 
-// Le type du document déposé pilote uniquement l'aperçu (image vs iframe) et l'étiquette
-// affichée ; un format hors de cette liste (docx, xlsx…) retombe sur 'pdf', son rendu
-// générique via l'aperçu Office déjà utilisé pour les liens SharePoint collés à la main.
-const inferDocumentTypeFromFile = (file) => {
-  const extension = getFileExtension(file?.name || '');
-  if (extension === 'jpeg') {
-    return 'jpg';
-  }
-  return DOCUMENT_VIEWER_TYPES.some((type) => type.id === extension) ? extension : 'pdf';
-};
-
 const resolveCustomSectionColumnCount = (value, columns = []) => {
   const parsed = Number.parseInt(value, 10);
   if (Number.isFinite(parsed) && parsed > 0) {
@@ -271,20 +258,19 @@ const normalizeCustomSectionColumns = (columns, columnCount) => {
   return boundedColumns;
 };
 
-const isSharePointUrl = (value) => {
-  if (typeof value !== 'string') {
-    return false;
-  }
-
-  return value.toLowerCase().includes('sharepoint');
-};
-
 const resolveDocumentEmbedSrc = (documentUrl, documentType) => {
   if (!documentUrl) {
     return '';
   }
 
-  if (['jpg', 'png'].includes(documentType)) {
+  // Un PDF (comme une image) se rend nativement dans un <iframe>/<img> : le passer par le
+  // visualiseur externe officeapps.live.com échouerait pour un document déposé sur SharePoint,
+  // puisque ce service tiers ne porte pas la session/cookie du tenant et ne peut donc pas
+  // récupérer un fichier dont l'URL est un point d'API authentifié (comme les documents
+  // téléversés depuis cette vitrine). Seuls les formats nécessitant une conversion (PPTX)
+  // passent encore par ce visualiseur — limitation déjà présente avant le passage à l'upload,
+  // qui exigerait un lien de partage public généré côté SharePoint pour être levée.
+  if (['jpg', 'png', 'pdf'].includes(documentType)) {
     return documentUrl;
   }
 
@@ -1676,6 +1662,7 @@ const buildHeroHighlights = ({ targetAudience, runway, t }) => {
 };
 
 export const ProjectShowcase = ({
+  projectId = null,
   projectName,
   onClose,
   analysis,
@@ -1695,8 +1682,7 @@ export const ProjectShowcase = ({
   onDisplayModeChange = null,
   hideEditBar = false,
   hideNotice = false,
-  canConfigureDisplayModes = true,
-  projectId = null
+  canConfigureDisplayModes = true
 }) => {
   const { t, language } = useTranslation();
   const missingInfoLabel = t('projectShowcase.missingInfoLabel');
@@ -1738,11 +1724,11 @@ export const ProjectShowcase = ({
     const map = new Map();
     normalizedTeams.forEach(team => {
       if (team && team.id) {
-        map.set(team.id, team.name || team.id);
+        map.set(team.id, resolveLocalizedText(team.name, language) || team.id);
       }
     });
     return map;
-  }, [normalizedTeams]);
+  }, [normalizedTeams, language]);
 
   const editableFields = useMemo(
     () =>
@@ -1778,8 +1764,7 @@ export const ProjectShowcase = ({
   const [sectionModalStep, setSectionModalStep] = useState('templates');
   const [selectedTemplateIndex, setSelectedTemplateIndex] = useState(0);
   const [pendingInsertionIndex, setPendingInsertionIndex] = useState(null);
-  const [isSharePointWarningOpen, setIsSharePointWarningOpen] = useState(false);
-  const [sharePointWarningUrl, setSharePointWarningUrl] = useState('');
+  const [documentUploadErrors, setDocumentUploadErrors] = useState({});
   const [sectionDraft, setSectionDraft] = useState({
     title: '',
     subtitle: '',
@@ -1798,25 +1783,40 @@ export const ProjectShowcase = ({
     setMilestoneDragState(createEmptyMilestoneDragState());
   }, []);
 
-  const [documentUploadError, setDocumentUploadError] = useState('');
-  const [isUploadingDocument, setIsUploadingDocument] = useState(false);
-
-  const handleSharePointWarning = useCallback((nextValue) => {
-    if (!isSharePointUrl(nextValue)) {
+  // Point d'entrée unique du dépôt de documents dans la vitrine (gabarit « Visionneuse
+  // documentaire ») : mêmes garde-fous (taille, extensions) et même bascule SharePoint/local
+  // que le formulaire « Projet inspirant », via createAttachmentFromFile.
+  const handleDocumentUpload = useCallback(async (uploadKey, applyField, files) => {
+    const file = files && files[0];
+    if (!file) {
       return;
     }
 
-    if (nextValue === sharePointWarningUrl) {
-      return;
+    setDocumentUploadErrors(previous => ({ ...previous, [uploadKey]: '' }));
+
+    try {
+      const attachment = await createAttachmentFromFile(file, {
+        entityType: 'showcase',
+        entityId: projectId || 'sans-projet'
+      });
+      const extension = getFileExtension(attachment.name).toLowerCase();
+      // 'jpeg' -> 'jpg' pour matcher DOCUMENT_VIEWER_TYPES ; tout format non reconnu (docx,
+      // xlsx...) retombe sur 'pptx', seul type hors pdf/jpg/png à passer par le visualiseur
+      // Office externe (resolveDocumentEmbedSrc) — jamais sur 'pdf', qui serait rendu tel
+      // quel dans un <iframe> et casserait l'aperçu d'un fichier qui n'en est pas un.
+      const normalizedExtension = extension === 'jpeg' ? 'jpg' : extension;
+      const documentType = DOCUMENT_VIEWER_TYPES.some(type => type.id === normalizedExtension)
+        ? normalizedExtension
+        : 'pptx';
+      applyField('documentUrl', attachment.url);
+      applyField('documentType', documentType);
+    } catch (error) {
+      setDocumentUploadErrors(previous => ({
+        ...previous,
+        [uploadKey]: error?.message || t('projectShowcase.documentUploadFailedMessage')
+      }));
     }
-
-    setSharePointWarningUrl(nextValue);
-    setIsSharePointWarningOpen(true);
-  }, [sharePointWarningUrl]);
-
-  const handleCloseSharePointWarning = useCallback(() => {
-    setIsSharePointWarningOpen(false);
-  }, []);
+  }, [projectId, t]);
 
   useEffect(() => {
     if (isEditing) {
@@ -1999,7 +1999,6 @@ export const ProjectShowcase = ({
   const handleOpenSectionModal = useCallback((insertionIndex = null) => {
     setPendingInsertionIndex(insertionIndex);
     setSectionModalStep('templates');
-    setDocumentUploadError('');
     setSectionDraft({
       title: '',
       subtitle: '',
@@ -2020,7 +2019,6 @@ export const ProjectShowcase = ({
     setIsSectionModalOpen(false);
     setSectionModalStep('templates');
     setPendingInsertionIndex(null);
-    setDocumentUploadError('');
     setSectionDraft({
       title: '',
       subtitle: '',
@@ -2063,8 +2061,10 @@ export const ProjectShowcase = ({
       subtitle: placeholder.subtitle || '',
       description: placeholder.description || '',
       accent: placeholder.accent || '',
-      documentUrl: placeholder.documentUrl || '',
-      documentType: placeholder.documentType || 'pdf',
+      // Le champ document n'a jamais de valeur par défaut : il n'existe qu'une fois un
+      // fichier réellement déposé (voir handleDocumentUpload), jamais une URL d'exemple.
+      documentUrl: '',
+      documentType: 'pdf',
       items: Array.isArray(placeholder.items) ? placeholder.items : [],
       columnCount,
       columns
@@ -2078,32 +2078,6 @@ export const ProjectShowcase = ({
       [field]: value
     }));
   }, []);
-
-  // Dépôt réel dans la bibliothèque SharePoint CN-Documents (ou data URL hors SharePoint,
-  // voir documentStore.js) : le champ de lien reste utilisable pour coller une URL existante,
-  // ce bouton est une alternative qui écrit l'URL du fichier déposé à sa place.
-  const handleSectionDraftDocumentUpload = useCallback(async (file) => {
-    if (!file) {
-      return;
-    }
-    setDocumentUploadError('');
-    setIsUploadingDocument(true);
-    try {
-      const attachment = await createAttachmentFromFile(file, {
-        entityType: 'project-showcase',
-        entityId: projectId || 'sans-projet'
-      });
-      setSectionDraft(previous => ({
-        ...previous,
-        documentUrl: attachment.url,
-        documentType: inferDocumentTypeFromFile(file)
-      }));
-    } catch (error) {
-      setDocumentUploadError(error?.message || t('projectShowcase.documentUploadFailedMessage'));
-    } finally {
-      setIsUploadingDocument(false);
-    }
-  }, [projectId, t]);
 
   const handleSectionDraftColumnCountChange = useCallback((value) => {
     const nextCount = resolveCustomSectionColumnCount(value);
@@ -2335,37 +2309,6 @@ export const ProjectShowcase = ({
       })
     );
   }, []);
-
-  const handleCustomSectionDocumentUpload = useCallback(async (sectionId, file) => {
-    if (!sectionId || !file) {
-      return;
-    }
-    setDocumentUploadError('');
-    setIsUploadingDocument(true);
-    try {
-      const attachment = await createAttachmentFromFile(file, {
-        entityType: 'project-showcase',
-        entityId: projectId || 'sans-projet'
-      });
-      const nextDocumentType = inferDocumentTypeFromFile(file);
-      setCustomSections(prev =>
-        prev.map(section => {
-          if (!section || section.id !== sectionId) {
-            return section;
-          }
-          return {
-            ...section,
-            documentUrl: attachment.url,
-            documentType: nextDocumentType
-          };
-        })
-      );
-    } catch (error) {
-      setDocumentUploadError(error?.message || t('projectShowcase.documentUploadFailedMessage'));
-    } finally {
-      setIsUploadingDocument(false);
-    }
-  }, [projectId, t]);
 
   const handleCustomSectionColumnCountChange = useCallback((sectionId, value) => {
     const nextCount = resolveCustomSectionColumnCount(value);
@@ -3910,40 +3853,49 @@ export const ProjectShowcase = ({
             {selectedTemplateConfig.showDocument && (
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-1">
-                  <label htmlFor="section-document-url" className="text-sm font-medium text-gray-800">
+                  <label className="text-sm font-medium text-gray-800">
                     {t('projectShowcase.documentUrlLabel')}
                   </label>
-                  <input
-                    id="section-document-url"
-                    type="url"
-                    value={sectionDraft.documentUrl}
-                    onChange={(event) => {
-                      const nextValue = event.target.value;
-                      handleSectionDraftChange('documentUrl', nextValue);
-                      handleSharePointWarning(nextValue);
-                    }}
-                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-500 shadow-sm focus:border-blue-400 focus:ring focus:ring-blue-100"
-                    placeholder={selectedTemplateMeta.placeholder?.documentUrl || t('projectShowcase.documentUrlPlaceholderFallback')}
-                  />
+                  {documentUploadErrors.draft && (
+                    <p className="text-xs text-red-600">{documentUploadErrors.draft}</p>
+                  )}
+                  {sectionDraft.documentUrl ? (
+                    <div className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm">
+                      <a
+                        href={sectionDraft.documentUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="truncate text-blue-600 hover:underline"
+                      >
+                        {t('projectShowcase.documentUploadedLabel')}
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleSectionDraftChange('documentUrl', '');
+                          handleSectionDraftChange('documentType', 'pdf');
+                        }}
+                        className="shrink-0 text-xs font-semibold text-gray-500 hover:text-gray-700"
+                      >
+                        {t('projectShowcase.removeDocumentButton')}
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex w-full cursor-pointer items-center justify-center rounded-lg border border-dashed border-blue-300 bg-blue-50 px-3 py-3 text-center text-sm font-medium text-blue-700 hover:bg-blue-100">
+                      <input
+                        type="file"
+                        className="sr-only"
+                        onChange={(event) => {
+                          handleDocumentUpload('draft', handleSectionDraftChange, event.target.files);
+                          event.target.value = '';
+                        }}
+                      />
+                      {t('projectShowcase.chooseDocumentButton')}
+                    </label>
+                  )}
                   <p className="text-xs text-gray-500">
                     {t('projectShowcase.documentUrlHint')}
                   </p>
-                  <label className="mt-2 flex w-full cursor-pointer items-center justify-center rounded-lg border border-dashed border-blue-300 bg-blue-50 px-3 py-2 text-center text-xs font-medium text-blue-700 hover:bg-blue-100">
-                    <input
-                      type="file"
-                      className="sr-only"
-                      disabled={isUploadingDocument}
-                      onChange={(event) => {
-                        const file = event.target.files && event.target.files[0];
-                        handleSectionDraftDocumentUpload(file);
-                        event.target.value = '';
-                      }}
-                    />
-                    {isUploadingDocument ? t('projectShowcase.documentUploadingLabel') : t('projectShowcase.documentUploadButtonLabel')}
-                  </label>
-                  {documentUploadError && (
-                    <p className="text-xs text-red-600">{documentUploadError}</p>
-                  )}
                 </div>
                 <div className="space-y-1">
                   <label htmlFor="section-document-type" className="text-sm font-medium text-gray-800">
@@ -4036,43 +3988,6 @@ export const ProjectShowcase = ({
             </div>
           </form>
         )}
-      </div>
-    </div>
-  ) : null;
-  const sharePointWarningModal = isSharePointWarningOpen ? (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="absolute inset-0" onClick={handleCloseSharePointWarning} aria-hidden="true" />
-      <div
-        className="relative z-10 w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"
-        role="dialog"
-        aria-modal="true"
-        aria-label={t('projectShowcase.sharePointWarningAriaLabel')}
-      >
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-amber-500">{t('projectShowcase.warningLabel')}</p>
-            <h3 className="mt-2 text-xl font-bold text-gray-900">{t('projectShowcase.sharePointFileDetectedTitle')}</h3>
-          </div>
-          <button
-            type="button"
-            onClick={handleCloseSharePointWarning}
-            className="rounded-full border border-gray-200 px-3 py-1 text-sm text-gray-600 transition hover:border-gray-300 hover:text-gray-800"
-          >
-            {t('projectShowcase.closeButton')}
-          </button>
-        </div>
-        <p className="mt-4 text-sm text-gray-600">
-          {t('projectShowcase.sharePointWarningBody')}
-        </p>
-        <div className="mt-6 flex justify-end">
-          <button
-            type="button"
-            onClick={handleCloseSharePointWarning}
-            className="rounded-full border border-amber-200 bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-600"
-          >
-            {t('projectShowcase.iVerifiedButton')}
-          </button>
-        </div>
       </div>
     </div>
   ) : null;
@@ -4432,36 +4347,49 @@ export const ProjectShowcase = ({
                 {templateConfig.showDocument && (
                   <>
                     <div className="space-y-1">
-                      <label htmlFor={`custom-section-${section.id}-document-url`} className="text-sm font-medium text-gray-800">
+                      <label className="text-sm font-medium text-gray-800">
                         {t('projectShowcase.documentUrlLabel')}
                       </label>
-                      <input
-                        id={`custom-section-${section.id}-document-url`}
-                        type="url"
-                        value={section.documentUrl || ''}
-                        onChange={(event) => {
-                          const nextValue = event.target.value;
-                          handleCustomSectionFieldChange(section.id, 'documentUrl', nextValue);
-                          handleSharePointWarning(nextValue);
-                        }}
-                        className="sge-input"
-                        placeholder={t('projectShowcase.documentUrlPlaceholderFallback')}
-                      />
-                      <label className="mt-2 flex w-full cursor-pointer items-center justify-center rounded-lg border border-dashed border-blue-300 bg-blue-50 px-3 py-2 text-center text-xs font-medium text-blue-700 hover:bg-blue-100">
-                        <input
-                          type="file"
-                          className="sr-only"
-                          disabled={isUploadingDocument}
-                          onChange={(event) => {
-                            const file = event.target.files && event.target.files[0];
-                            handleCustomSectionDocumentUpload(section.id, file);
-                            event.target.value = '';
-                          }}
-                        />
-                        {isUploadingDocument ? t('projectShowcase.documentUploadingLabel') : t('projectShowcase.documentUploadButtonLabel')}
-                      </label>
-                      {documentUploadError && (
-                        <p className="text-xs text-red-600">{documentUploadError}</p>
+                      {documentUploadErrors[section.id] && (
+                        <p className="text-xs text-red-600">{documentUploadErrors[section.id]}</p>
+                      )}
+                      {section.documentUrl ? (
+                        <div className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm">
+                          <a
+                            href={section.documentUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="truncate text-blue-600 hover:underline"
+                          >
+                            {t('projectShowcase.documentUploadedLabel')}
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleCustomSectionFieldChange(section.id, 'documentUrl', '');
+                              handleCustomSectionFieldChange(section.id, 'documentType', 'pdf');
+                            }}
+                            className="shrink-0 text-xs font-semibold text-gray-500 hover:text-gray-700"
+                          >
+                            {t('projectShowcase.removeDocumentButton')}
+                          </button>
+                        </div>
+                      ) : (
+                        <label className="flex w-full cursor-pointer items-center justify-center rounded-lg border border-dashed border-blue-300 bg-blue-50 px-3 py-3 text-center text-sm font-medium text-blue-700 hover:bg-blue-100">
+                          <input
+                            type="file"
+                            className="sr-only"
+                            onChange={(event) => {
+                              handleDocumentUpload(
+                                section.id,
+                                (field, value) => handleCustomSectionFieldChange(section.id, field, value),
+                                event.target.files
+                              );
+                              event.target.value = '';
+                            }}
+                          />
+                          {t('projectShowcase.chooseDocumentButton')}
+                        </label>
                       )}
                     </div>
                     <div className="space-y-1">
@@ -4576,16 +4504,21 @@ export const ProjectShowcase = ({
           const type = question?.type || field.fallbackType || 'text';
           const label = resolveLocalizedText(question?.question, language) || (field.fallbackLabelKey ? t(`projectShowcase.fieldFallbackLabels.${field.fallbackLabelKey}`) : fieldId);
           const fieldValue = draftValues[fieldId];
-          const options = getQuestionOptionLabels(question);
+          // Les entrées {value, label} sont indispensables ici : les réponses stockées
+          // (answers/draftValues) portent le code de l'option (ex. "grand_public"), pas son
+          // libellé traduit (ex. "Grand public") — utiliser les libellés comme identifiants
+          // dans le formulaire d'édition (comme avant) désynchronise la sélection affichée
+          // de la vraie réponse du questionnaire.
+          const optionEntries = getQuestionOptionEntries(question);
           const isLong = type === 'long_text';
           const isRichText = type === 'text' || type === 'long_text';
           const isMulti = type === 'multi_choice';
           const isChoice = type === 'choice';
           const isDate = type === 'date';
           const isMilestoneList = type === 'milestone_list';
-          const isMultiWithOptions = isMulti && options.length > 0;
+          const isMultiWithOptions = isMulti && optionEntries.length > 0;
           const isMultiFreeform = isMulti && !isMultiWithOptions;
-          const isChoiceWithOptions = isChoice && options.length > 0;
+          const isChoiceWithOptions = isChoice && optionEntries.length > 0;
           const selectedValues = Array.isArray(fieldValue) ? fieldValue : [];
           const textValue = typeof fieldValue === 'string' ? fieldValue : '';
           const placeholder =
@@ -4853,9 +4786,9 @@ export const ProjectShowcase = ({
                 />
               ) : isMultiWithOptions ? (
                 <div className="sge-choice-grid">
-                  {options.map((option, optionIndex) => {
+                  {optionEntries.map((entry, optionIndex) => {
                     const optionId = `showcase-edit-${fieldId}-option-${optionIndex}`;
-                    const isChecked = selectedValues.includes(option);
+                    const isChecked = selectedValues.includes(entry.value);
 
                     return (
                       <label
@@ -4866,7 +4799,7 @@ export const ProjectShowcase = ({
                         <input
                           id={optionId}
                           type="checkbox"
-                          value={option}
+                          value={entry.value}
                           checked={isChecked}
                           onChange={event => {
                             const { checked } = event.target;
@@ -4875,13 +4808,15 @@ export const ProjectShowcase = ({
                               const selectionSet = new Set(previousSelections);
 
                               if (checked) {
-                                selectionSet.add(option);
+                                selectionSet.add(entry.value);
                               } else {
-                                selectionSet.delete(option);
+                                selectionSet.delete(entry.value);
                               }
 
-                              if (options.length > 0) {
-                                return options.filter(choice => selectionSet.has(choice));
+                              if (optionEntries.length > 0) {
+                                return optionEntries
+                                  .map(candidate => candidate.value)
+                                  .filter(value => selectionSet.has(value));
                               }
 
                               return Array.from(selectionSet);
@@ -4889,7 +4824,7 @@ export const ProjectShowcase = ({
                           }}
                           className="sge-choice__checkbox"
                         />
-                        <span className="sge-choice__text">{option}</span>
+                        <span className="sge-choice__text">{entry.label}</span>
                       </label>
                     );
                   })}
@@ -4902,9 +4837,9 @@ export const ProjectShowcase = ({
                   className="sge-input"
                 >
                   <option value="">{t('projectShowcase.selectOptionPlaceholder')}</option>
-                  {options.map(option => (
-                    <option key={option} value={option}>
-                      {option}
+                  {optionEntries.map(entry => (
+                    <option key={entry.value} value={entry.value}>
+                      {entry.label}
                     </option>
                   ))}
                 </select>
@@ -4977,7 +4912,6 @@ export const ProjectShowcase = ({
       {editBar}
       {editPanel}
       {sectionModal}
-      {sharePointWarningModal}
       {previewContent}
     </>
   );

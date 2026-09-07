@@ -25,6 +25,7 @@ import {
   normalizeValidationCommitteeConfig
 } from '../utils/validationCommittee.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
+import { resolveLocalizedText } from '../utils/localizedContent.js';
 import { getLocaleTag } from '../i18n/languages.js';
 
 const formatDate = (isoDate, language, unknownDateLabel) => {
@@ -286,6 +287,8 @@ export const HomeScreen = ({
   onStartNewProject,
   onOpenProject,
   onDeleteProject,
+  submittedProjectNotice = null,
+  onDismissSubmittedProjectNotice,
   onShowProjectShowcase,
   canShowProjectShowcase,
   onDuplicateProject,
@@ -467,7 +470,7 @@ export const HomeScreen = ({
             const contacts = normalizeTeamContacts(team);
             return contacts.some((contact) => normalizeEmail(contact) === currentUserEmail);
           })
-          .map((team) => ({ id: team.id, name: team.name || team.id, type: 'team' }));
+          .map((team) => ({ id: team.id, name: resolveLocalizedText(team.name, language) || team.id, type: 'team' }));
 
         const triggeredCommittees = getTriggeredValidationCommittees(normalizedValidationCommitteeConfig, {
           answers: project?.answers || {},
@@ -518,7 +521,8 @@ export const HomeScreen = ({
     isComplianceActor,
     isValidationCommitteeMember,
     normalizedValidationCommitteeConfig,
-    teams
+    teams,
+    language
   ]);
 
   const pendingComplianceProjects = useMemo(
@@ -592,6 +596,8 @@ export const HomeScreen = ({
       selector = '[data-tour-id="home-create-project"]';
     } else if (activeStep === 'project-filters') {
       selector = '[data-tour-id="home-filters"]';
+    } else if (activeStep === 'project-inspiration') {
+      selector = '[data-tour-id="home-inspiration-block"]';
     }
 
     if (selector) {
@@ -662,6 +668,18 @@ export const HomeScreen = ({
       window.clearTimeout(clearId);
     };
   }, [duplicationNotice]);
+
+  useEffect(() => {
+    if (!submittedProjectNotice?.id || typeof onDismissSubmittedProjectNotice !== 'function') {
+      return undefined;
+    }
+
+    const clearId = window.setTimeout(() => onDismissSubmittedProjectNotice(), 6000);
+
+    return () => {
+      window.clearTimeout(clearId);
+    };
+  }, [submittedProjectNotice, onDismissSubmittedProjectNotice]);
 
   useEffect(() => {
     if (!deleteDialogState.isOpen) {
@@ -1062,16 +1080,6 @@ export const HomeScreen = ({
       .sort((a, b) => getProjectTimestamp(b) - getProjectTimestamp(a));
   }, [projects]);
 
-  const submittedInspirationProjects = useMemo(() => {
-    if (!Array.isArray(inspirationProjects)) {
-      return [];
-    }
-
-    return inspirationProjects
-      .filter((project) => project?.visibility === 'shared')
-      .slice()
-      .sort((a, b) => getProjectTimestamp(b) - getProjectTimestamp(a));
-  }, [inspirationProjects]);
   const personalInspirationProjects = useMemo(
     () => filteredInspirationProjects.filter((project) => project?.visibility !== 'shared'),
     [filteredInspirationProjects]
@@ -1106,7 +1114,6 @@ export const HomeScreen = ({
   const hasFilteredInspirationProjects = filteredInspirationProjects.length > 0;
   const hasPersonalInspirations = personalInspirationProjects.length > 0;
   const hasSharedInspirations = sharedInspirationProjects.length > 0;
-  const hasSubmittedInspirations = submittedInspirationProjects.length > 0;
   const hasPaginatedPersonalInspirations = paginatedPersonalInspirationProjects.length > 0;
   const hasPaginatedSharedInspirations = paginatedSharedInspirationProjects.length > 0;
   const pendingDeletionProjectName = useMemo(() => {
@@ -1787,7 +1794,7 @@ export const HomeScreen = ({
                           )}
                           <button
                             type="button"
-                            onClick={() => onOpenProject?.(project.id)}
+                            onClick={() => onOpenProject?.(project.id, { view: 'synthesis' })}
                             className="inline-flex items-center gap-2 rounded-lg border border-blue-200 px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"
                           >
                             <Eye className="h-4 w-4" aria-hidden="true" />
@@ -1818,7 +1825,7 @@ export const HomeScreen = ({
         )}
 
         <section aria-labelledby="projects-heading" className="space-y-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between" data-tour-id="home-inspiration-block">
             <div>
               <h2 id="projects-heading" className="text-2xl font-bold text-gray-900">
                 {homeView === 'inspiration' ? t('home.inspiringProjectsHeading') : t('home.savedProjectsHeading')}
@@ -1876,6 +1883,20 @@ export const HomeScreen = ({
               )}
             </div>
           </div>
+
+          {homeView !== 'inspiration' && submittedProjectNotice && (
+            <div
+              className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
+              role="status"
+              aria-live="polite"
+            >
+              <CheckCircle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+              <p>
+                {t('home.submissionNoticePrefix')}{' '}
+                <span className="font-semibold">{submittedProjectNotice.projectName}</span> {t('home.submissionNoticeSuffix')}
+              </p>
+            </div>
+          )}
 
           {homeView !== 'inspiration' && duplicationNotice && (
             <div
@@ -2319,29 +2340,6 @@ export const HomeScreen = ({
                   )}
                 </div>
               )}
-
-              <section className="space-y-4" aria-labelledby="submitted-inspirations-heading">
-                <div className="flex items-center justify-between gap-3">
-                  <h3 id="submitted-inspirations-heading" className="text-xl font-bold text-gray-900">
-                    {t('home.submittedInspirationsHeading')}
-                  </h3>
-                  {hasSubmittedInspirations && (
-                    <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-                      {t(submittedInspirationProjects.length > 1 ? 'home.inspirationCountPlural' : 'home.inspirationCountSingular', { count: submittedInspirationProjects.length })}
-                    </span>
-                  )}
-                </div>
-
-                {hasSubmittedInspirations ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6" role="list">
-                    {submittedInspirationProjects.map((project) => renderInspirationCard(project))}
-                  </div>
-                ) : (
-                  <div className="bg-white border border-dashed border-emerald-200 rounded-3xl p-6 text-center text-gray-600">
-                    <p className="text-lg font-medium text-gray-800">{t('home.noSubmittedInspirations')}</p>
-                  </div>
-                )}
-              </section>
             </>
           )}
         </section>

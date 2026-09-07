@@ -71,6 +71,8 @@ import { loadReferentials } from './utils/referentialStore.js';
 import { mergeServerAndLocalProjects } from './utils/syncMerge.js';
 import { queueNotification } from './utils/notificationQueue.js';
 import { NOTIFICATION_TYPES, buildNotification } from './utils/notificationTemplates.js';
+import { resolveLocalizedText } from './utils/localizedContent.js';
+import { DEFAULT_LANGUAGE } from './i18n/languages.js';
 const HEADER_LOGO_PATH = './src/components/logo.png';
 
 const APP_VERSION = 'v1.0.385';
@@ -797,6 +799,7 @@ export const App = () => {
   const [activeProjectId, setActiveProjectId] = useState(null);
   const [validationError, setValidationError] = useState(null);
   const [saveFeedback, setSaveFeedback] = useState(null);
+  const [submittedProjectNotice, setSubmittedProjectNotice] = useState(null);
   const [showcaseProjectContext, setShowcaseProjectContext] = useState(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [syncStatus, setSyncStatus] = useState({ state: 'synced', updatedAt: null, updatedBy: '' });
@@ -944,7 +947,6 @@ export const App = () => {
   const rulesQueueRef = useRef(null);
   const teamsQueueRef = useRef(null);
   const inspirationsQueueRef = useRef(null);
-  const inspirationsAutosaveTimeoutRef = useRef(null);
   // Métadonnées SharePoint (spItemId/RowVersion/SortOrder) par id de règle/équipe — jamais
   // injectées dans l'objet applicatif consommé par le moteur de règles (rules.js).
   const ruleServerMetaRef = useRef(new Map());
@@ -2076,10 +2078,11 @@ const updateProjectFilters = useCallback((updater) => {
       const redirect = () => {
         try {
           if (window.location) {
+            const homeUrl = isSharePointMode() ? './index.aspx' : './index.html';
             if (typeof window.location.assign === 'function') {
-              window.location.assign('./index.html');
+              window.location.assign(homeUrl);
             } else {
-              window.location.href = './index.html';
+              window.location.href = homeUrl;
             }
           }
         } catch (error) {
@@ -2399,9 +2402,25 @@ const updateProjectFilters = useCallback((updater) => {
       return;
     }
 
+    const resolvedLabels = {
+      next: resolveLocalizedText(labels.next, language),
+      prev: resolveLocalizedText(labels.prev, language),
+      close: resolveLocalizedText(labels.close, language),
+      finish: resolveLocalizedText(labels.finish, language)
+    };
+    const resolvedSteps = steps.map((step) => ({
+      ...step,
+      title: resolveLocalizedText(step.title, language),
+      content: resolveLocalizedText(step.content, language),
+      actions: (step.actions || []).map((action) => ({
+        ...action,
+        label: resolveLocalizedText(action.label, language)
+      }))
+    }));
+
     const tour = new window.TourGuideClient({
-      steps,
-      labels,
+      steps: resolvedSteps,
+      labels: resolvedLabels,
       allowClose,
       showStepDots
     });
@@ -2427,6 +2446,7 @@ const updateProjectFilters = useCallback((updater) => {
     mode,
     screen,
     t,
+    language,
     adminView,
     answers,
     analysis,
@@ -2553,6 +2573,11 @@ const updateProjectFilters = useCallback((updater) => {
       getItemKey: (payload) => payload.email
     });
 
+    inspirationsQueueRef.current = createRetryQueue({
+      processItem: (payload) => inspirationDataProvider.upsertInspiration(payload.inspiration, { userEmail: currentUserEmail }),
+      getItemKey: (payload) => payload.inspiration.id
+    });
+
     rulesQueueRef.current = createRetryQueue({
       processItem: async (payload) => {
         if (payload.action === 'remove') {
@@ -2583,13 +2608,6 @@ const updateProjectFilters = useCallback((updater) => {
         teamServerMetaRef.current.set(team.id, meta);
       },
       getItemKey: (payload) => (payload.action === 'remove' ? payload.teamId : payload.team.id)
-    });
-
-    inspirationsQueueRef.current = createRetryQueue({
-      processItem: (inspiration) => inspirationDataProvider.upsertInspiration(inspiration, {
-        userEmail: currentUserEmail
-      }),
-      getItemKey: (inspiration) => inspiration.id
     });
   }, [currentUserEmail]);
 
@@ -2699,6 +2717,9 @@ const updateProjectFilters = useCallback((updater) => {
     if (screen !== 'questionnaire' && screen !== 'synthesis') {
       setSaveFeedback(null);
     }
+    if (screen !== 'home') {
+      setSubmittedProjectNotice(null);
+    }
   }, [screen]);
 
   const activeProject = useMemo(
@@ -2718,8 +2739,37 @@ const updateProjectFilters = useCallback((updater) => {
     return extractProjectName(answers, questions);
   }, [activeProject, answers, questions]);
 
+  // Signature du contenu réellement synchronisable du projet actif (ou, à défaut, du premier
+  // projet) — délibérément SANS rowVersion/lastUpdated. Ces deux champs sont réécrits par
+  // `onStatusChange` ci-dessous à chaque synchronisation réussie (pour que le prochain envoi
+  // porte la bonne version) : les inclure ici créerait une boucle sans fin (une synchronisation
+  // change rowVersion -> le projet change -> l'effet se redéclenche -> nouvelle synchronisation
+  // -> ...), qui se manifestait par un statut « Synchronisation… » clignotant en continu dans
+  // le pied de page. Deux chaînes identiques étant égales par valeur, cette signature ne
+  // change (et ne redéclenche l'effet) que si le contenu utile a vraiment changé.
+  const projectSyncSignature = useMemo(() => {
+    const projectToSync = activeProject || projects[0];
+    if (!projectToSync || projectToSync.isDemo) {
+      return '';
+    }
+
+    return JSON.stringify({
+      id: projectToSync.id,
+      projectName: projectToSync.projectName,
+      answers: projectToSync.answers,
+      analysis: projectToSync.analysis,
+      status: projectToSync.status,
+      totalQuestions: projectToSync.totalQuestions,
+      answeredQuestions: projectToSync.answeredQuestions,
+      lastQuestionIndex: projectToSync.lastQuestionIndex,
+      ownerEmail: projectToSync.ownerEmail,
+      sharedWith: projectToSync.sharedWith,
+      submittedAt: projectToSync.submittedAt
+    });
+  }, [activeProject, projects]);
+
   useEffect(() => {
-    if (!isHydrated || isOnboardingActive || !autosaveQueueRef.current) {
+    if (!isHydrated || isOnboardingActive || !autosaveQueueRef.current || !projectSyncSignature) {
       return undefined;
     }
 
@@ -2727,12 +2777,13 @@ const updateProjectFilters = useCallback((updater) => {
       clearTimeout(autosaveTimeoutRef.current);
     }
 
-    const projectToSync = activeProject || projects[0];
-    if (!projectToSync || projectToSync.isDemo) {
-      return undefined;
-    }
-
     autosaveTimeoutRef.current = setTimeout(() => {
+      const projectToSync = projectsRef.current.find(project => project.id === activeProjectId)
+        || projectsRef.current[0];
+      if (!projectToSync) {
+        return;
+      }
+
       const expectedRowVersion = typeof projectToSync.rowVersion === 'number'
         ? projectToSync.rowVersion
         : undefined;
@@ -2749,47 +2800,7 @@ const updateProjectFilters = useCallback((updater) => {
         autosaveTimeoutRef.current = null;
       }
     };
-  }, [
-    activeProject,
-    projects,
-    isHydrated,
-    isOnboardingActive,
-    answers,
-    analysis,
-    currentQuestionIndex,
-    inspirationProjects,
-    adminView,
-    screen,
-    mode
-  ]);
-
-  // Écriture réseau vers CN_Inspirations : uniquement en mode SharePoint. En mode mock/local,
-  // les inspirations restent portées par le useState `inspirationProjects` déjà persisté dans
-  // complianceNavigatorState (comme avant) ; inspirationDataProvider n'y sert qu'à la lecture.
-  useEffect(() => {
-    if (!isSharePointMode() || !isHydrated || !inspirationsQueueRef.current) {
-      return undefined;
-    }
-
-    if (inspirationsAutosaveTimeoutRef.current) {
-      clearTimeout(inspirationsAutosaveTimeoutRef.current);
-    }
-
-    if (!activeInspirationProject) {
-      return undefined;
-    }
-
-    inspirationsAutosaveTimeoutRef.current = setTimeout(() => {
-      inspirationsQueueRef.current.enqueue(activeInspirationProject);
-    }, 700);
-
-    return () => {
-      if (inspirationsAutosaveTimeoutRef.current) {
-        clearTimeout(inspirationsAutosaveTimeoutRef.current);
-        inspirationsAutosaveTimeoutRef.current = null;
-      }
-    };
-  }, [activeInspirationProject, isHydrated]);
+  }, [projectSyncSignature, activeProjectId, isHydrated, isOnboardingActive]);
 
   const activeShowcaseProjectId = showcaseProjectContext?.projectId || null;
 
@@ -3505,7 +3516,7 @@ const updateProjectFilters = useCallback((updater) => {
 
           if (recipients.length > 0) {
             const teamNames = Object.keys(teamEntries)
-              .map((teamId) => teams.find((entry) => entry?.id === teamId)?.name)
+              .map((teamId) => resolveLocalizedText(teams.find((entry) => entry?.id === teamId)?.name, DEFAULT_LANGUAGE))
               .filter(Boolean);
 
             notify({
@@ -3850,23 +3861,33 @@ const updateProjectFilters = useCallback((updater) => {
     setScreen('inspiration-form');
   }, [currentUserDisplayName, currentUserEmail, hasLoadedInspirationProjects, inspirationProjects]);
 
-  const handleAutosaveInspirationProject = useCallback((projectId, updates) => {
+  const handleSaveInspirationProject = useCallback((projectId, updates) => {
     if (!projectId || !updates) {
       return;
     }
+
+    let savedEntry = null;
 
     setInspirationProjects((prev) => (Array.isArray(prev) ? prev : []).map((project) => {
       if (!project || project.id !== projectId) {
         return project;
       }
 
-      return {
+      savedEntry = {
         ...project,
         ...updates,
         updatedAt: new Date().toISOString()
       };
+      return savedEntry;
     }));
-  }, []);
+
+    if (savedEntry) {
+      inspirationsQueueRef.current?.enqueue({ inspiration: savedEntry });
+    }
+
+    setScreen('home');
+    handleHomeViewChange('inspiration');
+  }, [handleHomeViewChange]);
 
   const handleCancelInspirationForm = useCallback(() => {
     if (activeInspirationProject) {
@@ -3908,13 +3929,20 @@ const updateProjectFilters = useCallback((updater) => {
       return;
     }
 
+    let savedEntry = null;
+
     setInspirationProjects((prev) => (Array.isArray(prev) ? prev : []).map((project) => {
       if (!project || project.id !== projectId) {
         return project;
       }
 
-      return { ...project, ...updates };
+      savedEntry = { ...project, ...updates };
+      return savedEntry;
     }));
+
+    if (savedEntry) {
+      inspirationsQueueRef.current?.enqueue({ inspiration: savedEntry });
+    }
   }, []);
 
   const handleExportInspirationProject = useCallback((project) => {
@@ -4154,6 +4182,13 @@ const updateProjectFilters = useCallback((updater) => {
       const answersClone = sourceProject.answers && typeof sourceProject.answers === 'object'
         ? JSON.parse(JSON.stringify(sourceProject.answers))
         : {};
+
+      // Un projet dupliqué est un nouveau projet à évaluer : les échanges/décisions des
+      // experts et comités de conformité, ainsi que la visibilité publique de la vitrine
+      // du projet source, ne doivent pas être hérités (les post-its, eux, ne le sont déjà
+      // pas : ils sont chargés par id de projet réel, jamais copiés).
+      delete answersClone[COMPLIANCE_COMMENTS_KEY];
+      delete answersClone[PUBLIC_VISIBILITY_KEY];
 
       if (currentUserDisplayName) {
         answersClone.teamLead = currentUserDisplayName;
@@ -4646,7 +4681,7 @@ const updateProjectFilters = useCallback((updater) => {
       : [])
       .map((teamId) => teams.find((entry) => entry?.id === teamId))
       .filter(Boolean);
-    const teamNames = notifiedTeams.map((team) => team.name).filter(Boolean);
+    const teamNames = notifiedTeams.map((team) => resolveLocalizedText(team.name, DEFAULT_LANGUAGE)).filter(Boolean);
     const teamRecipients = normalizeRecipientList(
       notifiedTeams.flatMap((team) => normalizeTeamContacts(team))
     );
@@ -4694,12 +4729,17 @@ const updateProjectFilters = useCallback((updater) => {
     if (entry) {
       notifyProjectSubmission(entry);
       setValidationError(null);
+      setSubmittedProjectNotice({ id: entry.id, projectName: entry.projectName });
       setScreen('home');
     }
   }, [handleSaveProject, notifyProjectSubmission, t, unansweredMandatoryQuestions]);
 
   const handleDismissSaveFeedback = useCallback(() => {
     setSaveFeedback(null);
+  }, []);
+
+  const handleDismissSubmittedProjectNotice = useCallback(() => {
+    setSubmittedProjectNotice(null);
   }, []);
 
   const handleBackToQuestionnaire = useCallback(() => {
@@ -5581,6 +5621,8 @@ const updateProjectFilters = useCallback((updater) => {
             onStartNewProject={handleCreateNewProject}
             onOpenProject={handleOpenProject}
             onDeleteProject={handleDeleteProject}
+            submittedProjectNotice={submittedProjectNotice}
+            onDismissSubmittedProjectNotice={handleDismissSubmittedProjectNotice}
             onShowProjectShowcase={handleShowProjectShowcase}
             canShowProjectShowcase={canShowProjectShowcase}
             onDuplicateProject={handleDuplicateProject}
@@ -5598,7 +5640,7 @@ const updateProjectFilters = useCallback((updater) => {
             project={activeInspirationProject}
             formConfig={inspirationFormFields}
             existingProjects={inspirationProjects}
-            onAutosave={handleAutosaveInspirationProject}
+            onSave={handleSaveInspirationProject}
             onCancel={handleCancelInspirationForm}
             />
           </Suspense>
@@ -5700,8 +5742,8 @@ const updateProjectFilters = useCallback((updater) => {
                 )}
               >
                 <LazyProjectShowcase
-                  projectName={showcaseProjectContext.projectName}
                   projectId={showcaseProjectContext.projectId || null}
+                  projectName={showcaseProjectContext.projectName}
                   onClose={handleCloseProjectShowcase}
                   analysis={showcaseProjectContext.analysis}
                   relevantTeams={showcaseProjectContext.relevantTeams}
