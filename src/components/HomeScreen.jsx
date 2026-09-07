@@ -25,6 +25,7 @@ import {
   normalizeValidationCommitteeConfig
 } from '../utils/validationCommittee.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
+import { resolveLocalizedText } from '../utils/localizedContent.js';
 import { getLocaleTag } from '../i18n/languages.js';
 
 const formatDate = (isoDate, language, unknownDateLabel) => {
@@ -469,7 +470,7 @@ export const HomeScreen = ({
             const contacts = normalizeTeamContacts(team);
             return contacts.some((contact) => normalizeEmail(contact) === currentUserEmail);
           })
-          .map((team) => ({ id: team.id, name: team.name || team.id, type: 'team' }));
+          .map((team) => ({ id: team.id, name: resolveLocalizedText(team.name, language) || team.id, type: 'team' }));
 
         const triggeredCommittees = getTriggeredValidationCommittees(normalizedValidationCommitteeConfig, {
           answers: project?.answers || {},
@@ -520,7 +521,8 @@ export const HomeScreen = ({
     isComplianceActor,
     isValidationCommitteeMember,
     normalizedValidationCommitteeConfig,
-    teams
+    teams,
+    language
   ]);
 
   const pendingComplianceProjects = useMemo(
@@ -594,6 +596,8 @@ export const HomeScreen = ({
       selector = '[data-tour-id="home-create-project"]';
     } else if (activeStep === 'project-filters') {
       selector = '[data-tour-id="home-filters"]';
+    } else if (activeStep === 'project-inspiration') {
+      selector = '[data-tour-id="home-inspiration-block"]';
     }
 
     if (selector) {
@@ -1821,7 +1825,7 @@ export const HomeScreen = ({
         )}
 
         <section aria-labelledby="projects-heading" className="space-y-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between" data-tour-id="home-inspiration-block">
             <div>
               <h2 id="projects-heading" className="text-2xl font-bold text-gray-900">
                 {homeView === 'inspiration' ? t('home.inspiringProjectsHeading') : t('home.savedProjectsHeading')}

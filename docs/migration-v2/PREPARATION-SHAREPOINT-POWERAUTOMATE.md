@@ -252,14 +252,20 @@ modifient chacun une règle différente ne se marchent plus dessus.
 | UpdatedAt | Date et heure |
 
 ### `CN_Teams` — les équipes de conformité (une ligne par équipe)
-Remplace de la même façon le fichier `teams.json`.
+Remplace de la même façon le fichier `teams.json`. Le nom et le domaine d'expertise sont
+traduisibles dans les 4 langues de l'app (anglais, français, allemand, espagnol) : `NameJson`
+et `Expertise` transportent un objet JSON `{en, fr, de, es}` (une langue peut être absente tant
+qu'elle n'a pas été traduite depuis le back-office). `Title` reste une chaîne simple dérivée du
+nom (langue par défaut) uniquement pour rester lisible telle quelle dans les vues SharePoint
+natives — ce n'est plus la source de vérité de l'app.
 
 | Colonne | Type |
 |---|---|
-| Title | (existante — nom de l'équipe) |
+| Title | (existante — nom de l'équipe, langue par défaut, dérivé automatiquement) |
 | TeamId 📌 | Une ligne de texte |
 | ContactsJson | Texte long (liste d'emails, ex. `["dpo@lfb.fr"]`) |
-| Expertise | Texte long |
+| NameJson | Texte long (nom traduit, ex. `{"en":"Legal","fr":"Juridique"}`) |
+| Expertise | Texte long (domaine d'expertise traduit, ex. `{"en":"...","fr":"..."}`) |
 | SortOrder | Nombre |
 | RowVersion | Nombre |
 | CreatedByEmail | Une ligne de texte |

@@ -1724,11 +1724,11 @@ export const ProjectShowcase = ({
     const map = new Map();
     normalizedTeams.forEach(team => {
       if (team && team.id) {
-        map.set(team.id, team.name || team.id);
+        map.set(team.id, resolveLocalizedText(team.name, language) || team.id);
       }
     });
     return map;
-  }, [normalizedTeams]);
+  }, [normalizedTeams, language]);
 
   const editableFields = useMemo(
     () =>

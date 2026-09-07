@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from '../react.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { getLocaleTag } from '../i18n/languages.js';
+import { resolveLocalizedText } from '../utils/localizedContent.js';
 
 const TIME_FILTER_OPTIONS = [
   {
@@ -286,18 +287,18 @@ const getProjectLeadEmails = (project) => {
   return new Set(recipients);
 };
 
-const buildExpertLabelMap = (teams = []) => {
+const buildExpertLabelMap = (teams = [], language) => {
   const map = new Map();
   (Array.isArray(teams) ? teams : []).forEach((team) => {
     if (team?.id) {
-      map.set(team.id, team.name || team.id);
+      map.set(team.id, resolveLocalizedText(team.name, language) || team.id);
     }
   });
   return map;
 };
 
-const computeComplianceMetrics = (projects = [], teams = [], t) => {
-  const expertLabelMap = buildExpertLabelMap(teams);
+const computeComplianceMetrics = (projects = [], teams = [], t, language) => {
+  const expertLabelMap = buildExpertLabelMap(teams, language);
   const perExpert = new Map();
   let globalValidationTotal = 0;
   let globalValidationCount = 0;
@@ -767,8 +768,8 @@ export const BackOfficeDashboard = ({ projects = [], teams = [] }) => {
   }, [filteredProjects]);
 
   const complianceMetrics = useMemo(
-    () => computeComplianceMetrics(filteredProjects, teams, t),
-    [filteredProjects, teams, t]
+    () => computeComplianceMetrics(filteredProjects, teams, t, language),
+    [filteredProjects, teams, t, language]
   );
 
   const riskSeverityAverages = useMemo(() => {
@@ -824,7 +825,7 @@ export const BackOfficeDashboard = ({ projects = [], teams = [] }) => {
     const counts = new Map();
     const teamNames = new Map(
       Array.isArray(teams)
-        ? teams.map((team) => [team.id, team.name || team.id])
+        ? teams.map((team) => [team.id, resolveLocalizedText(team.name, language) || team.id])
         : []
     );
 
@@ -868,7 +869,7 @@ export const BackOfficeDashboard = ({ projects = [], teams = [] }) => {
       total: entries.reduce((sum, entry) => sum + entry.value, 0),
       entries
     };
-  }, [filteredProjects, teams]);
+  }, [filteredProjects, teams, language]);
 
   const leadTeamFilterLabel = useMemo(() => {
     if (selectedLeadTeam === 'all') {

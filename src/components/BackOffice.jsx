@@ -72,7 +72,8 @@ import { normalizeValidationCommitteeConfig } from '../utils/validationCommittee
 import { getShowcaseThemeActivationConflicts, normalizeThemeActivation } from '../utils/showcase.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { DEFAULT_LANGUAGE, getLocaleTag } from '../i18n/languages.js';
-import { resolveLocalizedText } from '../utils/localizedContent.js';
+import { resolveLocalizedText, getLocalizedRaw, setLocalizedText } from '../utils/localizedContent.js';
+import { LanguageEditSwitcher } from './LocalizedFieldEditor.jsx';
 import { isSharePointMode } from '../config/sharepointConfig.js';
 
 const QUESTION_TYPE_KEYS = {
@@ -402,11 +403,11 @@ const formatGuidanceTips = (guidance, language = DEFAULT_LANGUAGE) => {
   return tips;
 };
 
-const getTeamLabel = (teamId, teams) => {
+const getTeamLabel = (teamId, teams, language) => {
   for (let index = 0; index < teams.length; index += 1) {
     const team = teams[index];
     if (team && team.id === teamId) {
-      return `${team.name || team.id}`;
+      return resolveLocalizedText(team.name, language) || team.id;
     }
   }
   return teamId;
@@ -669,6 +670,8 @@ export const BackOffice = ({
   teamServerMetaRef
 }) => {
   const { t, language } = useTranslation();
+  const [onboardingEditingLanguage, setOnboardingEditingLanguage] = useState(language);
+  const [teamsEditingLanguage, setTeamsEditingLanguage] = useState(language);
   // Aperçu de conditions (onglet questions/règles) : simule les réponses avec le périmètre
   // d'activité réel de la personne connectée, comme dans le vrai questionnaire.
   const shouldShowQuestion = useCallback(
@@ -1835,7 +1838,7 @@ export const BackOffice = ({
         return;
       }
 
-      options.push({ value: team.id, label: getTeamLabel(team.id, safeTeams) });
+      options.push({ value: team.id, label: getTeamLabel(team.id, safeTeams, language) });
       seen.add(team.id);
     });
 
@@ -1846,13 +1849,13 @@ export const BackOffice = ({
           return;
         }
 
-        options.push({ value: teamId, label: getTeamLabel(teamId, safeTeams) });
+        options.push({ value: teamId, label: getTeamLabel(teamId, safeTeams, language) });
         seen.add(teamId);
       });
     });
 
     return options;
-  }, [teams, ruleVisibilitySource]);
+  }, [teams, ruleVisibilitySource, language]);
 
   const visibleQuestionIds = useMemo(() => {
     const ids = [];
@@ -2726,7 +2729,7 @@ export const BackOffice = ({
     const teamNameMap = new Map();
     safeTeams.forEach(team => {
       if (team?.id) {
-        teamNameMap.set(team.id, team?.name || team.id);
+        teamNameMap.set(team.id, resolveLocalizedText(team?.name, language) || team.id);
       }
     });
 
@@ -3013,7 +3016,7 @@ export const BackOffice = ({
     });
 
     return issues;
-  }, [questions, ruleVisibilitySource, teams, t]);
+  }, [questions, ruleVisibilitySource, teams, t, language]);
 
   const dataIntegritySummary = useMemo(() => {
     if (!dataIntegrityIssues || dataIntegrityIssues.length === 0) {
@@ -3949,9 +3952,9 @@ export const BackOffice = ({
   const addTeam = () => {
     const newTeam = {
       id: getNextId(teams, 'team'),
-      name: t('backOffice.main.newTeamNameDefault'),
+      name: { [language]: t('backOffice.main.newTeamNameDefault') },
       contacts: ['email@company.com'],
-      expertise: t('backOffice.main.expertiseAreaLabel')
+      expertise: { [language]: '' }
     };
 
     setTeams([...teams, newTeam]);
@@ -5154,13 +5157,20 @@ export const BackOffice = ({
                   </div>
                 </header>
 
+                <LanguageEditSwitcher
+                  editingLanguage={onboardingEditingLanguage}
+                  onChange={setOnboardingEditingLanguage}
+                  label={t('backOffice.main.onboardingEditingLanguageLabel')}
+                  hint={t('backOffice.main.onboardingEditingLanguageHint')}
+                />
+
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <label className="flex flex-col gap-2 text-sm text-gray-700">
                     <span className="font-semibold text-gray-700">{t('backOffice.main.nextLabelLabel')}</span>
                     <input
                       type="text"
-                      value={normalizedOnboardingConfig.labels.next}
-                      onChange={(event) => updateOnboardingLabel('next', event.target.value)}
+                      value={getLocalizedRaw(normalizedOnboardingConfig.labels.next, onboardingEditingLanguage)}
+                      onChange={(event) => updateOnboardingLabel('next', setLocalizedText(normalizedOnboardingConfig.labels.next, onboardingEditingLanguage, event.target.value))}
                       className="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                     />
                   </label>
@@ -5168,8 +5178,8 @@ export const BackOffice = ({
                     <span className="font-semibold text-gray-700">{t('backOffice.main.prevLabelLabel')}</span>
                     <input
                       type="text"
-                      value={normalizedOnboardingConfig.labels.prev}
-                      onChange={(event) => updateOnboardingLabel('prev', event.target.value)}
+                      value={getLocalizedRaw(normalizedOnboardingConfig.labels.prev, onboardingEditingLanguage)}
+                      onChange={(event) => updateOnboardingLabel('prev', setLocalizedText(normalizedOnboardingConfig.labels.prev, onboardingEditingLanguage, event.target.value))}
                       className="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                     />
                   </label>
@@ -5177,8 +5187,8 @@ export const BackOffice = ({
                     <span className="font-semibold text-gray-700">{t('backOffice.main.closeLabelLabel')}</span>
                     <input
                       type="text"
-                      value={normalizedOnboardingConfig.labels.close}
-                      onChange={(event) => updateOnboardingLabel('close', event.target.value)}
+                      value={getLocalizedRaw(normalizedOnboardingConfig.labels.close, onboardingEditingLanguage)}
+                      onChange={(event) => updateOnboardingLabel('close', setLocalizedText(normalizedOnboardingConfig.labels.close, onboardingEditingLanguage, event.target.value))}
                       className="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                     />
                   </label>
@@ -5186,8 +5196,8 @@ export const BackOffice = ({
                     <span className="font-semibold text-gray-700">{t('backOffice.main.finishLabelLabel')}</span>
                     <input
                       type="text"
-                      value={normalizedOnboardingConfig.labels.finish}
-                      onChange={(event) => updateOnboardingLabel('finish', event.target.value)}
+                      value={getLocalizedRaw(normalizedOnboardingConfig.labels.finish, onboardingEditingLanguage)}
+                      onChange={(event) => updateOnboardingLabel('finish', setLocalizedText(normalizedOnboardingConfig.labels.finish, onboardingEditingLanguage, event.target.value))}
                       className="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                     />
                   </label>
@@ -5229,7 +5239,7 @@ export const BackOffice = ({
                             {t('backOffice.main.stepPositionTemplate', { position: index + 1, total: normalizedOnboardingConfig.steps.length })}
                           </p>
                           <h3 className="text-lg font-semibold text-gray-800">
-                            {step.title || step.id || t('backOffice.main.untitledStepFallback')}
+                            {resolveLocalizedText(step.title, language) || step.id || t('backOffice.main.untitledStepFallback')}
                           </h3>
                           <p className="text-sm text-gray-600">{step.target || t('backOffice.main.noTargetDefined')}</p>
                         </div>
@@ -5306,8 +5316,8 @@ export const BackOffice = ({
                           <span className="font-semibold text-gray-700">{t('backOffice.main.titleFieldLabel')}</span>
                           <input
                             type="text"
-                            value={step.title}
-                            onChange={(event) => updateOnboardingStepField(index, 'title', event.target.value)}
+                            value={getLocalizedRaw(step.title, onboardingEditingLanguage)}
+                            onChange={(event) => updateOnboardingStepField(index, 'title', setLocalizedText(step.title, onboardingEditingLanguage, event.target.value))}
                             className="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                           />
                         </label>
@@ -5340,8 +5350,8 @@ export const BackOffice = ({
                           <span className="font-semibold text-gray-700">{t('backOffice.main.messageLabel')}</span>
                           <textarea
                             rows={3}
-                            value={step.content}
-                            onChange={(event) => updateOnboardingStepField(index, 'content', event.target.value)}
+                            value={getLocalizedRaw(step.content, onboardingEditingLanguage)}
+                            onChange={(event) => updateOnboardingStepField(index, 'content', setLocalizedText(step.content, onboardingEditingLanguage, event.target.value))}
                             className="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                           />
                         </label>
@@ -5383,9 +5393,9 @@ export const BackOffice = ({
                                     {t('backOffice.main.labelFieldLabel')}
                                     <input
                                       type="text"
-                                      value={action.label}
+                                      value={getLocalizedRaw(action.label, onboardingEditingLanguage)}
                                       onChange={(event) =>
-                                        updateOnboardingActionField(index, actionIndex, 'label', event.target.value)
+                                        updateOnboardingActionField(index, actionIndex, 'label', setLocalizedText(action.label, onboardingEditingLanguage, event.target.value))
                                       }
                                       className="rounded-md border border-gray-300 px-2 py-1 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                                     />
@@ -5582,7 +5592,7 @@ export const BackOffice = ({
                           ? t('backOffice.main.protectedQuestionDeleteBlockedTitle')
                           : t('backOffice.main.deleteQuestionTitleTemplate', { id: question.id });
                       const questionTeams = questionTeamAssignments.get(question.id) || [];
-                      const questionTeamLabels = questionTeams.map((teamId) => getTeamLabel(teamId, teams));
+                      const questionTeamLabels = questionTeams.map((teamId) => getTeamLabel(teamId, teams, language));
                       const isExpanded = expandedQuestionIds.has(question.id);
                       const detailsId = `question-details-${question.id}`;
                       const toggleLabel = isExpanded
@@ -5834,7 +5844,7 @@ export const BackOffice = ({
                         ? t('backOffice.main.protectedQuestionDeleteBlockedTitle')
                         : t('backOffice.main.deleteQuestionTitleTemplate', { id: question.id });
                     const questionTeams = questionTeamAssignments.get(question.id) || [];
-                    const questionTeamLabels = questionTeams.map((teamId) => getTeamLabel(teamId, teams));
+                    const questionTeamLabels = questionTeams.map((teamId) => getTeamLabel(teamId, teams, language));
                     const isExpanded = expandedQuestionIds.has(question.id);
                     const detailsId = `question-details-${question.id}`;
                     const toggleLabel = isExpanded
@@ -6156,7 +6166,7 @@ export const BackOffice = ({
                       const risks = Array.isArray(rule.risks) ? rule.risks : [];
                       const highestRiskPriority = getHighestRiskPriority(risks);
                       const associatedTeamIds = Array.from(collectRuleTeamIds(rule));
-                      const associatedTeamLabels = associatedTeamIds.map((teamId) => getTeamLabel(teamId, teams));
+                      const associatedTeamLabels = associatedTeamIds.map((teamId) => getTeamLabel(teamId, teams, language));
                       const isExpanded = expandedRuleIds.has(rule.id);
                       const detailsId = `rule-details-${rule.id}`;
                       const ruleDisplayName = resolveLocalizedText(rule.name, language) || rule.id;
@@ -6283,7 +6293,7 @@ export const BackOffice = ({
                                         {risks.map((risk, index) => {
                                           const riskDescription = resolveLocalizedText(risk?.description, language) || t('backOffice.main.riskNotProvidedFallback');
                                           const riskPriority = getRiskPriorityLabel(t, risk?.priority || 'standard');
-                                          const riskTeamLabel = risk?.teamId ? getTeamLabel(risk.teamId, teams) : t('backOffice.dashboard.teamNotSet');
+                                          const riskTeamLabel = risk?.teamId ? getTeamLabel(risk.teamId, teams, language) : t('backOffice.dashboard.teamNotSet');
 
                                           return (
                                             <li key={`${rule.id}-risk-${index}`} className="space-y-1">
@@ -6324,7 +6334,7 @@ export const BackOffice = ({
                     const risks = Array.isArray(rule.risks) ? rule.risks : [];
                     const highestRiskPriority = getHighestRiskPriority(risks);
                     const associatedTeamIds = Array.from(collectRuleTeamIds(rule));
-                    const associatedTeamLabels = associatedTeamIds.map((teamId) => getTeamLabel(teamId, teams));
+                    const associatedTeamLabels = associatedTeamIds.map((teamId) => getTeamLabel(teamId, teams, language));
                     const isExpanded = expandedRuleIds.has(rule.id);
                     const detailsId = `rule-details-${rule.id}`;
                     const ruleDisplayName = resolveLocalizedText(rule.name, language) || rule.id;
@@ -6450,7 +6460,7 @@ export const BackOffice = ({
                                     {risks.map((risk, index) => {
                                       const riskDescription = resolveLocalizedText(risk?.description, language) || t('backOffice.main.riskNotProvidedFallback');
                                       const riskPriority = getRiskPriorityLabel(t, risk?.priority || 'standard');
-                                      const riskTeamLabel = risk?.teamId ? getTeamLabel(risk.teamId, teams) : t('backOffice.dashboard.teamNotSet');
+                                      const riskTeamLabel = risk?.teamId ? getTeamLabel(risk.teamId, teams, language) : t('backOffice.dashboard.teamNotSet');
 
                                       return (
                                         <li key={`${rule.id}-risk-${index}`} className="space-y-1">
@@ -7589,59 +7599,69 @@ export const BackOffice = ({
                 </div>
               )}
 
+              <LanguageEditSwitcher
+                editingLanguage={teamsEditingLanguage}
+                onChange={setTeamsEditingLanguage}
+                label={t('backOffice.main.teamsEditingLanguageLabel')}
+                hint={t('backOffice.main.teamsEditingLanguageHint')}
+              />
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {visibleTeams.map((team, index) => (
-                  <article key={team.id} className="border border-gray-200 rounded-xl p-6 bg-white shadow-sm" aria-label={t('backOffice.main.teamAriaLabelTemplate', { name: team.name })}>
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-4">
-                      <input
-                        type="text"
-                        value={team.name}
-                        onChange={(event) => updateTeamField(index, 'name', event.target.value)}
-                        className="text-lg font-semibold text-gray-800 border-b border-transparent focus:border-blue-600 focus:outline-none flex-1"
-                        aria-label={t('backOffice.main.teamNameAriaLabelTemplate', { id: team.id })}
-                      />
-                      <div className="flex justify-end sm:justify-start">
-                        <button
-                          type="button"
-                          onClick={() => deleteTeam(team.id)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded"
-                          aria-label={t('backOffice.main.removeTeamAriaLabelTemplate', { name: team.name })}
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
+                {visibleTeams.map((team, index) => {
+                  const teamDisplayName = resolveLocalizedText(team.name, language);
+                  return (
+                    <article key={team.id} className="border border-gray-200 rounded-xl p-6 bg-white shadow-sm" aria-label={t('backOffice.main.teamAriaLabelTemplate', { name: teamDisplayName })}>
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-4">
+                        <input
+                          type="text"
+                          value={getLocalizedRaw(team.name, teamsEditingLanguage)}
+                          onChange={(event) => updateTeamField(index, 'name', setLocalizedText(team.name, teamsEditingLanguage, event.target.value))}
+                          className="text-lg font-semibold text-gray-800 border-b border-transparent focus:border-blue-600 focus:outline-none flex-1"
+                          aria-label={t('backOffice.main.teamNameAriaLabelTemplate', { id: team.id })}
+                        />
+                        <div className="flex justify-end sm:justify-start">
+                          <button
+                            type="button"
+                            onClick={() => deleteTeam(team.id)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded"
+                            aria-label={t('backOffice.main.removeTeamAriaLabelTemplate', { name: teamDisplayName })}
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </div>
                       </div>
-                    </div>
 
-                    <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1" htmlFor={`${team.id}-contact`}>
-                      {t('backOffice.main.emailContactsLabel')}
-                    </label>
-                    <textarea
-                      id={`${team.id}-contact`}
-                      value={teamContactDrafts[team.id] ?? formatTeamContacts(team, ', ')}
-                      onChange={(event) =>
-                        handleTeamContactsChange(index, team.id, event.target.value)
-                      }
-                      onBlur={() => handleTeamContactsBlur(team.id)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-2"
-                      rows={2}
-                      placeholder={t('backOffice.main.teamContactsPlaceholder')}
-                    />
-                    <p className="text-xs text-gray-500 mb-4">
-                      {t('backOffice.main.separateAddressesHint')}
-                    </p>
+                      <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1" htmlFor={`${team.id}-contact`}>
+                        {t('backOffice.main.emailContactsLabel')}
+                      </label>
+                      <textarea
+                        id={`${team.id}-contact`}
+                        value={teamContactDrafts[team.id] ?? formatTeamContacts(team, ', ')}
+                        onChange={(event) =>
+                          handleTeamContactsChange(index, team.id, event.target.value)
+                        }
+                        onBlur={() => handleTeamContactsBlur(team.id)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-2"
+                        rows={2}
+                        placeholder={t('backOffice.main.teamContactsPlaceholder')}
+                      />
+                      <p className="text-xs text-gray-500 mb-4">
+                        {t('backOffice.main.separateAddressesHint')}
+                      </p>
 
-                    <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1" htmlFor={`${team.id}-expertise`}>
-                      {t('backOffice.main.expertiseAreaLabel')}
-                    </label>
-                    <textarea
-                      id={`${team.id}-expertise`}
-                      value={team.expertise}
-                      onChange={(event) => updateTeamField(index, 'expertise', event.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-y"
-                      rows={3}
-                    />
-                  </article>
-                ))}
+                      <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1" htmlFor={`${team.id}-expertise`}>
+                        {t('backOffice.main.expertiseAreaLabel')}
+                      </label>
+                      <textarea
+                        id={`${team.id}-expertise`}
+                        value={getLocalizedRaw(team.expertise, teamsEditingLanguage)}
+                        onChange={(event) => updateTeamField(index, 'expertise', setLocalizedText(team.expertise, teamsEditingLanguage, event.target.value))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-y"
+                        rows={3}
+                      />
+                    </article>
+                  );
+                })}
               </div>
             </section>
           )}
@@ -7667,7 +7687,7 @@ export const BackOffice = ({
                 >
                   <option value="">{t('backOffice.main.selectTeamPlaceholder')}</option>
                   {visibleTeams.map((team) => (
-                    <option key={team.id} value={team.id}>{team.name || team.id}</option>
+                    <option key={team.id} value={team.id}>{resolveLocalizedText(team.name, language) || team.id}</option>
                   ))}
                 </select>
               </div>

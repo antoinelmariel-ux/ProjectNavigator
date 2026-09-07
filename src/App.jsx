@@ -71,6 +71,8 @@ import { loadReferentials } from './utils/referentialStore.js';
 import { mergeServerAndLocalProjects } from './utils/syncMerge.js';
 import { queueNotification } from './utils/notificationQueue.js';
 import { NOTIFICATION_TYPES, buildNotification } from './utils/notificationTemplates.js';
+import { resolveLocalizedText } from './utils/localizedContent.js';
+import { DEFAULT_LANGUAGE } from './i18n/languages.js';
 const HEADER_LOGO_PATH = './src/components/logo.png';
 
 const APP_VERSION = 'v1.0.385';
@@ -2076,10 +2078,11 @@ const updateProjectFilters = useCallback((updater) => {
       const redirect = () => {
         try {
           if (window.location) {
+            const homeUrl = isSharePointMode() ? './index.aspx' : './index.html';
             if (typeof window.location.assign === 'function') {
-              window.location.assign('./index.html');
+              window.location.assign(homeUrl);
             } else {
-              window.location.href = './index.html';
+              window.location.href = homeUrl;
             }
           }
         } catch (error) {
@@ -2399,9 +2402,25 @@ const updateProjectFilters = useCallback((updater) => {
       return;
     }
 
+    const resolvedLabels = {
+      next: resolveLocalizedText(labels.next, language),
+      prev: resolveLocalizedText(labels.prev, language),
+      close: resolveLocalizedText(labels.close, language),
+      finish: resolveLocalizedText(labels.finish, language)
+    };
+    const resolvedSteps = steps.map((step) => ({
+      ...step,
+      title: resolveLocalizedText(step.title, language),
+      content: resolveLocalizedText(step.content, language),
+      actions: (step.actions || []).map((action) => ({
+        ...action,
+        label: resolveLocalizedText(action.label, language)
+      }))
+    }));
+
     const tour = new window.TourGuideClient({
-      steps,
-      labels,
+      steps: resolvedSteps,
+      labels: resolvedLabels,
       allowClose,
       showStepDots
     });
@@ -2427,6 +2446,7 @@ const updateProjectFilters = useCallback((updater) => {
     mode,
     screen,
     t,
+    language,
     adminView,
     answers,
     analysis,
@@ -3496,7 +3516,7 @@ const updateProjectFilters = useCallback((updater) => {
 
           if (recipients.length > 0) {
             const teamNames = Object.keys(teamEntries)
-              .map((teamId) => teams.find((entry) => entry?.id === teamId)?.name)
+              .map((teamId) => resolveLocalizedText(teams.find((entry) => entry?.id === teamId)?.name, DEFAULT_LANGUAGE))
               .filter(Boolean);
 
             notify({
@@ -4661,7 +4681,7 @@ const updateProjectFilters = useCallback((updater) => {
       : [])
       .map((teamId) => teams.find((entry) => entry?.id === teamId))
       .filter(Boolean);
-    const teamNames = notifiedTeams.map((team) => team.name).filter(Boolean);
+    const teamNames = notifiedTeams.map((team) => resolveLocalizedText(team.name, DEFAULT_LANGUAGE)).filter(Boolean);
     const teamRecipients = normalizeRecipientList(
       notifiedTeams.flatMap((team) => normalizeTeamContacts(team))
     );
