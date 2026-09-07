@@ -89,21 +89,21 @@ const documentsRoot = () => resolveLibraryServerRelativeUrl('documents');
 export const buildDownloadUrl = (serverRelativePath) =>
   `/_api/web/GetFileByServerRelativeUrl('${odataQuote(serverRelativePath)}')/$value`;
 
+// On tente directement la création plutôt que de vérifier l'existence au préalable :
+// GetFolderByServerRelativeUrl sur un chemin absent ne répond pas toujours par un 404
+// homogène selon les tenants/versions SharePoint (parfois un 500 « Fichier introuvable »),
+// ce qui faisait échouer le dépôt du fichier avant même d'avoir tenté de créer le dossier.
 const ensureFolder = async (serverRelativeUrl) => {
   try {
-    await spGet(`/_api/web/GetFolderByServerRelativeUrl('${odataQuote(serverRelativeUrl)}')?$select=Name`);
+    await spPost('/_api/web/folders', { ServerRelativeUrl: serverRelativeUrl });
     return;
   } catch (error) {
-    if (error && error.status !== 404) {
-      throw error;
-    }
-  }
-
-  try {
-    await spPost('/_api/web/folders', { ServerRelativeUrl: serverRelativeUrl });
-  } catch (error) {
-    // Course entre deux dépôts simultanés : le dossier peut avoir été créé entre-temps.
-    if (!(error && (error.status === 400 || error.status === 409))) {
+    // Course entre deux dépôts simultanés, ou dossier déjà existant : on vérifie son
+    // existence réelle plutôt que de se fier au code d'erreur de la création, qui varie
+    // lui aussi selon les tenants (400, 409, parfois autre chose).
+    try {
+      await spGet(`/_api/web/GetFolderByServerRelativeUrl('${odataQuote(serverRelativeUrl)}')?$select=Name`);
+    } catch {
       throw error;
     }
   }

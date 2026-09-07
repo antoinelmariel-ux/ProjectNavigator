@@ -229,7 +229,6 @@ export default {
     subtitle:
       'Documentez un projet inspirant issu d’un autre laboratoire afin d’enrichir la base d’exemples.',
     back: 'Retour',
-    autosaveNotice: 'Enregistrement automatique activé : vos modifications sont sauvegardées en continu.',
     privacyNotice:
       'Le LFB traite les données recueillies pour gérer les projets à soumettre aux équipes compliance.',
     privacyLink: 'En savoir plus sur vos données et vos droits',
@@ -247,7 +246,8 @@ export default {
     importedDocument: 'Document importé',
     uploadFailedMessage: 'Le dépôt du fichier a échoué. Merci de réessayer.',
     removeDocument: 'Retirer',
-    cancel: 'Annuler'
+    cancel: 'Annuler',
+    save: 'Valider'
   },
   home: {
     previous: 'Précédent',
@@ -331,6 +331,8 @@ export default {
     addInspiringProject: 'Ajouter un projet inspirant',
     duplicateNoticePrefix: 'Copie créée :',
     duplicateNoticeSuffix: 'Elle est en haut de votre liste, en brouillon.',
+    submissionNoticePrefix: 'Projet soumis :',
+    submissionNoticeSuffix: 'a bien été envoyé pour analyse.',
     noProjectsYetTitle: 'Aucun projet enregistré pour le moment.',
     noProjectsYetBody: 'Lancez-vous dès maintenant pour préparer votre première synthèse compliance.',
     projectsLoadingTitle: 'Chargement de vos projets…',

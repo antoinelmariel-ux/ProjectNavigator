@@ -228,7 +228,6 @@ export default {
     title: 'Cuestionario de proyecto inspirador',
     subtitle: 'Documente un proyecto inspirador de otro laboratorio para enriquecer la base de ejemplos.',
     back: 'Volver',
-    autosaveNotice: 'Guardado automático activado: sus cambios se guardan continuamente.',
     privacyNotice:
       'LFB trata los datos recopilados para gestionar los proyectos que se presentarán a los equipos de cumplimiento.',
     privacyLink: 'Más información sobre sus datos y sus derechos',
@@ -246,7 +245,8 @@ export default {
     importedDocument: 'Documento importado',
     uploadFailedMessage: 'No se pudo subir el archivo. Inténtelo de nuevo.',
     removeDocument: 'Quitar',
-    cancel: 'Cancelar'
+    cancel: 'Cancelar',
+    save: 'Guardar'
   },
   home: {
     previous: 'Anterior',
@@ -327,6 +327,8 @@ export default {
     addInspiringProject: 'Añadir un proyecto inspirador',
     duplicateNoticePrefix: 'Copia creada:',
     duplicateNoticeSuffix: 'Ahora está en la parte superior de su lista, como borrador.',
+    submissionNoticePrefix: 'Proyecto enviado:',
+    submissionNoticeSuffix: 'ha sido enviado para su revisión.',
     noProjectsYetTitle: 'Aún no hay ningún proyecto guardado.',
     noProjectsYetBody: 'Comience ahora para preparar su primer resumen de cumplimiento.',
     projectsLoadingTitle: 'Cargando sus proyectos…',

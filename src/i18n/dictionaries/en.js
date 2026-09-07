@@ -228,7 +228,6 @@ export default {
     title: 'Inspiring project questionnaire',
     subtitle: 'Document an inspiring project from another lab to enrich the example library.',
     back: 'Back',
-    autosaveNotice: 'Autosave enabled: your changes are saved continuously.',
     privacyNotice: 'LFB processes the data collected to manage projects submitted to the compliance teams.',
     privacyLink: 'Learn more about your data and your rights',
     selectPlaceholder: 'Select...',
@@ -245,7 +244,8 @@ export default {
     importedDocument: 'Imported document',
     uploadFailedMessage: 'The file upload failed. Please try again.',
     removeDocument: 'Remove',
-    cancel: 'Cancel'
+    cancel: 'Cancel',
+    save: 'Save'
   },
   home: {
     previous: 'Previous',
@@ -325,6 +325,8 @@ export default {
     addInspiringProject: 'Add an inspiring project',
     duplicateNoticePrefix: 'Copy created:',
     duplicateNoticeSuffix: 'It is now at the top of your list, as a draft.',
+    submissionNoticePrefix: 'Project submitted:',
+    submissionNoticeSuffix: 'has been sent for review.',
     noProjectsYetTitle: 'No project saved yet.',
     noProjectsYetBody: 'Get started now to prepare your first compliance summary.',
     projectsLoadingTitle: 'Loading your projects…',

@@ -229,7 +229,6 @@ export default {
     subtitle:
       'Dokumentieren Sie ein inspirierendes Projekt aus einem anderen Labor, um die Beispieldatenbank zu erweitern.',
     back: 'Zurück',
-    autosaveNotice: 'Automatisches Speichern aktiviert: Ihre Änderungen werden fortlaufend gespeichert.',
     privacyNotice:
       'LFB verarbeitet die erhobenen Daten, um die den Compliance-Teams vorzulegenden Projekte zu verwalten.',
     privacyLink: 'Erfahren Sie mehr über Ihre Daten und Ihre Rechte',
@@ -247,7 +246,8 @@ export default {
     importedDocument: 'Importiertes Dokument',
     uploadFailedMessage: 'Das Hochladen der Datei ist fehlgeschlagen. Bitte versuchen Sie es erneut.',
     removeDocument: 'Entfernen',
-    cancel: 'Abbrechen'
+    cancel: 'Abbrechen',
+    save: 'Speichern'
   },
   home: {
     previous: 'Zurück',
@@ -333,6 +333,8 @@ export default {
     addInspiringProject: 'Inspirierendes Projekt hinzufügen',
     duplicateNoticePrefix: 'Kopie erstellt:',
     duplicateNoticeSuffix: 'Sie steht nun als Entwurf ganz oben in Ihrer Liste.',
+    submissionNoticePrefix: 'Projekt eingereicht:',
+    submissionNoticeSuffix: 'wurde zur Prüfung übermittelt.',
     noProjectsYetTitle: 'Noch kein Projekt gespeichert.',
     noProjectsYetBody: 'Legen Sie jetzt los, um Ihre erste Compliance-Zusammenfassung vorzubereiten.',
     projectsLoadingTitle: 'Ihre Projekte werden geladen…',
