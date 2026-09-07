@@ -2,6 +2,9 @@ import { initialMockSharePointInspirations } from '../data/mockSharePointInspira
 import { isSharePointMode } from '../config/sharepointConfig.js';
 import { cloneDeep } from './clone.js';
 import { getRepository } from './listRepository.js';
+import { loadPersistedMockMap, savePersistedMockMap } from './mockProviderPersistence.js';
+
+const MOCK_INSPIRATIONS_STORAGE_KEY = 'complianceNavigatorMockInspirations';
 
 const parseInspirationJson = (item) => {
   const payload = item?.InspirationJson;
@@ -66,12 +69,14 @@ const toInspirationListItem = (inspiration, userEmail) => ({
 
 class MockInspirationProvider {
   constructor() {
-    this.inspirations = new Map();
-    initialMockSharePointInspirations.forEach((item) => {
-      if (item?.InspirationId) {
-        this.inspirations.set(item.InspirationId, cloneDeep(item));
-      }
-    });
+    this.inspirations = loadPersistedMockMap(MOCK_INSPIRATIONS_STORAGE_KEY);
+    if (this.inspirations.size === 0) {
+      initialMockSharePointInspirations.forEach((item) => {
+        if (item?.InspirationId) {
+          this.inspirations.set(item.InspirationId, cloneDeep(item));
+        }
+      });
+    }
   }
 
   listInspirationsSync() {
@@ -80,6 +85,17 @@ class MockInspirationProvider {
 
   async listInspirations() {
     return this.listInspirationsSync();
+  }
+
+  async upsertInspiration(inspiration, { userEmail } = {}) {
+    if (!inspiration?.id) {
+      throw new Error('Inspiration invalide: id manquant');
+    }
+
+    const record = toInspirationListItem(inspiration, userEmail);
+    this.inspirations.set(record.InspirationId, record);
+    savePersistedMockMap(MOCK_INSPIRATIONS_STORAGE_KEY, this.inspirations);
+    return toInspirationEntry(record);
   }
 }
 

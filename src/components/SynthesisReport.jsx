@@ -1450,15 +1450,17 @@ export const SynthesisReport = ({
                   </button>
                 )}
               </div>
-              <button
-                type="button"
-                onClick={handleSubmitProject}
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold shadow-md transition-all flex items-center justify-center w-full sm:w-auto text-sm sm:text-base"
-                data-tour-id="synthesis-submit"
-              >
-                <Send className="w-4 h-4 mr-2" />
-                {t('synthesisReport.submitProjectButton')}
-              </button>
+              {normalizedProjectStatus !== 'submitted' && (
+                <button
+                  type="button"
+                  onClick={handleSubmitProject}
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold shadow-md transition-all flex items-center justify-center w-full sm:w-auto text-sm sm:text-base"
+                  data-tour-id="synthesis-submit"
+                >
+                  <Send className="w-4 h-4 mr-2" />
+                  {t('synthesisReport.submitProjectButton')}
+                </button>
+              )}
             </div>
           </div>
 

@@ -139,7 +139,6 @@ export function ShowcaseSignatureFx({ rootRef }) {
     /* ---------- 2. éléments pilotés par le défilement ---------- */
     const roads = Array.prototype.slice.call(root.querySelectorAll('.sg-road'));
     const counter = root.querySelector('[data-sg-counter]');
-    const storySteps = Array.prototype.slice.call(root.querySelectorAll('[data-sg-story-step]'));
 
     let scrollP = 0;
 
@@ -229,64 +228,6 @@ export function ShowcaseSignatureFx({ rootRef }) {
     }
 
     /* ---------- 3. révélations ---------- */
-    const revealTargets = Array.prototype.slice.call(root.querySelectorAll('.sg-rv'));
-    const roadItems = Array.prototype.slice.call(root.querySelectorAll('.sg-road__item'));
-
-    if (reduce || typeof IntersectionObserver === 'undefined') {
-      revealTargets.forEach((el) => el.classList.add('is-on'));
-      roadItems.forEach((el) => el.classList.add('is-on'));
-      storySteps.forEach((el) => el.classList.add('is-on'));
-    } else {
-      const revealIO = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              entry.target.classList.add('is-on');
-              revealIO.unobserve(entry.target);
-            }
-          });
-        },
-        { threshold: 0.15, rootMargin: '0px 0px -8% 0px' }
-      );
-      revealTargets.forEach((el) => revealIO.observe(el));
-      cleanups.push(() => revealIO.disconnect());
-
-      const roadIO = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              entry.target.classList.add('is-on');
-              roadIO.unobserve(entry.target);
-            }
-          });
-        },
-        { threshold: 0.4 }
-      );
-      roadItems.forEach((el) => roadIO.observe(el));
-      cleanups.push(() => roadIO.disconnect());
-
-      // le compteur ne suit que les étapes de la section « problème »
-      const counterSteps = Array.prototype.slice.call(root.querySelectorAll('[data-sg-counter-step]'));
-      const stepIO = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            entry.target.classList.toggle('is-on', entry.isIntersecting);
-            if (entry.isIntersecting && counter) {
-              const rank = counterSteps.indexOf(entry.target);
-              if (rank !== -1) {
-                counter.textContent = `0${rank + 1}`;
-              }
-            }
-          });
-        },
-        { threshold: 0.55 }
-      );
-      storySteps.forEach((el) => stepIO.observe(el));
-      cleanups.push(() => stepIO.disconnect());
-    }
-
-    /* ---------- 4. compteurs chiffrés ---------- */
-    const counterEls = Array.prototype.slice.call(root.querySelectorAll('[data-sg-count]'));
     const runCount = (el) => {
       const target = parseFloat(el.getAttribute('data-sg-count'));
       if (!Number.isFinite(target)) return;
@@ -305,28 +246,111 @@ export function ShowcaseSignatureFx({ rootRef }) {
       window.requestAnimationFrame(step);
     };
 
-    if (counterEls.length) {
-      // Avec prefers-reduced-motion, les autres révélations (sg-rv, roadItems, storySteps)
-      // s'affichent immédiatement sans attendre le défilement : les compteurs doivent suivre
-      // la même règle plutôt que de rester masqués derrière l'IntersectionObserver tant que
-      // la personne n'a pas fait défiler jusqu'à eux.
-      if (reduce || typeof IntersectionObserver === 'undefined') {
-        counterEls.forEach(runCount);
-      } else {
-        const countIO = new IntersectionObserver(
-          (entries) => {
-            entries.forEach((entry) => {
-              if (entry.isIntersecting) {
-                runCount(entry.target);
-                countIO.unobserve(entry.target);
+    const reduceOrNoIO = reduce || typeof IntersectionObserver === 'undefined';
+    let revealIO = null;
+    let roadIO = null;
+    let stepIO = null;
+    let countIO = null;
+
+    if (!reduceOrNoIO) {
+      revealIO = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('is-on');
+              revealIO.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.15, rootMargin: '0px 0px -8% 0px' }
+      );
+      cleanups.push(() => revealIO.disconnect());
+
+      roadIO = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('is-on');
+              roadIO.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.4 }
+      );
+      cleanups.push(() => roadIO.disconnect());
+
+      // le compteur ne suit que les étapes de la section « problème »
+      const counterSteps = Array.prototype.slice.call(root.querySelectorAll('[data-sg-counter-step]'));
+      stepIO = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            entry.target.classList.toggle('is-on', entry.isIntersecting);
+            if (entry.isIntersecting && counter) {
+              const rank = counterSteps.indexOf(entry.target);
+              if (rank !== -1) {
+                counter.textContent = `0${rank + 1}`;
               }
-            });
-          },
-          { threshold: 0.6 }
-        );
-        counterEls.forEach((el) => countIO.observe(el));
-        cleanups.push(() => countIO.disconnect());
+            }
+          });
+        },
+        { threshold: 0.55 }
+      );
+      cleanups.push(() => stepIO.disconnect());
+
+      countIO = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              runCount(entry.target);
+              countIO.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.6 }
+      );
+      cleanups.push(() => countIO.disconnect());
+    }
+
+    // La vitrine peut recevoir de nouvelles sections (personnalisées ou non) après ce premier
+    // montage — l'édition ne démonte jamais ce composant. Sans reprise du scan, les éléments
+    // ajoutés ensuite (`.sg-rv` notamment, caché par défaut en opacity:0 tant qu'il n'a pas
+    // été observé) restent invisibles pour toujours : la section entière semble « blanche ».
+    // `observe()` sur un élément déjà suivi ne fait rien, donc rejouer ce scan est sans risque.
+    const bindDynamicElements = () => {
+      const revealTargets = Array.prototype.slice.call(root.querySelectorAll('.sg-rv'));
+      const roadItems = Array.prototype.slice.call(root.querySelectorAll('.sg-road__item'));
+      const dynamicStorySteps = Array.prototype.slice.call(root.querySelectorAll('[data-sg-story-step]'));
+      const counterEls = Array.prototype.slice.call(root.querySelectorAll('[data-sg-count]'));
+
+      if (reduceOrNoIO) {
+        revealTargets.forEach((el) => el.classList.add('is-on'));
+        roadItems.forEach((el) => el.classList.add('is-on'));
+        dynamicStorySteps.forEach((el) => el.classList.add('is-on'));
+        counterEls.forEach(runCount);
+        return;
       }
+
+      revealTargets.forEach((el) => revealIO.observe(el));
+      roadItems.forEach((el) => roadIO.observe(el));
+      dynamicStorySteps.forEach((el) => stepIO.observe(el));
+      counterEls.forEach((el) => countIO.observe(el));
+    };
+
+    bindDynamicElements();
+
+    if (typeof MutationObserver !== 'undefined') {
+      let rescanScheduled = false;
+      const scheduleRescan = () => {
+        if (rescanScheduled) return;
+        rescanScheduled = true;
+        window.requestAnimationFrame(() => {
+          rescanScheduled = false;
+          bindDynamicElements();
+        });
+      };
+      const contentObserver = new MutationObserver(scheduleRescan);
+      contentObserver.observe(root, { childList: true, subtree: true });
+      cleanups.push(() => contentObserver.disconnect());
     }
 
     /* ---------- 5. ondulation au clic, défilement, inclinaison ---------- */
