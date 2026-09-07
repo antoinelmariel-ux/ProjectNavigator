@@ -1,42 +1,73 @@
+import { SUPPORTED_LANGUAGES } from '../i18n/languages.js';
+
+const TARGET_OPTIONS = [
+  { value: 'PS', label: { fr: 'PS', en: 'HCP', de: 'Gesundheitsfachperson', es: 'Profesional sanitario' } },
+  { value: 'Patient', label: { fr: 'Patient', en: 'Patient', de: 'Patient', es: 'Paciente' } },
+  { value: 'GP', label: { fr: 'GP', en: 'General public', de: 'Allgemeine Öffentlichkeit', es: 'Público general' } }
+];
+
+const TYPOLOGY_OPTIONS = [
+  { value: 'Digital', label: { fr: 'Digital', en: 'Digital', de: 'Digital', es: 'Digital' } },
+  { value: 'Print', label: { fr: 'Print', en: 'Print', de: 'Print', es: 'Print' } }
+];
+
+const THERAPEUTIC_AREA_OPTIONS = [
+  { value: 'Immunologie', label: { fr: 'Immunologie', en: 'Immunology', de: 'Immunologie', es: 'Inmunología' } },
+  { value: 'Hémostase', label: { fr: 'Hémostase', en: 'Hemostasis', de: 'Hämostase', es: 'Hemostasia' } },
+  { value: 'Soins intensifs', label: { fr: 'Soins intensifs', en: 'Intensive care', de: 'Intensivpflege', es: 'Cuidados intensivos' } }
+];
+
+const COUNTRY_OPTIONS = [
+  { value: 'France', label: { fr: 'France', en: 'France', de: 'Frankreich', es: 'Francia' } },
+  { value: 'Europe', label: { fr: 'Europe', en: 'Europe', de: 'Europa', es: 'Europa' } },
+  { value: 'États-Unis', label: { fr: 'États-Unis', en: 'United States', de: 'Vereinigte Staaten', es: 'Estados Unidos' } },
+  { value: 'Autre', label: { fr: 'Autre', en: 'Other', de: 'Andere', es: 'Otro' } }
+];
+
+const VISIBILITY_OPTIONS = [
+  { value: 'personal', label: { fr: 'Personnel', en: 'Personal', de: 'Persönlich', es: 'Personal' } },
+  { value: 'shared', label: { fr: 'Partagé', en: 'Shared', de: 'Geteilt', es: 'Compartido' } }
+];
+
 const DEFAULT_INSPIRATION_FILTERS = {
   fields: [
     {
       id: 'labName',
-      label: 'Nom du labo',
+      label: { fr: 'Nom du labo', en: 'Lab name', de: 'Name des Labors', es: 'Nombre del laboratorio' },
       type: 'select',
       enabled: true,
       sourceQuestionId: 'labName'
     },
     {
       id: 'target',
-      label: 'Cible du projet',
+      label: { fr: 'Cible du projet', en: 'Project target', de: 'Zielgruppe des Projekts', es: 'Público objetivo del proyecto' },
       type: 'select',
       enabled: true,
-      options: ['PS', 'Patient', 'GP'],
+      options: TARGET_OPTIONS,
       sourceQuestionId: 'target'
     },
     {
       id: 'typology',
-      label: 'Typologie',
+      label: { fr: 'Typologie', en: 'Typology', de: 'Typologie', es: 'Tipología' },
       type: 'select',
       enabled: true,
-      options: ['Digital', 'Print'],
+      options: TYPOLOGY_OPTIONS,
       sourceQuestionId: 'typology'
     },
     {
       id: 'therapeuticArea',
-      label: 'Aire thérapeutique',
+      label: { fr: 'Aire thérapeutique', en: 'Therapeutic area', de: 'Therapiegebiet', es: 'Área terapéutica' },
       type: 'select',
       enabled: true,
-      options: ['Immunologie', 'Hémostase', 'Soins intensifs'],
+      options: THERAPEUTIC_AREA_OPTIONS,
       sourceQuestionId: 'therapeuticArea'
     },
     {
       id: 'country',
-      label: 'Pays',
+      label: { fr: 'Pays', en: 'Country', de: 'Land', es: 'País' },
       type: 'select',
       enabled: true,
-      options: ['France', 'Europe', 'États-Unis', 'Autre'],
+      options: COUNTRY_OPTIONS,
       sourceQuestionId: 'country'
     }
   ]
@@ -46,82 +77,92 @@ const DEFAULT_INSPIRATION_FORM_FIELDS = {
   fields: [
     {
       id: 'title',
-      label: 'Titre du projet',
+      label: { fr: 'Titre du projet', en: 'Project title', de: 'Projekttitel', es: 'Título del proyecto' },
       type: 'text',
       required: true,
       enabled: true
     },
     {
       id: 'labName',
-      label: 'Nom du laboratoire / association',
+      label: {
+        fr: 'Nom du laboratoire / association',
+        en: 'Lab / association name',
+        de: 'Name des Labors / der Vereinigung',
+        es: 'Nombre del laboratorio / asociación'
+      },
       type: 'text',
       required: true,
       enabled: true
     },
     {
       id: 'target',
-      label: 'Cible du projet',
+      label: { fr: 'Cible du projet', en: 'Project target', de: 'Zielgruppe des Projekts', es: 'Público objetivo del proyecto' },
       type: 'select',
       required: true,
       enabled: true,
-      options: ['PS', 'Patient', 'GP']
+      options: TARGET_OPTIONS
     },
     {
       id: 'typology',
-      label: 'Typologie',
+      label: { fr: 'Typologie', en: 'Typology', de: 'Typologie', es: 'Tipología' },
       type: 'select',
       required: true,
       enabled: true,
-      options: ['Digital', 'Print']
+      options: TYPOLOGY_OPTIONS
     },
     {
       id: 'therapeuticArea',
-      label: 'Aire thérapeutique',
+      label: { fr: 'Aire thérapeutique', en: 'Therapeutic area', de: 'Therapiegebiet', es: 'Área terapéutica' },
       type: 'select',
       required: true,
       enabled: true,
-      options: ['Immunologie', 'Hémostase', 'Soins intensifs']
+      options: THERAPEUTIC_AREA_OPTIONS
     },
     {
       id: 'country',
-      label: 'Pays',
+      label: { fr: 'Pays', en: 'Country', de: 'Land', es: 'País' },
       type: 'select',
       required: true,
       enabled: true,
-      options: ['France', 'Europe', 'États-Unis', 'Autre']
+      options: COUNTRY_OPTIONS
     },
     {
       id: 'visibility',
-      label: "Portée de l’inspiration",
+      label: {
+        fr: 'Portée de l’inspiration',
+        en: 'Scope of the inspiration',
+        de: 'Reichweite der Inspiration',
+        es: 'Alcance de la inspiración'
+      },
       type: 'select',
       required: true,
       enabled: true,
-      options: ['Personnel', 'Partagé']
+      options: VISIBILITY_OPTIONS
     },
     {
       id: 'description',
-      label: 'Description du projet',
+      label: { fr: 'Description du projet', en: 'Project description', de: 'Projektbeschreibung', es: 'Descripción del proyecto' },
       type: 'long_text',
       required: false,
       enabled: true
     },
     {
       id: 'link',
-      label: 'Lien utile',
+      label: { fr: 'Lien utile', en: 'Useful link', de: 'Nützlicher Link', es: 'Enlace útil' },
       type: 'url',
       required: false,
       enabled: true
     },
     {
       id: 'documents',
-      label: 'Documents',
+      label: { fr: 'Documents', en: 'Documents', de: 'Dokumente', es: 'Documentos' },
       type: 'documents',
       required: false,
       enabled: true
     },
     {
       id: 'review',
-      label: 'Avis sur le projet',
+      label: { fr: 'Avis sur le projet', en: 'Review of the project', de: 'Bewertung des Projekts', es: 'Opinión sobre el proyecto' },
       type: 'long_text',
       required: false,
       enabled: true
@@ -146,13 +187,32 @@ const sanitizeIdentifier = (value) => {
   return trimmed.length > 0 ? trimmed : '';
 };
 
-const sanitizeLabel = (label, fallback) => {
-  if (typeof label !== 'string') {
-    return fallback;
+// Comme pour les questions du questionnaire projet (src/data/questions.js), un libellé peut être
+// soit une simple chaîne héritée (contenu historique, toujours en français), soit un objet
+// {en, fr, de, es} — résolu à l'affichage via resolveLocalizedText / édité via getLocalizedRaw
+// + setLocalizedText (src/utils/localizedContent.js). On ne force jamais la conversion ici pour
+// ne pas casser les configurations déjà enregistrées (localStorage / SharePoint).
+const sanitizeLocalizedValue = (value, fallback) => {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : fallback;
   }
 
-  const trimmed = label.trim();
-  return trimmed.length > 0 ? trimmed : fallback;
+  if (value && typeof value === 'object') {
+    const sanitized = {};
+    SUPPORTED_LANGUAGES.forEach((code) => {
+      const entry = value[code];
+      if (typeof entry === 'string' && entry.trim().length > 0) {
+        sanitized[code] = entry.trim();
+      }
+    });
+
+    if (Object.keys(sanitized).length > 0) {
+      return sanitized;
+    }
+  }
+
+  return fallback;
 };
 
 const sanitizeBoolean = (value, fallback = true) => {
@@ -162,24 +222,40 @@ const sanitizeBoolean = (value, fallback = true) => {
   return fallback;
 };
 
+// La valeur stable d'une option (ce qui est réellement enregistré dans le projet et comparé par
+// les filtres) reste indépendante de son libellé traduit — même principe que `value`/`label` sur
+// les options de questions.js.
+const sanitizeOptionValue = (value) => (typeof value === 'string' ? value.trim() : '');
+
+const sanitizeOption = (option) => {
+  if (typeof option === 'string') {
+    const trimmed = option.trim();
+    return trimmed.length > 0 ? { value: trimmed, label: trimmed } : null;
+  }
+
+  if (option && typeof option === 'object') {
+    const value = sanitizeOptionValue(option.value)
+      || sanitizeOptionValue(typeof option.label === 'string' ? option.label : '');
+
+    if (!value) {
+      return null;
+    }
+
+    return { value, label: sanitizeLocalizedValue(option.label, value) };
+  }
+
+  return null;
+};
+
 const sanitizeOptionsList = (options) => {
   if (!Array.isArray(options)) {
     return [];
   }
 
-  return options
-    .map((option) => (typeof option === 'string' ? option.trim() : ''))
-    .filter(Boolean);
+  return options.map(sanitizeOption).filter(Boolean);
 };
 
-const sanitizeEmptyOptionLabel = (value, fallback = 'Toutes les valeurs') => {
-  if (typeof value !== 'string') {
-    return fallback;
-  }
-
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : fallback;
-};
+const sanitizeEmptyOptionLabel = (value, fallback = 'Toutes les valeurs') => sanitizeLocalizedValue(value, fallback);
 
 const normalizeFilterField = (field) => {
   if (!field || typeof field !== 'object') {
@@ -196,7 +272,7 @@ const normalizeFilterField = (field) => {
 
   const normalized = {
     id,
-    label: sanitizeLabel(field.label, id),
+    label: sanitizeLocalizedValue(field.label, id),
     type,
     enabled: sanitizeBoolean(field.enabled, true)
   };
@@ -230,7 +306,7 @@ const normalizeFormField = (field) => {
 
   const normalized = {
     id,
-    label: sanitizeLabel(field.label, id),
+    label: sanitizeLocalizedValue(field.label, id),
     type,
     enabled: sanitizeBoolean(field.enabled, true)
   };

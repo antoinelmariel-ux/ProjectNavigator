@@ -1160,6 +1160,8 @@ export default {
       teamsManagementSubtitle: 'Legen Sie die je nach identifizierten Szenarien kontaktierten Teams fest.',
       teamsEditingLanguageLabel: 'Bearbeitungssprache',
       teamsEditingLanguageHint: 'Wenn ein Feld in dieser Sprache noch nicht übersetzt ist, wird standardmäßig der gespeicherte Text unverändert angezeigt.',
+      inspirationEditingLanguageLabel: 'Bearbeitungssprache',
+      inspirationEditingLanguageHint: 'Wenn eine Bezeichnung oder Option in dieser Sprache noch nicht übersetzt ist, wird standardmäßig der gespeicherte Text unverändert angezeigt.',
       addTeamButton: 'Team hinzufügen',
       noTeamRegistered: 'Kein Team registriert.',
       teamAriaLabelTemplate: 'Team {{name}}',

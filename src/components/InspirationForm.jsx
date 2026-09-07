@@ -5,6 +5,7 @@ import { normalizeInspirationFormConfig } from '../utils/inspirationConfig.js';
 import { createAttachmentFromFile } from '../utils/documentStore.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { getLocaleTag } from '../i18n/languages.js';
+import { resolveLocalizedText } from '../utils/localizedContent.js';
 
 const buildInitialFormState = (config) => {
   const fields = Array.isArray(config?.fields) ? config.fields : [];
@@ -71,12 +72,21 @@ const toVisibilityValue = (value) => {
   return 'personal';
 };
 
-const renderFieldLabel = (field) => {
+const renderFieldLabel = (field, language) => {
   if (!field) {
     return '';
   }
 
-  return field.required ? `${field.label} *` : field.label;
+  const label = resolveLocalizedText(field.label, language) || field.id;
+  return field.required ? `${label} *` : label;
+};
+
+const resolveOptionLabel = (option, language) => {
+  if (!option) {
+    return '';
+  }
+
+  return resolveLocalizedText(option.label, language) || option.value;
 };
 
 export const InspirationForm = ({
@@ -306,7 +316,7 @@ export const InspirationForm = ({
                 if (field.id === 'visibility') {
                   return (
                     <label key={field.id} className="flex flex-col gap-2 text-sm font-medium text-gray-700">
-                      <span>{renderFieldLabel(field)}</span>
+                      <span>{renderFieldLabel(field, language)}</span>
                       <select
                         value={toVisibilityValue(formState[field.id])}
                         onChange={(event) => updateField(field.id, toVisibilityValue(event.target.value))}
@@ -326,7 +336,7 @@ export const InspirationForm = ({
 
                   return (
                     <label key={field.id} className="flex flex-col gap-2 text-sm font-medium text-gray-700">
-                      <span>{renderFieldLabel(field)}</span>
+                      <span>{renderFieldLabel(field, language)}</span>
                       <select
                         value={formState[field.id] || ''}
                         onChange={(event) => updateField(field.id, event.target.value)}
@@ -334,8 +344,8 @@ export const InspirationForm = ({
                       >
                         <option value="">{emptyOptionLabel}</option>
                         {(field.options || []).map((option) => (
-                          <option key={option} value={option}>
-                            {option}
+                          <option key={option.value} value={option.value}>
+                            {resolveOptionLabel(option, language)}
                           </option>
                         ))}
                       </select>
@@ -347,7 +357,7 @@ export const InspirationForm = ({
                   const selectedValues = Array.isArray(formState[field.id]) ? formState[field.id] : [];
                   return (
                     <label key={field.id} className="flex flex-col gap-2 text-sm font-medium text-gray-700">
-                      <span>{renderFieldLabel(field)}</span>
+                      <span>{renderFieldLabel(field, language)}</span>
                       <select
                         multiple
                         value={selectedValues}
@@ -359,8 +369,8 @@ export const InspirationForm = ({
                         className="min-h-[120px] rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                       >
                         {(field.options || []).map((option) => (
-                          <option key={option} value={option}>
-                            {option}
+                          <option key={option.value} value={option.value}>
+                            {resolveOptionLabel(option, language)}
                           </option>
                         ))}
                       </select>
@@ -375,7 +385,7 @@ export const InspirationForm = ({
 
                   return (
                     <label key={field.id} className="flex flex-col gap-2 text-sm font-medium text-gray-700">
-                      <span>{renderFieldLabel(field)}</span>
+                      <span>{renderFieldLabel(field, language)}</span>
                       <input
                         type="text"
                         list="inspiration-labs"
@@ -397,7 +407,7 @@ export const InspirationForm = ({
 
                 return (
                   <label key={field.id} className="flex flex-col gap-2 text-sm font-medium text-gray-700">
-                    <span>{renderFieldLabel(field)}</span>
+                    <span>{renderFieldLabel(field, language)}</span>
                     <input
                       type={inputType}
                       value={formState[field.id] || ''}
@@ -429,19 +439,19 @@ export const InspirationForm = ({
               // aria-label), et on garde `<label>` pour le textarea qui, lui, est labelable.
               return isRichTextField ? (
                 <div key={field.id} className="flex flex-col gap-2 text-sm font-medium text-gray-700">
-                  <span>{renderFieldLabel(field)}</span>
+                  <span>{renderFieldLabel(field, language)}</span>
                   <RichTextEditor
                     id={`inspiration-${field.id}`}
                     value={formState[field.id] || ''}
                     onChange={(value) => updateField(field.id, value)}
                     placeholder={placeholder}
                     compact
-                    ariaLabel={field.label}
+                    ariaLabel={resolveLocalizedText(field.label, language) || field.id}
                   />
                 </div>
               ) : (
                 <label key={field.id} className="flex flex-col gap-2 text-sm font-medium text-gray-700">
-                  <span>{renderFieldLabel(field)}</span>
+                  <span>{renderFieldLabel(field, language)}</span>
                   <textarea
                     value={formState[field.id] || ''}
                     onChange={(event) => updateField(field.id, event.target.value)}
@@ -458,7 +468,7 @@ export const InspirationForm = ({
               <div key={field.id} className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-700">{renderFieldLabel(field)}</p>
+                    <p className="text-sm font-medium text-gray-700">{renderFieldLabel(field, language)}</p>
                     <p className="text-xs text-gray-500">{t('inspirationForm.documentsUploadHint')}</p>
                   </div>
                 </div>

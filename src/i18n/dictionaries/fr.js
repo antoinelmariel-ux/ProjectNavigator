@@ -1158,6 +1158,8 @@ export default {
       teamsManagementSubtitle: 'Définissez les équipes contactées selon les scénarios identifiés.',
       teamsEditingLanguageLabel: 'Langue d’édition',
       teamsEditingLanguageHint: 'Si un champ n’est pas encore traduit dans cette langue, le texte enregistré s’affichera tel quel par défaut.',
+      inspirationEditingLanguageLabel: 'Langue d’édition',
+      inspirationEditingLanguageHint: 'Si un libellé ou une option n’est pas encore traduit dans cette langue, le texte enregistré s’affichera tel quel par défaut.',
       addTeamButton: 'Ajouter une équipe',
       noTeamRegistered: 'Aucune équipe renseignée.',
       teamAriaLabelTemplate: 'Équipe {{name}}',
