@@ -8,7 +8,6 @@ import {
   Eye,
   Info,
   GripVertical,
-  Download,
   ArrowUp,
   ArrowDown,
   Copy,
@@ -3449,53 +3448,6 @@ export const BackOffice = ({
     return issues;
   };
 
-  const downloadDataModule = (filename, exportName, data) => {
-    if (typeof window === 'undefined' || typeof document === 'undefined') {
-      return;
-    }
-
-    const serialized = JSON.stringify(data, null, 2);
-    const moduleContent = `export const ${exportName} = ${serialized};\n`;
-    const blob = new Blob([moduleContent], { type: 'application/javascript;charset=utf-8' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-  };
-
-  const handleDownloadDataFiles = () => {
-    downloadDataModule('questions.js', 'initialQuestions', questions);
-    downloadDataModule('rules.js', 'initialRules', rules);
-    downloadDataModule('riskLevelRules.js', 'initialRiskLevelRules', safeRiskLevelRules);
-    downloadDataModule('teams.js', 'initialTeams', teams);
-    downloadDataModule(
-      'inspirationFilters.js',
-      'initialInspirationFilters',
-      normalizeInspirationFiltersConfig(inspirationFilters)
-    );
-    downloadDataModule(
-      'inspirationFormFields.js',
-      'initialInspirationFormFields',
-      normalizeInspirationFormConfig(inspirationFormFields)
-    );
-    downloadDataModule('showcaseThemes.js', 'initialShowcaseThemes', safeShowcaseThemes);
-    downloadDataModule(
-      'onboardingTour.js',
-      'initialOnboardingTourConfig',
-      normalizeOnboardingConfig(onboardingTourConfig)
-    );
-    downloadDataModule(
-      'validationCommitteeConfig.js',
-      'initialValidationCommitteeConfig',
-      normalizeValidationCommitteeConfig(validationCommitteeConfig)
-    );
-    downloadDataModule('adminEmails.js', 'initialAdminEmails', normalizedAdminEmails);
-  };
-
   const inspirationFilterCount = inspirationFilterFields.length;
   const inspirationFormCount = inspirationFormFieldEntries.length;
   const adminEmailCount = normalizedAdminEmails.length;
@@ -4050,14 +4002,6 @@ export const BackOffice = ({
               >
                 <ChevronLeft className="w-5 h-5 mr-2" />
                 {t('backOffice.main.undoCtrlZButton')}
-              </button>
-              <button
-                type="button"
-                onClick={handleDownloadDataFiles}
-                className="inline-flex items-center justify-center px-4 py-2 bg-white border border-blue-200 text-blue-700 rounded-lg shadow-sm hover:bg-blue-50 text-sm sm:text-base"
-              >
-                <Download className="w-5 h-5 mr-2" />
-                {t('backOffice.main.downloadDataFilesButton')}
               </button>
             </div>
           </header>

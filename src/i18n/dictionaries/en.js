@@ -1265,7 +1265,6 @@ export default {
       backOfficeSubtitle: 'Configure your reference data and automations',
       undoLastDeletionTitle: 'Undo the last deletion (Ctrl+Z)',
       undoCtrlZButton: 'Undo (Ctrl+Z)',
-      downloadDataFilesButton: 'Download data files (questions, rules, teams, inspiration, showcase)',
       inconsistencyDetectionAriaLabel: 'Inconsistency detection',
       inconsistencyDetectedSingular: '{{count}} inconsistency detected in the configuration.',
       inconsistencyDetectedPlural: '{{count}} inconsistencies detected in the configuration.',

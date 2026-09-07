@@ -1276,7 +1276,6 @@ export default {
       backOfficeSubtitle: 'Konfigurieren Sie Ihre Referenzdaten und Automatisierungen',
       undoLastDeletionTitle: 'Letzte Löschung rückgängig machen (Strg+Z)',
       undoCtrlZButton: 'Rückgängig (Strg+Z)',
-      downloadDataFilesButton: 'Dateien herunterladen (Fragen, Regeln, Teams, Inspiration, Vitrine)',
       inconsistencyDetectionAriaLabel: 'Erkennung von Inkonsistenzen',
       inconsistencyDetectedSingular: '{{count}} Inkonsistenz in der Konfiguration erkannt.',
       inconsistencyDetectedPlural: '{{count}} Inkonsistenzen in der Konfiguration erkannt.',

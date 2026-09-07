@@ -960,6 +960,10 @@ export const HomeScreen = ({
     const search = projectSearch.trim().toLowerCase();
 
     const selection = accessibleProjects.filter((project) => {
+      if (project?.status === 'submitted') {
+        return false;
+      }
+
       if (search.length > 0) {
         const haystack = [
           project?.projectName,

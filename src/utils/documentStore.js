@@ -1,4 +1,4 @@
-import { isSharePointMode } from '../config/sharepointConfig.js';
+import { getWebUrl, isSharePointMode } from '../config/sharepointConfig.js';
 import { getRepository } from './listRepository.js';
 import { resolveLibraryServerRelativeUrl } from './spLibraryUrl.js';
 import { getCurrentUser } from './spContext.js';
@@ -86,8 +86,15 @@ export const buildDocumentRelativePath = ({ entityType, entityId, fileName, uniq
 
 const documentsRoot = () => resolveLibraryServerRelativeUrl('documents');
 
+// Chemin absolu requis : un lien "/_api/..." (racine du domaine) navigué directement par le
+// navigateur ou par une visionneuse (iframe, onglet) se résout à la racine du tenant, pas au
+// web SharePoint courant (ex. /sites/ProjectNavigator_DEV) — ce qui renvoie une erreur XML
+// « Microsoft.SharePoint.SPException: Le fichier ... n'existe pas » même quand le fichier est
+// bien présent, puisque la requête part du mauvais site. `spGet`/`spPost` s'en sortent via
+// `buildUrl()` (spRestClient.js), mais ce lien est utilisé tel quel en `href`/`src`, donc il
+// doit être préfixé ici.
 export const buildDownloadUrl = (serverRelativePath) =>
-  `/_api/web/GetFileByServerRelativeUrl('${odataQuote(serverRelativePath)}')/$value`;
+  `${getWebUrl()}/_api/web/GetFileByServerRelativeUrl('${odataQuote(serverRelativePath)}')/$value`;
 
 // On tente directement la création plutôt que de vérifier l'existence au préalable :
 // GetFolderByServerRelativeUrl sur un chemin absent ne répond pas toujours par un 404
