@@ -1274,7 +1274,6 @@ export default {
       backOfficeSubtitle: 'Configurez vos référentiels et automatisations',
       undoLastDeletionTitle: 'Annuler la dernière suppression (Ctrl+Z)',
       undoCtrlZButton: 'Annuler (Ctrl+Z)',
-      downloadDataFilesButton: 'Télécharger les fichiers (questions, règles, équipes, inspiration, vitrine)',
       inconsistencyDetectionAriaLabel: 'Détection des incohérences',
       inconsistencyDetectedSingular: '{{count}} incohérence détectée dans la configuration.',
       inconsistencyDetectedPlural: '{{count}} incohérences détectées dans la configuration.',

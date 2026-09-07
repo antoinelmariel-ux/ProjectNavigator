@@ -1266,7 +1266,6 @@ export default {
       backOfficeSubtitle: 'Configure sus referenciales y automatizaciones',
       undoLastDeletionTitle: 'Deshacer la última eliminación (Ctrl+Z)',
       undoCtrlZButton: 'Deshacer (Ctrl+Z)',
-      downloadDataFilesButton: 'Descargar los archivos (preguntas, reglas, equipos, inspiración, vitrina)',
       inconsistencyDetectionAriaLabel: 'Detección de incoherencias',
       inconsistencyDetectedSingular: '{{count}} incoherencia detectada en la configuración.',
       inconsistencyDetectedPlural: '{{count}} incoherencias detectadas en la configuración.',

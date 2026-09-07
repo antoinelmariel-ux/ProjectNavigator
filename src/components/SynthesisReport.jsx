@@ -2489,6 +2489,26 @@ export const SynthesisReport = ({
                         {(() => {
                           const resolvedValue = displayValue || missingInfoLabel;
                           const isMissingInfo = resolvedValue === missingInfoLabel;
+                          const fileUrl = q.type === 'file' && answerValue && typeof answerValue === 'object'
+                            && typeof answerValue.url === 'string'
+                            ? answerValue.url.trim()
+                            : '';
+
+                          if (fileUrl) {
+                            return (
+                              <p className="font-semibold whitespace-pre-line text-gray-900">
+                                <a
+                                  href={fileUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 underline"
+                                >
+                                  {resolvedValue}
+                                </a>
+                              </p>
+                            );
+                          }
+
                           return (
                             <p
                               className={`font-semibold whitespace-pre-line ${
