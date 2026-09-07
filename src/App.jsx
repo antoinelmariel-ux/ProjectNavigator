@@ -943,6 +943,8 @@ export const App = () => {
   const userProfileQueueRef = useRef(null);
   const rulesQueueRef = useRef(null);
   const teamsQueueRef = useRef(null);
+  const inspirationsQueueRef = useRef(null);
+  const inspirationsAutosaveTimeoutRef = useRef(null);
   // Métadonnées SharePoint (spItemId/RowVersion/SortOrder) par id de règle/équipe — jamais
   // injectées dans l'objet applicatif consommé par le moteur de règles (rules.js).
   const ruleServerMetaRef = useRef(new Map());
@@ -2582,6 +2584,13 @@ const updateProjectFilters = useCallback((updater) => {
       },
       getItemKey: (payload) => (payload.action === 'remove' ? payload.teamId : payload.team.id)
     });
+
+    inspirationsQueueRef.current = createRetryQueue({
+      processItem: (inspiration) => inspirationDataProvider.upsertInspiration(inspiration, {
+        userEmail: currentUserEmail
+      }),
+      getItemKey: (inspiration) => inspiration.id
+    });
   }, [currentUserEmail]);
 
   // Mise à jour optimiste immédiate (l'écran d'onboarding/le profil réagit tout de suite),
@@ -2622,6 +2631,7 @@ const updateProjectFilters = useCallback((updater) => {
       userProfileQueueRef.current?.flush();
       rulesQueueRef.current?.flush();
       teamsQueueRef.current?.flush();
+      inspirationsQueueRef.current?.flush();
     };
     const handleOffline = () => setIsOnline(false);
 
@@ -2752,6 +2762,34 @@ const updateProjectFilters = useCallback((updater) => {
     screen,
     mode
   ]);
+
+  // Écriture réseau vers CN_Inspirations : uniquement en mode SharePoint. En mode mock/local,
+  // les inspirations restent portées par le useState `inspirationProjects` déjà persisté dans
+  // complianceNavigatorState (comme avant) ; inspirationDataProvider n'y sert qu'à la lecture.
+  useEffect(() => {
+    if (!isSharePointMode() || !isHydrated || !inspirationsQueueRef.current) {
+      return undefined;
+    }
+
+    if (inspirationsAutosaveTimeoutRef.current) {
+      clearTimeout(inspirationsAutosaveTimeoutRef.current);
+    }
+
+    if (!activeInspirationProject) {
+      return undefined;
+    }
+
+    inspirationsAutosaveTimeoutRef.current = setTimeout(() => {
+      inspirationsQueueRef.current.enqueue(activeInspirationProject);
+    }, 700);
+
+    return () => {
+      if (inspirationsAutosaveTimeoutRef.current) {
+        clearTimeout(inspirationsAutosaveTimeoutRef.current);
+        inspirationsAutosaveTimeoutRef.current = null;
+      }
+    };
+  }, [activeInspirationProject, isHydrated]);
 
   const activeShowcaseProjectId = showcaseProjectContext?.projectId || null;
 
@@ -5143,7 +5181,7 @@ const updateProjectFilters = useCallback((updater) => {
                     </button>
                   )}
                   <a
-                    href="https://forms.office.com/e/p6PYB1gbpM"
+                    href="https://forms.cloud.microsoft/e/92Dm7HM5du"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition-all text-white bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 hover:from-pink-600 hover:via-red-600 hover:to-yellow-600 focus-visible:ring-pink-400"
@@ -5597,6 +5635,7 @@ const updateProjectFilters = useCallback((updater) => {
             isReturnToSynthesisRequested={returnToSynthesisAfterEdit}
             tourContext={tourContext}
             onFinish={leaveQuestionnaireForSynthesis}
+            projectId={activeProjectId}
             />
           </Suspense>
         ) : screen === 'mandatory-summary' ? (
@@ -5662,6 +5701,7 @@ const updateProjectFilters = useCallback((updater) => {
               >
                 <LazyProjectShowcase
                   projectName={showcaseProjectContext.projectName}
+                  projectId={showcaseProjectContext.projectId || null}
                   onClose={handleCloseProjectShowcase}
                   analysis={showcaseProjectContext.analysis}
                   relevantTeams={showcaseProjectContext.relevantTeams}

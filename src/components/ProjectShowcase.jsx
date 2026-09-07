@@ -15,6 +15,7 @@ import { resolveThemeFromActivation } from '../utils/showcase.js';
 import { RichTextEditor } from './RichTextEditor.jsx';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { getLocaleTag } from '../i18n/languages.js';
+import { createAttachmentFromFile, getFileExtension } from '../utils/documentStore.js';
 
 const SHOWCASE_SECTION_OPTIONS = [
   { id: 'notice' },
@@ -236,6 +237,17 @@ const DOCUMENT_VIEWER_TYPES = [
   { id: 'png', label: 'PNG' },
   { id: 'pptx', label: 'PPTX' }
 ];
+
+// Le type du document déposé pilote uniquement l'aperçu (image vs iframe) et l'étiquette
+// affichée ; un format hors de cette liste (docx, xlsx…) retombe sur 'pdf', son rendu
+// générique via l'aperçu Office déjà utilisé pour les liens SharePoint collés à la main.
+const inferDocumentTypeFromFile = (file) => {
+  const extension = getFileExtension(file?.name || '');
+  if (extension === 'jpeg') {
+    return 'jpg';
+  }
+  return DOCUMENT_VIEWER_TYPES.some((type) => type.id === extension) ? extension : 'pdf';
+};
 
 const resolveCustomSectionColumnCount = (value, columns = []) => {
   const parsed = Number.parseInt(value, 10);
@@ -1683,7 +1695,8 @@ export const ProjectShowcase = ({
   onDisplayModeChange = null,
   hideEditBar = false,
   hideNotice = false,
-  canConfigureDisplayModes = true
+  canConfigureDisplayModes = true,
+  projectId = null
 }) => {
   const { t, language } = useTranslation();
   const missingInfoLabel = t('projectShowcase.missingInfoLabel');
@@ -1784,6 +1797,9 @@ export const ProjectShowcase = ({
   const resetMilestoneDragState = useCallback(() => {
     setMilestoneDragState(createEmptyMilestoneDragState());
   }, []);
+
+  const [documentUploadError, setDocumentUploadError] = useState('');
+  const [isUploadingDocument, setIsUploadingDocument] = useState(false);
 
   const handleSharePointWarning = useCallback((nextValue) => {
     if (!isSharePointUrl(nextValue)) {
@@ -1983,6 +1999,7 @@ export const ProjectShowcase = ({
   const handleOpenSectionModal = useCallback((insertionIndex = null) => {
     setPendingInsertionIndex(insertionIndex);
     setSectionModalStep('templates');
+    setDocumentUploadError('');
     setSectionDraft({
       title: '',
       subtitle: '',
@@ -2003,6 +2020,7 @@ export const ProjectShowcase = ({
     setIsSectionModalOpen(false);
     setSectionModalStep('templates');
     setPendingInsertionIndex(null);
+    setDocumentUploadError('');
     setSectionDraft({
       title: '',
       subtitle: '',
@@ -2060,6 +2078,32 @@ export const ProjectShowcase = ({
       [field]: value
     }));
   }, []);
+
+  // Dépôt réel dans la bibliothèque SharePoint CN-Documents (ou data URL hors SharePoint,
+  // voir documentStore.js) : le champ de lien reste utilisable pour coller une URL existante,
+  // ce bouton est une alternative qui écrit l'URL du fichier déposé à sa place.
+  const handleSectionDraftDocumentUpload = useCallback(async (file) => {
+    if (!file) {
+      return;
+    }
+    setDocumentUploadError('');
+    setIsUploadingDocument(true);
+    try {
+      const attachment = await createAttachmentFromFile(file, {
+        entityType: 'project-showcase',
+        entityId: projectId || 'sans-projet'
+      });
+      setSectionDraft(previous => ({
+        ...previous,
+        documentUrl: attachment.url,
+        documentType: inferDocumentTypeFromFile(file)
+      }));
+    } catch (error) {
+      setDocumentUploadError(error?.message || t('projectShowcase.documentUploadFailedMessage'));
+    } finally {
+      setIsUploadingDocument(false);
+    }
+  }, [projectId, t]);
 
   const handleSectionDraftColumnCountChange = useCallback((value) => {
     const nextCount = resolveCustomSectionColumnCount(value);
@@ -2291,6 +2335,37 @@ export const ProjectShowcase = ({
       })
     );
   }, []);
+
+  const handleCustomSectionDocumentUpload = useCallback(async (sectionId, file) => {
+    if (!sectionId || !file) {
+      return;
+    }
+    setDocumentUploadError('');
+    setIsUploadingDocument(true);
+    try {
+      const attachment = await createAttachmentFromFile(file, {
+        entityType: 'project-showcase',
+        entityId: projectId || 'sans-projet'
+      });
+      const nextDocumentType = inferDocumentTypeFromFile(file);
+      setCustomSections(prev =>
+        prev.map(section => {
+          if (!section || section.id !== sectionId) {
+            return section;
+          }
+          return {
+            ...section,
+            documentUrl: attachment.url,
+            documentType: nextDocumentType
+          };
+        })
+      );
+    } catch (error) {
+      setDocumentUploadError(error?.message || t('projectShowcase.documentUploadFailedMessage'));
+    } finally {
+      setIsUploadingDocument(false);
+    }
+  }, [projectId, t]);
 
   const handleCustomSectionColumnCountChange = useCallback((sectionId, value) => {
     const nextCount = resolveCustomSectionColumnCount(value);
@@ -3853,6 +3928,22 @@ export const ProjectShowcase = ({
                   <p className="text-xs text-gray-500">
                     {t('projectShowcase.documentUrlHint')}
                   </p>
+                  <label className="mt-2 flex w-full cursor-pointer items-center justify-center rounded-lg border border-dashed border-blue-300 bg-blue-50 px-3 py-2 text-center text-xs font-medium text-blue-700 hover:bg-blue-100">
+                    <input
+                      type="file"
+                      className="sr-only"
+                      disabled={isUploadingDocument}
+                      onChange={(event) => {
+                        const file = event.target.files && event.target.files[0];
+                        handleSectionDraftDocumentUpload(file);
+                        event.target.value = '';
+                      }}
+                    />
+                    {isUploadingDocument ? t('projectShowcase.documentUploadingLabel') : t('projectShowcase.documentUploadButtonLabel')}
+                  </label>
+                  {documentUploadError && (
+                    <p className="text-xs text-red-600">{documentUploadError}</p>
+                  )}
                 </div>
                 <div className="space-y-1">
                   <label htmlFor="section-document-type" className="text-sm font-medium text-gray-800">
@@ -4356,6 +4447,22 @@ export const ProjectShowcase = ({
                         className="sge-input"
                         placeholder={t('projectShowcase.documentUrlPlaceholderFallback')}
                       />
+                      <label className="mt-2 flex w-full cursor-pointer items-center justify-center rounded-lg border border-dashed border-blue-300 bg-blue-50 px-3 py-2 text-center text-xs font-medium text-blue-700 hover:bg-blue-100">
+                        <input
+                          type="file"
+                          className="sr-only"
+                          disabled={isUploadingDocument}
+                          onChange={(event) => {
+                            const file = event.target.files && event.target.files[0];
+                            handleCustomSectionDocumentUpload(section.id, file);
+                            event.target.value = '';
+                          }}
+                        />
+                        {isUploadingDocument ? t('projectShowcase.documentUploadingLabel') : t('projectShowcase.documentUploadButtonLabel')}
+                      </label>
+                      {documentUploadError && (
+                        <p className="text-xs text-red-600">{documentUploadError}</p>
+                      )}
                     </div>
                     <div className="space-y-1">
                       <label htmlFor={`custom-section-${section.id}-document-type`} className="text-sm font-medium text-gray-800">

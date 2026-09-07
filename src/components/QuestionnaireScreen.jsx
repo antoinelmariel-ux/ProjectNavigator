@@ -22,6 +22,7 @@ import { RichTextEditor } from './RichTextEditor.jsx';
 import { normalizeRankingConfig } from '../utils/ranking.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { resolveLocalizedText } from '../utils/localizedContent.js';
+import { createAttachmentFromFile } from '../utils/documentStore.js';
 
 const normalizeMilestoneDrafts = (value) => {
   if (!Array.isArray(value)) {
@@ -197,7 +198,8 @@ export const QuestionnaireScreen = ({
   tourContext = null,
   onReturnToSynthesis,
   isReturnToSynthesisRequested = false,
-  onFinish
+  onFinish,
+  projectId = null
 }) => {
   const { t, language } = useTranslation();
   const activeQuestion = questions[currentIndex];
@@ -264,6 +266,8 @@ export const QuestionnaireScreen = ({
   }, [currentAnswer, rankingConfig]);
   const [showGuidance, setShowGuidance] = useState(false);
   const [milestoneDrafts, setMilestoneDrafts] = useState(() => normalizeMilestoneDrafts(currentAnswer));
+  const [fileUploadError, setFileUploadError] = useState('');
+  const [isUploadingFileAnswer, setIsUploadingFileAnswer] = useState(false);
   const milestoneQuestionIdRef = useRef(questionType === 'milestone_list' ? currentQuestion.id : null);
   const questionTextId = `question-${currentQuestion.id}`;
   const instructionsId = `instructions-${currentQuestion.id}`;
@@ -554,6 +558,38 @@ export const QuestionnaireScreen = ({
   const handleRankingReset = () => {
     const defaultOrder = rankingConfig.criteria.map(item => item.id);
     onAnswer(currentQuestion.id, { prioritized: defaultOrder, ignored: [] });
+  };
+
+  // Le fichier part réellement dans la bibliothèque SharePoint CN-Documents (ou en data URL
+  // hors SharePoint, voir documentStore.js) : la réponse ne conserve plus que ses métadonnées
+  // et l'URL de dépôt, jamais un contenu fantôme jamais téléversé nulle part.
+  const handleFileAnswerUpload = async (file) => {
+    if (!file) {
+      setFileUploadError('');
+      onAnswer(currentQuestion.id, null);
+      return;
+    }
+
+    setFileUploadError('');
+    setIsUploadingFileAnswer(true);
+    try {
+      const attachment = await createAttachmentFromFile(file, {
+        entityType: 'project-answer',
+        entityId: projectId || 'nouveau-projet',
+        id: `${currentQuestion.id}-${Date.now()}`
+      });
+      onAnswer(currentQuestion.id, {
+        name: attachment.name,
+        size: attachment.size,
+        type: attachment.mimeType || file.type || '',
+        url: attachment.url,
+        storage: attachment.storage
+      });
+    } catch (error) {
+      setFileUploadError(error?.message || t('questionnaire.fileUploadFailedMessage'));
+    } finally {
+      setIsUploadingFileAnswer(false);
+    }
   };
 
   const renderQuestionInput = () => {
@@ -1210,21 +1246,21 @@ export const QuestionnaireScreen = ({
             </label>
             <input
               type="file"
+              disabled={isUploadingFileAnswer}
               onChange={(e) => {
                 const file = e.target.files && e.target.files[0];
-                if (file) {
-                  onAnswer(currentQuestion.id, {
-                    name: file.name,
-                    size: file.size,
-                    type: file.type
-                  });
-                } else {
-                  onAnswer(currentQuestion.id, null);
-                }
+                handleFileAnswerUpload(file);
+                e.target.value = '';
               }}
               id={`${currentQuestion.id}-file`}
               className="w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             />
+            {isUploadingFileAnswer && (
+              <p className="text-xs text-gray-500 mt-2">{t('questionnaire.fileUploadingLabel')}</p>
+            )}
+            {fileUploadError && (
+              <p className="text-xs text-red-600 mt-2">{fileUploadError}</p>
+            )}
             {currentAnswer && (
               <p className="text-xs text-gray-500 mt-2">
                 {typeof currentAnswer.size === 'number'
