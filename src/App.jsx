@@ -5098,21 +5098,10 @@ const updateProjectFilters = useCallback((updater) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-4">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-3 self-center">
-              {mode === 'user' && screen === 'home' && (
-                <button
-                  type="button"
-                  onClick={() => setIsProfileModalOpen(true)}
-                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border bg-white border-gray-200 text-gray-700 shadow-sm transition hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                  aria-label={t('profile.openButtonAriaLabel')}
-                  title={t('profile.openButtonAriaLabel')}
-                >
-                  <UserCircle className="h-5 w-5" />
-                </button>
-              )}
               <button
                 type="button"
                 onClick={() => setScreen('home')}
-                className="flex items-center space-x-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className="flex items-center space-x-3 rounded-lg bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 aria-label={t('app.nav.logoHomeAriaLabel')}
                 title={t('app.nav.logoHomeAriaLabel')}
               >
@@ -5135,7 +5124,7 @@ const updateProjectFilters = useCallback((updater) => {
                 <button
                   type="button"
                   onClick={handleToggleAnnotationMode}
-                  className={`order-first self-start sm:order-last sm:self-center inline-flex h-10 px-4 items-center justify-center rounded-full border text-blue-700 shadow-sm transition hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                  className={`order-first self-start sm:order-last sm:self-center inline-flex h-10 px-4 items-center justify-center gap-2 rounded-full border text-blue-700 shadow-sm transition hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
                     isAnnotationModeEnabled ? 'bg-blue-50 border-blue-200' : 'bg-white border-blue-100'
                   }`}
                   aria-pressed={isAnnotationModeEnabled}
@@ -5145,7 +5134,7 @@ const updateProjectFilters = useCallback((updater) => {
                   data-tour-id="showcase-comment-toggle"
                 >
                   <MessageSquare className="h-5 w-5" />
-                  <span className="sr-only">{t('app.nav.annotationSrOnly')}</span>
+                  <span>{t('app.nav.commentLabel')}</span>
                 </button>
               )}
               {screen === 'showcase' && canShareActiveProjectShowcase && (
@@ -5269,7 +5258,7 @@ const updateProjectFilters = useCallback((updater) => {
                   <span className="sr-only">{t('app.nav.adminModeSrOnly')}</span>
                 </button>
               )}
-              {isAdminMode && (
+              {isAdminMode && screen === 'home' && (
                 <button
                   type="button"
                   onClick={handleBackOfficeClick}
@@ -5290,6 +5279,17 @@ const updateProjectFilters = useCallback((updater) => {
                 <p className="w-full text-sm text-red-600 sm:w-auto" role="alert">
                   {backOfficeAuthError}
                 </p>
+              )}
+              {mode === 'user' && screen === 'home' && (
+                <button
+                  type="button"
+                  onClick={() => setIsProfileModalOpen(true)}
+                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border bg-white border-gray-200 text-gray-700 shadow-sm transition hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  aria-label={t('profile.openButtonAriaLabel')}
+                  title={t('profile.openButtonAriaLabel')}
+                >
+                  <UserCircle className="h-5 w-5" />
+                </button>
               )}
             </div>
           </div>
