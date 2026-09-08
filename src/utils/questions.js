@@ -593,9 +593,15 @@ export const formatAnswer = (question, answer, language = DEFAULT_LANGUAGE) => {
     return formatRankingAnswer(answer, criteria, language);
   }
 
-  if (questionType === 'file' && answer && typeof answer === 'object') {
-    const size = typeof answer.size === 'number' ? ` (${Math.round(answer.size / 1024)} Ko)` : '';
-    return `${answer.name || 'Fichier joint'}${size}`;
+  if (questionType === 'file' && answer) {
+    const files = Array.isArray(answer) ? answer : [answer];
+    return files
+      .filter((file) => file && typeof file === 'object')
+      .map((file) => {
+        const size = typeof file.size === 'number' ? ` (${Math.round(file.size / 1024)} Ko)` : '';
+        return `${file.name || 'Fichier joint'}${size}`;
+      })
+      .join(', ');
   }
 
   return Array.isArray(answer) ? answer.join(', ') : String(answer);

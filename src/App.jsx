@@ -45,7 +45,6 @@ import {
   normalizeInspirationFiltersConfig,
   normalizeInspirationFormConfig
 } from './utils/inspirationConfig.js';
-import { exportInspirationToFile } from './utils/inspirationExport.js';
 import { normalizeValidationCommitteeConfig } from './utils/validationCommittee.js';
 import { isShowcaseAccessBlockedByProjectType } from './utils/showcase.js';
 import { normalizeTeamContacts } from './utils/teamContacts.js';
@@ -3945,14 +3944,6 @@ const updateProjectFilters = useCallback((updater) => {
     }
   }, []);
 
-  const handleExportInspirationProject = useCallback((project) => {
-    if (!project) {
-      return;
-    }
-
-    exportInspirationToFile(project);
-  }, []);
-
   const navigateToSynthesis = useCallback(() => {
     const result = analyzeAnswers(answers, rules, riskLevelRules, riskWeights);
     setAnalysis(result);
@@ -5660,7 +5651,6 @@ const updateProjectFilters = useCallback((updater) => {
               handleHomeViewChange('inspiration');
             }}
             onUpdate={handleUpdateInspirationProject}
-            onExport={handleExportInspirationProject}
             />
           </Suspense>
         ) : screen === 'questionnaire' ? (

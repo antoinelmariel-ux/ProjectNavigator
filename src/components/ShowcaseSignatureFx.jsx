@@ -79,7 +79,20 @@ export function ShowcaseSignatureFx({ rootRef }) {
     let uS = null;
     let glOK = false;
 
-    if (canvas && !reduce) {
+    // Ce canvas peint le fond de toute la vitrine (opaque : `alpha:false`), éditeur compris.
+    // Le repli statique doit donc pouvoir être rallumé à tout moment, pas seulement au montage :
+    // un contexte WebGL perdu laisse un canvas vide, c'est-à-dire un grand aplat blanc.
+    const showFallback = (visible) => {
+      if (fallbackRef.current) {
+        fallbackRef.current.style.display = visible ? 'block' : 'none';
+      }
+    };
+
+    const initGL = () => {
+      if (!canvas || reduce) {
+        return false;
+      }
+
       try {
         gl =
           canvas.getContext('webgl', {
@@ -92,42 +105,49 @@ export function ShowcaseSignatureFx({ rootRef }) {
       } catch {
         gl = null;
       }
-    }
 
-    if (gl) {
+      if (!gl) {
+        return false;
+      }
+
       const vs = compile(gl, gl.VERTEX_SHADER, VERT);
       const fs = compile(gl, gl.FRAGMENT_SHADER, FRAG);
-      if (vs && fs) {
-        const program = gl.createProgram();
-        gl.attachShader(program, vs);
-        gl.attachShader(program, fs);
-        gl.linkProgram(program);
-        if (gl.getProgramParameter(program, gl.LINK_STATUS)) {
-          gl.useProgram(program);
-          const buffer = gl.createBuffer();
-          gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-          gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-          const loc = gl.getAttribLocation(program, 'p');
-          gl.enableVertexAttribArray(loc);
-          gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-          uRes = gl.getUniformLocation(program, 'u_res');
-          uT = gl.getUniformLocation(program, 'u_t');
-          uS = gl.getUniformLocation(program, 'u_s');
-          glOK = true;
-        }
+      if (!vs || !fs) {
+        return false;
       }
-    }
 
-    if (!glOK && fallbackRef.current) {
-      fallbackRef.current.style.display = 'block';
-    }
+      const program = gl.createProgram();
+      gl.attachShader(program, vs);
+      gl.attachShader(program, fs);
+      gl.linkProgram(program);
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        return false;
+      }
 
-    const sizeGL = () => {
+      gl.useProgram(program);
+      const buffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+      const loc = gl.getAttribLocation(program, 'p');
+      gl.enableVertexAttribArray(loc);
+      gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+      uRes = gl.getUniformLocation(program, 'u_res');
+      uT = gl.getUniformLocation(program, 'u_t');
+      uS = gl.getUniformLocation(program, 'u_s');
+      return true;
+    };
+
+    glOK = initGL();
+    showFallback(!glOK);
+
+    // `force` sert à la restauration : le contexte repart neuf alors que les dimensions du
+    // canvas, elles, n'ont pas bougé — sans cela ni le viewport ni u_res ne seraient reposés.
+    const sizeGL = (force = false) => {
       if (!glOK || !canvas) return;
       const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
       const w = Math.floor(canvas.clientWidth * dpr);
       const h = Math.floor(canvas.clientHeight * dpr);
-      if (w > 0 && h > 0 && (canvas.width !== w || canvas.height !== h)) {
+      if (w > 0 && h > 0 && (force || canvas.width !== w || canvas.height !== h)) {
         canvas.width = w;
         canvas.height = h;
         gl.viewport(0, 0, w, h);
@@ -135,6 +155,30 @@ export function ShowcaseSignatureFx({ rootRef }) {
       }
     };
     sizeGL();
+
+    // Le pilote peut retirer le contexte à tout moment — bascule de GPU, mise en veille de la
+    // carte, ouverture d'une fenêtre système (sélecteur de fichier) sur un poste à double GPU.
+    // Sans `preventDefault()` le navigateur ne le restaure jamais, et sans repli le fond reste
+    // définitivement blanc : c'est tout l'écran d'édition qui paraît vidé.
+    if (canvas) {
+      const onContextLost = (event) => {
+        event.preventDefault();
+        glOK = false;
+        showFallback(true);
+      };
+      const onContextRestored = () => {
+        glOK = initGL();
+        if (glOK) {
+          sizeGL(true);
+          showFallback(false);
+        }
+      };
+
+      canvas.addEventListener('webglcontextlost', onContextLost);
+      canvas.addEventListener('webglcontextrestored', onContextRestored);
+      cleanups.push(() => canvas.removeEventListener('webglcontextlost', onContextLost));
+      cleanups.push(() => canvas.removeEventListener('webglcontextrestored', onContextRestored));
+    }
 
     /* ---------- 2. éléments pilotés par le défilement ---------- */
     const roads = Array.prototype.slice.call(root.querySelectorAll('.sg-road'));
@@ -187,7 +231,7 @@ export function ShowcaseSignatureFx({ rootRef }) {
         lastY = y;
         readScroll();
       }
-      if (glOK) {
+      if (glOK && !gl.isContextLost()) {
         const rect = root.getBoundingClientRect();
         const visible = rect.bottom > 0 && rect.top < window.innerHeight;
         if (visible && !document.hidden) {

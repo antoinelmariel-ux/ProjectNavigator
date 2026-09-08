@@ -21,6 +21,31 @@ test.describe('Effet WebGL / animations de la vitrine (ShowcaseSignatureFx)', ()
     expect(errors).toEqual([]);
   });
 
+  // Le canvas peint le fond opaque de toute la vitrine : un contexte perdu et jamais repris
+  // laissait un grand aplat blanc définitif, y compris derrière l'éditeur.
+  test('une perte de contexte WebGL bascule sur le repli statique, et la restauration le retire', async ({ page }) => {
+    const errors = collectConsoleErrors(page);
+    await gotoHome(page);
+    await createProjectAndOpenShowcase(page);
+    await expect(page.locator('.sg-bg-fallback')).toHaveCSS('display', 'none');
+
+    const canLoseContext = await page.evaluate(() => {
+      const canvas = document.querySelector('.sg-bg');
+      const gl = canvas && canvas.getContext('webgl');
+      window.__cnLoseContext = gl && gl.getExtension('WEBGL_lose_context');
+      return Boolean(window.__cnLoseContext);
+    });
+    test.skip(!canLoseContext, 'WEBGL_lose_context indisponible sur ce navigateur');
+
+    await page.evaluate(() => window.__cnLoseContext.loseContext());
+    await expect(page.locator('.sg-bg-fallback')).toHaveCSS('display', 'block');
+
+    await page.evaluate(() => window.__cnLoseContext.restoreContext());
+    await expect(page.locator('.sg-bg-fallback')).toHaveCSS('display', 'none');
+
+    expect(errors).toEqual([]);
+  });
+
   test('le CTA du hero déclenche une ondulation et fait défiler jusqu\'à la section "problème"', async ({ page }) => {
     await gotoHome(page);
     await createProjectAndOpenShowcase(page);
