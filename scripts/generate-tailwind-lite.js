@@ -876,6 +876,7 @@ function baseRule(base) {
     const value = parseInt(base.replace('bg-opacity-', ''), 10) / 100;
     return { declarations: { '--tw-bg-opacity': value.toString() } };
   }
+  if (base === 'bg-transparent') return { declarations: { 'background-color': 'transparent' } };
   if (base.startsWith('bg-')) {
     const colorInfo = getColor(base.replace('bg-', ''));
     if (colorInfo) {
