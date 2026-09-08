@@ -300,16 +300,17 @@ export const InspirationDetail = ({
           {docs.length > 0 ? (
             docs.map((doc, index) => (
               <div key={`doc-view-${index}`} className="flex flex-col">
-                <span className="font-medium">{doc.name || t('inspirationDetail.documentFallbackName')}</span>
-                {doc.url && (
+                {doc.url ? (
                   <a
                     href={doc.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline"
+                    className="font-medium text-blue-600 hover:underline"
                   >
-                    {doc.url}
+                    {doc.name || t('inspirationDetail.documentFallbackName')}
                   </a>
+                ) : (
+                  <span className="font-medium">{doc.name || t('inspirationDetail.documentFallbackName')}</span>
                 )}
               </div>
             ))
