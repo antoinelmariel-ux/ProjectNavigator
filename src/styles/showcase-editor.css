@@ -1290,11 +1290,19 @@
 }
 
 /* ---------- inspecteur ---------- */
+/* La course d'un élément collant s'arrête au bas de son bloc conteneur — ici la grille du plan
+   de travail — alors que la page continue de défiler sur le pied de page applicatif qui la suit
+   (~6,5rem, marge comprise). Sur les derniers pixels de défilement, le panneau était donc poussé
+   hors de l'écran par le haut : il n'en restait qu'une fente de quelques dizaines de pixels, tous
+   les champs tassés dans son cadre défilant, et l'on perdait l'édition de la section de bas de
+   vitrine — celle qu'on venait justement modifier. Réserver cette hauteur ici garde le panneau
+   entièrement visible jusqu'au bas de la page ; il défile de toute façon en interne.
+   À réajuster si la hauteur du pied de page change (App.jsx). */
 .sge-inspector {
   position: sticky;
   top: 3.5rem;
   align-self: start;
-  max-height: calc(100vh - 4rem);
+  max-height: calc(100vh - 10.5rem);
   margin: 1rem 0.75rem 1rem 0;
   background: var(--sge-surface);
   border: 1px solid var(--sge-line);
