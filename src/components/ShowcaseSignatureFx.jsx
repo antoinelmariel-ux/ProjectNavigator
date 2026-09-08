@@ -228,6 +228,12 @@ export function ShowcaseSignatureFx({ rootRef }) {
     }
 
     /* ---------- 3. révélations ---------- */
+    // `runCount` réécrit `el.textContent` à chaque frame, ce qui déclenche lui-même une
+    // mutation childList captée par le MutationObserver plus bas (relance de bindDynamicElements).
+    // Sans ce suivi, un compteur déjà lancé (ou déjà terminé, alors déjà retiré de countIO)
+    // serait ré-observé à chaque frame et repartirait de 0 en boucle infinie, l'empêchant
+    // presque toujours de se stabiliser sur sa valeur finale (observé sur le montant budget).
+    const startedCounters = new WeakSet();
     const runCount = (el) => {
       const target = parseFloat(el.getAttribute('data-sg-count'));
       if (!Number.isFinite(target)) return;
@@ -320,20 +326,28 @@ export function ShowcaseSignatureFx({ rootRef }) {
       const revealTargets = Array.prototype.slice.call(root.querySelectorAll('.sg-rv'));
       const roadItems = Array.prototype.slice.call(root.querySelectorAll('.sg-road__item'));
       const dynamicStorySteps = Array.prototype.slice.call(root.querySelectorAll('[data-sg-story-step]'));
-      const counterEls = Array.prototype.slice.call(root.querySelectorAll('[data-sg-count]'));
+      const counterEls = Array.prototype.slice
+        .call(root.querySelectorAll('[data-sg-count]'))
+        .filter((el) => !startedCounters.has(el));
 
       if (reduceOrNoIO) {
         revealTargets.forEach((el) => el.classList.add('is-on'));
         roadItems.forEach((el) => el.classList.add('is-on'));
         dynamicStorySteps.forEach((el) => el.classList.add('is-on'));
-        counterEls.forEach(runCount);
+        counterEls.forEach((el) => {
+          startedCounters.add(el);
+          runCount(el);
+        });
         return;
       }
 
       revealTargets.forEach((el) => revealIO.observe(el));
       roadItems.forEach((el) => roadIO.observe(el));
       dynamicStorySteps.forEach((el) => stepIO.observe(el));
-      counterEls.forEach((el) => countIO.observe(el));
+      counterEls.forEach((el) => {
+        startedCounters.add(el);
+        countIO.observe(el);
+      });
     };
 
     bindDynamicElements();
