@@ -308,6 +308,10 @@ export const HomeScreen = ({
     () => (Array.isArray(questions) ? questions.find((question) => question?.id === 'ProjectType') : null),
     [questions]
   );
+  const teamLeadTeamQuestion = useMemo(
+    () => (Array.isArray(questions) ? questions.find((question) => question?.id === 'teamLeadTeam') : null),
+    [questions]
+  );
   const resolveChoiceOptionLabel = useCallback((question, rawValue) => {
     const trimmedValue = typeof rawValue === 'string' ? rawValue.trim() : '';
     if (!trimmedValue) {
@@ -1385,7 +1389,7 @@ export const HomeScreen = ({
       : 0;
     const adminCanEditSubmitted = isAdminMode && !isDraft;
     const leadName = getSafeString(project?.answers?.teamLead).trim();
-    const leadTeam = getSafeString(project?.answers?.teamLeadTeam).trim();
+    const leadTeam = resolveChoiceOptionLabel(teamLeadTeamQuestion, project?.answers?.teamLeadTeam);
     const leadDisplay = leadName.length > 0
       ? `${leadName}${leadTeam.length > 0 ? ` (${leadTeam})` : ''}`
       : leadTeam.length > 0

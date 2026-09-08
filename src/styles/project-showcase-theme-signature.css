@@ -736,14 +736,6 @@
   overflow: hidden;
 }
 
-.sg-doc__frame {
-  width: 100%;
-  height: clamp(18rem, 46vh, 30rem);
-  border: none;
-  display: block;
-  background: var(--sg-cloud);
-}
-
 .sg-doc__image {
   width: 100%;
   max-height: clamp(18rem, 46vh, 30rem);

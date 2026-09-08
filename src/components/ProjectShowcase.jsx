@@ -246,12 +246,7 @@ const buildDefaultLightSectionSelection = (sectionIds = LIGHT_VISIBILITY_OPTIONS
     return acc;
   }, {});
 
-const DOCUMENT_VIEWER_TYPES = [
-  { id: 'pdf', label: 'PDF' },
-  { id: 'jpg', label: 'JPG' },
-  { id: 'png', label: 'PNG' },
-  { id: 'pptx', label: 'PPTX' }
-];
+const DOCUMENT_VIEWER_TYPES = ['pdf', 'jpg', 'png', 'pptx'];
 
 const resolveCustomSectionColumnCount = (value, columns = []) => {
   const parsed = Number.parseInt(value, 10);
@@ -273,29 +268,6 @@ const normalizeCustomSectionColumns = (columns, columnCount) => {
     boundedColumns.push('');
   }
   return boundedColumns;
-};
-
-const resolveDocumentEmbedSrc = (documentUrl, documentType) => {
-  if (!documentUrl) {
-    return '';
-  }
-
-  // Un PDF (comme une image) se rend nativement dans un <iframe>/<img> : le passer par le
-  // visualiseur externe officeapps.live.com échouerait pour un document déposé sur SharePoint,
-  // puisque ce service tiers ne porte pas la session/cookie du tenant et ne peut donc pas
-  // récupérer un fichier dont l'URL est un point d'API authentifié (comme les documents
-  // téléversés depuis cette vitrine). Seuls les formats nécessitant une conversion (PPTX)
-  // passent encore par ce visualiseur — limitation déjà présente avant le passage à l'upload,
-  // qui exigerait un lien de partage public généré côté SharePoint pour être levée.
-  if (['jpg', 'png', 'pdf'].includes(documentType)) {
-    return documentUrl;
-  }
-
-  if (documentUrl.includes('officeapps.live.com')) {
-    return documentUrl;
-  }
-
-  return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(documentUrl)}`;
 };
 
 // Titre lisible d'une section personnalisée : son champ « titre » est du texte riche,
@@ -1912,11 +1884,11 @@ export const ProjectShowcase = ({
       });
       const extension = getFileExtension(attachment.name).toLowerCase();
       // 'jpeg' -> 'jpg' pour matcher DOCUMENT_VIEWER_TYPES ; tout format non reconnu (docx,
-      // xlsx...) retombe sur 'pptx', seul type hors pdf/jpg/png à passer par le visualiseur
-      // Office externe (resolveDocumentEmbedSrc) — jamais sur 'pdf', qui serait rendu tel
-      // quel dans un <iframe> et casserait l'aperçu d'un fichier qui n'en est pas un.
+      // xlsx...) retombe sur 'pptx'. `documentType` ne sert plus qu'à choisir l'aperçu natif
+      // <img> pour jpg/png (seul format sans dépendance externe) et le libellé de la barre —
+      // jamais à tenter un aperçu intégré d'un PDF ou d'un fichier bureautique.
       const normalizedExtension = extension === 'jpeg' ? 'jpg' : extension;
-      const documentType = DOCUMENT_VIEWER_TYPES.some(type => type.id === normalizedExtension)
+      const documentType = DOCUMENT_VIEWER_TYPES.includes(normalizedExtension)
         ? normalizedExtension
         : 'pptx';
       applyField('documentUrl', attachment.url);
@@ -3608,12 +3580,19 @@ export const ProjectShowcase = ({
                       decoding="async"
                     />
                   ) : (
-                    <iframe
-                      className="sg-doc__frame"
-                      title={t('projectShowcase.documentAltTemplate', { title })}
-                      src={resolveDocumentEmbedSrc(section.documentUrl, section.documentType)}
-                      loading="lazy"
-                    />
+                    // Pas d'aperçu intégré pour un PDF ou tout autre format bureautique : ni un
+                    // <iframe> sur l'URL brute (le rendu PDF natif du navigateur y est bloqué sous
+                    // file:// et par certains visualiseurs SharePoint), ni le visualiseur externe
+                    // officeapps.live.com (incapable de récupérer une donnée en data: URL ou une
+                    // URL SharePoint authentifiée — d'où le « fichier introuvable » qu'il renvoyait).
+                    // Seul le lien « Ouvrir dans un nouvel onglet » plus bas reste fiable.
+                    <div className="sg-doc__empty" style={{ '--sg-c': family.c }}>
+                      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+                        <path d="M14 3v5h5" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+                      </svg>
+                      <span>{t('projectShowcase.documentReadyLabel')}</span>
+                    </div>
                   )
                 ) : (
                   <div className="sg-doc__empty" style={{ '--sg-c': family.c }}>
@@ -4337,23 +4316,6 @@ export const ProjectShowcase = ({
                           {t('projectShowcase.chooseDocumentButton')}
                         </label>
                       )}
-                    </div>
-                    <div className="space-y-1">
-                      <label htmlFor={`custom-section-${section.id}-document-type`} className="text-sm font-medium text-gray-800">
-                        {t('projectShowcase.documentTypeLabel')}
-                      </label>
-                      <select
-                        id={`custom-section-${section.id}-document-type`}
-                        value={section.documentType || 'pdf'}
-                        onChange={(event) => handleCustomSectionFieldChange(section.id, 'documentType', event.target.value)}
-                        className="sge-input"
-                      >
-                        {DOCUMENT_VIEWER_TYPES.map(type => (
-                          <option key={type.id} value={type.id}>
-                            {type.label}
-                          </option>
-                        ))}
-                      </select>
                     </div>
                   </>
                 )}

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from '../react.js';
-import { Edit, Close, Download, Link as LinkIcon } from './icons.js';
+import { Edit, Close, Link as LinkIcon } from './icons.js';
 import { normalizeInspirationFormConfig } from '../utils/inspirationConfig.js';
 import { RichTextEditor } from './RichTextEditor.jsx';
 import { renderRichText } from '../utils/richText.js';
@@ -42,8 +42,7 @@ export const InspirationDetail = ({
   project,
   formConfig,
   onBack,
-  onUpdate,
-  onExport
+  onUpdate
 }) => {
   const { t, language } = useTranslation();
   const notProvidedLabel = t('inspirationDetail.notProvided');
@@ -379,14 +378,6 @@ export const InspirationDetail = ({
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => onExport?.(project)}
-                className="inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100"
-              >
-                <Download className="h-4 w-4" aria-hidden="true" />
-                {t('inspirationDetail.save')}
-              </button>
               <button
                 type="button"
                 onClick={onBack}

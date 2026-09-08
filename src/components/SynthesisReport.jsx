@@ -2529,23 +2529,27 @@ export const SynthesisReport = ({
                         {(() => {
                           const resolvedValue = displayValue || missingInfoLabel;
                           const isMissingInfo = resolvedValue === missingInfoLabel;
-                          const fileUrl = q.type === 'file' && answerValue && typeof answerValue === 'object'
-                            && typeof answerValue.url === 'string'
-                            ? answerValue.url.trim()
-                            : '';
+                          const answerFiles = q.type === 'file'
+                            ? (Array.isArray(answerValue) ? answerValue : answerValue ? [answerValue] : [])
+                                .filter((file) => file && typeof file === 'object' && typeof file.url === 'string' && file.url.trim().length > 0)
+                            : [];
 
-                          if (fileUrl) {
+                          if (answerFiles.length > 0) {
                             return (
-                              <p className="font-semibold whitespace-pre-line text-gray-900">
-                                <a
-                                  href={fileUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-blue-600 underline"
-                                >
-                                  {resolvedValue}
-                                </a>
-                              </p>
+                              <ul className="space-y-1">
+                                {answerFiles.map((file, index) => (
+                                  <li key={`${file.url}-${index}`} className="font-semibold text-gray-900">
+                                    <a
+                                      href={file.url.trim()}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 underline"
+                                    >
+                                      {file.name || resolvedValue}
+                                    </a>
+                                  </li>
+                                ))}
+                              </ul>
                             );
                           }
 

@@ -24,6 +24,12 @@ import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { resolveLocalizedText } from '../utils/localizedContent.js';
 import { createAttachmentFromFile } from '../utils/documentStore.js';
 
+const normalizeFileAnswer = (value) => {
+  const rawFiles = Array.isArray(value) ? value : value ? [value] : [];
+
+  return rawFiles.filter((file) => file && typeof file === 'object' && typeof file.name === 'string');
+};
+
 const normalizeMilestoneDrafts = (value) => {
   if (!Array.isArray(value)) {
     return [];
@@ -563,33 +569,44 @@ export const QuestionnaireScreen = ({
   // Le fichier part réellement dans la bibliothèque SharePoint CN-Documents (ou en data URL
   // hors SharePoint, voir documentStore.js) : la réponse ne conserve plus que ses métadonnées
   // et l'URL de dépôt, jamais un contenu fantôme jamais téléversé nulle part.
-  const handleFileAnswerUpload = async (file) => {
-    if (!file) {
-      setFileUploadError('');
-      onAnswer(currentQuestion.id, null);
+  const handleFileAnswerUpload = async (files) => {
+    const fileList = Array.from(files || []).filter(Boolean);
+    if (fileList.length === 0) {
       return;
     }
 
     setFileUploadError('');
     setIsUploadingFileAnswer(true);
     try {
-      const attachment = await createAttachmentFromFile(file, {
-        entityType: 'project-answer',
-        entityId: projectId || 'nouveau-projet',
-        id: `${currentQuestion.id}-${Date.now()}`
-      });
-      onAnswer(currentQuestion.id, {
-        name: attachment.name,
-        size: attachment.size,
-        type: attachment.mimeType || file.type || '',
-        url: attachment.url,
-        storage: attachment.storage
-      });
+      const uploads = await Promise.all(
+        fileList.map(async (file) => {
+          const attachment = await createAttachmentFromFile(file, {
+            entityType: 'project-answer',
+            entityId: projectId || 'nouveau-projet',
+            id: `${currentQuestion.id}-${Date.now()}-${Math.random().toString(36).slice(2)}`
+          });
+          return {
+            name: attachment.name,
+            size: attachment.size,
+            type: attachment.mimeType || file.type || '',
+            url: attachment.url,
+            storage: attachment.storage
+          };
+        })
+      );
+
+      const existingFiles = normalizeFileAnswer(currentAnswer);
+      onAnswer(currentQuestion.id, [...existingFiles, ...uploads]);
     } catch (error) {
       setFileUploadError(error?.message || t('questionnaire.fileUploadFailedMessage'));
     } finally {
       setIsUploadingFileAnswer(false);
     }
+  };
+
+  const handleFileAnswerRemove = (index) => {
+    const remainingFiles = normalizeFileAnswer(currentAnswer).filter((_, fileIndex) => fileIndex !== index);
+    onAnswer(currentQuestion.id, remainingFiles.length > 0 ? remainingFiles : null);
   };
 
   const renderQuestionInput = () => {
@@ -1238,7 +1255,8 @@ export const QuestionnaireScreen = ({
             <p className="text-xs text-gray-500 mt-2">{t('questionnaire.urlHint')}</p>
           </div>
         );
-      case 'file':
+      case 'file': {
+        const currentFiles = normalizeFileAnswer(currentAnswer);
         return (
           <div className="mb-8">
             <label className="block text-sm sm:text-base font-medium text-gray-700 mb-3" htmlFor={`${currentQuestion.id}-file`}>
@@ -1246,10 +1264,10 @@ export const QuestionnaireScreen = ({
             </label>
             <input
               type="file"
+              multiple
               disabled={isUploadingFileAnswer}
               onChange={(e) => {
-                const file = e.target.files && e.target.files[0];
-                handleFileAnswerUpload(file);
+                handleFileAnswerUpload(e.target.files);
                 e.target.value = '';
               }}
               id={`${currentQuestion.id}-file`}
@@ -1261,18 +1279,32 @@ export const QuestionnaireScreen = ({
             {fileUploadError && (
               <p className="text-xs text-red-600 mt-2">{fileUploadError}</p>
             )}
-            {currentAnswer && (
-              <p className="text-xs text-gray-500 mt-2">
-                {typeof currentAnswer.size === 'number'
-                  ? t('questionnaire.fileSelectedWithSize', {
-                      name: currentAnswer.name,
-                      size: Math.round(currentAnswer.size / 1024)
-                    })
-                  : t('questionnaire.fileSelectedNoSize', { name: currentAnswer.name })}
-              </p>
+            {currentFiles.length > 0 && (
+              <ul className="mt-2 space-y-1">
+                {currentFiles.map((file, index) => (
+                  <li key={`${file.name}-${index}`} className="flex items-center justify-between gap-2 text-xs text-gray-500">
+                    <span>
+                      {typeof file.size === 'number'
+                        ? t('questionnaire.fileSelectedWithSize', {
+                            name: file.name,
+                            size: Math.round(file.size / 1024)
+                          })
+                        : t('questionnaire.fileSelectedNoSize', { name: file.name })}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleFileAnswerRemove(index)}
+                      className="text-red-600 hover:underline"
+                    >
+                      {t('questionnaire.removeFile')}
+                    </button>
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
         );
+      }
       default:
         return null;
     }
