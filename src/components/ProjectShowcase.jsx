@@ -30,6 +30,8 @@ import { initialShowcaseThemes } from '../data/showcaseThemes.js';
 import { resolveLocalizedText } from '../utils/localizedContent.js';
 import { resolveThemeFromActivation } from '../utils/showcase.js';
 import { createAttachmentFromFile, getFileExtension } from '../utils/documentStore.js';
+import { IMAGE_DOCUMENT_TYPES, resolveDocumentEmbedSrc } from '../utils/documentEmbed.js';
+import { getOrigin, getWebUrl, isSharePointMode } from '../config/sharepointConfig.js';
 import { RichTextEditor } from './RichTextEditor.jsx';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { getLocaleTag } from '../i18n/languages.js';
@@ -3228,6 +3230,13 @@ export const ProjectShowcase = ({
     t
   ]);
 
+  // Le visualiseur Office intégré est celui du tenant : il lui faut l'adresse du site courant.
+  const documentEmbedContext = useMemo(() => ({
+    origin: getOrigin(),
+    webUrl: getWebUrl(),
+    isSharePoint: isSharePointMode()
+  }), []);
+
   // chaque gabarit personnalisé reprend une section existante : aucune forme nouvelle,
   // seule la famille de couleur choisie par l'utilisateur change.
   const renderCustomSectionSignature = useCallback((section, index, options = {}) => {
@@ -3535,7 +3544,10 @@ export const ProjectShowcase = ({
     }
 
     // Visionneuse documentaire — seul gabarit à conserver une forme propre
-    const isImage = ['jpg', 'png'].includes(section.documentType);
+    const isImage = IMAGE_DOCUMENT_TYPES.includes(section.documentType);
+    const documentEmbedSrc = isImage
+      ? ''
+      : resolveDocumentEmbedSrc(section.documentUrl, section.documentType, documentEmbedContext);
     return (
       <section key={key} className="sg-band sg-band--cloud sg-band--pad" data-showcase-section={type}>
         <div className="sg-wrap">
@@ -3579,13 +3591,16 @@ export const ProjectShowcase = ({
                       loading="lazy"
                       decoding="async"
                     />
+                  ) : documentEmbedSrc ? (
+                    <iframe
+                      className="sg-doc__frame"
+                      title={t('projectShowcase.documentAltTemplate', { title })}
+                      src={documentEmbedSrc}
+                      loading="lazy"
+                    />
                   ) : (
-                    // Pas d'aperçu intégré pour un PDF ou tout autre format bureautique : ni un
-                    // <iframe> sur l'URL brute (le rendu PDF natif du navigateur y est bloqué sous
-                    // file:// et par certains visualiseurs SharePoint), ni le visualiseur externe
-                    // officeapps.live.com (incapable de récupérer une donnée en data: URL ou une
-                    // URL SharePoint authentifiée — d'où le « fichier introuvable » qu'il renvoyait).
-                    // Seul le lien « Ouvrir dans un nouvel onglet » plus bas reste fiable.
+                    // Format bureautique hors mode SharePoint : aucun convertisseur Office n'est
+                    // joignable (voir documentEmbed.js), le lien d'ouverture reste le seul accès.
                     <div className="sg-doc__empty" style={{ '--sg-c': family.c }}>
                       <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                         <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
@@ -3624,7 +3639,7 @@ export const ProjectShowcase = ({
         </div>
       </section>
     );
-  }, [handleCustomSectionColumnChange, handleCustomSectionFieldChange, handleCustomSectionItemChange, t]);
+  }, [documentEmbedContext, handleCustomSectionColumnChange, handleCustomSectionFieldChange, handleCustomSectionItemChange, t]);
 
   // Pendant l'édition, le canvas lit les sections *non assainies* : `sanitizeCustomSections`
   // supprime une section devenue entièrement vide, ce qui la ferait disparaître sous les
