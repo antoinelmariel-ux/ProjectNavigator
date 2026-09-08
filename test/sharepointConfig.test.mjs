@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   getLibraryServerRelativeUrl,
+  getOrigin,
   getSiteRelativeUrl,
   getWebUrl,
   isSharePointMode,
@@ -57,6 +58,28 @@ test('getSiteRelativeUrl : chemin relatif au serveur', () => {
   withLocation(spo('/sites/ProjectNavigator_DEV/CN-App/index.aspx'), {}, () => {
     assert.equal(getSiteRelativeUrl(), '/sites/ProjectNavigator_DEV');
   });
+});
+
+test('getOrigin : protocole + hôte, sans le chemin du site', () => {
+  withLocation(spo('/sites/ProjectNavigator_DEV/CN-App/index.aspx'), {}, () => {
+    assert.equal(getOrigin(), 'https://lfb1.sharepoint.com');
+  });
+});
+
+test('getOrigin : suit la surcharge __CN_WEB_URL__', () => {
+  withLocation(spo('/sites/Autre/CN-App/index.aspx'), { __CN_WEB_URL__: 'https://autretenant.sharepoint.com/sites/Force/' }, () => {
+    assert.equal(getOrigin(), 'https://autretenant.sharepoint.com');
+  });
+});
+
+test('getOrigin : chaîne vide hors navigateur', () => {
+  const previous = globalThis.window;
+  globalThis.window = undefined;
+  try {
+    assert.equal(getOrigin(), '');
+  } finally {
+    globalThis.window = previous;
+  }
 });
 
 test('getLibraryServerRelativeUrl : chemin complet des bibliothèques', () => {

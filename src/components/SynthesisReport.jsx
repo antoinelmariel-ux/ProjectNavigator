@@ -1746,6 +1746,17 @@ export const SynthesisReport = ({
                                         <p className="mt-1 text-sm text-gray-700 whitespace-pre-line">
                                           {renderTextWithLinks(preview)}
                                         </p>
+                                        {normalizeCommentAttachments(message.attachments).length > 0 && (
+                                          <ul className="mt-2 space-y-1 text-xs">
+                                            {normalizeCommentAttachments(message.attachments).map((attachment) => (
+                                              <li key={attachment.id}>
+                                                <a href={attachment.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                                                  {attachment.name}
+                                                </a>
+                                              </li>
+                                            ))}
+                                          </ul>
+                                        )}
                                       </div>
                                     );
                                   })}
@@ -1823,6 +1834,35 @@ export const SynthesisReport = ({
                                           })
                                         }
                                       />
+                                      <input
+                                        type="file"
+                                        multiple
+                                        className="mt-2 block w-full text-xs text-gray-600"
+                                        onChange={(event) => {
+                                          handleComplianceCommentFilesChange({
+                                            targetId: team.id,
+                                            targetType: 'team',
+                                            files: event.target.files
+                                          });
+                                          event.target.value = '';
+                                        }}
+                                      />
+                                      {normalizeCommentAttachments(draftEntry.attachments).length > 0 && (
+                                        <ul className="mt-2 space-y-1 text-xs">
+                                          {normalizeCommentAttachments(draftEntry.attachments).map((attachment) => (
+                                            <li key={attachment.id} className="flex items-center justify-between gap-2">
+                                              <a href={attachment.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                                                {attachment.name}
+                                              </a>
+                                              <button
+                                                type="button"
+                                                className="text-red-600"
+                                                onClick={() => handleComplianceCommentAttachmentRemove({ targetId: team.id, targetType: 'team', attachmentId: attachment.id })}
+                                              >{t('synthesisReport.removeButton')}</button>
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      )}
                                     </div>
                                     <div className="flex items-center gap-3">
                                       <button

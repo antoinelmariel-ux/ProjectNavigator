@@ -1,4 +1,4 @@
-import { getWebUrl, isSharePointMode } from '../config/sharepointConfig.js';
+import { getOrigin, isSharePointMode } from '../config/sharepointConfig.js';
 import { getRepository } from './listRepository.js';
 import { resolveLibraryServerRelativeUrl } from './spLibraryUrl.js';
 import { getCurrentUser } from './spContext.js';
@@ -86,15 +86,22 @@ export const buildDocumentRelativePath = ({ entityType, entityId, fileName, uniq
 
 const documentsRoot = () => resolveLibraryServerRelativeUrl('documents');
 
-// Chemin absolu requis : un lien "/_api/..." (racine du domaine) navigué directement par le
-// navigateur ou par une visionneuse (iframe, onglet) se résout à la racine du tenant, pas au
-// web SharePoint courant (ex. /sites/ProjectNavigator_DEV) — ce qui renvoie une erreur XML
-// « Microsoft.SharePoint.SPException: Le fichier ... n'existe pas » même quand le fichier est
-// bien présent, puisque la requête part du mauvais site. `spGet`/`spPost` s'en sortent via
-// `buildUrl()` (spRestClient.js), mais ce lien est utilisé tel quel en `href`/`src`, donc il
-// doit être préfixé ici.
-export const buildDownloadUrl = (serverRelativePath) =>
-  `${getWebUrl()}/_api/web/GetFileByServerRelativeUrl('${odataQuote(serverRelativePath)}')/$value`;
+// Lien direct vers le fichier dans sa bibliothèque, pas le point d'API REST
+// (`GetFileByServerRelativeUrl(...)/$value`) : ce dernier ne convient qu'à un téléchargement
+// programmatique du contenu brut (fetch + blob). Navigué tel quel en `href`/`src`
+// (lien "ouvrir", `<img>`, `<iframe>`), il ne renvoie ni le nom réel du fichier — le navigateur
+// enregistre littéralement un fichier nommé "$value" — ni un type MIME exploitable par une
+// visionneuse, alors que SharePoint sert nativement le fichier avec le bon Content-Type et le
+// bon Content-Disposition depuis son URL de bibliothèque. Chaque segment du chemin (qui peut
+// contenir espaces, apostrophes, accents une fois passé par `sanitizeFileName`) doit être
+// encodé en URL, pas échappé façon OData.
+export const buildDownloadUrl = (serverRelativePath) => {
+  const encodedPath = String(serverRelativePath || '')
+    .split('/')
+    .map((segment) => encodeURIComponent(segment))
+    .join('/');
+  return `${getOrigin()}${encodedPath}`;
+};
 
 // On tente directement la création plutôt que de vérifier l'existence au préalable :
 // GetFolderByServerRelativeUrl sur un chemin absent ne répond pas toujours par un 404

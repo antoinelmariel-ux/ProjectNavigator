@@ -50,6 +50,15 @@ export const getWebUrl = () => {
   return stripTrailingSlashes(deriveWebUrl(location.origin, location.pathname || ''));
 };
 
+// L'origine seule (protocole + hôte), sans le chemin du site : nécessaire pour construire un
+// lien de fichier direct (bibliothèque de documents), distinct de `getWebUrl()` qui inclut déjà
+// le chemin du site et sert de base aux appels `_api`.
+export const getOrigin = () => {
+  const webUrl = getWebUrl();
+  const match = webUrl.match(/^https?:\/\/[^/]+/i);
+  return match ? match[0] : webUrl;
+};
+
 export const getSiteRelativeUrl = () => {
   const webUrl = getWebUrl();
   if (!webUrl) {

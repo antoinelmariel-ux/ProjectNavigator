@@ -149,10 +149,10 @@ test('buildDocumentRelativePath : range par entité et préfixe l’unicité', (
   );
 });
 
-test('buildDownloadUrl : échappe les apostrophes du chemin', () => {
+test('buildDownloadUrl : construit un lien direct, chaque segment encodé en URL', () => {
   assert.equal(
-    buildDownloadUrl("/sites/X/CN-Documents/a/b/d'essai.pdf"),
-    "/_api/web/GetFileByServerRelativeUrl('/sites/X/CN-Documents/a/b/d''essai.pdf')/$value"
+    buildDownloadUrl("/sites/X/CN-Documents/a/b/d'essai final.pdf"),
+    "/sites/X/CN-Documents/a/b/d'essai%20final.pdf"
   );
 });
 
@@ -187,7 +187,9 @@ test('uploadDocument : crée les dossiers, dépose le fichier et l’indexe', as
     assert.equal(attachment.type, 'file');
     assert.equal(attachment.storage, 'sharepoint');
     assert.equal(attachment.name, 'Compte rendu.pdf');
-    assert.ok(attachment.url.includes('GetFileByServerRelativeUrl'));
+    assert.ok(!attachment.url.includes('GetFileByServerRelativeUrl'), 'le lien ne doit pas passer par le point d’API REST');
+    assert.ok(attachment.url.startsWith('https://lfb1.sharepoint.com/sites/ProjectNavigator_DEV/CN-Documents/showcase/p-7/'));
+    assert.ok(attachment.url.includes('Compte%20rendu.pdf'));
     assert.ok(attachment.path.includes('/CN-Documents/showcase/p-7/'));
   });
 });
