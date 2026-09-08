@@ -2112,6 +2112,7 @@ export const ProjectShowcase = ({
 
     const { activeStep } = tourContext;
     const shouldForceEditing = [
+      'showcase-edit-topbar',
       'showcase-edit',
       'showcase-save-edits',
       'showcase-custom-sections'
@@ -2121,7 +2122,7 @@ export const ProjectShowcase = ({
       setDraftValues(buildDraftValues(editableFields, answers, rawProjectName));
       resetMilestoneDragState();
       setIsEditing(true);
-    } else if (isEditing && activeStep !== 'showcase-edit' && activeStep !== 'showcase-save-edits') {
+    } else if (isEditing) {
       setIsEditing(false);
     }
 
@@ -2143,8 +2144,12 @@ export const ProjectShowcase = ({
       scrollOptions = { behavior: 'smooth', block: 'center' };
     } else if (activeStep === 'showcase-edit-trigger') {
       selector = '[data-tour-id="showcase-edit-trigger"]';
+    } else if (activeStep === 'showcase-edit-topbar') {
+      selector = '[data-tour-id="showcase-edit-topbar"]';
     } else if (activeStep === 'showcase-edit' || activeStep === 'showcase-save-edits') {
       selector = '[data-tour-id="showcase-edit-panel"]';
+    } else if (activeStep === 'showcase-custom-sections') {
+      selector = '[data-tour-id="showcase-add-section-panel"]';
     }
 
     if (selector) {

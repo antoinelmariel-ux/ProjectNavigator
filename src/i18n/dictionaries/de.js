@@ -17,6 +17,7 @@ export default {
       annotationOn: 'Anmerkungsmodus deaktivieren',
       annotationOff: 'Anmerkungsmodus aktivieren',
       annotationSrOnly: 'Anmerkung',
+      commentLabel: 'Kommentieren',
       shareShowcase: 'Projekt-Showcase teilen',
       shareSrOnly: 'Teilen',
       returnToReport: 'Zur Projektzusammenfassung zurückkehren',

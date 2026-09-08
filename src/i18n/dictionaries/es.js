@@ -17,6 +17,7 @@ export default {
       annotationOn: 'Desactivar el modo de anotación',
       annotationOff: 'Activar el modo de anotación',
       annotationSrOnly: 'Anotación',
+      commentLabel: 'Comentar',
       shareShowcase: 'Compartir la vitrina del proyecto',
       shareSrOnly: 'Compartir',
       returnToReport: 'Volver al resumen del proyecto',

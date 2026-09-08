@@ -280,10 +280,10 @@ export const initialOnboardingTourConfig = {
         "es": "Modificar la vitrina"
       },
       "content": {
-        "en": "Turn on edit mode to adjust the content before sharing it.",
-        "fr": "Activez le mode édition pour ajuster les contenus avant diffusion.",
-        "de": "Aktivieren Sie den Bearbeitungsmodus, um die Inhalte vor der Veröffentlichung anzupassen.",
-        "es": "Active el modo de edición para ajustar los contenidos antes de difundirlos."
+        "en": "The “Edit” button turns on live editing: you work directly on the showcase itself, not on a separate form.",
+        "fr": "Le bouton « Modifier » active l’édition en direct : vous travaillez directement sur la vitrine elle-même, pas sur un formulaire séparé.",
+        "de": "Die Schaltfläche „Bearbeiten“ aktiviert die Live-Bearbeitung: Sie arbeiten direkt auf der Vitrine selbst, nicht in einem separaten Formular.",
+        "es": "El botón «Modificar» activa la edición en directo: trabaja directamente sobre la vitrina, no en un formulario aparte."
       },
       "placement": "bottom",
       "highlightScope": "target",
@@ -297,19 +297,39 @@ export const initialOnboardingTourConfig = {
       "actions": []
     },
     {
+      "id": "showcase-edit-topbar",
+      "target": "[data-tour-id=\"showcase-edit-topbar\"]",
+      "title": {
+        "en": "The editing toolbar",
+        "fr": "La barre d’édition",
+        "de": "Die Bearbeitungsleiste",
+        "es": "La barra de edición"
+      },
+      "content": {
+        "en": "This toolbar gathers everything that isn't tied to a single section: the Outline to navigate between sections, Undo/Redo, a chrome-free Preview, the Light/Full display switch, and the publish status.",
+        "fr": "Cette barre regroupe tout ce qui ne dépend pas d’une section précise : le Plan pour naviguer entre les sections, Annuler/Rétablir, l’Aperçu sans le contour d’édition, le choix d’affichage Light/complet et le statut de publication.",
+        "de": "Diese Leiste bündelt alles, was nicht an einen bestimmten Abschnitt gebunden ist: die Gliederung zum Navigieren zwischen Abschnitten, Rückgängig/Wiederholen, eine Vorschau ohne Bearbeitungsrahmen, die Umschaltung zwischen Light- und Vollansicht sowie den Veröffentlichungsstatus.",
+        "es": "Esta barra reúne todo lo que no depende de una sección concreta: el Esquema para navegar entre secciones, Deshacer/Rehacer, una vista previa sin el contorno de edición, el cambio de visualización Light/completa y el estado de publicación."
+      },
+      "placement": "bottom",
+      "highlightScope": "target",
+      "showDefaultButtons": true,
+      "actions": []
+    },
+    {
       "id": "showcase-edit",
       "target": "[data-tour-id=\"showcase-edit-panel\"]",
       "title": {
-        "en": "Customize the showcase",
-        "fr": "Personnaliser la vitrine",
-        "de": "Die Vitrine anpassen",
-        "es": "Personalizar la vitrina"
+        "en": "Edit section by section",
+        "fr": "Modifier section par section",
+        "de": "Abschnitt für Abschnitt bearbeiten",
+        "es": "Modificar sección por sección"
       },
       "content": {
-        "en": "Adjust the text, key messages and milestones to accurately reflect your project. Its information is automatically updated in the compliance report.",
-        "fr": "Adaptez textes, messages clés et jalons pour refléter fidèlement votre projet. Ses informations sont automatiquement mises à jour dans le rapport de compliance.",
-        "de": "Passen Sie Texte, Kernbotschaften und Meilensteine an, damit sie Ihr Projekt originalgetreu widerspiegeln. Die Informationen werden automatisch im Compliance-Bericht aktualisiert.",
-        "es": "Adapte los textos, mensajes clave e hitos para reflejar fielmente su proyecto. Su información se actualiza automáticamente en el informe de cumplimiento."
+        "en": "Click any section directly on the showcase to select it: its text becomes editable in place, and this panel shows its specific settings (template, milestones, visibility…). Everything stays in sync with the compliance report.",
+        "fr": "Cliquez sur une section directement dans la vitrine pour la sélectionner : ses textes deviennent modifiables sur place, et ce panneau affiche ses réglages propres (gabarit, jalons, visibilité…). Tout reste synchronisé avec le rapport de compliance.",
+        "de": "Klicken Sie direkt in der Vitrine auf einen Abschnitt, um ihn auszuwählen: Seine Texte werden an Ort und Stelle bearbeitbar, und dieses Panel zeigt seine spezifischen Einstellungen (Vorlage, Meilensteine, Sichtbarkeit …). Alles bleibt mit dem Compliance-Bericht synchron.",
+        "es": "Haga clic en cualquier sección directamente en la vitrina para seleccionarla: sus textos se vuelven editables in situ, y este panel muestra sus ajustes propios (plantilla, hitos, visibilidad…). Todo permanece sincronizado con el informe de cumplimiento."
       },
       "placement": "left",
       "highlightScope": "target",
@@ -318,20 +338,20 @@ export const initialOnboardingTourConfig = {
     },
     {
       "id": "showcase-custom-sections",
-      "target": "[data-tour-id=\"showcase-edit-panel\"]",
+      "target": "[data-tour-id=\"showcase-add-section-panel\"]",
       "title": {
-        "en": "Create custom sections",
-        "fr": "Créer des sections personnalisées",
-        "de": "Individuelle Abschnitte erstellen",
-        "es": "Crear secciones personalizadas"
+        "en": "Add custom sections",
+        "fr": "Ajouter des sections personnalisées",
+        "de": "Individuelle Abschnitte hinzufügen",
+        "es": "Añadir secciones personalizadas"
       },
       "content": {
-        "en": "Add tailor-made sections using different templates: lists, columns, taglines, and even blocks that embed documents (PDF, slides, etc.).",
-        "fr": "Ajoutez des sections sur-mesure avec différents modèles : listes, colonnes, accroches et même des blocs qui intègrent des documents (PDF, slides, etc.).",
-        "de": "Fügen Sie maßgeschneiderte Abschnitte mit verschiedenen Vorlagen hinzu: Listen, Spalten, Slogans und sogar Blöcke, die Dokumente einbetten (PDF, Folien usw.).",
-        "es": "Añada secciones a medida con diferentes plantillas: listas, columnas, eslóganes e incluso bloques que integran documentos (PDF, diapositivas, etc.)."
+        "en": "Click the “+” between any two sections to open this picker exactly where you want to insert a block: lists, columns, taglines, or even blocks that embed documents (PDF, slides…), each with a true-to-life preview.",
+        "fr": "Cliquez sur le « + » entre deux sections pour ouvrir ce sélecteur exactement où vous souhaitez insérer un bloc : listes, colonnes, accroches ou même des blocs qui intègrent des documents (PDF, slides…), chacun avec un aperçu fidèle.",
+        "de": "Klicken Sie auf das „+“ zwischen zwei Abschnitten, um diese Auswahl genau an der gewünschten Stelle zu öffnen: Listen, Spalten, Slogans oder sogar Blöcke, die Dokumente einbetten (PDF, Folien …), jeweils mit einer originalgetreuen Vorschau.",
+        "es": "Haga clic en el «+» entre dos secciones para abrir este selector exactamente donde desee insertar un bloque: listas, columnas, eslóganes o incluso bloques que integran documentos (PDF, diapositivas…), cada uno con una vista previa fiel."
       },
-      "placement": "left",
+      "placement": "top",
       "highlightScope": "target",
       "showDefaultButtons": true,
       "actions": []
@@ -340,16 +360,16 @@ export const initialOnboardingTourConfig = {
       "id": "showcase-save-edits",
       "target": "[data-tour-id=\"showcase-save-edits\"]",
       "title": {
-        "en": "Save your changes",
-        "fr": "Enregistrer les modifications",
-        "de": "Änderungen speichern",
-        "es": "Guardar los cambios"
+        "en": "Publish your changes",
+        "fr": "Publier vos modifications",
+        "de": "Ihre Änderungen veröffentlichen",
+        "es": "Publicar los cambios"
       },
       "content": {
-        "en": "Confirm your adjustments to update the showcase immediately.",
-        "fr": "Validez vos ajustements pour mettre à jour immédiatement la vitrine.",
-        "de": "Bestätigen Sie Ihre Anpassungen, um die Vitrine sofort zu aktualisieren.",
-        "es": "Confirme sus ajustes para actualizar la vitrina de inmediato."
+        "en": "Click “Publish” to update the showcase immediately. The bar shows whether changes are still unpublished.",
+        "fr": "Cliquez sur « Publier » pour mettre à jour la vitrine immédiatement. La barre indique si des modifications restent à publier.",
+        "de": "Klicken Sie auf „Veröffentlichen“, um die Vitrine sofort zu aktualisieren. Die Leiste zeigt an, ob noch Änderungen zu veröffentlichen sind.",
+        "es": "Haga clic en «Publicar» para actualizar la vitrina de inmediato. La barra indica si quedan cambios por publicar."
       },
       "placement": "top",
       "highlightScope": "target",
@@ -366,10 +386,10 @@ export const initialOnboardingTourConfig = {
         "es": "Selección del modo de uso"
       },
       "content": {
-        "en": "This block lets you configure the project showcase display (Light or full mode) to hide certain elements during a presentation to a team.",
-        "fr": "Ce bloc vous permet de configurer l’affichage de la vitrine du projet (mode Light ou complet) pour masquer certains éléments pendant une présentation à une équipe.",
-        "de": "Mit diesem Block können Sie die Anzeige der Projektvitrine konfigurieren (Light- oder Vollmodus), um bestimmte Elemente während einer Präsentation vor einem Team auszublenden.",
-        "es": "Este bloque le permite configurar la visualización de la vitrina del proyecto (modo Light o completo) para ocultar ciertos elementos durante una presentación a un equipo."
+        "en": "This switch configures how the showcase is displayed (Light or Full) to hide certain elements during a presentation to a team — it's also available from the editing toolbar.",
+        "fr": "Ce bloc vous permet de configurer l’affichage de la vitrine du projet (mode Light ou complet) pour masquer certains éléments pendant une présentation à une équipe — il est aussi accessible depuis la barre d’édition.",
+        "de": "Mit diesem Block können Sie die Anzeige der Projektvitrine konfigurieren (Light- oder Vollmodus), um bestimmte Elemente während einer Präsentation vor einem Team auszublenden — er ist auch über die Bearbeitungsleiste erreichbar.",
+        "es": "Este bloque le permite configurar la visualización de la vitrina del proyecto (modo Light o completo) para ocultar ciertos elementos durante una presentación a un equipo; también está disponible desde la barra de edición."
       },
       "placement": "bottom",
       "highlightScope": "target",
@@ -426,10 +446,10 @@ export const initialOnboardingTourConfig = {
         "es": "Activar los comentarios"
       },
       "content": {
-        "en": "This button opens the comments area and lets you add sticky notes directly on the showcase.",
-        "fr": "Ce bouton permet d’ouvrir l’espace de commentaires et d’ajouter des post-its directement dans la vitrine.",
-        "de": "Mit dieser Schaltfläche öffnen Sie den Kommentarbereich und können Haftnotizen direkt in der Vitrine hinzufügen.",
-        "es": "Este botón permite abrir el espacio de comentarios y añadir notas adhesivas directamente en la vitrina."
+        "en": "The “Comment” button opens the comments area and lets you add sticky notes directly on the showcase.",
+        "fr": "Le bouton « Commenter » permet d’ouvrir l’espace de commentaires et d’ajouter des post-its directement dans la vitrine.",
+        "de": "Die Schaltfläche „Kommentieren“ öffnet den Kommentarbereich und ermöglicht es Ihnen, Haftnotizen direkt in der Vitrine hinzuzufügen.",
+        "es": "El botón «Comentar» permite abrir el espacio de comentarios y añadir notas adhesivas directamente en la vitrina."
       },
       "placement": "bottom",
       "highlightScope": "target",

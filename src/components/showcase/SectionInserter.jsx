@@ -112,6 +112,7 @@ export const SectionInserter = ({
         <div
           ref={popoverRef}
           className="sge-picker"
+          data-tour-id="showcase-add-section-panel"
           role="dialog"
           aria-modal="false"
           aria-label={t('projectShowcase.editor.addSectionTitle')}

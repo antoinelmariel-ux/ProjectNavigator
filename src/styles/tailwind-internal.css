@@ -239,6 +239,11 @@ a {
   background-color: rgba(220,38,38, var(--tw-bg-opacity));
 }
 
+.bg-transparent {
+  --tw-bg-opacity: 1;
+  background-color: rgba(0,0,0, var(--tw-bg-opacity));
+}
+
 .bg-white {
   --tw-bg-opacity: 1;
   background-color: rgba(255,255,255, var(--tw-bg-opacity));
