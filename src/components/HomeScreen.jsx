@@ -299,10 +299,24 @@ export const HomeScreen = ({
   tourContext = null,
   currentUser = null,
   teams = [],
+  questions = [],
   validationCommitteeConfig = null,
   isProjectsLoading = false
 }) => {
   const { t, language } = useTranslation();
+  const projectTypeQuestion = useMemo(
+    () => (Array.isArray(questions) ? questions.find((question) => question?.id === 'ProjectType') : null),
+    [questions]
+  );
+  const resolveChoiceOptionLabel = useCallback((question, rawValue) => {
+    const trimmedValue = typeof rawValue === 'string' ? rawValue.trim() : '';
+    if (!trimmedValue) {
+      return '';
+    }
+    const options = Array.isArray(question?.options) ? question.options : [];
+    const matchedOption = options.find((option) => option?.value === trimmedValue);
+    return matchedOption ? resolveLocalizedText(matchedOption.label, language) || trimmedValue : trimmedValue;
+  }, [language]);
   const normalizedFilters = useMemo(
     () => normalizeProjectFilterConfig(projectFilters),
     [projectFilters]
@@ -1380,10 +1394,10 @@ export const HomeScreen = ({
     const projectTypeRaw = project?.answers?.ProjectType;
     const projectType = Array.isArray(projectTypeRaw)
       ? projectTypeRaw
-          .map(item => (typeof item === 'string' ? item.trim() : ''))
+          .map(item => resolveChoiceOptionLabel(projectTypeQuestion, item))
           .filter(item => item.length > 0)
           .join(', ')
-      : getSafeString(projectTypeRaw).trim();
+      : resolveChoiceOptionLabel(projectTypeQuestion, projectTypeRaw);
     const projectTypeDisplay = projectType.length > 0
       ? projectType
       : t('home.projectTypeNotProvided');

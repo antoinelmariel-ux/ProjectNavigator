@@ -222,15 +222,41 @@ const sanitizeBoolean = (value, fallback = true) => {
   return fallback;
 };
 
+// Avant la traduction du formulaire inspiration, les libellés de champs/options étaient de
+// simples chaînes françaises persistées telles quelles (référentiel delta-only, voir
+// referentialStore.js). Une config déjà enregistrée les garde inchangées : resolveLocalizedText
+// affiche alors ce texte quelle que soit la langue choisie. Si la chaîne persistée correspond au
+// texte français par défaut, on la remplace par l'objet {en, fr, de, es} à jour ; sinon (texte
+// réellement personnalisé par un administrateur) on la convertit en {fr: ...} pour rester
+// cohérent avec resolveLocalizedText plutôt que de l'afficher indéfiniment en français.
+const upgradeLegacyLocalizedValue = (rawValue, fallbackValue) => {
+  if (typeof rawValue !== 'string') {
+    return rawValue;
+  }
+
+  const trimmed = rawValue.trim();
+  if (trimmed.length === 0) {
+    return rawValue;
+  }
+
+  if (fallbackValue && typeof fallbackValue === 'object' && fallbackValue.fr === trimmed) {
+    return fallbackValue;
+  }
+
+  return { fr: trimmed };
+};
+
 // La valeur stable d'une option (ce qui est réellement enregistré dans le projet et comparé par
 // les filtres) reste indépendante de son libellé traduit — même principe que `value`/`label` sur
 // les options de questions.js.
 const sanitizeOptionValue = (value) => (typeof value === 'string' ? value.trim() : '');
 
-const sanitizeOption = (option) => {
+const sanitizeOption = (option, fallbackOption) => {
   if (typeof option === 'string') {
     const trimmed = option.trim();
-    return trimmed.length > 0 ? { value: trimmed, label: trimmed } : null;
+    return trimmed.length > 0
+      ? { value: trimmed, label: sanitizeLocalizedValue(upgradeLegacyLocalizedValue(trimmed, fallbackOption?.label), trimmed) }
+      : null;
   }
 
   if (option && typeof option === 'object') {
@@ -241,23 +267,32 @@ const sanitizeOption = (option) => {
       return null;
     }
 
-    return { value, label: sanitizeLocalizedValue(option.label, value) };
+    return { value, label: sanitizeLocalizedValue(upgradeLegacyLocalizedValue(option.label, fallbackOption?.label), value) };
   }
 
   return null;
 };
 
-const sanitizeOptionsList = (options) => {
+const sanitizeOptionsList = (options, fallbackOptions) => {
   if (!Array.isArray(options)) {
     return [];
   }
 
-  return options.map(sanitizeOption).filter(Boolean);
+  const fallbackByValue = new Map(
+    (Array.isArray(fallbackOptions) ? fallbackOptions : []).map((option) => [option.value, option])
+  );
+
+  return options
+    .map((option) => {
+      const optionValue = typeof option === 'string' ? option.trim() : sanitizeOptionValue(option?.value);
+      return sanitizeOption(option, fallbackByValue.get(optionValue));
+    })
+    .filter(Boolean);
 };
 
 const sanitizeEmptyOptionLabel = (value, fallback = 'Toutes les valeurs') => sanitizeLocalizedValue(value, fallback);
 
-const normalizeFilterField = (field) => {
+const normalizeFilterField = (field, fallbackField) => {
   if (!field || typeof field !== 'object') {
     return null;
   }
@@ -272,7 +307,7 @@ const normalizeFilterField = (field) => {
 
   const normalized = {
     id,
-    label: sanitizeLocalizedValue(field.label, id),
+    label: sanitizeLocalizedValue(upgradeLegacyLocalizedValue(field.label, fallbackField?.label), id),
     type,
     enabled: sanitizeBoolean(field.enabled, true)
   };
@@ -283,16 +318,18 @@ const normalizeFilterField = (field) => {
   }
 
   if (type === 'select') {
-    normalized.options = sanitizeOptionsList(field.options);
+    normalized.options = sanitizeOptionsList(field.options, fallbackField?.options);
     if (Object.prototype.hasOwnProperty.call(field, 'emptyOptionLabel')) {
-      normalized.emptyOptionLabel = sanitizeEmptyOptionLabel(field.emptyOptionLabel);
+      normalized.emptyOptionLabel = sanitizeEmptyOptionLabel(
+        upgradeLegacyLocalizedValue(field.emptyOptionLabel, fallbackField?.emptyOptionLabel)
+      );
     }
   }
 
   return normalized;
 };
 
-const normalizeFormField = (field) => {
+const normalizeFormField = (field, fallbackField) => {
   if (!field || typeof field !== 'object') {
     return null;
   }
@@ -306,7 +343,7 @@ const normalizeFormField = (field) => {
 
   const normalized = {
     id,
-    label: sanitizeLocalizedValue(field.label, id),
+    label: sanitizeLocalizedValue(upgradeLegacyLocalizedValue(field.label, fallbackField?.label), id),
     type,
     enabled: sanitizeBoolean(field.enabled, true)
   };
@@ -320,7 +357,7 @@ const normalizeFormField = (field) => {
   }
 
   if (type === 'select' || type === 'multi_select') {
-    normalized.options = sanitizeOptionsList(field.options);
+    normalized.options = sanitizeOptionsList(field.options, fallbackField?.options);
   }
 
   return normalized;
@@ -335,13 +372,23 @@ const normalizeFilterConfig = (config, fallback) => {
     return clone(fallback);
   }
 
-  const fields = config.fields.map(normalizeFilterField).filter(Boolean);
+  const fallbackFieldsById = new Map(
+    (Array.isArray(fallback?.fields) ? fallback.fields : []).map((field) => [field.id, field])
+  );
+  const fields = config.fields
+    .map((field) => normalizeFilterField(field, fallbackFieldsById.get(field?.id)))
+    .filter(Boolean);
   return { fields };
 };
 
 const normalizeFormConfig = (config, fallback) => {
   const base = config && typeof config === 'object' ? config : {};
-  const fields = Array.isArray(base.fields) ? base.fields.map(normalizeFormField).filter(Boolean) : [];
+  const fallbackFieldsById = new Map(
+    (Array.isArray(fallback?.fields) ? fallback.fields : []).map((field) => [field.id, field])
+  );
+  const fields = Array.isArray(base.fields)
+    ? base.fields.map((field) => normalizeFormField(field, fallbackFieldsById.get(field?.id))).filter(Boolean)
+    : [];
 
   if (fields.length === 0) {
     return clone(fallback);

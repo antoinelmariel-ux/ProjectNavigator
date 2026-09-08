@@ -5615,6 +5615,7 @@ const updateProjectFilters = useCallback((updater) => {
             projectFilters={projectFilters}
             teamLeadOptions={teamLeadTeamOptions}
             teams={teams}
+            questions={questions}
             inspirationProjects={inspirationProjects}
             inspirationFilters={inspirationFilters}
             validationCommitteeConfig={validationCommitteeConfig}
