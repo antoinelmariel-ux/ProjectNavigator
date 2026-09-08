@@ -492,7 +492,7 @@ export const initialOnboardingTourConfig = {
         "es": "Vuelva al informe de síntesis para continuar su preparación y, si es necesario, guardar la última versión de su proyecto."
       },
       "placement": "bottom",
-      "highlightScope": "target",
+      "highlightScope": "page",
       "showDefaultButtons": true,
       "actions": []
     },

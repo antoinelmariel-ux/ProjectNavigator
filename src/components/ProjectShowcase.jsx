@@ -2122,6 +2122,13 @@ export const ProjectShowcase = ({
       setDraftValues(buildDraftValues(editableFields, answers, rawProjectName));
       resetMilestoneDragState();
       setIsEditing(true);
+      // Sans section sélectionnée, le panneau de réglages (étapes "topbar"/"edit" de la
+      // visite guidée) reste vide et ne démontre rien : on présélectionne une section réelle.
+      if (activeStep === 'showcase-edit-topbar' || activeStep === 'showcase-edit') {
+        setActiveSectionId(
+          (previous) => previous || sectionOrder.find((id) => id !== 'notice') || sectionOrder[0] || null
+        );
+      }
     } else if (isEditing) {
       setIsEditing(false);
     }
@@ -2177,6 +2184,8 @@ export const ProjectShowcase = ({
     resetMilestoneDragState,
     isEditing,
     setDraftValues,
+    setActiveSectionId,
+    sectionOrder,
     handleOpenSectionPicker,
     handleCloseSectionPicker
   ]);

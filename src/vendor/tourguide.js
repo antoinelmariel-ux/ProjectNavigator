@@ -1030,12 +1030,24 @@
 
       if (placement === 'top') {
         top = rect.top - tooltipRect.height - padding - 16;
+        if (top < 16) {
+          // Pas assez de place au-dessus : basculer sous la cible plutôt que de laisser
+          // le clamp de fin de fonction coller l'infobulle en haut de l'écran, par-dessus
+          // l'élément qu'elle est censée décrire.
+          top = rect.bottom + padding + 16;
+        }
       } else if (placement === 'left') {
         top = rect.top + rect.height / 2 - tooltipRect.height / 2;
         left = rect.left - tooltipRect.width - padding - 16;
+        if (left < 16) {
+          left = rect.right + padding + 16;
+        }
       } else if (placement === 'right') {
         top = rect.top + rect.height / 2 - tooltipRect.height / 2;
         left = rect.right + padding + 16;
+        if (left + tooltipRect.width > availableWidth - 16) {
+          left = rect.left - tooltipRect.width - padding - 16;
+        }
       } else if (placement === 'center') {
         top = (availableHeight - tooltipRect.height) / 2;
         left = (availableWidth - tooltipRect.width) / 2;
@@ -1052,6 +1064,13 @@
         left = 16;
       }
 
+      // Filet de sécurité final : si la cible est proche du bas d'une page qui ne peut pas
+      // défiler plus loin (ex. un panneau inséré tout en bas), le calcul par placement peut
+      // renvoyer une position sous le viewport et rendre l'infobulle invisible. On la garde
+      // toujours entièrement visible plutôt que de la laisser passer sous le pli.
+      if (top + tooltipRect.height > availableHeight - 16) {
+        top = availableHeight - tooltipRect.height - 16;
+      }
       if (top < 16) {
         top = 16;
       }
