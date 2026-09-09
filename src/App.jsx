@@ -933,6 +933,7 @@ export const App = () => {
   const annotationNotesRef = useRef(annotationNotes);
   const loadedStylesRef = useRef(new Set());
   const pendingShowcaseProjectIdRef = useRef(null);
+  const pendingProjectViewRef = useRef(null);
   const pendingShowcaseSharedRef = useRef(false);
   const pendingShowcaseCommentsRef = useRef(false);
   const pendingShowcaseAnnotationVisibilityRef = useRef('all');
@@ -1020,7 +1021,7 @@ export const App = () => {
     setHomeView(nextHomeView);
   }, [loadInspirationProjectsIfNeeded]);
 
-  const buildProjectUrl = useCallback((projectId) => {
+  const buildProjectUrl = useCallback((projectId, view) => {
     if (typeof window === 'undefined' || !window.location) {
       return '';
     }
@@ -1030,6 +1031,9 @@ export const App = () => {
       url.search = '';
       if (projectId) {
         url.searchParams.set('projectId', projectId);
+      }
+      if (view) {
+        url.searchParams.set('view', view);
       }
       return url.toString();
     } catch {
@@ -1066,7 +1070,7 @@ export const App = () => {
         ownerEmail: project.ownerEmail,
         teamNames: descriptor.teamNames,
         excerpt: descriptor.excerpt,
-        appUrl: buildProjectUrl(project.id),
+        appUrl: buildProjectUrl(project.id, descriptor.view),
         occurredAt: new Date().toISOString()
       });
     } catch (error) {
@@ -1199,6 +1203,7 @@ export const App = () => {
     const { search, hash } = window.location;
     const params = new URLSearchParams(search || '');
     let projectId = params.get('projectId') || params.get('showcase');
+    const rawView = params.get('view');
     const rawShowcaseMode = params.get('showcaseMode');
     const resolvedShowcaseMode = resolveShowcaseDisplayMode(rawShowcaseMode);
     const rawShowcaseShared = params.get('showcaseShared');
@@ -1219,6 +1224,7 @@ export const App = () => {
 
     if (projectId) {
       pendingShowcaseProjectIdRef.current = projectId;
+      pendingProjectViewRef.current = rawView === 'synthesis' ? 'synthesis' : null;
     }
 
     if (resolvedShowcaseMode) {
@@ -3480,11 +3486,13 @@ const updateProjectFilters = useCallback((updater) => {
           ? previousComments.committees
           : {};
 
-        const mirrorChangedEntries = (entries, previousEntries, targetType) => {
-          Object.entries(entries).forEach(([targetId, entry]) => {
-            if (JSON.stringify(entry) === JSON.stringify(previousEntries[targetId])) {
-              return;
-            }
+        const collectChangedEntries = (entries, previousEntries) =>
+          Object.entries(entries).filter(
+            ([targetId, entry]) => JSON.stringify(entry) !== JSON.stringify(previousEntries[targetId])
+          );
+
+        const mirrorChangedEntries = (changedEntries, targetType) => {
+          changedEntries.forEach(([targetId, entry]) => {
             complianceCommentsQueueRef.current?.enqueue({
               projectId: activeProjectId,
               targetType,
@@ -3495,8 +3503,18 @@ const updateProjectFilters = useCallback((updater) => {
           });
         };
 
-        mirrorChangedEntries(teamEntries, previousTeamEntries, 'team');
-        mirrorChangedEntries(committeeEntries, previousCommitteeEntries, 'committee');
+        const changedTeamEntries = collectChangedEntries(teamEntries, previousTeamEntries);
+        const changedCommitteeEntries = collectChangedEntries(committeeEntries, previousCommitteeEntries);
+
+        mirrorChangedEntries(changedTeamEntries, 'team');
+        mirrorChangedEntries(changedCommitteeEntries, 'committee');
+
+        // Contenu du/des commentaire(s) qui viennent d'être posés, pour l'inclure dans la
+        // notification (comme pour les réponses de fil) et éviter un e-mail sans substance.
+        const commentExcerpt = [...changedTeamEntries, ...changedCommitteeEntries]
+          .map(([, entry]) => (typeof entry?.comment === 'string' ? entry.comment.trim() : ''))
+          .filter(Boolean)
+          .join('\n\n');
 
         if (isOwnerOrCoOwner) {
           const teamRecipients = Object.keys(teamEntries)
@@ -3522,11 +3540,14 @@ const updateProjectFilters = useCallback((updater) => {
               type: NOTIFICATION_TYPES.SYNTHESIS_COMMENT_TO_TEAM,
               project,
               to: recipients,
-              teamNames
+              teamNames,
+              excerpt: commentExcerpt
             });
           }
         } else {
-          notifyOwnerAndCoOwners(project, NOTIFICATION_TYPES.SYNTHESIS_COMMENT_TO_OWNER);
+          notifyOwnerAndCoOwners(project, NOTIFICATION_TYPES.SYNTHESIS_COMMENT_TO_OWNER, {
+            excerpt: commentExcerpt
+          });
         }
       }
 
@@ -4371,8 +4392,15 @@ const updateProjectFilters = useCallback((updater) => {
     }
 
     pendingShowcaseProjectIdRef.current = null;
-    openProjectShowcase({ projectId: pendingProjectId });
-  }, [isHydrated, openProjectShowcase, projects]);
+    const pendingView = pendingProjectViewRef.current;
+    pendingProjectViewRef.current = null;
+
+    if (pendingView === 'synthesis') {
+      handleOpenProject(pendingProjectId, { view: 'synthesis' });
+    } else {
+      openProjectShowcase({ projectId: pendingProjectId });
+    }
+  }, [handleOpenProject, isHydrated, openProjectShowcase, projects]);
 
   const isActiveProjectShowcaseBlocked = useMemo(
     () => isShowcaseAccessBlockedByProjectType(answers),
@@ -4682,7 +4710,10 @@ const updateProjectFilters = useCallback((updater) => {
         type: NOTIFICATION_TYPES.PROJECT_SUBMITTED_TEAM,
         project,
         to: teamRecipients,
-        teamNames
+        teamNames,
+        // Les équipes conformité doivent atterrir directement sur le rapport de synthèse
+        // (leur outil de revue), pas sur le showcase — cf. le lien générique de `notify`.
+        view: 'synthesis'
       });
     }
 
