@@ -204,6 +204,35 @@ test.describe('Éditeur de vitrine — canvas vivant', () => {
     await expect(page.locator('.sge-topbar')).toBeVisible();
   });
 
+  // L'inspecteur est `sticky` dans une grille qui s'arrête avant le pied de page applicatif :
+  // les derniers pixels de défilement le poussaient hors de l'écran par le haut, ne laissant
+  // qu'une fente de quelques dizaines de pixels avec tous les champs tassés dedans — l'édition
+  // de la dernière section de la vitrine devenait impraticable.
+  test('l’inspecteur reste entièrement visible jusqu’au bas de la page', async ({ page }) => {
+    test.setTimeout(120000);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openEditor(page);
+    await expect(page.locator('.sge-inspector')).toBeVisible();
+
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await page.waitForTimeout(600);
+
+    const geo = await page.evaluate(() => {
+      const b = document.querySelector('.sge-inspector').getBoundingClientRect();
+      const body = document.querySelector('.sge-inspector__body').getBoundingClientRect();
+      return {
+        y: Math.round(b.y),
+        h: Math.round(b.height),
+        corps: Math.round(body.height),
+        visible: Math.round(Math.max(0, Math.min(window.innerHeight, b.bottom) - Math.max(0, b.y)))
+      };
+    });
+
+    expect(geo.y).toBeGreaterThanOrEqual(0);
+    expect(geo.visible).toBe(geo.h);
+    expect(geo.corps).toBeGreaterThan(150);
+  });
+
   test('une section masquée en vue Light reste éditable, et disparaît à l’aperçu', async ({ page }) => {
     test.setTimeout(120000);
     await page.setViewportSize({ width: 1440, height: 900 });
