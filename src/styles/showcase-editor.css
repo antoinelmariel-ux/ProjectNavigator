@@ -1294,7 +1294,7 @@
   position: sticky;
   top: 3.5rem;
   align-self: start;
-  max-height: calc(100vh - 4rem);
+  max-height: calc(100vh - 10.5rem);
   margin: 1rem 0.75rem 1rem 0;
   background: var(--sge-surface);
   border: 1px solid var(--sge-line);
