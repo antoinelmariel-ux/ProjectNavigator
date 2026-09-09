@@ -2564,6 +2564,11 @@ export const ProjectShowcase = ({
     [previewAnswers]
   );
   const budgetEstimate = getFormattedAnswer(questions, previewAnswers, 'BUDGET', missingInfoLabel, language);
+  const budgetUnitLabel = useMemo(() => {
+    const budgetQuestion = findQuestionById(questions, 'BUDGET');
+    const unit = resolveLocalizedText(budgetQuestion?.numberUnit, language).trim();
+    return unit || 'K€';
+  }, [questions, language]);
   const normalizedTimelineDetails = useMemo(() => {
     if (Array.isArray(timelineDetails)) {
       return timelineDetails;
@@ -2579,12 +2584,12 @@ export const ProjectShowcase = ({
     }
 
     const trimmed = budgetEstimate.trim();
-    if (/[€]/i.test(trimmed)) {
+    if (trimmed.includes(budgetUnitLabel)) {
       return trimmed;
     }
 
-    return `${trimmed} K€`;
-  }, [budgetEstimate]);
+    return `${trimmed} ${budgetUnitLabel}`;
+  }, [budgetEstimate, budgetUnitLabel]);
 
   // n'anime que si la réponse brute est un nombre pur (cas normal : question de type "number")
   const budgetEstimateNumeric = useMemo(() => {
@@ -3006,7 +3011,7 @@ export const ProjectShowcase = ({
                       <p className={`sg-impact__value sg-rv ${missingInfoClass(budgetEstimate)}`} style={{ '--sg-d': '160ms' }}>
                         {budgetEstimateNumeric !== null ? (
                           <>
-                            <span data-sg-count={budgetEstimateNumeric}>0</span>&nbsp;K€
+                            <span data-sg-count={budgetEstimateNumeric}>0</span>&nbsp;{budgetUnitLabel}
                           </>
                         ) : (
                           formattedBudgetEstimate
@@ -3195,6 +3200,7 @@ export const ProjectShowcase = ({
     }
   }, [
     budgetEstimate,
+    budgetUnitLabel,
     canShowBudget,
     formattedBudgetEstimate,
     hasIncompleteAnswers,
