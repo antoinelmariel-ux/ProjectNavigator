@@ -705,6 +705,10 @@ a {
   max-height: 24rem;
 }
 
+.max-w-\[85\%\] {
+  max-width: 85%;
+}
+
 .max-w-2xl {
   max-width: 42rem;
 }
@@ -1292,6 +1296,11 @@ a {
 .text-base {
   font-size: 1rem;
   line-height: 1.5rem;
+}
+
+.text-blue-300 {
+  --tw-text-opacity: 1;
+  color: rgba(147,197,253, var(--tw-text-opacity));
 }
 
 .text-blue-500 {
