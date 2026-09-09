@@ -22,7 +22,15 @@ import {
 } from '../utils/questions.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { getLocalizedRaw, setLocalizedText, trimLocalizedValue, isLocalizedValueEmpty, resolveLocalizedText } from '../utils/localizedContent.js';
+import { SUPPORTED_LANGUAGES } from '../i18n/languages.js';
 import { LanguageEditSwitcher } from './LocalizedFieldEditor.jsx';
+
+// Symboles monétaires : identiques dans les 4 langues, donc appliqués à toutes d'un coup
+// plutôt que traduits individuellement comme les autres unités (jours, %, ...).
+const CURRENCY_UNIT_PRESETS = ['K€', '$', '£'];
+
+const buildUniformLocalizedValue = (text) =>
+  SUPPORTED_LANGUAGES.reduce((acc, lang) => ({ ...acc, [lang]: text }), {});
 
 export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => {
   const { t, language } = useTranslation();
@@ -974,6 +982,25 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
               {questionType === 'number' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t('backOffice.questionEditor.numberUnitLabel')}</label>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {CURRENCY_UNIT_PRESETS.map((preset) => {
+                      const isActive = getLocalizedRaw(editedQuestion.numberUnit, editingLanguage) === preset;
+                      return (
+                        <button
+                          key={preset}
+                          type="button"
+                          onClick={() => setEditedQuestion(prev => ({ ...prev, numberUnit: buildUniformLocalizedValue(preset) }))}
+                          className={`px-3 py-1.5 text-sm border rounded-lg transition-colors ${
+                            isActive
+                              ? 'border-blue-500 bg-blue-50 text-blue-700'
+                              : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                          }`}
+                        >
+                          {preset}
+                        </button>
+                      );
+                    })}
+                  </div>
                   <input
                     type="text"
                     value={getLocalizedRaw(editedQuestion.numberUnit, editingLanguage)}
