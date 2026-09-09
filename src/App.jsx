@@ -801,6 +801,7 @@ export const App = () => {
   const [submittedProjectNotice, setSubmittedProjectNotice] = useState(null);
   const [showcaseProjectContext, setShowcaseProjectContext] = useState(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [hasUnpublishedConfigChanges, setHasUnpublishedConfigChanges] = useState(false);
   const [syncStatus, setSyncStatus] = useState({ state: 'synced', updatedAt: null, updatedBy: '' });
   const [isOnline, setIsOnline] = useState(
     () => typeof navigator === 'undefined' || navigator.onLine !== false
@@ -1210,6 +1211,75 @@ export const App = () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [hasUnsavedChanges, t]);
+
+  // Signature des référentiels-fichiers publiés via le bouton « Publier la configuration »
+  // (questions.json, risk-level-rules.json, risk-weighting.json, showcase-themes.json,
+  // settings.json — voir REFERENTIAL_FILES dans referentialStore.js). `rules`/`teams` en sont
+  // délibérément absents : ils se synchronisent déjà tout seuls, ligne par ligne, via
+  // rulesQueueRef/teamsQueueRef.
+  const configPublishSignature = useMemo(() => JSON.stringify({
+    questions,
+    riskLevelRules,
+    riskWeights,
+    showcaseThemes,
+    adminEmails,
+    onboardingTourConfig,
+    validationCommitteeConfig,
+    inspirationFormFields,
+    projectFilters,
+    inspirationFilters
+  }), [
+    questions,
+    riskLevelRules,
+    riskWeights,
+    showcaseThemes,
+    adminEmails,
+    onboardingTourConfig,
+    validationCommitteeConfig,
+    inspirationFormFields,
+    projectFilters,
+    inspirationFilters
+  ]);
+  const configPublishSignatureRef = useRef(null);
+
+  useEffect(() => {
+    if (!isHydrated) {
+      return;
+    }
+
+    if (configPublishSignatureRef.current === null) {
+      configPublishSignatureRef.current = configPublishSignature;
+      return;
+    }
+
+    if (configPublishSignatureRef.current !== configPublishSignature) {
+      configPublishSignatureRef.current = configPublishSignature;
+      setHasUnpublishedConfigChanges(true);
+    }
+  }, [configPublishSignature, isHydrated]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !isSharePointMode()) {
+      return undefined;
+    }
+
+    const handleConfigBeforeUnload = (event) => {
+      if (!hasUnpublishedConfigChanges) {
+        return undefined;
+      }
+
+      const message = t('app.reinit.beforeUnloadMessage');
+      event.preventDefault();
+      event.returnValue = message;
+      return message;
+    };
+
+    window.addEventListener('beforeunload', handleConfigBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleConfigBeforeUnload);
+    };
+  }, [hasUnpublishedConfigChanges, t]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -5006,6 +5076,7 @@ const updateProjectFilters = useCallback((updater) => {
         message: t('app.reinit.publishedSuccess', { library: summary.libraryName, details }),
         status: 'success'
       });
+      setHasUnpublishedConfigChanges(false);
     } catch (error) {
       setSharePointReinitState({
         inProgress: false,
@@ -5024,6 +5095,7 @@ const updateProjectFilters = useCallback((updater) => {
     riskLevelRules,
     riskWeights,
     rules,
+    setHasUnpublishedConfigChanges,
     showcaseThemes,
     t,
     teams,
