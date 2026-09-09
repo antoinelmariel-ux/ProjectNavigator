@@ -868,6 +868,22 @@ export const App = () => {
     () => !!currentUserEmail && normalizedAdminEmails.includes(currentUserEmail),
     [currentUserEmail, normalizedAdminEmails]
   );
+  // Contacts d'équipe conformité / membres de comité de validation : accès restreint au
+  // back-office (cf. allowedTabIds dans BackOffice.jsx) sans passer par le mot de passe partagé.
+  const hasScopedBackOfficeAccess = useMemo(() => {
+    if (!currentUserEmail) {
+      return false;
+    }
+    const isTeamContact = (Array.isArray(teams) ? teams : []).some((team) => (
+      Array.isArray(team?.contacts) && team.contacts.some((contact) => normalizeEmail(contact) === currentUserEmail)
+    ));
+    if (isTeamContact) {
+      return true;
+    }
+    return normalizeValidationCommitteeConfig(validationCommitteeConfig).committees.some((committee) => (
+      Array.isArray(committee?.emails) && committee.emails.some((email) => normalizeEmail(email) === currentUserEmail)
+    ));
+  }, [currentUserEmail, teams, validationCommitteeConfig]);
 
   // Profil personnel (périmètre d'activité + langue préférée), chargé une fois depuis
   // SharePoint (ou le mock en dev). `userProfileLoadFailed` évite de bloquer toute l'app
@@ -3751,7 +3767,7 @@ const updateProjectFilters = useCallback((updater) => {
       return true;
     }
 
-    if (isCurrentUserAdmin) {
+    if (isCurrentUserAdmin || hasScopedBackOfficeAccess) {
       setIsBackOfficeUnlocked(true);
       setBackOfficeAuthError(null);
       return true;
@@ -3767,6 +3783,7 @@ const updateProjectFilters = useCallback((updater) => {
   }, [
     isAdminMode,
     isCurrentUserAdmin,
+    hasScopedBackOfficeAccess,
     isBackOfficeUnlocked,
     openBackOfficePrompt,
     setBackOfficeAuthError,
