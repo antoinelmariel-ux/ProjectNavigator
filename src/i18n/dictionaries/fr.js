@@ -143,7 +143,8 @@ export default {
       cancelledPublish: 'Publication annulée : la configuration publiée est inchangée.',
       publishing: 'Publication de la configuration vers SharePoint…',
       publishedSuccess: 'Configuration publiée dans {{library}} ({{details}}).',
-      failedGeneric: 'Échec de la réinitialisation SharePoint.'
+      failedGeneric: 'Échec de la réinitialisation SharePoint.',
+      beforeUnloadMessage: 'Des modifications de la configuration (questions, règles de risque…) n’ont pas été publiées vers SharePoint. Quitter maintenant les perdra pour les autres utilisateurs.'
     },
     onboardingTourEmpty: 'Le tour d’onboarding est vide. Veuillez vérifier la configuration.',
     genericUserFallback: 'Utilisateur',

@@ -143,7 +143,8 @@ export default {
       cancelledPublish: 'Publish cancelled: the published configuration is unchanged.',
       publishing: 'Publishing the configuration to SharePoint…',
       publishedSuccess: 'Configuration published in {{library}} ({{details}}).',
-      failedGeneric: 'SharePoint reset failed.'
+      failedGeneric: 'SharePoint reset failed.',
+      beforeUnloadMessage: 'Configuration changes (questions, risk rules…) have not been published to SharePoint. Leaving now will lose them for other users.'
     },
     onboardingTourEmpty: 'The onboarding tour is empty. Please check the configuration.',
     genericUserFallback: 'User',

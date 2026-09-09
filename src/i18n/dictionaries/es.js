@@ -143,7 +143,8 @@ export default {
       cancelledPublish: 'Publicación cancelada: la configuración publicada no ha cambiado.',
       publishing: 'Publicando la configuración en SharePoint…',
       publishedSuccess: 'Configuración publicada en {{library}} ({{details}}).',
-      failedGeneric: 'Error al reinicializar SharePoint.'
+      failedGeneric: 'Error al reinicializar SharePoint.',
+      beforeUnloadMessage: 'Los cambios de configuración (preguntas, reglas de riesgo…) no se han publicado en SharePoint. Salir ahora los perderá para el resto de usuarios.'
     },
     onboardingTourEmpty: 'El recorrido de incorporación está vacío. Verifique la configuración.',
     genericUserFallback: 'Usuario',

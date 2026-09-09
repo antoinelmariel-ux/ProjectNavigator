@@ -143,7 +143,8 @@ export default {
       cancelledPublish: 'Veröffentlichung abgebrochen: Die veröffentlichte Konfiguration ist unverändert.',
       publishing: 'Konfiguration wird an SharePoint veröffentlicht…',
       publishedSuccess: 'Konfiguration in {{library}} veröffentlicht ({{details}}).',
-      failedGeneric: 'SharePoint-Zurücksetzung fehlgeschlagen.'
+      failedGeneric: 'SharePoint-Zurücksetzung fehlgeschlagen.',
+      beforeUnloadMessage: 'Konfigurationsänderungen (Fragen, Risikoregeln…) wurden nicht auf SharePoint veröffentlicht. Wenn Sie jetzt fortfahren, gehen sie für andere Benutzer verloren.'
     },
     onboardingTourEmpty: 'Die Onboarding-Tour ist leer. Bitte überprüfen Sie die Konfiguration.',
     genericUserFallback: 'Benutzer',
