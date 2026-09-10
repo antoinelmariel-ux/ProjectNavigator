@@ -70,7 +70,7 @@ Dans le site : **Contenu du site → Nouveau → Bibliothèque de documents**. N
 | `CN-Config` | Les fichiers de paramètres JSON (règles et équipes n'en font plus partie, voir `CN_Rules`/`CN_Teams` étape 4) — **créée vide, l'app la remplira toute seule** |
 | `CN-Documents` | Les pièces jointes ajoutées par les utilisateurs |
 
-## Étape 4 — Créer les 12 listes
+## Étape 4 — Créer les 13 listes
 
 > **Mise à jour du 29/08/2026** : les tableaux `CN_ComplianceComments` et `CN_ShowcaseStickyNotes`
 > ci-dessous avaient chacun deux colonnes manquantes (`Status`/`AttachmentsJson` pour le premier,
@@ -223,6 +223,24 @@ envoie et coche « fait ». Elle te sert aussi de **journal consultable** de tou
 | SentAt | Date et heure |
 | ErrorMessage | Texte long |
 
+### `CN_SiteAccessRequests` — demandes d'ajout comme membre du site
+Décision assumée : quand quelqu'un est sélectionné via la recherche de personnes (partage de
+projet, contacts d'équipe, comités, administrateurs) et n'apparaît pas comme membre du site,
+l'app dépose ici une demande **par précaution**. Un flux Power Automate (voir étape 5 bis)
+l'ajoute alors réellement comme membre. Même mécanique de file d'attente que
+`CN_NotificationsQueue` — journal consultable inclus.
+
+| Colonne | Type |
+|---|---|
+| Title | (existante — l'e-mail de la personne visée) |
+| TargetEmail 📌 | Une ligne de texte |
+| DisplayName | Une ligne de texte |
+| RequestedByEmail | Une ligne de texte |
+| Context | Une ligne de texte (ex. `Partage de projet : Mon projet`) |
+| Status 📌 | Choix : `Pending`, `Done`, `Error` — **valeur par défaut : `Pending`** |
+| ProcessedAt | Date et heure |
+| ErrorMessage | Texte long |
+
 ### `CN_UserProfiles` — profil personnel (périmètre d'activité + langue)
 Une ligne par personne, retrouvée par son email. Alimentée par l'écran d'onboarding affiché à la
 première connexion, et modifiable ensuite depuis la section « Mon profil » de l'application.
@@ -327,6 +345,36 @@ s'arrête quand ton compte change) et vérifie les connexions utilisées en haut
 
 ---
 
+## Étape 5 bis — Power Automate : le flux d'ajout comme membre du site
+
+> ℹ️ **Décision assumée par toi (pas un comportement par défaut de l'app) : par précaution,
+> toute personne sélectionnée via la recherche de personnes et absente de la liste des membres
+> du site est automatiquement ajoutée comme membre.** Comme pour l'envoi d'e-mail, l'app ne peut
+> pas faire cet ajout elle-même : la session du navigateur n'a presque jamais le droit « Gérer
+> les permissions ». Ce flux tourne donc avec **une connexion qui l'a** (compte propriétaire de
+> site, ou admin SharePoint) — c'est tout l'intérêt du contournement.
+
+Marche à suivre condensée — **le détail complet, avec les pièges (format du `LoginName`,
+récupération du groupe « Membres » du site), est dans**
+[`MODE-OPERATOIRE-POWER-AUTOMATE.md`](MODE-OPERATOIRE-POWER-AUTOMATE.md), section
+« Flux — Ajout automatique comme membre du site » :
+
+**Flux « CN – Ajout comme membre du site »**
+
+1. **Déclencheur** : SharePoint → « **Lorsqu'un élément est créé** »
+   → Site : ton site · Liste : `CN_SiteAccessRequests`.
+2. **Condition** : `Status` est égal à `Pending`.
+3. **Action** : SharePoint → « **Envoyer une requête HTTP à SharePoint** » → ajoute la personne
+   (`TargetEmail`) au groupe « Membres » du site.
+4. **Action** : « Mettre à jour l'élément » → `Status` = `Done`, `ProcessedAt` = `utcNow()`.
+5. **Gestion d'erreur** : même principe qu'à l'étape 5 → `Status` = `Error` + `ErrorMessage`.
+
+⚠️ **Le compte propriétaire de ce flux doit avoir le droit « Gérer les permissions » sur le
+site** (propriétaire de site ou admin SharePoint) — sans ça, l'action HTTP échoue systématiquement
+avec un 403, et toutes les demandes finissent en `Error`.
+
+---
+
 ## Étape 6 — Ce que fait l'application toute seule (pour info)
 
 - **Aucun fichier de paramètres à téléverser à la main.** L'app disposera dans son back-office
@@ -343,11 +391,16 @@ s'arrête quand ton compte change) et vérifie les connexions utilisées en haut
 - Mise à jour de l'app : il suffira de remplacer les fichiers dans `CN-App`. Les données, elles,
   vivent dans les listes — elles ne sont jamais touchées par une mise à jour.
 - **Recherche de personnes** (partage de projet, contacts d'équipe, comités, administrateurs) :
-  rien à créer de ton côté. L'app interroge directement l'annuaire du site (le même mécanisme que
-  la boîte « Partager » native de SharePoint) — pas de nouvelle liste, pas de nouveau flux Power
-  Automate. Seule limite : une personne qui a accès au site uniquement via un groupe de sécurité
-  reste normalement trouvable dans cette recherche, mais l'app ne peut pas vérifier si elle a déjà
-  accès au site par ce biais.
+  rien à créer de ton côté pour la recherche elle-même. L'app interroge directement l'annuaire du
+  site (le même mécanisme que la boîte « Partager » native de SharePoint).
+- **Ajout automatique comme membre du site, par précaution** : quand la personne choisie
+  n'apparaît pas comme membre du site, l'app dépose une demande dans la nouvelle liste
+  `CN_SiteAccessRequests` (étape 4) — **ça, en revanche, nécessite bien un nouveau flux Power
+  Automate à créer**, décrit en [étape 5 bis](#5-bis--power-automate--le-flux-dajout-comme-membre-du-site).
+  Sans ce flux, les demandes s'accumulent dans la liste sans jamais être traitées. Limite
+  connue : une personne qui a accès au site uniquement via un groupe de sécurité reste trouvable
+  normalement dans la recherche, mais l'app ne peut pas vérifier si elle a déjà accès au site par
+  ce biais — elle demandera donc parfois un ajout redondant (sans risque, juste inutile).
 
 ## Étape 7 — Ce que tu me transmets pour lancer la migration
 
@@ -356,9 +409,10 @@ C'est très court maintenant. Copie-colle ceci complété dans la conversation a
 ```
 URL du site SharePoint  : https://lfb1.sharepoint.com/sites/........
 URL exacte de la page   : https://lfb1.sharepoint.com/sites/......../CN-App/index.aspx
-Les 12 listes CN_... sont créées avec les noms de colonnes exacts : oui / non
+Les 13 listes CN_... sont créées avec les noms de colonnes exacts : oui / non
 Bibliothèques CN-App / CN-Config / CN-Documents créées          : oui / non
 Flux Power Automate de notifications créé et activé              : oui / non
+Flux Power Automate d'ajout comme membre du site créé et activé : oui / non
 Boîte d'envoi utilisée par le flux : ma boîte / boîte partagée : ...............
 ```
 

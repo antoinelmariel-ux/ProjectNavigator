@@ -1,5 +1,6 @@
 import { isSharePointMode } from '../config/sharepointConfig.js';
-import { spPost } from './spRestClient.js';
+import { buildQuery, odataQuote, spGet, spPost } from './spRestClient.js';
+import { normalizeEmail } from './normalizeEmail.js';
 import { mockOrgDirectory } from '../data/mockOrgDirectory.js';
 
 export const MIN_QUERY_LENGTH = 2;
@@ -76,8 +77,9 @@ const searchSharePointDirectory = async (queryText) => {
 // Searches the organization's directory for a person picker (share dialogs, team/committee/
 // admin contacts) instead of accepting a freely typed address. Runs entirely under the current
 // user's own SharePoint session (no Graph, no service account) — see "Recherche de personnes"
-// in docs/migration-v2/GUIDE-CLAUDE-MIGRATION-SHAREPOINT-REST.md for why no Power Automate flow
-// is needed here (read-only lookup, not a privileged write).
+// in docs/migration-v2/GUIDE-CLAUDE-MIGRATION-SHAREPOINT-REST.md. This lookup alone needs no
+// Power Automate flow (read-only, not a privileged write) — unlike isKnownSiteUser below, whose
+// negative result triggers one (src/utils/siteAccessQueue.js).
 export const searchOrgPeople = async (queryText) => {
   const query = String(queryText || '').trim();
   if (query.length < MIN_QUERY_LENGTH) {
@@ -87,4 +89,24 @@ export const searchOrgPeople = async (queryText) => {
     return searchMockDirectory(query);
   }
   return searchSharePointDirectory(query);
+};
+
+// Checks the site's User Information List (_api/web/siteusers) for a resolved individual entry.
+// Used to decide whether to queue a "add as site member" request (see siteAccessQueue.js).
+// Known imprecision, accepted deliberately (see GUIDE §13) : someone whose only access is via an
+// Azure AD security group won't have an individual row here, so this can false-negative and
+// queue a redundant request — that's the "par précaution" tradeoff the user chose, not a bug to
+// fix by adding Graph group-membership resolution (excluded by this project's constraints).
+export const isKnownSiteUser = async (email) => {
+  const normalized = normalizeEmail(email);
+  if (!normalized) {
+    return false;
+  }
+  if (!isSharePointMode()) {
+    return true;
+  }
+  const query = buildQuery({ filter: `Email eq '${odataQuote(normalized)}'`, select: 'Id,Email' });
+  const payload = await spGet(`/_api/web/siteusers${query}`);
+  const items = payload && payload.value;
+  return Array.isArray(items) && items.length > 0;
 };

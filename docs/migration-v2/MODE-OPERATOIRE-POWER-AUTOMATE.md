@@ -14,6 +14,7 @@
 | 2 | Récapitulatif hebdomadaire des projets soumis | Optionnel | 15 min | [§5](#5-flux-2--récapitulatif-hebdomadaire-optionnel) |
 | 3 | Relance des commentaires non résolus | Optionnel | 10 min | [§6](#6-flux-3--relance-des-commentaires-non-résolus-optionnel) |
 | 4 | Purge du journal des notifications | Optionnel (entretien) | 10 min | [§7](#7-flux-4--purge-du-journal-optionnel) |
+| 5 | Ajout automatique comme membre du site | Selon ta décision — voir [§7 bis](#7-bis-flux-5--ajout-automatique-comme-membre-du-site-selon-ta-décision) | 20 min | [§7 bis](#7-bis-flux-5--ajout-automatique-comme-membre-du-site-selon-ta-décision) |
 
 **Commence par le flux 1 et teste-le** ([§4](#4-recette-du-flux-1--5-minutes)) avant d'aborder les autres.
 
@@ -310,6 +311,134 @@ Vérifie aussi que l'historique des versions est activé sur la liste.
 
 ---
 
+## 7 bis. Flux 5 — Ajout automatique comme membre du site (selon ta décision)
+
+> ℹ️ **Ce flux n'est ni obligatoire ni construit par défaut.** Il correspond à une décision de
+> sécurité que tu as prise explicitement : quand quelqu'un est sélectionné dans l'app (partage de
+> projet, contact d'équipe, comité, administrateur) et n'apparaît pas comme membre du site, l'app
+> dépose une demande dans `CN_SiteAccessRequests` **par précaution**. Sans ce flux, ces demandes
+> s'accumulent sans jamais être traitées — l'app fonctionne normalement quand même, ce n'est donc
+> pas bloquant si tu préfères ne pas l'activer. Vois `GUIDE-CLAUDE-MIGRATION-SHAREPOINT-REST.md`
+> §13 pour les limites de ce mécanisme (notamment : une personne qui a accès uniquement via un
+> groupe de sécurité peut déclencher une demande alors qu'elle a déjà accès).
+
+### 7 bis.1 Pourquoi ce n'est pas un simple appel REST direct
+
+L'app ne peut pas ajouter quelqu'un comme membre du site depuis le navigateur : ça demande le
+droit **« Gérer les permissions »**, que la session de l'utilisateur courant n'a presque jamais
+(c'est le même problème que l'envoi d'e-mail — voir §1). Le flux, lui, tourne avec **la connexion
+de son propriétaire** : si ce compte a ce droit, l'action réussit là où l'app échouerait.
+
+### 7 bis.2 Trouver l'identifiant du groupe « Membres » du site (une fois)
+
+Le flux doit ajouter la personne à un groupe SharePoint précis. Plutôt que de deviner son nom
+(il varie d'un site à l'autre, ex. « Project Navigator DEV Membres »), récupère-le une bonne fois
+par une requête de navigateur (pendant que tu es connecté au site) :
+
+```
+https://lfb1.sharepoint.com/sites/ProjectNavigator_DEV/_api/web/associatedmembergroup?$select=Id,Title
+```
+
+Note l'`Id` retourné (un nombre) — c'est celui du groupe « Membres » par défaut du site, quel que
+soit son nom affiché. Tu le réutiliseras tel quel dans l'action HTTP ci-dessous (pas besoin de le
+relire à chaque exécution du flux).
+
+### 7 bis.3 Créer le flux
+
+1. **Créer** → **Flux de cloud automatisé**. Nom : `CN - Ajout comme membre du site`.
+2. Déclencheur SharePoint **« Lorsqu'un élément est créé »** :
+
+   | Champ | Valeur |
+   |---|---|
+   | Adresse du site | `https://lfb1.sharepoint.com/sites/ProjectNavigator_DEV` |
+   | Nom de la liste | `CN_SiteAccessRequests` |
+
+3. **Condition** : contenu dynamique **`Status Value`** est égal à `Pending` → suite dans
+   « Si oui » (même remarque qu'au §3.3 : si tu vois deux `Status`, prends `Status Value`).
+
+### 7 bis.4 Construire le `LoginName` — l'étape à ne pas rater
+
+`SP.User.LoginName` n'est pas une adresse e-mail brute : sur ce tenant, c'est
+`i:0#.f|membership|` suivi de l'adresse (c'est la même convention que le code applicatif utilise
+déjà pour lire l'utilisateur courant, voir `src/utils/spContext.js`).
+
+Dans « Si oui » → **Ajouter une action** → cherche **Compose** (« Contrôle de données ») :
+
+| Champ | Valeur |
+|---|---|
+| Entrée | Expression : `concat('i:0#.f|membership|', triggerBody()?['TargetEmail'])` |
+
+### 7 bis.5 Ajouter la personne au groupe — l'action HTTP
+
+**Ajouter une action** → SharePoint → **« Envoyer une requête HTTP à SharePoint »**.
+
+| Champ | Valeur |
+|---|---|
+| Adresse du site | la même que le déclencheur |
+| Méthode | `POST` |
+| Uri | `_api/web/sitegroups(<Id trouvé au §7 bis.2>)/users` |
+| En-têtes | `Accept` = `application/json;odata=verbose` · `Content-Type` = `application/json;odata=verbose` |
+| Corps | `{"__metadata":{"type":"SP.User"},"LoginName":"@{outputs('Compose')}"}` |
+
+⚠️ **`odata=verbose` est ici une exception volontaire** à la convention `nometadata` utilisée
+partout ailleurs dans ce projet (voir le tableau des pièges du GUIDE) : cet endpoint exige
+l'enveloppe `__metadata` typée, exactement comme le people picker (§13 du GUIDE).
+
+### 7 bis.6 Marquer la demande comme traitée
+
+**Ajouter une action** → SharePoint → **« Mettre à jour l'élément »** :
+
+| Champ | Valeur |
+|---|---|
+| Adresse du site / Nom de la liste | les mêmes que le déclencheur |
+| Id | contenu dynamique `ID` du déclencheur |
+| Titre | contenu dynamique `Title` (à recopier, champ obligatoire) |
+| Status Value | `Done` |
+| ProcessedAt | expression `utcNow()` |
+
+### 7 bis.7 Tracer les échecs (fortement recommandé)
+
+Une adresse qui ne correspond à aucun compte du tenant (faute de frappe passée à travers la
+saisie libre, adresse externe...) fait échouer l'action HTTP avec une erreur SharePoint explicite.
+Sans étape dédiée, cet échec disparaît silencieusement — même patron qu'au §3.6 :
+
+1. Ajoute une **deuxième** action « Mettre à jour l'élément » (même liste, même `Id`, même
+   `Titre`), avec **Status Value** = `Error` et **ErrorMessage** = le contenu dynamique du corps
+   de la réponse de l'action HTTP (ou un texte fixe si tu préfères rester simple).
+2. Sur cette action : **⋯** → **Configurer l'exécution après** → décoche « a réussi »,
+   coche **« a échoué »** et **« a expiré »**.
+
+### 7 bis.8 Recette — 5 minutes
+
+1. Ouvre la liste `CN_SiteAccessRequests` dans SharePoint → **Nouveau**.
+2. Remplis **TargetEmail** avec une adresse valide du tenant qui n'est **pas déjà** membre du
+   site (sinon l'action HTTP réussit quand même — SharePoint ignore un ajout redondant — mais ce
+   n'est pas ce que tu veux vérifier), **Status** = `Pending`.
+3. Enregistre, patiente une à deux minutes.
+4. Contrôle :
+   - [ ] La ligne passe à **`Done`**, avec une date dans `ProcessedAt`.
+   - [ ] La personne apparaît désormais dans **Paramètres du site → Permissions du site** (ou
+     dans le groupe « Membres »).
+5. Refais le test avec une adresse invalide (ex. `personne-inexistante@lfb.fr`) : la ligne doit
+   passer à `Error` avec un message explicite, pas rester bloquée en `Pending`.
+
+### 7 bis.9 Sécurité et gouvernance — à lire avant d'activer
+
+- **Le compte propriétaire du flux doit avoir « Gérer les permissions »** sur le site. C'est la
+  condition sine qua non : sans ce droit, chaque exécution échoue en 403.
+- **Ajoute un co-propriétaire**, comme pour le flux 1 (§3.7) : si le compte propriétaire est
+  désactivé, le flux s'arrête silencieusement.
+- Ce flux ajoute la personne au groupe **« Membres »** par défaut du site (accès en lecture/
+  écriture standard sur tout le contenu du site, pas seulement Project Navigator) — c'est
+  volontairement large, en cohérence avec la décision « par précaution ». Si tu préfères un accès
+  plus restreint (ex. un groupe dédié avec des droits limités à la bibliothèque `CN-App`), change
+  simplement l'`Id` de groupe utilisé au §7 bis.2/7 bis.5 pour celui de ce groupe dédié — le reste
+  du flux ne change pas.
+- `CN_SiteAccessRequests` reste un **journal auditable** : filtre-le régulièrement sur
+  `Status = Error` pour repérer les demandes qui n'ont pas abouti.
+
+---
+
 ## 8. Catalogue des notifications envoyées par l'application
 
 Le flux 1 traite **tous** ces messages : aucune configuration supplémentaire n'est nécessaire.
@@ -401,3 +530,18 @@ Pour ajouter un type de notification : déclarer le type dans `NOTIFICATION_TYPE
 gabarit dans `NOTIFICATION_CATALOG` (`intro`, `expected`, `reason`), appeler `notify({ type, … })`
 au bon endroit, puis compléter le tableau de la [§8](#8-catalogue-des-notifications-envoyées-par-lapplication).
 **Aucune modification des flux Power Automate n'est nécessaire.**
+
+### Flux 5 — Ajout comme membre du site
+
+- Mise en file : [`src/utils/siteAccessQueue.js`](../../src/utils/siteAccessQueue.js)
+- Contrôle « déjà membre ? » : `isKnownSiteUser` dans
+  [`src/utils/peopleSearch.js`](../../src/utils/peopleSearch.js) (`_api/web/siteusers`)
+- Point d'appel : `requestAccessIfNeeded` dans
+  [`src/components/PeoplePicker.jsx`](../../src/components/PeoplePicker.jsx), après chaque ajout
+  réussi (partage de projet, contacts d'équipe, comités, administrateurs)
+- Tests : `test/siteAccessQueue.test.mjs`, `test/peopleSearch.test.mjs`
+- **Contrairement au flux 1, ce flux n'est pas construit par défaut** : il correspond à une
+  décision explicite prise par l'utilisateur (« par précaution, ajouter automatiquement comme
+  membre du site »), pas à un comportement que l'app impose. S'il n'est jamais créé, les demandes
+  s'accumulent simplement dans `CN_SiteAccessRequests` sans être traitées — l'app continue de
+  fonctionner normalement, rien ne casse.

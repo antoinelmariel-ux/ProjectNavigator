@@ -26,7 +26,7 @@
 | 1 — Configuration | ✅ Fait | `src/config/sharepointConfig.js`, `src/utils/errors.js` |
 | 2 — Contexte SharePoint | ✅ Fait | `src/utils/spContext.js` ; `main.jsx` résout l'identité avant le premier rendu ; `App.jsx` lit `getCurrentUser()` |
 | 3 — Client REST | ✅ Fait | `src/utils/spRestClient.js` (digest, réessais 429/503, 403→renouvellement, HTML→`SessionExpiredError`, 412→`ConflictError`, pagination) |
-| 4 — Dépôts de listes | ✅ Fait | `src/utils/listSchemas.js` (12 listes déclaratives), `src/utils/listRepository.js` (CRUD + `upsertByKey` RowVersion + IF-MATCH) |
+| 4 — Dépôts de listes | ✅ Fait | `src/utils/listSchemas.js` (13 listes déclaratives), `src/utils/listRepository.js` (CRUD + `upsertByKey` RowVersion + IF-MATCH) |
 | 5 — Fournisseurs de données | ✅ Fait | `SharePointRestProvider` (projets) et `SharePointInspirationProvider` ; aiguillage `isSharePointMode()` à l'export ; appels synchrones neutralisés par garde. Complété depuis par cinq fournisseurs supplémentaires, même patron : `src/utils/projectMembersProvider.js` (partage de projet), `src/utils/showcaseStickyNotesProvider.js` (post-its, avec réponses et pièces jointes), `src/utils/complianceCommentsProvider.js` (commentaires de conformité, une ligne par commentaire/réponse), `src/utils/rulesProvider.js`/`teamsProvider.js` (règles/équipes, une ligne par élément — voir §6 bis) |
 | 6 — Référentiels `CN-Config` | ✅ Fait | `src/utils/referentialStore.js` (5 fichiers — `rules`/`teams` en sont sortis, migrés vers `CN_Rules`/`CN_Teams` en §6 bis) ; `sharePointSetup.js` recâblé (Graph supprimé) ; diagnostic + confirmation avant écrasement dans le handler `App.jsx` |
 | 7 — Notifications | ✅ Fait | `src/utils/notificationQueue.js`, `src/utils/notificationTemplates.js` (9 types) ; `notify()` unique dans `App.jsx` ; 2 notifications manquantes ajoutées (soumission, ajout de co-porteur). Configuration du flux : [`MODE-OPERATOIRE-POWER-AUTOMATE.md`](MODE-OPERATOIRE-POWER-AUTOMATE.md) |
@@ -35,7 +35,7 @@
 | 10 — Build & vérification | ⬜ À faire | Reste la recette sur le site DEV (voir `PREPARATION-SHAREPOINT-POWERAUTOMATE.md` étape 8) |
 | 11 — Résilience réseau | ✅ Fait | `src/utils/retryQueue.js` : file d'attente générique avec réessais à délai croissant, réutilisée pour les membres/post-its/commentaires (`autosaveQueue.js`, spécifique aux projets, reste inchangé). Un écouteur `online`/`offline` unique dans `App.jsx` relance les files au retour de connexion et pilote un bandeau « hors ligne » — rejoue toujours uniquement les éléments en attente, jamais un renvoi complet de l'état local |
 | 12 — Profil utilisateur & onboarding | ✅ Fait | Nouvelle liste `CN_UserProfiles` (une ligne par personne, clé `UserEmail`) et `src/utils/userProfileProvider.js`, même patron que les autres fournisseurs. Écran `OnboardingScreen.jsx` affiché à la première connexion (tant que `HasCompletedOnboarding` n'est pas vrai) pour choisir le périmètre d'activité, puis proposition de la visite guidée existante (`handleStartOnboarding`, inchangée) ; section « Mon profil » (modale dans `App.jsx`) pour modifier ensuite périmètre et langue. Le périmètre d'activité est exposé comme pseudo-question (`getConditionQuestionEntries` dans `src/utils/questions.js`) et devient ainsi sélectionnable comme condition dans l'éditeur de règles/questions du back-office, sans changement du moteur d'évaluation lui-même |
-| 13 — Recherche de personnes | ✅ Fait | `src/utils/peopleSearch.js` (`clientPeoplePickerSearchUser`) + `src/components/PeoplePicker.jsx`, remplace la saisie libre d'e-mail (partage de projet, administrateurs, comités, contacts d'équipe). Lecture seule sous la session de l'utilisateur courant : aucun flux Power Automate requis — voir §13 |
+| 13 — Recherche de personnes | ✅ Fait | `src/utils/peopleSearch.js` (`clientPeoplePickerSearchUser` + `isKnownSiteUser`) + `src/components/PeoplePicker.jsx`, remplace la saisie libre d'e-mail (partage de projet, administrateurs, comités, contacts d'équipe). La recherche seule est en lecture (aucun flux requis) ; l'ajout comme membre du site — décision assumée par l'utilisateur — passe par `src/utils/siteAccessQueue.js` (liste `CN_SiteAccessRequests`) et un flux Power Automate dédié. Voir §13 et `MODE-OPERATOIRE-POWER-AUTOMATE.md` §7 bis |
 
 Deux mécanismes JSON locaux devenus obsolètes ont été supprimés (ne pas les réintroduire) :
 le dossier `submitted-projects/`/`submitted-inspirations/` (import automatique de fichiers
@@ -51,7 +51,7 @@ Tests associés : `test/sharepointConfig.test.mjs`, `test/spRestClient.test.mjs`
 `test/showcaseStickyNotesProvider.test.mjs`, `test/complianceCommentsProvider.test.mjs`,
 `test/mergeComplianceComments.test.mjs`, `test/retryQueue.test.mjs`,
 `test/userProfileProvider.test.mjs`, `test/rulesProvider.test.mjs`, `test/teamsProvider.test.mjs`,
-`test/peopleSearch.test.mjs`.
+`test/peopleSearch.test.mjs`, `test/siteAccessQueue.test.mjs`.
 
 ⚠️ **Piège CSS confirmé en phase 8** : `scripts/generate-tailwind-lite.js` ne détecte que les
 `className="…"` **littéraux et entre guillemets doubles** (regex `class(?:Name)?\s*=\s*"…"`).
@@ -643,32 +643,26 @@ chemin, et il est téléchargeable depuis un autre poste.
 
 ---
 
-## 13. Recherche de personnes (people picker) — pas de flux Power Automate
+## 13. Recherche de personnes (people picker) et ajout comme membre du site
 
 Remplace la saisie libre d'adresses (partage de projet, contacts d'équipe, comités de
 validation, administrateurs) par une recherche dans l'annuaire du tenant : `src/utils/peopleSearch.js`
-(logique), `src/components/PeoplePicker.jsx` (UI réutilisable, chips + suggestions), branchés dans
-`SynthesisReport.jsx` (partage de projet) et `BackOffice.jsx` (administrateurs, comités, contacts
-d'équipe).
+(recherche + contrôle de membre du site), `src/components/PeoplePicker.jsx` (UI réutilisable,
+chips + suggestions), branchés dans `SynthesisReport.jsx` (partage de projet) et `BackOffice.jsx`
+(administrateurs, comités, contacts d'équipe). `src/utils/siteAccessQueue.js` dépose la demande
+d'ajout comme membre du site consommée par le flux Power Automate décrit ci-dessous.
+
+### 13.1 La recherche elle-même — aucun flux Power Automate nécessaire
 
 **Endpoint** : `POST /_api/SP.UI.ApplicationPages.ClientPeoplePickerWebServiceInterface.clientPeoplePickerSearchUser`
 — le *people picker* natif de SharePoint (celui des boîtes de dialogue « Partager »), pas Microsoft
 Graph. `PrincipalType: 1` limite les résultats aux utilisateurs (exclut groupes SharePoint et
 groupes de sécurité, qui remonteraient comme une seule entité opaque plutôt que leurs membres).
 
-**Pourquoi aucun flux Power Automate n'est nécessaire ici**, contrairement à la règle générale du
-§0.5 (« Quand REST ne suffit pas → Power Automate ») : cet appel est une **lecture** exécutée avec
-les droits de l'utilisateur courant — il n'écrit rien et n'a besoin d'aucun droit élevé. Il ne fait
-que remplacer la validation d'une adresse tapée à la main par une recherche dans l'annuaire ; il
-**n'ajoute personne au site SharePoint** et ne modifie aucune permission. Rien à préparer côté
-Power Automate ni côté schéma de liste pour cette fonctionnalité.
-
-**Limite connue, à ne pas prendre pour un bug** : une personne qui a accès au site uniquement via
-un groupe de sécurité Azure AD reste sélectionnable normalement par ce picker (elle est bien dans
-l'annuaire du tenant), mais rien ici ne vérifie si elle a *déjà* accès au site — cette
-vérification-là nécessiterait Microsoft Graph (`checkMemberGroups`/`transitiveMembers`), exclu par
-les contraintes du §0. Ce n'est pas le problème que ce composant résout : il sécurise la saisie
-d'une adresse, pas l'accès réel au site.
+Contrairement à la règle générale du §0.5 (« Quand REST ne suffit pas → Power Automate ») : cet
+appel est une **lecture** exécutée avec les droits de l'utilisateur courant — il n'écrit rien et
+n'a besoin d'aucun droit élevé. Rien à préparer côté Power Automate ni côté schéma de liste pour
+la recherche seule.
 
 **Repli mode mock** : hors mode SharePoint (`file://`, dev local, e2e), `peopleSearch.js` cherche
 dans `src/data/mockOrgDirectory.js` (annuaire fictif, jamais chargé en mode SharePoint réel).
@@ -676,3 +670,27 @@ dans `src/data/mockOrgDirectory.js` (annuaire fictif, jamais chargé en mode Sha
 **Non vérifié sur le tenant réel** : si le partage externe est autorisé sur `lfb1.sharepoint.com`,
 ce picker peut aussi remonter des comptes invités/externes selon la configuration du tenant — à
 confirmer sur le site réel, pas supposé ici.
+
+### 13.2 Ajout comme membre du site — décision assumée par l'utilisateur, flux requis
+
+**Ceci, en revanche, nécessite bien un flux Power Automate** (contrairement à la recherche
+ci-dessus) : `isKnownSiteUser(email)` interroge `_api/web/siteusers` (lecture, toujours sous la
+session de l'utilisateur courant) et, si la personne n'y figure pas, `PeoplePicker.jsx` dépose une
+demande via `queueSiteAccessRequest(...)` dans `CN_SiteAccessRequests` (même patron que
+`CN_NotificationsQueue`, fire-and-forget, non bloquant pour l'UI). Un flux Power Automate — voir
+[`MODE-OPERATOIRE-POWER-AUTOMATE.md`, §7 bis](MODE-OPERATOIRE-POWER-AUTOMATE.md) — consomme cette
+file et ajoute réellement la personne au groupe « Membres » du site (`_api/web/associatedmembergroup`
+puis `POST _api/web/sitegroups(id)/users`), avec une connexion qui a le droit « Gérer les
+permissions » que la session de l'utilisateur courant n'a presque jamais.
+
+**Ce n'est pas un comportement par défaut de l'app** : c'est une décision de sécurité explicitement
+assumée par l'utilisateur (« par précaution, ajouter automatiquement comme membre »), documentée
+comme telle dans le flux lui-même. Sans ce flux, les demandes s'accumulent dans
+`CN_SiteAccessRequests` sans être traitées — ça ne casse rien, ça ne fait juste rien.
+
+**Limite connue, à ne pas prendre pour un bug** : une personne qui a accès au site uniquement via
+un groupe de sécurité Azure AD n'a pas de ligne individuelle dans `_api/web/siteusers` (cet endpoint
+ne développe pas les membres d'un groupe), donc `isKnownSiteUser` répond `false` alors qu'elle a
+déjà accès — faux négatif accepté délibérément (le flux l'ajoute une seconde fois, sans effet de
+bord réel). Le détecter fiablement nécessiterait Microsoft Graph
+(`checkMemberGroups`/`transitiveMembers`), exclu par les contraintes du §0.

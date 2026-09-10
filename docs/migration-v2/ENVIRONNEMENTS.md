@@ -23,6 +23,7 @@
 | CN_UserProfiles | Liste | *à créer (voir VERIFICATION-CONFIGURATION-SHAREPOINT.md)* |
 | CN_Rules | Liste | *à créer (voir PREPARATION-SHAREPOINT-POWERAUTOMATE.md, étape 4)* |
 | CN_Teams | Liste | *à créer (voir PREPARATION-SHAREPOINT-POWERAUTOMATE.md, étape 4)* |
+| CN_SiteAccessRequests | Liste | *à créer (voir PREPARATION-SHAREPOINT-POWERAUTOMATE.md, étape 4)* |
 
 ## PROD — à créer
 

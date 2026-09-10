@@ -6576,6 +6576,7 @@ export const BackOffice = ({
                                     emails
                                   }))
                                 }
+                                context={`Comité de validation : ${committee.name}`}
                                 placeholder={t('backOffice.main.committeeEmailsPlaceholder')}
                               />
                             </div>
@@ -7240,6 +7241,7 @@ export const BackOffice = ({
                           setAdminEmails(nextEmails);
                         }
                       }}
+                      context="Administrateurs du back-office"
                       placeholder={t('backOffice.main.adminEmailsPlaceholder')}
                     />
                   </div>
@@ -7561,6 +7563,7 @@ export const BackOffice = ({
                           id={`${team.id}-contact`}
                           value={normalizeTeamContacts(team)}
                           onChange={(emails) => updateTeamField(index, 'contacts', emails)}
+                          context={`Équipe : ${teamDisplayName}`}
                           placeholder={t('backOffice.main.teamContactsPlaceholder')}
                         />
                       </div>

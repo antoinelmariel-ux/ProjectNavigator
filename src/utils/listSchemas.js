@@ -165,6 +165,25 @@ export const LIST_SCHEMAS = {
     numbers: [],
     booleans: []
   },
+  // File d'attente consommée par un flux Power Automate qui ajoute la personne visée comme
+  // membre du site (droits que la session de l'utilisateur courant n'a presque jamais) — voir
+  // src/utils/siteAccessQueue.js et docs/migration-v2/MODE-OPERATOIRE-POWER-AUTOMATE.md.
+  siteAccessRequests: {
+    keyField: null,
+    columns: [
+      'Title',
+      'TargetEmail',
+      'DisplayName',
+      'RequestedByEmail',
+      'Context',
+      'Status',
+      'ProcessedAt',
+      'ErrorMessage'
+    ],
+    json: {},
+    numbers: [],
+    booleans: []
+  },
   userProfiles: {
     keyField: 'UserEmail',
     columns: ['UserEmail', 'ActivityScopeJson', 'PreferredLanguage', 'HasCompletedOnboarding', 'UpdatedAt'],

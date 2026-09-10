@@ -1481,6 +1481,7 @@ export const SynthesisReport = ({
                   multiple={false}
                   value={[]}
                   onChange={handleShareMemberAdd}
+                  context={`Partage de projet : ${effectiveProjectName}`}
                   placeholder="prenom.nom@lfb.fr"
                   ariaLabel={t('synthesisReport.shareSectionTitle')}
                 />
