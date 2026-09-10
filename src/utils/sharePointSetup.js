@@ -39,9 +39,7 @@ const publishRowList = async (items, saveItem, { key, file, label, userEmail }) 
     : { key, file, label, status: 'published', count: list.length };
 };
 
-export const reinitializeSharePointConfiguration = async (payload) => {
-  const { rules, teams, userEmail, ...referentialPayload } = payload || {};
-
+const ensureSharePointStructureReady = async () => {
   const diagnostic = await diagnoseSharePointInstallation();
   if (!diagnostic.ok) {
     throw new Error(
@@ -49,6 +47,44 @@ export const reinitializeSharePointConfiguration = async (payload) => {
         'Créez ces listes et bibliothèques avant de publier la configuration.'
     );
   }
+};
+
+const throwOnFailures = (results) => {
+  const failures = results.filter(
+    (entry) => entry.status === 'error' || entry.status === 'conflict'
+  );
+  if (failures.length > 0) {
+    throw new Error(
+      `Publication partielle : ${failures
+        .map((entry) => `${entry.file} (${entry.message || entry.status})`)
+        .join(' · ')}`
+    );
+  }
+};
+
+const buildPublishSummary = (results) => ({
+  siteUrl: getWebUrl(),
+  libraryName: sharepointConfig.libraries.config,
+  lists: results
+    .filter((entry) => entry.status === 'published')
+    .map((entry) => ({ key: entry.key, name: entry.file, count: entry.count })),
+  skipped: results.filter((entry) => entry.status === 'skipped').map((entry) => entry.file)
+});
+
+// Publie uniquement les référentiels JSON (questions, niveaux de risque, pondérations,
+// thèmes, réglages) : n'écrit jamais les listes CN_Rules/CN_Teams, qui se synchronisent déjà
+// ligne par ligne au fil des éditions du back-office (voir rulesProvider/teamsProvider).
+export const publishReferentialSettings = async (referentialPayload) => {
+  await ensureSharePointStructureReady();
+  const results = await publishAllReferentials(referentialPayload);
+  throwOnFailures(results);
+  return buildPublishSummary(results);
+};
+
+export const reinitializeSharePointConfiguration = async (payload) => {
+  const { rules, teams, userEmail, ...referentialPayload } = payload || {};
+
+  await ensureSharePointStructureReady();
 
   const [fileResults, rulesResult, teamsResult] = await Promise.all([
     publishAllReferentials(referentialPayload),
@@ -67,24 +103,6 @@ export const reinitializeSharePointConfiguration = async (payload) => {
   ]);
 
   const results = [...fileResults, rulesResult, teamsResult];
-  const failures = results.filter(
-    (entry) => entry.status === 'error' || entry.status === 'conflict'
-  );
-
-  if (failures.length > 0) {
-    throw new Error(
-      `Publication partielle : ${failures
-        .map((entry) => `${entry.file} (${entry.message || entry.status})`)
-        .join(' · ')}`
-    );
-  }
-
-  return {
-    siteUrl: getWebUrl(),
-    libraryName: sharepointConfig.libraries.config,
-    lists: results
-      .filter((entry) => entry.status === 'published')
-      .map((entry) => ({ key: entry.key, name: entry.file, count: entry.count })),
-    skipped: results.filter((entry) => entry.status === 'skipped').map((entry) => entry.file)
-  };
+  throwOnFailures(results);
+  return buildPublishSummary(results);
 };

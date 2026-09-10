@@ -664,6 +664,8 @@ export const BackOffice = ({
   activityScope,
   onSharePointReinitialize,
   sharePointReinitializeState = { inProgress: false, message: '', status: 'idle' },
+  onPublishReferentialSettings,
+  publishReferentialSettingsState = { inProgress: false, message: '', status: 'idle' },
   rulesQueueRef,
   teamsQueueRef,
   ruleServerMetaRef,
@@ -7249,11 +7251,40 @@ export const BackOffice = ({
               </div>
 
               {isCurrentUserAdmin && (
+                <div className="bg-white border border-blue-200 rounded-xl p-6 shadow-sm space-y-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800">{t('backOffice.main.sharePointPublishSettingsTitle')}</h3>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {t('backOffice.main.sharePointPublishSettingsDescription')}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={onPublishReferentialSettings}
+                    disabled={publishReferentialSettingsState.inProgress || typeof onPublishReferentialSettings !== 'function'}
+                    className="inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    {publishReferentialSettingsState.inProgress ? t('backOffice.main.publishSettingsInProgress') : t('backOffice.main.publishSettingsButton')}
+                  </button>
+
+                  {publishReferentialSettingsState.message && (
+                    <p
+                      className={`text-sm ${publishReferentialSettingsState.status === 'error' ? 'text-red-700' : 'text-gray-700'}`}
+                      role="status"
+                    >
+                      {publishReferentialSettingsState.message}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {isCurrentUserAdmin && (
                 <div className="bg-white border border-amber-200 rounded-xl p-6 shadow-sm space-y-4">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-800">{t('backOffice.main.sharePointPublishTitle')}</h3>
+                    <h3 className="text-lg font-semibold text-gray-800">{t('backOffice.main.sharePointResetTitle')}</h3>
                     <p className="text-sm text-gray-600 mt-1">
-                      {t('backOffice.main.sharePointPublishDescription')}
+                      {t('backOffice.main.sharePointResetDescription')}
                     </p>
                   </div>
 
@@ -7263,7 +7294,7 @@ export const BackOffice = ({
                     disabled={sharePointReinitializeState.inProgress || typeof onSharePointReinitialize !== 'function'}
                     className="inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   >
-                    {sharePointReinitializeState.inProgress ? t('backOffice.main.publishingInProgress') : t('backOffice.main.publishConfigButton')}
+                    {sharePointReinitializeState.inProgress ? t('backOffice.main.resetInProgress') : t('backOffice.main.resetConfigButton')}
                   </button>
 
                   {sharePointReinitializeState.message && (
