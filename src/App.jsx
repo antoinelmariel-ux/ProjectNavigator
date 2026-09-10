@@ -63,6 +63,7 @@ import { createAutosaveQueue } from './utils/autosaveQueue.js';
 import { createRetryQueue } from './utils/retryQueue.js';
 import {
   diagnoseSharePointInstallation,
+  publishReferentialSettings,
   reinitializeSharePointConfiguration
 } from './utils/sharePointSetup.js';
 import { isSharePointMode } from './config/sharepointConfig.js';
@@ -943,6 +944,11 @@ export const App = () => {
   const [isShowcaseShareOpen, setIsShowcaseShareOpen] = useState(false);
   const [showcaseShareFeedback, setShowcaseShareFeedback] = useState('');
   const [sharePointReinitState, setSharePointReinitState] = useState({
+    inProgress: false,
+    message: '',
+    status: 'idle'
+  });
+  const [sharePointPublishSettingsState, setSharePointPublishSettingsState] = useState({
     inProgress: false,
     message: '',
     status: 'idle'
@@ -5102,6 +5108,87 @@ const updateProjectFilters = useCallback((updater) => {
     validationCommitteeConfig
   ]);
 
+  const handlePublishReferentialSettings = useCallback(async () => {
+    setSharePointPublishSettingsState({
+      inProgress: true,
+      message: t('app.publishSettings.checking'),
+      status: 'pending'
+    });
+
+    try {
+      const diagnostic = await diagnoseSharePointInstallation();
+      const alreadyPublished = diagnostic.files.filter((entry) => entry.present);
+
+      if (alreadyPublished.length > 0) {
+        const confirmed =
+          typeof window === 'undefined' || typeof window.confirm !== 'function'
+            ? true
+            : window.confirm(
+              t('app.publishSettings.confirmOverwritePrefix', { count: alreadyPublished.length }) +
+                  t('app.publishSettings.confirmOverwriteSuffix')
+            );
+
+        if (!confirmed) {
+          setSharePointPublishSettingsState({
+            inProgress: false,
+            message: t('app.publishSettings.cancelledPublish'),
+            status: 'idle'
+          });
+          return;
+        }
+      }
+
+      setSharePointPublishSettingsState({
+        inProgress: true,
+        message: t('app.publishSettings.publishing'),
+        status: 'pending'
+      });
+
+      const summary = await publishReferentialSettings({
+        questions,
+        riskLevelRules,
+        riskWeights,
+        projectFilters,
+        inspirationFilters,
+        inspirationFormFields,
+        onboardingTourConfig,
+        validationCommitteeConfig,
+        showcaseThemes,
+        adminEmails
+      });
+
+      const details = summary.lists
+        .map((entry) => `${entry.name}: ${entry.count}`)
+        .join(' · ');
+
+      setSharePointPublishSettingsState({
+        inProgress: false,
+        message: t('app.publishSettings.publishedSuccess', { library: summary.libraryName, details }),
+        status: 'success'
+      });
+      setHasUnpublishedConfigChanges(false);
+    } catch (error) {
+      setSharePointPublishSettingsState({
+        inProgress: false,
+        message: error?.message || t('app.publishSettings.failedGeneric'),
+        status: 'error'
+      });
+    }
+  }, [
+    adminEmails,
+    inspirationFilters,
+    inspirationFormFields,
+    onboardingTourConfig,
+    projectFilters,
+    questions,
+    riskLevelRules,
+    riskWeights,
+    setHasUnpublishedConfigChanges,
+    showcaseThemes,
+    t,
+    validationCommitteeConfig
+  ]);
+
   return (
     <div className={`min-h-screen ${annotationOffsetClass}`}>
       {!isOnline && (
@@ -5712,6 +5799,8 @@ const updateProjectFilters = useCallback((updater) => {
                 activityScope={activityScope}
                 onSharePointReinitialize={handleSharePointReinitialization}
                 sharePointReinitializeState={sharePointReinitState}
+                onPublishReferentialSettings={handlePublishReferentialSettings}
+                publishReferentialSettingsState={sharePointPublishSettingsState}
                 rulesQueueRef={rulesQueueRef}
                 teamsQueueRef={teamsQueueRef}
                 ruleServerMetaRef={ruleServerMetaRef}
