@@ -1,5 +1,14 @@
 export default {
-  common: {},
+  common: {
+    peoplePicker: {
+      searchPlaceholder: 'Nach Name oder E-Mail suchen…',
+      searching: 'Suche läuft…',
+      noResults: 'Kein Treffer im Verzeichnis. Drücken Sie Enter, um diese Adresse unverändert hinzuzufügen.',
+      invalidEmail: 'Bitte geben Sie eine gültige E-Mail-Adresse ein.',
+      alreadyAddedMessage: 'Diese Person ist bereits in der Liste.',
+      removeAriaLabelTemplate: '{{name}} entfernen'
+    }
+  },
   app: {
     errorBoundary: {
       title: 'Anzeige unterbrochen',
@@ -1075,8 +1084,7 @@ export default {
       enableCommentRequestLabel: 'Kommentaranfrage aktivieren',
       committeeNameLabel: 'Name des Ausschusses',
       emailAddressesLabel: 'E-Mail-Adressen',
-      committeeEmailsPlaceholder: 'z. B.: ausschuss@unternehmen.de, buero@unternehmen.de',
-      separateAddressesHint: 'Trennen Sie mehrere Adressen durch ein Komma, Semikolon oder einen Zeilenumbruch.',
+      committeeEmailsPlaceholder: 'Ausschussmitglied suchen…',
       triggerByAnswersHint: 'Lösen Sie diesen Ausschuss basierend auf den im Projekt eingegebenen Antworten aus.',
       addGroupButton: 'Gruppe hinzufügen',
       committeeNoConditionYet: 'Dieser Ausschuss hängt noch nicht von den Antworten des Projekts ab.',
@@ -1131,10 +1139,7 @@ export default {
       administratorsHeading: 'Administratoren',
       administratorsSubtitle: 'Fügen Sie die E-Mail-Adressen hinzu, die ohne Passwort auf das Back-Office zugreifen dürfen.',
       adminEmailsLabel: 'E-Mail-Adressen der Administratoren',
-      adminEmailsPlaceholder: 'admin1@unternehmen.de\nadmin2@unternehmen.de',
-      adminEmailsSeparateHint: 'Trennen Sie jede Adresse durch ein Komma, Semikolon oder einen Zeilenumbruch.',
-      registeredAdminsTemplate: 'Registrierte Administratoren ({{count}})',
-      noAdminRegistered: 'Es ist noch keine Administrator-Adresse registriert.',
+      adminEmailsPlaceholder: 'Administrator suchen…',
       sharePointPublishTitle: 'Veröffentlichung der SharePoint-Konfiguration',
       sharePointPublishDescription: 'Veröffentlicht die Konfiguration (Fragen, Regeln, Teams, Einstellungen) erneut in der CN-Config-Bibliothek über die SharePoint-REST-API. Erfordert, dass die SharePoint-Listen und -Bibliotheken bereits existieren — diese Aktion erstellt sie nicht neu.',
       publishingInProgress: 'Veröffentlichung läuft…',
@@ -1171,7 +1176,7 @@ export default {
       teamNameAriaLabelTemplate: 'Name des Teams {{id}}',
       removeTeamAriaLabelTemplate: 'Team {{name}} entfernen',
       emailContactsLabel: 'E-Mail-Kontakte',
-      teamContactsPlaceholder: 'z. B.: kontakt@unternehmen.de, support@unternehmen.de',
+      teamContactsPlaceholder: 'Kontakt suchen…',
       expertiseAreaLabel: 'Fachgebiet',
       complianceReviewModeTitle: 'Compliance-Überprüfungsmodus',
       complianceReviewModeSubtitle: 'Simulieren Sie den Projektfragebogen und zeigen Sie parallel die ausgelösten Regeln, Compliance-Fragen und Risiken an.',
@@ -1389,7 +1394,6 @@ export default {
     commentSavedMessage: 'Kommentar gespeichert.',
     commentClearedMessage: 'Kommentar gelöscht.',
     replyAddedMessage: 'Antwort hinzugefügt.',
-    invalidEmailMessage: 'Bitte geben Sie eine gültige E-Mail-Adresse ein.',
     memberAddedTemplate: '{{email}} zum Team hinzugefügt.',
     defaultTeamLabel: 'Compliance-Team',
     defaultUserLabel: 'Benutzer',
@@ -1404,7 +1408,6 @@ export default {
     submitProjectButton: 'Projekt einreichen',
     shareSectionTitle: 'Projektfreigabe',
     shareSectionHint: 'Fügen Sie ein Teammitglied hinzu, damit es dieses Projekt ebenfalls in seiner Liste findet.',
-    addButton: 'Hinzufügen',
     removeMemberAriaLabel: '{{member}} entfernen',
     closeButton: 'Schließen',
     teamsHeadingLabel: 'Einzubindende Teams',

@@ -296,6 +296,10 @@ a {
   border-width: 1px;
 }
 
+.border-0 {
+  border-width: 0;
+}
+
 .border-2 {
   border-width: 2px;
 }
@@ -701,6 +705,10 @@ a {
   max-height: 65vh;
 }
 
+.max-h-56 {
+  max-height: 14rem;
+}
+
 .max-h-96 {
   max-height: 24rem;
 }
@@ -791,6 +799,10 @@ a {
 
 .min-h-screen {
   min-height: 100vh;
+}
+
+.min-w-\[10rem\] {
+  min-width: 10rem;
 }
 
 .min-w-\[220px\] {
@@ -894,6 +906,10 @@ a {
 
 .order-first {
   order: -9999;
+}
+
+.overflow-auto {
+  overflow: auto;
 }
 
 .overflow-hidden {
@@ -1009,6 +1025,11 @@ a {
 
 .pt-6 {
   padding-top: 1.5rem;
+}
+
+.px-1 {
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
 }
 
 .px-2 {
@@ -1276,6 +1297,11 @@ a {
 .text-amber-500 {
   --tw-text-opacity: 1;
   color: rgba(245,158,11, var(--tw-text-opacity));
+}
+
+.text-amber-600 {
+  --tw-text-opacity: 1;
+  color: rgba(217,119,6, var(--tw-text-opacity));
 }
 
 .text-amber-700 {

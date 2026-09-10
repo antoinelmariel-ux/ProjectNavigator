@@ -1,5 +1,14 @@
 export default {
-  common: {},
+  common: {
+    peoplePicker: {
+      searchPlaceholder: 'Rechercher un nom ou un e-mail…',
+      searching: 'Recherche en cours…',
+      noResults: 'Aucun résultat dans l’annuaire. Appuyez sur Entrée pour ajouter cette adresse telle quelle.',
+      invalidEmail: 'Veuillez saisir une adresse e-mail valide.',
+      alreadyAddedMessage: 'Cette personne est déjà dans la liste.',
+      removeAriaLabelTemplate: 'Retirer {{name}}'
+    }
+  },
   app: {
     errorBoundary: {
       title: 'Affichage interrompu',
@@ -1073,8 +1082,7 @@ export default {
       enableCommentRequestLabel: 'Activer la demande de commentaire',
       committeeNameLabel: 'Nom du comité',
       emailAddressesLabel: 'Adresses mail',
-      committeeEmailsPlaceholder: 'ex: comite@company.com, bureau@company.com',
-      separateAddressesHint: 'Séparez plusieurs adresses par une virgule, un point-virgule ou un retour à la ligne.',
+      committeeEmailsPlaceholder: 'Rechercher un membre du comité…',
       triggerByAnswersHint: 'Déclenchez ce comité en fonction des réponses renseignées dans le projet.',
       addGroupButton: 'Ajouter un groupe',
       committeeNoConditionYet: 'Ce comité ne dépend pas encore des réponses du projet.',
@@ -1129,10 +1137,7 @@ export default {
       administratorsHeading: 'Administrateurs',
       administratorsSubtitle: 'Ajoutez les adresses e-mail autorisées à accéder au back-office sans mot de passe.',
       adminEmailsLabel: 'Adresses e-mail des administrateurs',
-      adminEmailsPlaceholder: 'admin1@entreprise.com\nadmin2@entreprise.com',
-      adminEmailsSeparateHint: 'Séparez chaque adresse par une virgule, un point-virgule ou un retour à la ligne.',
-      registeredAdminsTemplate: 'Administrateurs enregistrés ({{count}})',
-      noAdminRegistered: 'Aucune adresse administrateur n’est encore enregistrée.',
+      adminEmailsPlaceholder: 'Rechercher un administrateur…',
       sharePointPublishTitle: 'Publication de la configuration SharePoint',
       sharePointPublishDescription: 'Republie la configuration (questions, règles, équipes, réglages) dans la bibliothèque CN-Config via l’API REST SharePoint. Nécessite que les listes et bibliothèques SharePoint existent déjà — cette action ne les recrée pas.',
       publishingInProgress: 'Publication en cours…',
@@ -1169,7 +1174,7 @@ export default {
       teamNameAriaLabelTemplate: 'Nom de l’équipe {{id}}',
       removeTeamAriaLabelTemplate: 'Supprimer l’équipe {{name}}',
       emailContactsLabel: 'Contacts e-mail',
-      teamContactsPlaceholder: 'ex : contact@company.com, support@company.com',
+      teamContactsPlaceholder: 'Rechercher un contact…',
       expertiseAreaLabel: 'Domaine d’expertise',
       complianceReviewModeTitle: 'Mode revue compliance',
       complianceReviewModeSubtitle: 'Simulez le questionnaire projet et visualisez en parallèle les règles déclenchées, questions compliance et risques.',
@@ -1388,7 +1393,6 @@ export default {
     commentSavedMessage: 'Commentaire enregistré.',
     commentClearedMessage: 'Commentaire effacé.',
     replyAddedMessage: 'Réponse ajoutée.',
-    invalidEmailMessage: 'Veuillez saisir une adresse e-mail valide.',
     memberAddedTemplate: '{{email}} ajouté à l’équipe.',
     defaultTeamLabel: 'Équipe compliance',
     defaultUserLabel: 'Utilisateur',
@@ -1403,7 +1407,6 @@ export default {
     submitProjectButton: 'Soumettre le projet',
     shareSectionTitle: 'Partage du projet',
     shareSectionHint: 'Ajoutez un membre de l’équipe pour qu’il retrouve aussi ce projet dans sa liste.',
-    addButton: 'Ajouter',
     removeMemberAriaLabel: 'Retirer {{member}}',
     closeButton: 'Fermer',
     teamsHeadingLabel: 'Équipes à solliciter',

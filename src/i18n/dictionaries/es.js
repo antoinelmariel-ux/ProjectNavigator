@@ -1,5 +1,14 @@
 export default {
-  common: {},
+  common: {
+    peoplePicker: {
+      searchPlaceholder: 'Buscar por nombre o correo electrónico…',
+      searching: 'Buscando…',
+      noResults: 'Sin resultados en el directorio. Pulse Intro para añadir esta dirección tal cual.',
+      invalidEmail: 'Introduzca una dirección de correo electrónico válida.',
+      alreadyAddedMessage: 'Esta persona ya está en la lista.',
+      removeAriaLabelTemplate: 'Quitar a {{name}}'
+    }
+  },
   app: {
     errorBoundary: {
       title: 'Visualización interrumpida',
@@ -1065,8 +1074,7 @@ export default {
       enableCommentRequestLabel: 'Activar la solicitud de comentario',
       committeeNameLabel: 'Nombre del comité',
       emailAddressesLabel: 'Direcciones de correo electrónico',
-      committeeEmailsPlaceholder: 'Ej.: comite@empresa.com, secretaria@empresa.com',
-      separateAddressesHint: 'Separe varias direcciones con una coma, un punto y coma o un salto de línea.',
+      committeeEmailsPlaceholder: 'Buscar un miembro del comité…',
       triggerByAnswersHint: 'Active este comité en función de las respuestas introducidas en el proyecto.',
       addGroupButton: 'Añadir un grupo',
       committeeNoConditionYet: 'Este comité aún no depende de las respuestas del proyecto.',
@@ -1121,10 +1129,7 @@ export default {
       administratorsHeading: 'Administradores',
       administratorsSubtitle: 'Añada las direcciones de correo electrónico autorizadas a acceder al back-office sin contraseña.',
       adminEmailsLabel: 'Direcciones de correo de los administradores',
-      adminEmailsPlaceholder: 'admin1@empresa.com\nadmin2@empresa.com',
-      adminEmailsSeparateHint: 'Separe cada dirección con una coma, un punto y coma o un salto de línea.',
-      registeredAdminsTemplate: 'Administradores registrados ({{count}})',
-      noAdminRegistered: 'Aún no hay ninguna dirección de administrador registrada.',
+      adminEmailsPlaceholder: 'Buscar un administrador…',
       sharePointPublishTitle: 'Publicación de la configuración SharePoint',
       sharePointPublishDescription: 'Vuelve a publicar la configuración (preguntas, reglas, equipos, ajustes) en la biblioteca CN-Config a través de la API REST de SharePoint. Requiere que las listas y bibliotecas de SharePoint ya existan; esta acción no las vuelve a crear.',
       publishingInProgress: 'Publicación en curso…',
@@ -1161,7 +1166,7 @@ export default {
       teamNameAriaLabelTemplate: 'Nombre del equipo {{id}}',
       removeTeamAriaLabelTemplate: 'Eliminar el equipo {{name}}',
       emailContactsLabel: 'Contactos de correo electrónico',
-      teamContactsPlaceholder: 'Ej.: contacto@empresa.com, soporte@empresa.com',
+      teamContactsPlaceholder: 'Buscar un contacto…',
       expertiseAreaLabel: 'Área de especialización',
       complianceReviewModeTitle: 'Modo de revisión de cumplimiento',
       complianceReviewModeSubtitle: 'Simule el cuestionario del proyecto y visualice en paralelo las reglas activadas, las preguntas de cumplimiento y los riesgos.',
@@ -1378,7 +1383,6 @@ export default {
     commentSavedMessage: 'Comentario guardado.',
     commentClearedMessage: 'Comentario eliminado.',
     replyAddedMessage: 'Respuesta añadida.',
-    invalidEmailMessage: 'Introduzca una dirección de correo electrónico válida.',
     memberAddedTemplate: '{{email}} añadido al equipo.',
     defaultTeamLabel: 'Equipo de cumplimiento',
     defaultUserLabel: 'Usuario',
@@ -1393,7 +1397,6 @@ export default {
     submitProjectButton: 'Enviar proyecto',
     shareSectionTitle: 'Compartir proyecto',
     shareSectionHint: 'Añada un miembro del equipo para que también encuentre este proyecto en su lista.',
-    addButton: 'Añadir',
     removeMemberAriaLabel: 'Quitar a {{member}}',
     closeButton: 'Cerrar',
     teamsHeadingLabel: 'Equipos a involucrar',
