@@ -11,7 +11,9 @@ import {
 } from './icons.js';
 import {
   buildExtraCheckboxQuestionId,
+  buildNumberUnitAnswerId,
   formatAnswer,
+  getNumberUnitOptions,
   normalizeOtherOption,
   normalizeQuestionOptions,
   shouldShowOption
@@ -1214,6 +1216,10 @@ export const QuestionnaireScreen = ({
         );
       case 'number': {
         const unitLabel = currentQuestionNumberUnit;
+        const unitOptions = getNumberUnitOptions(currentQuestion, language);
+        const hasUnitChoice = unitOptions.length >= 2;
+        const unitAnswerId = buildNumberUnitAnswerId(currentQuestion.id);
+        const selectedUnit = unitOptions.includes(answers[unitAnswerId]) ? answers[unitAnswerId] : unitOptions[0];
         return (
           <div className="mb-8">
             <label className="block text-sm sm:text-base font-medium text-gray-700 mb-3" htmlFor={`${currentQuestion.id}-number`}>
@@ -1228,7 +1234,18 @@ export const QuestionnaireScreen = ({
                 id={`${currentQuestion.id}-number`}
                 className="w-full flex-1 min-w-0 px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
-              {unitLabel && (
+              {hasUnitChoice ? (
+                <select
+                  value={selectedUnit}
+                  onChange={(e) => onAnswer(unitAnswerId, e.target.value)}
+                  aria-label={t('questionnaire.numberUnitSelectLabel')}
+                  className="inline-flex items-center px-4 py-2.5 sm:py-3 border-2 border-blue-100 bg-blue-50 text-sm font-semibold text-blue-700 rounded-xl whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {unitOptions.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
+              ) : unitLabel && (
                 <span className="inline-flex items-center px-4 py-2.5 sm:py-3 border-2 border-blue-100 bg-blue-50 text-sm font-semibold text-blue-700 rounded-xl whitespace-nowrap">
                   {unitLabel}
                 </span>

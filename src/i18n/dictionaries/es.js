@@ -440,6 +440,7 @@ export default {
     longTextHint: 'Este campo acepta varias líneas y sus enlaces permanecen clicables.',
     numberLabel: 'Indique un valor numérico',
     numberHint: 'Puede introducir un número entero o decimal.',
+    numberUnitSelectLabel: 'Divisa',
     urlLabel: 'Indique una dirección URL',
     urlPlaceholder: 'https://ejemplo.com',
     urlHint: 'Incluya el protocolo (https://) para una URL válida.',
@@ -716,6 +717,9 @@ export default {
       numberUnitPlaceholder: 'Ej.: K€, %, días',
       numberUnitHint:
         'Esta etiqueta se muestra a la derecha del campo numérico para precisar la unidad esperada (opcional).',
+      numberUnitOptionsLabel: 'Otras divisas disponibles',
+      numberUnitOptionsHint:
+        'Seleccione divisas adicionales: en cuanto haya 2 divisas disponibles para esta pregunta, la persona que responde podrá elegir la suya.',
       requiredLabel: 'Pregunta obligatoria',
       extraCheckboxEnableLabel: 'Añadir una casilla adicional',
       extraCheckboxTextLabel: 'Texto mostrado junto a la casilla',

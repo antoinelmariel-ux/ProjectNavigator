@@ -445,6 +445,7 @@ export default {
     longTextHint: 'Ce champ accepte plusieurs lignes et vos liens restent cliquables.',
     numberLabel: 'Renseignez une valeur numérique',
     numberHint: 'Vous pouvez saisir un nombre entier ou décimal.',
+    numberUnitSelectLabel: 'Devise',
     urlLabel: 'Indiquez une adresse URL',
     urlPlaceholder: 'https://exemple.com',
     urlHint: 'Incluez le protocole (https://) pour une URL valide.',
@@ -723,6 +724,9 @@ export default {
       numberUnitPlaceholder: 'Ex : K€, %, jours',
       numberUnitHint:
         'Ce libellé s’affiche à droite du champ numérique pour préciser l’unité attendue (optionnel).',
+      numberUnitOptionsLabel: 'Autres devises proposées',
+      numberUnitOptionsHint:
+        'Sélectionnez des devises additionnelles : dès que 2 devises sont disponibles pour cette question, la personne qui répond peut choisir la sienne.',
       requiredLabel: 'Question obligatoire',
       extraCheckboxEnableLabel: 'Ajouter une case à cocher complémentaire',
       extraCheckboxTextLabel: 'Texte affiché à côté de la case',

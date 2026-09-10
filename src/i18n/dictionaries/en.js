@@ -439,6 +439,7 @@ export default {
     longTextHint: 'This field accepts multiple lines and your links stay clickable.',
     numberLabel: 'Enter a numeric value',
     numberHint: 'You can enter a whole or decimal number.',
+    numberUnitSelectLabel: 'Currency',
     urlLabel: 'Enter a URL',
     urlPlaceholder: 'https://example.com',
     urlHint: 'Include the protocol (https://) for a valid URL.',
@@ -715,6 +716,9 @@ export default {
       numberUnitPlaceholder: 'E.g.: K€, %, days',
       numberUnitHint:
         'This label is displayed to the right of the numeric field to specify the expected unit (optional).',
+      numberUnitOptionsLabel: 'Other available currencies',
+      numberUnitOptionsHint:
+        'Select additional currencies: as soon as 2 currencies are available for this question, the respondent can choose theirs.',
       requiredLabel: 'Mandatory question',
       extraCheckboxEnableLabel: 'Add an additional checkbox',
       extraCheckboxTextLabel: 'Text displayed next to the checkbox',

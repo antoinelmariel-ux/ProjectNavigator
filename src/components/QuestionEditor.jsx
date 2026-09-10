@@ -145,6 +145,9 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
       otherOption: ensureOtherOption(source.otherOption),
       placeholder: typeof source.placeholder === 'string' ? source.placeholder : '',
       numberUnit: typeof source.numberUnit === 'string' ? source.numberUnit : '',
+      numberUnitOptions: Array.isArray(source.numberUnitOptions)
+        ? source.numberUnitOptions.filter((entry) => typeof entry === 'string' && entry.trim().length > 0)
+        : [],
       rankingConfig
     };
 
@@ -252,7 +255,10 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
         : '',
       numberUnit: newType === 'number'
         ? (typeof prev.numberUnit === 'string' ? prev.numberUnit : '')
-        : ''
+        : '',
+      numberUnitOptions: newType === 'number' && Array.isArray(prev.numberUnitOptions)
+        ? prev.numberUnitOptions
+        : []
     }));
   };
 
@@ -816,6 +822,9 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
   const handleSave = () => {
     const sanitizedQuestion = applyConditionGroups(editedQuestion, conditionGroups);
     const unitLabel = trimLocalizedValue(editedQuestion.numberUnit);
+    const numberUnitOptions = Array.isArray(editedQuestion.numberUnitOptions)
+      ? editedQuestion.numberUnitOptions.filter((entry) => typeof entry === 'string' && entry.trim().length > 0)
+      : [];
     const extraCheckbox = ensureExtraCheckbox(editedQuestion.extraCheckbox);
     const extraLabel = trimLocalizedValue(extraCheckbox.label);
     const normalizedExtraCheckbox = {
@@ -834,6 +843,7 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
     onSave({
       ...sanitizedQuestion,
       numberUnit: unitLabel,
+      numberUnitOptions,
       extraCheckbox: normalizedExtraCheckbox,
       otherOption: normalizedOtherOption
     });
@@ -1009,6 +1019,39 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
                     placeholder={t('backOffice.questionEditor.numberUnitPlaceholder')}
                   />
                   <p className="text-xs text-gray-500 mt-1">{t('backOffice.questionEditor.numberUnitHint')}</p>
+                </div>
+              )}
+
+              {questionType === 'number' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t('backOffice.questionEditor.numberUnitOptionsLabel')}
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">{t('backOffice.questionEditor.numberUnitOptionsHint')}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {CURRENCY_UNIT_PRESETS.map((preset) => {
+                      const isActive = editedQuestion.numberUnitOptions.includes(preset);
+                      return (
+                        <button
+                          key={preset}
+                          type="button"
+                          onClick={() => setEditedQuestion(prev => ({
+                            ...prev,
+                            numberUnitOptions: isActive
+                              ? prev.numberUnitOptions.filter((entry) => entry !== preset)
+                              : [...prev.numberUnitOptions, preset]
+                          }))}
+                          className={`px-3 py-1.5 text-sm border rounded-lg transition-colors ${
+                            isActive
+                              ? 'border-blue-500 bg-blue-50 text-blue-700'
+                              : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                          }`}
+                        >
+                          {preset}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 

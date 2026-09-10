@@ -64,7 +64,12 @@ const normalizeCommentRequirement = (value) => value !== false;
 
 const normalizeCommittee = (value = {}, index = 0) => {
   const id = sanitizeTextValue(value?.id) || `committee-${index + 1}`;
-  const name = sanitizeTextValue(value?.name) || `Comité ${index + 1}`;
+  // Ne pas trim() la valeur brute ici : cette normalisation tourne à chaque frappe (via
+  // updateValidationCommitteeConfig), donc trim() effacerait un espace juste tapé (espace de
+  // fin toujours retiré au rendu suivant) et rendrait impossible la saisie de noms à plusieurs
+  // mots. On ne retombe sur le nom par défaut que si le nom est réellement vide une fois trim.
+  const rawName = typeof value?.name === 'string' ? value.name : '';
+  const name = rawName.trim().length > 0 ? rawName : `Comité ${index + 1}`;
   const emails = normalizeEmails(value?.emails ?? value?.contacts);
   const conditionGroups = normalizeRuleConditionGroups(value);
 
