@@ -791,7 +791,16 @@ export const BackOffice = ({
     [adminEmails]
   );
   const [adminEmailsDraft, setAdminEmailsDraft] = useState(() => normalizedAdminEmails.join('\n'));
+  const lastEmittedAdminEmailsRef = useRef(normalizedAdminEmails);
   useEffect(() => {
+    const emitted = lastEmittedAdminEmailsRef.current;
+    const isOwnEcho = Array.isArray(emitted)
+      && emitted.length === normalizedAdminEmails.length
+      && emitted.every((email, index) => email === normalizedAdminEmails[index]);
+    if (isOwnEcho) {
+      return;
+    }
+    lastEmittedAdminEmailsRef.current = normalizedAdminEmails;
     const normalizedDraft = normalizedAdminEmails.join('\n');
     setAdminEmailsDraft((previousDraft) => (previousDraft === normalizedDraft ? previousDraft : normalizedDraft));
   }, [normalizedAdminEmails]);
@@ -7282,6 +7291,7 @@ export const BackOffice = ({
                       const nextValue = event.target.value;
                       setAdminEmailsDraft(nextValue);
                       const nextEmails = parseEmailList(nextValue);
+                      lastEmittedAdminEmailsRef.current = nextEmails;
                       if (typeof setAdminEmails === 'function') {
                         setAdminEmails(nextEmails);
                       }
