@@ -1881,7 +1881,7 @@ export const BackOffice = ({
         return;
       }
 
-      const label = typeof question.question === 'string' ? question.question : '';
+      const label = resolveLocalizedText(question.question, language) || '';
       const titleMatches =
         normalizedTitle === '' ||
         label.toLowerCase().includes(normalizedTitle) ||
@@ -1906,7 +1906,7 @@ export const BackOffice = ({
     });
 
     return ids;
-  }, [questions, questionTitleFilter, questionTeamFilter, questionTeamAssignments]);
+  }, [questions, questionTitleFilter, questionTeamFilter, questionTeamAssignments, language]);
 
   const visibleQuestionIdSet = useMemo(() => new Set(visibleQuestionIds), [visibleQuestionIds]);
   const visibleQuestionEntries = useMemo(() => {
@@ -1940,7 +1940,7 @@ export const BackOffice = ({
         return;
       }
 
-      const name = typeof rule.name === 'string' ? rule.name : '';
+      const name = resolveLocalizedText(rule.name, language) || '';
       const titleMatches =
         normalizedTitle === '' ||
         name.toLowerCase().includes(normalizedTitle) ||
@@ -1965,7 +1965,7 @@ export const BackOffice = ({
     });
 
     return ids;
-  }, [ruleVisibilitySource, ruleTitleFilter, ruleTeamFilter]);
+  }, [ruleVisibilitySource, ruleTitleFilter, ruleTeamFilter, language]);
 
   const visibleRuleIdSet = useMemo(() => new Set(visibleRuleIds), [visibleRuleIds]);
   const visibleRuleEntries = useMemo(() => {
