@@ -58,3 +58,12 @@ test('computeRankingRecommendations : classe les entrées par score pondéré', 
   // "cost" est prioritaire (poids le plus fort) → Beta (cost=5) devant Alpha.
   assert.equal(recos[0].id, 'b');
 });
+
+test('formatRankingAnswer : ignore les critères nuls du référentiel', () => {
+  const criteria = [null, { id: 'c1', label: 'Coût' }, undefined, { id: 'c2', label: 'Délai' }];
+
+  assert.equal(
+    formatRankingAnswer({ prioritized: ['c1', 'c2'], ignored: [] }, criteria),
+    '1. Coût \u2192 2. Délai'
+  );
+});

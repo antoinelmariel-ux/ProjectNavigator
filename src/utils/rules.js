@@ -809,6 +809,31 @@ export const analyzeAnswers = (answers, rules, riskLevelRules, riskWeighting) =>
   };
 };
 
+// Une analyse partielle (ou absente) ne doit jamais casser l'affichage : `resolveProjectAnalysis`
+// renvoie volontairement `null` pour un projet sans réponse, et une analyse stockée côté serveur
+// peut être incomplète. Les consommateurs d'affichage passent par ici pour obtenir la forme
+// complète attendue plutôt que de déréférencer `analysis.risks` & co. à l'aveugle.
+export const normalizeAnalysis = (analysis) => {
+  const source = analysis && typeof analysis === 'object' ? analysis : {};
+  const timeline = source.timeline && typeof source.timeline === 'object' ? source.timeline : {};
+
+  return {
+    ...source,
+    triggeredRules: Array.isArray(source.triggeredRules) ? source.triggeredRules : [],
+    teams: Array.isArray(source.teams) ? source.teams : [],
+    notifiedTeams: Array.isArray(source.notifiedTeams) ? source.notifiedTeams : [],
+    questions: source.questions && typeof source.questions === 'object' ? source.questions : {},
+    risks: Array.isArray(source.risks) ? source.risks : [],
+    riskScore: Number.isFinite(source.riskScore) ? source.riskScore : 0,
+    timeline: {
+      byTeam: timeline.byTeam && typeof timeline.byTeam === 'object' ? timeline.byTeam : {},
+      details: Array.isArray(timeline.details) ? timeline.details : [],
+      vigilance: Array.isArray(timeline.vigilance) ? timeline.vigilance : []
+    },
+    sharedTeamBlocks: Array.isArray(source.sharedTeamBlocks) ? source.sharedTeamBlocks : []
+  };
+};
+
 export const resolveProjectAnalysis = (project, computeAnalysis) => {
   if (project?.status === 'submitted' && project?.analysis) {
     return project.analysis;
