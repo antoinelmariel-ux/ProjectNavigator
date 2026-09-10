@@ -36,6 +36,7 @@ const DEFERRED_MODULES = new Set([
   // (déjà différés) l'importent.
   'src/components/PeoplePicker.jsx',
   'src/utils/peopleSearch.js',
+  'src/utils/siteAccessQueue.js',
   'src/data/mockOrgDirectory.js'
 ]);
 

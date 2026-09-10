@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { resetSpRestClient } from '../src/utils/spRestClient.js';
-import { MIN_QUERY_LENGTH, parsePeoplePickerResponse, searchOrgPeople } from '../src/utils/peopleSearch.js';
+import { MIN_QUERY_LENGTH, isKnownSiteUser, parsePeoplePickerResponse, searchOrgPeople } from '../src/utils/peopleSearch.js';
 import { mockOrgDirectory } from '../src/data/mockOrgDirectory.js';
 
 const makeResponse = (status, body) => ({
@@ -113,4 +113,37 @@ test('searchOrgPeople : en mode SharePoint, interroge clientPeoplePickerSearchUs
   const sentBody = JSON.parse(searchCall.init.body);
   assert.equal(sentBody.queryParams.QueryString, 'julie');
   assert.equal(sentBody.queryParams.PrincipalType, 1);
+});
+
+test('isKnownSiteUser : adresse vide -> false, sans appel réseau', async () => {
+  assert.equal(await isKnownSiteUser(''), false);
+  assert.equal(await isKnownSiteUser(null), false);
+});
+
+test('isKnownSiteUser : hors mode SharePoint, toujours true (pas de notion de membre)', async () => {
+  const previous = globalThis.window;
+  globalThis.window = undefined;
+  try {
+    assert.equal(await isKnownSiteUser('claire.dubreuil@lfb.fr'), true);
+  } finally {
+    globalThis.window = previous;
+  }
+});
+
+test('isKnownSiteUser : en mode SharePoint, interroge _api/web/siteusers par e-mail', async () => {
+  const calls = [];
+
+  const known = await withSharePointFetch((url) => {
+    calls.push(url);
+    return makeResponse(200, { value: [{ Id: 12, Email: 'claire.dubreuil@lfb.fr' }] });
+  }, () => isKnownSiteUser('Claire.Dubreuil@LFB.fr'));
+  assert.equal(known, true);
+  const call = calls.find((url) => String(url).includes('/_api/web/siteusers'));
+  assert.ok(call, 'interroge bien /_api/web/siteusers');
+  assert.ok(String(call).includes("Email%20eq%20'claire.dubreuil%40lfb.fr'"));
+
+  const unknown = await withSharePointFetch(() => makeResponse(200, { value: [] }), () =>
+    isKnownSiteUser('inconnu@lfb.fr')
+  );
+  assert.equal(unknown, false);
 });

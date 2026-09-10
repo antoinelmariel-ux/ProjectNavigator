@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from '../react.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
-import { searchOrgPeople, MIN_QUERY_LENGTH } from '../utils/peopleSearch.js';
+import { isKnownSiteUser, searchOrgPeople, MIN_QUERY_LENGTH } from '../utils/peopleSearch.js';
+import { queueSiteAccessRequest } from '../utils/siteAccessQueue.js';
 import { normalizeEmail } from '../utils/normalizeEmail.js';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -10,6 +11,9 @@ const SEARCH_DEBOUNCE_MS = 250;
 // src/utils/peopleSearch.js). Free-text is still accepted as a fallback on Enter — the
 // directory search can't always resolve a valid address (mock/dev directory is tiny, and a
 // real tenant's people picker may not surface every account) — but it's no longer the only way.
+// Every successful add also (SharePoint mode only) checks site membership and, if the person
+// isn't a known site user, queues a "add as site member" request — see requestAccessIfNeeded
+// below and src/utils/siteAccessQueue.js.
 export const PeoplePicker = ({
   id,
   value,
@@ -18,7 +22,8 @@ export const PeoplePicker = ({
   multiple = true,
   disabled = false,
   ariaLabel,
-  className = ''
+  className = '',
+  context = ''
 }) => {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
@@ -73,8 +78,21 @@ export const PeoplePicker = ({
     return undefined;
   }, [query]);
 
+  // Par précaution (décision assumée, pas automatique par défaut) : quelqu'un ajouté ici et
+  // absent de la liste des membres du site déclenche une demande d'ajout, traitée par un flux
+  // Power Automate (voir src/utils/siteAccessQueue.js) — pas d'attente ni de blocage de l'UI
+  // sur ce contrôle, ses erreurs sont avalées volontairement.
+  const requestAccessIfNeeded = useCallback(
+    (email, displayName) => {
+      isKnownSiteUser(email)
+        .then((known) => (known ? undefined : queueSiteAccessRequest({ email, displayName, context })))
+        .catch(() => {});
+    },
+    [context]
+  );
+
   const commitEmail = useCallback(
-    (rawEmail) => {
+    (rawEmail, displayName) => {
       const normalized = normalizeEmail(rawEmail);
       if (!EMAIL_PATTERN.test(normalized)) {
         setFeedback(t('common.peoplePicker.invalidEmail'));
@@ -89,12 +107,13 @@ export const PeoplePicker = ({
       }
       const nextEntries = multiple ? [...entries, normalized] : [normalized];
       onChange(nextEntries);
+      requestAccessIfNeeded(normalized, displayName);
       setQuery('');
       setSuggestions([]);
       setIsOpen(false);
       setFeedback('');
     },
-    [entries, multiple, onChange, t]
+    [entries, multiple, onChange, requestAccessIfNeeded, t]
   );
 
   const handleRemove = useCallback(
@@ -109,7 +128,7 @@ export const PeoplePicker = ({
       if (event.key === 'Enter') {
         event.preventDefault();
         if (suggestions.length > 0) {
-          commitEmail(suggestions[0].email);
+          commitEmail(suggestions[0].email, suggestions[0].displayName);
         } else if (query.trim()) {
           commitEmail(query.trim());
         }
@@ -178,7 +197,7 @@ export const PeoplePicker = ({
                 key={person.email}
                 type="button"
                 onMouseDown={(event) => event.preventDefault()}
-                onClick={() => commitEmail(person.email)}
+                onClick={() => commitEmail(person.email, person.displayName)}
                 className="flex w-full flex-col items-start px-3 py-2 text-left text-sm hover:bg-blue-50"
               >
                 <span className="font-medium text-gray-800">{person.displayName}</span>
