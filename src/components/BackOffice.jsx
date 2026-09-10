@@ -25,6 +25,7 @@ import { normalizeConditionGroups } from '../utils/conditionGroups.js';
 import {
   buildExtraCheckboxQuestionId,
   getConditionQuestionEntries,
+  getNumberUnitOptions,
   getQuestionOptionEntries,
   getQuestionOptionLabels,
   normalizeQuestionOptions,
@@ -3663,6 +3664,7 @@ export const BackOffice = ({
     conditionGroups: [],
     placeholder: '',
     numberUnit: '',
+    numberUnitOptions: [],
     guidance: {
       objective: '',
       details: '',
@@ -5532,9 +5534,7 @@ export const BackOffice = ({
                       const guidanceDetails = resolveLocalizedText(guidance.details, language);
 
                       const numberUnitLabel =
-                        question.type === 'number' && typeof question.numberUnit === 'string'
-                          ? question.numberUnit.trim()
-                          : '';
+                        question.type === 'number' ? getNumberUnitOptions(question, language).join(' / ') : '';
                       const isShowcaseQuestion = Boolean(question && question.showcase);
                       const isProtectedQuestion = question?.id === 'ProjectType';
                       const deleteButtonDisabled = isShowcaseQuestion || isProtectedQuestion;
@@ -5784,9 +5784,7 @@ export const BackOffice = ({
                     const guidanceDetails = resolveLocalizedText(guidance.details, language);
 
                     const numberUnitLabel =
-                      question.type === 'number' && typeof question.numberUnit === 'string'
-                        ? question.numberUnit.trim()
-                        : '';
+                      question.type === 'number' ? getNumberUnitOptions(question, language).join(' / ') : '';
                     const isShowcaseQuestion = Boolean(question && question.showcase);
                     const isProtectedQuestion = question?.id === 'ProjectType';
                     const deleteButtonDisabled = isShowcaseQuestion || isProtectedQuestion;

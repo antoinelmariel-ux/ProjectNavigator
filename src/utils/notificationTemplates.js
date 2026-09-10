@@ -218,7 +218,7 @@ export const buildNotification = ({
     ? `<p style="margin:16px 0 4px;color:#555">Message content:</p>` +
       `<blockquote style="margin:0;padding:10px 14px;border-left:3px solid #cbd5e1;background:#f8fafc;color:#111">${escapeHtml(
         excerptText
-      )}</blockquote>`
+      ).replace(/\n/g, '<br>')}</blockquote>`
     : '';
 
   const linkBlock = appUrl

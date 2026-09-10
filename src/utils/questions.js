@@ -29,6 +29,39 @@ export const buildExtraCheckboxQuestionId = (questionId) => {
 
   return `${questionId}${EXTRA_CHECKBOX_SUFFIX}`;
 };
+
+const NUMBER_UNIT_CHOICE_SUFFIX = '__number_unit';
+
+// Devise/unité choisie par le répondant, stockée à part de la réponse numérique elle-même
+// (clé sœur, même principe que buildExtraCheckboxQuestionId) pour ne jamais transformer une
+// réponse "number" en objet composite : le moteur de règles (toNumber) continue de comparer
+// un nombre brut, indépendamment de la devise sélectionnée.
+export const buildNumberUnitAnswerId = (questionId) => {
+  if (!questionId || typeof questionId !== 'string') {
+    return '';
+  }
+
+  return `${questionId}${NUMBER_UNIT_CHOICE_SUFFIX}`;
+};
+
+// Liste combinée et dédupliquée des unités/devises disponibles pour une question "number" :
+// l'unité par défaut (numberUnit) suivie des devises additionnelles configurées dans le
+// back-office (numberUnitOptions). Quand elle contient 2 éléments ou plus, le questionnaire
+// propose un sélecteur de devise plutôt qu'une unité fixe.
+export const getNumberUnitOptions = (question, language = DEFAULT_LANGUAGE) => {
+  if (!question) {
+    return [];
+  }
+
+  const primary = resolveLocalizedText(question.numberUnit, language).trim();
+  const extra = Array.isArray(question.numberUnitOptions)
+    ? question.numberUnitOptions
+        .map((entry) => (typeof entry === 'string' ? entry.trim() : ''))
+        .filter(Boolean)
+    : [];
+
+  return Array.from(new Set([primary, ...extra].filter(Boolean)));
+};
 export const getConditionQuestionEntries = (questions = [], language = DEFAULT_LANGUAGE) => {
   if (!Array.isArray(questions)) {
     return [];

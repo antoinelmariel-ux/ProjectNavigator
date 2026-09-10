@@ -261,6 +261,17 @@ const COMPLIANCE_COMMENTS_KEY = '__compliance_team_comments__';
 const PUBLIC_VISIBILITY_KEY = '__public_visibility__';
 const SHOWCASE_COMMENT_EDIT_DEBOUNCE_MS = 1200;
 
+// Libellés (en anglais, comme le reste des gabarits de notification) des statuts de validation
+// posés par une équipe/un comité conformité sur le rapport de synthèse — voir COMMENT_STATUS_OPTIONS
+// dans SynthesisReport.jsx pour les valeurs sources.
+const COMPLIANCE_STATUS_EMAIL_LABELS = {
+  validated: 'Validated',
+  validated_with_conditions: 'Validated with conditions',
+  pending_information: 'Pending information',
+  not_concerned: 'Not concerned',
+  rejected: 'Rejected'
+};
+
 const normalizeRecipientList = (emails = []) => {
   const unique = new Set();
   (Array.isArray(emails) ? emails : []).forEach((email) => {
@@ -3601,10 +3612,16 @@ const updateProjectFilters = useCallback((updater) => {
         mirrorChangedEntries(changedTeamEntries, 'team');
         mirrorChangedEntries(changedCommitteeEntries, 'committee');
 
-        // Contenu du/des commentaire(s) qui viennent d'être posés, pour l'inclure dans la
-        // notification (comme pour les réponses de fil) et éviter un e-mail sans substance.
+        // Contenu du/des commentaire(s) et/ou statut(s) de validation qui viennent d'être posés,
+        // pour l'inclure dans la notification (comme pour les réponses de fil) et éviter un
+        // e-mail sans substance — y compris quand seul le statut a changé, sans commentaire.
         const commentExcerpt = [...changedTeamEntries, ...changedCommitteeEntries]
-          .map(([, entry]) => (typeof entry?.comment === 'string' ? entry.comment.trim() : ''))
+          .map(([, entry]) => {
+            const statusLabel = COMPLIANCE_STATUS_EMAIL_LABELS[entry?.status] || '';
+            const commentText = typeof entry?.comment === 'string' ? entry.comment.trim() : '';
+            const statusLine = statusLabel ? `Status: ${statusLabel}` : '';
+            return [statusLine, commentText].filter(Boolean).join('\n');
+          })
           .filter(Boolean)
           .join('\n\n');
 

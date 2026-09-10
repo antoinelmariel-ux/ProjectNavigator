@@ -23,7 +23,12 @@ import {
   saveShowcaseDraft,
   undoHistory
 } from '../utils/showcaseEditor.js';
-import { formatAnswer, getQuestionOptionEntries } from '../utils/questions.js';
+import {
+  buildNumberUnitAnswerId,
+  formatAnswer,
+  getNumberUnitOptions,
+  getQuestionOptionEntries
+} from '../utils/questions.js';
 import { renderTextWithLinks } from '../utils/linkify.js';
 import { splitRichTextIntoBlocks } from '../utils/richText.js';
 import { initialShowcaseThemes } from '../data/showcaseThemes.js';
@@ -2566,9 +2571,14 @@ export const ProjectShowcase = ({
   const budgetEstimate = getFormattedAnswer(questions, previewAnswers, 'BUDGET', missingInfoLabel, language);
   const budgetUnitLabel = useMemo(() => {
     const budgetQuestion = findQuestionById(questions, 'BUDGET');
+    const unitOptions = getNumberUnitOptions(budgetQuestion, language);
+    const chosenUnit = budgetQuestion ? previewAnswers[buildNumberUnitAnswerId(budgetQuestion.id)] : undefined;
+    if (typeof chosenUnit === 'string' && unitOptions.includes(chosenUnit)) {
+      return chosenUnit;
+    }
     const unit = resolveLocalizedText(budgetQuestion?.numberUnit, language).trim();
     return unit || 'K€';
-  }, [questions, language]);
+  }, [questions, language, previewAnswers]);
   const normalizedTimelineDetails = useMemo(() => {
     if (Array.isArray(timelineDetails)) {
       return timelineDetails;

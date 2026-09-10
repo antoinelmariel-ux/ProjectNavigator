@@ -448,6 +448,7 @@ export default {
     longTextHint: 'Dieses Feld akzeptiert mehrere Zeilen und Ihre Links bleiben klickbar.',
     numberLabel: 'Geben Sie einen numerischen Wert ein',
     numberHint: 'Sie können eine ganze oder eine Dezimalzahl eingeben.',
+    numberUnitSelectLabel: 'Währung',
     urlLabel: 'Geben Sie eine URL an',
     urlPlaceholder: 'https://beispiel.com',
     urlHint: 'Geben Sie das Protokoll (https://) an, um eine gültige URL zu erhalten.',
@@ -726,6 +727,9 @@ export default {
       numberUnitPlaceholder: 'Z. B.: T€, %, Tage',
       numberUnitHint:
         'Diese Bezeichnung wird rechts vom Zahlenfeld angezeigt, um die erwartete Einheit anzugeben (optional).',
+      numberUnitOptionsLabel: 'Weitere verfügbare Währungen',
+      numberUnitOptionsHint:
+        'Wählen Sie zusätzliche Währungen aus: Sobald 2 Währungen für diese Frage verfügbar sind, kann die antwortende Person ihre Währung wählen.',
       requiredLabel: 'Pflichtfrage',
       extraCheckboxEnableLabel: 'Zusätzliches Kontrollkästchen hinzufügen',
       extraCheckboxTextLabel: 'Neben dem Kontrollkästchen angezeigter Text',
