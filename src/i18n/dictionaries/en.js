@@ -1,5 +1,14 @@
 export default {
-  common: {},
+  common: {
+    peoplePicker: {
+      searchPlaceholder: 'Search by name or email…',
+      searching: 'Searching…',
+      noResults: 'No match in the directory. Press Enter to add this address as typed.',
+      invalidEmail: 'Please enter a valid email address.',
+      alreadyAddedMessage: 'This person is already in the list.',
+      removeAriaLabelTemplate: 'Remove {{name}}'
+    }
+  },
   app: {
     errorBoundary: {
       title: 'Display interrupted',
@@ -1064,8 +1073,7 @@ export default {
       enableCommentRequestLabel: 'Enable comment request',
       committeeNameLabel: 'Committee name',
       emailAddressesLabel: 'Email addresses',
-      committeeEmailsPlaceholder: 'e.g.: committee@company.com, office@company.com',
-      separateAddressesHint: 'Separate several addresses with a comma, semicolon, or line break.',
+      committeeEmailsPlaceholder: 'Search for a committee member…',
       triggerByAnswersHint: 'Trigger this committee based on the answers entered in the project.',
       addGroupButton: 'Add a group',
       committeeNoConditionYet: 'This committee does not yet depend on the project’s answers.',
@@ -1120,10 +1128,7 @@ export default {
       administratorsHeading: 'Administrators',
       administratorsSubtitle: 'Add the email addresses allowed to access the back office without a password.',
       adminEmailsLabel: 'Administrator email addresses',
-      adminEmailsPlaceholder: 'admin1@company.com\nadmin2@company.com',
-      adminEmailsSeparateHint: 'Separate each address with a comma, semicolon, or line break.',
-      registeredAdminsTemplate: 'Registered administrators ({{count}})',
-      noAdminRegistered: 'No administrator address is registered yet.',
+      adminEmailsPlaceholder: 'Search for an administrator…',
       sharePointPublishTitle: 'SharePoint configuration publishing',
       sharePointPublishDescription: 'Republishes the configuration (questions, rules, teams, settings) to the CN-Config library via the SharePoint REST API. Requires that the SharePoint lists and libraries already exist — this action does not recreate them.',
       publishingInProgress: 'Publishing in progress…',
@@ -1160,7 +1165,7 @@ export default {
       teamNameAriaLabelTemplate: 'Name of team {{id}}',
       removeTeamAriaLabelTemplate: 'Remove team {{name}}',
       emailContactsLabel: 'Email contacts',
-      teamContactsPlaceholder: 'e.g.: contact@company.com, support@company.com',
+      teamContactsPlaceholder: 'Search for a contact…',
       expertiseAreaLabel: 'Area of expertise',
       complianceReviewModeTitle: 'Compliance review mode',
       complianceReviewModeSubtitle: 'Simulate the project questionnaire and view in parallel the triggered rules, compliance questions and risks.',
@@ -1378,7 +1383,6 @@ export default {
     commentSavedMessage: 'Comment saved.',
     commentClearedMessage: 'Comment cleared.',
     replyAddedMessage: 'Reply added.',
-    invalidEmailMessage: 'Please enter a valid email address.',
     memberAddedTemplate: '{{email}} added to the team.',
     defaultTeamLabel: 'Compliance team',
     defaultUserLabel: 'User',
@@ -1393,7 +1397,6 @@ export default {
     submitProjectButton: 'Submit project',
     shareSectionTitle: 'Project sharing',
     shareSectionHint: 'Add a team member so they can also find this project in their list.',
-    addButton: 'Add',
     removeMemberAriaLabel: 'Remove {{member}}',
     closeButton: 'Close',
     teamsHeadingLabel: 'Teams to involve',

@@ -18,6 +18,7 @@ import { resolveLocalizedText } from '../utils/localizedContent.js';
 import { renderTextWithLinks } from '../utils/linkify.js';
 import { ProjectShowcase } from './ProjectShowcase.jsx';
 import { RichTextEditor } from './RichTextEditor.jsx';
+import { PeoplePicker } from './PeoplePicker.jsx';
 import { extractProjectName } from '../utils/projects.js';
 import { getTeamPriority } from '../utils/projectExport.js';
 import {
@@ -531,7 +532,6 @@ export const SynthesisReport = ({
   const [teamCollapsedOverrides, setTeamCollapsedOverrides] = useState({});
   const [openTeamCommentEditors, setOpenTeamCommentEditors] = useState({});
   const [openTeamReplyBoxes, setOpenTeamReplyBoxes] = useState({});
-  const [shareMemberDraft, setShareMemberDraft] = useState('');
   const [shareMemberFeedback, setShareMemberFeedback] = useState('');
   useEffect(() => {
     if (!tourContext?.isActive) {
@@ -1284,21 +1284,19 @@ export const SynthesisReport = ({
     }));
   }, []);
 
-  const handleShareMemberAdd = useCallback(() => {
+  const handleShareMemberAdd = useCallback((emails) => {
     if (typeof onShareProjectMember !== 'function') {
       return;
     }
 
-    const normalized = normalizeEmail(shareMemberDraft);
+    const normalized = normalizeEmail(Array.isArray(emails) ? emails[0] : emails);
     if (!normalized) {
-      setShareMemberFeedback(t('synthesisReport.invalidEmailMessage'));
       return;
     }
 
     onShareProjectMember(normalized);
-    setShareMemberDraft('');
     setShareMemberFeedback(t('synthesisReport.memberAddedTemplate', { email: normalized }));
-  }, [onShareProjectMember, shareMemberDraft, t]);
+  }, [onShareProjectMember, t]);
 
   const handleShareMemberRemove = useCallback((email) => {
     if (typeof onRemoveProjectMember !== 'function') {
@@ -1478,21 +1476,14 @@ export const SynthesisReport = ({
                   {t('synthesisReport.shareSectionHint')}
                 </p>
               </div>
-              <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
-                <input
-                  type="email"
-                  value={shareMemberDraft}
-                  onChange={(event) => setShareMemberDraft(event.target.value)}
+              <div className="mt-3">
+                <PeoplePicker
+                  multiple={false}
+                  value={[]}
+                  onChange={handleShareMemberAdd}
                   placeholder="prenom.nom@lfb.fr"
-                  className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700"
+                  ariaLabel={t('synthesisReport.shareSectionTitle')}
                 />
-                <button
-                  type="button"
-                  onClick={handleShareMemberAdd}
-                  className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700"
-                >
-                  {t('synthesisReport.addButton')}
-                </button>
               </div>
               {shareMemberFeedback && (
                 <p className="mt-2 text-xs text-emerald-600">{shareMemberFeedback}</p>

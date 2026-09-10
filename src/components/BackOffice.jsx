@@ -47,7 +47,8 @@ import {
   sanitizeRuleCondition
 } from '../utils/ruleConditions.js';
 import { ensureOperatorForType, getOperatorOptionsForType } from '../utils/operatorOptions.js';
-import { formatTeamContacts, parseTeamContacts } from '../utils/teamContacts.js';
+import { normalizeTeamContacts } from '../utils/teamContacts.js';
+import { PeoplePicker } from './PeoplePicker.jsx';
 import {
   createOnboardingAction,
   createOnboardingStep,
@@ -714,7 +715,6 @@ export const BackOffice = ({
   const [selectedFilterQuestionId, setSelectedFilterQuestionId] = useState('');
   const [selectedInspirationFilterQuestionId, setSelectedInspirationFilterQuestionId] = useState('');
   const [newInspirationFormField, setNewInspirationFormField] = useState(() => createEmptyInspirationFormField());
-  const [teamContactDrafts, setTeamContactDrafts] = useState({});
   const undoStackRef = useRef([]);
   const [canUndo, setCanUndo] = useState(false);
   const [undoMessage, setUndoMessage] = useState('');
@@ -778,32 +778,10 @@ export const BackOffice = ({
       minTeamsCount: null
     }
   }), [t]);
-  const parseEmailList = useCallback((value) => (
-    typeof value === 'string'
-      ? value
-        .split(/[,;\n]/)
-        .map((entry) => entry.trim())
-        .filter((entry) => entry.length > 0)
-      : []
-  ), []);
   const normalizedAdminEmails = useMemo(
     () => (Array.isArray(adminEmails) ? adminEmails.filter(Boolean) : []),
     [adminEmails]
   );
-  const [adminEmailsDraft, setAdminEmailsDraft] = useState(() => normalizedAdminEmails.join('\n'));
-  const lastEmittedAdminEmailsRef = useRef(normalizedAdminEmails);
-  useEffect(() => {
-    const emitted = lastEmittedAdminEmailsRef.current;
-    const isOwnEcho = Array.isArray(emitted)
-      && emitted.length === normalizedAdminEmails.length
-      && emitted.every((email, index) => email === normalizedAdminEmails[index]);
-    if (isOwnEcho) {
-      return;
-    }
-    lastEmittedAdminEmailsRef.current = normalizedAdminEmails;
-    const normalizedDraft = normalizedAdminEmails.join('\n');
-    setAdminEmailsDraft((previousDraft) => (previousDraft === normalizedDraft ? previousDraft : normalizedDraft));
-  }, [normalizedAdminEmails]);
   const normalizedCurrentUserEmail = useMemo(
     () => (typeof currentUserEmail === 'string' ? currentUserEmail.trim().toLowerCase() : ''),
     [currentUserEmail]
@@ -3976,25 +3954,6 @@ export const BackOffice = ({
     enqueueTeamWrite('save', { team: updatedTeam, sortOrder });
   };
 
-  const handleTeamContactsChange = (index, teamId, value) => {
-    setTeamContactDrafts((prev) => ({
-      ...prev,
-      [teamId]: value
-    }));
-    updateTeamField(index, 'contacts', parseTeamContacts(value));
-  };
-
-  const handleTeamContactsBlur = (teamId) => {
-    setTeamContactDrafts((prev) => {
-      if (!Object.prototype.hasOwnProperty.call(prev, teamId)) {
-        return prev;
-      }
-      const next = { ...prev };
-      delete next[teamId];
-      return next;
-    });
-  };
-
   const deleteTeam = (id) => {
     const targetIndex = teams.findIndex((team) => team.id === id);
     if (targetIndex < 0) {
@@ -4017,14 +3976,6 @@ export const BackOffice = ({
     });
 
     setTeams((prevTeams) => prevTeams.filter((team) => team.id !== id));
-    setTeamContactDrafts((prev) => {
-      if (!Object.prototype.hasOwnProperty.call(prev, id)) {
-        return prev;
-      }
-      const next = { ...prev };
-      delete next[id];
-      return next;
-    });
     enqueueTeamWrite('remove', { teamId: id });
   };
 
@@ -6615,22 +6566,19 @@ export const BackOffice = ({
                             >
                               {t('backOffice.main.emailAddressesLabel')}
                             </label>
-                            <input
-                              id={`validation-committee-emails-${committee.id}`}
-                              type="text"
-                              value={committee.emails.join(', ')}
-                              onChange={(event) =>
-                                updateCommitteeEntry(committee.id, (prev) => ({
-                                  ...prev,
-                                  emails: parseEmailList(event.target.value)
-                                }))
-                              }
-                              className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                              placeholder={t('backOffice.main.committeeEmailsPlaceholder')}
-                            />
-                            <p className="mt-2 text-xs text-gray-500">
-                              {t('backOffice.main.separateAddressesHint')}
-                            </p>
+                            <div className="mt-2">
+                              <PeoplePicker
+                                id={`validation-committee-emails-${committee.id}`}
+                                value={committee.emails}
+                                onChange={(emails) =>
+                                  updateCommitteeEntry(committee.id, (prev) => ({
+                                    ...prev,
+                                    emails
+                                  }))
+                                }
+                                placeholder={t('backOffice.main.committeeEmailsPlaceholder')}
+                              />
+                            </div>
                           </div>
                         </div>
 
@@ -7283,48 +7231,19 @@ export const BackOffice = ({
                   <label htmlFor="admin-emails" className="text-sm font-medium text-gray-700">
                     {t('backOffice.main.adminEmailsLabel')}
                   </label>
-                  <textarea
-                    id="admin-emails"
-                    rows={4}
-                    value={adminEmailsDraft}
-                    onChange={(event) => {
-                      const nextValue = event.target.value;
-                      setAdminEmailsDraft(nextValue);
-                      const nextEmails = parseEmailList(nextValue);
-                      lastEmittedAdminEmailsRef.current = nextEmails;
-                      if (typeof setAdminEmails === 'function') {
-                        setAdminEmails(nextEmails);
-                      }
-                    }}
-                    className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                    placeholder={t('backOffice.main.adminEmailsPlaceholder')}
-                  />
-                  <p className="mt-2 text-xs text-gray-500">
-                    {t('backOffice.main.adminEmailsSeparateHint')}
-                  </p>
-                </div>
-
-                {normalizedAdminEmails.length > 0 ? (
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                      {t('backOffice.main.registeredAdminsTemplate', { count: normalizedAdminEmails.length })}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {normalizedAdminEmails.map((email) => (
-                        <span
-                          key={email}
-                          className="px-2 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100 text-xs font-medium"
-                        >
-                          {email}
-                        </span>
-                      ))}
-                    </div>
+                  <div className="mt-2">
+                    <PeoplePicker
+                      id="admin-emails"
+                      value={normalizedAdminEmails}
+                      onChange={(nextEmails) => {
+                        if (typeof setAdminEmails === 'function') {
+                          setAdminEmails(nextEmails);
+                        }
+                      }}
+                      placeholder={t('backOffice.main.adminEmailsPlaceholder')}
+                    />
                   </div>
-                ) : (
-                  <p className="text-sm text-gray-500">
-                    {t('backOffice.main.noAdminRegistered')}
-                  </p>
-                )}
+                </div>
               </div>
 
               {isCurrentUserAdmin && (
@@ -7637,20 +7556,14 @@ export const BackOffice = ({
                       <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1" htmlFor={`${team.id}-contact`}>
                         {t('backOffice.main.emailContactsLabel')}
                       </label>
-                      <textarea
-                        id={`${team.id}-contact`}
-                        value={teamContactDrafts[team.id] ?? formatTeamContacts(team, ', ')}
-                        onChange={(event) =>
-                          handleTeamContactsChange(index, team.id, event.target.value)
-                        }
-                        onBlur={() => handleTeamContactsBlur(team.id)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-2"
-                        rows={2}
-                        placeholder={t('backOffice.main.teamContactsPlaceholder')}
-                      />
-                      <p className="text-xs text-gray-500 mb-4">
-                        {t('backOffice.main.separateAddressesHint')}
-                      </p>
+                      <div className="mb-4">
+                        <PeoplePicker
+                          id={`${team.id}-contact`}
+                          value={normalizeTeamContacts(team)}
+                          onChange={(emails) => updateTeamField(index, 'contacts', emails)}
+                          placeholder={t('backOffice.main.teamContactsPlaceholder')}
+                        />
+                      </div>
 
                       <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1" htmlFor={`${team.id}-expertise`}>
                         {t('backOffice.main.expertiseAreaLabel')}

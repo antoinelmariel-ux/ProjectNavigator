@@ -177,22 +177,23 @@ export async function grantSelfComplianceExpertAndCommitteeAccess(page, adminPas
   await page.getByRole('button', { name: /Accéder au Back-office/ }).click();
   await expect(page.getByRole('heading', { name: 'Back-office' })).toBeVisible();
 
+  // Les 3 champs ci-dessous sont un PeoplePicker (src/components/PeoplePicker.jsx) : on tape
+  // l'adresse puis Entrée la valide et l'ajoute à la liste existante (pas de fill/blur sur un
+  // textarea brut comme avant son introduction).
   await page.getByRole('tab', { name: /Administrateurs/ }).click();
   const adminEmailsField = page.getByLabel('Adresses e-mail des administrateurs');
-  const existingAdmins = await adminEmailsField.inputValue();
-  await adminEmailsField.fill(existingAdmins + '\nbertrand.darieux@lfb.fr');
+  await adminEmailsField.fill('bertrand.darieux@lfb.fr');
+  await adminEmailsField.press('Enter');
 
   await page.getByRole('tab', { name: /Équipes/ }).click();
-  const contactsTextarea = page.locator('textarea[id$="-contact"]').first();
-  const existingContacts = await contactsTextarea.inputValue();
-  await contactsTextarea.fill(existingContacts + ', bertrand.darieux@lfb.fr');
-  await contactsTextarea.blur();
+  const contactsField = page.locator('input[id$="-contact"]').first();
+  await contactsField.fill('bertrand.darieux@lfb.fr');
+  await contactsField.press('Enter');
 
   await page.getByRole('tab', { name: /Comités de validation/ }).click();
-  const committeeEmailsField = page.getByPlaceholder('ex: comite@company.com, bureau@company.com').first();
-  const existingEmails = await committeeEmailsField.inputValue();
-  await committeeEmailsField.fill(existingEmails + ', bertrand.darieux@lfb.fr');
-  await committeeEmailsField.blur();
+  const committeeEmailsField = page.getByPlaceholder('Rechercher un membre du comité…').first();
+  await committeeEmailsField.fill('bertrand.darieux@lfb.fr');
+  await committeeEmailsField.press('Enter');
 
   await page.getByRole('button', { name: 'Mode Chef de Projet' }).click();
   await expect(page.getByRole('button', { name: /Créer un projet/ }).first()).toBeVisible();

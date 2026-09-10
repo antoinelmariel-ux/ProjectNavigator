@@ -342,6 +342,12 @@ s'arrête quand ton compte change) et vérifie les connexions utilisées en haut
   reconnaît automatiquement qui ils sont.
 - Mise à jour de l'app : il suffira de remplacer les fichiers dans `CN-App`. Les données, elles,
   vivent dans les listes — elles ne sont jamais touchées par une mise à jour.
+- **Recherche de personnes** (partage de projet, contacts d'équipe, comités, administrateurs) :
+  rien à créer de ton côté. L'app interroge directement l'annuaire du site (le même mécanisme que
+  la boîte « Partager » native de SharePoint) — pas de nouvelle liste, pas de nouveau flux Power
+  Automate. Seule limite : une personne qui a accès au site uniquement via un groupe de sécurité
+  reste normalement trouvable dans cette recherche, mais l'app ne peut pas vérifier si elle a déjà
+  accès au site par ce biais.
 
 ## Étape 7 — Ce que tu me transmets pour lancer la migration
 

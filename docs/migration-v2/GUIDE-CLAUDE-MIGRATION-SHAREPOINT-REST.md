@@ -35,6 +35,7 @@
 | 10 — Build & vérification | ⬜ À faire | Reste la recette sur le site DEV (voir `PREPARATION-SHAREPOINT-POWERAUTOMATE.md` étape 8) |
 | 11 — Résilience réseau | ✅ Fait | `src/utils/retryQueue.js` : file d'attente générique avec réessais à délai croissant, réutilisée pour les membres/post-its/commentaires (`autosaveQueue.js`, spécifique aux projets, reste inchangé). Un écouteur `online`/`offline` unique dans `App.jsx` relance les files au retour de connexion et pilote un bandeau « hors ligne » — rejoue toujours uniquement les éléments en attente, jamais un renvoi complet de l'état local |
 | 12 — Profil utilisateur & onboarding | ✅ Fait | Nouvelle liste `CN_UserProfiles` (une ligne par personne, clé `UserEmail`) et `src/utils/userProfileProvider.js`, même patron que les autres fournisseurs. Écran `OnboardingScreen.jsx` affiché à la première connexion (tant que `HasCompletedOnboarding` n'est pas vrai) pour choisir le périmètre d'activité, puis proposition de la visite guidée existante (`handleStartOnboarding`, inchangée) ; section « Mon profil » (modale dans `App.jsx`) pour modifier ensuite périmètre et langue. Le périmètre d'activité est exposé comme pseudo-question (`getConditionQuestionEntries` dans `src/utils/questions.js`) et devient ainsi sélectionnable comme condition dans l'éditeur de règles/questions du back-office, sans changement du moteur d'évaluation lui-même |
+| 13 — Recherche de personnes | ✅ Fait | `src/utils/peopleSearch.js` (`clientPeoplePickerSearchUser`) + `src/components/PeoplePicker.jsx`, remplace la saisie libre d'e-mail (partage de projet, administrateurs, comités, contacts d'équipe). Lecture seule sous la session de l'utilisateur courant : aucun flux Power Automate requis — voir §13 |
 
 Deux mécanismes JSON locaux devenus obsolètes ont été supprimés (ne pas les réintroduire) :
 le dossier `submitted-projects/`/`submitted-inspirations/` (import automatique de fichiers
@@ -49,8 +50,8 @@ Tests associés : `test/sharepointConfig.test.mjs`, `test/spRestClient.test.mjs`
 `test/documentStore.test.mjs`, `test/projectMembersProvider.test.mjs`,
 `test/showcaseStickyNotesProvider.test.mjs`, `test/complianceCommentsProvider.test.mjs`,
 `test/mergeComplianceComments.test.mjs`, `test/retryQueue.test.mjs`,
-`test/userProfileProvider.test.mjs`, `test/rulesProvider.test.mjs`, `test/teamsProvider.test.mjs`
-(175 tests verts au total).
+`test/userProfileProvider.test.mjs`, `test/rulesProvider.test.mjs`, `test/teamsProvider.test.mjs`,
+`test/peopleSearch.test.mjs`.
 
 ⚠️ **Piège CSS confirmé en phase 8** : `scripts/generate-tailwind-lite.js` ne détecte que les
 `className="…"` **littéraux et entre guillemets doubles** (regex `class(?:Name)?\s*=\s*"…"`).
@@ -638,3 +639,40 @@ chemin, et il est téléchargeable depuis un autre poste.
 | Modules touchant `window` à l'import | Interdit — accès paresseux uniquement (tests Node) |
 | Envoi d'e-mail depuis l'app | Interdit — `CN_NotificationsQueue` + Power Automate uniquement |
 | Classes Tailwind construites dynamiquement | Non détectées par `generate-tailwind-lite` → garder une occurrence littérale |
+| `clientPeoplePickerSearchUser` avec `odata=nometadata` | Cet endpoint exige l'enveloppe `__metadata` typée → seul appel du projet en `metadata: 'verbose'` (voir §13) |
+
+---
+
+## 13. Recherche de personnes (people picker) — pas de flux Power Automate
+
+Remplace la saisie libre d'adresses (partage de projet, contacts d'équipe, comités de
+validation, administrateurs) par une recherche dans l'annuaire du tenant : `src/utils/peopleSearch.js`
+(logique), `src/components/PeoplePicker.jsx` (UI réutilisable, chips + suggestions), branchés dans
+`SynthesisReport.jsx` (partage de projet) et `BackOffice.jsx` (administrateurs, comités, contacts
+d'équipe).
+
+**Endpoint** : `POST /_api/SP.UI.ApplicationPages.ClientPeoplePickerWebServiceInterface.clientPeoplePickerSearchUser`
+— le *people picker* natif de SharePoint (celui des boîtes de dialogue « Partager »), pas Microsoft
+Graph. `PrincipalType: 1` limite les résultats aux utilisateurs (exclut groupes SharePoint et
+groupes de sécurité, qui remonteraient comme une seule entité opaque plutôt que leurs membres).
+
+**Pourquoi aucun flux Power Automate n'est nécessaire ici**, contrairement à la règle générale du
+§0.5 (« Quand REST ne suffit pas → Power Automate ») : cet appel est une **lecture** exécutée avec
+les droits de l'utilisateur courant — il n'écrit rien et n'a besoin d'aucun droit élevé. Il ne fait
+que remplacer la validation d'une adresse tapée à la main par une recherche dans l'annuaire ; il
+**n'ajoute personne au site SharePoint** et ne modifie aucune permission. Rien à préparer côté
+Power Automate ni côté schéma de liste pour cette fonctionnalité.
+
+**Limite connue, à ne pas prendre pour un bug** : une personne qui a accès au site uniquement via
+un groupe de sécurité Azure AD reste sélectionnable normalement par ce picker (elle est bien dans
+l'annuaire du tenant), mais rien ici ne vérifie si elle a *déjà* accès au site — cette
+vérification-là nécessiterait Microsoft Graph (`checkMemberGroups`/`transitiveMembers`), exclu par
+les contraintes du §0. Ce n'est pas le problème que ce composant résout : il sécurise la saisie
+d'une adresse, pas l'accès réel au site.
+
+**Repli mode mock** : hors mode SharePoint (`file://`, dev local, e2e), `peopleSearch.js` cherche
+dans `src/data/mockOrgDirectory.js` (annuaire fictif, jamais chargé en mode SharePoint réel).
+
+**Non vérifié sur le tenant réel** : si le partage externe est autorisé sur `lfb1.sharepoint.com`,
+ce picker peut aussi remonter des comptes invités/externes selon la configuration du tenant — à
+confirmer sur le site réel, pas supposé ici.

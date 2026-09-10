@@ -31,7 +31,12 @@ const DEFERRED_MODULES = new Set([
   'src/components/showcase/SectionFrame.jsx',
   'src/components/showcase/SectionInserter.jsx',
   'src/components/showcase/ShowcaseEditorBar.jsx',
-  'src/components/showcase/ShowcaseOutline.jsx'
+  'src/components/showcase/ShowcaseOutline.jsx',
+  // Recherche d'annuaire (people picker) : seuls BackOffice.jsx et SynthesisReport.jsx
+  // (déjà différés) l'importent.
+  'src/components/PeoplePicker.jsx',
+  'src/utils/peopleSearch.js',
+  'src/data/mockOrgDirectory.js'
 ]);
 
 const ALLOWED_EXTENSIONS = new Set(['.js', '.jsx', '.json']);
