@@ -1,3 +1,5 @@
+import { isImpersonating } from './impersonation.js';
+
 // Sans backend réel, les providers "Mock*" (utilisés hors mode SharePoint) doivent survivre
 // à un rechargement de page comme le reste de l'état applicatif (voir storage.js) : sans
 // cela, tout ce qu'ils gèrent (profil, membres de projet, commentaires, sticky notes...)
@@ -24,6 +26,12 @@ export const loadPersistedMockMap = (storageKey) => {
 };
 
 export const savePersistedMockMap = (storageKey, map) => {
+  // Même raison que dans storage.js : une simulation ne doit rien laisser dans le localStorage
+  // partagé avec la session réelle (brouillons de vitrine inclus, voir showcaseEditor.js).
+  if (isImpersonating()) {
+    return;
+  }
+
   const storage = getLocalStorage();
   if (!storage) {
     return;

@@ -46,6 +46,13 @@ export const createRetryQueue = ({ processItem, onStatusChange, getItemKey } = {
         await processItem(entry.payload);
         setStatus('synced', { queueSize: queue.length });
       } catch (error) {
+        // Une écriture refusée par la simulation d'identité échouera à l'identique à chaque
+        // essai : on abandonne tout de suite au lieu d'enchaîner cinq réessais inutiles.
+        if (error?.name === 'ReadOnlySimulationError') {
+          setStatus('error', { queueSize: queue.length, error });
+          continue;
+        }
+
         const retryCount = (entry.retryCount || 0) + 1;
         if (retryCount > MAX_RETRIES) {
           setStatus('error', { queueSize: queue.length, error });

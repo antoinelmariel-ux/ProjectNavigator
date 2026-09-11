@@ -62,6 +62,16 @@ export const createAutosaveQueue = ({ processItem, onStatusChange }) => {
           continue;
         }
 
+        // Voir retryQueue.js : pas de réessai pour une écriture bloquée par la simulation.
+        if (error?.name === 'ReadOnlySimulationError') {
+          setStatus('error', {
+            queueSize: queue.length,
+            error,
+            projectId: item?.project?.id
+          });
+          continue;
+        }
+
         const retryCount = (item.retryCount || 0) + 1;
         if (retryCount > MAX_RETRIES) {
           setStatus('error', {

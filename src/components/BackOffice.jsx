@@ -50,6 +50,7 @@ import {
 import { ensureOperatorForType, getOperatorOptionsForType } from '../utils/operatorOptions.js';
 import { normalizeTeamContacts } from '../utils/teamContacts.js';
 import { PeoplePicker } from './PeoplePicker.jsx';
+import { buildImpersonationUrl, isImpersonating } from '../utils/impersonation.js';
 import {
   createOnboardingAction,
   createOnboardingStep,
@@ -801,6 +802,21 @@ export const BackOffice = ({
     () => (Array.isArray(adminEmails) ? adminEmails.filter(Boolean) : []),
     [adminEmails]
   );
+  const [impersonationSelection, setImpersonationSelection] = useState([]);
+  const isSimulatedSession = isImpersonating();
+  // Un second onglet plutôt qu'une bascule sur place : l'identité est lue une seule fois au
+  // démarrage (voir main.jsx), et l'onglet administrateur garde sa session et ses saisies.
+  // `noopener` lui donne un sessionStorage vierge et l'empêche de manipuler cet onglet-ci.
+  const handleOpenImpersonation = useCallback(() => {
+    const email = impersonationSelection[0];
+    if (!email || typeof window === 'undefined' || !window.location) {
+      return;
+    }
+    const url = buildImpersonationUrl(email, window.location.href);
+    if (url) {
+      window.open(url, '_blank', 'noopener');
+    }
+  }, [impersonationSelection]);
   const normalizedCurrentUserEmail = useMemo(
     () => (typeof currentUserEmail === 'string' ? currentUserEmail.trim().toLowerCase() : ''),
     [currentUserEmail]
@@ -7272,6 +7288,43 @@ export const BackOffice = ({
                   </div>
                 </div>
               </div>
+
+              {isCurrentUserAdmin && !isSimulatedSession && (
+                <div className="bg-white border border-purple-200 rounded-xl p-6 shadow-sm space-y-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800">{t('backOffice.main.viewAsTitle')}</h3>
+                    <p className="text-sm text-gray-600 mt-1">{t('backOffice.main.viewAsDescription')}</p>
+                  </div>
+
+                  <div>
+                    <label htmlFor="view-as-email" className="text-sm font-medium text-gray-700">
+                      {t('backOffice.main.viewAsLabel')}
+                    </label>
+                    <div className="mt-2">
+                      <PeoplePicker
+                        id="view-as-email"
+                        value={impersonationSelection}
+                        onChange={setImpersonationSelection}
+                        multiple={false}
+                        requestSiteAccess={false}
+                        context="Simulation d'identité"
+                        placeholder={t('backOffice.main.viewAsPlaceholder')}
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleOpenImpersonation}
+                    disabled={impersonationSelection.length === 0}
+                    className="inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    {t('backOffice.main.viewAsButton')}
+                  </button>
+
+                  <p className="text-xs text-gray-500">{t('backOffice.main.viewAsHint')}</p>
+                </div>
+              )}
 
               {isCurrentUserAdmin && (
                 <div className="bg-white border border-blue-200 rounded-xl p-6 shadow-sm space-y-4">

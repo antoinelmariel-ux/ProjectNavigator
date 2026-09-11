@@ -1,7 +1,9 @@
 import React from './react.js';
 import { ReactDOM } from './react.js';
 import { App } from './App.jsx';
-import { initSharePointContext, getCurrentUser } from './utils/spContext.js';
+import { initSharePointContext, getRealUser } from './utils/spContext.js';
+import { readImpersonationRequest, startImpersonation } from './utils/impersonation.js';
+import { normalizeEmail } from './utils/normalizeEmail.js';
 import mockCurrentUser from './data/graph-current-user.json';
 import { LanguageProvider, LanguageContext } from './i18n/LanguageContext.jsx';
 import { loadPersistedState } from './utils/storage.js';
@@ -39,7 +41,9 @@ class AppErrorBoundary extends React.Component {
 
   buildReportPayload = ({ userComment = '', isFollowUp = false } = {}) => {
     const { error, errorInfo } = this.state;
-    const user = getCurrentUser();
+    // Identité réelle et non simulée : c'est la personne qui a réellement subi le plantage
+    // que l'équipe technique doit pouvoir recontacter.
+    const user = getRealUser();
     return buildErrorReportEmail({
       message: error && error.message,
       stack: error && error.stack,
@@ -209,10 +213,38 @@ const renderApplication = () => {
   }
 };
 
+// « Voir en tant que » : l'identité simulée doit être posée avant le premier rendu, comme
+// l'identité réelle, parce qu'App.jsx la lit une seule fois et la traite ensuite comme une
+// référence stable. Le contrôle porte sur l'identité réelle, jamais sur la simulée, sinon
+// simuler un administrateur suffirait à le devenir.
+const applyImpersonationRequest = () => {
+  const requestedEmail = readImpersonationRequest(
+    typeof window !== 'undefined' && window.location ? window.location.search : ''
+  );
+
+  if (!requestedEmail) {
+    return;
+  }
+
+  const realUser = getRealUser();
+  const realEmail = normalizeEmail(realUser?.mail || realUser?.userPrincipalName || '');
+  const admins = resolveMaintenanceRecipients().map(normalizeEmail).filter(Boolean);
+
+  if (!realEmail || !admins.includes(realEmail)) {
+    console.warn('Simulation d’identité ignorée : la session en cours n’est pas administratrice.');
+    return;
+  }
+
+  startImpersonation({ email: requestedEmail });
+};
+
 // L'identité est résolue avant le premier rendu : App.jsx peut alors la lire de façon
 // synchrone. Hors SharePoint, initSharePointContext retombe immédiatement sur le mock.
 initSharePointContext({ fallbackUser: mockCurrentUser })
   .catch((error) => {
     console.error('Initialisation du contexte SharePoint impossible :', error);
   })
-  .then(renderApplication);
+  .then(() => {
+    applyImpersonationRequest();
+    renderApplication();
+  });

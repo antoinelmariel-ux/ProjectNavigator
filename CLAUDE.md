@@ -98,6 +98,29 @@ The app is being migrated off mocks onto real SharePoint lists, using the **Shar
 - Never seed `createDemoProject()` when `isSharePointMode()` is true (see the `isSharePointMode()` guards around it in `App.jsx`, and the demo-project filter in `syncMerge.js`). The demo project only makes sense as first-run local filler; in SharePoint mode it raced the autosave effect and got written to the real `CN_Projects` list as a fake row before the server hydration had a chance to reconcile it away.
 - **The top-level `AppErrorBoundary` (`src/main.jsx`) reports every crash to `CN_NotificationsQueue` automatically**, in `componentDidCatch` — the maintenance team must hear about a crash even if the user closes the tab without clicking anything. The "send a report" button on screen is a second, optional step: with an empty comment it does nothing beyond confirming to the user that their incident is already known (no second network call); with a comment, it queues a follow-up notification (`buildErrorReportEmail({..., isFollowUp: true})`, subject prefixed "Error report - details added") carrying that context, so the technical team doesn't mistake it for a second, unrelated crash. `src/utils/notificationTemplates.js#buildErrorReportEmail` formats message/stack/component-stack/screen/user/comment into the same HTML-email shape `buildNotification()` uses elsewhere, and `queueNotification(...)` puts it on the existing notifications queue/Power Automate flow — no new list, no new flow. Recipients are read directly from `loadPersistedState().adminEmails` (falling back to `initialAdminEmails`) rather than from `App.jsx` state, since the boundary wraps `App` and can't assume it mounted.
 
+## Identity simulation ("Voir en tant que")
+
+An admin can check what another person actually sees by opening the app in a **second tab** with
+`?viewAs=<email>` (launcher in the back-office `Administrateurs` tab, `window.open(..., 'noopener')`).
+`src/utils/impersonation.js` holds the simulated identity; `spContext.js#getCurrentUser` returns it in
+place of the real session, so every role derivation (admin list, team contacts, committee membership,
+project ownership, activity scope) follows with no other branch point. `getRealUser()` keeps the real
+session for access checks and the banner. A second tab rather than an in-place toggle, because
+`App.jsx` reads the identity once and treats it as stable for the life of the app.
+
+`main.jsx` applies the URL param only when the **real** identity is in `adminEmails` — never the
+simulated one, or simulating an admin would grant admin. It is not a security boundary and doesn't
+need to be: REST calls still carry the real SPO cookies, so simulation changes what the UI computes,
+never what the server returns.
+
+While a simulation is active **every write path is neutralized**: `spRestClient.js#request` (which also
+covers `CN_NotificationsQueue`, so no real Power Automate mail), `storage.js#persistState` (returns
+`ok: true` on purpose, otherwise App shows a false "storage full" banner), `savePersistedMockMap`
+(showcase drafts included) and `storeLanguage`. `retryQueue.js`/`autosaveQueue.js` treat
+`ReadOnlySimulationError` as non-retryable. Onboarding is skipped in simulation since completing it
+would be blocked anyway. If you add a new write path, guard it too: the simulation tab shares
+`localStorage` with the admin's real tab and would otherwise clobber their state.
+
 ## The showcase editor (live canvas)
 
 Editing the project showcase is not a form that describes the showcase — it *is* the showcase, with editing chrome laid over the real rendering. Three things follow from that, and breaking any of them silently degrades the whole thing back to a blind form:
