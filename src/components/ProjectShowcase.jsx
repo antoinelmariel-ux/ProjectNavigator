@@ -224,11 +224,15 @@ const normalizeSectionAccents = (value) => {
   return normalized;
 };
 
-const resolveAccentFamily = (value, themeFamily) => {
+// `families` n'est fourni que pour les sections intégrées : chaque thème recolore les six
+// mêmes familles pour rester cohérent avec sa marque (voir `sectionAccentFamilies` dans
+// showcaseThemes.js). Les blocs personnalisés continuent de piocher dans la palette
+// universelle, indépendante du thème actif.
+const resolveAccentFamily = (value, themeFamily, families = SECTION_ACCENT_FAMILIES) => {
   if (themeFamily && (!value || value === THEME_ACCENT_FAMILY_ID)) {
     return themeFamily;
   }
-  return SECTION_ACCENT_FAMILIES.find(family => family.id === value) || themeFamily || SECTION_ACCENT_FAMILIES[2];
+  return families.find(family => family.id === value) || themeFamily || families[2] || SECTION_ACCENT_FAMILIES[2];
 };
 
 const SECTION_TEMPLATE_CONFIG = {
@@ -2778,13 +2782,20 @@ export const ProjectShowcase = ({
     () => buildThemeAccentFamily((selectedTheme || FALLBACK_SHOWCASE_THEME).palette),
     [selectedTheme]
   );
+  // Couleurs alternatives proposées pour les sections intégrées : recolorées par thème pour
+  // rester cohérentes avec la marque active (repli sur la palette universelle si le thème
+  // n'en fournit pas — cas du thème de secours sans palette).
+  const themeSectionAccentFamilies = useMemo(() => {
+    const families = (selectedTheme || FALLBACK_SHOWCASE_THEME).sectionAccentFamilies;
+    return Array.isArray(families) && families.length > 0 ? families : SECTION_ACCENT_FAMILIES;
+  }, [selectedTheme]);
   const sectionAccents = useMemo(
     () => normalizeSectionAccents(previewAnswers?.showcaseSectionAccents),
     [previewAnswers]
   );
   const resolveSectionAccent = useCallback(
-    (sectionId) => resolveAccentFamily(sectionAccents[sectionId], themeAccentFamily),
-    [sectionAccents, themeAccentFamily]
+    (sectionId) => resolveAccentFamily(sectionAccents[sectionId], themeAccentFamily, themeSectionAccentFamilies),
+    [sectionAccents, themeAccentFamily, themeSectionAccentFamilies]
   );
   const showcaseThemeVariables = useMemo(
     () => buildThemeVariables(selectedTheme || FALLBACK_SHOWCASE_THEME),
@@ -5083,7 +5094,7 @@ export const ProjectShowcase = ({
               </span>
             )}
             <div className="flex flex-wrap gap-2">
-              {[{ id: THEME_ACCENT_FAMILY_ID, ...themeAccentFamily }, ...SECTION_ACCENT_FAMILIES].map((family) => {
+              {[{ id: THEME_ACCENT_FAMILY_ID, ...themeAccentFamily }, ...themeSectionAccentFamilies].map((family) => {
                 const activeId = sectionAccentsDraft[sectionId] || THEME_ACCENT_FAMILY_ID;
                 return (
                   <button

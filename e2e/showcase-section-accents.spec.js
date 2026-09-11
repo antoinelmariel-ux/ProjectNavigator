@@ -66,8 +66,10 @@ test.describe('Couleur des sections de la vitrine', () => {
 
     await page.getByRole('button', { name: /Rose/ }).click();
 
-    // L'aperçu se met à jour immédiatement, avant même la publication.
-    await expect.poll(() => teamAccent(page)).toBe('rgb(147, 37, 121)');
+    // L'aperçu se met à jour immédiatement, avant même la publication. La teinte « rose »
+    // de Tegeline est recolorée pour ce thème (voir sectionAccentFamilies dans
+    // showcaseThemes.js) : ce n'est plus la teinte universelle figée.
+    await expect.poll(() => teamAccent(page)).toBe('rgb(211, 14, 127)');
 
     await page.getByRole('button', { name: 'Publier' }).click();
 
