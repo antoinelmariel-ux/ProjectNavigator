@@ -14,7 +14,14 @@ export default {
       title: 'Affichage interrompu',
       message:
         'Une erreur est survenue pendant le chargement de l’application. Vous pouvez relancer l’affichage avec le bouton ci-dessous.',
-      reloadButton: 'Recharger l’application'
+      reloadButton: 'Recharger l’application',
+      commentLabel: 'Que faisiez-vous avant l’incident ? (optionnel)',
+      commentPlaceholder: 'Décrivez brièvement ce qui s’est passé…',
+      sendReportButton: 'Envoyer un rapport à l’équipe technique',
+      sendingStatus: 'Envoi en cours…',
+      sentStatus: 'Rapport envoyé. Merci, l’équipe technique a été prévenue.',
+      sentMockStatus: 'Rapport journalisé (mode local : aucun e-mail réel n’est envoyé hors de SharePoint).',
+      sendErrorStatus: 'L’envoi a échoué. Réessayez, ou contactez directement l’équipe technique.'
     },
     backOfficeErrorBoundary: {
       title: 'Impossible d’afficher le back-office.',

@@ -14,7 +14,14 @@ export default {
       title: 'Anzeige unterbrochen',
       message:
         'Beim Laden der Anwendung ist ein Fehler aufgetreten. Sie können die Anzeige mit der Schaltfläche unten neu starten.',
-      reloadButton: 'Anwendung neu laden'
+      reloadButton: 'Anwendung neu laden',
+      commentLabel: 'Was haben Sie vor diesem Vorfall gemacht? (optional)',
+      commentPlaceholder: 'Beschreiben Sie kurz, was passiert ist…',
+      sendReportButton: 'Bericht an das technische Team senden',
+      sendingStatus: 'Wird gesendet…',
+      sentStatus: 'Bericht gesendet. Danke, das technische Team wurde benachrichtigt.',
+      sentMockStatus: 'Bericht protokolliert (lokaler Modus: außerhalb von SharePoint wird keine echte E-Mail gesendet).',
+      sendErrorStatus: 'Der Versand ist fehlgeschlagen. Versuchen Sie es erneut oder wenden Sie sich direkt an das technische Team.'
     },
     backOfficeErrorBoundary: {
       title: 'Das Back-office kann nicht angezeigt werden.',

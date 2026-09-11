@@ -211,6 +211,19 @@ Conventions du tableau ci-dessous :
 C'est la liste qui remplace l'envoi d'e-mail direct : l'app y dépose une demande, Power Automate
 envoie et coche « fait ». Elle te sert aussi de **journal consultable** de tout ce qui est parti.
 
+Elle sert aussi de canal pour les **rapports d'erreur d'affichage** : dès que l'écran « Affichage
+interrompu » s'affiche (plantage React intercepté par l'`AppErrorBoundary` de `src/main.jsx`),
+l'app dépose automatiquement une ligne ici — `NotificationType` = « Display error report », message
++ piles d'appels dans `Body` (voir `src/utils/notificationTemplates.js#buildErrorReportEmail`),
+adressée aux administrateurs back-office courants (`adminEmails`) — même flux Power Automate que
+les autres notifications, aucune configuration supplémentaire à faire. L'utilisateur n'a rien à
+cliquer pour que l'équipe technique soit prévenue. Le bouton « Envoyer un rapport à l'équipe
+technique » affiché sur cet écran sert seulement à compléter ce rapport avec un commentaire libre
+(« Que faisiez-vous avant l'incident ? ») : sans commentaire il se contente de confirmer que le
+signalement est déjà pris en compte ; avec un commentaire il dépose une seconde ligne (« Error
+report - details added ») pour que l'équipe rattache ce contexte au même incident. En mode local
+(`file://`) ce n'est qu'un `console.info`, comme pour toute notification simulée.
+
 | Colonne | Type |
 |---|---|
 | Title | (existante — objet du message) |
