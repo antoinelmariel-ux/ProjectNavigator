@@ -31,8 +31,41 @@ class AppErrorBoundary extends React.Component {
     if (typeof console !== 'undefined' && typeof console.error === 'function') {
       console.error('Erreur d\'affichage détectée :', error);
     }
-    this.setState({ error, errorInfo });
+    // L'équipe technique doit être prévenue qu'un plantage a eu lieu même si l'utilisateur
+    // ne clique jamais sur rien : le bouton du rendu ci-dessous sert seulement à ajouter du
+    // contexte et à rassurer l'utilisateur que son incident est bien pris en compte.
+    this.setState({ error, errorInfo }, () => this.sendAutomaticReport());
   }
+
+  buildReportPayload = ({ userComment = '', isFollowUp = false } = {}) => {
+    const { error, errorInfo } = this.state;
+    const user = getCurrentUser();
+    return buildErrorReportEmail({
+      message: error && error.message,
+      stack: error && error.stack,
+      componentStack: errorInfo && errorInfo.componentStack,
+      screenUrl: typeof window !== 'undefined' ? window.location.href : '',
+      userEmail: user && user.mail,
+      userComment,
+      occurredAt: new Date().toISOString(),
+      isFollowUp
+    });
+  };
+
+  sendAutomaticReport = () => {
+    try {
+      const { subject, body, actionType } = this.buildReportPayload();
+      queueNotification({ subject, body, actionType, to: resolveMaintenanceRecipients() }).catch((error) => {
+        if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+          console.warn('Envoi automatique du rapport d\'erreur impossible :', error);
+        }
+      });
+    } catch (error) {
+      if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+        console.warn('Construction du rapport d\'erreur automatique impossible :', error);
+      }
+    }
+  };
 
   handleRefresh = () => {
     if (typeof window !== 'undefined' && window.location) {
@@ -48,18 +81,21 @@ class AppErrorBoundary extends React.Component {
     if (this.state.sendStatus === 'sending' || this.state.sendStatus === 'sent') {
       return;
     }
+
+    const trimmedComment = this.state.userComment.trim();
+    if (!trimmedComment) {
+      // Le plantage est déjà signalé automatiquement : sans contexte à ajouter, on se
+      // contente de confirmer à l'utilisateur que son incident est pris en compte.
+      this.setState({ sendStatus: 'sent' });
+      return;
+    }
+
     this.setState({ sendStatus: 'sending' });
 
     try {
-      const user = getCurrentUser();
-      const { subject, body, actionType } = buildErrorReportEmail({
-        message: this.state.error && this.state.error.message,
-        stack: this.state.error && this.state.error.stack,
-        componentStack: this.state.errorInfo && this.state.errorInfo.componentStack,
-        screenUrl: typeof window !== 'undefined' ? window.location.href : '',
-        userEmail: user && user.mail,
-        userComment: this.state.userComment,
-        occurredAt: new Date().toISOString()
+      const { subject, body, actionType } = this.buildReportPayload({
+        userComment: trimmedComment,
+        isFollowUp: true
       });
 
       const result = await queueNotification({

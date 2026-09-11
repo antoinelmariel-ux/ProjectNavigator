@@ -216,3 +216,16 @@ test('buildErrorReportEmail : les piles trop longues sont tronquées', () => {
   assert.ok(body.includes('…'));
   assert.ok(!body.includes('x'.repeat(4500)));
 });
+
+test('buildErrorReportEmail : isFollowUp distingue le complément du signalement initial', () => {
+  const initial = buildErrorReportEmail({ message: 'Boom' });
+  const followUp = buildErrorReportEmail({ message: 'Boom', userComment: 'Je cliquais sur Valider', isFollowUp: true });
+
+  assert.ok(initial.subject.startsWith('[Project Navigator] Display error report'));
+  assert.equal(initial.actionType, 'Display error report');
+
+  assert.ok(followUp.subject.includes('details added'));
+  assert.equal(followUp.actionType, 'Display error report (details added)');
+  assert.ok(followUp.body.includes('added details'));
+  assert.ok(followUp.body.includes('Je cliquais sur Valider'));
+});

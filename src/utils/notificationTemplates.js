@@ -265,6 +265,10 @@ const preformattedBlock = (label, value) =>
 
 // Gabarit distinct de buildNotification() ci-dessus : un plantage React n'a ni projet ni
 // acteur métier, seulement un message, deux piles d'appels et l'écran où c'est arrivé.
+// `isFollowUp` : le premier envoi part seul, automatiquement, dès que l'AppErrorBoundary
+// intercepte le plantage (voir main.jsx) ; si l'utilisateur complète ensuite avec un
+// commentaire via le bouton, ce second envoi le dit explicitement pour que l'équipe ne
+// le compte pas comme un incident distinct du même crash.
 export const buildErrorReportEmail = ({
   message = '',
   stack = '',
@@ -272,7 +276,8 @@ export const buildErrorReportEmail = ({
   screenUrl = '',
   userEmail = '',
   userComment = '',
-  occurredAt = ''
+  occurredAt = '',
+  isFollowUp = false
 } = {}) => {
   const safeMessage =
     typeof message === 'string' && message.trim() ? message.trim() : 'Unknown error';
@@ -293,10 +298,14 @@ export const buildErrorReportEmail = ({
       ).replace(/\n/g, '<br>')}</blockquote>`
     : '';
 
+  const introLine = isFollowUp
+    ? `<p>The user who hit this display error in Project Navigator added details: <strong>${escapeHtml(safeMessage)}</strong></p>`
+    : `<p>A display error occurred in Project Navigator: <strong>${escapeHtml(safeMessage)}</strong></p>`;
+
   const body =
     '<div style="font-family:Segoe UI,Arial,sans-serif;font-size:14px;line-height:1.5;color:#111">' +
     '<p>Hello,</p>' +
-    `<p>A display error occurred in Project Navigator: <strong>${escapeHtml(safeMessage)}</strong></p>` +
+    introLine +
     commentBlock +
     `<table role="presentation" style="border-collapse:collapse;margin:16px 0">${facts
       .map(([label, value]) => factRow(label, value))
@@ -308,9 +317,11 @@ export const buildErrorReportEmail = ({
     '<p style="font-size:12px;color:#666;margin:6px 0 0">Automated message sent by Project Navigator. Please do not reply to this email.</p>' +
     '</div>';
 
+  const subjectPrefix = isFollowUp ? 'Error report - details added' : 'Display error report';
+
   return {
-    subject: `[Project Navigator] Display error report - ${truncate(safeMessage, 80)}`,
-    actionType: ERROR_REPORT_ACTION_TYPE,
+    subject: `[Project Navigator] ${subjectPrefix} - ${truncate(safeMessage, 80)}`,
+    actionType: isFollowUp ? `${ERROR_REPORT_ACTION_TYPE} (details added)` : ERROR_REPORT_ACTION_TYPE,
     body
   };
 };
