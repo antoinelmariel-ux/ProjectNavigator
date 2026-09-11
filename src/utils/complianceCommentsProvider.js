@@ -60,6 +60,7 @@ const reconstructFromRows = (rows) => {
       const entry = {
         comment: row.Message || '',
         status: row.Status || '',
+        statusUpdatedAt: row.UpdatedAt || '',
         attachments: Array.isArray(row.AttachmentsJson) ? row.AttachmentsJson : [],
         replies: []
       };

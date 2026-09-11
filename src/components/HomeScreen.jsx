@@ -70,6 +70,36 @@ const PUBLIC_VISIBILITY_KEY = '__public_visibility__';
 const PROJECTS_PAGE_SIZE = 6;
 const INSPIRATIONS_PAGE_SIZE = 6;
 
+const RESOLVED_COMPLIANCE_STATUSES = ['validated', 'validated_with_conditions', 'rejected', 'not_concerned'];
+
+// « pending_information » n’est considéré traité que si la dernière action sur le fil
+// (passage au statut, ou réponse) vient de la compliance elle-même : une réponse plus
+// récente du porteur de projet remet le périmètre en file d’attente (« à traiter »).
+const isCompliancePerimeterResolved = (statusEntry, complianceEmails) => {
+  const status = statusEntry?.status;
+
+  if (RESOLVED_COMPLIANCE_STATUSES.includes(status)) {
+    return true;
+  }
+
+  if (status !== 'pending_information') {
+    return false;
+  }
+
+  const statusUpdatedAt = typeof statusEntry?.statusUpdatedAt === 'string' ? statusEntry.statusUpdatedAt : '';
+  const replies = Array.isArray(statusEntry?.replies) ? statusEntry.replies : [];
+  const lastReplyAfterStatus = replies
+    .filter((reply) => !statusUpdatedAt || String(reply?.createdAt || '') > statusUpdatedAt)
+    .sort((a, b) => String(a?.createdAt || '').localeCompare(String(b?.createdAt || '')))
+    .pop();
+
+  if (!lastReplyAfterStatus) {
+    return true;
+  }
+
+  return complianceEmails.includes(normalizeEmail(lastReplyAfterStatus.authorEmail));
+};
+
 const normalizeComplianceComments = (value) => {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
     return {
@@ -488,7 +518,12 @@ export const HomeScreen = ({
             const contacts = normalizeTeamContacts(team);
             return contacts.some((contact) => normalizeEmail(contact) === currentUserEmail);
           })
-          .map((team) => ({ id: team.id, name: resolveLocalizedText(team.name, language) || team.id, type: 'team' }));
+          .map((team) => ({
+            id: team.id,
+            name: resolveLocalizedText(team.name, language) || team.id,
+            type: 'team',
+            complianceEmails: normalizeTeamContacts(team).map(normalizeEmail)
+          }));
 
         const triggeredCommittees = getTriggeredValidationCommittees(normalizedValidationCommitteeConfig, {
           answers: project?.answers || {},
@@ -500,15 +535,20 @@ export const HomeScreen = ({
             const committeeEmails = Array.isArray(committee?.emails) ? committee.emails : [];
             return committeeEmails.some((email) => normalizeEmail(email) === currentUserEmail);
           })
-          .map((committee) => ({ id: committee.id, name: committee.name || committee.id, type: 'committee' }));
+          .map((committee) => ({
+            id: committee.id,
+            name: committee.name || committee.id,
+            type: 'committee',
+            complianceEmails: (Array.isArray(committee.emails) ? committee.emails : []).map(normalizeEmail)
+          }));
 
         const triggeredPerimeters = [...triggeredTeams, ...triggeredCommittees];
 
         const allValidated = triggeredPerimeters.length > 0 && triggeredPerimeters.every((entry) => {
-          const status = entry.type === 'committee'
-            ? comments.committees?.[entry.id]?.status
-            : comments.teams?.[entry.id]?.status;
-          return status === 'validated';
+          const statusEntry = entry.type === 'committee'
+            ? comments.committees?.[entry.id]
+            : comments.teams?.[entry.id];
+          return isCompliancePerimeterResolved(statusEntry, entry.complianceEmails);
         });
 
         const allExpertsValidated = relevantTeams.every((team) => comments.teams?.[team.id]?.status === 'validated');

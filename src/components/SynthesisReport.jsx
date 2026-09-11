@@ -213,6 +213,7 @@ const normalizeCommentEntry = (entry) => {
   return {
     comment,
     status,
+    statusUpdatedAt: typeof entry?.statusUpdatedAt === 'string' ? entry.statusUpdatedAt : '',
     attachments: normalizeCommentAttachments(entry?.attachments),
     replies
   };
@@ -905,6 +906,7 @@ export const SynthesisReport = ({
       const nextEntry = {
         comment: trimmedDraft,
         status: currentEntry.status,
+        statusUpdatedAt: new Date().toISOString(),
         replies: Array.isArray(currentEntry.replies) ? currentEntry.replies : [],
         attachments: normalizeCommentAttachments(currentEntry.attachments)
       };
