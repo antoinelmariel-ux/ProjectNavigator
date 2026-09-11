@@ -1736,7 +1736,7 @@ const REQUIRED_SHOWCASE_QUESTION_IDS = [
   'roadmapMilestones'
 ];
 
-const buildHeroHighlights = ({ targetAudience, runway, t }) => {
+const buildHeroHighlights = ({ targetAudience, projectEnvironment, runway, t }) => {
   const highlights = [];
 
   if (hasText(targetAudience)) {
@@ -1744,6 +1744,15 @@ const buildHeroHighlights = ({ targetAudience, runway, t }) => {
       id: 'audience',
       label: t('projectShowcase.audienceLabel'),
       value: targetAudience,
+      caption: ''
+    });
+  }
+
+  if (hasText(projectEnvironment)) {
+    highlights.push({
+      id: 'projectEnvironment',
+      label: t('projectShowcase.projectEnvironmentLabel'),
+      value: projectEnvironment,
       caption: ''
     });
   }
@@ -2549,6 +2558,7 @@ export const ProjectShowcase = ({
 
   const slogan = getFormattedAnswer(questions, previewAnswers, 'projectSlogan', missingInfoLabel, language);
   const targetAudience = getFormattedAnswer(questions, previewAnswers, 'targetAudience', missingInfoLabel, language);
+  const projectEnvironment = getFormattedAnswer(questions, previewAnswers, 'showcaseTheme', missingInfoLabel, language);
   const problemPainPoints = parseProblemPainPoints(getRawAnswer(previewAnswers, 'problemPainPoints'));
 
   const solutionDescription = getFormattedAnswer(questions, previewAnswers, 'solutionDescription', missingInfoLabel, language);
@@ -2659,10 +2669,11 @@ export const ProjectShowcase = ({
     () =>
       buildHeroHighlights({
         targetAudience,
+        projectEnvironment,
         runway,
         t
       }),
-    [targetAudience, runway, t]
+    [targetAudience, projectEnvironment, runway, t]
   );
 
   const teamMemberCards = useMemo(
@@ -4448,7 +4459,7 @@ export const ProjectShowcase = ({
           // libellé traduit (ex. "Grand public") — utiliser les libellés comme identifiants
           // dans le formulaire d'édition (comme avant) désynchronise la sélection affichée
           // de la vraie réponse du questionnaire.
-          const optionEntries = getQuestionOptionEntries(question);
+          const optionEntries = getQuestionOptionEntries(question, { language });
           const isLong = type === 'long_text';
           const isRichText = type === 'text' || type === 'long_text';
           const isMulti = type === 'multi_choice';

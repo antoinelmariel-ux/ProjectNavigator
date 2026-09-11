@@ -1601,6 +1601,7 @@ export default {
     currentDelayMaintainTemplate: 'Aktuelle Frist: {{diff}}. Diesen Spielraum beibehalten, um den Alarm zu vermeiden.',
     currentDelayCompliantMessage: 'Aktuelle Frist konform. Diesen Spielraum beibehalten, um den Alarm zu vermeiden.',
     audienceLabel: 'Zielgruppe',
+    projectEnvironmentLabel: 'Produkt oder Umfeld',
     countdownLabel: 'Countdown bis zum Start',
     launchOverdueCaption: 'Start geplant für {{date}} (Frist erreicht).',
     launchTodayCaption: 'Start heute geplant ({{date}}).',
