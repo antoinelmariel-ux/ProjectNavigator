@@ -1,5 +1,5 @@
 import React from '../../react.js';
-import { CheckCircle, Close, Eye, LayoutList, Redo, Settings, Undo } from '../icons.js';
+import { CheckCircle, Close, Eye, LayoutList, Redo, Undo } from '../icons.js';
 import { useTranslation } from '../../i18n/LanguageContext.jsx';
 
 /**
@@ -22,8 +22,6 @@ export const ShowcaseEditorBar = ({
   displayMode,
   onDisplayModeChange,
   canConfigureDisplayModes,
-  isLightConfigOpen,
-  onOpenLightConfig,
   isExitConfirmOpen,
   onRequestExit,
   onCancelExit,
@@ -100,17 +98,6 @@ export const ShowcaseEditorBar = ({
                 {t('projectShowcase.fullModeButton')}
               </button>
             </div>
-            <button
-              type="button"
-              className={`sge-icon-btn${isLightConfigOpen ? ' sge-icon-btn--active' : ''}`}
-              aria-pressed={isLightConfigOpen}
-              aria-label={t('projectShowcase.configureButton')}
-              title={t('projectShowcase.configureButton')}
-              onClick={onOpenLightConfig}
-              data-tour-id="showcase-light-config-trigger"
-            >
-              <Settings className="sge-icon-btn__icon" />
-            </button>
           </div>
         )}
 

@@ -52,15 +52,26 @@ test.describe('Couleur des sections de la vitrine', () => {
     // en texte sur fond clair), surtout pas le rose figé d'origine.
     expect(await teamAccent(page)).toBe('rgb(30, 100, 46)');
 
-    await page.getByRole('button', { name: 'Configurer' }).first().click();
-    await expect(page.getByText('Couleur des sections')).toBeVisible();
+    // La couleur d'une section se règle désormais depuis les réglages de cette section
+    // (l'inspecteur d'édition), pas depuis le bouton « Configurer » — qui ne gère plus que
+    // les sections visibles en mode Light et a été retiré de la barre d'édition.
+    await page.getByRole('button', { name: 'Modifier' }).click();
+    const teamFrame = page.locator('[data-sge-section-id="team"]');
+    await teamFrame.scrollIntoViewIfNeeded();
+    // La barre d'outils de la section n'est pointable qu'au survol du cadre (voir
+    // showcase-editor.spec.js) : elle flotte au-dessus de la vitrine sans gêner sa lecture.
+    await teamFrame.hover();
+    await teamFrame.getByRole('button', { name: 'Réglages de la section' }).click();
+    await expect(page.getByText('Couleur de la section')).toBeVisible();
 
-    const teamLabel = page.locator('span', { hasText: /^Équipe & alliances$/ }).last();
-    await teamLabel.scrollIntoViewIfNeeded();
-    await teamLabel.locator('xpath=following-sibling::div[1]').getByRole('button', { name: /Rose/ }).click();
-    await page.getByRole('button', { name: 'Valider' }).click();
+    await page.getByRole('button', { name: /Rose/ }).click();
 
-    await expect.poll(() => teamAccent(page)).toBe('rgb(147, 37, 121)');
+    // L'aperçu se met à jour immédiatement, avant même la publication. La teinte « rose »
+    // de Tegeline est recolorée pour ce thème (voir sectionAccentFamilies dans
+    // showcaseThemes.js) : ce n'est plus la teinte universelle figée.
+    await expect.poll(() => teamAccent(page)).toBe('rgb(211, 14, 127)');
+
+    await page.getByRole('button', { name: 'Publier' }).click();
 
     // Le choix appartient au projet et non à la session : il est écrit dans ses réponses,
     // contrairement à la sélection des sections du mode Light qui reste un réglage éphémère.

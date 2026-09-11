@@ -1698,8 +1698,8 @@ export default {
     templateCounterTemplate: 'Plantilla {{index}}/{{total}}',
     cancelButton: 'Cancelar',
     validateTemplateButton: 'Validar esta plantilla',
-    sectionAccentsTitle: 'Color de las secciones',
-    sectionAccentsHint: 'Cada sección sigue la paleta del tema. Elija un color alternativo si lo prefiere.',
+    sectionAccentsTitle: 'Color de la sección',
+    sectionAccentsHint: 'Por defecto sigue la paleta del tema. Elija un color alternativo, coherente con el tema, si lo prefiere.',
     colorFamilyNames: {
       theme: 'Tema',
       rouge: 'Rojo',

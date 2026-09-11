@@ -1698,8 +1698,8 @@ export default {
     templateCounterTemplate: 'Template {{index}}/{{total}}',
     cancelButton: 'Cancel',
     validateTemplateButton: 'Validate this template',
-    sectionAccentsTitle: 'Section colours',
-    sectionAccentsHint: 'Each section follows the theme palette. Pick an alternative colour if you prefer.',
+    sectionAccentsTitle: 'Section colour',
+    sectionAccentsHint: 'It follows the theme palette by default. Pick an alternative colour — consistent with the theme — if you prefer.',
     colorFamilyNames: {
       theme: 'Theme',
       rouge: 'Red',

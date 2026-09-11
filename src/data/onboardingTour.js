@@ -326,10 +326,10 @@ export const initialOnboardingTourConfig = {
         "es": "Modificar sección por sección"
       },
       "content": {
-        "en": "Click any section directly on the showcase to select it: its text becomes editable in place, and this panel shows its specific settings (template, milestones, visibility…). Everything stays in sync with the compliance report.",
-        "fr": "Cliquez sur une section directement dans la vitrine pour la sélectionner : ses textes deviennent modifiables sur place, et ce panneau affiche ses réglages propres (gabarit, jalons, visibilité…). Tout reste synchronisé avec le rapport de compliance.",
-        "de": "Klicken Sie direkt in der Vitrine auf einen Abschnitt, um ihn auszuwählen: Seine Texte werden an Ort und Stelle bearbeitbar, und dieses Panel zeigt seine spezifischen Einstellungen (Vorlage, Meilensteine, Sichtbarkeit …). Alles bleibt mit dem Compliance-Bericht synchron.",
-        "es": "Haga clic en cualquier sección directamente en la vitrina para seleccionarla: sus textos se vuelven editables in situ, y este panel muestra sus ajustes propios (plantilla, hitos, visibilidad…). Todo permanece sincronizado con el informe de cumplimiento."
+        "en": "Click any section directly on the showcase to select it: its text becomes editable in place, and this panel shows its specific settings (template, milestones, colour, visibility…). Everything stays in sync with the compliance report.",
+        "fr": "Cliquez sur une section directement dans la vitrine pour la sélectionner : ses textes deviennent modifiables sur place, et ce panneau affiche ses réglages propres (gabarit, jalons, couleur, visibilité…). Tout reste synchronisé avec le rapport de compliance.",
+        "de": "Klicken Sie direkt in der Vitrine auf einen Abschnitt, um ihn auszuwählen: Seine Texte werden an Ort und Stelle bearbeitbar, und dieses Panel zeigt seine spezifischen Einstellungen (Vorlage, Meilensteine, Farbe, Sichtbarkeit …). Alles bleibt mit dem Compliance-Bericht synchron.",
+        "es": "Haga clic en cualquier sección directamente en la vitrina para seleccionarla: sus textos se vuelven editables in situ, y este panel muestra sus ajustes propios (plantilla, hitos, color, visibilidad…). Todo permanece sincronizado con el informe de cumplimiento."
       },
       "placement": "left",
       "highlightScope": "target",
