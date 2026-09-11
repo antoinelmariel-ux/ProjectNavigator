@@ -1046,6 +1046,70 @@ const toRgba = (value, alpha = 1, fallback = 'rgba(0, 0, 0, 1)') => {
   return fallback;
 };
 
+const parseHexChannels = (value) => {
+  if (typeof value !== 'string' || !/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(value.trim())) {
+    return null;
+  }
+
+  let hex = value.trim().slice(1);
+  if (hex.length === 3) {
+    hex = hex.split('').map(char => char + char).join('');
+  }
+
+  const numeric = parseInt(hex, 16);
+  return [(numeric >> 16) & 255, (numeric >> 8) & 255, numeric & 255];
+};
+
+const toRgbTriplet = (value, fallback) => {
+  const channels = parseHexChannels(value);
+  return channels ? channels.join(', ') : fallback;
+};
+
+const relativeLuminance = (value) => {
+  const channels = parseHexChannels(value);
+  if (!channels) {
+    return 0;
+  }
+
+  const [r, g, b] = channels.map((channel) => {
+    const ratio = channel / 255;
+    return ratio <= 0.03928 ? ratio / 12.92 : ((ratio + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+
+// La direction artistique « signature » ne lit pas la palette directement : elle expose
+// huit points d'accroche `--showcase-signature-*` (sinon elle retombe sur ses couleurs
+// d'origine et tous les thèmes rendent à l'identique). On les alimente avec les cinq
+// teintes expressives de la palette + son fond le plus sombre.
+const buildSignatureVariables = (palette) => {
+  const accentPrimary = normalizeColorValue(palette.accentPrimary, '#2563eb');
+  const accentSecondary = normalizeColorValue(palette.accentSecondary, '#06b6d4');
+  const highlight = normalizeColorValue(palette.highlight, accentSecondary);
+  const glowPrimary = normalizeColorValue(palette.glowPrimary, accentPrimary);
+  const glowSecondary = normalizeColorValue(palette.glowSecondary, accentSecondary);
+  const backgroundStart = normalizeColorValue(palette.backgroundStart, '#1b1b1b');
+  const inkStrong = normalizeColorValue(palette.inkStrong, '#1b1b1b');
+  // Sur un thème clair le fond de page ne peut pas servir de socle sombre : on prend
+  // alors l'encre forte, qui reste teintée par la marque.
+  const ground = relativeLuminance(backgroundStart) <= relativeLuminance(inkStrong)
+    ? backgroundStart
+    : inkStrong;
+
+  return {
+    '--showcase-signature-don': accentPrimary,
+    '--showcase-signature-plasma': accentSecondary,
+    // `--sg-gold` termine le dégradé du titre et colore les boutons : c'est le point le
+    // plus visible, d'où la teinte lumineuse de la palette (`highlight`) plutôt qu'un
+    // accent sombre qui disparaîtrait sur le fond profond.
+    '--showcase-signature-gold': highlight,
+    '--showcase-signature-vie': glowPrimary,
+    '--showcase-signature-bleu': glowSecondary,
+    '--showcase-signature-ink': ground,
+    '--showcase-signature-ink-rgb': toRgbTriplet(ground, '27, 27, 27')
+  };
+};
+
 const buildThemeVariables = (theme) => {
   const palette = (theme && typeof theme === 'object' ? theme.palette : null) || {};
   const accentPrimary = normalizeColorValue(palette.accentPrimary, '#2563eb');
@@ -1139,7 +1203,8 @@ const buildThemeVariables = (theme) => {
     '--showcase-status-alert-text': statusAlertText,
     '--showcase-accent-soft': toRgba(highlightBase, 0.85, 'rgba(147, 197, 253, 0.85)'),
     '--showcase-accent-strong': toRgba(accentPrimary, 0.9, 'rgba(59, 130, 246, 0.9)'),
-    '--showcase-accent-muted': toRgba(accentPrimary, 0.75, 'rgba(79, 70, 229, 0.75)')
+    '--showcase-accent-muted': toRgba(accentPrimary, 0.75, 'rgba(79, 70, 229, 0.75)'),
+    ...buildSignatureVariables(palette)
   };
 };
 
