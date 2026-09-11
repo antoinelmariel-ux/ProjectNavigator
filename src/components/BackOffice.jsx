@@ -602,26 +602,42 @@ const getProjectFilterFieldDescription = (t, fieldId) =>
     ? t(`backOffice.main.projectFilterFieldDescriptions.${fieldId}`)
     : '';
 
-const SHOWCASE_THEME_PALETTE_FIELD_KEYS = [
-  'backgroundStart',
-  'backgroundMid',
-  'backgroundEnd',
-  'glowPrimary',
-  'glowSecondary',
-  'accentPrimary',
-  'accentSecondary',
-  'surface',
-  'border',
-  'textPrimary',
-  'textSecondary',
-  'highlight'
+const SHOWCASE_THEME_PALETTE_FIELD_GROUPS = [
+  { group: 'background', keys: ['backgroundStart', 'backgroundMid', 'backgroundEnd', 'glowPrimary', 'glowSecondary'] },
+  { group: 'accentsAndText', keys: ['accentPrimary', 'accentSecondary', 'highlight', 'textPrimary', 'textSecondary'] },
+  { group: 'surfaces', keys: ['surface', 'surfaceLight', 'surfaceLightAlt', 'border'] },
+  { group: 'ink', keys: ['inkStrong', 'inkSoft', 'inkMuted', 'inkSubtle'] },
+  { group: 'titleGradient', keys: ['titleGradientStart', 'titleGradientMid', 'titleGradientEnd'] },
+  { group: 'cta', keys: ['ctaStart', 'ctaEnd', 'ctaText'] },
+  { group: 'hero', keys: ['heroBackgroundStart', 'heroBackgroundMid', 'heroBackgroundEnd'] },
+  { group: 'panels', keys: ['panelSoftStart', 'panelSoftEnd', 'panelStrongStart', 'panelStrongEnd'] },
+  {
+    group: 'status',
+    keys: [
+      'statusOkStart',
+      'statusOkEnd',
+      'statusOkText',
+      'statusWarnStart',
+      'statusWarnEnd',
+      'statusWarnText',
+      'statusAlertStart',
+      'statusAlertEnd',
+      'statusAlertText',
+      'statusAlertStrongStart',
+      'statusAlertStrongEnd'
+    ]
+  }
 ];
 
-const buildShowcaseThemePaletteFields = (t) =>
-  SHOWCASE_THEME_PALETTE_FIELD_KEYS.map((key) => ({
-    key,
-    label: t(`backOffice.main.showcaseThemePaletteFields.${key}.label`),
-    description: t(`backOffice.main.showcaseThemePaletteFields.${key}.description`)
+const buildShowcaseThemePaletteFieldGroups = (t) =>
+  SHOWCASE_THEME_PALETTE_FIELD_GROUPS.map(({ group, keys }) => ({
+    group,
+    label: t(`backOffice.main.showcaseThemePaletteGroups.${group}`),
+    fields: keys.map((key) => ({
+      key,
+      label: t(`backOffice.main.showcaseThemePaletteFields.${key}.label`),
+      description: t(`backOffice.main.showcaseThemePaletteFields.${key}.description`)
+    }))
   }));
 
 const createEmptyInspirationFormField = () => ({
@@ -5044,30 +5060,39 @@ export const BackOffice = ({
                             </div>
                           </div>
 
-                          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                            {buildShowcaseThemePaletteFields(t).map((field) => (
-                              <div key={`${themeId}-${field.key}`} className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
-                                <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-600" htmlFor={`${themeId}-${field.key}`}>
-                                  {field.label}
-                                </label>
-                                <div className="flex items-center gap-3">
-                                  <input
-                                    id={`${themeId}-${field.key}`}
-                                    type="color"
-                                    value={normalizeColorValue(palette[field.key], '#000000')}
-                                    onChange={(event) => updateShowcaseThemePalette(index, field.key, event.target.value)}
-                                    className="h-10 w-16 cursor-pointer rounded border border-gray-300 bg-white"
-                                    aria-label={t('backOffice.main.selectColorAriaLabelTemplate', { label: field.label.toLowerCase() })}
-                                  />
-                                  <input
-                                    type="text"
-                                    value={palette[field.key] || ''}
-                                    onChange={(event) => updateShowcaseThemePalette(index, field.key, event.target.value)}
-                                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono"
-                                    placeholder="#000000"
-                                  />
+                          <div className="space-y-4">
+                            {buildShowcaseThemePaletteFieldGroups(t).map((fieldGroup) => (
+                              <div key={`${themeId}-group-${fieldGroup.group}`} className="space-y-2">
+                                <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                  {fieldGroup.label}
+                                </h3>
+                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                                  {fieldGroup.fields.map((field) => (
+                                    <div key={`${themeId}-${field.key}`} className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
+                                      <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-600" htmlFor={`${themeId}-${field.key}`}>
+                                        {field.label}
+                                      </label>
+                                      <div className="flex items-center gap-3">
+                                        <input
+                                          id={`${themeId}-${field.key}`}
+                                          type="color"
+                                          value={normalizeColorValue(palette[field.key], '#000000')}
+                                          onChange={(event) => updateShowcaseThemePalette(index, field.key, event.target.value)}
+                                          className="h-10 w-16 cursor-pointer rounded border border-gray-300 bg-white"
+                                          aria-label={t('backOffice.main.selectColorAriaLabelTemplate', { label: field.label.toLowerCase() })}
+                                        />
+                                        <input
+                                          type="text"
+                                          value={palette[field.key] || ''}
+                                          onChange={(event) => updateShowcaseThemePalette(index, field.key, event.target.value)}
+                                          className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono"
+                                          placeholder="#000000"
+                                        />
+                                      </div>
+                                      <p className="mt-1 text-xs text-gray-500">{field.description}</p>
+                                    </div>
+                                  ))}
                                 </div>
-                                <p className="mt-1 text-xs text-gray-500">{field.description}</p>
                               </div>
                             ))}
                           </div>
