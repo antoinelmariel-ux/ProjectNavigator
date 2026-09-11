@@ -34,8 +34,30 @@ test('une sous-option produit active le thème de la marque', () => {
 });
 
 test('une sous-option environnement active le thème correspondant', () => {
-  const answers = { showcaseTheme: { value: 'environnement', children: ['immunologie'] } };
-  assert.equal(resolveThemeFromActivation(initialShowcaseThemes, answers)?.id, 'immunologie');
+  const expected = { immunologie: 'immunologie', hemostase: 'hemostase' };
+
+  Object.entries(expected).forEach(([optionValue, themeId]) => {
+    const answers = { showcaseTheme: { value: 'environnement', children: [optionValue] } };
+    assert.equal(resolveThemeFromActivation(initialShowcaseThemes, answers)?.id, themeId, optionValue);
+  });
+});
+
+test('seuls des thèmes LFB sont livrés par défaut', () => {
+  assert.deepEqual(
+    initialShowcaseThemes.map((theme) => theme.id),
+    [
+      'universel',
+      'immunologie',
+      'hemostase',
+      'iqymune',
+      'fibclot',
+      'willfact',
+      'tegeline',
+      'vialebex',
+      'alfalastin',
+      'cevenfacta'
+    ]
+  );
 });
 
 test('chaque produit documenté résout vers sa propre palette', () => {
