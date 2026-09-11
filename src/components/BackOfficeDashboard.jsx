@@ -775,6 +775,11 @@ export const BackOfficeDashboard = ({ projects = [], teams = [] }) => {
   const riskSeverityAverages = useMemo(() => {
     const totals = new Map();
     const unclassifiedLabel = t('backOffice.dashboard.riskLevelUnclassified');
+    const riskLevelLabelKeys = {
+      low: 'backOffice.ruleEditor.riskLevelLow',
+      medium: 'backOffice.ruleEditor.riskLevelMedium',
+      high: 'backOffice.ruleEditor.riskLevelHigh'
+    };
 
     filteredProjects.forEach((project) => {
       const risks = Array.isArray(project?.analysis?.risks) ? project.analysis.risks : [];
@@ -782,8 +787,9 @@ export const BackOfficeDashboard = ({ projects = [], teams = [] }) => {
         return;
       }
       risks.forEach((risk) => {
-        const rawLevel = typeof risk?.level === 'string' && risk.level.trim().length > 0 ? risk.level.trim() : unclassifiedLabel;
-        const normalizedLevel = rawLevel.charAt(0).toUpperCase() + rawLevel.slice(1);
+        const rawLevel = typeof risk?.level === 'string' ? risk.level.trim().toLowerCase() : '';
+        const labelKey = riskLevelLabelKeys[rawLevel];
+        const normalizedLevel = labelKey ? t(labelKey) : unclassifiedLabel;
         totals.set(normalizedLevel, (totals.get(normalizedLevel) || 0) + 1);
       });
     });
