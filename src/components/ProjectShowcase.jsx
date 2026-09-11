@@ -199,6 +199,16 @@ const buildThemeAccentFamily = (palette = {}) => {
 // le défaut, et l'omettre garde la vitrine alignée si la palette de la marque change.
 const ACCENT_CONFIGURABLE_SECTIONS = ['problem', 'solution', 'innovation', 'innovation-metrics', 'team'];
 
+// « innovation-metrics » n'est pas une section sélectionnable à part (elle partage le bloc
+// « innovation » dans le plan et l'inspecteur) mais garde son propre accent : le réglage
+// couleur de la section « innovation » doit donc en exposer deux.
+const ACCENT_SECTION_GROUPS = {
+  problem: ['problem'],
+  solution: ['solution'],
+  innovation: ['innovation', 'innovation-metrics'],
+  team: ['team']
+};
+
 const normalizeSectionAccents = (value) => {
   if (!value || typeof value !== 'object') {
     return {};
@@ -509,7 +519,8 @@ const computeShowcaseUpdates = ({
   editableFields,
   draftValues,
   customSections,
-  sectionOrder
+  sectionOrder,
+  sectionAccents
 }) => {
   const updates = {};
 
@@ -546,6 +557,12 @@ const computeShowcaseUpdates = ({
 
   if (previousSectionOrder.join('|') !== nextSectionOrder.join('|')) {
     updates.showcaseSectionOrder = nextSectionOrder;
+  }
+
+  const previousSectionAccents = normalizeSectionAccents(answers?.showcaseSectionAccents);
+  const nextSectionAccents = normalizeSectionAccents(sectionAccents);
+  if (JSON.stringify(previousSectionAccents) !== JSON.stringify(nextSectionAccents)) {
+    updates.showcaseSectionAccents = nextSectionAccents;
   }
 
   return updates;
@@ -2064,7 +2081,7 @@ export const ProjectShowcase = ({
     buildDefaultLightSectionSelection(buildLightVisibilityIds(sectionOrder))
   );
   const [pendingLightSections, setPendingLightSections] = useState(lightSections);
-  const [pendingSectionAccents, setPendingSectionAccents] = useState(() =>
+  const [sectionAccentsDraft, setSectionAccentsDraft] = useState(() =>
     normalizeSectionAccents(answers?.showcaseSectionAccents)
   );
   const [isLightConfigOpen, setIsLightConfigOpen] = useState(false);
@@ -2117,6 +2134,7 @@ export const ProjectShowcase = ({
     const sanitizedSections = sanitizeCustomSections(answers?.customShowcaseSections);
     setCustomSections(sanitizedSections);
     setSectionOrder(normalizeSectionOrder(answers?.showcaseSectionOrder, sanitizedSections));
+    setSectionAccentsDraft(normalizeSectionAccents(answers?.showcaseSectionAccents));
   }, [answers, editableFields, rawProjectName]);
 
   useEffect(() => {
@@ -2197,18 +2215,16 @@ export const ProjectShowcase = ({
 
   const handleOpenLightConfig = useCallback(() => {
     setPendingLightSections(lightSections);
-    setPendingSectionAccents(normalizeSectionAccents(answers?.showcaseSectionAccents));
     setIsLightConfigOpen(true);
-  }, [answers, lightSections]);
+  }, [lightSections]);
 
   const handleCancelLightConfig = useCallback(() => {
     setPendingLightSections(lightSections);
-    setPendingSectionAccents(normalizeSectionAccents(answers?.showcaseSectionAccents));
     setIsLightConfigOpen(false);
-  }, [answers, lightSections]);
+  }, [lightSections]);
 
-  const handlePendingAccentChange = useCallback((sectionId, familyId) => {
-    setPendingSectionAccents((previous) => {
+  const handleSectionAccentChange = useCallback((sectionId, familyId) => {
+    setSectionAccentsDraft((previous) => {
       const next = { ...previous };
       // La famille « thème » est le défaut : on l'efface plutôt que de la stocker.
       if (familyId === THEME_ACCENT_FAMILY_ID) {
@@ -2233,16 +2249,8 @@ export const ProjectShowcase = ({
 
   const handleValidateLightConfig = useCallback(() => {
     setLightSections(pendingLightSections);
-    const nextAccents = normalizeSectionAccents(pendingSectionAccents);
-    const currentAccents = normalizeSectionAccents(answers?.showcaseSectionAccents);
-    // `canEdit` est déclaré plus bas : on relit ses deux props ici pour éviter la TDZ
-    // du tableau de dépendances, évalué dès le rendu.
-    if (typeof onUpdateAnswers === 'function' && !hideEditBar
-      && JSON.stringify(nextAccents) !== JSON.stringify(currentAccents)) {
-      onUpdateAnswers({ showcaseSectionAccents: nextAccents });
-    }
     setIsLightConfigOpen(false);
-  }, [answers, hideEditBar, onUpdateAnswers, pendingLightSections, pendingSectionAccents]);
+  }, [pendingLightSections]);
 
   const sanitizedCustomSections = useMemo(
     () => sanitizeCustomSections(customSections),
@@ -2427,15 +2435,18 @@ export const ProjectShowcase = ({
     const nextDraftValues = buildDraftValues(editableFields, answers, rawProjectName);
     const nextCustomSections = sanitizeCustomSections(answers?.customShowcaseSections);
     const nextSectionOrder = normalizeSectionOrder(answers?.showcaseSectionOrder, nextCustomSections);
+    const nextSectionAccents = normalizeSectionAccents(answers?.showcaseSectionAccents);
 
     setDraftValues(nextDraftValues);
     setCustomSections(nextCustomSections);
     setSectionOrder(nextSectionOrder);
+    setSectionAccentsDraft(nextSectionAccents);
     resetMilestoneDragState();
     setEditorHistory(createHistory({
       draftValues: nextDraftValues,
       customSections: nextCustomSections,
-      sectionOrder: nextSectionOrder
+      sectionOrder: nextSectionOrder,
+      sectionAccents: nextSectionAccents
     }));
     isTimeTravellingRef.current = true;
     setHasRestoredDraft(false);
@@ -2463,6 +2474,7 @@ export const ProjectShowcase = ({
     const sanitizedSections = sanitizeCustomSections(answers?.customShowcaseSections);
     setCustomSections(sanitizedSections);
     setSectionOrder(normalizeSectionOrder(answers?.showcaseSectionOrder, sanitizedSections));
+    setSectionAccentsDraft(normalizeSectionAccents(answers?.showcaseSectionAccents));
   }, [answers, editableFields, rawProjectName]);
 
   const handleFieldChange = useCallback((fieldId, valueOrUpdater) => {
@@ -2673,16 +2685,23 @@ export const ProjectShowcase = ({
   const pendingUpdates = useMemo(
     () =>
       isLiveEditing
-        ? computeShowcaseUpdates({ answers, editableFields, draftValues, customSections, sectionOrder })
+        ? computeShowcaseUpdates({
+          answers,
+          editableFields,
+          draftValues,
+          customSections,
+          sectionOrder,
+          sectionAccents: sectionAccentsDraft
+        })
         : null,
-    [answers, customSections, draftValues, editableFields, isLiveEditing, sectionOrder]
+    [answers, customSections, draftValues, editableFields, isLiveEditing, sectionAccentsDraft, sectionOrder]
   );
 
   const hasUnpublishedChanges = Boolean(pendingUpdates && Object.keys(pendingUpdates).length > 0);
 
   const editorSnapshot = useMemo(
-    () => ({ draftValues, customSections, sectionOrder }),
-    [customSections, draftValues, sectionOrder]
+    () => ({ draftValues, customSections, sectionOrder, sectionAccents: sectionAccentsDraft }),
+    [customSections, draftValues, sectionAccentsDraft, sectionOrder]
   );
 
   const handleSubmitEdit = useCallback(
@@ -2703,7 +2722,8 @@ export const ProjectShowcase = ({
         editableFields,
         draftValues,
         customSections,
-        sectionOrder
+        sectionOrder,
+        sectionAccents: sectionAccentsDraft
       });
 
       if (Object.keys(updates).length > 0) {
@@ -2719,7 +2739,7 @@ export const ProjectShowcase = ({
       setIsExitConfirmOpen(false);
       setIsEditing(false);
     },
-    [answers, canEdit, customSections, draftValues, editableFields, onUpdateAnswers, projectId, sectionOrder]
+    [answers, canEdit, customSections, draftValues, editableFields, onUpdateAnswers, projectId, sectionAccentsDraft, sectionOrder]
   );
 
   // Superposition « brouillon -> vitrine » : la brique qui rend l'aperçu vivant. Hors
@@ -2730,7 +2750,7 @@ export const ProjectShowcase = ({
       return answers;
     }
 
-    const fieldValues = {};
+    const fieldValues = { showcaseSectionAccents: sectionAccentsDraft };
     editableFields.forEach(field => {
       const { id } = field;
       if (!id || draftValues[id] === undefined) {
@@ -2745,7 +2765,7 @@ export const ProjectShowcase = ({
       customSections: sanitizedCustomSections,
       sectionOrder
     });
-  }, [answers, draftValues, editableFields, isLiveEditing, sanitizedCustomSections, sectionOrder]);
+  }, [answers, draftValues, editableFields, isLiveEditing, sanitizedCustomSections, sectionAccentsDraft, sectionOrder]);
 
   // Le thème fait partie des champs éditables : il est résolu depuis les réponses d'aperçu
   // pour que changer de palette repeigne la vitrine immédiatement.
@@ -4098,9 +4118,10 @@ export const ProjectShowcase = ({
     t
   ]);
 
-  // Corps du panneau de sélection des sections visibles en mode Light : partagé entre le
-  // panneau hors édition (sous la barre de mode) et son équivalent affiché depuis la barre
-  // d'édition (sinon « Configurer » resterait sans effet visible une fois en édition).
+  // Corps du panneau de sélection des sections visibles en mode Light, ouvert depuis le
+  // bouton « Configurer » hors édition. En édition, cette sélection se fait section par
+  // section depuis le Plan (ShowcaseOutline), qui a l'avantage de rester visible pendant
+  // qu'on ajuste — pas besoin d'un second panneau redondant dans la barre d'édition.
   const lightConfigPanelBody = !isLightConfigOpen ? null : (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -4156,44 +4177,6 @@ export const ProjectShowcase = ({
           );
         })}
       </div>
-
-      {canEdit && (
-        <div className="flex flex-col gap-3 border-t border-gray-200 pt-4">
-          <div>
-            <p className="text-sm font-semibold text-gray-800">{t('projectShowcase.sectionAccentsTitle')}</p>
-            <p className="text-xs text-gray-600">{t('projectShowcase.sectionAccentsHint')}</p>
-          </div>
-          <div className="flex flex-col gap-3">
-            {ACCENT_CONFIGURABLE_SECTIONS.map((sectionId) => (
-              <div key={`accent-${sectionId}`} className="flex flex-col gap-1.5">
-                <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                  {getSectionOptionLabel(t, sectionId)}
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  {[{ id: THEME_ACCENT_FAMILY_ID, ...themeAccentFamily }, ...SECTION_ACCENT_FAMILIES].map((family) => {
-                    const activeId = pendingSectionAccents[sectionId] || THEME_ACCENT_FAMILY_ID;
-                    return (
-                      <button
-                        key={`accent-${sectionId}-${family.id}`}
-                        type="button"
-                        onClick={() => handlePendingAccentChange(sectionId, family.id)}
-                        aria-pressed={activeId === family.id}
-                        className="sge-swatch"
-                      >
-                        <span
-                          className="sge-swatch__dot"
-                          style={{ background: `linear-gradient(135deg, ${family.g1}, ${family.g2})` }}
-                        />
-                        {getColorFamilyLabel(t, family.id)}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 
@@ -4240,17 +4223,6 @@ export const ProjectShowcase = ({
     </div>
   );
 
-  // Pendant l'édition, la bascule Light/complète vit dans la barre supérieure (voir plus bas) :
-  // ce même panneau de sélection des sections doit donc y rester accessible via son bouton
-  // « Configurer », sinon le mode Light resterait impossible à ajuster une fois en édition.
-  // Masqué pendant l'aperçu (touche P) comme le reste du chrome d'édition : l'aperçu doit
-  // montrer exactement ce qu'un lecteur verra, sans panneau de réglages superposé.
-  const editorLightConfigPanel = isEditorChromeVisible && lightConfigPanelBody ? (
-    <div className="sge sge-surface mb-4 p-4" data-tour-id="showcase-light-config">
-      {lightConfigPanelBody}
-    </div>
-  ) : null;
-
   const extraVisibilityOptions = useMemo(
     () =>
       LIGHT_VISIBILITY_OPTIONS
@@ -4273,6 +4245,7 @@ export const ProjectShowcase = ({
     setDraftValues(snapshot.draftValues || {});
     setCustomSections(Array.isArray(snapshot.customSections) ? snapshot.customSections : []);
     setSectionOrder(Array.isArray(snapshot.sectionOrder) ? snapshot.sectionOrder : []);
+    setSectionAccentsDraft(normalizeSectionAccents(snapshot.sectionAccents));
   }, []);
 
   const handleUndo = useCallback(() => {
@@ -4349,14 +4322,17 @@ export const ProjectShowcase = ({
     const restoredCustomSections = sanitizeCustomSections(pendingDraft.customSections);
     const restoredOrder = normalizeSectionOrder(pendingDraft.sectionOrder, restoredCustomSections);
     const restoredDraftValues = pendingDraft.draftValues || {};
+    const restoredSectionAccents = normalizeSectionAccents(pendingDraft.sectionAccents);
 
     setDraftValues(restoredDraftValues);
     setCustomSections(restoredCustomSections);
     setSectionOrder(restoredOrder);
+    setSectionAccentsDraft(restoredSectionAccents);
     setEditorHistory(createHistory({
       draftValues: restoredDraftValues,
       customSections: restoredCustomSections,
-      sectionOrder: restoredOrder
+      sectionOrder: restoredOrder,
+      sectionAccents: restoredSectionAccents
     }));
     isTimeTravellingRef.current = true;
     setHasRestoredDraft(true);
@@ -5092,6 +5068,45 @@ export const ProjectShowcase = ({
   const activeSectionEntry = sectionEntries.find(entry => entry.id === activeSectionId) || null;
   const activeCustomSection = activeSectionId ? customSectionFormMap.get(activeSectionId) : null;
   const activeStandardFields = activeSectionId ? (sectionFieldsById[activeSectionId] || []) : [];
+  const activeAccentGroupIds = activeSectionId ? (ACCENT_SECTION_GROUPS[activeSectionId] || []) : [];
+
+  const sectionColorPicker = activeAccentGroupIds.length > 0 ? (
+    <div className="sge-inspector__group">
+      <p className="sge-field__label">{t('projectShowcase.sectionAccentsTitle')}</p>
+      <p className="sge-field__helper">{t('projectShowcase.sectionAccentsHint')}</p>
+      <div className="flex flex-col gap-3">
+        {activeAccentGroupIds.map((sectionId) => (
+          <div key={`accent-${sectionId}`} className="flex flex-col gap-1.5">
+            {activeAccentGroupIds.length > 1 && (
+              <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                {getSectionOptionLabel(t, sectionId)}
+              </span>
+            )}
+            <div className="flex flex-wrap gap-2">
+              {[{ id: THEME_ACCENT_FAMILY_ID, ...themeAccentFamily }, ...SECTION_ACCENT_FAMILIES].map((family) => {
+                const activeId = sectionAccentsDraft[sectionId] || THEME_ACCENT_FAMILY_ID;
+                return (
+                  <button
+                    key={`accent-${sectionId}-${family.id}`}
+                    type="button"
+                    onClick={() => handleSectionAccentChange(sectionId, family.id)}
+                    aria-pressed={activeId === family.id}
+                    className="sge-swatch"
+                  >
+                    <span
+                      className="sge-swatch__dot"
+                      style={{ background: `linear-gradient(135deg, ${family.g1}, ${family.g2})` }}
+                    />
+                    {getColorFamilyLabel(t, family.id)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  ) : null;
 
   const inspectorPanel = isEditorChromeVisible ? (
     <aside
@@ -5181,13 +5196,18 @@ export const ProjectShowcase = ({
           )}
 
           {activeSectionEntry && !activeCustomSection && (
-            activeStandardFields.length > 0 ? (
-              <div className="sge-inspector__fields">
-                {activeStandardFields.map(field => renderStandardFieldControl(field))}
-              </div>
-            ) : (
-              <p className="sge-inspector__empty">{t('projectShowcase.editor.noSettingsForSection')}</p>
-            )
+            <React.Fragment>
+              {sectionColorPicker}
+              {activeStandardFields.length > 0 ? (
+                <div className="sge-inspector__fields">
+                  {activeStandardFields.map(field => renderStandardFieldControl(field))}
+                </div>
+              ) : (
+                !sectionColorPicker && (
+                  <p className="sge-inspector__empty">{t('projectShowcase.editor.noSettingsForSection')}</p>
+                )
+              )}
+            </React.Fragment>
           )}
         </div>
 
@@ -5230,8 +5250,6 @@ export const ProjectShowcase = ({
       displayMode={displayMode}
       onDisplayModeChange={handleDisplayModeChange}
       canConfigureDisplayModes={canConfigureDisplayModes && !resolvedDisplayModeLock}
-      isLightConfigOpen={isLightConfigOpen}
-      onOpenLightConfig={handleOpenLightConfig}
       isExitConfirmOpen={isExitConfirmOpen}
       onRequestExit={handleRequestExit}
       onCancelExit={() => setIsExitConfirmOpen(false)}
@@ -5297,7 +5315,6 @@ export const ProjectShowcase = ({
       {!isLiveEditing && modeSelectionPanel}
       {editBar}
       {editorBar}
-      {editorLightConfigPanel}
       {isEditorChromeVisible ? (
         <div className={workspaceClassName}>
           {outlinePanel}

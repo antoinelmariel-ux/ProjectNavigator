@@ -1709,8 +1709,8 @@ export default {
     templateCounterTemplate: 'Vorlage {{index}}/{{total}}',
     cancelButton: 'Abbrechen',
     validateTemplateButton: 'Diese Vorlage bestätigen',
-    sectionAccentsTitle: 'Farbe der Abschnitte',
-    sectionAccentsHint: 'Jeder Abschnitt folgt der Themenpalette. Wählen Sie bei Bedarf eine andere Farbe.',
+    sectionAccentsTitle: 'Farbe des Abschnitts',
+    sectionAccentsHint: 'Standardmäßig folgt sie der Themenpalette. Wählen Sie bei Bedarf eine alternative Farbe — passend zum Thema.',
     colorFamilyNames: {
       theme: 'Thema',
       rouge: 'Rot',
