@@ -10,18 +10,40 @@ const BLOCKED_PROJECT_TYPES = new Set([
 
 const normalizeString = (value) => (typeof value === 'string' ? value.trim() : '');
 
+// Une réponse à choix porte ses sous-options dans `children` (tableau pour un choix
+// simple, map option -> sous-options pour un multi-select) : sans les aplatir, un thème
+// déclenché par une sous-option (un produit, par exemple) ne pourrait jamais s'activer.
+const flattenAnswerChildren = (children) => {
+  if (Array.isArray(children)) {
+    return children;
+  }
+
+  if (children && typeof children === 'object') {
+    return Object.values(children).reduce((accumulator, values) => {
+      if (Array.isArray(values)) {
+        accumulator.push(...values);
+      }
+      return accumulator;
+    }, []);
+  }
+
+  return [];
+};
+
 const extractAnswerValues = (answer) => {
   if (Array.isArray(answer)) {
     return answer.map(normalizeString).filter(Boolean);
   }
 
   if (answer && typeof answer === 'object') {
+    const children = flattenAnswerChildren(answer.children);
+
     if (Array.isArray(answer.values)) {
-      return answer.values.map(normalizeString).filter(Boolean);
+      return [...answer.values, ...children].map(normalizeString).filter(Boolean);
     }
 
     if (typeof answer.value === 'string') {
-      return [normalizeString(answer.value)].filter(Boolean);
+      return [answer.value, ...children].map(normalizeString).filter(Boolean);
     }
   }
 
