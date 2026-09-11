@@ -1094,7 +1094,7 @@ export default {
       validationCommitteeTitle: 'Comité de validation',
       validationCommitteeSubtitle: 'Définissez plusieurs comités avec leurs contacts et leurs règles de déclenchement.',
       commentRequestInfoBox: 'Activez la demande de commentaire pour chaque comité selon vos besoins. Le commentaire est requis lorsque les critères du comité et l’option dédiée sont actifs.',
-      enableCommitteeTrackingLabel: 'Activer le suivi des comités de validation',
+      enableCommitteeTrackingLabel: 'Activer les comités',
       addCommitteeButton: 'Ajouter un comité',
       noCommitteeConfigured: 'Aucun comité n’est configuré. Ajoutez-en un pour définir ses règles.',
       committeeNumberTemplate: 'Comité {{number}}',
