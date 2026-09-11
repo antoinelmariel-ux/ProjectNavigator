@@ -14,7 +14,14 @@ export default {
       title: 'Visualización interrumpida',
       message:
         'Se produjo un error durante la carga de la aplicación. Puede reiniciar la visualización con el botón de abajo.',
-      reloadButton: 'Recargar la aplicación'
+      reloadButton: 'Recargar la aplicación',
+      commentLabel: '¿Qué estaba haciendo antes del incidente? (opcional)',
+      commentPlaceholder: 'Describa brevemente lo que ocurrió…',
+      sendReportButton: 'Enviar un informe al equipo técnico',
+      sendingStatus: 'Enviando…',
+      sentStatus: 'Informe enviado. Gracias, se ha avisado al equipo técnico.',
+      sentMockStatus: 'Informe registrado (modo local: no se envía ningún correo real fuera de SharePoint).',
+      sendErrorStatus: 'El envío ha fallado. Vuelva a intentarlo o contacte directamente con el equipo técnico.'
     },
     backOfficeErrorBoundary: {
       title: 'No se puede mostrar el back-office.',

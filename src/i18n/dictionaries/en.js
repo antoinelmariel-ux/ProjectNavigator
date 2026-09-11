@@ -14,7 +14,14 @@ export default {
       title: 'Display interrupted',
       message:
         'An error occurred while loading the application. You can restart the display with the button below.',
-      reloadButton: 'Reload the application'
+      reloadButton: 'Reload the application',
+      commentLabel: 'What were you doing before this happened? (optional)',
+      commentPlaceholder: 'Briefly describe what happened…',
+      sendReportButton: 'Send a report to the technical team',
+      sendingStatus: 'Sending…',
+      sentStatus: 'Report sent. Thank you, the technical team has been notified.',
+      sentMockStatus: 'Report logged (local mode: no real email is sent outside of SharePoint).',
+      sendErrorStatus: 'Sending failed. Try again, or contact the technical team directly.'
     },
     backOfficeErrorBoundary: {
       title: 'Unable to display the back-office.',

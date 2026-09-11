@@ -152,7 +152,7 @@ export const buildNotificationSubject = (projectName, actionType) => {
   return `[Project Navigator] ${safeProjectName} - ${safeActionType}`;
 };
 
-const formatDate = (isoDate) => {
+export const formatDate = (isoDate) => {
   if (!isoDate) {
     return '';
   }
@@ -164,11 +164,11 @@ const formatDate = (isoDate) => {
   return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} at ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 };
 
-const factRow = (label, value) =>
+export const factRow = (label, value) =>
   `<tr><td style="padding:4px 12px 4px 0;color:#555;white-space:nowrap">${escapeHtml(label)}</td>` +
   `<td style="padding:4px 0;color:#111"><strong>${escapeHtml(value)}</strong></td></tr>`;
 
-const truncate = (value, max = 600) => {
+export const truncate = (value, max = 600) => {
   const text = String(value || '').trim();
   return text.length > max ? `${text.slice(0, max)}…` : text;
 };
@@ -249,6 +249,68 @@ export const buildNotification = ({
   return {
     subject: buildNotificationSubject(context.projectName, definition.actionType),
     actionType: definition.actionType,
+    body
+  };
+};
+
+const ERROR_REPORT_ACTION_TYPE = 'Display error report';
+
+const preformattedBlock = (label, value) =>
+  value
+    ? `<p style="margin:16px 0 4px;color:#555">${escapeHtml(label)}</p>` +
+      `<pre style="margin:0;padding:10px 14px;border-radius:4px;background:#0f172a;color:#e2e8f0;font-size:12px;line-height:1.4;overflow:auto;white-space:pre-wrap">${escapeHtml(
+        truncate(value, 4000)
+      )}</pre>`
+    : '';
+
+// Gabarit distinct de buildNotification() ci-dessus : un plantage React n'a ni projet ni
+// acteur métier, seulement un message, deux piles d'appels et l'écran où c'est arrivé.
+export const buildErrorReportEmail = ({
+  message = '',
+  stack = '',
+  componentStack = '',
+  screenUrl = '',
+  userEmail = '',
+  userComment = '',
+  occurredAt = ''
+} = {}) => {
+  const safeMessage =
+    typeof message === 'string' && message.trim() ? message.trim() : 'Unknown error';
+  const formattedDate = formatDate(occurredAt) || formatDate(new Date().toISOString());
+
+  const facts = [['Screen', screenUrl || 'unknown']];
+  if (userEmail) {
+    facts.push(['Reported by', userEmail]);
+  }
+  if (formattedDate) {
+    facts.push(['Date', formattedDate]);
+  }
+
+  const commentBlock = userComment
+    ? '<p style="margin:16px 0 4px;color:#555">What the user was doing:</p>' +
+      `<blockquote style="margin:0;padding:10px 14px;border-left:3px solid #cbd5e1;background:#f8fafc;color:#111">${escapeHtml(
+        truncate(userComment, 1000)
+      ).replace(/\n/g, '<br>')}</blockquote>`
+    : '';
+
+  const body =
+    '<div style="font-family:Segoe UI,Arial,sans-serif;font-size:14px;line-height:1.5;color:#111">' +
+    '<p>Hello,</p>' +
+    `<p>A display error occurred in Project Navigator: <strong>${escapeHtml(safeMessage)}</strong></p>` +
+    commentBlock +
+    `<table role="presentation" style="border-collapse:collapse;margin:16px 0">${facts
+      .map(([label, value]) => factRow(label, value))
+      .join('')}</table>` +
+    preformattedBlock('Error stack', stack) +
+    preformattedBlock('Component stack', componentStack) +
+    '<hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0 12px">' +
+    '<p style="font-size:12px;color:#666;margin:0">Why are you receiving this message? Because you are listed as a Project Navigator administrator.</p>' +
+    '<p style="font-size:12px;color:#666;margin:6px 0 0">Automated message sent by Project Navigator. Please do not reply to this email.</p>' +
+    '</div>';
+
+  return {
+    subject: `[Project Navigator] Display error report - ${truncate(safeMessage, 80)}`,
+    actionType: ERROR_REPORT_ACTION_TYPE,
     body
   };
 };

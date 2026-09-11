@@ -5,6 +5,7 @@ import {
   NOTIFICATION_TYPES,
   buildNotification,
   buildNotificationSubject,
+  buildErrorReportEmail,
   escapeHtml
 } from '../src/utils/notificationTemplates.js';
 
@@ -170,4 +171,48 @@ test('valeurs manquantes remplacées par des libellés neutres', () => {
   const { body, subject } = buildNotification({ type: NOTIFICATION_TYPES.SHOWCASE_COMMENT });
   assert.ok(subject.includes('Untitled project'));
   assert.ok(body.includes('A user'));
+});
+
+test('buildErrorReportEmail : reprend le message, les piles et l’écran', () => {
+  const { subject, actionType, body } = buildErrorReportEmail({
+    message: 'Cannot read properties of undefined',
+    stack: 'TypeError: Cannot read properties of undefined\n    at Foo (App.jsx:10:1)',
+    componentStack: '\n    in Foo\n    in App',
+    screenUrl: 'https://lfb1.sharepoint.com/sites/PN/CN-App/index.aspx#/synthesis/p-1',
+    userEmail: 'bertrand.darieux@lfb.fr',
+    occurredAt: '2026-08-28T14:30:00.000Z'
+  });
+
+  assert.equal(actionType, 'Display error report');
+  assert.ok(subject.includes('Cannot read properties of undefined'));
+  assert.ok(body.includes('Cannot read properties of undefined'));
+  assert.ok(body.includes('at Foo (App.jsx:10:1)'));
+  assert.ok(body.includes('in App'));
+  assert.ok(body.includes('bertrand.darieux@lfb.fr'));
+  assert.ok(body.includes('synthesis/p-1'));
+  assert.ok(/2[89]\/08\/2026/.test(body));
+});
+
+test('buildErrorReportEmail : le commentaire utilisateur est inclus et échappé', () => {
+  const { body } = buildErrorReportEmail({
+    message: 'Boom',
+    userComment: 'Je cliquais sur "Valider" <script>alert(1)</script>'
+  });
+
+  assert.ok(body.includes('What the user was doing'));
+  assert.ok(body.includes('&lt;script&gt;alert(1)&lt;/script&gt;'));
+  assert.ok(!body.includes('<script>alert(1)</script>'));
+});
+
+test('buildErrorReportEmail : sans commentaire ni détails, reste robuste', () => {
+  const { subject, body } = buildErrorReportEmail();
+  assert.ok(subject.includes('Unknown error'));
+  assert.ok(!body.includes('What the user was doing'));
+  assert.ok(body.includes('unknown'));
+});
+
+test('buildErrorReportEmail : les piles trop longues sont tronquées', () => {
+  const { body } = buildErrorReportEmail({ message: 'Boom', stack: 'x'.repeat(5000) });
+  assert.ok(body.includes('…'));
+  assert.ok(!body.includes('x'.repeat(4500)));
 });
