@@ -1717,7 +1717,9 @@ export default {
       orange: 'Orange',
       or: 'Gold',
       vert: 'Grün',
+      turquoise: 'Türkis',
       bleu: 'Blau',
+      violet: 'Violett',
       rose: 'Rosa'
     },
     titleSectionAriaLabel: 'Titel des Abschnitts',

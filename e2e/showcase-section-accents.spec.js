@@ -50,7 +50,7 @@ test.describe('Couleur des sections de la vitrine', () => {
 
     // Défaut : l'accent dérive de la palette Tegeline (#2b8f42 assombri pour rester lisible
     // en texte sur fond clair), surtout pas le rose figé d'origine.
-    expect(await teamAccent(page)).toBe('rgb(30, 100, 46)');
+    expect(await teamAccent(page)).toBe('rgb(35, 108, 52)');
 
     // La couleur d'une section se règle désormais depuis les réglages de cette section
     // (l'inspecteur d'édition), pas depuis le bouton « Configurer » — qui ne gère plus que
@@ -67,9 +67,9 @@ test.describe('Couleur des sections de la vitrine', () => {
     await page.getByRole('button', { name: /Rose/ }).click();
 
     // L'aperçu se met à jour immédiatement, avant même la publication. La teinte « rose »
-    // de Tegeline est recolorée pour ce thème (voir sectionAccentFamilies dans
-    // showcaseThemes.js) : ce n'est plus la teinte universelle figée.
-    await expect.poll(() => teamAccent(page)).toBe('rgb(211, 14, 127)');
+    // est composée sur la palette Tegeline (voir buildAccentFamilies dans
+    // src/utils/showcaseAccents.js) : ce n'est plus la teinte universelle figée.
+    await expect.poll(() => teamAccent(page)).toBe('rgb(145, 44, 108)');
 
     await page.getByRole('button', { name: 'Publier' }).click();
 

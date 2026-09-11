@@ -32,6 +32,13 @@ import {
 import { renderTextWithLinks } from '../utils/linkify.js';
 import { splitRichTextIntoBlocks } from '../utils/richText.js';
 import { initialShowcaseThemes } from '../data/showcaseThemes.js';
+import {
+  ACCENT_FAMILY_IDS,
+  THEME_ACCENT_FAMILY_ID,
+  buildAccentFamilies,
+  isKnownAccentFamilyId,
+  resolveAccentFamily
+} from '../utils/showcaseAccents.js';
 import { resolveLocalizedText } from '../utils/localizedContent.js';
 import { resolveThemeFromActivation } from '../utils/showcase.js';
 import { createAttachmentFromFile, getFileExtension } from '../utils/documentStore.js';
@@ -159,40 +166,7 @@ const getTemplateMeta = (t, templateId) => {
   }
 };
 
-// familles de couleur proposées à l'utilisateur pour chaque bloc personnalisé
-const SECTION_ACCENT_FAMILIES = [
-  { id: 'rouge', c: '#90172a', g1: '#e10943', g2: '#90172a', p1: '#fbe2eb', p2: '#f3b6b2', onDark: '#f3b6b2' },
-  { id: 'orange', c: '#5e220e', g1: '#ee7e0b', g2: '#e84a16', p1: '#feead5', p2: '#f8c587', onDark: '#f6ae4c' },
-  { id: 'or', c: '#6d511a', g1: '#d6b97e', g2: '#996b14', p1: '#f1ede2', p2: '#e7d3aa', onDark: '#d6b97e' },
-  { id: 'vert', c: '#217d60', g1: '#31af80', g2: '#14392a', p1: '#dbebe4', p2: '#a0d3c1', onDark: '#a0d3c1' },
-  { id: 'bleu', c: '#143455', g1: '#4790c4', g2: '#143455', p1: '#e6eef6', p2: '#7fb5d0', onDark: '#7fb5d0' },
-  { id: 'rose', c: '#932579', g1: '#d30e7f', g2: '#932579', p1: '#fbe2eb', p2: '#c893bb', onDark: '#c893bb' }
-];
-
 const getColorFamilyLabel = (t, familyId) => t(`projectShowcase.colorFamilyNames.${familyId}`);
-
-const DEFAULT_ACCENT_FAMILY = SECTION_ACCENT_FAMILIES[2].id;
-
-// Famille par défaut des sections : elle suit la palette du thème au lieu d'une teinte fixe.
-// Les six familles ci-dessus restent proposées comme couleurs alternatives.
-export const THEME_ACCENT_FAMILY_ID = 'theme';
-
-// Les accents servent de texte (eyebrow, chiffres) : sur bande claire on assombrit l'accent,
-// sur bande sombre on éclaircit la teinte lumineuse, jusqu'à tenir 4.5:1 sur les dix palettes.
-const buildThemeAccentFamily = (palette = {}) => {
-  const accentPrimary = normalizeColorValue(palette.accentPrimary, '#2563eb');
-  const highlight = normalizeColorValue(palette.highlight, accentPrimary);
-
-  return {
-    id: THEME_ACCENT_FAMILY_ID,
-    c: shadeColor(accentPrimary, 0.7, '#6d511a'),
-    g1: accentPrimary,
-    g2: shadeColor(accentPrimary, 0.63, '#996b14'),
-    p1: normalizeColorValue(palette.surfaceLight, '#f1ede2'),
-    p2: normalizeColorValue(palette.surfaceLightAlt, '#e7d3aa'),
-    onDark: tintColor(highlight, 0.14, '#d6b97e')
-  };
-};
 
 // Seules les sections intégrées ont un accent configurable ici ; les blocs personnalisés
 // gardent leur propre champ `accentFamily`. Une valeur « thème » n'est pas stockée : c'est
@@ -217,22 +191,11 @@ const normalizeSectionAccents = (value) => {
   const normalized = {};
   ACCENT_CONFIGURABLE_SECTIONS.forEach((sectionId) => {
     const familyId = value[sectionId];
-    if (SECTION_ACCENT_FAMILIES.some(family => family.id === familyId)) {
+    if (ACCENT_FAMILY_IDS.includes(familyId)) {
       normalized[sectionId] = familyId;
     }
   });
   return normalized;
-};
-
-// `families` n'est fourni que pour les sections intégrées : chaque thème recolore les six
-// mêmes familles pour rester cohérent avec sa marque (voir `sectionAccentFamilies` dans
-// showcaseThemes.js). Les blocs personnalisés continuent de piocher dans la palette
-// universelle, indépendante du thème actif.
-const resolveAccentFamily = (value, themeFamily, families = SECTION_ACCENT_FAMILIES) => {
-  if (themeFamily && (!value || value === THEME_ACCENT_FAMILY_ID)) {
-    return themeFamily;
-  }
-  return families.find(family => family.id === value) || themeFamily || families[2] || SECTION_ACCENT_FAMILIES[2];
 };
 
 const SECTION_TEMPLATE_CONFIG = {
@@ -372,7 +335,7 @@ const buildSectionFromTemplate = (t, templateId, id) => {
     subtitle: placeholder.subtitle || '',
     description: placeholder.description || '',
     accent: placeholder.badge || placeholder.accent || '',
-    accentFamily: DEFAULT_ACCENT_FAMILY,
+    accentFamily: THEME_ACCENT_FAMILY_ID,
     // Le gabarit « chiffre » n'a aucun sens sans valeur : on en pose une d'exemple,
     // remplaçable directement au clavier dans le canvas.
     figure: template.id === 'figure' ? placeholder.figure || '87 %' : '',
@@ -418,9 +381,9 @@ const sanitizeCustomSections = (rawSections) => {
       const documentUrl = typeof section.documentUrl === 'string' ? section.documentUrl.trim() : '';
       const documentType = typeof section.documentType === 'string' ? section.documentType.trim() : '';
       const figure = typeof section.figure === 'string' ? section.figure.trim() : '';
-      const accentFamily = SECTION_ACCENT_FAMILIES.some(family => family.id === section.accentFamily)
+      const accentFamily = isKnownAccentFamilyId(section.accentFamily)
         ? section.accentFamily
-        : DEFAULT_ACCENT_FAMILY;
+        : THEME_ACCENT_FAMILY_ID;
       const items = Array.isArray(section.items)
         ? section.items.map(item => (typeof item === 'string' ? item.trim() : '')).filter(Boolean)
         : [];
@@ -1152,18 +1115,6 @@ const shadeColor = (value, factor, fallback) => {
 
   const hex = channels
     .map(channel => Math.round(Math.min(255, Math.max(0, channel * factor))).toString(16).padStart(2, '0'))
-    .join('');
-  return `#${hex}`;
-};
-
-const tintColor = (value, factor, fallback) => {
-  const channels = parseHexChannels(value);
-  if (!channels) {
-    return fallback;
-  }
-
-  const hex = channels
-    .map(channel => Math.round(channel + (255 - channel) * factor).toString(16).padStart(2, '0'))
     .join('');
   return `#${hex}`;
 };
@@ -2778,24 +2729,20 @@ export const ProjectShowcase = ({
     [availableThemes, previewAnswers]
   );
   const showcaseThemeId = selectedTheme?.id || FALLBACK_SHOWCASE_THEME.id;
-  const themeAccentFamily = useMemo(
-    () => buildThemeAccentFamily((selectedTheme || FALLBACK_SHOWCASE_THEME).palette),
+  // Palette d'accents unique du thème : « thème » en tête, puis les familles nommées. Les
+  // deux sélecteurs de couleur (section intégrée et bloc personnalisé) y puisent, donc une
+  // même teinte porte la même couleur partout dans la vitrine.
+  const accentFamilies = useMemo(
+    () => buildAccentFamilies((selectedTheme || FALLBACK_SHOWCASE_THEME).palette),
     [selectedTheme]
   );
-  // Couleurs alternatives proposées pour les sections intégrées : recolorées par thème pour
-  // rester cohérentes avec la marque active (repli sur la palette universelle si le thème
-  // n'en fournit pas — cas du thème de secours sans palette).
-  const themeSectionAccentFamilies = useMemo(() => {
-    const families = (selectedTheme || FALLBACK_SHOWCASE_THEME).sectionAccentFamilies;
-    return Array.isArray(families) && families.length > 0 ? families : SECTION_ACCENT_FAMILIES;
-  }, [selectedTheme]);
   const sectionAccents = useMemo(
     () => normalizeSectionAccents(previewAnswers?.showcaseSectionAccents),
     [previewAnswers]
   );
   const resolveSectionAccent = useCallback(
-    (sectionId) => resolveAccentFamily(sectionAccents[sectionId], themeAccentFamily, themeSectionAccentFamilies),
-    [sectionAccents, themeAccentFamily, themeSectionAccentFamilies]
+    (sectionId) => resolveAccentFamily(sectionAccents[sectionId], accentFamilies),
+    [accentFamilies, sectionAccents]
   );
   const showcaseThemeVariables = useMemo(
     () => buildThemeVariables(selectedTheme || FALLBACK_SHOWCASE_THEME),
@@ -3177,7 +3124,7 @@ export const ProjectShowcase = ({
               <div className="sg-story__sticky">
                 <p className="sg-eyebrow" style={{ '--sg-c': resolveSectionAccent('problem').onDark }}>{getSectionOptionLabel(t, 'problem')}</p>
                 <h2 className="sg-headline">{t('projectShowcase.problemHeadline')}</h2>
-                <p className="sg-story__counter" data-sg-counter>01</p>
+                <p className="sg-story__counter" style={{ '--sg-c': resolveSectionAccent('problem').onDark }} data-sg-counter>01</p>
               </div>
               <div className="sg-story__steps">
                 {problemPainPoints.map((point, pointIndex) => (
@@ -3258,7 +3205,13 @@ export const ProjectShowcase = ({
                         className="sg-stack__slot sg-rv sg-rv--x"
                         style={{ '--sg-d': `${(benefitIndex % 3) * 90}ms` }}
                       >
-                        <article className="sg-card">
+                        <article
+                          className="sg-card"
+                          style={{
+                            '--sg-c1': resolveSectionAccent('solution').g1,
+                            '--sg-c2': resolveSectionAccent('solution').g2
+                          }}
+                        >
                           <span className="sg-card__orb" />
                           <div className="sg-card__top">
                             <span className="sg-card__idx">{String(benefitIndex + 1).padStart(2, '0')}</span>
@@ -3286,7 +3239,13 @@ export const ProjectShowcase = ({
                   <p className="sg-eyebrow sg-rv">{t('projectShowcase.impactEyebrow')}</p>
                   <h2 className="sg-headline sg-rv" style={{ '--sg-d': '80ms' }}>{t('projectShowcase.impactHeadline')}</h2>
                   {hasText(budgetEstimate) && canShowBudget && (
-                    <div data-tour-id="showcase-budget">
+                    <div
+                      data-tour-id="showcase-budget"
+                      className={isEditorChromeVisible && isSectionHiddenInLight('budget') ? 'sge-muted-block' : undefined}
+                    >
+                      {isEditorChromeVisible && isSectionHiddenInLight('budget') && (
+                        <span className="sge-muted-block__flag">{t('projectShowcase.editor.hiddenInLight')}</span>
+                      )}
                       <p className={`sg-impact__value sg-rv ${missingInfoClass(budgetEstimate)}`} style={{ '--sg-d': '160ms' }}>
                         {budgetEstimateNumeric !== null ? (
                           <>
@@ -3356,7 +3315,16 @@ export const ProjectShowcase = ({
               <p className="sg-eyebrow sg-rv" style={{ '--sg-c': resolveSectionAccent('team').c }}>{getSectionOptionLabel(t, 'team')}</p>
               <h2 className="sg-headline sg-rv" style={{ '--sg-d': '80ms' }}>{t('projectShowcase.teamHeadline')}</h2>
               {hasText(teamLead) && (
-                <div className="sg-lead sg-rv" style={{ '--sg-d': '160ms' }}>
+                <div
+                  className="sg-lead sg-rv"
+                  style={{
+                    '--sg-d': '160ms',
+                    '--sg-g1': resolveSectionAccent('team').g1,
+                    '--sg-g2': resolveSectionAccent('team').g2,
+                    '--sg-p1': resolveSectionAccent('team').p1,
+                    '--sg-p2': resolveSectionAccent('team').p2
+                  }}
+                >
                   <span className="sg-lead__ring">
                     <span>{teamLeadInitials}</span>
                   </span>
@@ -3367,7 +3335,14 @@ export const ProjectShowcase = ({
                 </div>
               )}
               {teamMemberCards.length > 0 && (
-                <ul className="sg-rows sg-roster" style={{ '--sg-c': resolveSectionAccent('team').c }}>
+                <ul
+                  className="sg-rows sg-roster"
+                  style={{
+                    '--sg-c': resolveSectionAccent('team').c,
+                    '--sg-g1': resolveSectionAccent('team').g1,
+                    '--sg-g2': resolveSectionAccent('team').g2
+                  }}
+                >
                   {teamMemberCards.map((member, memberIndex) => (
                     <li
                       key={member.id ?? `${member.name}-${memberIndex}`}
@@ -3487,6 +3462,7 @@ export const ProjectShowcase = ({
     hasTimelineSection,
     hasTimelineSummaries,
     hasVigilanceAlerts,
+    isSectionHiddenInLight,
     draftValues.projectName,
     draftValues.projectSlogan,
     handleFieldChange,
@@ -3571,7 +3547,7 @@ export const ProjectShowcase = ({
     // le badge ne s'affiche que si un champ le rend saisissable, sinon il serait
     // rendu sans jamais pouvoir être renseigné
     const showAccent = Boolean(templateConfig.showBadge || templateConfig.showAccent);
-    const family = resolveAccentFamily(section.accentFamily);
+    const family = resolveAccentFamily(section.accentFamily, accentFamilies);
     const key = section.id || `custom-${index}`;
     const title = section.title || t('projectShowcase.untitledSectionFallback');
     const columnCount = resolveCustomSectionColumnCount(section.columnCount, section.columns);
@@ -3924,7 +3900,7 @@ export const ProjectShowcase = ({
         </div>
       </section>
     );
-  }, [documentEmbedContext, handleCustomSectionColumnChange, handleCustomSectionFieldChange, handleCustomSectionItemChange, t]);
+  }, [accentFamilies, documentEmbedContext, handleCustomSectionColumnChange, handleCustomSectionFieldChange, handleCustomSectionItemChange, t]);
 
   // Pendant l'édition, le canvas lit les sections *non assainies* : `sanitizeCustomSections`
   // supprime une section devenue entièrement vide, ce qui la ferait disparaître sous les
@@ -4509,8 +4485,8 @@ export const ProjectShowcase = ({
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-800">{t('projectShowcase.colorFamilyLabel')}</label>
                   <div className="flex flex-wrap gap-2">
-                    {SECTION_ACCENT_FAMILIES.map((family) => {
-                      const isActive = (section.accentFamily || DEFAULT_ACCENT_FAMILY) === family.id;
+                    {accentFamilies.map((family) => {
+                      const isActive = (section.accentFamily || THEME_ACCENT_FAMILY_ID) === family.id;
                       return (
                         <button
                           key={`custom-section-${section.id}-family-${family.id}`}
@@ -5094,7 +5070,7 @@ export const ProjectShowcase = ({
               </span>
             )}
             <div className="flex flex-wrap gap-2">
-              {[{ id: THEME_ACCENT_FAMILY_ID, ...themeAccentFamily }, ...themeSectionAccentFamilies].map((family) => {
+              {accentFamilies.map((family) => {
                 const activeId = sectionAccentsDraft[sectionId] || THEME_ACCENT_FAMILY_ID;
                 return (
                   <button

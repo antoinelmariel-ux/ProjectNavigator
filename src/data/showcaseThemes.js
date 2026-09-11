@@ -51,19 +51,7 @@ export const initialShowcaseThemes = [
       statusOkText: '#065f46',
       statusWarnText: '#92400e',
       statusAlertText: '#7f1d1d'
-    },
-    // Familles de couleur alternatives pour les sections intégrées, dérivées de la palette de
-    // ce thème : mêmes six familles que SECTION_ACCENT_FAMILIES, mais recolorées pour rester
-    // cohérentes avec la marque tout en restant mutuellement distinctes et lisibles (contraste
-    // texte >= 4.6:1). Voir buildSectionAccentFamilies dans ProjectShowcase.jsx.
-    sectionAccentFamilies: [
-      { id: 'rouge', c: '#e5112a', g1: '#f02e46', g2: '#b0081c', p1: '#f4ebec', p2: '#e5bdc2', onDark: '#ea344a' },
-      { id: 'orange', c: '#b25f09', g1: '#ed7e0c', g2: '#8f4a04', p1: '#f4f0eb', p2: '#e6d1bc', onDark: '#e67e13' },
-      { id: 'or', c: '#8e6e2d', g1: '#d6b97e', g2: '#bb8e33', p1: '#f2f1ed', p2: '#ddd5c5', onDark: '#d2b882' },
-      { id: 'vert', c: '#247f5d', g1: '#31af80', g2: '#186246', p1: '#edf2f0', p2: '#c4ded4', onDark: '#37a97f' },
-      { id: 'bleu', c: '#0b7caf', g1: '#0ea5e9', g2: '#05628c', p1: '#ebf1f4', p2: '#bdd9e5', onDark: '#14a3e3' },
-      { id: 'rose', c: '#d30e7f', g1: '#d30e7f', g2: '#760546', p1: '#f4ebf0', p2: '#e5bdd4', onDark: '#e9178f' }
-    ]
+    }
   },
   {
     id: 'immunologie',
@@ -114,19 +102,7 @@ export const initialShowcaseThemes = [
       statusOkText: '#0a5340',
       statusWarnText: '#875106',
       statusAlertText: '#7a1f1a'
-    },
-    // Familles de couleur alternatives pour les sections intégrées, dérivées de la palette de
-    // ce thème : mêmes six familles que SECTION_ACCENT_FAMILIES, mais recolorées pour rester
-    // cohérentes avec la marque tout en restant mutuellement distinctes et lisibles (contraste
-    // texte >= 4.6:1). Voir buildSectionAccentFamilies dans ProjectShowcase.jsx.
-    sectionAccentFamilies: [
-      { id: 'rouge', c: '#e31e31', g1: '#e63042', g2: '#a10f1d', p1: '#f4eced', p2: '#e3bfc3', onDark: '#e4515f' },
-      { id: 'orange', c: '#b25f09', g1: '#ed7e0c', g2: '#8f4a04', p1: '#f4f0eb', p2: '#e6d1bc', onDark: '#e67e13' },
-      { id: 'or', c: '#8e6e2d', g1: '#d6b97e', g2: '#bb8e33', p1: '#f2f1ed', p2: '#ddd5c5', onDark: '#d2b882' },
-      { id: 'vert', c: '#247f5d', g1: '#31af80', g2: '#186246', p1: '#edf2f0', p2: '#c4ded4', onDark: '#37a97f' },
-      { id: 'bleu', c: '#32779a', g1: '#93c4dc', g2: '#409bc9', p1: '#edf1f2', p2: '#c5d5dd', onDark: '#97c3d8' },
-      { id: 'rose', c: '#d30e7f', g1: '#d30e7f', g2: '#760546', p1: '#f4ebf0', p2: '#e5bdd4', onDark: '#eb339d' }
-    ]
+    }
   },
   {
     id: 'hemostase',
@@ -177,19 +153,7 @@ export const initialShowcaseThemes = [
       statusOkText: '#14562c',
       statusWarnText: '#875005',
       statusAlertText: '#7a1f19'
-    },
-    // Familles de couleur alternatives pour les sections intégrées, dérivées de la palette de
-    // ce thème : mêmes six familles que SECTION_ACCENT_FAMILIES, mais recolorées pour rester
-    // cohérentes avec la marque tout en restant mutuellement distinctes et lisibles (contraste
-    // texte >= 4.6:1). Voir buildSectionAccentFamilies dans ProjectShowcase.jsx.
-    sectionAccentFamilies: [
-      { id: 'rouge', c: '#902830', g1: '#902830', g2: '#421014', p1: '#f2eded', p2: '#dec4c6', onDark: '#ce656d' },
-      { id: 'orange', c: '#c24a1b', g1: '#d4511e', g2: '#7e2d0e', p1: '#f3eeec', p2: '#e2c9c0', onDark: '#da5c2b' },
-      { id: 'or', c: '#8e6e2d', g1: '#d6b97e', g2: '#bb8e33', p1: '#f2f1ed', p2: '#ddd5c5', onDark: '#d2b882' },
-      { id: 'vert', c: '#247f5d', g1: '#31af80', g2: '#186246', p1: '#edf2f0', p2: '#c4ded4', onDark: '#37a97f' },
-      { id: 'bleu', c: '#3475a4', g1: '#4790c4', g2: '#245a81', p1: '#edf0f2', p2: '#c5d3dd', onDark: '#4d8fbe' },
-      { id: 'rose', c: '#d30e7f', g1: '#d30e7f', g2: '#760546', p1: '#f4ebf0', p2: '#e5bdd4', onDark: '#eb339d' }
-    ]
+    }
   },
   {
     id: 'soins-intensifs',
@@ -240,19 +204,7 @@ export const initialShowcaseThemes = [
       statusOkText: '#0d5443',
       statusWarnText: '#875005',
       statusAlertText: '#761e35'
-    },
-    // Familles de couleur alternatives pour les sections intégrées, dérivées de la palette de
-    // ce thème : mêmes six familles que SECTION_ACCENT_FAMILIES, mais recolorées pour rester
-    // cohérentes avec la marque tout en restant mutuellement distinctes et lisibles (contraste
-    // texte >= 4.6:1). Voir buildSectionAccentFamilies dans ProjectShowcase.jsx.
-    sectionAccentFamilies: [
-      { id: 'rouge', c: '#aa3453', g1: '#aa3453', g2: '#5f192b', p1: '#f2edee', p2: '#ddc5cb', onDark: '#c75f7a' },
-      { id: 'orange', c: '#b25f09', g1: '#ed7e0c', g2: '#8f4a04', p1: '#f4f0eb', p2: '#e6d1bc', onDark: '#e67e13' },
-      { id: 'or', c: '#8e6e2d', g1: '#d6b97e', g2: '#bb8e33', p1: '#f2f1ed', p2: '#ddd5c5', onDark: '#d2b882' },
-      { id: 'vert', c: '#33816e', g1: '#6bc4ae', g2: '#34957d', p1: '#eef2f1', p2: '#c7dbd6', onDark: '#70bfab' },
-      { id: 'bleu', c: '#1c6e96', g1: '#1c6e96', g2: '#0b3347', p1: '#ecf1f3', p2: '#c1d6e1', onDark: '#2885b3' },
-      { id: 'rose', c: '#bc2361', g1: '#bc2361', g2: '#691034', p1: '#f3ecef', p2: '#e1c1ce', onDark: '#d64780' }
-    ]
+    }
   },
   {
     id: 'iqymune',
@@ -303,19 +255,7 @@ export const initialShowcaseThemes = [
       statusOkText: '#11603f',
       statusWarnText: '#8a5205',
       statusAlertText: '#7d1436'
-    },
-    // Familles de couleur alternatives pour les sections intégrées, dérivées de la palette de
-    // ce thème : mêmes six familles que SECTION_ACCENT_FAMILIES, mais recolorées pour rester
-    // cohérentes avec la marque tout en restant mutuellement distinctes et lisibles (contraste
-    // texte >= 4.6:1). Voir buildSectionAccentFamilies dans ProjectShowcase.jsx.
-    sectionAccentFamilies: [
-      { id: 'rouge', c: '#d43364', g1: '#d63b6a', g2: '#92193e', p1: '#f3ecee', p2: '#e0c2cb', onDark: '#da6a8c' },
-      { id: 'orange', c: '#b25f09', g1: '#ed7e0c', g2: '#8f4a04', p1: '#f4f0eb', p2: '#e6d1bc', onDark: '#e67e13' },
-      { id: 'or', c: '#8e6e2d', g1: '#d6b97e', g2: '#bb8e33', p1: '#f2f1ed', p2: '#ddd5c5', onDark: '#d2b882' },
-      { id: 'vert', c: '#247f5d', g1: '#31af80', g2: '#186246', p1: '#edf2f0', p2: '#c4ded4', onDark: '#37a97f' },
-      { id: 'bleu', c: '#1878b2', g1: '#7fc4ee', g2: '#1f9ce8', p1: '#ecf1f3', p2: '#c0d5e3', onDark: '#83c3ea' },
-      { id: 'rose', c: '#dc1f6f', g1: '#dc1f6f', g2: '#870f42', p1: '#f3ecef', p2: '#e2c0cf', onDark: '#e36098' }
-    ]
+    }
   },
   {
     id: 'fibclot',
@@ -366,19 +306,7 @@ export const initialShowcaseThemes = [
       statusOkText: '#3c4b11',
       statusWarnText: '#7a4b00',
       statusAlertText: '#7a1d1d'
-    },
-    // Familles de couleur alternatives pour les sections intégrées, dérivées de la palette de
-    // ce thème : mêmes six familles que SECTION_ACCENT_FAMILIES, mais recolorées pour rester
-    // cohérentes avec la marque tout en restant mutuellement distinctes et lisibles (contraste
-    // texte >= 4.6:1). Voir buildSectionAccentFamilies dans ProjectShowcase.jsx.
-    sectionAccentFamilies: [
-      { id: 'rouge', c: '#d5122b', g1: '#d5122b', g2: '#7a0715', p1: '#f4eced', p2: '#e4bec3', onDark: '#ee697a' },
-      { id: 'orange', c: '#9c6a10', g1: '#e8a020', g2: '#97650b', p1: '#f4f1ec', p2: '#e4d6be', onDark: '#e29e26' },
-      { id: 'or', c: '#936f2f', g1: '#cea864', g2: '#a0762c', p1: '#f2f0ed', p2: '#ddd4c5', onDark: '#c9a669' },
-      { id: 'vert', c: '#247f5d', g1: '#31af80', g2: '#186246', p1: '#edf2f0', p2: '#c4ded4', onDark: '#37a97f' },
-      { id: 'bleu', c: '#217996', g1: '#2a9bc0', g2: '#15596f', p1: '#edf1f3', p2: '#c2d8e0', onDark: '#329ec2' },
-      { id: 'rose', c: '#d30e7f', g1: '#d30e7f', g2: '#760546', p1: '#f4ebf0', p2: '#e5bdd4', onDark: '#ef58af' }
-    ]
+    }
   },
   {
     id: 'willfact',
@@ -429,19 +357,7 @@ export const initialShowcaseThemes = [
       statusOkText: '#1d5b2a',
       statusWarnText: '#8a4f05',
       statusAlertText: '#7c2418'
-    },
-    // Familles de couleur alternatives pour les sections intégrées, dérivées de la palette de
-    // ce thème : mêmes six familles que SECTION_ACCENT_FAMILIES, mais recolorées pour rester
-    // cohérentes avec la marque tout en restant mutuellement distinctes et lisibles (contraste
-    // texte >= 4.6:1). Voir buildSectionAccentFamilies dans ProjectShowcase.jsx.
-    sectionAccentFamilies: [
-      { id: 'rouge', c: '#e31e2c', g1: '#e31e2c', g2: '#8d0d17', p1: '#f4ecec', p2: '#e3bfc2', onDark: '#e9737c' },
-      { id: 'orange', c: '#a46309', g1: '#d5800b', g2: '#774603', p1: '#f4f0eb', p2: '#e6d4bc', onDark: '#d98512' },
-      { id: 'or', c: '#936d2f', g1: '#cea664', g2: '#a0742c', p1: '#f2f0ed', p2: '#ddd4c5', onDark: '#c9a569' },
-      { id: 'vert', c: '#247f5d', g1: '#31af80', g2: '#186246', p1: '#edf2f0', p2: '#c4ded4', onDark: '#39b184' },
-      { id: 'bleu', c: '#4279a6', g1: '#88b0d0', g2: '#3e80b4', p1: '#eef0f2', p2: '#c7d2db', onDark: '#8cb0cc' },
-      { id: 'rose', c: '#d30e7f', g1: '#d30e7f', g2: '#760546', p1: '#f4ebf0', p2: '#e5bdd4', onDark: '#f16bb8' }
-    ]
+    }
   },
   {
     id: 'tegeline',
@@ -492,19 +408,7 @@ export const initialShowcaseThemes = [
       statusOkText: '#14572a',
       statusWarnText: '#875005',
       statusAlertText: '#7a2219'
-    },
-    // Familles de couleur alternatives pour les sections intégrées, dérivées de la palette de
-    // ce thème : mêmes six familles que SECTION_ACCENT_FAMILIES, mais recolorées pour rester
-    // cohérentes avec la marque tout en restant mutuellement distinctes et lisibles (contraste
-    // texte >= 4.6:1). Voir buildSectionAccentFamilies dans ProjectShowcase.jsx.
-    sectionAccentFamilies: [
-      { id: 'rouge', c: '#df1f2e', g1: '#df1f2e', g2: '#890f19', p1: '#f3eced', p2: '#e2c0c3', onDark: '#e66a74' },
-      { id: 'orange', c: '#b25f09', g1: '#ed7e0c', g2: '#8f4a04', p1: '#f4f0eb', p2: '#e6d1bc', onDark: '#e67e13' },
-      { id: 'or', c: '#8e6e2d', g1: '#d6b97e', g2: '#bb8e33', p1: '#f2f1ed', p2: '#ddd5c5', onDark: '#d2b882' },
-      { id: 'vert', c: '#257e49', g1: '#2e9d5b', g2: '#14512d', p1: '#edf2ef', p2: '#c5decf', onDark: '#35a061' },
-      { id: 'bleu', c: '#2e6db4', g1: '#2e6db4', g2: '#163c66', p1: '#edf0f3', p2: '#c3d0df', onDark: '#5b91ce' },
-      { id: 'rose', c: '#d30e7f', g1: '#d30e7f', g2: '#760546', p1: '#f4ebf0', p2: '#e5bdd4', onDark: '#ee4faa' }
-    ]
+    }
   },
   {
     id: 'vialebex',
@@ -555,19 +459,7 @@ export const initialShowcaseThemes = [
       statusOkText: '#0f5745',
       statusWarnText: '#835005',
       statusAlertText: '#7d2620'
-    },
-    // Familles de couleur alternatives pour les sections intégrées, dérivées de la palette de
-    // ce thème : mêmes six familles que SECTION_ACCENT_FAMILIES, mais recolorées pour rester
-    // cohérentes avec la marque tout en restant mutuellement distinctes et lisibles (contraste
-    // texte >= 4.6:1). Voir buildSectionAccentFamilies dans ProjectShowcase.jsx.
-    sectionAccentFamilies: [
-      { id: 'rouge', c: '#e51e2e', g1: '#e62736', g2: '#9a0d18', p1: '#f4ecec', p2: '#e3bfc2', onDark: '#e8626d' },
-      { id: 'orange', c: '#9f6a0e', g1: '#d89013', g2: '#7d5207', p1: '#f4f1ec', p2: '#e4d6be', onDark: '#d28f18' },
-      { id: 'or', c: '#846d2a', g1: '#ceb364', g2: '#a0822c', p1: '#f2f1ed', p2: '#ddd7c5', onDark: '#c9b069' },
-      { id: 'vert', c: '#247f5d', g1: '#31af80', g2: '#186246', p1: '#edf2f0', p2: '#c4ded4', onDark: '#37a97f' },
-      { id: 'bleu', c: '#0977a7', g1: '#0a85ba', g2: '#02415c', p1: '#ebf1f4', p2: '#bcd9e6', onDark: '#1198d2' },
-      { id: 'rose', c: '#d30e7f', g1: '#d30e7f', g2: '#760546', p1: '#f4ebf0', p2: '#e5bdd4', onDark: '#ee4faa' }
-    ]
+    }
   },
   {
     id: 'alfalastin',
@@ -618,19 +510,7 @@ export const initialShowcaseThemes = [
       statusOkText: '#11563f',
       statusWarnText: '#855005',
       statusAlertText: '#7c2422'
-    },
-    // Familles de couleur alternatives pour les sections intégrées, dérivées de la palette de
-    // ce thème : mêmes six familles que SECTION_ACCENT_FAMILIES, mais recolorées pour rester
-    // cohérentes avec la marque tout en restant mutuellement distinctes et lisibles (contraste
-    // texte >= 4.6:1). Voir buildSectionAccentFamilies dans ProjectShowcase.jsx.
-    sectionAccentFamilies: [
-      { id: 'rouge', c: '#e12135', g1: '#e22a3d', g2: '#96101e', p1: '#f3eced', p2: '#e3c0c3', onDark: '#e56572' },
-      { id: 'orange', c: '#996a13', g1: '#d9961b', g2: '#82580c', p1: '#f4f1ec', p2: '#e3d6bf', onDark: '#d39421' },
-      { id: 'or', c: '#846e2a', g1: '#ceb564', g2: '#a0842c', p1: '#f2f1ed', p2: '#ddd7c5', onDark: '#c9b269' },
-      { id: 'vert', c: '#247f5d', g1: '#31af80', g2: '#186246', p1: '#edf2f0', p2: '#c4ded4', onDark: '#37a97f' },
-      { id: 'bleu', c: '#2b75b5', g1: '#8cbbe3', g2: '#338ad6', p1: '#edf0f3', p2: '#c3d2df', onDark: '#8fbae0' },
-      { id: 'rose', c: '#d30e7f', g1: '#d30e7f', g2: '#760546', p1: '#f4ebf0', p2: '#e5bdd4', onDark: '#ee4faa' }
-    ]
+    }
   },
   {
     id: 'cevenfacta',
@@ -683,18 +563,6 @@ export const initialShowcaseThemes = [
       statusOkText: '#1f4a2c',
       statusWarnText: '#7a3f10',
       statusAlertText: '#841632'
-    },
-    // Familles de couleur alternatives pour les sections intégrées, dérivées de la palette de
-    // ce thème : mêmes six familles que SECTION_ACCENT_FAMILIES, mais recolorées pour rester
-    // cohérentes avec la marque tout en restant mutuellement distinctes et lisibles (contraste
-    // texte >= 4.6:1). Voir buildSectionAccentFamilies dans ProjectShowcase.jsx.
-    sectionAccentFamilies: [
-      { id: 'rouge', c: '#de0c44', g1: '#de0c44', g2: '#810325', p1: '#f4ebee', p2: '#e6bcc8', onDark: '#ee2f62' },
-      { id: 'orange', c: '#c84a0f', g1: '#f17941', g2: '#c34509', p1: '#f4eeeb', p2: '#e5cabd', onDark: '#ec7b46' },
-      { id: 'or', c: '#8e6e2d', g1: '#d6b97e', g2: '#bb8e33', p1: '#f2f1ed', p2: '#ddd5c5', onDark: '#d2b882' },
-      { id: 'vert', c: '#247f5d', g1: '#31af80', g2: '#186246', p1: '#edf2f0', p2: '#c4ded4', onDark: '#37a97f' },
-      { id: 'bleu', c: '#3475a4', g1: '#4790c4', g2: '#245a81', p1: '#edf0f2', p2: '#c5d3dd', onDark: '#4d8fbe' },
-      { id: 'rose', c: '#d30e7f', g1: '#d30e7f', g2: '#760546', p1: '#f4ebf0', p2: '#e5bdd4', onDark: '#eb2998' }
-    ]
+    }
   }
 ];
