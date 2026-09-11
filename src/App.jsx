@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState, Suspense } from './react.js';
 import { AnnotationLayer } from './components/AnnotationLayer.jsx';
+import { ImpersonationBanner } from './components/ImpersonationBanner.jsx';
 import {
   LazyBackOffice,
   LazyProjectShowcase,
@@ -56,7 +57,8 @@ import {
 } from './utils/showcaseShareLink.js';
 import { normalizeTeamContacts } from './utils/teamContacts.js';
 import { normalizeRulesTeamReferences } from './utils/teamIds.js';
-import { getCurrentUser } from './utils/spContext.js';
+import { getCurrentUser, getRealUser } from './utils/spContext.js';
+import { isImpersonating } from './utils/impersonation.js';
 import { dataProvider } from './utils/dataProvider.js';
 import { inspirationDataProvider } from './utils/inspirationDataProvider.js';
 import { projectMembersProvider } from './utils/projectMembersProvider.js';
@@ -866,7 +868,14 @@ export const App = () => {
     [adminEmails]
   );
   // Résolu par main.jsx avant le premier rendu : référence stable pour toute la vie de l’app.
+  // En simulation « Voir en tant que », c'est déjà l'identité simulée qui sort d'ici — toute la
+  // logique de rôles en découle sans autre point de branchement.
   const currentUser = getCurrentUser();
+  const isSimulatedSession = isImpersonating();
+  const realUserEmail = useMemo(
+    () => normalizeEmail(getRealUser()?.mail || getRealUser()?.userPrincipalName || ''),
+    []
+  );
   const currentUserEmail = useMemo(
     () => normalizeEmail(currentUser?.mail || currentUser?.userPrincipalName || ''),
     [currentUser]
@@ -3340,11 +3349,14 @@ const updateProjectFilters = useCallback((updater) => {
   // Un lien de vitrine partagée ouvre la vitrine seule : la navigation de l'app n'a rien à
   // proposer au destinataire externe. Elle réapparaît dès qu'il referme la vitrine.
   const shouldHideMainNav = isShowcaseSharedView && (screen === 'showcase' || !isHydrated);
+  // En simulation, valider l'onboarding serait de toute façon bloqué par le verrou d'écriture :
+  // on ne piège pas le testeur derrière un écran qu'il ne peut pas franchir.
   const shouldShowOnboarding = isHydrated
     && isUserProfileLoaded
     && !userProfileLoadFailed
     && (!userProfile || !userProfile.hasCompletedOnboarding)
-    && !isOpeningSharedShowcaseLink;
+    && !isOpeningSharedShowcaseLink
+    && !isSimulatedSession;
   const isActiveProjectEditable = !activeProject
     || (canManageProject(activeProject) && activeProject.status === 'draft')
     || isAdminMode;
@@ -5229,6 +5241,10 @@ const updateProjectFilters = useCallback((updater) => {
 
   return (
     <div className={`min-h-screen ${annotationOffsetClass}`}>
+      {isSimulatedSession && (
+        <ImpersonationBanner simulatedEmail={currentUserEmail} realEmail={realUserEmail} />
+      )}
+
       {!isOnline && (
         <div
           role="alert"

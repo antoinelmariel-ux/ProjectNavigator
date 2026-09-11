@@ -1,3 +1,5 @@
+import { isImpersonating } from './impersonation.js';
+
 export const STORAGE_KEY = 'complianceNavigatorState';
 const MODULE_CACHE_PREFIX = 'module-cache:';
 const ENABLE_PERSISTENCE = true;
@@ -60,6 +62,13 @@ const clearModuleCache = (storage) => {
 };
 
 export const persistState = (state) => {
+  // L'onglet de simulation partage ce localStorage avec la session réelle de l'administrateur :
+  // écrire ici écraserait son état. On renvoie `ok` volontairement, sinon App.jsx afficherait
+  // la bannière « sauvegarde impossible » alors que rien n'est cassé.
+  if (isImpersonating()) {
+    return { ok: true, skipped: 'simulation' };
+  }
+
   const storage = getLocalStorage();
   if (!storage) {
     return { ok: false, reason: 'unavailable' };

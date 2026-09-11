@@ -76,6 +76,13 @@ export default {
       unreadableFilesWarning: 'archivos ilegibles: {{files}}',
       unknownError: 'Error desconocido.'
     },
+    impersonation: {
+      titlePrefix: '[Simulación]',
+      bannerTitle: 'Simulación de identidad: está viendo la aplicación como {{simulated}}.',
+      bannerBody:
+        'Su sesión sigue siendo la de {{real}}. No se guarda ningún cambio, ni en SharePoint ni en este equipo.',
+      exit: 'Salir de la simulación'
+    },
     showcaseShare: {
       title: 'Compartir la vitrina del proyecto',
       description: 'Copie el enlace o descargue un acceso directo para abrir esta vitrina directamente.',
@@ -1146,6 +1153,14 @@ export default {
       triggerByTeamCountHint: 'Active este comité en función del número de equipos de cumplimiento implicados.',
       minTeamsCountLabel: 'Número mínimo de equipos',
       exampleThreePlaceholder: 'Ej.: 3',
+      viewAsTitle: 'Ver como',
+      viewAsDescription:
+        'Abre la aplicación en una pestaña nueva con la identidad elegida, para comprobar lo que esa persona ve realmente: proyectos visibles, pestañas del back-office, cuestionario adaptado a su ámbito de actividad.',
+      viewAsLabel: 'Persona a simular',
+      viewAsPlaceholder: 'Buscar una persona…',
+      viewAsButton: 'Abrir en una pestaña nueva',
+      viewAsHint:
+        'Su sesión de SharePoint sigue siendo la suya. En la pestaña de simulación no se guarda ningún cambio, ni en SharePoint ni en este equipo.',
       administratorsHeading: 'Administradores',
       administratorsSubtitle: 'Añada las direcciones de correo electrónico autorizadas a acceder al back-office sin contraseña.',
       adminEmailsLabel: 'Direcciones de correo de los administradores',

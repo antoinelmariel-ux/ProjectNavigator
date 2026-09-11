@@ -23,3 +23,13 @@ export class SharePointError extends Error {
     this.code = code;
   }
 }
+
+// Écriture tentée pendant une simulation d'identité (« Voir en tant que ») : elle n'est jamais
+// réessayée, contrairement à une panne réseau, puisqu'elle échouera à l'identique tant que
+// l'onglet reste en simulation (voir retryQueue.js/autosaveQueue.js et src/utils/impersonation.js).
+export class ReadOnlySimulationError extends Error {
+  constructor(message = 'Simulation d’identité active : les modifications ne sont pas enregistrées.') {
+    super(message);
+    this.name = 'ReadOnlySimulationError';
+  }
+}

@@ -76,6 +76,13 @@ export default {
       unreadableFilesWarning: 'unreadable files: {{files}}',
       unknownError: 'Unknown error.'
     },
+    impersonation: {
+      titlePrefix: '[Simulation]',
+      bannerTitle: 'Identity simulation: you are seeing the app as {{simulated}}.',
+      bannerBody:
+        'Your session is still {{real}}. No change is saved, neither to SharePoint nor to this computer.',
+      exit: 'Exit the simulation'
+    },
     showcaseShare: {
       title: 'Share the project showcase',
       description: 'Copy the link or download a shortcut to open this showcase directly.',
@@ -1145,6 +1152,14 @@ export default {
       triggerByTeamCountHint: 'Trigger this committee based on the number of compliance teams involved.',
       minTeamsCountLabel: 'Minimum number of teams',
       exampleThreePlaceholder: 'E.g.: 3',
+      viewAsTitle: 'View as',
+      viewAsDescription:
+        'Opens the app in a new tab with the chosen identity, to check what that person actually sees: visible projects, back-office tabs, questionnaire adapted to their activity scope.',
+      viewAsLabel: 'Person to simulate',
+      viewAsPlaceholder: 'Search for a person…',
+      viewAsButton: 'Open in a new tab',
+      viewAsHint:
+        'Your SharePoint session stays yours. In the simulation tab, no change is saved, neither to SharePoint nor to this computer.',
       administratorsHeading: 'Administrators',
       administratorsSubtitle: 'Add the email addresses allowed to access the back office without a password.',
       adminEmailsLabel: 'Administrator email addresses',

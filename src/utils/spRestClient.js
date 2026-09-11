@@ -1,5 +1,6 @@
 import { getWebUrl } from '../config/sharepointConfig.js';
-import { ConflictError, SessionExpiredError, SharePointError } from './errors.js';
+import { ConflictError, ReadOnlySimulationError, SessionExpiredError, SharePointError } from './errors.js';
+import { isImpersonating } from './impersonation.js';
 
 const ACCEPT_BY_METADATA = {
   none: 'application/json;odata=nometadata',
@@ -155,6 +156,13 @@ const request = async (method, path, options = {}) => {
   } = options;
 
   const isRead = method === 'GET';
+
+  // Verrou unique de toutes les écritures pendant une simulation d'identité : il couvre aussi
+  // la file de notifications, donc les mails réellement envoyés par Power Automate.
+  if (!isRead && isImpersonating()) {
+    throw new ReadOnlySimulationError();
+  }
+
   const headers = { Accept: ACCEPT_BY_METADATA[metadata] || ACCEPT_BY_METADATA.none, ...extraHeaders };
   const init = { method: isRead ? 'GET' : 'POST', credentials: 'same-origin', headers };
 

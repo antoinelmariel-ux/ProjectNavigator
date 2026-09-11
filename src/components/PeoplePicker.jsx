@@ -23,7 +23,8 @@ export const PeoplePicker = ({
   disabled = false,
   ariaLabel,
   className = '',
-  context = ''
+  context = '',
+  requestSiteAccess = true
 }) => {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
@@ -84,11 +85,16 @@ export const PeoplePicker = ({
   // sur ce contrôle, ses erreurs sont avalées volontairement.
   const requestAccessIfNeeded = useCallback(
     (email, displayName) => {
+      // Certains usages ne désignent personne pour un accès : choisir une identité à simuler
+      // depuis le back-office ne doit pas ajouter cette personne au site (voir impersonation.js).
+      if (!requestSiteAccess) {
+        return;
+      }
       isKnownSiteUser(email)
         .then((known) => (known ? undefined : queueSiteAccessRequest({ email, displayName, context })))
         .catch(() => {});
     },
-    [context]
+    [context, requestSiteAccess]
   );
 
   const commitEmail = useCallback(

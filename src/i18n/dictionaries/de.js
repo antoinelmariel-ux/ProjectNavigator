@@ -76,6 +76,13 @@ export default {
       unreadableFilesWarning: 'unlesbare Dateien: {{files}}',
       unknownError: 'Unbekannter Fehler.'
     },
+    impersonation: {
+      titlePrefix: '[Simulation]',
+      bannerTitle: 'Identitätssimulation: Sie sehen die Anwendung als {{simulated}}.',
+      bannerBody:
+        'Ihre Sitzung bleibt die von {{real}}. Es wird nichts gespeichert, weder in SharePoint noch auf diesem Computer.',
+      exit: 'Simulation verlassen'
+    },
     showcaseShare: {
       title: 'Projekt-Showcase teilen',
       description: 'Kopieren Sie den Link oder laden Sie eine Verknüpfung herunter, um diesen Showcase direkt zu öffnen.',
@@ -1156,6 +1163,14 @@ export default {
       triggerByTeamCountHint: 'Lösen Sie diesen Ausschuss basierend auf der Anzahl der beteiligten Compliance-Teams aus.',
       minTeamsCountLabel: 'Mindestanzahl der Teams',
       exampleThreePlaceholder: 'Z. B.: 3',
+      viewAsTitle: 'Anzeigen als',
+      viewAsDescription:
+        'Öffnet die Anwendung in einem neuen Tab mit der gewählten Identität, um zu prüfen, was diese Person tatsächlich sieht: sichtbare Projekte, Back-Office-Registerkarten, an ihren Tätigkeitsbereich angepasster Fragebogen.',
+      viewAsLabel: 'Zu simulierende Person',
+      viewAsPlaceholder: 'Person suchen…',
+      viewAsButton: 'In neuem Tab öffnen',
+      viewAsHint:
+        'Ihre SharePoint-Sitzung bleibt Ihre eigene. Im Simulations-Tab wird nichts gespeichert, weder in SharePoint noch auf diesem Computer.',
       administratorsHeading: 'Administratoren',
       administratorsSubtitle: 'Fügen Sie die E-Mail-Adressen hinzu, die ohne Passwort auf das Back-Office zugreifen dürfen.',
       adminEmailsLabel: 'E-Mail-Adressen der Administratoren',

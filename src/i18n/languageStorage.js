@@ -1,3 +1,5 @@
+import { isImpersonating } from '../utils/impersonation.js';
+
 export const LANGUAGE_STORAGE_KEY = 'complianceNavigatorLanguage';
 
 const getLocalStorage = () => {
@@ -20,6 +22,12 @@ export const loadStoredLanguage = () => {
 };
 
 export const storeLanguage = (code) => {
+  // La langue de la personne simulée ne doit pas devenir celle de l'administrateur au
+  // prochain chargement de son propre onglet.
+  if (isImpersonating()) {
+    return;
+  }
+
   const storage = getLocalStorage();
   if (!storage) {
     return;
