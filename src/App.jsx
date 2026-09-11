@@ -47,6 +47,13 @@ import {
 } from './utils/inspirationConfig.js';
 import { normalizeValidationCommitteeConfig } from './utils/validationCommittee.js';
 import { isShowcaseAccessBlockedByProjectType } from './utils/showcase.js';
+import {
+  SHOWCASE_SHARE_PARAM,
+  LEGACY_SHOWCASE_SHARE_PARAMS,
+  encodeShowcaseShareToken,
+  isSharedShowcaseSearch,
+  readShowcaseShareToken
+} from './utils/showcaseShareLink.js';
 import { normalizeTeamContacts } from './utils/teamContacts.js';
 import { normalizeRulesTeamReferences } from './utils/teamIds.js';
 import { getCurrentUser } from './utils/spContext.js';
@@ -940,7 +947,9 @@ export const App = () => {
   const [showcaseShareMode, setShowcaseShareMode] = useState('full');
   const [showcaseShareCommentsEnabled, setShowcaseShareCommentsEnabled] = useState(false);
   const [showcaseShareAnnotationVisibility, setShowcaseShareAnnotationVisibility] = useState('all');
-  const [isShowcaseSharedView, setIsShowcaseSharedView] = useState(false);
+  const [isShowcaseSharedView, setIsShowcaseSharedView] = useState(
+    () => (typeof window === 'undefined' ? false : isSharedShowcaseSearch(window.location.search))
+  );
   const [showcaseCommentsEnabled, setShowcaseCommentsEnabled] = useState(false);
   const [showcaseAnnotationVisibilityMode, setShowcaseAnnotationVisibilityMode] = useState('all');
   const previousScreenRef = useRef(null);
@@ -1305,16 +1314,27 @@ export const App = () => {
 
     const { search, hash } = window.location;
     const params = new URLSearchParams(search || '');
-    let projectId = params.get('projectId') || params.get('showcase');
+    // Lien partagé récent : tout est dans le jeton opaque. Un jeton retouché à la main ne se
+    // décode pas et n'ouvre donc aucune vitrine, plutôt que de retomber sur le mode complet.
+    const sharedLink = params.get(SHOWCASE_SHARE_PARAM) ? readShowcaseShareToken(search || '') : null;
+    let projectId = sharedLink?.projectId || params.get('projectId') || params.get('showcase');
     const rawView = params.get('view');
     const rawShowcaseMode = params.get('showcaseMode');
-    const resolvedShowcaseMode = resolveShowcaseDisplayMode(rawShowcaseMode);
+    const resolvedShowcaseMode = sharedLink
+      ? sharedLink.displayMode
+      : resolveShowcaseDisplayMode(rawShowcaseMode);
     const rawShowcaseShared = params.get('showcaseShared');
     const rawShowcaseComments = params.get('showcaseComments');
     const rawShowcaseAnnotationVisibility = params.get('showcaseAnnotationVisibility');
-    const isSharedView = rawShowcaseShared === '1' || rawShowcaseShared === 'true';
-    const hasCommentsEnabled = rawShowcaseComments === '1' || rawShowcaseComments === 'true';
-    const hasMineOnlyAnnotationVisibility = rawShowcaseAnnotationVisibility === 'mine';
+    const isSharedView = sharedLink
+      ? true
+      : rawShowcaseShared === '1' || rawShowcaseShared === 'true';
+    const hasCommentsEnabled = sharedLink
+      ? sharedLink.commentsEnabled
+      : rawShowcaseComments === '1' || rawShowcaseComments === 'true';
+    const hasMineOnlyAnnotationVisibility = sharedLink
+      ? sharedLink.annotationVisibility === 'mine'
+      : rawShowcaseAnnotationVisibility === 'mine';
 
     if (!projectId && typeof hash === 'string' && hash.length > 1) {
       const normalizedHash = hash.slice(1);
@@ -3317,6 +3337,9 @@ const updateProjectFilters = useCallback((updater) => {
   // Un lien de vitrine partagée doit rester consultable par quelqu'un sans profil enregistré
   // (destinataire externe) : ne jamais lui imposer l'onboarding avant de voir la vitrine.
   const isOpeningSharedShowcaseLink = Boolean(pendingShowcaseProjectIdRef.current) || screen === 'showcase';
+  // Un lien de vitrine partagée ouvre la vitrine seule : la navigation de l'app n'a rien à
+  // proposer au destinataire externe. Elle réapparaît dès qu'il referme la vitrine.
+  const shouldHideMainNav = isShowcaseSharedView && (screen === 'showcase' || !isHydrated);
   const shouldShowOnboarding = isHydrated
     && isUserProfileLoaded
     && !userProfileLoadFailed
@@ -4933,26 +4956,24 @@ const updateProjectFilters = useCallback((updater) => {
       return '';
     }
 
+    const token = encodeShowcaseShareToken({
+      projectId: showcaseProjectId,
+      displayMode: shareMode === 'light' ? 'light' : 'full',
+      commentsEnabled: showcaseShareCommentsEnabled,
+      annotationVisibility: showcaseShareAnnotationVisibility === 'mine' ? 'mine' : 'all'
+    });
+
+    if (!token) {
+      return '';
+    }
+
     const url = new URL(window.location.href);
-    url.searchParams.set('projectId', showcaseProjectId);
-    url.searchParams.set('showcaseShared', '1');
-    if (showcaseShareCommentsEnabled) {
-      url.searchParams.set('showcaseComments', '1');
-      if (showcaseShareAnnotationVisibility === 'mine') {
-        url.searchParams.set('showcaseAnnotationVisibility', 'mine');
-      } else {
-        url.searchParams.delete('showcaseAnnotationVisibility');
-      }
-    } else {
-      url.searchParams.delete('showcaseComments');
-      url.searchParams.delete('showcaseAnnotationVisibility');
-    }
-    if (shareMode === 'light') {
-      url.searchParams.set('showcaseMode', 'light');
-    } else {
-      url.searchParams.delete('showcaseMode');
-    }
-    url.hash = `showcase=${showcaseProjectId}`;
+    // Le lien ne doit plus rien laisser paraître du mode d'affichage : on retire les anciens
+    // paramètres (et le fragment `#showcase=`) pour ne laisser que le jeton.
+    ['projectId', 'showcase', 'view', ...LEGACY_SHOWCASE_SHARE_PARAMS, SHOWCASE_SHARE_PARAM]
+      .forEach((param) => url.searchParams.delete(param));
+    url.searchParams.set(SHOWCASE_SHARE_PARAM, token);
+    url.hash = '';
     return url.toString();
   }, [showcaseProjectId, showcaseShareAnnotationVisibility, showcaseShareCommentsEnabled]);
 
@@ -5308,7 +5329,7 @@ const updateProjectFilters = useCallback((updater) => {
       <div id="tour-onboarding-anchor" className="sr-only" aria-hidden="true">
         {t('app.nav.guideLabel')}
       </div>
-      {!shouldShowOnboarding && (
+      {!shouldShowOnboarding && !shouldHideMainNav && (
       <nav className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-4">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">

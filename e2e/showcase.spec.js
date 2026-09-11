@@ -34,7 +34,7 @@ test.describe('ProjectShowcase', () => {
 
     await page.getByRole('button', { name: 'Partager' }).click();
     const shareUrl = await page.locator('input[readonly], input[type="text"]').first().inputValue();
-    expect(shareUrl).toContain('showcaseShared=1');
+    expect(shareUrl).toContain('sv=');
 
     // Simule un visiteur sans profil enregistré (onboarding jamais terminé) qui a malgré
     // tout accès aux mêmes données locales — le seul cas testable en mode mock, la vraie
@@ -44,5 +44,27 @@ test.describe('ProjectShowcase', () => {
 
     await expect(page.getByRole('heading', { name: 'Bienvenue sur Project Navigator' })).toHaveCount(0);
     await expect(page.getByText('LFB, L’ENGAGEMENT ÉTHIQUE')).toBeVisible();
+  });
+
+  test('un lien partagé masque la navigation et ne révèle pas le mode d\'affichage', async ({ page }) => {
+    await gotoHome(page);
+    await createProjectAndOpenShowcase(page);
+
+    await page.getByRole('button', { name: 'Partager' }).click();
+    await page.getByRole('button', { name: 'Mode Light', exact: true }).click();
+    const shareUrl = await page.locator('input[readonly], input[type="text"]').first().inputValue();
+
+    // Le mode ne doit apparaître nulle part : sinon le destinataire d'un lien « allégé »
+    // n'a qu'à retirer le paramètre pour ouvrir la vitrine complète.
+    expect(shareUrl).not.toContain('light');
+    expect(shareUrl).not.toContain('showcaseMode');
+    expect(shareUrl).not.toContain('showcaseShared');
+    expect(shareUrl).not.toContain('projectId');
+
+    await page.goto(shareUrl);
+
+    await expect(page.locator('.sg-shell').first()).toBeVisible();
+    await expect(page.getByRole('navigation')).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Project Navigator' })).toHaveCount(0);
   });
 });

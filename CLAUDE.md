@@ -108,6 +108,8 @@ Editing the project showcase is not a form that describes the showcase — it *i
 
 The chrome itself lives in `src/components/showcase/` (`SectionFrame`, `SectionInserter`, `ShowcaseEditorBar`, `ShowcaseOutline`, `InlineRichText`). Template thumbnails and the hover "ghost" are the real `renderCustomSectionSignature` output scaled down — never a separate wireframe drawing, which is what made the old picker useless for judging a template. Drafts are persisted per project under `complianceNavigatorShowcaseDrafts` (separate from `complianceNavigatorState`, so an unpublished draft never leaks into a shared showcase) and undo/redo runs on snapshots of `{draftValues, customSections, sectionOrder}`.
 
+Sharing a showcase produces a single opaque query parameter (`?sv=<token>`, `src/utils/showcaseShareLink.js`) that carries project id, display mode (`full`/`light`), comments toggle and post-it visibility — obfuscated and sealed with a checksum, so a recipient can no longer drop `showcaseMode=light` from the URL to reach the full view. It is deterrence, not security: everything still runs client-side. A tampered token decodes to `null` and opens nothing rather than falling back to full mode; the older plain-text params (`showcaseShared`/`showcaseMode`/…) are still *read* so links already shared keep working, but are never written again. A shared link also hides the app's `<nav>` (`shouldHideMainNav` in `App.jsx`, driven by `isShowcaseSharedView`, which is now seeded from the URL at first render so the bar doesn't flash during hydration); it comes back as soon as the visitor closes the showcase.
+
 ## The rules/questions engine (the risk-critical logic)
 
 This is where correctness matters most and where tests exist:
