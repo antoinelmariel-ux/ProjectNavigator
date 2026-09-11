@@ -173,8 +173,53 @@ const getColorFamilyLabel = (t, familyId) => t(`projectShowcase.colorFamilyNames
 
 const DEFAULT_ACCENT_FAMILY = SECTION_ACCENT_FAMILIES[2].id;
 
-const resolveAccentFamily = (value) =>
-  SECTION_ACCENT_FAMILIES.find(family => family.id === value) || SECTION_ACCENT_FAMILIES[2];
+// Famille par défaut des sections : elle suit la palette du thème au lieu d'une teinte fixe.
+// Les six familles ci-dessus restent proposées comme couleurs alternatives.
+export const THEME_ACCENT_FAMILY_ID = 'theme';
+
+// Les accents servent de texte (eyebrow, chiffres) : sur bande claire on assombrit l'accent,
+// sur bande sombre on éclaircit la teinte lumineuse, jusqu'à tenir 4.5:1 sur les dix palettes.
+const buildThemeAccentFamily = (palette = {}) => {
+  const accentPrimary = normalizeColorValue(palette.accentPrimary, '#2563eb');
+  const highlight = normalizeColorValue(palette.highlight, accentPrimary);
+
+  return {
+    id: THEME_ACCENT_FAMILY_ID,
+    c: shadeColor(accentPrimary, 0.7, '#6d511a'),
+    g1: accentPrimary,
+    g2: shadeColor(accentPrimary, 0.63, '#996b14'),
+    p1: normalizeColorValue(palette.surfaceLight, '#f1ede2'),
+    p2: normalizeColorValue(palette.surfaceLightAlt, '#e7d3aa'),
+    onDark: tintColor(highlight, 0.14, '#d6b97e')
+  };
+};
+
+// Seules les sections intégrées ont un accent configurable ici ; les blocs personnalisés
+// gardent leur propre champ `accentFamily`. Une valeur « thème » n'est pas stockée : c'est
+// le défaut, et l'omettre garde la vitrine alignée si la palette de la marque change.
+const ACCENT_CONFIGURABLE_SECTIONS = ['problem', 'solution', 'innovation', 'innovation-metrics', 'team'];
+
+const normalizeSectionAccents = (value) => {
+  if (!value || typeof value !== 'object') {
+    return {};
+  }
+
+  const normalized = {};
+  ACCENT_CONFIGURABLE_SECTIONS.forEach((sectionId) => {
+    const familyId = value[sectionId];
+    if (SECTION_ACCENT_FAMILIES.some(family => family.id === familyId)) {
+      normalized[sectionId] = familyId;
+    }
+  });
+  return normalized;
+};
+
+const resolveAccentFamily = (value, themeFamily) => {
+  if (themeFamily && (!value || value === THEME_ACCENT_FAMILY_ID)) {
+    return themeFamily;
+  }
+  return SECTION_ACCENT_FAMILIES.find(family => family.id === value) || themeFamily || SECTION_ACCENT_FAMILIES[2];
+};
 
 const SECTION_TEMPLATE_CONFIG = {
   highlight: {
@@ -1078,10 +1123,33 @@ const relativeLuminance = (value) => {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 };
 
-// La direction artistique « signature » ne lit pas la palette directement : elle expose
-// huit points d'accroche `--showcase-signature-*` (sinon elle retombe sur ses couleurs
-// d'origine et tous les thèmes rendent à l'identique). On les alimente avec les cinq
-// teintes expressives de la palette + son fond le plus sombre.
+const shadeColor = (value, factor, fallback) => {
+  const channels = parseHexChannels(value);
+  if (!channels) {
+    return fallback;
+  }
+
+  const hex = channels
+    .map(channel => Math.round(Math.min(255, Math.max(0, channel * factor))).toString(16).padStart(2, '0'))
+    .join('');
+  return `#${hex}`;
+};
+
+const tintColor = (value, factor, fallback) => {
+  const channels = parseHexChannels(value);
+  if (!channels) {
+    return fallback;
+  }
+
+  const hex = channels
+    .map(channel => Math.round(channel + (255 - channel) * factor).toString(16).padStart(2, '0'))
+    .join('');
+  return `#${hex}`;
+};
+
+// La direction artistique « signature » ne lit pas la palette directement : elle expose des
+// points d'accroche `--showcase-signature-*` (sinon elle retombe sur ses couleurs d'origine
+// et tous les thèmes rendent à l'identique). On les alimente ici depuis la palette.
 const buildSignatureVariables = (palette) => {
   const accentPrimary = normalizeColorValue(palette.accentPrimary, '#2563eb');
   const accentSecondary = normalizeColorValue(palette.accentSecondary, '#06b6d4');
@@ -1090,6 +1158,9 @@ const buildSignatureVariables = (palette) => {
   const glowSecondary = normalizeColorValue(palette.glowSecondary, accentSecondary);
   const backgroundStart = normalizeColorValue(palette.backgroundStart, '#1b1b1b');
   const inkStrong = normalizeColorValue(palette.inkStrong, '#1b1b1b');
+  const surfaceLight = normalizeColorValue(palette.surfaceLight, '#ffffff');
+  const surfaceLightAlt = normalizeColorValue(palette.surfaceLightAlt, '#f5f4f1');
+  const inkSoft = normalizeColorValue(palette.inkSoft, '#4e4d4d');
   // Sur un thème clair le fond de page ne peut pas servir de socle sombre : on prend
   // alors l'encre forte, qui reste teintée par la marque.
   const ground = relativeLuminance(backgroundStart) <= relativeLuminance(inkStrong)
@@ -1097,16 +1168,37 @@ const buildSignatureVariables = (palette) => {
     : inkStrong;
 
   return {
-    '--showcase-signature-don': accentPrimary,
-    '--showcase-signature-plasma': accentSecondary,
+    // `--sg-plasma` domine les halos clairs du fond animé et sert d'aplat d'accent : c'est
+    // lui qui doit porter la couleur signature de la marque, `--sg-don` la secondaire.
+    '--showcase-signature-don': accentSecondary,
+    '--showcase-signature-plasma': accentPrimary,
+    // Fond des cartes : le texte y est blanc, donc l'accent est assombri jusqu'à tenir
+    // le ratio 4.5:1 même sur les marques les plus claires (orange Willfact, turquoise FibClot).
+    '--showcase-signature-plasma-deep': shadeColor(accentPrimary, 0.88, '#996b14'),
+    '--showcase-signature-plasma-deeper': shadeColor(accentPrimary, 0.63, '#6d511a'),
     // `--sg-gold` termine le dégradé du titre et colore les boutons : c'est le point le
     // plus visible, d'où la teinte lumineuse de la palette (`highlight`) plutôt qu'un
     // accent sombre qui disparaîtrait sur le fond profond.
     '--showcase-signature-gold': highlight,
+    '--showcase-signature-gold-light': surfaceLightAlt,
     '--showcase-signature-vie': glowPrimary,
     '--showcase-signature-bleu': glowSecondary,
+    '--showcase-signature-rose': accentPrimary,
+    '--showcase-signature-rose-vif': highlight,
+    '--showcase-signature-cloud': surfaceLightAlt,
+    '--showcase-signature-cloud-soft': surfaceLight,
+    '--showcase-signature-title-sheen': surfaceLightAlt,
+    '--showcase-signature-ink-soft': inkSoft,
     '--showcase-signature-ink': ground,
-    '--showcase-signature-ink-rgb': toRgbTriplet(ground, '27, 27, 27')
+    '--showcase-signature-ink-rgb': toRgbTriplet(ground, '27, 27, 27'),
+    '--showcase-signature-don-rgb': toRgbTriplet(accentSecondary, '225, 9, 67'),
+    '--showcase-signature-plasma-rgb': toRgbTriplet(accentPrimary, '246, 174, 76'),
+    '--showcase-signature-bleu-rgb': toRgbTriplet(glowSecondary, '26, 97, 171'),
+    '--showcase-signature-vie-rgb': toRgbTriplet(glowPrimary, '49, 175, 128'),
+    '--showcase-signature-warn-bg': normalizeColorValue(palette.statusWarnStart, '#feead5'),
+    '--showcase-signature-warn-line': normalizeColorValue(palette.statusWarnEnd, '#f8c587'),
+    '--showcase-signature-warn-ink': normalizeColorValue(palette.statusWarnText, '#5e220e'),
+    '--showcase-signature-warn-accent': normalizeColorValue(palette.statusAlertStrongStart, '#e84a16')
   };
 };
 
@@ -1940,6 +2032,9 @@ export const ProjectShowcase = ({
     buildDefaultLightSectionSelection(buildLightVisibilityIds(sectionOrder))
   );
   const [pendingLightSections, setPendingLightSections] = useState(lightSections);
+  const [pendingSectionAccents, setPendingSectionAccents] = useState(() =>
+    normalizeSectionAccents(answers?.showcaseSectionAccents)
+  );
   const [isLightConfigOpen, setIsLightConfigOpen] = useState(false);
   const [documentUploadErrors, setDocumentUploadErrors] = useState({});
 
@@ -2070,13 +2165,28 @@ export const ProjectShowcase = ({
 
   const handleOpenLightConfig = useCallback(() => {
     setPendingLightSections(lightSections);
+    setPendingSectionAccents(normalizeSectionAccents(answers?.showcaseSectionAccents));
     setIsLightConfigOpen(true);
-  }, [lightSections]);
+  }, [answers, lightSections]);
 
   const handleCancelLightConfig = useCallback(() => {
     setPendingLightSections(lightSections);
+    setPendingSectionAccents(normalizeSectionAccents(answers?.showcaseSectionAccents));
     setIsLightConfigOpen(false);
-  }, [lightSections]);
+  }, [answers, lightSections]);
+
+  const handlePendingAccentChange = useCallback((sectionId, familyId) => {
+    setPendingSectionAccents((previous) => {
+      const next = { ...previous };
+      // La famille « thème » est le défaut : on l'efface plutôt que de la stocker.
+      if (familyId === THEME_ACCENT_FAMILY_ID) {
+        delete next[sectionId];
+      } else {
+        next[sectionId] = familyId;
+      }
+      return next;
+    });
+  }, []);
 
   const handleTogglePendingSection = useCallback((sectionId) => {
     setPendingLightSections(prev => ({
@@ -2091,8 +2201,16 @@ export const ProjectShowcase = ({
 
   const handleValidateLightConfig = useCallback(() => {
     setLightSections(pendingLightSections);
+    const nextAccents = normalizeSectionAccents(pendingSectionAccents);
+    const currentAccents = normalizeSectionAccents(answers?.showcaseSectionAccents);
+    // `canEdit` est déclaré plus bas : on relit ses deux props ici pour éviter la TDZ
+    // du tableau de dépendances, évalué dès le rendu.
+    if (typeof onUpdateAnswers === 'function' && !hideEditBar
+      && JSON.stringify(nextAccents) !== JSON.stringify(currentAccents)) {
+      onUpdateAnswers({ showcaseSectionAccents: nextAccents });
+    }
     setIsLightConfigOpen(false);
-  }, [pendingLightSections]);
+  }, [answers, hideEditBar, onUpdateAnswers, pendingLightSections, pendingSectionAccents]);
 
   const sanitizedCustomSections = useMemo(
     () => sanitizeCustomSections(customSections),
@@ -2604,6 +2722,18 @@ export const ProjectShowcase = ({
     [availableThemes, previewAnswers]
   );
   const showcaseThemeId = selectedTheme?.id || FALLBACK_SHOWCASE_THEME.id;
+  const themeAccentFamily = useMemo(
+    () => buildThemeAccentFamily((selectedTheme || FALLBACK_SHOWCASE_THEME).palette),
+    [selectedTheme]
+  );
+  const sectionAccents = useMemo(
+    () => normalizeSectionAccents(previewAnswers?.showcaseSectionAccents),
+    [previewAnswers]
+  );
+  const resolveSectionAccent = useCallback(
+    (sectionId) => resolveAccentFamily(sectionAccents[sectionId], themeAccentFamily),
+    [sectionAccents, themeAccentFamily]
+  );
   const showcaseThemeVariables = useMemo(
     () => buildThemeVariables(selectedTheme || FALLBACK_SHOWCASE_THEME),
     [selectedTheme]
@@ -2982,7 +3112,7 @@ export const ProjectShowcase = ({
           <section key={key} id="sg-anchor-problem" className="sg-story" data-showcase-section="problem">
             <div className="sg-story__grid">
               <div className="sg-story__sticky">
-                <p className="sg-eyebrow" style={{ '--sg-c': 'var(--sg-don-pale)' }}>{getSectionOptionLabel(t, 'problem')}</p>
+                <p className="sg-eyebrow" style={{ '--sg-c': resolveSectionAccent('problem').onDark }}>{getSectionOptionLabel(t, 'problem')}</p>
                 <h2 className="sg-headline">{t('projectShowcase.problemHeadline')}</h2>
                 <p className="sg-story__counter" data-sg-counter>01</p>
               </div>
@@ -3009,15 +3139,15 @@ export const ProjectShowcase = ({
         return (
           <section key={key} className="sg-band sg-band--light sg-band--pad" data-showcase-section="solution">
             <div className="sg-wrap">
-              <p className="sg-eyebrow sg-rv" style={{ '--sg-c': '#6d511a' }}>{t('projectShowcase.solutionEyebrow')}</p>
+              <p className="sg-eyebrow sg-rv" style={{ '--sg-c': resolveSectionAccent('solution').c }}>{t('projectShowcase.solutionEyebrow')}</p>
               <h2 className="sg-headline sg-rv" style={{ '--sg-d': '80ms' }}>{t('projectShowcase.solutionHeadline')}</h2>
               {hasText(solutionDescription) && (
                 <div className="sg-rv" style={{ '--sg-d': '160ms' }}>
-                  <p className="sg-eyebrow" style={{ '--sg-c': '#6d511a' }}>{t('projectShowcase.solutionInClear')}</p>
+                  <p className="sg-eyebrow" style={{ '--sg-c': resolveSectionAccent('solution').c }}>{t('projectShowcase.solutionInClear')}</p>
                   {solutionDescriptionParts.items.length > 0 ? (
                     // l'accroche à gauche, la liste qu'elle annonce à droite : le texte contient
                     // déjà ces deux registres, on les sépare au lieu de les empiler dans une case
-                    <div className="sg-solution-lead sg-solution-lead--split" style={{ '--sg-c': '#996b14' }}>
+                    <div className="sg-solution-lead sg-solution-lead--split" style={{ '--sg-c': resolveSectionAccent('solution').g2 }}>
                       <p className={`sg-solution-lead__hook ${missingInfoClass(solutionDescription)}`}>
                         {renderTextWithLinks(solutionDescriptionParts.hook)}
                       </p>
@@ -3025,7 +3155,7 @@ export const ProjectShowcase = ({
                         {hasText(solutionDescriptionParts.listLabel) && (
                           <p className="sg-solution-lead__list-label">{renderTextWithLinks(solutionDescriptionParts.listLabel)}</p>
                         )}
-                        <ul className="sg-rows" style={{ '--sg-c': '#996b14' }}>
+                        <ul className="sg-rows" style={{ '--sg-c': resolveSectionAccent('solution').g2 }}>
                           {solutionDescriptionParts.items.map((item, itemIndex) => (
                             <li key={`${item}-${itemIndex}`}>
                               <span className="sg-rows__dot" />
@@ -3040,7 +3170,7 @@ export const ProjectShowcase = ({
                     </div>
                   ) : (
                     // aucune liste detectee dans le texte : simple accroche ouverte, sans case
-                    <div className="sg-solution-lead" style={{ '--sg-c': '#996b14' }}>
+                    <div className="sg-solution-lead" style={{ '--sg-c': resolveSectionAccent('solution').g2 }}>
                       <p className={`sg-solution-lead__hook ${missingInfoClass(solutionDescription)}`}>
                         {renderTextWithLinks(solutionDescriptionParts.hook)}
                       </p>
@@ -3051,7 +3181,7 @@ export const ProjectShowcase = ({
               {solutionBenefits.length > 0 && (
                 <div className="sg-rv" style={{ '--sg-d': '240ms', marginTop: 'clamp(3.5rem, 7vw, 5rem)' }}>
                   <div className="sg-stack-header">
-                    <p className="sg-eyebrow" style={{ '--sg-c': '#6d511a' }}>
+                    <p className="sg-eyebrow" style={{ '--sg-c': resolveSectionAccent('solution').c }}>
                       {t('projectShowcase.solutionBenefitsEyebrow')}
                     </p>
                     <h3 className="sg-headline sg-headline--sm">
@@ -3111,8 +3241,8 @@ export const ProjectShowcase = ({
                 </div>
                 {hasText(innovationProcess) && (
                   <div>
-                    <p className="sg-eyebrow sg-rv" style={{ '--sg-c': '#a0d3c1' }}>{t('projectShowcase.innovationHowEyebrow')}</p>
-                    <ul className="sg-rows sg-rows--dark" style={{ '--sg-c': '#a0d3c1', marginTop: '1.4rem' }}>
+                    <p className="sg-eyebrow sg-rv" style={{ '--sg-c': resolveSectionAccent('innovation').onDark }}>{t('projectShowcase.innovationHowEyebrow')}</p>
+                    <ul className="sg-rows sg-rows--dark" style={{ '--sg-c': resolveSectionAccent('innovation').onDark, marginTop: '1.4rem' }}>
                       {innovationProcessEntries.map((entry, entryIndex) => (
                         <li key={`${entry}-${entryIndex}`} className="sg-rv" style={{ '--sg-d': `${entryIndex * 70}ms` }}>
                           <span className="sg-rows__idx">{String(entryIndex + 1).padStart(2, '0')}</span>
@@ -3127,7 +3257,7 @@ export const ProjectShowcase = ({
             {visionStatementEntries.length > 0 && (
               <section className="sg-band sg-band--cloud sg-band--pad" data-showcase-section="innovation-metrics">
                 <div className="sg-wrap">
-                  <p className="sg-eyebrow sg-rv" style={{ '--sg-c': '#143455' }}>{t('projectShowcase.valueIndicatorsEyebrow')}</p>
+                  <p className="sg-eyebrow sg-rv" style={{ '--sg-c': resolveSectionAccent('innovation-metrics').c }}>{t('projectShowcase.valueIndicatorsEyebrow')}</p>
                   <h2 className="sg-headline sg-rv" style={{ '--sg-d': '80ms' }}>{t('projectShowcase.valueIndicatorsHeadline')}</h2>
                   <div className="sg-grid">
                     {visionStatementEntries.map((entry, entryIndex) => (
@@ -3136,9 +3266,9 @@ export const ProjectShowcase = ({
                         className="sg-tile sg-rv"
                         data-sg-tilt
                         style={{
-                          '--sg-c': '#1a61ab',
-                          '--sg-g1': '#4790c4',
-                          '--sg-g2': '#143455',
+                          '--sg-c': resolveSectionAccent('innovation-metrics').g1,
+                          '--sg-g1': resolveSectionAccent('innovation-metrics').g1,
+                          '--sg-g2': resolveSectionAccent('innovation-metrics').g2,
                           '--sg-d': `${entryIndex * 80}ms`
                         }}
                       >
@@ -3160,7 +3290,7 @@ export const ProjectShowcase = ({
         return (
           <section key={key} className="sg-band sg-band--light sg-band--pad" data-showcase-section="team">
             <div className="sg-wrap">
-              <p className="sg-eyebrow sg-rv" style={{ '--sg-c': '#932579' }}>{getSectionOptionLabel(t, 'team')}</p>
+              <p className="sg-eyebrow sg-rv" style={{ '--sg-c': resolveSectionAccent('team').c }}>{getSectionOptionLabel(t, 'team')}</p>
               <h2 className="sg-headline sg-rv" style={{ '--sg-d': '80ms' }}>{t('projectShowcase.teamHeadline')}</h2>
               {hasText(teamLead) && (
                 <div className="sg-lead sg-rv" style={{ '--sg-d': '160ms' }}>
@@ -3174,7 +3304,7 @@ export const ProjectShowcase = ({
                 </div>
               )}
               {teamMemberCards.length > 0 && (
-                <ul className="sg-rows sg-roster" style={{ '--sg-c': '#932579' }}>
+                <ul className="sg-rows sg-roster" style={{ '--sg-c': resolveSectionAccent('team').c }}>
                   {teamMemberCards.map((member, memberIndex) => (
                     <li
                       key={member.id ?? `${member.name}-${memberIndex}`}
@@ -3994,6 +4124,44 @@ export const ProjectShowcase = ({
           );
         })}
       </div>
+
+      {canEdit && (
+        <div className="flex flex-col gap-3 border-t border-gray-200 pt-4">
+          <div>
+            <p className="text-sm font-semibold text-gray-800">{t('projectShowcase.sectionAccentsTitle')}</p>
+            <p className="text-xs text-gray-600">{t('projectShowcase.sectionAccentsHint')}</p>
+          </div>
+          <div className="flex flex-col gap-3">
+            {ACCENT_CONFIGURABLE_SECTIONS.map((sectionId) => (
+              <div key={`accent-${sectionId}`} className="flex flex-col gap-1.5">
+                <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                  {getSectionOptionLabel(t, sectionId)}
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {[{ id: THEME_ACCENT_FAMILY_ID, ...themeAccentFamily }, ...SECTION_ACCENT_FAMILIES].map((family) => {
+                    const activeId = pendingSectionAccents[sectionId] || THEME_ACCENT_FAMILY_ID;
+                    return (
+                      <button
+                        key={`accent-${sectionId}-${family.id}`}
+                        type="button"
+                        onClick={() => handlePendingAccentChange(sectionId, family.id)}
+                        aria-pressed={activeId === family.id}
+                        className="sge-swatch"
+                      >
+                        <span
+                          className="sge-swatch__dot"
+                          style={{ background: `linear-gradient(135deg, ${family.g1}, ${family.g2})` }}
+                        />
+                        {getColorFamilyLabel(t, family.id)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -5090,7 +5258,7 @@ export const ProjectShowcase = ({
 
   const content = (
     <>
-      <ShowcaseSignatureFx rootRef={signatureRootRef} />
+      <ShowcaseSignatureFx rootRef={signatureRootRef} themeId={showcaseThemeId} />
       {draftBanner}
       {/* En édition, la bascule Light/complète vit dans la barre supérieure — y compris
           pendant l'aperçu, sinon deux commandes porteraient le même repère de visite. */}

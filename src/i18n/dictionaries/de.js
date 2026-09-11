@@ -1542,6 +1542,7 @@ export default {
       problem: 'Das Problem',
       solution: 'Die Antwort',
       innovation: 'Differenzierung & Wirkung',
+      'innovation-metrics': 'Wertindikatoren',
       team: 'Team & Allianzen',
       timeline: 'Fahrplan',
       budget: 'Geschätztes Budget'
@@ -1693,7 +1694,10 @@ export default {
     templateCounterTemplate: 'Vorlage {{index}}/{{total}}',
     cancelButton: 'Abbrechen',
     validateTemplateButton: 'Diese Vorlage bestätigen',
+    sectionAccentsTitle: 'Farbe der Abschnitte',
+    sectionAccentsHint: 'Jeder Abschnitt folgt der Themenpalette. Wählen Sie bei Bedarf eine andere Farbe.',
     colorFamilyNames: {
+      theme: 'Thema',
       rouge: 'Rot',
       orange: 'Orange',
       or: 'Gold',

@@ -5,6 +5,7 @@ const VERT = 'attribute vec2 p;void main(){gl_Position=vec4(p,0.0,1.0);}';
 const FRAG = [
   'precision highp float;',
   'uniform vec2 u_res; uniform float u_t; uniform float u_s;',
+  'uniform vec3 u_don; uniform vec3 u_pla; uniform vec3 u_vie; uniform vec3 u_vio; uniform vec3 u_ink;',
   'vec2 h2(vec2 p){p=vec2(dot(p,vec2(127.1,311.7)),dot(p,vec2(269.5,183.3)));return -1.0+2.0*fract(sin(p)*43758.5453123);}',
   'float nz(vec2 p){vec2 i=floor(p),f=fract(p);vec2 u=f*f*(3.0-2.0*f);',
   ' return mix(mix(dot(h2(i+vec2(0.0,0.0)),f-vec2(0.0,0.0)),dot(h2(i+vec2(1.0,0.0)),f-vec2(1.0,0.0)),u.x),',
@@ -17,17 +18,17 @@ const FRAG = [
   ' vec2 r=vec2(fbm(uv*0.62+2.4*q+vec2(1.7,9.2)+0.12*t),fbm(uv*0.62+2.4*q+vec2(8.3,2.8)-0.1*t));',
   ' float f=fbm(uv*0.62+2.0*r);',
   ' float m=clamp(f*1.7+0.5,0.0,1.0);',
-  ' vec3 don=vec3(0.882,0.035,0.263);',
-  ' vec3 pla=vec3(0.965,0.682,0.298);',
-  ' vec3 vie=vec3(0.192,0.686,0.502);',
-  ' vec3 vio=vec3(0.102,0.380,0.671);',
+  ' vec3 don=u_don;',
+  ' vec3 pla=u_pla;',
+  ' vec3 vie=u_vie;',
+  ' vec3 vio=u_vio;',
   ' float s=clamp(u_s,0.0,1.0);',
   ' vec3 ca=mix(don,pla,smoothstep(0.0,0.55,s));',
   ' vec3 cb=mix(pla,vie,smoothstep(0.35,0.85,s));',
   ' vec3 cc=mix(vio,vie,smoothstep(0.55,1.0,s));',
   ' vec3 col=mix(ca,cb,smoothstep(0.25,0.75,m));',
   ' col=mix(col,cc,smoothstep(0.62,1.0,m)*0.55);',
-  ' vec3 ink=vec3(0.106,0.106,0.106);',
+  ' vec3 ink=u_ink;',
   // seuil haut : la couleur n'existe qu'en halos, le reste reste encre -> texte lisible
   ' float glow=smoothstep(0.47,0.97,m);',
   ' col=mix(ink,col,glow*0.9);',
@@ -41,6 +42,35 @@ const FRAG = [
   ' gl_FragColor=vec4(col,1.0);',
   '}'
 ].join('\n');
+
+// Les teintes du fond animé viennent des variables CSS que le thème pose sur la vitrine :
+// le shader suit ainsi la palette de la marque, exactement comme le repli statique.
+const SIGNATURE_UNIFORMS = [
+  ['u_don', '--showcase-signature-don', [0.882, 0.035, 0.263]],
+  ['u_pla', '--showcase-signature-plasma', [0.965, 0.682, 0.298]],
+  ['u_vie', '--showcase-signature-vie', [0.192, 0.686, 0.502]],
+  ['u_vio', '--showcase-signature-bleu', [0.102, 0.38, 0.671]],
+  ['u_ink', '--showcase-signature-ink', [0.106, 0.106, 0.106]]
+];
+
+const readCssColor = (styles, name, fallback) => {
+  const raw = (styles.getPropertyValue(name) || '').trim();
+  const match = /^#([0-9a-fA-F]{6})$/.exec(raw);
+  if (!match) {
+    return fallback;
+  }
+  const numeric = parseInt(match[1], 16);
+  return [((numeric >> 16) & 255) / 255, ((numeric >> 8) & 255) / 255, (numeric & 255) / 255];
+};
+
+const applyPaletteUniforms = (gl, program, host) => {
+  const styles = host ? getComputedStyle(host) : null;
+
+  SIGNATURE_UNIFORMS.forEach(([uniform, cssName, fallback]) => {
+    const value = styles ? readCssColor(styles, cssName, fallback) : fallback;
+    gl.uniform3f(gl.getUniformLocation(program, uniform), value[0], value[1], value[2]);
+  });
+};
 
 const compile = (gl, type, src) => {
   const shader = gl.createShader(type);
@@ -57,9 +87,22 @@ const prefersReducedMotion = () =>
   typeof window.matchMedia === 'function' &&
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-export function ShowcaseSignatureFx({ rootRef }) {
+export function ShowcaseSignatureFx({ rootRef, themeId }) {
   const canvasRef = useRef(null);
   const fallbackRef = useRef(null);
+  const glStateRef = useRef(null);
+
+  // Changer de thème en cours d'édition doit repeindre le fond immédiatement, sans
+  // reconstruire le contexte WebGL : on se contente de reposer les uniformes de couleur.
+  useEffect(() => {
+    const state = glStateRef.current;
+    const root = rootRef && rootRef.current;
+    if (!state || !root) {
+      return;
+    }
+    state.gl.useProgram(state.program);
+    applyPaletteUniforms(state.gl, state.program, root);
+  }, [rootRef, themeId]);
 
   useEffect(() => {
     const root = rootRef && rootRef.current;
@@ -134,6 +177,8 @@ export function ShowcaseSignatureFx({ rootRef }) {
       uRes = gl.getUniformLocation(program, 'u_res');
       uT = gl.getUniformLocation(program, 'u_t');
       uS = gl.getUniformLocation(program, 'u_s');
+      applyPaletteUniforms(gl, program, root);
+      glStateRef.current = { gl, program };
       return true;
     };
 
@@ -164,6 +209,7 @@ export function ShowcaseSignatureFx({ rootRef }) {
       const onContextLost = (event) => {
         event.preventDefault();
         glOK = false;
+        glStateRef.current = null;
         showFallback(true);
       };
       const onContextRestored = () => {
@@ -504,6 +550,7 @@ export function ShowcaseSignatureFx({ rootRef }) {
 
     return () => {
       if (rafId !== null) window.cancelAnimationFrame(rafId);
+      glStateRef.current = null;
       cleanups.forEach((fn) => fn());
     };
   }, [rootRef]);

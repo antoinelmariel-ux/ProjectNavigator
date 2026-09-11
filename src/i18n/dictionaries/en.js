@@ -1531,6 +1531,7 @@ export default {
       problem: 'The problem',
       solution: 'The answer',
       innovation: 'Differentiation & impact',
+      'innovation-metrics': 'Value indicators',
       team: 'Team & alliances',
       timeline: 'Roadmap',
       budget: 'Estimated budget'
@@ -1682,7 +1683,10 @@ export default {
     templateCounterTemplate: 'Template {{index}}/{{total}}',
     cancelButton: 'Cancel',
     validateTemplateButton: 'Validate this template',
+    sectionAccentsTitle: 'Section colours',
+    sectionAccentsHint: 'Each section follows the theme palette. Pick an alternative colour if you prefer.',
     colorFamilyNames: {
+      theme: 'Theme',
       rouge: 'Red',
       orange: 'Orange',
       or: 'Gold',

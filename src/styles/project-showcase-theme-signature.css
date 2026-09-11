@@ -10,31 +10,42 @@
   --sg-don-deep: var(--showcase-signature-don-deep, #90172a);
   --sg-don-pale: #f3b6b2;
   --sg-plasma: var(--showcase-signature-plasma, #f6ae4c);
-  --sg-plasma-deep: #996b14;
+  --sg-plasma-deep: var(--showcase-signature-plasma-deep, #996b14);
+  --sg-plasma-deeper: var(--showcase-signature-plasma-deeper, #6d511a);
   --sg-gold: var(--showcase-signature-gold, #d6b97e);
-  --sg-gold-light: #e7d3aa;
+  --sg-gold-light: var(--showcase-signature-gold-light, #e7d3aa);
   --sg-vie: var(--showcase-signature-vie, #31af80);
   --sg-vie-deep: #217d60;
-  --sg-rose: #932579;
-  --sg-rose-vif: #d30e7f;
+  --sg-rose: var(--showcase-signature-rose, #932579);
+  --sg-rose-vif: var(--showcase-signature-rose-vif, #d30e7f);
   --sg-bleu: var(--showcase-signature-bleu, #1a61ab);
   --sg-bleu-clair: #4790c4;
   --sg-bleu-nuit: #143455;
 
+  /* Triplets r,g,b : le repli statique du fond compose ses halos en rgba(), il doit
+     suivre le thème comme le canvas WebGL — sinon un visiteur en prefers-reduced-motion
+     verrait les couleurs d'origine là où tous les autres voient celles de la marque. */
+  --sg-don-rgb: var(--showcase-signature-don-rgb, 225, 9, 67);
+  --sg-plasma-rgb: var(--showcase-signature-plasma-rgb, 246, 174, 76);
+  --sg-bleu-rgb: var(--showcase-signature-bleu-rgb, 26, 97, 171);
+  --sg-vie-rgb: var(--showcase-signature-vie-rgb, 49, 175, 128);
+
   --sg-ink: var(--showcase-signature-ink, #1b1b1b);
   --sg-ink-rgb: var(--showcase-signature-ink-rgb, 27, 27, 27);
   --sg-white: #ffffff;
-  --sg-cloud: #f5f4f1;
-  --sg-ink-soft: #4e4d4d;
+  --sg-cloud: var(--showcase-signature-cloud, #f5f4f1);
+  --sg-cloud-soft: var(--showcase-signature-cloud-soft, #f1ede2);
+  --sg-title-sheen: var(--showcase-signature-title-sheen, #f4ead2);
+  --sg-ink-soft: var(--showcase-signature-ink-soft, #4e4d4d);
   --sg-on-dark: rgba(255, 255, 255, 0.74);
   --sg-on-dark-faint: rgba(255, 255, 255, 0.52);
   --sg-line-dark: rgba(255, 255, 255, 0.16);
   --sg-line-light: rgba(var(--sg-ink-rgb), 0.12);
 
-  --sg-warn-bg: #feead5;
-  --sg-warn-line: #f8c587;
-  --sg-warn-ink: #5e220e;
-  --sg-warn-accent: #e84a16;
+  --sg-warn-bg: var(--showcase-signature-warn-bg, #feead5);
+  --sg-warn-line: var(--showcase-signature-warn-line, #f8c587);
+  --sg-warn-ink: var(--showcase-signature-warn-ink, #5e220e);
+  --sg-warn-accent: var(--showcase-signature-warn-accent, #e84a16);
 
   --sg-display: var(--showcase-font-display, 'Bricolage Grotesque', 'Segoe UI', -apple-system, sans-serif);
   --sg-body: var(--showcase-font-family, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
@@ -115,10 +126,10 @@
 .sg-bg-fallback {
   z-index: 0;
   background:
-    radial-gradient(60% 50% at 20% 15%, rgba(225, 9, 67, 0.46), transparent 70%),
-    radial-gradient(55% 45% at 80% 40%, rgba(246, 174, 76, 0.42), transparent 70%),
-    radial-gradient(58% 50% at 78% 82%, rgba(26, 97, 171, 0.4), transparent 70%),
-    radial-gradient(60% 55% at 40% 88%, rgba(49, 175, 128, 0.36), transparent 70%),
+    radial-gradient(60% 50% at 20% 15%, rgba(var(--sg-don-rgb), 0.46), transparent 70%),
+    radial-gradient(55% 45% at 80% 40%, rgba(var(--sg-plasma-rgb), 0.42), transparent 70%),
+    radial-gradient(58% 50% at 78% 82%, rgba(var(--sg-bleu-rgb), 0.4), transparent 70%),
+    radial-gradient(60% 55% at 40% 88%, rgba(var(--sg-vie-rgb), 0.36), transparent 70%),
     var(--sg-ink);
 }
 
@@ -313,7 +324,7 @@
   line-height: 0.94;
   letter-spacing: -0.045em;
   max-width: 12ch;
-  background-image: linear-gradient(104deg, #ffffff 0%, #f4ead2 42%, var(--sg-gold) 100%);
+  background-image: linear-gradient(104deg, var(--sg-white) 0%, var(--sg-title-sheen) 42%, var(--sg-gold) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -557,7 +568,7 @@
   justify-content: space-between;
   gap: 1.1rem;
   color: var(--sg-white);
-  background: linear-gradient(135deg, var(--sg-c1, var(--sg-plasma-deep)), var(--sg-c2, #6d511a));
+  background: linear-gradient(135deg, var(--sg-c1, var(--sg-plasma-deep)), var(--sg-c2, var(--sg-plasma-deeper)));
   box-shadow: 0 18px 40px rgba(var(--sg-ink-rgb), 0.22);
 }
 
@@ -800,7 +811,7 @@
 .sg-panel {
   padding: clamp(2rem, 5vw, 3.2rem);
   border-radius: 28px;
-  background: linear-gradient(135deg, var(--sg-p1, #f1ede2), var(--sg-p2, #e7d3aa) 60%, var(--sg-p1, #f1ede2));
+  background: linear-gradient(135deg, var(--sg-p1, var(--sg-cloud-soft)), var(--sg-p2, var(--sg-gold-light)) 60%, var(--sg-p1, var(--sg-cloud-soft)));
   border: 1px solid rgba(var(--sg-ink-rgb), 0.08);
   border-left: 4px solid var(--sg-c, var(--sg-plasma-deep));
   color: var(--sg-ink);
@@ -992,7 +1003,7 @@
   line-height: 0.9;
   letter-spacing: -0.05em;
   font-variant-numeric: tabular-nums;
-  background: linear-gradient(104deg, #ffffff 0%, #f4ead2 42%, var(--sg-gold) 100%);
+  background: linear-gradient(104deg, var(--sg-white) 0%, var(--sg-title-sheen) 42%, var(--sg-gold) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
