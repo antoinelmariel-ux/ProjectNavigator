@@ -1531,6 +1531,7 @@ export default {
       problem: 'El problema',
       solution: 'La respuesta',
       innovation: 'Diferenciación e impacto',
+      'innovation-metrics': 'Indicadores de valor',
       team: 'Equipo y alianzas',
       timeline: 'Hoja de ruta',
       budget: 'Presupuesto estimado'
@@ -1682,7 +1683,10 @@ export default {
     templateCounterTemplate: 'Plantilla {{index}}/{{total}}',
     cancelButton: 'Cancelar',
     validateTemplateButton: 'Validar esta plantilla',
+    sectionAccentsTitle: 'Color de las secciones',
+    sectionAccentsHint: 'Cada sección sigue la paleta del tema. Elija un color alternativo si lo prefiere.',
     colorFamilyNames: {
+      theme: 'Tema',
       rouge: 'Rojo',
       orange: 'Naranja',
       or: 'Oro',
