@@ -1078,10 +1078,21 @@ const relativeLuminance = (value) => {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 };
 
-// La direction artistique « signature » ne lit pas la palette directement : elle expose
-// huit points d'accroche `--showcase-signature-*` (sinon elle retombe sur ses couleurs
-// d'origine et tous les thèmes rendent à l'identique). On les alimente avec les cinq
-// teintes expressives de la palette + son fond le plus sombre.
+const shadeColor = (value, factor, fallback) => {
+  const channels = parseHexChannels(value);
+  if (!channels) {
+    return fallback;
+  }
+
+  const hex = channels
+    .map(channel => Math.round(Math.min(255, Math.max(0, channel * factor))).toString(16).padStart(2, '0'))
+    .join('');
+  return `#${hex}`;
+};
+
+// La direction artistique « signature » ne lit pas la palette directement : elle expose des
+// points d'accroche `--showcase-signature-*` (sinon elle retombe sur ses couleurs d'origine
+// et tous les thèmes rendent à l'identique). On les alimente ici depuis la palette.
 const buildSignatureVariables = (palette) => {
   const accentPrimary = normalizeColorValue(palette.accentPrimary, '#2563eb');
   const accentSecondary = normalizeColorValue(palette.accentSecondary, '#06b6d4');
@@ -1090,6 +1101,9 @@ const buildSignatureVariables = (palette) => {
   const glowSecondary = normalizeColorValue(palette.glowSecondary, accentSecondary);
   const backgroundStart = normalizeColorValue(palette.backgroundStart, '#1b1b1b');
   const inkStrong = normalizeColorValue(palette.inkStrong, '#1b1b1b');
+  const surfaceLight = normalizeColorValue(palette.surfaceLight, '#ffffff');
+  const surfaceLightAlt = normalizeColorValue(palette.surfaceLightAlt, '#f5f4f1');
+  const inkSoft = normalizeColorValue(palette.inkSoft, '#4e4d4d');
   // Sur un thème clair le fond de page ne peut pas servir de socle sombre : on prend
   // alors l'encre forte, qui reste teintée par la marque.
   const ground = relativeLuminance(backgroundStart) <= relativeLuminance(inkStrong)
@@ -1097,16 +1111,37 @@ const buildSignatureVariables = (palette) => {
     : inkStrong;
 
   return {
-    '--showcase-signature-don': accentPrimary,
-    '--showcase-signature-plasma': accentSecondary,
+    // `--sg-plasma` domine les halos clairs du fond animé et sert d'aplat d'accent : c'est
+    // lui qui doit porter la couleur signature de la marque, `--sg-don` la secondaire.
+    '--showcase-signature-don': accentSecondary,
+    '--showcase-signature-plasma': accentPrimary,
+    // Fond des cartes : le texte y est blanc, donc l'accent est assombri jusqu'à tenir
+    // le ratio 4.5:1 même sur les marques les plus claires (orange Willfact, turquoise FibClot).
+    '--showcase-signature-plasma-deep': shadeColor(accentPrimary, 0.88, '#996b14'),
+    '--showcase-signature-plasma-deeper': shadeColor(accentPrimary, 0.63, '#6d511a'),
     // `--sg-gold` termine le dégradé du titre et colore les boutons : c'est le point le
     // plus visible, d'où la teinte lumineuse de la palette (`highlight`) plutôt qu'un
     // accent sombre qui disparaîtrait sur le fond profond.
     '--showcase-signature-gold': highlight,
+    '--showcase-signature-gold-light': surfaceLightAlt,
     '--showcase-signature-vie': glowPrimary,
     '--showcase-signature-bleu': glowSecondary,
+    '--showcase-signature-rose': accentPrimary,
+    '--showcase-signature-rose-vif': highlight,
+    '--showcase-signature-cloud': surfaceLightAlt,
+    '--showcase-signature-cloud-soft': surfaceLight,
+    '--showcase-signature-title-sheen': surfaceLightAlt,
+    '--showcase-signature-ink-soft': inkSoft,
     '--showcase-signature-ink': ground,
-    '--showcase-signature-ink-rgb': toRgbTriplet(ground, '27, 27, 27')
+    '--showcase-signature-ink-rgb': toRgbTriplet(ground, '27, 27, 27'),
+    '--showcase-signature-don-rgb': toRgbTriplet(accentSecondary, '225, 9, 67'),
+    '--showcase-signature-plasma-rgb': toRgbTriplet(accentPrimary, '246, 174, 76'),
+    '--showcase-signature-bleu-rgb': toRgbTriplet(glowSecondary, '26, 97, 171'),
+    '--showcase-signature-vie-rgb': toRgbTriplet(glowPrimary, '49, 175, 128'),
+    '--showcase-signature-warn-bg': normalizeColorValue(palette.statusWarnStart, '#feead5'),
+    '--showcase-signature-warn-line': normalizeColorValue(palette.statusWarnEnd, '#f8c587'),
+    '--showcase-signature-warn-ink': normalizeColorValue(palette.statusWarnText, '#5e220e'),
+    '--showcase-signature-warn-accent': normalizeColorValue(palette.statusAlertStrongStart, '#e84a16')
   };
 };
 
@@ -5090,7 +5125,7 @@ export const ProjectShowcase = ({
 
   const content = (
     <>
-      <ShowcaseSignatureFx rootRef={signatureRootRef} />
+      <ShowcaseSignatureFx rootRef={signatureRootRef} themeId={showcaseThemeId} />
       {draftBanner}
       {/* En édition, la bascule Light/complète vit dans la barre supérieure — y compris
           pendant l'aperçu, sinon deux commandes porteraient le même repère de visite. */}
