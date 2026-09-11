@@ -1,6 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { analyzeAnswers, matchesCondition, resolveProjectAnalysis } from '../src/utils/rules.js';
+import {
+  analyzeAnswers,
+  matchesCondition,
+  normalizeAnalysis,
+  resolveProjectAnalysis
+} from '../src/utils/rules.js';
 import { initialRules } from '../src/data/rules.js';
 import { initialRiskLevelRules } from '../src/data/riskLevelRules.js';
 import { initialRiskWeights } from '../src/data/riskWeights.js';
@@ -119,4 +124,41 @@ test('resolveProjectAnalysis : sans réponses, renvoie null sans appeler compute
 
   assert.equal(result, null);
   assert.equal(called, false);
+});
+
+test('normalizeAnalysis : une analyse absente devient une analyse vide exploitable', () => {
+  const result = normalizeAnalysis(null);
+
+  assert.deepEqual(result.risks, []);
+  assert.deepEqual(result.teams, []);
+  assert.deepEqual(result.notifiedTeams, []);
+  assert.deepEqual(result.triggeredRules, []);
+  assert.deepEqual(result.sharedTeamBlocks, []);
+  assert.deepEqual(result.questions, {});
+  assert.equal(result.riskScore, 0);
+  assert.deepEqual(result.timeline, { byTeam: {}, details: [], vigilance: [] });
+});
+
+test('normalizeAnalysis : complète une analyse partielle sans perdre ses champs connus', () => {
+  const result = normalizeAnalysis({ complexity: 'Élevée', risks: undefined, teams: ['dpo'] });
+
+  assert.equal(result.complexity, 'Élevée');
+  assert.deepEqual(result.teams, ['dpo']);
+  assert.deepEqual(result.risks, []);
+  assert.deepEqual(result.timeline.vigilance, []);
+});
+
+test('normalizeAnalysis : une analyse complète conserve ses valeurs', () => {
+  const source = analyzeAnswers(
+    demoProjectAnswersSnapshot,
+    initialRules,
+    initialRiskLevelRules,
+    initialRiskWeights
+  );
+  const result = normalizeAnalysis(source);
+
+  assert.deepEqual(result.risks, source.risks);
+  assert.deepEqual(result.teams, source.teams);
+  assert.equal(result.riskScore, source.riskScore);
+  assert.equal(result.complexity, source.complexity);
 });

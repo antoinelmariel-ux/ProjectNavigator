@@ -165,3 +165,42 @@ async function walkToSynthesisStep(page) {
   await nextBtn.first().click();
   await page.waitForTimeout(150);
 }
+
+// Un projet créé puis laissé de côté peut n'avoir aucune réponse enregistrée : dans ce cas
+// `resolveProjectAnalysis` ne recalcule rien et renvoie `null` (comportement volontaire, cf.
+// test/rules.test.mjs). Les chemins qui ouvrent directement la synthèse — lien de notification
+// `?projectId=…&view=synthesis`, bouton « Ouvrir » de la revue Compliance, retour depuis la
+// vitrine — faisaient alors tomber toute l'application dans l'ErrorBoundary global
+// (« Affichage interrompu ») au lieu d'afficher une synthèse vide.
+test.describe('Synthèse tolérante à une analyse absente', () => {
+  test('un projet sans réponse ouvert en synthèse affiche un rapport vide, pas l\'écran d\'erreur', async ({ page }) => {
+    await gotoHome(page);
+    await page.getByRole('button', { name: /Créer un projet/ }).first().click();
+    await expect(page.locator('[id^="question-"]').first()).toBeVisible();
+    await page.getByRole('button', { name: /Retourner à l.accueil des projets/ }).first().click();
+    await expect(page.getByRole('button', { name: /Continuer l.édition/ }).first()).toBeVisible();
+
+    const projectId = await page.evaluate(
+      () => (JSON.parse(window.localStorage.getItem('complianceNavigatorState') || '{}').projects || [])[0]?.id
+    );
+    expect(projectId).toBeTruthy();
+
+    // addInitScript plutôt qu'un evaluate + reload : le flush `pagehide` de la page courante
+    // réécrirait sinon l'état React par-dessus la modification juste avant le rechargement.
+    await page.addInitScript(() => {
+      const key = 'complianceNavigatorState';
+      const state = JSON.parse(window.localStorage.getItem(key) || '{}');
+      if (Array.isArray(state.projects) && state.projects[0]) {
+        state.projects[0].answers = {};
+        state.projects[0].analysis = null;
+      }
+      window.localStorage.setItem(key, JSON.stringify(state));
+    });
+
+    await page.goto(`/index.html?projectId=${projectId}&view=synthesis`);
+
+    await expect(page.getByRole('heading', { name: 'Synthèse' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Affichage interrompu' })).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: /Risques identifiés \(0\)/ })).toBeVisible();
+  });
+});

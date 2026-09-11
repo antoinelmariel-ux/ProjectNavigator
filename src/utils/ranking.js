@@ -155,7 +155,11 @@ export const formatRankingAnswer = (answer, criteria, language = DEFAULT_LANGUAG
     return '';
   }
 
-  const criteriaById = new Map((criteria || []).map(item => [item.id, resolveLocalizedText(item.label, language)]));
+  const criteriaById = new Map(
+    (Array.isArray(criteria) ? criteria : [])
+      .filter(item => item && typeof item === 'object')
+      .map(item => [item.id, resolveLocalizedText(item.label, language)])
+  );
 
   const priorities = ordered
     .map(id => criteriaById.get(id))

@@ -21,6 +21,7 @@ import { RichTextEditor } from './RichTextEditor.jsx';
 import { PeoplePicker } from './PeoplePicker.jsx';
 import { extractProjectName } from '../utils/projects.js';
 import { getTeamPriority } from '../utils/projectExport.js';
+import { normalizeAnalysis } from '../utils/rules.js';
 import {
   DEFAULT_COMMITTEE_ID,
   getTriggeredValidationCommittees,
@@ -493,7 +494,7 @@ const formatTeamQuestionTimingMessage = (questionBank, violation, language, t) =
 
 export const SynthesisReport = ({
   answers,
-  analysis,
+  analysis: providedAnalysis,
   teams,
   questions,
   projectStatus,
@@ -533,6 +534,11 @@ export const SynthesisReport = ({
   const [openTeamCommentEditors, setOpenTeamCommentEditors] = useState({});
   const [openTeamReplyBoxes, setOpenTeamReplyBoxes] = useState({});
   const [shareMemberFeedback, setShareMemberFeedback] = useState('');
+  // `analysis` peut arriver à null (projet créé mais sans réponse : resolveProjectAnalysis ne
+  // recalcule rien) ou incomplet (analyse figée d'un projet soumis avec une ancienne version du
+  // référentiel). Sans cette normalisation, `analysis.risks` faisait tomber tout l'écran dans
+  // l'ErrorBoundary global (« Affichage interrompu ») au lieu d'afficher une synthèse vide.
+  const analysis = useMemo(() => normalizeAnalysis(providedAnalysis), [providedAnalysis]);
   useEffect(() => {
     if (!tourContext?.isActive) {
       return;
@@ -2559,7 +2565,11 @@ export const SynthesisReport = ({
                 className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-5 sm:p-6"
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {questions.map(q => {
+                  {(Array.isArray(questions) ? questions : []).map(q => {
+                    if (!q || typeof q !== 'object') {
+                      return null;
+                    }
+
                     const answerValue = answers[q.id];
                     const shouldRenderCard = isAnswerProvided(answerValue) || q.required;
 
