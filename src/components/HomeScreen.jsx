@@ -381,6 +381,8 @@ export const HomeScreen = ({
   const [duplicationNotice, setDuplicationNotice] = useState(null);
   const [projectSearch, setProjectSearch] = useState('');
   const [inspirationPage, setInspirationPage] = useState(1);
+  const [submittedProjectsPage, setSubmittedProjectsPage] = useState(1);
+  const [publicProjectsPage, setPublicProjectsPage] = useState(1);
   const [deleteDialogState, setDeleteDialogState] = useState(() => ({
     isOpen: false,
     project: null
@@ -1162,6 +1164,16 @@ export const HomeScreen = ({
     const offset = (projectPage - 1) * PROJECTS_PAGE_SIZE;
     return filteredProjects.slice(offset, offset + PROJECTS_PAGE_SIZE);
   }, [filteredProjects, projectPage]);
+  const totalSubmittedProjectPages = Math.max(1, Math.ceil(submittedProjects.length / PROJECTS_PAGE_SIZE));
+  const paginatedSubmittedProjects = useMemo(() => {
+    const offset = (submittedProjectsPage - 1) * PROJECTS_PAGE_SIZE;
+    return submittedProjects.slice(offset, offset + PROJECTS_PAGE_SIZE);
+  }, [submittedProjects, submittedProjectsPage]);
+  const totalPublicProjectPages = Math.max(1, Math.ceil(otherPublicProjects.length / PROJECTS_PAGE_SIZE));
+  const paginatedOtherPublicProjects = useMemo(() => {
+    const offset = (publicProjectsPage - 1) * PROJECTS_PAGE_SIZE;
+    return otherPublicProjects.slice(offset, offset + PROJECTS_PAGE_SIZE);
+  }, [otherPublicProjects, publicProjectsPage]);
   const totalInspirationPages = Math.max(1, Math.ceil(filteredInspirationProjects.length / INSPIRATIONS_PAGE_SIZE));
   const paginatedPersonalInspirationProjects = useMemo(() => {
     const offset = (inspirationPage - 1) * INSPIRATIONS_PAGE_SIZE;
@@ -1282,6 +1294,14 @@ export const HomeScreen = ({
   useEffect(() => {
     setInspirationPage(1);
   }, [filteredInspirationProjects.length, homeView]);
+
+  useEffect(() => {
+    setSubmittedProjectsPage(1);
+  }, [submittedProjects.length, homeView]);
+
+  useEffect(() => {
+    setPublicProjectsPage(1);
+  }, [otherPublicProjects.length, homeView]);
 
   const handleClearProjectFilter = useCallback((target) => {
     setFiltersState((prev) => {
@@ -1887,20 +1907,6 @@ export const HomeScreen = ({
           </section>
         )}
 
-        {homeView !== 'inspiration' && otherPublicProjects.length > 0 && (
-          <section aria-labelledby="public-projects-heading" className="space-y-6">
-            <div>
-              <h2 id="public-projects-heading" className="text-2xl font-bold text-gray-900">
-                {t('home.publicProjectsHeading')}
-              </h2>
-              <p className="text-sm text-gray-600">{t('home.publicProjectsSubtitle')}</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6" role="list" aria-label={t('home.publicProjectsListAriaLabel')}>
-              {otherPublicProjects.map(project => renderProjectCard(project))}
-            </div>
-          </section>
-        )}
-
         <section aria-labelledby="projects-heading" className="space-y-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between" data-tour-id="home-inspiration-block">
             <div>
@@ -2214,9 +2220,17 @@ export const HomeScreen = ({
                 </div>
 
                 {hasSubmittedProjects ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6" role="list">
-                    {submittedProjects.map((project) => renderProjectCard(project))}
-                  </div>
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6" role="list">
+                      {paginatedSubmittedProjects.map((project) => renderProjectCard(project))}
+                    </div>
+                    <PaginationControls
+                      page={submittedProjectsPage}
+                      totalPages={totalSubmittedProjectPages}
+                      onPrevious={() => setSubmittedProjectsPage((prev) => Math.max(1, prev - 1))}
+                      onNext={() => setSubmittedProjectsPage((prev) => Math.min(totalSubmittedProjectPages, prev + 1))}
+                    />
+                  </>
                 ) : (
                   <div className="bg-white border border-dashed border-emerald-200 rounded-3xl p-6 text-center text-gray-600">
                     <p className="text-lg font-medium text-gray-800">{t('home.noSubmittedProjects')}</p>
@@ -2420,6 +2434,26 @@ export const HomeScreen = ({
             </>
           )}
         </section>
+
+        {homeView !== 'inspiration' && otherPublicProjects.length > 0 && (
+          <section aria-labelledby="public-projects-heading" className="space-y-6">
+            <div>
+              <h2 id="public-projects-heading" className="text-2xl font-bold text-gray-900">
+                {t('home.publicProjectsHeading')}
+              </h2>
+              <p className="text-sm text-gray-600">{t('home.publicProjectsSubtitle')}</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6" role="list" aria-label={t('home.publicProjectsListAriaLabel')}>
+              {paginatedOtherPublicProjects.map(project => renderProjectCard(project))}
+            </div>
+            <PaginationControls
+              page={publicProjectsPage}
+              totalPages={totalPublicProjectPages}
+              onPrevious={() => setPublicProjectsPage((prev) => Math.max(1, prev - 1))}
+              onNext={() => setPublicProjectsPage((prev) => Math.min(totalPublicProjectPages, prev + 1))}
+            />
+          </section>
+        )}
       </div>
 
       {committeeSelectionModal.isOpen && (
