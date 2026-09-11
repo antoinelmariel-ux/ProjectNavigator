@@ -2073,29 +2073,8 @@ export const SynthesisReport = ({
                       <p className="text-xs text-gray-600 mt-2">
                         <span className="font-semibold text-gray-700">{t('synthesisReport.referentTeamLabel')}</span>{' '}
                         {(() => {
-                          const associatedTeam = teams.find(team => {
-                            if (risk.teamId) {
-                              return team.id === risk.teamId;
-                            }
-                            if (Array.isArray(risk.teams)) {
-                              return risk.teams.includes(team.id);
-                            }
-                            return false;
-                          });
-
-                          if (associatedTeam) {
-                            return associatedTeam.name;
-                          }
-
-                          if (risk.teamId) {
-                            return risk.teamId;
-                          }
-
-                          if (Array.isArray(risk.teams) && risk.teams.length > 0) {
-                            return risk.teams[0];
-                          }
-
-                          return t('synthesisReport.teamNotProvided');
+                          const rawTeamId = risk.teamId || (Array.isArray(risk.teams) ? risk.teams[0] : null);
+                          return rawTeamId ? resolveTeamLabel(rawTeamId) : t('synthesisReport.teamNotProvided');
                         })()}
                       </p>
                       <p className="text-sm text-gray-600 mt-2">
