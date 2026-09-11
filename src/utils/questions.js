@@ -543,6 +543,15 @@ export const formatAnswer = (question, answer, language = DEFAULT_LANGUAGE) => {
     return answer.map((value) => resolveOptionLabelFromQuestion(question, value, language)).join(', ');
   }
 
+  // Une réponse à choix unique enregistrée comme simple chaîne (ex. republiée depuis
+  // l'éditeur de vitrine, ou une donnée de démo) porte directement le code de l'option
+  // ("medical_dof") : sans résolution ici, elle s'affiche telle quelle au lieu du libellé
+  // traduit ("Médical DOF"), alors que la forme objet {value, label, ...} ci-dessous l'est
+  // bien via resolveOptionLabelFromQuestion.
+  if (questionType === 'choice' && typeof answer === 'string') {
+    return resolveOptionLabelFromQuestion(question, answer, language);
+  }
+
   if (questionType === 'choice' && answer && typeof answer === 'object' && !Array.isArray(answer)) {
     const value = typeof answer.value !== 'undefined' ? answer.value : answer.name;
     const label = resolveOptionLabelFromQuestion(question, value, language);

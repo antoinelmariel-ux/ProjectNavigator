@@ -1448,6 +1448,34 @@ const formatMilestoneDraftState = (entries) => {
     .filter(entry => entry.date.trim().length > 0 || entry.description.trim().length > 0);
 };
 
+// Une réponse à une question à choix unique est stockée par le questionnaire sous la forme
+// { value, label, otherText, children } (voir QuestionnaireScreen.jsx#onAnswer), jamais comme
+// une simple chaîne — seules les données de démo (demoProject.js) utilisent encore la chaîne
+// brute. Sans cette extraction, `String(rawValue)` produit "[object Object]", qui ne
+// correspond à aucune <option> du menu déroulant de l'éditeur : le champ paraît vide alors que
+// la réponse existe bel et bien (cas vécu avec "À quelle équipe est-il rattaché ?" et
+// "S'agit-il d'un projet produit ou environnement ?"). Quand une sous-option est sélectionnée
+// (ex. un produit précis sous « Produit »), c'est elle la valeur pertinente pour le menu à plat
+// de l'éditeur, pas la catégorie parente.
+const extractChoiceAnswerValue = (rawValue) => {
+  if (rawValue && typeof rawValue === 'object' && !Array.isArray(rawValue)) {
+    const children = Array.isArray(rawValue.children) ? rawValue.children : [];
+    const childValue = children.find(child => typeof child === 'string' && child.trim().length > 0);
+    if (childValue) {
+      return childValue;
+    }
+    if (typeof rawValue.value === 'string') {
+      return rawValue.value;
+    }
+    if (typeof rawValue.name === 'string') {
+      return rawValue.name;
+    }
+    return '';
+  }
+
+  return rawValue;
+};
+
 const formatValueForDraft = (type, rawValue) => {
   if (rawValue === null || rawValue === undefined) {
     return type === 'multi_choice' || type === 'milestone_list' ? [] : '';
@@ -1455,6 +1483,10 @@ const formatValueForDraft = (type, rawValue) => {
 
   if (type === 'multi_choice') {
     return normalizeMultiChoiceValue(rawValue);
+  }
+
+  if (type === 'choice') {
+    return String(extractChoiceAnswerValue(rawValue) ?? '');
   }
 
   if (type === 'date') {
@@ -3055,7 +3087,7 @@ export const ProjectShowcase = ({
                     ariaLabel={t('projectShowcase.fieldFallbackLabels.projectName')}
                   />
                 ) : (
-                  safeProjectName
+                  renderTextWithLinks(safeProjectName)
                 )}
               </h1>
               {(hasText(slogan) || isEditorChromeVisible) && (
@@ -3298,7 +3330,7 @@ export const ProjectShowcase = ({
                     <span>{teamLeadInitials}</span>
                   </span>
                   <span>
-                    <span className={`sg-lead__name ${missingInfoClass(teamLead)}`}>{teamLead}</span>
+                    <span className={`sg-lead__name ${missingInfoClass(teamLead)}`}>{renderTextWithLinks(teamLead)}</span>
                     {hasText(teamLeadTeam) && <span className="sg-lead__role">{t('projectShowcase.pilotageTemplate', { team: teamLeadTeam })}</span>}
                   </span>
                 </div>
@@ -3313,8 +3345,8 @@ export const ProjectShowcase = ({
                     >
                       <span className="sg-roster__seal" aria-hidden="true">{member.initials}</span>
                       <span>
-                        <span className="sg-roster__name">{member.name}</span>
-                        {member.details && <span className="sg-roster__role">{member.details}</span>}
+                        <span className="sg-roster__name">{renderTextWithLinks(member.name)}</span>
+                        {member.details && <span className="sg-roster__role">{renderTextWithLinks(member.details)}</span>}
                       </span>
                     </li>
                   ))}
