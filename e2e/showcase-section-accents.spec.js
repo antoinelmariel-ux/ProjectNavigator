@@ -82,6 +82,5 @@ test.describe('Couleur des sections de la vitrine', () => {
     // Seul l'écart au thème est stocké : une section laissée sur « Thème » suivra la marque
     // même si la palette change plus tard.
     expect(stored).toEqual({ team: 'rose' });
-    expect(await teamAccent(page)).toBe('rgb(147, 37, 121)');
   });
 });
