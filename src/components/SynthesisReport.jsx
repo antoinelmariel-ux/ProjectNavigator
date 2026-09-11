@@ -2084,7 +2084,7 @@ export const SynthesisReport = ({
                           });
 
                           if (associatedTeam) {
-                            return associatedTeam.name;
+                            return resolveLocalizedText(associatedTeam.name, language);
                           }
 
                           if (risk.teamId) {
