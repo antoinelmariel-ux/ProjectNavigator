@@ -1516,7 +1516,7 @@ export default {
     commentFieldLabel: 'Kommentar',
     teamCommentPlaceholder: 'Fügen Sie hier Ihre Empfehlungen, Hinweise und Links hinzu...',
     saveCommentButton: 'Kommentar speichern',
-    replyToggle: '✎ Antworten',
+    replyToggle: 'Antworten',
     replyPlaceholder: 'Ihre Antwort (Rich-Text und Links)...',
     removeButton: 'Entfernen',
     sendReplyButton: 'Antwort senden',

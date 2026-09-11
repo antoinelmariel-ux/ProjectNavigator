@@ -1505,7 +1505,7 @@ export default {
     commentFieldLabel: 'Comment',
     teamCommentPlaceholder: 'Add your recommendations, points of attention and links here...',
     saveCommentButton: 'Save comment',
-    replyToggle: '✎ Reply',
+    replyToggle: 'Reply',
     replyPlaceholder: 'Your reply (rich text and links)...',
     removeButton: 'Remove',
     sendReplyButton: 'Send reply',

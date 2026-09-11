@@ -79,14 +79,43 @@
   margin: 0;
 }
 
-/* Exclut le contenu ".prose" (RichTextEditor) : ce reset vise les listes de
-   mise en page (nav, cartes), pas les puces/numeros saisis par l'utilisateur
-   dans un champ de texte riche, qui doivent rester visibles. */
-.sg-shell ul:not(.prose *),
-.sg-shell ol:not(.prose *) {
+/* Exclut le contenu ".prose" (RichTextEditor) et ".sg-richtext" (texte riche
+   publié dans la vitrine, cf. linkify.js/richText.js) : ce reset vise les
+   listes de mise en page (nav, cartes), pas les puces/numeros saisis par
+   l'utilisateur dans un champ de texte riche, qui doivent rester visibles. */
+.sg-shell ul:not(.prose *):not(.sg-richtext *),
+.sg-shell ol:not(.prose *):not(.sg-richtext *) {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.sg-shell .sg-richtext ul {
+  list-style: disc;
+  padding-left: 1.25em;
+  margin: 0.35em 0;
+}
+
+.sg-shell .sg-richtext ol {
+  list-style: decimal;
+  padding-left: 1.25em;
+  margin: 0.35em 0;
+}
+
+.sg-shell .sg-richtext li + li {
+  margin-top: 0.25em;
+}
+
+.sg-shell .sg-richtext a {
+  color: var(--sg-bleu);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-weight: 600;
+  transition: opacity 0.15s ease;
+}
+
+.sg-shell .sg-richtext a:hover {
+  opacity: 0.72;
 }
 
 .sg-shell a:focus-visible,

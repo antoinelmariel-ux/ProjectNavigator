@@ -1,3 +1,5 @@
+import { stripRichTextToPlainText } from './richText.js';
+
 const questionMatchesProjectNameHeuristic = (questionText) => {
   const candidates = typeof questionText === 'string'
     ? [questionText]
@@ -24,7 +26,7 @@ export const extractProjectName = (answers, questions) => {
   for (const key of preferredKeys) {
     const value = answers[key];
     if (typeof value === 'string' && value.trim().length > 0) {
-      return value.trim();
+      return stripRichTextToPlainText(value);
     }
   }
 
@@ -41,7 +43,7 @@ export const extractProjectName = (answers, questions) => {
   });
 
   if (matchingQuestion) {
-    return answers[matchingQuestion.id].trim();
+    return stripRichTextToPlainText(answers[matchingQuestion.id]);
   }
 
   return '';

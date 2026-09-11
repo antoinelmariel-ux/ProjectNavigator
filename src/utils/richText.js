@@ -248,5 +248,32 @@ export const renderRichText = (value) => {
     return '';
   }
 
-  return <span dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />;
+  return <span className="sg-richtext" dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />;
+};
+
+// Un champ comme "Nom du projet" est saisi en riche (hero de la vitrine) mais
+// réutilisé partout ailleurs comme texte brut (carte d'accueil, aria-label,
+// export) : sans cette conversion, un <br> ou un &nbsp; laissé par l'éditeur
+// contentEditable s'affiche comme caractères littéraux au lieu d'être ignoré.
+export const stripRichTextToPlainText = (value) => {
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    return '';
+  }
+
+  if (typeof DOMParser === 'undefined') {
+    return trimmed
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  const parser = new DOMParser();
+  const parsedDocument = parser.parseFromString(trimmed, 'text/html');
+  return (parsedDocument.body?.textContent || '').replace(/\s+/g, ' ').trim();
 };

@@ -27,6 +27,7 @@ import {
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { resolveLocalizedText } from '../utils/localizedContent.js';
 import { getLocaleTag } from '../i18n/languages.js';
+import { stripRichTextToPlainText } from '../utils/richText.js';
 
 const formatDate = (isoDate, language, unknownDateLabel) => {
   if (!isoDate) {
@@ -1189,13 +1190,13 @@ export const HomeScreen = ({
       return '';
     }
 
-    const directName = getSafeString(deleteDialogState.project.projectName);
-    if (directName.trim().length > 0) {
+    const directName = stripRichTextToPlainText(deleteDialogState.project.projectName);
+    if (directName.length > 0) {
       return directName;
     }
 
-    const answerName = getSafeString(deleteDialogState.project.answers?.projectName);
-    if (answerName.trim().length > 0) {
+    const answerName = stripRichTextToPlainText(deleteDialogState.project.answers?.projectName);
+    if (answerName.length > 0) {
       return answerName;
     }
 
@@ -1445,6 +1446,7 @@ export const HomeScreen = ({
     const projectTypeDisplay = projectType.length > 0
       ? projectType
       : t('home.projectTypeNotProvided');
+    const displayProjectName = stripRichTextToPlainText(project.projectName);
     const isPubliclyVisible = project?.answers?.[PUBLIC_VISIBILITY_KEY] === true;
     const canToggleVisibility = !isDraft
       && typeof onToggleProjectVisibility === 'function'
@@ -1461,12 +1463,12 @@ export const HomeScreen = ({
             : 'bg-white border-gray-200'
         }`}
         role="listitem"
-        aria-label={t('home.projectAriaLabel', { name: project.projectName || t('home.projectNameFallback') })}
+        aria-label={t('home.projectAriaLabel', { name: displayProjectName || t('home.projectNameFallback') })}
       >
         <div className="flex items-start justify-between gap-4">
           <div>
             <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2 flex-wrap">
-              <span>{project.projectName || t('home.projectNameFallback')}</span>
+              <span>{displayProjectName || t('home.projectNameFallback')}</span>
               {project.isDemo && (
                 <span className="inline-flex items-center px-2 py-0.5 text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 rounded-full">
                   {t('home.demoProjectBadge')}

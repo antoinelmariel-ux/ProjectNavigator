@@ -1505,7 +1505,7 @@ export default {
     commentFieldLabel: 'Comentario',
     teamCommentPlaceholder: 'Añada aquí sus recomendaciones, puntos de atención y enlaces...',
     saveCommentButton: 'Guardar comentario',
-    replyToggle: '✎ Responder',
+    replyToggle: 'Responder',
     replyPlaceholder: 'Su respuesta (texto enriquecido y enlaces)...',
     removeButton: 'Eliminar',
     sendReplyButton: 'Enviar respuesta',
