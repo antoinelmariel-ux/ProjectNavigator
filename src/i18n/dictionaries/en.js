@@ -1085,7 +1085,7 @@ export default {
       validationCommitteeTitle: 'Validation committee',
       validationCommitteeSubtitle: 'Define several committees with their contacts and trigger rules.',
       commentRequestInfoBox: 'Enable the comment request for each committee as needed. The comment is required when the committee’s criteria and the dedicated option are both active.',
-      enableCommitteeTrackingLabel: 'Enable validation committee tracking',
+      enableCommitteeTrackingLabel: 'Enable committees',
       addCommitteeButton: 'Add a committee',
       noCommitteeConfigured: 'No committee is configured. Add one to define its rules.',
       committeeNumberTemplate: 'Committee {{number}}',

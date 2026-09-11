@@ -1096,7 +1096,7 @@ export default {
       validationCommitteeTitle: 'Validierungsausschuss',
       validationCommitteeSubtitle: 'Definieren Sie mehrere Ausschüsse mit ihren Kontakten und Auslöseregeln.',
       commentRequestInfoBox: 'Aktivieren Sie bei Bedarf die Kommentaranfrage für jeden Ausschuss. Der Kommentar ist erforderlich, wenn die Kriterien des Ausschusses und die entsprechende Option aktiv sind.',
-      enableCommitteeTrackingLabel: 'Verfolgung der Validierungsausschüsse aktivieren',
+      enableCommitteeTrackingLabel: 'Ausschüsse aktivieren',
       addCommitteeButton: 'Ausschuss hinzufügen',
       noCommitteeConfigured: 'Kein Ausschuss konfiguriert. Fügen Sie einen hinzu, um seine Regeln festzulegen.',
       committeeNumberTemplate: 'Ausschuss {{number}}',
