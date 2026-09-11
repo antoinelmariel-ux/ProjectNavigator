@@ -84,7 +84,7 @@
    listes de mise en page (nav, cartes), pas les puces/numeros saisis par
    l'utilisateur dans un champ de texte riche, qui doivent rester visibles. */
 .sg-shell ul:not(.prose *):not(.sg-richtext *),
-.sg-shell ol:not(.prose *):not(.sg-richtext *) {
+.sg-shell ol:not(.prose *):not(.sg-richtext *):not(.sg-road) {
   margin: 0;
   padding: 0;
   list-style: none;
@@ -1057,7 +1057,7 @@
   gap: 1.4rem;
   padding: 1.6rem 1.8rem;
   border-radius: 24px;
-  background: linear-gradient(120deg, rgba(225, 9, 67, 0.1), rgba(214, 185, 126, 0.22));
+  background: linear-gradient(120deg, var(--sg-p1, rgba(225, 9, 67, 0.1)), var(--sg-p2, rgba(214, 185, 126, 0.22)));
   border: 1px solid var(--sg-line-light);
   flex-wrap: wrap;
 }
@@ -1067,7 +1067,7 @@
   height: 3.4rem;
   border-radius: 50%;
   flex: none;
-  background: conic-gradient(from 180deg, var(--sg-don), var(--sg-plasma), var(--sg-vie), var(--sg-don));
+  background: conic-gradient(from 180deg, var(--sg-g1, var(--sg-don)), var(--sg-g2, var(--sg-plasma)), var(--sg-g1, var(--sg-vie)), var(--sg-g2, var(--sg-don)));
   padding: 3px;
 }
 
@@ -1124,7 +1124,7 @@
   font-weight: 700;
   font-size: 0.8rem;
   color: var(--sg-white);
-  background: linear-gradient(135deg, var(--sg-rose-vif), var(--sg-rose));
+  background: linear-gradient(135deg, var(--sg-g1, var(--sg-rose-vif)), var(--sg-g2, var(--sg-rose)));
 }
 
 .sg-roster__name {
@@ -1140,18 +1140,20 @@
 }
 
 /* ---------- feuille de route ----------
-   sélecteur à 3 classes obligatoire : le reset « .sg-shell ol:not(.prose *) »
-   a pour spécificité (0,2,1) à cause du :not() — plus élevée que le (0,2,0)
-   de « .sg-shell .sg-road » seul, qui perdait donc le padding-left et
-   désalignait les pastilles du trait vertical. */
-.sg-shell .sg-wrap .sg-road {
+   Le reset « .sg-shell ol:not(...) » pose padding: 0 et sa spécificité grimpe d'un
+   cran à chaque :not() ajouté : la surenchère de classes tentée ici auparavant a été
+   reperdue dès l'exclusion suivante, et .sg-road se retrouvait sans padding-left —
+   les pastilles partaient alors à gauche du trait vertical. Le reset exclut donc
+   explicitement .sg-road, qui reprend à son compte margin et list-style. */
+.sg-road {
   --sg-rail-x: clamp(1.8rem, 4vw, 2.6rem);
   --sg-rail-w: 2px;
   --sg-dot: 0.8rem;
   --sg-dot-y: 0.45rem;
   position: relative;
-  margin-top: clamp(3rem, 7vw, 4rem);
-  padding-left: var(--sg-rail-x);
+  margin: clamp(3rem, 7vw, 4rem) 0 0;
+  padding: 0 0 0 var(--sg-rail-x);
+  list-style: none;
 }
 
 .sg-road__rail {

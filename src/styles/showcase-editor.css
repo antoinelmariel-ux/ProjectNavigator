@@ -1539,7 +1539,8 @@
   background: var(--sge-primary-soft);
 }
 
-.sge-outline__item--hidden .sge-outline__text {
+.sge-outline__item--hidden .sge-outline__text,
+.sge-outline__extra--hidden .sge-outline__text {
   text-decoration: line-through;
   color: var(--sge-ink-faint);
 }
@@ -1733,4 +1734,26 @@
     left: 0.25rem;
     right: 0.25rem;
   }
+}
+
+/* Le budget n'est pas une section : il n'a pas de cadre d'édition pour montrer qu'il est
+   masqué en vue Light. Sans ce marquage, basculer son œil dans le Plan ne produisait aucun
+   effet visible tant qu'on éditait — le réglage passait pour inopérant. */
+.sge-muted-block {
+  position: relative;
+  opacity: 0.4;
+  filter: grayscale(0.85);
+}
+
+.sge-muted-block__flag {
+  display: inline-block;
+  margin-bottom: 0.35rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.55);
+  color: #ffffff;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }

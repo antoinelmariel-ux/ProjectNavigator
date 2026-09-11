@@ -173,7 +173,10 @@ export const ShowcaseOutline = ({
           <p className="sge-eyebrow">{t('projectShowcase.editor.otherElements')}</p>
           <ul className="sge-outline__extra-list">
             {extraVisibilityOptions.map(option => (
-              <li key={`outline-extra-${option.id}`} className="sge-outline__extra">
+              <li
+                key={`outline-extra-${option.id}`}
+                className={`sge-outline__extra${option.isHiddenInLight ? ' sge-outline__extra--hidden' : ''}`}
+              >
                 <span className="sge-outline__text">{option.label}</span>
                 <button
                   type="button"
