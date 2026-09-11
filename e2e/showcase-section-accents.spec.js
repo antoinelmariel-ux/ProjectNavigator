@@ -56,10 +56,12 @@ test.describe('Couleur des sections de la vitrine', () => {
     // (l'inspecteur d'édition), pas depuis le bouton « Configurer » — qui ne gère plus que
     // les sections visibles en mode Light et a été retiré de la barre d'édition.
     await page.getByRole('button', { name: 'Modifier' }).click();
-    await page
-      .locator('[data-sge-section-id="team"]')
-      .getByRole('button', { name: 'Réglages de la section' })
-      .click();
+    const teamFrame = page.locator('[data-sge-section-id="team"]');
+    await teamFrame.scrollIntoViewIfNeeded();
+    // La barre d'outils de la section n'est pointable qu'au survol du cadre (voir
+    // showcase-editor.spec.js) : elle flotte au-dessus de la vitrine sans gêner sa lecture.
+    await teamFrame.hover();
+    await teamFrame.getByRole('button', { name: 'Réglages de la section' }).click();
     await expect(page.getByText('Couleur de la section')).toBeVisible();
 
     await page.getByRole('button', { name: /Rose/ }).click();
