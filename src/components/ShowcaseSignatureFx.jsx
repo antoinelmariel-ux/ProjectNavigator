@@ -290,10 +290,14 @@ export function ShowcaseSignatureFx({ rootRef, themeId }) {
     // Sans ce suivi, un compteur déjà lancé (ou déjà terminé, alors déjà retiré de countIO)
     // serait ré-observé à chaque frame et repartirait de 0 en boucle infinie, l'empêchant
     // presque toujours de se stabiliser sur sa valeur finale (observé sur le montant budget).
-    const startedCounters = new WeakSet();
+    // La map retient la dernière cible animée (pas juste "déjà lancé") : en édition de la
+    // vitrine, `data-sg-count` change sans que l'élément ne soit recréé (même noeud DOM), donc
+    // un simple WeakSet de "déjà vu" laissait le compteur figé sur la toute première valeur tapée.
+    const startedCounters = new WeakMap();
     const runCount = (el) => {
       const target = parseFloat(el.getAttribute('data-sg-count'));
       if (!Number.isFinite(target)) return;
+      startedCounters.set(el, target);
       if (reduce) {
         el.textContent = String(target);
         return;
@@ -385,26 +389,23 @@ export function ShowcaseSignatureFx({ rootRef, themeId }) {
       const dynamicStorySteps = Array.prototype.slice.call(root.querySelectorAll('[data-sg-story-step]'));
       const counterEls = Array.prototype.slice
         .call(root.querySelectorAll('[data-sg-count]'))
-        .filter((el) => !startedCounters.has(el));
+        .filter((el) => {
+          const target = parseFloat(el.getAttribute('data-sg-count'));
+          return Number.isFinite(target) && startedCounters.get(el) !== target;
+        });
 
       if (reduceOrNoIO) {
         revealTargets.forEach((el) => el.classList.add('is-on'));
         roadItems.forEach((el) => el.classList.add('is-on'));
         dynamicStorySteps.forEach((el) => el.classList.add('is-on'));
-        counterEls.forEach((el) => {
-          startedCounters.add(el);
-          runCount(el);
-        });
+        counterEls.forEach((el) => runCount(el));
         return;
       }
 
       revealTargets.forEach((el) => revealIO.observe(el));
       roadItems.forEach((el) => roadIO.observe(el));
       dynamicStorySteps.forEach((el) => stepIO.observe(el));
-      counterEls.forEach((el) => {
-        startedCounters.add(el);
-        countIO.observe(el);
-      });
+      counterEls.forEach((el) => countIO.observe(el));
     };
 
     bindDynamicElements();
@@ -420,7 +421,15 @@ export function ShowcaseSignatureFx({ rootRef, themeId }) {
         });
       };
       const contentObserver = new MutationObserver(scheduleRescan);
-      contentObserver.observe(root, { childList: true, subtree: true });
+      // `attributeFilter` sur `data-sg-count` : en édition de la vitrine, l'utilisateur
+      // change la valeur d'un chiffre-clé sans que le span ne soit recréé (childList seul
+      // ne le verrait jamais), ce qui laissait le compteur figé sur la première valeur tapée.
+      contentObserver.observe(root, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['data-sg-count']
+      });
       cleanups.push(() => contentObserver.disconnect());
     }
 
