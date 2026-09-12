@@ -1891,7 +1891,18 @@ export const HomeScreen = ({
                           )}
                           <button
                             type="button"
-                            onClick={() => onOpenProject?.(project.id, { view: 'synthesis' })}
+                            onClick={() => {
+                              const focusPerimeter =
+                                triggeredPerimeters.find((entry) => entry.type === 'team')
+                                || triggeredPerimeters[0]
+                                || null;
+                              onOpenProject?.(project.id, {
+                                view: 'synthesis',
+                                focusPerimeter: focusPerimeter
+                                  ? { type: focusPerimeter.type, id: focusPerimeter.id }
+                                  : null
+                              });
+                            }}
                             className="inline-flex items-center gap-2 rounded-lg border border-blue-200 px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"
                           >
                             <Eye className="h-4 w-4" aria-hidden="true" />
