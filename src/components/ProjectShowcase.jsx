@@ -33,6 +33,7 @@ import {
 } from '../utils/questions.js';
 import { renderTextWithLinks } from '../utils/linkify.js';
 import { splitRichTextIntoBlocks } from '../utils/richText.js';
+import { hasChronologicalDate, sortMilestonesChronologically } from '../utils/showcaseMilestones.js';
 import { initialShowcaseThemes } from '../data/showcaseThemes.js';
 import {
   THEME_ACCENT_FAMILY_ID,
@@ -293,16 +294,14 @@ const resolveCustomSectionColumnCount = (value, columns = []) => {
   return 1;
 };
 
-const normalizeCustomSectionColumns = (columns, columnCount) => {
-  const normalized = Array.isArray(columns)
+// Le nombre de blocs et le nombre de colonnes sont deux réglages distincts : la grille
+// affiche N colonnes et accueille autant de blocs que l'auteur en ajoute, comme les items
+// des autres gabarits. Aligner la longueur du tableau sur `columnCount` (ce que faisait
+// cette fonction) rendait tout quatrième bloc impossible à créer.
+const normalizeCustomSectionColumns = (columns) =>
+  (Array.isArray(columns)
     ? columns.map(column => (typeof column === 'string' ? column.trim() : ''))
-    : [];
-  const boundedColumns = normalized.slice(0, columnCount);
-  while (boundedColumns.length < columnCount) {
-    boundedColumns.push('');
-  }
-  return boundedColumns;
-};
+    : []);
 
 // Titre lisible d'une section personnalisée : son champ « titre » est du texte riche,
 // inutilisable tel quel dans le plan, une infobulle ou un libellé accessible.
@@ -348,7 +347,7 @@ const buildSectionFromTemplate = (t, templateId, id) => {
     documentType: 'pdf',
     items: Array.isArray(placeholder.items) ? [...placeholder.items] : [],
     columnCount,
-    columns: normalizeCustomSectionColumns(placeholder.columns, columnCount)
+    columns: normalizeCustomSectionColumns(placeholder.columns)
   };
 };
 
@@ -394,8 +393,8 @@ const sanitizeCustomSections = (rawSections) => {
       // ancien identifiant du gabarit « Chiffre en avant », conservé dans les projets déjà enregistrés
       const type = rawType === 'aurora-section__inner' ? 'figure' : rawType;
       const columnCount = resolveCustomSectionColumnCount(section.columnCount, section.columns);
-      const columns = normalizeCustomSectionColumns(section.columns, columnCount);
-      const hasColumnContent = columns.some(column => column.length > 0);
+      const columns = normalizeCustomSectionColumns(section.columns).filter(Boolean);
+      const hasColumnContent = columns.length > 0;
 
       if (!title && !subtitle && !description && !documentUrl && !figure && items.length === 0 && !hasColumnContent) {
         return null;
@@ -1394,13 +1393,15 @@ const sanitizeMilestoneEntries = (entries) => {
     return [];
   }
 
-  return entries
+  const cleaned = entries
     .map(item => ({
       date: typeof item?.date === 'string' ? item.date.trim() : '',
       description: typeof item?.description === 'string' ? item.description.trim() : ''
     }))
     .filter(entry => entry.date.length > 0 || entry.description.length > 0)
     .map(entry => ({ date: entry.date, description: entry.description }));
+
+  return sortMilestonesChronologically(cleaned);
 };
 
 const formatMilestoneDraftState = (entries) => {
@@ -1408,12 +1409,14 @@ const formatMilestoneDraftState = (entries) => {
     return [];
   }
 
-  return entries
+  const cleaned = entries
     .map(item => ({
       date: typeof item?.date === 'string' ? item.date : '',
       description: typeof item?.description === 'string' ? item.description : ''
     }))
     .filter(entry => entry.date.trim().length > 0 || entry.description.trim().length > 0);
+
+  return sortMilestonesChronologically(cleaned);
 };
 
 // Une réponse à une question à choix unique est stockée par le questionnaire sous la forme
@@ -2469,12 +2472,11 @@ export const ProjectShowcase = ({
           return section;
         }
 
-        const columns = normalizeCustomSectionColumns(section.columns, nextCount);
-
+        // Changer le nombre de colonnes ne touche jamais aux blocs : c'est une largeur de
+        // grille, pas une capacité.
         return {
           ...section,
-          columnCount: nextCount,
-          columns
+          columnCount: nextCount
         };
       })
     );
@@ -2487,9 +2489,39 @@ export const ProjectShowcase = ({
           return section;
         }
 
-        const columnCount = resolveCustomSectionColumnCount(section.columnCount, section.columns);
-        const columns = normalizeCustomSectionColumns(section.columns, columnCount);
+        const columns = Array.isArray(section.columns) ? [...section.columns] : [];
+        while (columns.length <= index) {
+          columns.push('');
+        }
         columns[index] = value;
+
+        return {
+          ...section,
+          columns
+        };
+      })
+    );
+  }, []);
+
+  const handleCustomSectionColumnAdd = useCallback((sectionId) => {
+    setCustomSections(prev =>
+      prev.map(section => (
+        section && section.id === sectionId
+          ? { ...section, columns: [...(Array.isArray(section.columns) ? section.columns : []), ''] }
+          : section
+      ))
+    );
+  }, []);
+
+  const handleCustomSectionColumnRemove = useCallback((sectionId, index) => {
+    setCustomSections(prev =>
+      prev.map(section => {
+        if (!section || section.id !== sectionId) {
+          return section;
+        }
+
+        const columns = Array.isArray(section.columns) ? [...section.columns] : [];
+        columns.splice(index, 1);
 
         return {
           ...section,
@@ -3622,7 +3654,7 @@ export const ProjectShowcase = ({
     const key = section.id || `custom-${index}`;
     const title = section.title || t('projectShowcase.untitledSectionFallback');
     const columnCount = resolveCustomSectionColumnCount(section.columnCount, section.columns);
-    const columns = normalizeCustomSectionColumns(section.columns, columnCount);
+    const columns = normalizeCustomSectionColumns(section.columns);
     // une colonne ou un item saisi avec des sauts de ligne (Entrée dans l'éditeur
     // riche) doit produire plusieurs blocs distincts, pas un seul bloc recollé
     const activeColumns = columns.flatMap(column => splitRichTextIntoBlocks(column));
@@ -3632,7 +3664,9 @@ export const ProjectShowcase = ({
     // En édition, les entrées affichées doivent être celles du modèle : après découpage en
     // blocs, l'index rendu ne désigne plus la valeur à modifier. L'aperçu (touche P) montre
     // le découpage réel.
-    const renderedColumns = editable ? columns : activeColumns;
+    // Un bloc vide est posé d'office en édition : sans lui, une section basculée vers ce
+    // gabarit depuis un autre s'afficherait comme une bande vide, sans rien où écrire.
+    const renderedColumns = editable ? (columns.length > 0 ? columns : ['']) : activeColumns;
     const renderedItems = editable
       ? (Array.isArray(section.items) ? section.items : [])
       : items;
@@ -3773,7 +3807,7 @@ export const ProjectShowcase = ({
               })}
             </h2>
             {renderedColumns.length > 0 && (
-              <div className="sg-grid">
+              <div className="sg-grid" data-sg-columns={columnCount} style={{ '--sg-cols': columnCount }}>
                 {renderedColumns.map((column, columnIndex) => (
                   <article
                     key={`${key}-col-${columnIndex}`}
@@ -3787,7 +3821,7 @@ export const ProjectShowcase = ({
                         'columns',
                         columnIndex,
                         column,
-                        t('projectShowcase.columnContentPlaceholderTemplate', { index: columnIndex + 1 })
+                        t('projectShowcase.columnBlockPlaceholderTemplate', { index: columnIndex + 1 })
                       )}
                     </p>
                   </article>
@@ -4609,6 +4643,7 @@ export const ProjectShowcase = ({
                         </option>
                       ))}
                     </select>
+                    <p className="text-xs text-gray-500">{t('projectShowcase.columnCountHint')}</p>
                   </div>
                 )}
                 {templateConfig.showDocument && (
@@ -4675,29 +4710,52 @@ export const ProjectShowcase = ({
                     />
                   </div>
                 )}
-                {templateConfig.showColumns && (
-                  <div className="mt-4 grid gap-4 md:grid-cols-2">
-                    {normalizeCustomSectionColumns(section.columns, resolveCustomSectionColumnCount(section.columnCount, section.columns))
-                      .map((column, columnIndex) => (
-                        <div key={`${section.id}-column-${columnIndex}`} className="space-y-1">
-                          <label
-                            htmlFor={`custom-section-${section.id}-column-${columnIndex}`}
-                            className="text-sm font-medium text-gray-800"
-                          >
-                            {t('projectShowcase.columnContentLabelTemplate', { index: columnIndex + 1 })}
-                          </label>
-                          <RichTextEditor
-                            id={`custom-section-${section.id}-column-${columnIndex}`}
-                            value={column}
-                            onChange={(nextValue) => handleCustomSectionColumnChange(section.id, columnIndex, nextValue)}
-                            placeholder={t('projectShowcase.columnContentPlaceholderTemplate', { index: columnIndex + 1 })}
-                            compact
-                            ariaLabel={t('projectShowcase.columnContentLabelTemplate', { index: columnIndex + 1 })}
-                          />
-                        </div>
-                      ))}
-                  </div>
-                )}
+                {templateConfig.showColumns && (() => {
+                  const storedBlocks = normalizeCustomSectionColumns(section.columns);
+                  // même repli que le canvas : toujours un bloc où écrire
+                  const columnBlocks = storedBlocks.length > 0 ? storedBlocks : [''];
+
+                  return (
+                    <div className="mt-4 space-y-3">
+                      <label className="sge-field__label">{t('projectShowcase.columnBlocksLabel')}</label>
+                      <div className="space-y-3">
+                        {columnBlocks.map((column, columnIndex) => (
+                          <div key={`${section.id}-column-${columnIndex}`} className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <p className="text-xs font-semibold text-gray-500">
+                                {t('projectShowcase.columnBlockNumberLabel', { index: columnIndex + 1 })}
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => handleCustomSectionColumnRemove(section.id, columnIndex)}
+                                className="inline-flex items-center gap-1 rounded-full border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:border-red-200 hover:text-red-600"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                                {t('projectShowcase.removeButton')}
+                              </button>
+                            </div>
+                            <RichTextEditor
+                              id={`custom-section-${section.id}-column-${columnIndex}`}
+                              value={column}
+                              onChange={(nextValue) => handleCustomSectionColumnChange(section.id, columnIndex, nextValue)}
+                              placeholder={t('projectShowcase.columnBlockPlaceholderTemplate', { index: columnIndex + 1 })}
+                              compact
+                              ariaLabel={t('projectShowcase.columnBlockNumberLabel', { index: columnIndex + 1 })}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleCustomSectionColumnAdd(section.id)}
+                        className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700 transition hover:border-blue-200 hover:text-blue-700"
+                      >
+                        <Plus className="h-4 w-4" />
+                        {t('projectShowcase.addColumnBlockButton')}
+                      </button>
+                    </div>
+                  );
+                })()}
                 {templateConfig.showItems && (
                   <div className="mt-4 space-y-3">
                     <label className="sge-field__label">
@@ -4805,7 +4863,9 @@ export const ProjectShowcase = ({
                   }))
                 : [];
               const nextEntries = typeof updater === 'function' ? updater(previousEntries) : updater;
-              return Array.isArray(nextEntries) ? nextEntries : [];
+              // La frise est chronologique par construction : saisir une date replace
+              // aussitôt le jalon au bon endroit, ici comme dans le canvas.
+              return Array.isArray(nextEntries) ? sortMilestonesChronologically(nextEntries) : [];
             });
           };
 
@@ -4964,6 +5024,10 @@ export const ProjectShowcase = ({
                       milestoneDragState.fieldId === fieldId &&
                       milestoneDragState.targetIndex === index &&
                       milestoneDragState.sourceIndex !== index;
+                    // Un jalon daté tient sa place de sa date : le laisser saisissable
+                    // offrirait un déplacement que le tri chronologique défait aussitôt.
+                    const isDraggableEntry =
+                      milestoneDraftEntries.length > 1 && !hasChronologicalDate(entry?.date);
                     const milestoneRowClasses = [
                       'sge-ms-row',
                       isCurrentDragging ? 'sge-ms-row--dragging' : '',
@@ -4976,7 +5040,7 @@ export const ProjectShowcase = ({
                       <div
                         key={dateInputId}
                         className={milestoneRowClasses}
-                        draggable={milestoneDraftEntries.length > 1}
+                        draggable={isDraggableEntry}
                         onDragStart={event => handleMilestoneDragStart(index, event)}
                         onDragEnter={() => handleMilestoneDragEnter(index)}
                         onDragLeave={event => handleMilestoneDragLeave(index, event)}

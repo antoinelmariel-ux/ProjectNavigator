@@ -684,6 +684,28 @@
   perspective: 1200px;
 }
 
+/* Bloc multi-colonnes personnalise : le nombre de colonnes est un reglage de l'auteur, pas
+   une consequence de la largeur disponible. `auto-fit` ajoutait une colonne des que la bande
+   le permettait, ce qui rendait le selecteur « Nombre de colonnes » sans effet. Les sections
+   integrees (indicateurs...) gardent volontairement la grille fluide ci-dessus : leur nombre
+   de cartes n'est pas choisi. */
+.sg-grid[data-sg-columns] {
+  grid-template-columns: repeat(var(--sg-cols, 3), minmax(0, 1fr));
+}
+
+@media (max-width: 1024px) {
+  .sg-grid[data-sg-columns='3'],
+  .sg-grid[data-sg-columns='4'] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .sg-grid[data-sg-columns] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .sg-tile {
   position: relative;
   padding: 2rem 1.7rem 1.8rem;
