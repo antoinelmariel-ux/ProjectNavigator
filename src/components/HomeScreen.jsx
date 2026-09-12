@@ -14,7 +14,9 @@ import {
   Copy,
   Trash2,
   Close,
-  Sparkles
+  Sparkles,
+  Clock,
+  XCircle
 } from './icons.js';
 import { normalizeProjectFilterConfig } from '../utils/projectFilters.js';
 import { normalizeInspirationFiltersConfig } from '../utils/inspirationConfig.js';
@@ -28,6 +30,7 @@ import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { resolveLocalizedText } from '../utils/localizedContent.js';
 import { getLocaleTag } from '../i18n/languages.js';
 import { stripRichTextToPlainText } from '../utils/richText.js';
+import { computeProjectValidationStatus } from '../utils/projectValidationStatus.js';
 
 const formatDate = (isoDate, language, unknownDateLabel) => {
   if (!isoDate) {
@@ -249,6 +252,31 @@ const STATUS_CLASSNAMES = {
   submitted: 'bg-emerald-50 border-emerald-200 text-emerald-600'
 };
 
+// Sur un projet soumis, ce badge remplace le badge « soumis » plutot que de s'ajouter a lui :
+// la date de soumission figure deja juste sous le nom du projet, donc le seul emplacement de
+// badge de la carte sert a porter l'information qui manque vraiment, l'avancement de la
+// validation. Le detail chiffre reste dans l'infobulle pour ne pas charger la carte.
+const VALIDATION_BADGE_META = {
+  validated: {
+    icon: CheckCircle,
+    className: 'bg-emerald-50 border-emerald-200 text-emerald-700',
+    labelKey: 'home.validationStatusValidated',
+    tooltipKey: 'home.validationTooltipValidated'
+  },
+  pending: {
+    icon: Clock,
+    className: 'bg-amber-50 border-amber-200 text-amber-700',
+    labelKey: 'home.validationStatusPending',
+    tooltipKey: 'home.validationTooltipPending'
+  },
+  rejected: {
+    icon: XCircle,
+    className: 'bg-red-50 border-red-200 text-red-700',
+    labelKey: 'home.validationStatusRejected',
+    tooltipKey: 'home.validationTooltipRejected'
+  }
+};
+
 const PaginationControls = ({ page, totalPages, onPrevious, onNext }) => {
   const { t } = useTranslation();
 
@@ -466,6 +494,15 @@ export const HomeScreen = ({
   const normalizedValidationCommitteeConfig = useMemo(
     () => normalizeValidationCommitteeConfig(validationCommitteeConfig),
     [validationCommitteeConfig]
+  );
+
+  const getProjectValidationStatus = useCallback(
+    (project) =>
+      computeProjectValidationStatus(project, {
+        teams,
+        validationCommitteeConfig: normalizedValidationCommitteeConfig
+      }),
+    [teams, normalizedValidationCommitteeConfig]
   );
 
   const isComplianceExpert = useMemo(() => {
@@ -1472,6 +1509,9 @@ export const HomeScreen = ({
       && typeof onToggleProjectVisibility === 'function'
       && typeof canSetProjectVisibility === 'function'
       && canSetProjectVisibility(project);
+    const validation = isDraft ? null : getProjectValidationStatus(project);
+    const validationBadge = validation ? VALIDATION_BADGE_META[validation.status] : null;
+    const ValidationIcon = validationBadge?.icon;
 
     return (
       <article
@@ -1503,11 +1543,28 @@ export const HomeScreen = ({
           </div>
           <div className="flex items-start gap-3">
             <div className="flex flex-col items-end gap-2">
-              <span
-                className={`px-3 py-1 text-xs font-semibold rounded-full border ${projectStatus.className}`.trim()}
-              >
-                {projectStatus.label}
-              </span>
+              {validationBadge ? (
+                <span
+                  className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full border ${validationBadge.className}`}
+                  title={t(validationBadge.tooltipKey, {
+                    approved: validation.approvedCount,
+                    total: validation.requiredCount
+                  })}
+                  aria-label={t('home.validationStatusAriaLabel', {
+                    name: displayProjectName || t('home.projectNameFallback'),
+                    status: t(validationBadge.labelKey)
+                  })}
+                >
+                  <ValidationIcon className="w-3 h-3" aria-hidden="true" />
+                  {t(validationBadge.labelKey)}
+                </span>
+              ) : (
+                <span
+                  className={`px-3 py-1 text-xs font-semibold rounded-full border ${projectStatus.className}`.trim()}
+                >
+                  {projectStatus.label}
+                </span>
+              )}
               {isPubliclyVisible && (
                 <span className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700">
                   <Eye className="w-3 h-3" aria-hidden="true" />
