@@ -1,37 +1,53 @@
 // Palette d'accents de la vitrine.
 //
-// Une seule liste de familles par thème, partagée par les sections intégrées (« Couleur de
-// section ») et par les blocs personnalisés : les deux sélecteurs proposent exactement les
-// mêmes teintes, et ces teintes sont celles du thème actif. Rien n'est posé en surcouche
-// fixe par-dessus la palette — chaque famille est une vraie couleur, reprise du thème quand
-// il en contient une dans la bonne tonalité, sinon composée sur la signature du thème
-// (saturation médiane de ses couleurs) pour rester dans la même famille visuelle.
+// Les teintes proposées appartiennent au thème actif : elles sont relevées dans sa propre
+// palette, et seulement complétées — par harmonie autour de sa teinte signature — quand
+// celle-ci n'en contient pas assez de distinctes pour offrir un vrai choix. Aucune grille
+// universelle n'est plus posée par-dessus : une liste d'ancrages figés proposait les mêmes
+// huit teintes partout, si bien qu'un thème sans un pixel de vert offrait quand même un
+// « vert », et que deux thèmes très différents donnaient deux sélecteurs presque identiques.
 //
-// Les identifiants sont stables et persistés dans les réponses du projet
-// (`showcaseSectionAccents`, `customShowcaseSections[].accentFamily`) : seules leurs valeurs
-// changent d'un thème à l'autre, jamais leur nom.
+// Les identifiants sont positionnels et stables (`accent-1` … `accent-8`) et persistés dans
+// les réponses du projet (`showcaseSectionAccents`, `customShowcaseSections[].accentFamily`) :
+// un projet qui a choisi la 3e pastille garde la 3e pastille quand le thème change, transcrite
+// dans la nouvelle palette. Les anciens identifiants nommés (`rouge`, `orange`, …) sont relus
+// et convertis à la position qu'ils occupaient dans l'ancien sélecteur.
 
 export const THEME_ACCENT_FAMILY_ID = 'theme';
 
-// Les teintes d'ancrage sont espacées d'au moins 25° sur la roue, sauf « or » que sa
-// clarté et sa faible saturation distinguent nettement de « orange ».
-const ACCENT_ANCHORS = [
-  { id: 'rouge', hue: 2 },
-  { id: 'orange', hue: 30 },
-  { id: 'or', hue: 47, metallic: true },
-  { id: 'vert', hue: 142 },
-  { id: 'turquoise', hue: 182 },
-  { id: 'bleu', hue: 212 },
-  { id: 'violet', hue: 272 },
-  { id: 'rose', hue: 322 }
+export const ACCENT_FAMILY_COUNT = 8;
+
+export const ACCENT_FAMILY_IDS = Array.from(
+  { length: ACCENT_FAMILY_COUNT },
+  (unused, index) => `accent-${index + 1}`
+);
+
+// Ordre exact de l'ancien sélecteur : c'est lui qui donne la position de reprise.
+const LEGACY_FAMILY_IDS = ['rouge', 'orange', 'or', 'vert', 'turquoise', 'bleu', 'violet', 'rose'];
+
+// Noms affichés sous la pastille. Ils ne pilotent plus rien : ils décrivent la teinte
+// effectivement produite, pour que le libellé colle à ce que l'utilisateur voit.
+const HUE_NAMES = [
+  { id: 'rouge', hue: 358 },
+  { id: 'orange', hue: 24 },
+  { id: 'or', hue: 45 },
+  { id: 'citron', hue: 70 },
+  { id: 'anis', hue: 95 },
+  { id: 'vert', hue: 125 },
+  { id: 'emeraude', hue: 155 },
+  { id: 'turquoise', hue: 178 },
+  { id: 'cyan', hue: 196 },
+  { id: 'bleu', hue: 215 },
+  { id: 'indigo', hue: 242 },
+  { id: 'violet', hue: 270 },
+  { id: 'magenta', hue: 300 },
+  { id: 'rose', hue: 328 }
 ];
 
-export const ACCENT_FAMILY_IDS = ACCENT_ANCHORS.map(anchor => anchor.id);
-
-// Champs de palette où chercher une couleur déjà présente dans le thème, du plus
-// caractéristique au plus accessoire : à teinte égale, la première gagne.
+// Champs de palette où relever les couleurs du thème, du plus caractéristique au plus
+// accessoire : l'ordre fixe aussi l'ordre des pastilles, donc les couleurs signature du
+// thème occupent les premières positions.
 const PALETTE_COLOR_KEYS = [
-  'accentPrimary',
   'accentSecondary',
   'highlight',
   'glowPrimary',
@@ -41,18 +57,29 @@ const PALETTE_COLOR_KEYS = [
   'titleGradientEnd',
   'ctaStart',
   'ctaEnd',
+  'panelStrongStart',
+  'panelStrongEnd',
+  'heroBackgroundEnd',
+  'surface',
+  'backgroundMid',
   'border'
 ];
 
-// Au-delà, la couleur du thème n'est plus perçue comme appartenant à la famille visée :
-// mieux vaut en composer une à la teinte d'ancrage que de trahir le nom du swatch.
-const HUE_MATCH_TOLERANCE = 24;
+// Écart minimal entre deux pastilles, et entre une pastille et la famille « thème ». En deçà
+// les deux teintes se confondent dans le sélecteur et le choix perd son sens.
+const MIN_ACCENT_HUE_GAP = 24;
+
+// Harmonies classiques autour de la teinte du thème, de la plus franche à la plus discrète :
+// complémentaire, complémentaires divisées, triade, puis décalages intermédiaires. C'est ce
+// qui comble le sélecteur d'un thème monochrome sans le faire sortir de son univers.
+const HARMONY_OFFSETS = [180, 150, 210, 120, 240, 60, 300, 90, 270, 30, 330];
+
+// Un jaune pur, à la saturation et à la clarté des autres familles, vire au néon et avale le
+// texte blanc que la vitrine pose sur les dégradés : on le ramène vers l'or/moutarde.
+const YELLOW_BAND_START = 38;
+const YELLOW_BAND_END = 78;
 
 const MIN_TEXT_CONTRAST = 4.5;
-
-// Écart minimal entre une famille nommée et la famille « thème » : en deçà, les deux
-// pastilles du sélecteur sont indiscernables et le choix perd son sens.
-const MIN_THEME_HUE_GAP = 18;
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
@@ -198,27 +225,21 @@ const collectThemeHues = (palette) =>
     })
     .filter(Boolean);
 
-// Écarte une teinte de celle du thème, dans la direction qui l'éloigne le moins de son
-// ancrage : la famille reste reconnaissable (un bleu reste bleu) tout en se détachant de la
-// pastille « thème » sur un thème de la même tonalité.
-const separateFromTheme = (hue, themeHue, anchorHue) => {
-  if (hueDistance(hue, themeHue) >= MIN_THEME_HUE_GAP) {
-    return hue;
+const median = (values, fallback) => {
+  if (values.length === 0) {
+    return fallback;
   }
-  const signed = ((anchorHue - themeHue + 540) % 360) - 180;
-  const direction = signed >= 0 ? 1 : -1;
-  return (themeHue + direction * MIN_THEME_HUE_GAP + 360) % 360;
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0 ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle];
 };
 
-const medianSaturation = (entries) => {
-  if (entries.length === 0) {
-    return 0.58;
-  }
-  const sorted = entries.map(entry => entry.s).sort((a, b) => a - b);
-  const middle = Math.floor(sorted.length / 2);
-  const value = sorted.length % 2 === 0 ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle];
-  return clamp(value, 0.36, 0.82);
-};
+// Saturation et clarté de référence du thème : ce sont elles qui donnent son caractère au
+// sélecteur (un thème profond sort des accents profonds), et elles seules qui s'appliquent
+// aux teintes composées. La clarté reste bornée assez bas pour que le texte blanc que la
+// vitrine pose sur les dégradés `g1`/`g2` reste lisible.
+const themeSaturation = entries => clamp(median(entries.map(entry => entry.s), 0.58), 0.36, 0.82);
+const themeLightness = entries => clamp(median(entries.map(entry => entry.l), 0.48), 0.36, 0.56);
 
 // Socle sombre réel de la vitrine : `.sg-shell` peint `--sg-ink`, qui vaut la plus sombre
 // du fond de page et de l'encre forte (cf. buildSignatureVariables). Sur les thèmes à fond
@@ -237,7 +258,7 @@ const resolveGround = (palette) => {
   return relativeLuminance(backgroundHex) <= relativeLuminance(inkHex) ? backgroundHex : inkHex;
 };
 
-const buildFamily = (id, hue, saturation, palette, { metallic = false } = {}) => {
+const buildFamily = (id, { hue, saturation }, palette, lightness) => {
   const surfaceLight = toHex(readColor(palette, 'surfaceLight') || { r: 248, g: 250, b: 252 });
   const surfaceLightAlt = toHex(readColor(palette, 'surfaceLightAlt') || { r: 226, g: 232, b: 240 });
   const ground = resolveGround(palette);
@@ -245,69 +266,164 @@ const buildFamily = (id, hue, saturation, palette, { metallic = false } = {}) =>
   // foncée : on suit la luminance plutôt que de supposer une nuit.
   const groundIsDark = relativeLuminance(ground) < 0.28;
 
-  // L'or est une couleur claire et peu saturée : lui appliquer la saturation du thème le
-  // transformerait en second orange, et les deux swatches deviendraient interchangeables.
-  const s = metallic ? clamp(saturation * 0.62, 0.3, 0.52) : saturation;
-  const gradientStartL = metallic ? 0.66 : 0.52;
-  const gradientEndL = metallic ? 0.4 : 0.29;
+  const isYellow = hue >= YELLOW_BAND_START && hue <= YELLOW_BAND_END;
+  const s = isYellow ? clamp(saturation * 0.72, 0.28, 0.62) : saturation;
 
   const p1 = mix(surfaceLight, hsl(hue, s, 0.5), 0.07);
   const p2 = mix(surfaceLightAlt, hsl(hue, s, 0.5), 0.22);
 
   return {
     id,
+    hue,
     // `c` s'écrit aussi bien sur la bande blanche que sur le panneau teinté : c'est p2, le
     // plus foncé des deux, qui fixe la contrainte.
-    c: enforceContrast(hue, clamp(s * 0.95, 0.2, 0.9), metallic ? 0.36 : 0.4, p2),
-    g1: hsl(hue, s, gradientStartL),
-    g2: hsl(hue, clamp(s + 0.08, 0, 1), gradientEndL),
+    c: enforceContrast(hue, clamp(s * 0.95, 0.2, 0.9), 0.4, p2),
+    g1: hsl(hue, s, lightness),
+    g2: hsl(hue, clamp(s + 0.08, 0, 1), clamp(lightness - 0.23, 0.14, 0.5)),
     p1,
     p2,
     onDark: enforceContrast(
       hue,
       clamp(s * 0.82, 0.2, 0.9),
-      groundIsDark ? (metallic ? 0.7 : 0.64) : 0.4,
+      groundIsDark ? 0.64 : 0.4,
       ground,
       { lighten: groundIsDark }
     )
   };
 };
 
+// Teintes du thème utilisables comme pastilles : on descend la liste des champs par ordre
+// de caractère, et on ne retient qu'une teinte par famille visuelle. Celles qui doublonnent
+// avec l'accent du thème sont écartées — la pastille « Thème » les propose déjà.
+const collectAccentHues = (entries, themeHue) => {
+  const selected = [];
+  for (const entry of entries) {
+    if (selected.length >= ACCENT_FAMILY_COUNT) {
+      break;
+    }
+    if (hueDistance(entry.h, themeHue) < MIN_ACCENT_HUE_GAP) {
+      continue;
+    }
+    if (selected.some(picked => hueDistance(picked.hue, entry.h) < MIN_ACCENT_HUE_GAP)) {
+      continue;
+    }
+    selected.push({ hue: entry.h, saturation: clamp(entry.s, 0.3, 0.9), fromTheme: true });
+  }
+  return selected;
+};
+
+// Complète le sélecteur quand le thème n'offre pas assez de teintes distinctes : d'abord les
+// harmonies de sa teinte signature, puis — cas extrême d'un thème très chargé — la teinte
+// libre la plus éloignée de toutes les précédentes.
+const completeWithHarmonies = (selected, themeHue, saturation) => {
+  const families = [...selected];
+  const isFree = hue =>
+    hueDistance(hue, themeHue) >= MIN_ACCENT_HUE_GAP
+    && families.every(family => hueDistance(family.hue, hue) >= MIN_ACCENT_HUE_GAP);
+
+  for (const offset of HARMONY_OFFSETS) {
+    if (families.length >= ACCENT_FAMILY_COUNT) {
+      return families;
+    }
+    const hue = (themeHue + offset) % 360;
+    if (isFree(hue)) {
+      families.push({ hue, saturation, fromTheme: false });
+    }
+  }
+
+  while (families.length < ACCENT_FAMILY_COUNT) {
+    let bestHue = 0;
+    let bestGap = -1;
+    for (let hue = 0; hue < 360; hue += 2) {
+      const gap = families.reduce(
+        (smallest, family) => Math.min(smallest, hueDistance(family.hue, hue)),
+        hueDistance(hue, themeHue)
+      );
+      if (gap > bestGap) {
+        bestGap = gap;
+        bestHue = hue;
+      }
+    }
+    families.push({ hue: bestHue, saturation, fromTheme: false });
+  }
+
+  return families;
+};
+
+// Nomme chaque pastille d'après la teinte réellement obtenue, sans jamais répéter un nom :
+// deux libellés identiques dans le même sélecteur ne distinguent plus rien.
+const assignNames = (families) => {
+  const pairs = [];
+  families.forEach((family, index) => {
+    HUE_NAMES.forEach((name) => {
+      pairs.push({ index, name: name.id, distance: hueDistance(family.hue, name.hue) });
+    });
+  });
+  pairs.sort((a, b) => a.distance - b.distance);
+
+  const names = new Array(families.length).fill(null);
+  const taken = new Set();
+  for (const pair of pairs) {
+    if (names[pair.index] || taken.has(pair.name)) {
+      continue;
+    }
+    names[pair.index] = pair.name;
+    taken.add(pair.name);
+  }
+
+  return families.map((family, index) => ({ ...family, name: names[index] || family.id }));
+};
+
 /**
- * Familles de couleur d'un thème : « thème » (la couleur d'accent du thème lui-même, valeur
- * par défaut de toute section) suivie des familles nommées. Chaque famille reprend la
- * couleur du thème dont la teinte est la plus proche de son ancrage ; à défaut, elle est
- * composée sur la teinte d'ancrage avec la saturation médiane du thème.
+ * Familles de couleur d'un thème : « thème » (son accent principal, valeur par défaut de
+ * toute section) suivie de huit familles tirées de sa propre palette, complétées par
+ * harmonie quand elle ne contient pas assez de teintes distinctes.
  */
 export const buildAccentFamilies = (palette = {}) => {
-  const themeHues = collectThemeHues(palette);
-  const saturation = medianSaturation(themeHues);
+  const entries = collectThemeHues(palette);
+  const saturation = themeSaturation(entries);
+  const lightness = themeLightness(entries);
 
   const accentPrimary = readColor(palette, 'accentPrimary');
-  const themeSeed = accentPrimary ? rgbToHsl(accentPrimary) : { h: 217, s: saturation, l: 0.5 };
+  const themeSeed = accentPrimary
+    ? rgbToHsl(accentPrimary)
+    : { h: entries.length > 0 ? entries[0].h : 217, s: saturation };
+  const themeHue = themeSeed.h;
+
   const themeFamily = buildFamily(
     THEME_ACCENT_FAMILY_ID,
-    themeSeed.h,
-    clamp(themeSeed.s || saturation, 0.3, 0.9),
-    palette
+    { hue: themeHue, saturation: clamp(themeSeed.s || saturation, 0.3, 0.9) },
+    palette,
+    lightness
   );
 
-  // `accentPrimary` a déjà servi à la famille « thème » : la reprendre pour une famille
-  // nommée produirait deux swatches identiques dans le même sélecteur.
-  const claimed = new Set(['accentPrimary']);
-  const families = ACCENT_ANCHORS.map((anchor) => {
-    const match = themeHues
-      .filter(entry => !claimed.has(entry.key) && hueDistance(entry.h, anchor.hue) <= HUE_MATCH_TOLERANCE)
-      .sort((a, b) => hueDistance(a.h, anchor.hue) - hueDistance(b.h, anchor.hue))[0];
+  const sources = completeWithHarmonies(
+    collectAccentHues(entries, themeHue),
+    themeHue,
+    saturation
+  );
 
-    if (match) {
-      claimed.add(match.key);
-      return buildFamily(anchor.id, separateFromTheme(match.h, themeSeed.h, anchor.hue), clamp(match.s, 0.3, 0.9), palette, anchor);
-    }
-    return buildFamily(anchor.id, separateFromTheme(anchor.hue, themeSeed.h, anchor.hue), saturation, palette, anchor);
-  });
+  const families = assignNames(
+    sources.map((source, index) => buildFamily(ACCENT_FAMILY_IDS[index], source, palette, lightness))
+  );
 
-  return [themeFamily, ...families];
+  return [{ ...themeFamily, name: THEME_ACCENT_FAMILY_ID }, ...families];
+};
+
+/**
+ * Identifiant de famille canonique, ou `null` s'il n'en désigne aucune. Les anciens
+ * identifiants nommés sont convertis à la position qu'ils occupaient dans l'ancien
+ * sélecteur, pour qu'une vitrine déjà colorée garde le même rang de pastille.
+ */
+export const normalizeAccentFamilyId = (familyId) => {
+  if (familyId === THEME_ACCENT_FAMILY_ID) {
+    return THEME_ACCENT_FAMILY_ID;
+  }
+  if (ACCENT_FAMILY_IDS.includes(familyId)) {
+    return familyId;
+  }
+  const legacyIndex = LEGACY_FAMILY_IDS.indexOf(familyId);
+  return legacyIndex >= 0 ? ACCENT_FAMILY_IDS[legacyIndex] : null;
 };
 
 /**
@@ -317,11 +433,11 @@ export const buildAccentFamilies = (palette = {}) => {
  */
 export const resolveAccentFamily = (familyId, families) => {
   const list = Array.isArray(families) && families.length > 0 ? families : buildAccentFamilies();
-  if (!familyId || familyId === THEME_ACCENT_FAMILY_ID) {
+  const normalized = normalizeAccentFamilyId(familyId);
+  if (!normalized || normalized === THEME_ACCENT_FAMILY_ID) {
     return list[0];
   }
-  return list.find(family => family.id === familyId) || list[0];
+  return list.find(family => family.id === normalized) || list[0];
 };
 
-export const isKnownAccentFamilyId = (familyId) =>
-  familyId === THEME_ACCENT_FAMILY_ID || ACCENT_FAMILY_IDS.includes(familyId);
+export const isKnownAccentFamilyId = familyId => normalizeAccentFamilyId(familyId) !== null;

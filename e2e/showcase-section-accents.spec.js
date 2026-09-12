@@ -64,12 +64,14 @@ test.describe('Couleur des sections de la vitrine', () => {
     await teamFrame.getByRole('button', { name: 'Réglages de la section' }).click();
     await expect(page.getByText('Couleur de la section')).toBeVisible();
 
-    await page.getByRole('button', { name: /Rose/ }).click();
+    // Les pastilles proposées appartiennent à la palette Tegeline : son bleu secondaire
+    // d'abord, puis des harmonies composées sur sa saturation et sa clarté. Un « rose »
+    // universel n'y figure plus — c'est tout l'objet de buildAccentFamilies.
+    await expect(page.getByRole('button', { name: /^Magenta$/ })).toBeVisible();
+    await page.getByRole('button', { name: /^Magenta$/ }).click();
 
-    // L'aperçu se met à jour immédiatement, avant même la publication. La teinte « rose »
-    // est composée sur la palette Tegeline (voir buildAccentFamilies dans
-    // src/utils/showcaseAccents.js) : ce n'est plus la teinte universelle figée.
-    await expect.poll(() => teamAccent(page)).toBe('rgb(145, 44, 108)');
+    // L'aperçu se met à jour immédiatement, avant même la publication.
+    await expect.poll(() => teamAccent(page)).toBe('rgb(147, 41, 123)');
 
     await page.getByRole('button', { name: 'Publier' }).click();
 
@@ -81,8 +83,9 @@ test.describe('Couleur des sections de la vitrine', () => {
       const project = (state.projects || []).find((item) => item?.answers?.showcaseSectionAccents);
       return project ? project.answers.showcaseSectionAccents : null;
     });
-    // Seul l'écart au thème est stocké : une section laissée sur « Thème » suivra la marque
-    // même si la palette change plus tard.
-    expect(stored).toEqual({ team: 'rose' });
+    // Seul l'écart au thème est stocké, et sous forme de rang de pastille : une section
+    // laissée sur « Thème » suivra la marque même si la palette change plus tard, et une
+    // section colorée gardera son rang si le projet change de thème.
+    expect(stored).toEqual({ team: 'accent-2' });
   });
 });

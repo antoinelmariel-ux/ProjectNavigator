@@ -33,10 +33,9 @@ import { renderTextWithLinks } from '../utils/linkify.js';
 import { splitRichTextIntoBlocks } from '../utils/richText.js';
 import { initialShowcaseThemes } from '../data/showcaseThemes.js';
 import {
-  ACCENT_FAMILY_IDS,
   THEME_ACCENT_FAMILY_ID,
   buildAccentFamilies,
-  isKnownAccentFamilyId,
+  normalizeAccentFamilyId,
   resolveAccentFamily
 } from '../utils/showcaseAccents.js';
 import { resolveLocalizedText } from '../utils/localizedContent.js';
@@ -166,7 +165,10 @@ const getTemplateMeta = (t, templateId) => {
   }
 };
 
-const getColorFamilyLabel = (t, familyId) => t(`projectShowcase.colorFamilyNames.${familyId}`);
+// Le libellé décrit la teinte réellement produite par le thème, pas l'identifiant de
+// position sous lequel le choix est stocké.
+const getColorFamilyLabel = (t, family) =>
+  t(`projectShowcase.colorFamilyNames.${family.name || family.id}`);
 
 // Seules les sections intégrées ont un accent configurable ici ; les blocs personnalisés
 // gardent leur propre champ `accentFamily`. Une valeur « thème » n'est pas stockée : c'est
@@ -190,8 +192,9 @@ const normalizeSectionAccents = (value) => {
 
   const normalized = {};
   ACCENT_CONFIGURABLE_SECTIONS.forEach((sectionId) => {
-    const familyId = value[sectionId];
-    if (ACCENT_FAMILY_IDS.includes(familyId)) {
+    const familyId = normalizeAccentFamilyId(value[sectionId]);
+    // « thème » est le défaut : le stocker rendrait la section sourde à un changement de palette.
+    if (familyId && familyId !== THEME_ACCENT_FAMILY_ID) {
       normalized[sectionId] = familyId;
     }
   });
@@ -381,9 +384,7 @@ const sanitizeCustomSections = (rawSections) => {
       const documentUrl = typeof section.documentUrl === 'string' ? section.documentUrl.trim() : '';
       const documentType = typeof section.documentType === 'string' ? section.documentType.trim() : '';
       const figure = typeof section.figure === 'string' ? section.figure.trim() : '';
-      const accentFamily = isKnownAccentFamilyId(section.accentFamily)
-        ? section.accentFamily
-        : THEME_ACCENT_FAMILY_ID;
+      const accentFamily = normalizeAccentFamilyId(section.accentFamily) || THEME_ACCENT_FAMILY_ID;
       const items = Array.isArray(section.items)
         ? section.items.map(item => (typeof item === 'string' ? item.trim() : '')).filter(Boolean)
         : [];
@@ -4488,7 +4489,8 @@ export const ProjectShowcase = ({
                   <label className="text-sm font-medium text-gray-800">{t('projectShowcase.colorFamilyLabel')}</label>
                   <div className="flex flex-wrap gap-2">
                     {accentFamilies.map((family) => {
-                      const isActive = (section.accentFamily || THEME_ACCENT_FAMILY_ID) === family.id;
+                      const isActive =
+                        (normalizeAccentFamilyId(section.accentFamily) || THEME_ACCENT_FAMILY_ID) === family.id;
                       return (
                         <button
                           key={`custom-section-${section.id}-family-${family.id}`}
@@ -4501,7 +4503,7 @@ export const ProjectShowcase = ({
                             className="sge-swatch__dot"
                             style={{ background: `linear-gradient(135deg, ${family.g1}, ${family.g2})` }}
                           />
-                          {getColorFamilyLabel(t, family.id)}
+                          {getColorFamilyLabel(t, family)}
                         </button>
                       );
                     })}
@@ -5086,7 +5088,7 @@ export const ProjectShowcase = ({
                       className="sge-swatch__dot"
                       style={{ background: `linear-gradient(135deg, ${family.g1}, ${family.g2})` }}
                     />
-                    {getColorFamilyLabel(t, family.id)}
+                    {getColorFamilyLabel(t, family)}
                   </button>
                 );
               })}
