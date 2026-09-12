@@ -1657,7 +1657,7 @@ export default {
     currentDelayMaintainTemplate: 'Plazo actual: {{diff}}. Mantenga este margen para evitar la alerta.',
     currentDelayCompliantMessage: 'Plazo actual conforme. Mantenga este margen para evitar la alerta.',
     audienceLabel: 'Audiencia objetivo',
-    projectEnvironmentLabel: 'Producto o entorno',
+    projectEnvironmentLabel: 'Producto o patología',
     countdownLabel: 'Cuenta atrás antes del lanzamiento',
     launchOverdueCaption: 'Lanzamiento previsto para el {{date}} (plazo alcanzado).',
     launchTodayCaption: 'Lanzamiento previsto para hoy ({{date}}).',

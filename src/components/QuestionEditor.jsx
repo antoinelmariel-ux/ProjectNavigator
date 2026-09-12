@@ -27,7 +27,7 @@ import { LanguageEditSwitcher } from './LocalizedFieldEditor.jsx';
 
 // Symboles monétaires : identiques dans les 4 langues, donc appliqués à toutes d'un coup
 // plutôt que traduits individuellement comme les autres unités (jours, %, ...).
-const CURRENCY_UNIT_PRESETS = ['K€', '$', '£'];
+const CURRENCY_UNIT_PRESETS = ['K€', 'K$', 'K£', 'MXN'];
 
 const buildUniformLocalizedValue = (text) =>
   SUPPORTED_LANGUAGES.reduce((acc, lang) => ({ ...acc, [lang]: text }), {});

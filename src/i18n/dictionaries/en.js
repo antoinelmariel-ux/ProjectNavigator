@@ -1657,7 +1657,7 @@ export default {
     currentDelayMaintainTemplate: 'Current delay: {{diff}}. Maintain this margin to avoid the alert.',
     currentDelayCompliantMessage: 'Current delay compliant. Maintain this margin to avoid the alert.',
     audienceLabel: 'Target audience',
-    projectEnvironmentLabel: 'Product or environment',
+    projectEnvironmentLabel: 'Product or Pathology',
     countdownLabel: 'Countdown to launch',
     launchOverdueCaption: 'Launch planned for {{date}} (deadline reached).',
     launchTodayCaption: 'Launch planned for today ({{date}}).',
