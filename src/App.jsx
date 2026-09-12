@@ -26,6 +26,7 @@ import { initialShowcaseThemes } from './data/showcaseThemes.js';
 import { initialOnboardingTourConfig } from './data/onboardingTour.js';
 import { initialValidationCommitteeConfig } from './data/validationCommitteeConfig.js';
 import { initialAdminEmails } from './data/adminEmails.js';
+import { initialTechnicalContactEmails } from './data/technicalContactEmails.js';
 import { loadPersistedState, persistState } from './utils/storage.js';
 import { shouldShowQuestion as shouldShowQuestionBase, withActivityScope } from './utils/questions.js';
 import { analyzeAnswers as analyzeAnswersBase, resolveProjectAnalysis } from './utils/rules.js';
@@ -776,6 +777,15 @@ const buildInitialAdminEmailsState = () => {
   return cloneDeep(initialAdminEmails);
 };
 
+const buildInitialTechnicalContactEmailsState = () => {
+  const savedState = loadPersistedState();
+  if (savedState && Array.isArray(savedState.technicalContactEmails)) {
+    return savedState.technicalContactEmails;
+  }
+
+  return cloneDeep(initialTechnicalContactEmails);
+};
+
 const isOnboardingProject = (project) => {
   if (!project || typeof project !== 'object') {
     return false;
@@ -853,6 +863,7 @@ export const App = () => {
   const [persistenceError, setPersistenceError] = useState(false);
   const [validationCommitteeConfig, setValidationCommitteeConfig] = useState(buildInitialValidationCommitteeConfig);
   const [adminEmails, setAdminEmails] = useState(buildInitialAdminEmailsState);
+  const [technicalContactEmails, setTechnicalContactEmails] = useState(buildInitialTechnicalContactEmailsState);
   const [isBackOfficeUnlocked, setIsBackOfficeUnlocked] = useState(false);
   const [backOfficeAuthError, setBackOfficeAuthError] = useState(null);
   const [isBackOfficePromptOpen, setIsBackOfficePromptOpen] = useState(false);
@@ -866,6 +877,17 @@ export const App = () => {
   const normalizedAdminEmails = useMemo(
     () => (Array.isArray(adminEmails) ? adminEmails.map(normalizeEmail).filter(Boolean) : []),
     [adminEmails]
+  );
+  const normalizedTechnicalContactEmails = useMemo(
+    () => (Array.isArray(technicalContactEmails) ? technicalContactEmails.map(normalizeEmail).filter(Boolean) : []),
+    [technicalContactEmails]
+  );
+  // Les contacts techniques ont les mêmes droits que les administrateurs (accès back-office
+  // sans mot de passe, « Voir en tant que », etc.) — seule la liste des destinataires des
+  // rapports de plantage automatiques (main.jsx) distingue les deux listes.
+  const normalizedAdminRightsEmails = useMemo(
+    () => Array.from(new Set([...normalizedAdminEmails, ...normalizedTechnicalContactEmails])),
+    [normalizedAdminEmails, normalizedTechnicalContactEmails]
   );
   // Résolu par main.jsx avant le premier rendu : référence stable pour toute la vie de l’app.
   // En simulation « Voir en tant que », c'est déjà l'identité simulée qui sort d'ici — toute la
@@ -894,8 +916,8 @@ export const App = () => {
     return currentUserEmail;
   }, [currentUser, currentUserEmail]);
   const isCurrentUserAdmin = useMemo(
-    () => !!currentUserEmail && normalizedAdminEmails.includes(currentUserEmail),
-    [currentUserEmail, normalizedAdminEmails]
+    () => !!currentUserEmail && normalizedAdminRightsEmails.includes(currentUserEmail),
+    [currentUserEmail, normalizedAdminRightsEmails]
   );
   // Contacts d'équipe conformité / membres de comité de validation : accès restreint au
   // back-office (cf. allowedTabIds dans BackOffice.jsx) sans passer par le mot de passe partagé.
@@ -1258,6 +1280,7 @@ export const App = () => {
     riskWeights,
     showcaseThemes,
     adminEmails,
+    technicalContactEmails,
     onboardingTourConfig,
     validationCommitteeConfig,
     inspirationFormFields,
@@ -1269,6 +1292,7 @@ export const App = () => {
     riskWeights,
     showcaseThemes,
     adminEmails,
+    technicalContactEmails,
     onboardingTourConfig,
     validationCommitteeConfig,
     inspirationFormFields,
@@ -1621,6 +1645,7 @@ const updateProjectFilters = useCallback((updater) => {
       }
       if (Array.isArray(slices.showcaseThemes)) setShowcaseThemes(slices.showcaseThemes);
       if (Array.isArray(slices.adminEmails)) setAdminEmails(slices.adminEmails);
+      if (Array.isArray(slices.technicalContactEmails)) setTechnicalContactEmails(slices.technicalContactEmails);
       if (slices.projectFilters && typeof slices.projectFilters === 'object') {
         setProjectFiltersState(normalizeProjectFilterConfig(stripRetiredProjectFilterFields(slices.projectFilters)));
       }
@@ -1783,7 +1808,8 @@ const updateProjectFilters = useCallback((updater) => {
       inspirationFormFields,
       onboardingTourConfig,
       validationCommitteeConfig,
-      adminEmails
+      adminEmails,
+      technicalContactEmails
     };
 
     // Référentiels volumineux : persistés seulement s’ils diffèrent du défaut
@@ -1821,6 +1847,7 @@ const updateProjectFilters = useCallback((updater) => {
     onboardingTourConfig,
     validationCommitteeConfig,
     adminEmails,
+    technicalContactEmails,
     persistDefaults
   ]);
 
@@ -5120,6 +5147,7 @@ const updateProjectFilters = useCallback((updater) => {
         validationCommitteeConfig,
         showcaseThemes,
         adminEmails,
+        technicalContactEmails,
         userEmail: currentUserEmail
       });
 
@@ -5142,6 +5170,7 @@ const updateProjectFilters = useCallback((updater) => {
     }
   }, [
     adminEmails,
+    technicalContactEmails,
     currentUserEmail,
     inspirationFilters,
     inspirationFormFields,
@@ -5204,7 +5233,8 @@ const updateProjectFilters = useCallback((updater) => {
         onboardingTourConfig,
         validationCommitteeConfig,
         showcaseThemes,
-        adminEmails
+        adminEmails,
+        technicalContactEmails
       });
 
       const details = summary.lists
@@ -5226,6 +5256,7 @@ const updateProjectFilters = useCallback((updater) => {
     }
   }, [
     adminEmails,
+    technicalContactEmails,
     inspirationFilters,
     inspirationFormFields,
     onboardingTourConfig,
@@ -5848,6 +5879,8 @@ const updateProjectFilters = useCallback((updater) => {
                 setValidationCommitteeConfig={setValidationCommitteeConfig}
                 adminEmails={adminEmails}
                 setAdminEmails={setAdminEmails}
+                technicalContactEmails={technicalContactEmails}
+                setTechnicalContactEmails={setTechnicalContactEmails}
                 currentUserEmail={currentUserEmail}
                 isCurrentUserAdmin={isCurrentUserAdmin}
                 activityScope={activityScope}
@@ -5979,7 +6012,7 @@ const updateProjectFilters = useCallback((updater) => {
               hasIncompleteAnswers={hasIncompleteAnswers}
               tourContext={tourContext}
               validationCommitteeConfig={validationCommitteeConfig}
-              adminEmails={adminEmails}
+              adminEmails={normalizedAdminRightsEmails}
             />
           </Suspense>
         ) : screen === 'showcase' ? (
