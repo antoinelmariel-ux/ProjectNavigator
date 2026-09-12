@@ -1555,11 +1555,12 @@ export default {
       hero: 'Hero du projet',
       problem: 'Le problème',
       solution: 'La réponse',
-      innovation: 'Différenciation & impact',
-      'innovation-metrics': 'Indicateurs de valeur',
+      'solution-benefits': 'Bénéfices clés',
+      budget: 'Budget estimé',
+      objectives: 'Objectifs',
+      metrics: 'Indicateurs de valeur',
       team: 'Équipe & alliances',
-      timeline: 'Feuille de route',
-      budget: 'Budget estimé'
+      timeline: 'Feuille de route'
     },
     templates: {
       highlight: {
@@ -1677,6 +1678,7 @@ export default {
     impactHeadline: 'Délivrer le maximum de valeur',
     budgetCaption: 'Budget estimé · prévision globale sur 12 mois.',
     innovationHowEyebrow: 'Comment on s’y prend',
+    innovationHowHeadline: 'Ce que nous voulons accomplir',
     valueIndicatorsEyebrow: 'Indicateurs de valeur',
     valueIndicatorsHeadline: 'Comment nous mesurons l’impact',
     teamHeadline: 'Qui porte et sécurise le projet',
@@ -1811,7 +1813,6 @@ export default {
       changeTemplate: 'Changer de gabarit',
       inlineHint: 'Les titres et intitulés se modifient directement dans la vitrine.',
       emptySectionHint: 'Section vide : renseignez ses champs pour qu’elle apparaisse dans la vitrine publiée.',
-      otherElements: 'Autres éléments',
       autoSectionHint: 'Cette section apparaît d’elle-même dans la vitrine selon l’état du projet.',
       draftFoundEyebrow: 'Brouillon non publié',
       draftFoundText: 'Des modifications de cette vitrine n’ont jamais été publiées.',

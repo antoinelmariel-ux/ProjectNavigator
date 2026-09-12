@@ -1545,11 +1545,12 @@ export default {
       hero: 'Project hero',
       problem: 'The problem',
       solution: 'The answer',
-      innovation: 'Differentiation & impact',
-      'innovation-metrics': 'Value indicators',
+      'solution-benefits': 'Key benefits',
+      budget: 'Estimated budget',
+      objectives: 'Objectives',
+      metrics: 'Value indicators',
       team: 'Team & alliances',
-      timeline: 'Roadmap',
-      budget: 'Estimated budget'
+      timeline: 'Roadmap'
     },
     templates: {
       highlight: {
@@ -1667,6 +1668,7 @@ export default {
     impactHeadline: 'Delivering maximum value',
     budgetCaption: 'Estimated budget · overall 12-month projection.',
     innovationHowEyebrow: 'How we go about it',
+    innovationHowHeadline: 'What we want to achieve',
     valueIndicatorsEyebrow: 'Value indicators',
     valueIndicatorsHeadline: 'How we measure impact',
     teamHeadline: 'Who’s driving and securing the project',
@@ -1801,7 +1803,6 @@ export default {
       changeTemplate: 'Change template',
       inlineHint: 'Titles and labels are edited directly in the showcase.',
       emptySectionHint: 'Empty section: fill in its fields so it appears in the published showcase.',
-      otherElements: 'Other elements',
       autoSectionHint: 'This section appears on its own in the showcase depending on the project state.',
       draftFoundEyebrow: 'Unpublished draft',
       draftFoundText: 'Changes to this showcase were never published.',

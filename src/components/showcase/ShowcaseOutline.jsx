@@ -19,8 +19,7 @@ export const ShowcaseOutline = ({
   dropIndex,
   onDragStart,
   onDragEnd,
-  onDropSection,
-  extraVisibilityOptions = []
+  onDropSection
 }) => {
   const { t } = useTranslation();
 
@@ -165,44 +164,6 @@ export const ShowcaseOutline = ({
           );
         })}
       </ol>
-      {extraVisibilityOptions.length > 0 && (
-        <div className="sge-outline__extras">
-          {/* « Budget » n'est pas une section : c'est un bloc interne dont la vue Light peut
-              masquer l'affichage. Sans cette liste, il n'existerait plus aucun moyen de le
-              réafficher depuis l'éditeur. */}
-          <p className="sge-eyebrow">{t('projectShowcase.editor.otherElements')}</p>
-          <ul className="sge-outline__extra-list">
-            {extraVisibilityOptions.map(option => (
-              <li
-                key={`outline-extra-${option.id}`}
-                className={`sge-outline__extra${option.isHiddenInLight ? ' sge-outline__extra--hidden' : ''}`}
-              >
-                <span className="sge-outline__text">{option.label}</span>
-                <button
-                  type="button"
-                  className="sge-outline__action"
-                  aria-pressed={!option.isHiddenInLight}
-                  aria-label={
-                    option.isHiddenInLight
-                      ? t('projectShowcase.editor.showInLight')
-                      : t('projectShowcase.editor.hideInLight')
-                  }
-                  title={
-                    option.isHiddenInLight
-                      ? t('projectShowcase.editor.showInLight')
-                      : t('projectShowcase.editor.hideInLight')
-                  }
-                  onClick={() => onToggleVisibility(option.id)}
-                >
-                  {option.isHiddenInLight
-                    ? <EyeOff className="sge-outline__action-icon" />
-                    : <Eye className="sge-outline__action-icon" />}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
     </aside>
   );
 };
