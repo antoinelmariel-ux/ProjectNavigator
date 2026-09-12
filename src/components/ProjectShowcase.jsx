@@ -29,7 +29,8 @@ import {
   buildNumberUnitAnswerId,
   formatAnswer,
   getNumberUnitOptions,
-  getQuestionOptionEntries
+  getQuestionOptionEntries,
+  normalizeQuestionOptions
 } from '../utils/questions.js';
 import { renderTextWithLinks } from '../utils/linkify.js';
 import { splitRichTextIntoBlocks } from '../utils/richText.js';
@@ -533,6 +534,74 @@ const getFormattedAnswer = (questions, answers, id, missingInfoLabel, language) 
   }
 
   return question.required ? missingInfoLabel : '';
+};
+
+// Pour q27 (« Dans quels pays ce projet sera-t-il déployé ? »), la chip vitrine ne doit
+// montrer que les pays concrets — pas le libellé du regroupement parent (« Pays liés à des
+// filiales hors France ») ni « Autre » : on descend donc directement aux sous-pays cochés et
+// au texte libre « Autre » plutôt que de réutiliser formatAnswer(), qui garde le libellé parent.
+const formatDeploymentCountries = (question, answer, language) => {
+  if (!question || answer === null || answer === undefined) {
+    return '';
+  }
+
+  const labelByValue = new Map(
+    getQuestionOptionEntries(question, { language }).map((entry) => [entry.value, entry.label])
+  );
+  const resolveLabel = (value) => labelByValue.get(value == null ? '' : String(value)) || '';
+
+  if (Array.isArray(answer)) {
+    return answer.map(resolveLabel).filter(Boolean).join(', ');
+  }
+
+  if (typeof answer !== 'object') {
+    return '';
+  }
+
+  const values = Array.isArray(answer.values) ? answer.values : [];
+  const children = answer.children && typeof answer.children === 'object' ? answer.children : {};
+  const otherText = typeof answer.otherText === 'string' ? answer.otherText.trim() : '';
+  const otherOptionValue = normalizeQuestionOptions(question, { language }).find((option) => option.isOther)?.value || '';
+
+  const parts = [];
+  values.forEach((value) => {
+    const optionValue = value == null ? '' : String(value);
+
+    if (otherOptionValue && optionValue === otherOptionValue) {
+      if (otherText) {
+        parts.push(otherText);
+      }
+      return;
+    }
+
+    const childValues = Array.isArray(children[optionValue]) ? children[optionValue] : [];
+    if (childValues.length > 0) {
+      childValues.forEach((childValue) => {
+        const childLabel = resolveLabel(childValue);
+        if (childLabel) {
+          parts.push(childLabel);
+        }
+      });
+      return;
+    }
+
+    const label = resolveLabel(optionValue);
+    if (label) {
+      parts.push(label);
+    }
+  });
+
+  return parts.join(', ');
+};
+
+const getFormattedDeploymentCountries = (questions, answers, id, missingInfoLabel, language) => {
+  const question = findQuestionById(questions, id);
+  if (!question) {
+    return '';
+  }
+
+  const formatted = formatDeploymentCountries(question, answers?.[id], language).trim();
+  return formatted.length > 0 ? formatted : (question.required ? missingInfoLabel : '');
 };
 
 const getRawAnswer = (answers, id) => {
@@ -2788,7 +2857,7 @@ export const ProjectShowcase = ({
   const slogan = getFormattedAnswer(questions, previewAnswers, 'projectSlogan', missingInfoLabel, language);
   const targetAudience = getFormattedAnswer(questions, previewAnswers, 'targetAudience', missingInfoLabel, language);
   const projectEnvironment = getFormattedAnswer(questions, previewAnswers, 'showcaseTheme', missingInfoLabel, language);
-  const deploymentCountries = getFormattedAnswer(questions, previewAnswers, 'q27', missingInfoLabel, language);
+  const deploymentCountries = getFormattedDeploymentCountries(questions, previewAnswers, 'q27', missingInfoLabel, language);
   const problemPainPoints = parseProblemPainPoints(getRawAnswer(previewAnswers, 'problemPainPoints'));
 
   const solutionDescription = getFormattedAnswer(questions, previewAnswers, 'solutionDescription', missingInfoLabel, language);
