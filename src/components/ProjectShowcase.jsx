@@ -159,10 +159,13 @@ const getTemplateMeta = (t, templateId) => {
   }
 };
 
-// Le libellé décrit la teinte réellement produite par le thème, pas l'identifiant de
-// position sous lequel le choix est stocké.
-const getColorFamilyLabel = (t, family) =>
-  t(`projectShowcase.colorFamilyNames.${family.name || family.id}`);
+// Les pastilles ne portent pas de nom de couleur : les teintes viennent du thème et deux
+// d'entre elles peuvent parfaitement être deux nuances d'une même couleur, qu'un nom rendrait
+// indiscernables. Le rang sert de libellé, et c'est aussi l'identifiant stocké.
+const getColorFamilyLabel = (t, family, index) =>
+  family.id === THEME_ACCENT_FAMILY_ID
+    ? t('projectShowcase.themeColorLabel')
+    : t('projectShowcase.colorSwatchLabel', { index });
 
 // Seules les sections intégrées ont un accent configurable ici ; les blocs personnalisés
 // gardent leur propre champ `accentFamily`. Une valeur « thème » n'est pas stockée : c'est
@@ -4553,7 +4556,7 @@ export const ProjectShowcase = ({
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-800">{t('projectShowcase.colorFamilyLabel')}</label>
                   <div className="flex flex-wrap gap-2">
-                    {accentFamilies.map((family) => {
+                    {accentFamilies.map((family, familyIndex) => {
                       const isActive =
                         (normalizeAccentFamilyId(section.accentFamily) || THEME_ACCENT_FAMILY_ID) === family.id;
                       return (
@@ -4568,7 +4571,7 @@ export const ProjectShowcase = ({
                             className="sge-swatch__dot"
                             style={{ background: `linear-gradient(135deg, ${family.g1}, ${family.g2})` }}
                           />
-                          {getColorFamilyLabel(t, family)}
+                          {getColorFamilyLabel(t, family, familyIndex)}
                         </button>
                       );
                     })}
@@ -5147,7 +5150,7 @@ export const ProjectShowcase = ({
               </span>
             )}
             <div className="flex flex-wrap gap-2">
-              {accentFamilies.map((family) => {
+              {accentFamilies.map((family, familyIndex) => {
                 const activeId = sectionAccentsDraft[sectionId] || THEME_ACCENT_FAMILY_ID;
                 return (
                   <button
@@ -5161,7 +5164,7 @@ export const ProjectShowcase = ({
                       className="sge-swatch__dot"
                       style={{ background: `linear-gradient(135deg, ${family.g1}, ${family.g2})` }}
                     />
-                    {getColorFamilyLabel(t, family)}
+                    {getColorFamilyLabel(t, family, familyIndex)}
                   </button>
                 );
               })}
