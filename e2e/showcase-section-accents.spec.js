@@ -48,9 +48,9 @@ test.describe('Couleur des sections de la vitrine', () => {
     test.setTimeout(240000);
     await openTegelineShowcase(page);
 
-    // Défaut : l'accent dérive de la palette Tegeline (#2b8f42 assombri pour rester lisible
-    // en texte sur fond clair), surtout pas le rose figé d'origine.
-    expect(await teamAccent(page)).toBe('rgb(35, 108, 52)');
+    // Défaut : l'accent est le vert Tegeline lui-même (#2b8f42), juste assombri pour rester
+    // lisible en texte sur fond clair — surtout pas le rose figé d'origine.
+    expect(await teamAccent(page)).toBe('rgb(29, 96, 44)');
 
     // La couleur d'une section se règle désormais depuis les réglages de cette section
     // (l'inspecteur d'édition), pas depuis le bouton « Configurer » — qui ne gère plus que
@@ -64,14 +64,14 @@ test.describe('Couleur des sections de la vitrine', () => {
     await teamFrame.getByRole('button', { name: 'Réglages de la section' }).click();
     await expect(page.getByText('Couleur de la section')).toBeVisible();
 
-    // Les pastilles proposées appartiennent à la palette Tegeline : son bleu secondaire
-    // d'abord, puis des harmonies composées sur sa saturation et sa clarté. Un « rose »
-    // universel n'y figure plus — c'est tout l'objet de buildAccentFamilies.
-    await expect(page.getByRole('button', { name: /^Magenta$/ })).toBeVisible();
-    await page.getByRole('button', { name: /^Magenta$/ }).click();
+    // Les pastilles sont exactement les couleurs déclarées dans la palette Tegeline, sans
+    // nom de couleur : « Couleur 1 » est son bleu #2e6db4. Aucune teinte n'est inventée, donc
+    // un thème monochrome en propose peu et un thème riche beaucoup.
+    await expect(page.getByRole('button', { name: /^Couleur 1$/ })).toBeVisible();
+    await page.getByRole('button', { name: /^Couleur 1$/ }).click();
 
     // L'aperçu se met à jour immédiatement, avant même la publication.
-    await expect.poll(() => teamAccent(page)).toBe('rgb(147, 41, 123)');
+    await expect.poll(() => teamAccent(page)).toBe('rgb(37, 87, 143)');
 
     await page.getByRole('button', { name: 'Publier' }).click();
 
@@ -86,6 +86,6 @@ test.describe('Couleur des sections de la vitrine', () => {
     // Seul l'écart au thème est stocké, et sous forme de rang de pastille : une section
     // laissée sur « Thème » suivra la marque même si la palette change plus tard, et une
     // section colorée gardera son rang si le projet change de thème.
-    expect(stored).toEqual({ team: 'accent-2' });
+    expect(stored).toEqual({ team: 'accent-1' });
   });
 });
