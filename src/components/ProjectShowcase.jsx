@@ -1896,7 +1896,7 @@ const REQUIRED_SHOWCASE_QUESTION_IDS = [
   'roadmapMilestones'
 ];
 
-const buildHeroHighlights = ({ targetAudience, projectEnvironment, runway, t }) => {
+const buildHeroHighlights = ({ targetAudience, projectEnvironment, deploymentCountries, t }) => {
   const highlights = [];
 
   if (hasText(targetAudience)) {
@@ -1917,16 +1917,12 @@ const buildHeroHighlights = ({ targetAudience, projectEnvironment, runway, t }) 
     });
   }
 
-  if (runway) {
+  if (hasText(deploymentCountries)) {
     highlights.push({
-      id: 'runway',
-      label: t('projectShowcase.countdownLabel'),
-      value: `${runway.weeksLabel} (${runway.daysLabel})`,
-      caption: runway.isOverdue
-        ? t('projectShowcase.launchOverdueCaption', { date: runway.launchLabel })
-        : runway.isToday
-          ? t('projectShowcase.launchTodayCaption', { date: runway.launchLabel })
-          : t('projectShowcase.launchUpcomingCaption', { date: runway.launchLabel })
+      id: 'deploymentCountries',
+      label: t('projectShowcase.deploymentCountriesLabel'),
+      value: deploymentCountries,
+      caption: ''
     });
   }
 
@@ -2792,6 +2788,7 @@ export const ProjectShowcase = ({
   const slogan = getFormattedAnswer(questions, previewAnswers, 'projectSlogan', missingInfoLabel, language);
   const targetAudience = getFormattedAnswer(questions, previewAnswers, 'targetAudience', missingInfoLabel, language);
   const projectEnvironment = getFormattedAnswer(questions, previewAnswers, 'showcaseTheme', missingInfoLabel, language);
+  const deploymentCountries = getFormattedAnswer(questions, previewAnswers, 'q27', missingInfoLabel, language);
   const problemPainPoints = parseProblemPainPoints(getRawAnswer(previewAnswers, 'problemPainPoints'));
 
   const solutionDescription = getFormattedAnswer(questions, previewAnswers, 'solutionDescription', missingInfoLabel, language);
@@ -2936,10 +2933,10 @@ export const ProjectShowcase = ({
       buildHeroHighlights({
         targetAudience,
         projectEnvironment,
-        runway,
+        deploymentCountries,
         t
       }),
-    [targetAudience, projectEnvironment, runway, t]
+    [targetAudience, projectEnvironment, deploymentCountries, t]
   );
 
   const teamMemberCards = useMemo(
