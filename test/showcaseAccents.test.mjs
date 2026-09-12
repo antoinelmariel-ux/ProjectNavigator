@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  ACCENT_FAMILY_COUNT,
   ACCENT_FAMILY_IDS,
+  MAX_ACCENT_FAMILY_COUNT,
   THEME_ACCENT_FAMILY_ID,
   buildAccentFamilies,
   contrastRatio,
@@ -22,33 +22,64 @@ const groundOf = (palette) => {
   return candidates.reduce((a, b) => (contrastRatio('#ffffff', a) >= contrastRatio('#ffffff', b) ? a : b));
 };
 
-const hueDistance = (a, b) => {
-  const raw = Math.abs(a - b) % 360;
-  return raw > 180 ? 360 - raw : raw;
+const declaredColors = palette =>
+  new Set(
+    Object.values(palette)
+      .filter(value => typeof value === 'string' && HEX.test(value.toLowerCase()))
+      .map(value => value.toLowerCase())
+  );
+
+const toLinear = (channel) => {
+  const ratio = channel / 255;
+  return ratio <= 0.04045 ? ratio / 12.92 : ((ratio + 0.055) / 1.055) ** 2.4;
 };
 
-const MONOCHROME_PALETTE = {
-  accentPrimary: '#902830',
-  accentSecondary: '#cf5a5f',
-  highlight: '#e5928e',
-  glowPrimary: '#b83038',
-  surfaceLight: '#ffffff',
-  surfaceLightAlt: '#e2e8f0',
-  backgroundStart: '#2a0d10',
-  inkStrong: '#3d1519'
+const lab = (hex) => {
+  const numeric = parseInt(hex.slice(1), 16);
+  const [r, g, b] = [(numeric >> 16) & 255, (numeric >> 8) & 255, numeric & 255].map(toLinear);
+  const x = (0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047;
+  const y = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  const z = (0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.08883;
+  const f = value => (value > 0.008856 ? Math.cbrt(value) : 7.787 * value + 16 / 116);
+  const [fx, fy, fz] = [x, y, z].map(f);
+  return { l: 116 * fy - 16, a: 500 * (fx - fy), b: 200 * (fy - fz) };
 };
 
-test('chaque thème expose la famille « thème » puis les familles positionnelles', () => {
+const deltaE = (first, second) => {
+  const a = lab(first);
+  const b = lab(second);
+  return Math.hypot(a.l - b.l, a.a - b.a, a.b - b.b);
+};
+
+test('toutes les couleurs proposées sont déclarées dans la palette du thème', () => {
+  for (const theme of initialShowcaseThemes) {
+    const declared = declaredColors(theme.palette);
+    for (const family of buildAccentFamilies(theme.palette)) {
+      assert.ok(
+        declared.has(family.g1),
+        `${theme.id}/${family.id} : ${family.g1} n’appartient pas à la palette`
+      );
+      assert.equal(family.hex, family.g1, `${theme.id}/${family.id}`);
+    }
+  }
+});
+
+test('la famille « thème » ouvre la liste, suivie des rangs dans l’ordre', () => {
   for (const theme of initialShowcaseThemes) {
     const families = buildAccentFamilies(theme.palette);
     assert.equal(families[0].id, THEME_ACCENT_FAMILY_ID, theme.id);
-    assert.deepEqual(families.slice(1).map(family => family.id), ACCENT_FAMILY_IDS, theme.id);
+    assert.ok(families.length >= 2, `${theme.id} ne propose aucune alternative`);
+    assert.ok(families.length <= MAX_ACCENT_FAMILY_COUNT + 1, theme.id);
+    assert.deepEqual(
+      families.slice(1).map(family => family.id),
+      ACCENT_FAMILY_IDS.slice(0, families.length - 1),
+      theme.id
+    );
 
     for (const family of families) {
       for (const key of ['c', 'g1', 'g2', 'p1', 'p2', 'onDark']) {
         assert.match(family[key], HEX, `${theme.id}/${family.id}/${key}`);
       }
-      assert.equal(typeof family.name, 'string', `${theme.id}/${family.id}`);
     }
   }
 });
@@ -69,60 +100,35 @@ test('les accents restent lisibles sur les deux fonds du thème', () => {
   }
 });
 
-test('deux familles d’un même thème ne se confondent pas', () => {
+test('deux pastilles d’un même thème restent distinguables à l’œil', () => {
   for (const theme of initialShowcaseThemes) {
     const families = buildAccentFamilies(theme.palette);
     for (let i = 0; i < families.length; i += 1) {
       for (let j = i + 1; j < families.length; j += 1) {
-        assert.notEqual(
-          families[i].g1,
-          families[j].g1,
-          `${theme.id} : ${families[i].id} et ${families[j].id}`
-        );
         assert.ok(
-          hueDistance(families[i].hue, families[j].hue) >= 20,
-          `${theme.id} : ${families[i].id} et ${families[j].id} trop proches`
-        );
-        assert.notEqual(
-          families[i].name,
-          families[j].name,
-          `${theme.id} : deux pastilles nommées ${families[i].name}`
+          deltaE(families[i].g1, families[j].g1) >= 15,
+          `${theme.id} : ${families[i].g1} et ${families[j].g1} trop proches`
         );
       }
     }
   }
 });
 
-test('les teintes du thème passent avant toute couleur composée', () => {
-  // #d946ef est un magenta franc, absent des ancrages : il doit devenir une pastille tel
-  // quel, teinte et saturation comprises, plutôt que d’être reconstruit.
-  const palette = {
-    accentPrimary: '#1d4ed8',
-    accentSecondary: '#d946ef',
-    surfaceLight: '#ffffff',
-    surfaceLightAlt: '#e2e8f0',
-    backgroundStart: '#05070f',
-    inkStrong: '#0f172a'
-  };
-  const families = buildAccentFamilies(palette);
-  assert.ok(
-    families.slice(1).some(family => hueDistance(family.hue, 292) <= 1),
-    families.map(family => family.hue.toFixed(0)).join(', ')
-  );
-  // et la première position revient à la couleur la plus caractéristique du thème
-  assert.ok(hueDistance(families[1].hue, 292) <= 1);
+test('un thème monochrome propose ses propres nuances, pas des teintes inventées', () => {
+  // Hémostase ne porte qu’une teinte, déclinée du bordeaux au rose poudré : ces nuances sont
+  // des choix légitimes, ce qu’un nommage par couleur interdisait.
+  const hemostase = initialShowcaseThemes.find(theme => theme.id === 'hemostase');
+  const families = buildAccentFamilies(hemostase.palette);
+  const declared = declaredColors(hemostase.palette);
+  assert.ok(families.length >= 4, `${families.length} pastilles`);
+  for (const family of families) {
+    assert.ok(declared.has(family.g1), family.g1);
+  }
 });
 
-test('un thème monochrome est complété par harmonie autour de sa teinte', () => {
-  const families = buildAccentFamilies(MONOCHROME_PALETTE);
-  const themeHue = families[0].hue;
-  assert.equal(families.length, ACCENT_FAMILY_COUNT + 1);
-  // la palette ne porte qu’une teinte : la première pastille proposée est sa complémentaire
-  assert.ok(hueDistance(families[1].hue, (themeHue + 180) % 360) <= 1, `${families[1].hue}`);
-  // et aucune pastille ne double la couleur du thème
-  for (const family of families.slice(1)) {
-    assert.ok(hueDistance(family.hue, themeHue) >= 20, `${family.id} : ${family.hue}`);
-  }
+test('un thème riche s’arrête au plafond de pastilles', () => {
+  const universel = initialShowcaseThemes.find(theme => theme.id === 'universel');
+  assert.equal(buildAccentFamilies(universel.palette).length, MAX_ACCENT_FAMILY_COUNT + 1);
 });
 
 test('deux thèmes différents proposent deux palettes différentes', () => {
@@ -142,13 +148,20 @@ test('les identifiants nommés hérités retrouvent leur position', () => {
 });
 
 test('resolveAccentFamily retombe sur la famille du thème', () => {
-  const families = buildAccentFamilies(initialShowcaseThemes[0].palette);
+  const universel = initialShowcaseThemes.find(theme => theme.id === 'universel');
+  const families = buildAccentFamilies(universel.palette);
   assert.equal(resolveAccentFamily(undefined, families).id, THEME_ACCENT_FAMILY_ID);
   assert.equal(resolveAccentFamily(THEME_ACCENT_FAMILY_ID, families).id, THEME_ACCENT_FAMILY_ID);
   assert.equal(resolveAccentFamily('inconnue', families).id, THEME_ACCENT_FAMILY_ID);
   assert.equal(resolveAccentFamily('accent-3', families).id, 'accent-3');
   // une vitrine colorée avant la bascule garde son rang de pastille
   assert.equal(resolveAccentFamily('vert', families).id, 'accent-4');
+
+  // un rang que le thème courant ne propose pas (sa palette est plus pauvre) revient au thème
+  const cevenfacta = initialShowcaseThemes.find(theme => theme.id === 'cevenfacta');
+  const narrow = buildAccentFamilies(cevenfacta.palette);
+  assert.ok(narrow.length < MAX_ACCENT_FAMILY_COUNT + 1);
+  assert.equal(resolveAccentFamily('accent-8', narrow).id, THEME_ACCENT_FAMILY_ID);
 });
 
 test('isKnownAccentFamilyId accepte le défaut, les positions et l’ancien nommage', () => {
@@ -159,10 +172,9 @@ test('isKnownAccentFamilyId accepte le défaut, les positions et l’ancien nomm
   assert.ok(!isKnownAccentFamilyId(undefined));
 });
 
-test('une palette vide produit tout de même une palette complète', () => {
+test('une palette vide produit tout de même la famille du thème', () => {
   const families = buildAccentFamilies();
-  assert.equal(families.length, ACCENT_FAMILY_COUNT + 1);
-  for (const family of families) {
-    assert.match(family.g1, HEX);
-  }
+  assert.equal(families.length, 1);
+  assert.equal(families[0].id, THEME_ACCENT_FAMILY_ID);
+  assert.match(families[0].g1, HEX);
 });
