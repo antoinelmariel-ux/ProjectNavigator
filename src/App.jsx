@@ -827,6 +827,7 @@ export const App = () => {
   const [onboardingTourConfig, setOnboardingTourConfig] = useState(buildInitialOnboardingConfig);
   const [activeInspirationId, setActiveInspirationId] = useState(null);
   const [activeProjectId, setActiveProjectId] = useState(null);
+  const [synthesisFocusPerimeter, setSynthesisFocusPerimeter] = useState(null);
   const [validationError, setValidationError] = useState(null);
   const [saveFeedback, setSaveFeedback] = useState(null);
   const [submittedProjectNotice, setSubmittedProjectNotice] = useState(null);
@@ -4241,6 +4242,12 @@ const updateProjectFilters = useCallback((updater) => {
       targetScreen = project.status === 'draft' ? 'questionnaire' : 'synthesis';
     }
 
+    setSynthesisFocusPerimeter(
+      options?.focusPerimeter?.id && options?.focusPerimeter?.type
+        ? { type: options.focusPerimeter.type, id: options.focusPerimeter.id }
+        : null
+    );
+
     setScreen(targetScreen);
     setHasUnsavedChanges(false);
   }, [
@@ -6031,6 +6038,8 @@ const updateProjectFilters = useCallback((updater) => {
               tourContext={tourContext}
               validationCommitteeConfig={validationCommitteeConfig}
               adminEmails={normalizedAdminRightsEmails}
+              focusPerimeter={synthesisFocusPerimeter}
+              onFocusPerimeterHandled={() => setSynthesisFocusPerimeter(null)}
             />
           </Suspense>
         ) : screen === 'showcase' ? (

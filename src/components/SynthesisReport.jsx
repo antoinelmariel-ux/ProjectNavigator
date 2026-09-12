@@ -522,7 +522,9 @@ export const SynthesisReport = ({
   isAdminMode = false,
   tourContext = null,
   hasIncompleteAnswers = false,
-  validationCommitteeConfig = null
+  validationCommitteeConfig = null,
+  focusPerimeter = null,
+  onFocusPerimeterHandled
 }) => {
   const { t, language } = useTranslation();
   const [isShowcaseFallbackOpen, setIsShowcaseFallbackOpen] = useState(false);
@@ -1292,6 +1294,56 @@ export const SynthesisReport = ({
     }));
   }, []);
 
+  // Ouverture ciblée depuis la liste des projets à traiter (bouton "Ouvrir" côté expert/comité) :
+  // on déplie le bloc concerné, on force le fil de discussion complet ouvert (sinon la réponse du
+  // porteur peut être hors des deux derniers messages affichés), puis on scrolle vers la dernière
+  // réponse du porteur si elle existe, sinon vers l'en-tête du bloc.
+  useEffect(() => {
+    if (!focusPerimeter?.id || !focusPerimeter?.type) {
+      return;
+    }
+
+    let targetId = null;
+
+    if (focusPerimeter.type === 'team') {
+      const team = relevantTeams.find((entry) => entry.id === focusPerimeter.id);
+      if (team) {
+        setTeamCollapsedOverrides((prev) => ({ ...prev, [focusPerimeter.id]: false }));
+        setExpandedThreads((prev) => ({ ...prev, [`team-${focusPerimeter.id}`]: true }));
+
+        const storedEntry = normalizeCommentEntry(complianceComments.teams?.[focusPerimeter.id]);
+        const teamDisplayName = resolveLocalizedText(team.name, language);
+        const teamContactEmailSet = new Set(
+          normalizeTeamContacts(team).map((contact) => normalizeEmail(contact))
+        );
+        const ownerMessages = getThreadMessages(storedEntry, teamDisplayName).filter(
+          (message) => !message.id.startsWith('comment-') && !teamContactEmailSet.has(normalizeEmail(message.authorEmail))
+        );
+        const lastOwnerMessage = ownerMessages[ownerMessages.length - 1];
+        targetId = lastOwnerMessage
+          ? `compliance-message-${lastOwnerMessage.id}`
+          : `compliance-team-block-${focusPerimeter.id}`;
+      }
+    } else if (focusPerimeter.type === 'committee') {
+      targetId = `compliance-committee-block-${focusPerimeter.id}`;
+    }
+
+    onFocusPerimeterHandled?.();
+
+    if (!targetId || typeof document === 'undefined') {
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      const element = document.getElementById(targetId);
+      if (element && typeof element.scrollIntoView === 'function') {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 50);
+
+    return () => clearTimeout(timeoutId);
+  }, [focusPerimeter, relevantTeams, complianceComments, language, getThreadMessages, onFocusPerimeterHandled]);
+
   const handleShareMemberAdd = useCallback((emails) => {
     if (typeof onShareProjectMember !== 'function') {
       return;
@@ -1650,6 +1702,7 @@ export const SynthesisReport = ({
                 return (
                   <div
                     key={team.id}
+                    id={`compliance-team-block-${team.id}`}
                     className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-200 transition-all overflow-hidden"
                     style={{ borderLeftWidth: '4px', borderLeftColor: teamAccentColor }}
                     role="article"
@@ -1808,7 +1861,11 @@ export const SynthesisReport = ({
                                     );
 
                                     return (
-                                      <div key={message.id} className={`flex ${isExpertAuthor ? 'justify-start' : 'justify-end'}`}>
+                                      <div
+                                        key={message.id}
+                                        id={`compliance-message-${message.id}`}
+                                        className={`flex ${isExpertAuthor ? 'justify-start' : 'justify-end'}`}
+                                      >
                                         <div
                                           className={`max-w-[85%] rounded-lg border p-3 ${
                                             isExpertAuthor ? 'border-blue-200 bg-blue-50/60' : 'border-gray-200 bg-gray-50'
@@ -2275,7 +2332,11 @@ export const SynthesisReport = ({
                     const visibleMessages = shouldCollapse ? threadMessages.slice(0, 2) : threadMessages;
 
                     return (
-                      <article key={committee.id} className="rounded-xl border border-gray-200 p-4 bg-gray-50">
+                      <article
+                        key={committee.id}
+                        id={`compliance-committee-block-${committee.id}`}
+                        className="rounded-xl border border-gray-200 p-4 bg-gray-50"
+                      >
                         <div className="flex flex-wrap items-start justify-between gap-2">
                           <div>
                             <h3 className="text-base font-semibold text-gray-800">{committee.name}</h3>
