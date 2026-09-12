@@ -594,14 +594,16 @@ const formatDeploymentCountries = (question, answer, language) => {
   return parts.join(', ');
 };
 
-const getFormattedDeploymentCountries = (questions, answers, id, missingInfoLabel, language) => {
+// Contrairement aux autres chips du hero, celle-ci ne doit jamais afficher le libellé
+// « information manquante » : tant qu'aucun pays n'a été renseigné, la chip reste absente
+// plutôt que d'occuper de la place avec un texte d'espace réservé.
+const getFormattedDeploymentCountries = (questions, answers, id, language) => {
   const question = findQuestionById(questions, id);
   if (!question) {
     return '';
   }
 
-  const formatted = formatDeploymentCountries(question, answers?.[id], language).trim();
-  return formatted.length > 0 ? formatted : (question.required ? missingInfoLabel : '');
+  return formatDeploymentCountries(question, answers?.[id], language).trim();
 };
 
 const getRawAnswer = (answers, id) => {
@@ -2857,7 +2859,7 @@ export const ProjectShowcase = ({
   const slogan = getFormattedAnswer(questions, previewAnswers, 'projectSlogan', missingInfoLabel, language);
   const targetAudience = getFormattedAnswer(questions, previewAnswers, 'targetAudience', missingInfoLabel, language);
   const projectEnvironment = getFormattedAnswer(questions, previewAnswers, 'showcaseTheme', missingInfoLabel, language);
-  const deploymentCountries = getFormattedDeploymentCountries(questions, previewAnswers, 'q27', missingInfoLabel, language);
+  const deploymentCountries = getFormattedDeploymentCountries(questions, previewAnswers, 'q27', language);
   const problemPainPoints = parseProblemPainPoints(getRawAnswer(previewAnswers, 'problemPainPoints'));
 
   const solutionDescription = getFormattedAnswer(questions, previewAnswers, 'solutionDescription', missingInfoLabel, language);
