@@ -5,6 +5,7 @@ import { odataQuote, spGet, spGetAll, spGetWithEtag, spPost, spPut } from './spR
 
 const SETTINGS_KEYS = [
   'adminEmails',
+  'technicalContactEmails',
   'onboardingTourConfig',
   'validationCommitteeConfig',
   'inspirationFormFields',

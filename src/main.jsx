@@ -8,13 +8,33 @@ import mockCurrentUser from './data/graph-current-user.json';
 import { LanguageProvider, LanguageContext } from './i18n/LanguageContext.jsx';
 import { loadPersistedState } from './utils/storage.js';
 import { initialAdminEmails } from './data/adminEmails.js';
+import { initialTechnicalContactEmails } from './data/technicalContactEmails.js';
 import { queueNotification } from './utils/notificationQueue.js';
 import { buildErrorReportEmail } from './utils/notificationTemplates.js';
 
-const resolveMaintenanceRecipients = () => {
+const resolveAdminEmails = () => {
   const persisted = loadPersistedState();
   const persistedEmails = persisted && Array.isArray(persisted.adminEmails) ? persisted.adminEmails : [];
   return persistedEmails.length > 0 ? persistedEmails : initialAdminEmails;
+};
+
+// Les contacts techniques reçoivent les rapports de plantage automatiques à la place des
+// administrateurs (voir sendAutomaticReport ci-dessous) : pas de repli sur la liste des
+// administrateurs, tant qu'aucun contact technique n'est configuré personne n'est notifié.
+const resolveTechnicalContactEmails = () => {
+  const persisted = loadPersistedState();
+  return persisted && Array.isArray(persisted.technicalContactEmails)
+    ? persisted.technicalContactEmails
+    : initialTechnicalContactEmails;
+};
+
+// Les contacts techniques ont les mêmes droits que les administrateurs (voir CLAUDE.md) :
+// cette liste combinée sert à tout contrôle d'accès qui portait jusque-là uniquement sur
+// adminEmails, comme l'autorisation de « Voir en tant que » ci-dessous.
+const resolveAdminRightsEmails = () => {
+  const admins = resolveAdminEmails().map(normalizeEmail).filter(Boolean);
+  const technicalContacts = resolveTechnicalContactEmails().map(normalizeEmail).filter(Boolean);
+  return Array.from(new Set([...admins, ...technicalContacts]));
 };
 
 class AppErrorBoundary extends React.Component {
@@ -59,7 +79,7 @@ class AppErrorBoundary extends React.Component {
   sendAutomaticReport = () => {
     try {
       const { subject, body, actionType } = this.buildReportPayload();
-      queueNotification({ subject, body, actionType, to: resolveMaintenanceRecipients() }).catch((error) => {
+      queueNotification({ subject, body, actionType, to: resolveTechnicalContactEmails() }).catch((error) => {
         if (typeof console !== 'undefined' && typeof console.warn === 'function') {
           console.warn('Envoi automatique du rapport d\'erreur impossible :', error);
         }
@@ -106,7 +126,7 @@ class AppErrorBoundary extends React.Component {
         subject,
         body,
         actionType,
-        to: resolveMaintenanceRecipients()
+        to: resolveTechnicalContactEmails()
       });
 
       this.setState({ sendStatus: result.queued ? 'sent' : 'sent-mock' });
@@ -228,7 +248,7 @@ const applyImpersonationRequest = () => {
 
   const realUser = getRealUser();
   const realEmail = normalizeEmail(realUser?.mail || realUser?.userPrincipalName || '');
-  const admins = resolveMaintenanceRecipients().map(normalizeEmail).filter(Boolean);
+  const admins = resolveAdminRightsEmails();
 
   if (!realEmail || !admins.includes(realEmail)) {
     console.warn('Simulation d’identité ignorée : la session en cours n’est pas administratrice.');

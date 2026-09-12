@@ -313,7 +313,7 @@ export const buildErrorReportEmail = ({
     preformattedBlock('Error stack', stack) +
     preformattedBlock('Component stack', componentStack) +
     '<hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0 12px">' +
-    '<p style="font-size:12px;color:#666;margin:0">Why are you receiving this message? Because you are listed as a Project Navigator administrator.</p>' +
+    '<p style="font-size:12px;color:#666;margin:0">Why are you receiving this message? Because you are listed as a Project Navigator technical contact.</p>' +
     '<p style="font-size:12px;color:#666;margin:6px 0 0">Automated message sent by Project Navigator. Please do not reply to this email.</p>' +
     '</div>';
 

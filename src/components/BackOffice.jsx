@@ -677,6 +677,8 @@ export const BackOffice = ({
   setValidationCommitteeConfig,
   adminEmails,
   setAdminEmails,
+  technicalContactEmails,
+  setTechnicalContactEmails,
   currentUserEmail = '',
   isCurrentUserAdmin = false,
   activityScope,
@@ -801,6 +803,10 @@ export const BackOffice = ({
   const normalizedAdminEmails = useMemo(
     () => (Array.isArray(adminEmails) ? adminEmails.filter(Boolean) : []),
     [adminEmails]
+  );
+  const normalizedTechnicalContactEmails = useMemo(
+    () => (Array.isArray(technicalContactEmails) ? technicalContactEmails.filter(Boolean) : []),
+    [technicalContactEmails]
   );
   const [impersonationSelection, setImpersonationSelection] = useState([]);
   const isSimulatedSession = isImpersonating();
@@ -7284,6 +7290,33 @@ export const BackOffice = ({
                       }}
                       context="Administrateurs du back-office"
                       placeholder={t('backOffice.main.adminEmailsPlaceholder')}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm space-y-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800">{t('backOffice.main.technicalContactsHeading')}</h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {t('backOffice.main.technicalContactsSubtitle')}
+                  </p>
+                </div>
+                <div>
+                  <label htmlFor="technical-contact-emails" className="text-sm font-medium text-gray-700">
+                    {t('backOffice.main.technicalContactEmailsLabel')}
+                  </label>
+                  <div className="mt-2">
+                    <PeoplePicker
+                      id="technical-contact-emails"
+                      value={normalizedTechnicalContactEmails}
+                      onChange={(nextEmails) => {
+                        if (typeof setTechnicalContactEmails === 'function') {
+                          setTechnicalContactEmails(nextEmails);
+                        }
+                      }}
+                      context="Contacts techniques du back-office"
+                      placeholder={t('backOffice.main.technicalContactEmailsPlaceholder')}
                     />
                   </div>
                 </div>
