@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { gotoHome, createProjectAndOpenShowcase, collectConsoleErrors } from './fixtures.js';
+import {
+  gotoHome,
+  createProjectAndOpenShowcase,
+  collectConsoleErrors,
+  publishShowcaseImpactFigure
+} from './fixtures.js';
 
 test.describe('Effet WebGL / animations de la vitrine (ShowcaseSignatureFx)', () => {
   test('le canvas WebGL s\'initialise sans erreur et le repli reste masqué quand WebGL est disponible', async ({ page }) => {
@@ -97,6 +102,9 @@ test.describe('ShowcaseSignatureFx avec prefers-reduced-motion', () => {
     const errors = collectConsoleErrors(page);
     await gotoHome(page);
     await createProjectAndOpenShowcase(page);
+    // Le chiffre d'impact est le seul compteur de la vitrine, et il est vide par défaut :
+    // sans cette saisie, l'assertion plus bas n'aurait plus rien à observer.
+    await publishShowcaseImpactFigure(page, { figure: '40', unit: '%' });
     await page.waitForTimeout(300);
 
     await expect(page.locator('.sg-bg-fallback')).toHaveCSS('display', 'block');

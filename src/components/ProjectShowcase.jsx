@@ -11,6 +11,7 @@ import { ShowcaseEditorBar } from './showcase/ShowcaseEditorBar.jsx';
 import { ShowcaseOutline } from './showcase/ShowcaseOutline.jsx';
 import { InlineRichText } from './showcase/InlineRichText.jsx';
 import {
+  SHOWCASE_SECTION_IDS,
   buildPreviewAnswers,
   canRedoHistory,
   canUndoHistory,
@@ -18,6 +19,7 @@ import {
   createHistory,
   loadShowcaseDraft,
   moveArrayItem,
+  normalizeSectionOrder,
   pushHistory,
   redoHistory,
   saveShowcaseDraft,
@@ -47,15 +49,7 @@ import { RichTextEditor } from './RichTextEditor.jsx';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { getLocaleTag } from '../i18n/languages.js';
 
-const SHOWCASE_SECTION_OPTIONS = [
-  { id: 'notice' },
-  { id: 'hero' },
-  { id: 'problem' },
-  { id: 'solution' },
-  { id: 'innovation' },
-  { id: 'team' },
-  { id: 'timeline' }
-];
+const SHOWCASE_SECTION_OPTIONS = SHOWCASE_SECTION_IDS.map(id => ({ id }));
 
 const LIGHT_VISIBILITY_OPTIONS = [
   ...SHOWCASE_SECTION_OPTIONS,
@@ -176,17 +170,20 @@ const getColorFamilyLabel = (t, family, index) =>
 // Seules les sections intégrées ont un accent configurable ici ; les blocs personnalisés
 // gardent leur propre champ `accentFamily`. Une valeur « thème » n'est pas stockée : c'est
 // le défaut, et l'omettre garde la vitrine alignée si la palette de la marque change.
-const ACCENT_CONFIGURABLE_SECTIONS = ['problem', 'solution', 'innovation', 'innovation-metrics', 'team'];
+const ACCENT_CONFIGURABLE_SECTIONS = ['problem', 'solution', 'benefits', 'objectives', 'indicators', 'team'];
 
-// « innovation-metrics » n'est pas une section sélectionnable à part (elle partage le bloc
-// « innovation » dans le plan et l'inspecteur) mais garde son propre accent : le réglage
-// couleur de la section « innovation » doit donc en exposer deux.
-const ACCENT_SECTION_GROUPS = {
-  problem: ['problem'],
-  solution: ['solution'],
-  innovation: ['innovation', 'innovation-metrics'],
-  team: ['team']
+// Chaque section scindée hérite de la couleur du bloc dont elle est issue : sans ce repli,
+// une vitrine déjà colorée repasserait à l'accent du thème sur la moitié nouvellement créée.
+const ACCENT_LEGACY_SOURCES = {
+  benefits: ['solution'],
+  objectives: ['innovation'],
+  indicators: ['innovation-metrics', 'innovation']
 };
+
+const ACCENT_SECTION_GROUPS = ACCENT_CONFIGURABLE_SECTIONS.reduce((acc, sectionId) => {
+  acc[sectionId] = [sectionId];
+  return acc;
+}, {});
 
 const normalizeSectionAccents = (value) => {
   if (!value || typeof value !== 'object') {
@@ -195,7 +192,9 @@ const normalizeSectionAccents = (value) => {
 
   const normalized = {};
   ACCENT_CONFIGURABLE_SECTIONS.forEach((sectionId) => {
-    const familyId = normalizeAccentFamilyId(value[sectionId]);
+    const candidates = [sectionId, ...(ACCENT_LEGACY_SOURCES[sectionId] || [])];
+    const storedKey = candidates.find((key) => value[key] !== undefined && value[key] !== null);
+    const familyId = normalizeAccentFamilyId(storedKey ? value[storedKey] : undefined);
     // « thème » est le défaut : le stocker rendrait la section sourde à un changement de palette.
     if (familyId && familyId !== THEME_ACCENT_FAMILY_ID) {
       normalized[sectionId] = familyId;
@@ -419,36 +418,6 @@ const sanitizeCustomSections = (rawSections) => {
       };
     })
     .filter(Boolean);
-};
-
-const normalizeSectionOrder = (rawOrder, customSections) => {
-  const baseOrder = SHOWCASE_SECTION_OPTIONS.map(section => section.id);
-  const customIds = Array.isArray(customSections) ? customSections.map(section => section.id) : [];
-  const fallbackOrder = [...baseOrder, ...customIds];
-
-  if (!Array.isArray(rawOrder)) {
-    return fallbackOrder;
-  }
-
-  const knownIds = new Set(fallbackOrder);
-  const seen = new Set();
-  const normalized = [];
-
-  rawOrder.forEach(entry => {
-    if (typeof entry !== 'string' || !knownIds.has(entry) || seen.has(entry)) {
-      return;
-    }
-    normalized.push(entry);
-    seen.add(entry);
-  });
-
-  fallbackOrder.forEach(entry => {
-    if (!seen.has(entry)) {
-      normalized.push(entry);
-    }
-  });
-
-  return normalized;
 };
 
 const areCustomSectionsEqual = (previous, next) => {
@@ -1318,6 +1287,26 @@ const SHOWCASE_FIELD_CONFIG = [
   { id: 'solutionDescription', fallbackLabelKey: 'solutionDescription', fallbackType: 'long_text' },
   { id: 'solutionBenefits', fallbackLabelKey: 'solutionBenefits', fallbackType: 'long_text' },
   { id: 'innovationProcess', fallbackLabelKey: 'innovationProcess', fallbackType: 'long_text' },
+  // Chiffre d'impact : propre à la vitrine, sans question au questionnaire. Vide par défaut —
+  // c'est un résultat attendu, que seul le chef de projet peut décider d'avancer.
+  {
+    id: 'showcaseImpactFigure',
+    fallbackLabelKey: 'showcaseImpactFigure',
+    fallbackType: 'plain_text',
+    fallbackPlaceholderKey: 'showcaseImpactFigure'
+  },
+  {
+    id: 'showcaseImpactFigureUnit',
+    fallbackLabelKey: 'showcaseImpactFigureUnit',
+    fallbackType: 'plain_text',
+    fallbackPlaceholderKey: 'showcaseImpactFigureUnit'
+  },
+  {
+    id: 'showcaseImpactFigureCaption',
+    fallbackLabelKey: 'showcaseImpactFigureCaption',
+    fallbackType: 'plain_text',
+    fallbackPlaceholderKey: 'showcaseImpactFigureCaption'
+  },
   { id: 'visionStatement', fallbackLabelKey: 'visionStatement', fallbackType: 'long_text' },
   { id: 'BUDGET', fallbackLabelKey: 'budget', fallbackType: 'number' },
   { id: 'teamLead', fallbackLabelKey: 'teamLead', fallbackType: 'text' },
@@ -1335,10 +1324,13 @@ const FIELD_SECTION_MAP = {
   targetAudience: 'hero',
   problemPainPoints: 'problem',
   solutionDescription: 'solution',
-  solutionBenefits: 'solution',
-  innovationProcess: 'innovation',
-  visionStatement: 'innovation',
-  BUDGET: 'innovation',
+  solutionBenefits: 'benefits',
+  innovationProcess: 'objectives',
+  showcaseImpactFigure: 'objectives',
+  showcaseImpactFigureUnit: 'objectives',
+  showcaseImpactFigureCaption: 'objectives',
+  visionStatement: 'indicators',
+  BUDGET: 'timeline',
   teamLead: 'team',
   teamLeadTeam: 'team',
   teamCoreMembers: 'team',
@@ -2778,7 +2770,6 @@ export const ProjectShowcase = ({
   const solutionBenefits = splitRichTextIntoBlocks(getRawAnswer(previewAnswers, 'solutionBenefits'));
 
   const innovationProcess = getFormattedAnswer(questions, previewAnswers, 'innovationProcess', missingInfoLabel, language);
-  const visionStatement = getFormattedAnswer(questions, previewAnswers, 'visionStatement', missingInfoLabel, language);
   const visionStatementEntries = useMemo(
     () => splitRichTextIntoBlocks(getRawAnswer(previewAnswers, 'visionStatement')),
     [previewAnswers]
@@ -2807,27 +2798,61 @@ export const ProjectShowcase = ({
     return Array.isArray(analysisDetails) ? analysisDetails : [];
   }, [analysis, timelineDetails]);
 
-  const formattedBudgetEstimate = useMemo(() => {
+  const isBudgetMissing = isMissingInfoLabel(budgetEstimate);
+
+  const budgetEstimateNumeric = useMemo(() => {
+    if (!hasText(budgetEstimate) || isBudgetMissing) {
+      return null;
+    }
+    const parsed = Number.parseFloat(budgetEstimate.trim().replace(',', '.'));
+    return Number.isFinite(parsed) ? parsed : null;
+  }, [budgetEstimate, isBudgetMissing]);
+
+  // Le montant est un coût, pas un résultat : il n'emprunte plus le chiffre héroïque de la
+  // section impact — ni sa taille, ni son dégradé, ni son compteur ascendant, qui racontaient
+  // tous une valeur gagnée. Il ne reste ici que la valeur formatée et son unité, affichées
+  // dans le panneau sobre de la feuille de route.
+  const budgetValueText = useMemo(() => {
     if (!hasText(budgetEstimate)) {
       return '';
     }
-
-    const trimmed = budgetEstimate.trim();
-    if (trimmed.includes(budgetUnitLabel)) {
-      return trimmed;
+    if (budgetEstimateNumeric !== null) {
+      return formatNumberFR(budgetEstimateNumeric, {}, language);
     }
+    return budgetEstimate.trim();
+  }, [budgetEstimate, budgetEstimateNumeric, language]);
 
-    return `${trimmed} ${budgetUnitLabel}`;
-  }, [budgetEstimate, budgetUnitLabel]);
-
-  // n'anime que si la réponse brute est un nombre pur (cas normal : question de type "number")
-  const budgetEstimateNumeric = useMemo(() => {
-    if (!hasText(budgetEstimate)) {
-      return null;
+  const budgetDisplayUnit = useMemo(() => {
+    if (isBudgetMissing || !hasText(budgetValueText)) {
+      return '';
     }
-    const parsed = Number.parseFloat(budgetEstimate.trim());
-    return Number.isFinite(parsed) ? parsed : null;
-  }, [budgetEstimate]);
+    return budgetValueText.includes(budgetUnitLabel) ? '' : budgetUnitLabel;
+  }, [budgetUnitLabel, budgetValueText, isBudgetMissing]);
+
+  const impactFigureValue = useMemo(() => {
+    const raw = getRawAnswer(previewAnswers, 'showcaseImpactFigure');
+    return typeof raw === 'string' ? raw.trim() : '';
+  }, [previewAnswers]);
+
+  const impactFigureUnit = useMemo(() => {
+    const raw = getRawAnswer(previewAnswers, 'showcaseImpactFigureUnit');
+    return typeof raw === 'string' ? raw.trim() : '';
+  }, [previewAnswers]);
+
+  const impactFigureCaption = useMemo(() => {
+    const raw = getRawAnswer(previewAnswers, 'showcaseImpactFigureCaption');
+    return typeof raw === 'string' ? raw.trim() : '';
+  }, [previewAnswers]);
+
+  // Le compteur ascendant n'écrit que des entiers : le déclencher sur « 1,5 » ou « ×3 »
+  // afficherait une autre valeur que celle saisie. Tout ce qui n'est pas un entier pur
+  // s'affiche donc tel quel.
+  const impactFigureCount = useMemo(() => {
+    const parsed = Number.parseInt(impactFigureValue, 10);
+    return Number.isFinite(parsed) && String(parsed) === impactFigureValue ? parsed : null;
+  }, [impactFigureValue]);
+
+  const hasImpactFigure = hasText(impactFigureValue);
 
   const teamLead = getFormattedAnswer(questions, previewAnswers, 'teamLead', missingInfoLabel, language);
   const teamLeadTeam = getFormattedAnswer(questions, previewAnswers, 'teamLeadTeam', missingInfoLabel, language);
@@ -3026,8 +3051,15 @@ export const ProjectShowcase = ({
   }, [hasTimelineProfiles, timelineSummariesWithAlerts]);
   const hasTimelineSummaries = timelineSummariesToDisplay.length > 0;
   const hasVigilanceAlerts = unmatchedVigilanceAlerts.length > 0;
+  // Le coût estimé vit désormais dans cette bande : elle doit s'afficher pour lui seul, même
+  // quand aucun jalon n'est encore posé, sinon le montant disparaîtrait de la vitrine.
   const hasTimelineSection = Boolean(
-    runway || hasTimelineSummaries || hasManualMilestones || hasTimelineProfiles || hasVigilanceAlerts
+    runway
+      || hasTimelineSummaries
+      || hasManualMilestones
+      || hasTimelineProfiles
+      || hasVigilanceAlerts
+      || (hasText(budgetEstimate) && canShowBudget)
   );
 
   const renderSignatureSection = useCallback((sectionId, index) => {
@@ -3147,7 +3179,7 @@ export const ProjectShowcase = ({
         );
 
       case 'solution':
-        if (!hasText(solutionDescription) && solutionBenefits.length === 0) {
+        if (!hasText(solutionDescription)) {
           return null;
         }
         return (
@@ -3155,158 +3187,161 @@ export const ProjectShowcase = ({
             <div className="sg-wrap">
               <p className="sg-eyebrow sg-rv" style={{ '--sg-c': resolveSectionAccent('solution').c }}>{t('projectShowcase.solutionEyebrow')}</p>
               <h2 className="sg-headline sg-rv" style={{ '--sg-d': '80ms' }}>{t('projectShowcase.solutionHeadline')}</h2>
-              {hasText(solutionDescription) && (
-                <div className="sg-rv" style={{ '--sg-d': '160ms' }}>
-                  <p className="sg-eyebrow" style={{ '--sg-c': resolveSectionAccent('solution').c }}>{t('projectShowcase.solutionInClear')}</p>
-                  {solutionDescriptionParts.items.length > 0 ? (
-                    // l'accroche à gauche, la liste qu'elle annonce à droite : le texte contient
-                    // déjà ces deux registres, on les sépare au lieu de les empiler dans une case
-                    <div className="sg-solution-lead sg-solution-lead--split" style={{ '--sg-c': resolveSectionAccent('solution').g2 }}>
-                      <p className={`sg-solution-lead__hook ${missingInfoClass(solutionDescription)}`}>
-                        {renderTextWithLinks(solutionDescriptionParts.hook)}
-                      </p>
-                      <div>
-                        {hasText(solutionDescriptionParts.listLabel) && (
-                          <p className="sg-solution-lead__list-label">{renderTextWithLinks(solutionDescriptionParts.listLabel)}</p>
-                        )}
-                        <ul className="sg-rows" style={{ '--sg-c': resolveSectionAccent('solution').g2 }}>
-                          {solutionDescriptionParts.items.map((item, itemIndex) => (
-                            <li key={`${item}-${itemIndex}`}>
-                              <span className="sg-rows__dot" />
-                              <span>{renderTextWithLinks(item)}</span>
-                            </li>
-                          ))}
-                        </ul>
-                        {hasText(solutionDescriptionParts.trailing) && (
-                          <p className="sg-solution-lead__trailing">{renderTextWithLinks(solutionDescriptionParts.trailing)}</p>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    // aucune liste detectee dans le texte : simple accroche ouverte, sans case
-                    <div className="sg-solution-lead" style={{ '--sg-c': resolveSectionAccent('solution').g2 }}>
-                      <p className={`sg-solution-lead__hook ${missingInfoClass(solutionDescription)}`}>
-                        {renderTextWithLinks(solutionDescriptionParts.hook)}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-              {solutionBenefits.length > 0 && (
-                <div className="sg-rv" style={{ '--sg-d': '240ms', marginTop: 'clamp(3.5rem, 7vw, 5rem)' }}>
-                  <div className="sg-stack-header">
-                    <p className="sg-eyebrow" style={{ '--sg-c': resolveSectionAccent('solution').c }}>
-                      {t('projectShowcase.solutionBenefitsEyebrow')}
+              <div className="sg-rv" style={{ '--sg-d': '160ms' }}>
+                <p className="sg-eyebrow" style={{ '--sg-c': resolveSectionAccent('solution').c }}>{t('projectShowcase.solutionInClear')}</p>
+                {solutionDescriptionParts.items.length > 0 ? (
+                  // l'accroche à gauche, la liste qu'elle annonce à droite : le texte contient
+                  // déjà ces deux registres, on les sépare au lieu de les empiler dans une case
+                  <div className="sg-solution-lead sg-solution-lead--split" style={{ '--sg-c': resolveSectionAccent('solution').g2 }}>
+                    <p className={`sg-solution-lead__hook ${missingInfoClass(solutionDescription)}`}>
+                      {renderTextWithLinks(solutionDescriptionParts.hook)}
                     </p>
-                    <h3 className="sg-headline sg-headline--sm">
-                      {t('projectShowcase.solutionBenefitsHeadline')}
-                    </h3>
+                    <div>
+                      {hasText(solutionDescriptionParts.listLabel) && (
+                        <p className="sg-solution-lead__list-label">{renderTextWithLinks(solutionDescriptionParts.listLabel)}</p>
+                      )}
+                      <ul className="sg-rows" style={{ '--sg-c': resolveSectionAccent('solution').g2 }}>
+                        {solutionDescriptionParts.items.map((item, itemIndex) => (
+                          <li key={`${item}-${itemIndex}`}>
+                            <span className="sg-rows__dot" />
+                            <span>{renderTextWithLinks(item)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      {hasText(solutionDescriptionParts.trailing) && (
+                        <p className="sg-solution-lead__trailing">{renderTextWithLinks(solutionDescriptionParts.trailing)}</p>
+                      )}
+                    </div>
                   </div>
-                  <div className="sg-stack" style={{ marginTop: '1rem' }}>
-                    {solutionBenefits.map((benefit, benefitIndex) => (
-                      <div
-                        key={`${benefit}-${benefitIndex}`}
-                        className="sg-stack__slot sg-rv sg-rv--x"
-                        style={{ '--sg-d': `${(benefitIndex % 3) * 90}ms` }}
-                      >
-                        <article
-                          className="sg-card"
-                          style={{
-                            '--sg-c1': resolveSectionAccent('solution').g1,
-                            '--sg-c2': resolveSectionAccent('solution').g2
-                          }}
-                        >
-                          <span className="sg-card__orb" />
-                          <div className="sg-card__top">
-                            <span className="sg-card__idx">{String(benefitIndex + 1).padStart(2, '0')}</span>
-                          </div>
-                          <p className="sg-card__text">{renderTextWithLinks(benefit)}</p>
-                        </article>
+                ) : (
+                  // aucune liste detectee dans le texte : simple accroche ouverte, sans case
+                  <div className="sg-solution-lead" style={{ '--sg-c': resolveSectionAccent('solution').g2 }}>
+                    <p className={`sg-solution-lead__hook ${missingInfoClass(solutionDescription)}`}>
+                      {renderTextWithLinks(solutionDescriptionParts.hook)}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+        );
+
+      case 'benefits':
+        if (solutionBenefits.length === 0) {
+          return null;
+        }
+        return (
+          <section key={key} className="sg-band sg-band--cloud sg-band--pad" data-showcase-section="benefits">
+            <div className="sg-wrap">
+              <p className="sg-eyebrow sg-rv" style={{ '--sg-c': resolveSectionAccent('benefits').c }}>
+                {t('projectShowcase.solutionBenefitsEyebrow')}
+              </p>
+              <h2 className="sg-headline sg-rv" style={{ '--sg-d': '80ms' }}>
+                {t('projectShowcase.solutionBenefitsHeadline')}
+              </h2>
+              <div className="sg-stack">
+                {solutionBenefits.map((benefit, benefitIndex) => (
+                  <div
+                    key={`${benefit}-${benefitIndex}`}
+                    className="sg-stack__slot sg-rv sg-rv--x"
+                    style={{ '--sg-d': `${(benefitIndex % 3) * 90}ms` }}
+                  >
+                    <article
+                      className="sg-card"
+                      style={{
+                        '--sg-c1': resolveSectionAccent('benefits').g1,
+                        '--sg-c2': resolveSectionAccent('benefits').g2
+                      }}
+                    >
+                      <span className="sg-card__orb" />
+                      <div className="sg-card__top">
+                        <span className="sg-card__idx">{String(benefitIndex + 1).padStart(2, '0')}</span>
                       </div>
-                    ))}
+                      <p className="sg-card__text">{renderTextWithLinks(benefit)}</p>
+                    </article>
                   </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        );
+
+      case 'objectives':
+        if (!hasText(innovationProcess) && !hasImpactFigure) {
+          return null;
+        }
+        return (
+          <section key={key} className="sg-band sg-band--dark sg-band--pad" data-showcase-section="objectives">
+            <div className={`sg-wrap sg-impact${innovationProcessEntries.length === 0 ? ' sg-impact--solo' : ''}`}>
+              <div>
+                <p className="sg-eyebrow sg-rv" style={{ '--sg-c': resolveSectionAccent('objectives').onDark }}>
+                  {getSectionOptionLabel(t, 'objectives')}
+                </p>
+                <h2 className="sg-headline sg-rv" style={{ '--sg-d': '80ms' }}>{t('projectShowcase.objectivesHeadline')}</h2>
+                {hasImpactFigure && (
+                  <div data-tour-id="showcase-impact-figure">
+                    <p className="sg-impact__value sg-rv" style={{ '--sg-d': '160ms' }}>
+                      {impactFigureCount !== null ? (
+                        <span data-sg-count={impactFigureCount}>0</span>
+                      ) : (
+                        impactFigureValue
+                      )}
+                      {hasText(impactFigureUnit) && <span className="sg-impact__unit">{impactFigureUnit}</span>}
+                    </p>
+                    {hasText(impactFigureCaption) && (
+                      <p className="sg-impact__caption sg-rv" style={{ '--sg-d': '240ms' }}>
+                        {renderTextWithLinks(impactFigureCaption)}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+              {innovationProcessEntries.length > 0 && (
+                <div>
+                  <p className="sg-eyebrow sg-rv" style={{ '--sg-c': resolveSectionAccent('objectives').onDark }}>{t('projectShowcase.objectivesListEyebrow')}</p>
+                  <ul className="sg-rows sg-rows--dark" style={{ '--sg-c': resolveSectionAccent('objectives').onDark, marginTop: '1.4rem' }}>
+                    {innovationProcessEntries.map((entry, entryIndex) => (
+                      <li key={`${entry}-${entryIndex}`} className="sg-rv" style={{ '--sg-d': `${entryIndex * 70}ms` }}>
+                        <span className="sg-rows__idx">{String(entryIndex + 1).padStart(2, '0')}</span>
+                        <span>{renderTextWithLinks(entry)}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
             </div>
           </section>
         );
 
-      case 'innovation':
-        if (!hasText(innovationProcess) && !hasText(visionStatement) && !hasText(budgetEstimate)) {
+      case 'indicators':
+        if (visionStatementEntries.length === 0) {
           return null;
         }
         return (
-          <React.Fragment key={key}>
-            <section className="sg-band sg-band--dark sg-band--pad" data-showcase-section="innovation">
-              <div className="sg-wrap sg-impact">
-                <div>
-                  <p className="sg-eyebrow sg-rv">{t('projectShowcase.impactEyebrow')}</p>
-                  <h2 className="sg-headline sg-rv" style={{ '--sg-d': '80ms' }}>{t('projectShowcase.impactHeadline')}</h2>
-                  {hasText(budgetEstimate) && canShowBudget && (
-                    <div
-                      data-tour-id="showcase-budget"
-                      className={isEditorChromeVisible && isSectionHiddenInLight('budget') ? 'sge-muted-block' : undefined}
-                    >
-                      {isEditorChromeVisible && isSectionHiddenInLight('budget') && (
-                        <span className="sge-muted-block__flag">{t('projectShowcase.editor.hiddenInLight')}</span>
-                      )}
-                      <p className={`sg-impact__value sg-rv ${missingInfoClass(budgetEstimate)}`} style={{ '--sg-d': '160ms' }}>
-                        {budgetEstimateNumeric !== null ? (
-                          <>
-                            <span data-sg-count={budgetEstimateNumeric}>0</span>&nbsp;{budgetUnitLabel}
-                          </>
-                        ) : (
-                          formattedBudgetEstimate
-                        )}
-                      </p>
-                      <p className="sg-impact__caption sg-rv" style={{ '--sg-d': '240ms' }}>
-                        {t('projectShowcase.budgetCaption')}
-                      </p>
-                    </div>
-                  )}
-                </div>
-                {hasText(innovationProcess) && (
-                  <div>
-                    <p className="sg-eyebrow sg-rv" style={{ '--sg-c': resolveSectionAccent('innovation').onDark }}>{t('projectShowcase.innovationHowEyebrow')}</p>
-                    <ul className="sg-rows sg-rows--dark" style={{ '--sg-c': resolveSectionAccent('innovation').onDark, marginTop: '1.4rem' }}>
-                      {innovationProcessEntries.map((entry, entryIndex) => (
-                        <li key={`${entry}-${entryIndex}`} className="sg-rv" style={{ '--sg-d': `${entryIndex * 70}ms` }}>
-                          <span className="sg-rows__idx">{String(entryIndex + 1).padStart(2, '0')}</span>
-                          <span>{renderTextWithLinks(entry)}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+          <section key={key} className="sg-band sg-band--cloud sg-band--pad" data-showcase-section="indicators">
+            <div className="sg-wrap">
+              <p className="sg-eyebrow sg-rv" style={{ '--sg-c': resolveSectionAccent('indicators').c }}>{t('projectShowcase.valueIndicatorsEyebrow')}</p>
+              <h2 className="sg-headline sg-rv" style={{ '--sg-d': '80ms' }}>{t('projectShowcase.valueIndicatorsHeadline')}</h2>
+              <div className="sg-grid">
+                {visionStatementEntries.map((entry, entryIndex) => (
+                  <article
+                    key={`${entry}-${entryIndex}`}
+                    className="sg-tile sg-rv"
+                    data-sg-tilt
+                    style={{
+                      '--sg-c': resolveSectionAccent('indicators').g1,
+                      '--sg-g1': resolveSectionAccent('indicators').g1,
+                      '--sg-g2': resolveSectionAccent('indicators').g2,
+                      '--sg-d': `${entryIndex * 80}ms`
+                    }}
+                  >
+                    <span className="sg-tile__glyph">{String(entryIndex + 1).padStart(2, '0')}</span>
+                    <p className="sg-tile__text">{renderTextWithLinks(entry)}</p>
+                  </article>
+                ))}
               </div>
-            </section>
-            {visionStatementEntries.length > 0 && (
-              <section className="sg-band sg-band--cloud sg-band--pad" data-showcase-section="innovation-metrics">
-                <div className="sg-wrap">
-                  <p className="sg-eyebrow sg-rv" style={{ '--sg-c': resolveSectionAccent('innovation-metrics').c }}>{t('projectShowcase.valueIndicatorsEyebrow')}</p>
-                  <h2 className="sg-headline sg-rv" style={{ '--sg-d': '80ms' }}>{t('projectShowcase.valueIndicatorsHeadline')}</h2>
-                  <div className="sg-grid">
-                    {visionStatementEntries.map((entry, entryIndex) => (
-                      <article
-                        key={`${entry}-${entryIndex}`}
-                        className="sg-tile sg-rv"
-                        data-sg-tilt
-                        style={{
-                          '--sg-c': resolveSectionAccent('innovation-metrics').g1,
-                          '--sg-g1': resolveSectionAccent('innovation-metrics').g1,
-                          '--sg-g2': resolveSectionAccent('innovation-metrics').g2,
-                          '--sg-d': `${entryIndex * 80}ms`
-                        }}
-                      >
-                        <span className="sg-tile__glyph">{String(entryIndex + 1).padStart(2, '0')}</span>
-                        <p className="sg-tile__text">{renderTextWithLinks(entry)}</p>
-                      </article>
-                    ))}
-                  </div>
-                </div>
-              </section>
-            )}
-          </React.Fragment>
+            </div>
+          </section>
         );
 
       case 'team':
@@ -3378,12 +3413,37 @@ export const ProjectShowcase = ({
             data-tour-id="showcase-roadmap"
           >
             <div className="sg-wrap">
-              <p className="sg-eyebrow sg-rv">{getSectionOptionLabel(t, 'timeline')}</p>
-              <h2 className="sg-headline sg-rv" style={{ '--sg-d': '80ms' }}>{t('projectShowcase.roadmapHeadline')}</h2>
+              <div className="sg-road-head">
+                <div>
+                  <p className="sg-eyebrow sg-rv">{getSectionOptionLabel(t, 'timeline')}</p>
+                  <h2 className="sg-headline sg-rv" style={{ '--sg-d': '80ms' }}>{t('projectShowcase.roadmapHeadline')}</h2>
+                </div>
+                {/* Le coût rejoint les conditions de réalisation qu'il partage avec le calendrier,
+                    au lieu de trôner dans la section impact où sa seule taille le faisait lire
+                    comme un gain attendu. */}
+                {hasText(budgetEstimate) && canShowBudget && (
+                  <aside
+                    data-tour-id="showcase-budget"
+                    className={`sg-cost sg-rv${isEditorChromeVisible && isSectionHiddenInLight('budget') ? ' sge-muted-block' : ''}`}
+                    style={{ '--sg-d': '160ms' }}
+                  >
+                    {isEditorChromeVisible && isSectionHiddenInLight('budget') && (
+                      <span className="sge-muted-block__flag">{t('projectShowcase.editor.hiddenInLight')}</span>
+                    )}
+                    <p className="sg-cost__label">{t('projectShowcase.budgetLabel')}</p>
+                    <p className={`sg-cost__value${isBudgetMissing ? ' sg-cost__value--missing' : ''}`}>
+                      <span>{budgetValueText}</span>
+                      {hasText(budgetDisplayUnit) && <span className="sg-cost__unit">{budgetDisplayUnit}</span>}
+                    </p>
+                    <p className="sg-cost__caption">{t('projectShowcase.budgetCaption')}</p>
+                  </aside>
+                )}
+              </div>
               {/* Chaque jalon porte sa pastille et son segment de trait (::before/::after) : le
                   repère et le contenu vivent dans la même boîte, donc plus rien à recaler entre
                   deux éléments. Un <span> enfant direct d'un <ol> était par ailleurs un balisage
                   que le modèle de contenu HTML n'autorise pas. */}
+              {(runway || hasTimelineSummaries || hasVigilanceAlerts || hasTimelineEntries) && (
               <ol className="sg-road">
                 {runway && (
                   <li className="sg-road__item sg-road__item--start">
@@ -3451,6 +3511,7 @@ export const ProjectShowcase = ({
                     </li>
                   ))}
               </ol>
+              )}
             </div>
           </section>
         );
@@ -3459,10 +3520,11 @@ export const ProjectShowcase = ({
         return null;
     }
   }, [
+    budgetDisplayUnit,
     budgetEstimate,
-    budgetUnitLabel,
+    budgetValueText,
     canShowBudget,
-    formattedBudgetEstimate,
+    hasImpactFigure,
     hasIncompleteAnswers,
     hasTimelineEntries,
     hasTimelineSection,
@@ -3476,6 +3538,10 @@ export const ProjectShowcase = ({
     hideNotice,
     innovationProcess,
     isEditorChromeVisible,
+    impactFigureCaption,
+    impactFigureCount,
+    impactFigureUnit,
+    impactFigureValue,
     innovationProcessEntries,
     problemPainPoints,
     runway,
@@ -3492,7 +3558,6 @@ export const ProjectShowcase = ({
     timelineEntries,
     timelineSummariesToDisplay,
     unmatchedVigilanceAlerts,
-    visionStatement,
     visionStatementEntries,
     t
   ]);
@@ -4712,15 +4777,22 @@ export const ProjectShowcase = ({
               : isLong
                 ? t('projectShowcase.richTextPlaceholderLong')
                 : t('projectShowcase.richTextPlaceholderShort');
+          // Champs propres à la vitrine (sans question au questionnaire) : leur intitulé seul
+          // ne dit pas quoi y mettre, d'où un exemple posé dans le champ lui-même.
+          const plainPlaceholder = field.fallbackPlaceholderKey
+            ? t(`projectShowcase.fieldPlaceholders.${field.fallbackPlaceholderKey}`)
+            : undefined;
           const helperText = isMilestoneList
             ? t('projectShowcase.milestoneHelperText')
             : isMultiWithOptions
               ? t('projectShowcase.multiWithOptionsHelper')
               : isMultiFreeform
                 ? t('projectShowcase.multiFreeformHelper')
-                : ['problemPainPoints', 'solutionBenefits', 'teamCoreMembers', 'visionStatement'].includes(fieldId)
-                  ? t('projectShowcase.lineByLineHelper')
-                  : null;
+                : fieldId === 'showcaseImpactFigure'
+                  ? t('projectShowcase.impactFigureHelper')
+                  : ['problemPainPoints', 'solutionBenefits', 'teamCoreMembers', 'visionStatement'].includes(fieldId)
+                    ? t('projectShowcase.lineByLineHelper')
+                    : null;
 
           const milestoneDraftEntries = isMilestoneList && Array.isArray(fieldValue) ? fieldValue : [];
 
@@ -5050,6 +5122,7 @@ export const ProjectShowcase = ({
                   id={`showcase-edit-${fieldId}`}
                   type="text"
                   value={textValue}
+                  placeholder={plainPlaceholder}
                   onChange={event => handleFieldChange(fieldId, event.target.value)}
                   className="sge-input"
                 />

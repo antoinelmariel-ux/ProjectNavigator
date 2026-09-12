@@ -564,10 +564,6 @@
    BRIQUE A — cartes en grille, révélées au défilement de la droite vers la gauche
    ========================================================================== */
 
-.sg-stack-header {
-  padding-bottom: 1.4rem;
-}
-
 .sg-stack {
   margin: clamp(3rem, 7vw, 4rem) auto 0;
   max-width: 58rem;
@@ -1027,6 +1023,12 @@
   }
 }
 
+/* Le chiffre d'impact peut être seul dans la bande : la grille à deux colonnes laisserait
+   alors une moitié vide et un titre inutilement étranglé. */
+.sg-impact--solo {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .sg-impact__value {
   font-family: var(--sg-display);
   font-weight: 800;
@@ -1038,6 +1040,15 @@
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+/* L'unité est saisie librement par le chef de projet : elle suit le chiffre sans jamais
+   lui disputer la place, et hérite du même dégradé pour rester une seule et même valeur. */
+.sg-impact__unit {
+  font-size: 0.4em;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin-left: 0.18em;
 }
 
 .sg-impact__value--sm {
@@ -1139,6 +1150,91 @@
 .sg-roster__role {
   font-size: 0.92rem;
   color: var(--sg-ink-soft);
+}
+
+/* Le coût estimé se lit à côté du calendrier, dans la même bande que les jalons : c'est
+   une condition de réalisation, au même titre que la durée. Il emprunte la grammaire des
+   pastilles du hero (verre, filet, libellé au-dessus) plutôt que celle du chiffre héroïque
+   de la section impact — sa taille et son dégradé le faisaient lire comme un gain. */
+.sg-road-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: clamp(1.75rem, 4vw, 3.5rem);
+  align-items: end;
+}
+
+@media (max-width: 880px) {
+  .sg-road-head {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+.sg-cost {
+  justify-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  width: min(100%, 24rem);
+  padding: 1.35rem 1.6rem;
+  border-radius: 20px;
+  border: 1px solid var(--sg-line-dark);
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+@media (min-width: 881px) {
+  .sg-cost {
+    justify-self: end;
+    min-width: 16rem;
+  }
+}
+
+.sg-cost__label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--sg-on-dark-faint);
+}
+
+.sg-cost__value {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  font-family: var(--sg-display);
+  font-weight: 700;
+  font-size: clamp(2rem, 4.2vw, 2.7rem);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--sg-white);
+}
+
+/* Montant non renseigné : le libellé « à compléter » n'a pas à emprunter la typographie
+   d'un chiffre, qui le ferait lire de loin comme un montant. */
+.sg-cost__value--missing {
+  font-family: var(--sg-body);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0;
+  color: var(--sg-warn-accent);
+}
+
+.sg-cost__unit {
+  font-size: 0.46em;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--sg-on-dark);
+}
+
+.sg-cost__caption {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--sg-on-dark-faint);
 }
 
 /* ---------- feuille de route ----------

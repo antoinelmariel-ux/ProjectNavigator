@@ -134,6 +134,34 @@ export async function createProjectAndOpenShowcase(page) {
   await expect(page.getByRole('button', { name: 'Partager' })).toBeVisible();
 }
 
+// Renseigne le chiffre d'impact de la section « Objectifs ». Il n'a pas de question au
+// questionnaire : vide par défaut, il ne se saisit que depuis l'éditeur de vitrine. Le
+// rechargement final remonte la vitrine publiée en haut de page, indispensable aux specs qui
+// vérifient qu'un compteur se résout sans qu'on ait défilé jusqu'à lui.
+export async function publishShowcaseImpactFigure(page, { figure, unit = '', caption = '' } = {}) {
+  await page.getByRole('button', { name: 'Modifier' }).click();
+  const frame = page.locator('[data-sge-section-id="objectives"]');
+  await frame.scrollIntoViewIfNeeded();
+  await frame.hover();
+  await frame.getByRole('button', { name: 'Réglages de la section' }).click();
+
+  await page.getByLabel(/Chiffre d’impact/).fill(figure);
+  if (unit) {
+    await page.getByLabel('Unité du chiffre').fill(unit);
+  }
+  if (caption) {
+    await page.getByLabel('Légende du chiffre').fill(caption);
+  }
+
+  await page.getByRole('button', { name: 'Publier' }).click();
+  await expect
+    .poll(() => page.evaluate(() => window.localStorage.getItem('complianceNavigatorState') || ''))
+    .toContain('showcaseImpactFigure');
+
+  await page.reload();
+  await page.getByRole('button', { name: /Vitrine du projet/ }).first().click();
+}
+
 // Crée un projet, répond génériquement à tout le questionnaire puis le soumet. Utilisé par
 // les specs commentaires experts / validation / repêchage comité.
 export async function createAndSubmitProject(page) {
