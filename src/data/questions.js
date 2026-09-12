@@ -4754,9 +4754,9 @@ export const initialQuestions = [
     },
     "showcase": {
       "sections": [
-        "solution"
+        "benefits"
       ],
-      "usage": "Bloc « Différenciation & bénéfices » dans la section solution."
+      "usage": "Cartes de la section « Bénéfices clés » de la vitrine."
     },
     "extraCheckbox": {
       "enabled": false,
@@ -4876,9 +4876,9 @@ export const initialQuestions = [
     },
     "showcase": {
       "sections": [
-        "impact"
+        "timeline"
       ],
-      "usage": "Carte « Budget estimé » dans la section impact."
+      "usage": "Panneau « Coût estimé du projet » dans la feuille de route."
     },
     "extraCheckbox": {
       "enabled": false,
@@ -4970,9 +4970,9 @@ export const initialQuestions = [
     },
     "showcase": {
       "sections": [
-        "innovation"
+        "objectives"
       ],
-      "usage": "Encart explicatif sur le fonctionnement de l’innovation."
+      "usage": "Liste des objectifs dans la section « Objectifs » de la vitrine."
     },
     "placeholder": "",
     "conditionGroups": [],
@@ -5089,9 +5089,9 @@ export const initialQuestions = [
     },
     "showcase": {
       "sections": [
-        "impact"
+        "indicators"
       ],
-      "usage": "Citation de conclusion dans la section impact."
+      "usage": "Tuiles de la section « Indicateurs » de la vitrine."
     },
     "extraCheckbox": {
       "enabled": false,

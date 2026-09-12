@@ -42,6 +42,65 @@ export const buildPreviewAnswers = (answers, overlay) => {
   return merged;
 };
 
+// Ordre par défaut des sections intégrées de la vitrine, et table de reprise des blocs qui
+// ont été scindés depuis. Une vitrine déjà publiée garde l'ancien identifiant dans son ordre
+// enregistré : sans cette reprise, les moitiés nouvellement créées seraient renvoyées en fin
+// de vitrine au lieu de rester à leur place dans le récit.
+export const SHOWCASE_SECTION_IDS = [
+  'notice',
+  'hero',
+  'problem',
+  'solution',
+  'benefits',
+  'objectives',
+  'indicators',
+  'team',
+  'timeline'
+];
+
+export const LEGACY_SHOWCASE_SECTION_REPLACEMENTS = {
+  solution: ['solution', 'benefits'],
+  innovation: ['objectives', 'indicators'],
+  'innovation-metrics': ['indicators']
+};
+
+export const normalizeSectionOrder = (rawOrder, customSections) => {
+  const customIds = Array.isArray(customSections)
+    ? customSections.map(section => section?.id).filter(id => typeof id === 'string')
+    : [];
+  const fallbackOrder = [...SHOWCASE_SECTION_IDS, ...customIds];
+
+  if (!Array.isArray(rawOrder)) {
+    return fallbackOrder;
+  }
+
+  const knownIds = new Set(fallbackOrder);
+  const seen = new Set();
+  const normalized = [];
+
+  rawOrder.forEach(entry => {
+    if (typeof entry !== 'string') {
+      return;
+    }
+    const expanded = LEGACY_SHOWCASE_SECTION_REPLACEMENTS[entry] || [entry];
+    expanded.forEach(sectionId => {
+      if (!knownIds.has(sectionId) || seen.has(sectionId)) {
+        return;
+      }
+      normalized.push(sectionId);
+      seen.add(sectionId);
+    });
+  });
+
+  fallbackOrder.forEach(entry => {
+    if (!seen.has(entry)) {
+      normalized.push(entry);
+    }
+  });
+
+  return normalized;
+};
+
 /**
  * Déplace un élément d'un tableau. `toIndex` est la position d'insertion *avant* retrait
  * (celle affichée à l'utilisateur quand il relâche entre deux sections), ce qui impose de

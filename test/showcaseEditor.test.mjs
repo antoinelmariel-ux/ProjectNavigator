@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  SHOWCASE_SECTION_IDS,
   buildPreviewAnswers,
   canRedoHistory,
   canUndoHistory,
@@ -8,6 +9,7 @@ import {
   createHistory,
   loadShowcaseDraft,
   moveArrayItem,
+  normalizeSectionOrder,
   pushHistory,
   redoHistory,
   saveShowcaseDraft,
@@ -147,4 +149,54 @@ test('brouillon : sans localStorage, lecture et écriture restent silencieuses',
   assert.equal(loadShowcaseDraft('p1'), null);
   assert.doesNotThrow(() => saveShowcaseDraft('p1', { draftValues: {} }));
   assert.doesNotThrow(() => clearShowcaseDraft('p1'));
+});
+
+test('normalizeSectionOrder : sans ordre enregistré, l’ordre par défaut complet est rendu', () => {
+  assert.deepEqual(normalizeSectionOrder(undefined, []), SHOWCASE_SECTION_IDS);
+});
+
+test('normalizeSectionOrder : les blocs scindés reprennent la place de leur ancêtre', () => {
+  // Vitrine publiée avant la scission : « solution » portait aussi les bénéfices, et
+  // « innovation » portait à la fois les objectifs et les indicateurs.
+  const stored = ['hero', 'innovation', 'solution', 'problem', 'team', 'timeline', 'notice'];
+
+  assert.deepEqual(normalizeSectionOrder(stored, []), [
+    'hero',
+    'objectives',
+    'indicators',
+    'solution',
+    'benefits',
+    'problem',
+    'team',
+    'timeline',
+    'notice'
+  ]);
+});
+
+test('normalizeSectionOrder : un bloc personnalisé garde sa position entre deux sections reprises', () => {
+  const customSections = [{ id: 'custom-1' }];
+  const stored = ['hero', 'custom-1', 'innovation'];
+
+  const normalized = normalizeSectionOrder(stored, customSections);
+
+  assert.deepEqual(normalized.slice(0, 4), ['hero', 'custom-1', 'objectives', 'indicators']);
+  // tout ce qui manque à l’ordre enregistré est ajouté ensuite, sans doublon
+  assert.equal(new Set(normalized).size, normalized.length);
+  SHOWCASE_SECTION_IDS.forEach((sectionId) => {
+    assert.ok(normalized.includes(sectionId), sectionId);
+  });
+});
+
+test('normalizeSectionOrder : « innovation-metrics » ne réintroduit pas les indicateurs deux fois', () => {
+  const normalized = normalizeSectionOrder(['innovation', 'innovation-metrics'], []);
+
+  assert.equal(normalized.filter((id) => id === 'indicators').length, 1);
+});
+
+test('normalizeSectionOrder : les identifiants inconnus sont ignorés', () => {
+  const normalized = normalizeSectionOrder(['hero', 'impact', 42, null], []);
+
+  assert.equal(normalized[0], 'hero');
+  assert.ok(!normalized.includes('impact'));
+  assert.equal(normalized.length, SHOWCASE_SECTION_IDS.length);
 });

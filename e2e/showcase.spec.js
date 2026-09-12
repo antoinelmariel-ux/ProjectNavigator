@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { gotoHome, createProjectAndOpenShowcase, collectConsoleErrors } from './fixtures.js';
+import {
+  gotoHome,
+  createProjectAndOpenShowcase,
+  collectConsoleErrors,
+  publishShowcaseImpactFigure
+} from './fixtures.js';
 
 test.describe('ProjectShowcase', () => {
   test('affiche les libellés d\'options dans la langue courante (pas toujours en anglais)', async ({ page }) => {
@@ -13,6 +18,41 @@ test.describe('ProjectShowcase', () => {
     await expect(page.getByText('Grand public')).toBeVisible();
     await expect(page.getByText('General public')).toHaveCount(0);
     expect(errors).toEqual([]);
+  });
+
+  test('le coût estimé est présenté dans la feuille de route, jamais comme un chiffre d\'impact', async ({ page }) => {
+    await gotoHome(page);
+    await createProjectAndOpenShowcase(page);
+
+    // La taille, le dégradé et le compteur ascendant du chiffre héroïque racontent une valeur
+    // gagnée : un montant dépensé ne doit emprunter aucun des trois, sous peine d'être lu
+    // comme le gain attendu du projet.
+    const cost = page.locator('[data-showcase-section="timeline"] .sg-cost');
+    await expect(cost).toHaveCount(1);
+    await expect(cost.locator('.sg-cost__label')).toHaveText('Coût estimé du projet');
+    await expect(page.locator('.sg-cost [data-sg-count]')).toHaveCount(0);
+    await expect(page.locator('[data-showcase-section="objectives"] .sg-impact__value')).toHaveCount(0);
+  });
+
+  test('le chiffre d\'impact est vide par défaut et se renseigne librement avec son unité', async ({ page }) => {
+    // Parcours long : questionnaire complet, puis édition, publication et rechargement.
+    test.setTimeout(180000);
+    await gotoHome(page);
+    await createProjectAndOpenShowcase(page);
+
+    await expect(page.locator('[data-showcase-section="objectives"] .sg-impact__value')).toHaveCount(0);
+
+    await publishShowcaseImpactFigure(page, {
+      figure: '40',
+      unit: '%',
+      caption: 'de temps administratif économisé par équipe'
+    });
+
+    const figure = page.locator('[data-showcase-section="objectives"] .sg-impact__value');
+    await expect(figure).toHaveCount(1);
+    await expect(figure.locator('.sg-impact__unit')).toHaveText('%');
+    await expect(page.locator('[data-showcase-section="objectives"] .sg-impact__caption'))
+      .toHaveText('de temps administratif économisé par équipe');
   });
 
   test('le mode édition et le panneau de partage s\'ouvrent sans erreur', async ({ page }) => {
