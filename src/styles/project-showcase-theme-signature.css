@@ -82,7 +82,9 @@
 /* Exclut le contenu ".prose" (RichTextEditor) et ".sg-richtext" (texte riche
    publié dans la vitrine, cf. linkify.js/richText.js) : ce reset vise les
    listes de mise en page (nav, cartes), pas les puces/numeros saisis par
-   l'utilisateur dans un champ de texte riche, qui doivent rester visibles. */
+   l'utilisateur dans un champ de texte riche, qui doivent rester visibles.
+   `.sg-road` est exclue pour sa seule marge haute : sa geometrie, elle, ne
+   depend plus du remplissage de la liste. */
 .sg-shell ul:not(.prose *):not(.sg-richtext *),
 .sg-shell ol:not(.prose *):not(.sg-richtext *):not(.sg-road) {
   margin: 0;
@@ -1140,63 +1142,88 @@
 }
 
 /* ---------- feuille de route ----------
-   Le reset « .sg-shell ol:not(...) » pose padding: 0 et sa spécificité grimpe d'un
-   cran à chaque :not() ajouté : la surenchère de classes tentée ici auparavant a été
-   reperdue dès l'exclusion suivante, et .sg-road se retrouvait sans padding-left —
-   les pastilles partaient alors à gauche du trait vertical. Le reset exclut donc
-   explicitement .sg-road, qui reprend à son compte margin et list-style. */
+   La pastille et le segment de trait sont les deux pseudo-éléments d'une même ligne :
+   ils partagent son repère, son axe (--sg-marker-col / 2) et sa hauteur. Aucun calcul ne
+   traverse plus deux éléments, donc ni le remplissage de la liste ni une remise à zéro
+   générique ne peuvent les désaligner — c'est ce couplage-là qui cassait régulièrement.
+   La dernière ligne n'a pas de segment : le trait s'arrête sur la dernière pastille par
+   construction, sans le recalage JavaScript qui gardait une hauteur périmée dès que la
+   mise en page bougeait sans redimensionnement de fenêtre (passage en édition, jalon
+   ajouté, texte passé sur deux lignes). */
 .sg-road {
-  --sg-rail-x: clamp(1.8rem, 4vw, 2.6rem);
+  --sg-marker-col: clamp(1.8rem, 4vw, 2.6rem);
   --sg-rail-w: 2px;
   --sg-dot: 0.8rem;
-  --sg-dot-y: 0.45rem;
-  position: relative;
+  --sg-date-size: 0.88rem;
+  /* hauteur de la première ligne de texte d'un jalon : .sg-road__date à la line-height
+     1.6 de .sg-shell. La pastille se centre dessus, au lieu de l'ancien décalage fixe qui
+     la laissait 2,3 px trop bas. */
+  --sg-lead: calc(var(--sg-date-size) * 1.6);
+  --sg-row-gap: clamp(2.2rem, 5vw, 3.2rem);
   margin: clamp(3rem, 7vw, 4rem) 0 0;
-  padding: 0 0 0 var(--sg-rail-x);
+  padding: 0;
   list-style: none;
-}
-
-.sg-road__rail {
-  position: absolute;
-  left: 0;
-  top: calc(var(--sg-dot-y) + var(--sg-dot) / 2);
-  bottom: 0;
-  width: var(--sg-rail-w);
-  background: var(--sg-line-dark);
-  overflow: hidden;
-}
-
-.sg-road__fill {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, var(--sg-don), var(--sg-plasma) 45%, var(--sg-vie));
-  transform: scaleY(var(--sg-p, 0));
-  transform-origin: 50% 0%;
-  will-change: transform;
 }
 
 .sg-road__item {
   position: relative;
-  padding-bottom: clamp(2.2rem, 5vw, 3.2rem);
+  padding-left: var(--sg-marker-col);
+  padding-bottom: var(--sg-row-gap);
 }
 
-/* la pastille est centrée sur l'axe du trait quelle que soit la valeur du clamp */
+.sg-road__item:last-child {
+  padding-bottom: 0;
+}
+
 .sg-road__item::before {
   content: '';
   position: absolute;
-  left: calc(-1 * var(--sg-rail-x) + (var(--sg-rail-w) - var(--sg-dot)) / 2);
-  top: var(--sg-dot-y);
+  left: calc(var(--sg-marker-col) / 2);
+  top: calc(var(--sg-lead) / 2);
+  transform: translate(-50%, -50%);
   width: var(--sg-dot);
   height: var(--sg-dot);
   box-sizing: border-box;
   border-radius: 50%;
   background: var(--sg-ink);
   border: 2px solid var(--sg-on-dark-faint);
+  /* au-dessus du segment, qu'elle interrompt proprement */
+  z-index: 1;
   transition: background 400ms var(--sg-ease), border-color 400ms var(--sg-ease), transform 400ms var(--sg-spring);
 }
 
+/* Du centre de cette pastille à celui de la suivante : la ligne suivante commence au bas
+   de la boîte de celle-ci, et sa pastille est à --sg-lead / 2 de son propre haut — d'où le
+   débord négatif, exact quelle que soit la hauteur des deux lignes. */
+.sg-road__item::after {
+  content: '';
+  position: absolute;
+  left: calc(var(--sg-marker-col) / 2);
+  top: calc(var(--sg-lead) / 2);
+  bottom: calc(var(--sg-lead) / -2);
+  transform: translateX(-50%);
+  width: var(--sg-rail-w);
+  background-color: var(--sg-line-dark);
+  background-image: linear-gradient(180deg, var(--sg-don), var(--sg-plasma) 45%, var(--sg-vie));
+  background-repeat: no-repeat;
+  background-size: 100% var(--sg-seg, 0%);
+  transition: background-size 700ms var(--sg-ease);
+}
+
+.sg-road__item:last-child::after {
+  content: none;
+}
+
+/* La progression du trait suit la révélation de chaque jalon (classe `is-on` posée par
+   l'IntersectionObserver de ShowcaseSignatureFx), au lieu d'un ratio de défilement global
+   au facteur réglé à la main. Le léger retard fait descendre le trait derrière la pastille. */
+.sg-road__item.is-on::after {
+  --sg-seg: 100%;
+  transition-delay: 180ms;
+}
+
 .sg-road__item.is-on::before {
-  transform: scale(1.25);
+  transform: translate(-50%, -50%) scale(1.25);
   background: var(--sg-vie);
   border-color: var(--sg-vie);
 }
@@ -1211,9 +1238,19 @@
   border-color: var(--sg-warn-accent);
 }
 
+/* Repli pour un jalon sans date en tête (libellé de règle absent) : la pastille se cale
+   alors sur le haut du bloc plutôt que sur une ligne qui n'existe pas. */
+.sg-road__item:not(:has(> .sg-road__date:first-child))::before,
+.sg-road__item:not(:has(> .sg-road__date:first-child))::after {
+  top: calc(var(--sg-lead) / 2 + 0.25rem);
+}
+
+/* la taille vient du jeton : c'est elle qui fixe --sg-lead, donc la hauteur sur laquelle
+   la pastille se centre. Les deux ne peuvent plus diverger. */
 .sg-road__date {
-  font-size: 0.88rem;
+  font-size: var(--sg-date-size);
   font-weight: 600;
+  line-height: 1.6;
   letter-spacing: 0.04em;
   color: var(--sg-on-dark-faint);
 }

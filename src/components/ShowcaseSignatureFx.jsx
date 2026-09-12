@@ -227,7 +227,6 @@ export function ShowcaseSignatureFx({ rootRef, themeId }) {
     }
 
     /* ---------- 2. éléments pilotés par le défilement ---------- */
-    const roads = Array.prototype.slice.call(root.querySelectorAll('.sg-road'));
     const counter = root.querySelector('[data-sg-counter]');
 
     let scrollP = 0;
@@ -236,35 +235,6 @@ export function ShowcaseSignatureFx({ rootRef, themeId }) {
       const rect = root.getBoundingClientRect();
       const travel = rect.height - window.innerHeight;
       scrollP = travel > 0 ? Math.min(1, Math.max(0, -rect.top / travel)) : 0;
-
-      roads.forEach((road) => {
-        const fill = road.querySelector('.sg-road__fill');
-        if (!fill) return;
-        const rr = road.getBoundingClientRect();
-        const target = window.innerHeight * 0.55;
-        const p = (target - rr.top) / (rr.height * 0.82);
-        fill.style.setProperty('--sg-p', Math.min(1, Math.max(0, p)).toFixed(4));
-      });
-    };
-
-    // le trait s'arrête exactement au centre de la première et de la dernière pastille
-    const alignRails = () => {
-      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-      roads.forEach((road) => {
-        const rail = road.querySelector('.sg-road__rail');
-        const items = road.querySelectorAll('.sg-road__item');
-        if (!rail || items.length < 2) return;
-        const cs = getComputedStyle(road);
-        const dot = parseFloat(cs.getPropertyValue('--sg-dot')) * rem;
-        const dotY = parseFloat(cs.getPropertyValue('--sg-dot-y')) * rem;
-        if (!Number.isFinite(dot) || !Number.isFinite(dotY)) return;
-        const base = road.getBoundingClientRect().top;
-        const head = items[0].getBoundingClientRect().top - base + dotY + dot / 2;
-        const tail = items[items.length - 1].getBoundingClientRect().top - base + dotY + dot / 2;
-        rail.style.top = `${head}px`;
-        rail.style.bottom = 'auto';
-        rail.style.height = `${Math.max(0, tail - head)}px`;
-      });
     };
 
     const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
@@ -294,7 +264,6 @@ export function ShowcaseSignatureFx({ rootRef, themeId }) {
     const onScroll = () => readScroll();
     const onResize = () => {
       sizeGL();
-      alignRails();
       alignTitleGradient();
       readScroll();
     };
@@ -304,14 +273,12 @@ export function ShowcaseSignatureFx({ rootRef, themeId }) {
     cleanups.push(() => window.removeEventListener('scroll', onScroll));
     cleanups.push(() => window.removeEventListener('resize', onResize));
 
-    alignRails();
     readScroll();
     rafId = window.requestAnimationFrame(frame);
 
     // les polices web changent les hauteurs de texte : on recale une fois chargées
     if (document.fonts && document.fonts.ready && typeof document.fonts.ready.then === 'function') {
       document.fonts.ready.then(() => {
-        alignRails();
         alignTitleGradient();
         readScroll();
       });

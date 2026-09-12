@@ -3376,9 +3376,11 @@ export const ProjectShowcase = ({
             <div className="sg-wrap">
               <p className="sg-eyebrow sg-rv">{getSectionOptionLabel(t, 'timeline')}</p>
               <h2 className="sg-headline sg-rv" style={{ '--sg-d': '80ms' }}>{t('projectShowcase.roadmapHeadline')}</h2>
+              {/* Chaque jalon porte sa pastille et son segment de trait (::before/::after) : le
+                  repère et le contenu vivent dans la même boîte, donc plus rien à recaler entre
+                  deux éléments. Un <span> enfant direct d'un <ol> était par ailleurs un balisage
+                  que le modèle de contenu HTML n'autorise pas. */}
               <ol className="sg-road">
-                <span className="sg-road__rail"><span className="sg-road__fill" /></span>
-
                 {runway && (
                   <li className="sg-road__item sg-road__item--start">
                     <p className="sg-road__date">{runway.launchLabel}</p>
