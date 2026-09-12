@@ -5083,9 +5083,27 @@ const updateProjectFilters = useCallback((updater) => {
       return;
     }
 
-    const shortcutContent = `[InternetShortcut]\nURL=${showcaseShareUrl}\n`;
-    const blob = new Blob([shortcutContent], { type: 'text/plain' });
-    const fileName = `raccourci-showcase-${showcaseProjectId || 'projet'}.url`;
+    // Un fichier .url (Internet Shortcut) est classé par Chrome/Edge parmi les extensions a
+    // risque : quand il est genere cote client (blob, sans en-tetes serveur), le navigateur le
+    // bloque et le fichier atterrit renomme en .download au lieu du raccourci attendu. Un .html
+    // avec une redirection meta-refresh n'est pas concerne par ce blocage et fonctionne sur tous
+    // les postes (le raccourci .url n'existait de toute facon que sous Windows).
+    const escapedUrl = showcaseShareUrl.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+    const escapedLabel = showcaseShareUrl.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    const shortcutContent = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="refresh" content="0; url=${escapedUrl}" />
+<title>Vitrine du projet</title>
+</head>
+<body>
+<p>Ouverture de la vitrine du projet... Si rien ne se passe, <a href="${escapedUrl}">cliquez ici</a> (${escapedLabel}).</p>
+</body>
+</html>
+`;
+    const blob = new Blob([shortcutContent], { type: 'text/html' });
+    const fileName = `raccourci-showcase-${showcaseProjectId || 'projet'}.html`;
     const downloadUrl = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
 
