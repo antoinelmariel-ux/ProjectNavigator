@@ -1,42 +1,26 @@
 import { test, expect } from '@playwright/test';
-import { gotoHome, collectConsoleErrors } from './fixtures.js';
-
-// Le mot de passe admin n'est jamais committé : ces tests le lisent depuis l'environnement
-// et se désactivent proprement s'il est absent, plutôt que d'échouer en CI/local sans lui.
-const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD;
-
-async function unlockAdmin(page, password) {
-  await page.getByRole('button', { name: /Activer le mode administrateur/ }).click();
-  await page.getByRole('heading', { name: 'Accès back-office' }).waitFor();
-  await page.getByLabel('Mot de passe').fill(password);
-  await page.getByRole('button', { name: 'Déverrouiller' }).click();
-}
+import { gotoHome, grantAdminAccess, collectConsoleErrors } from './fixtures.js';
 
 async function openBackOffice(page) {
   await gotoHome(page);
-  await unlockAdmin(page, ADMIN_PASSWORD);
-  await page.getByRole('button', { name: /Accéder au Back-office/ }).click();
-  await expect(page.getByRole('heading', { name: 'Back-office' })).toBeVisible();
+  await grantAdminAccess(page);
 }
 
-test.describe('Authentification back-office', () => {
-  test('un mauvais mot de passe affiche une erreur et ne déverrouille pas', async ({ page }) => {
+test.describe('Bouton d’accès au back-office (cadenas)', () => {
+  test('n\'apparaît pas pour une personne non désignée dans le back-office', async ({ page }) => {
     await gotoHome(page);
-    await page.getByRole('button', { name: /Activer le mode administrateur/ }).click();
-    await page.getByLabel('Mot de passe').fill('mauvais-mot-de-passe');
-    await page.getByRole('button', { name: 'Déverrouiller' }).click();
-    // Le message d'erreur s'affiche à la fois dans la modale et dans la barre de nav
-    // (backOfficePromptError + backOfficeAuthError) : on vérifie celui de la modale, actif.
-    await expect(
-      page.getByRole('dialog', { name: 'Accès back-office' }).getByRole('alert')
-    ).toHaveText('Mot de passe incorrect. Veuillez réessayer.');
     await expect(page.getByRole('button', { name: /Accéder au Back-office/ })).toHaveCount(0);
+  });
+
+  test('envoie directement dans le back-office pour une personne désignée', async ({ page }) => {
+    await gotoHome(page);
+    // grantAdminAccess clique le bouton cadenas puis vérifie que le back-office s'affiche
+    // directement, sans étape intermédiaire.
+    await grantAdminAccess(page);
   });
 });
 
 test.describe('Back-office : éditeurs Questions & Règles', () => {
-  test.skip(!ADMIN_PASSWORD, 'E2E_ADMIN_PASSWORD non fourni : tests back-office ignorés.');
-
   test('le référentiel de démonstration ne signale aucune incohérence', async ({ page }) => {
     await openBackOffice(page);
     await expect(page.getByText('Aucune incohérence détectée dans les données de configuration.')).toBeVisible();

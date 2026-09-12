@@ -42,8 +42,8 @@ L'ouverture de `index.html` reste **zéro-install** pour l'utilisateur final (au
 
 `npm run test:e2e` lance la suite `e2e/*.spec.js` avec Playwright : elle reconstruit l'application, la sert via un petit serveur statique jetable (`scripts/serve-e2e.js`), puis pilote un vrai navigateur pour vérifier les parcours utilisateurs (questionnaire, synthèse, vitrine, back-office, commentaires compliance…). C'est une suite distincte de `npm test`.
 
-Les tests qui touchent le back-office nécessitent le mot de passe administrateur, jamais committé : ils se désactivent automatiquement en son absence.
+Le bouton cadenas qui ouvre le back-office n'étant visible que pour une personne déjà désignée (administrateur, contact d'équipe ou membre de comité), les tests qui touchent le back-office désignent le compte de test directement dans le stockage local avant le premier rendu plutôt que de saisir le mot de passe partagé — aucune variable d'environnement n'est requise pour ces tests.
 
 ```bash
-E2E_ADMIN_PASSWORD='...' npm run test:e2e
+npm run test:e2e
 ```

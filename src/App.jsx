@@ -3369,7 +3369,6 @@ const updateProjectFilters = useCallback((updater) => {
   }, [handleAddAnnotationNote, isAnnotationModeEnabled, isAnnotationPaused, isAnnotationUiInteraction, screen]);
 
   const isAdminMode = mode === 'admin';
-  const isAdminHomeView = isAdminMode && adminView === 'home';
   const isAdminBackOfficeView = isAdminMode && adminView === 'back-office';
   // Un lien de vitrine partagée doit rester consultable par quelqu'un sans profil enregistré
   // (destinataire externe) : ne jamais lui imposer l'onboarding avant de voir la vitrine.
@@ -3963,9 +3962,8 @@ const updateProjectFilters = useCallback((updater) => {
     }
 
     setMode('admin');
-    setAdminView('home');
-    setScreen('home');
-  }, [requestAdminAccess, setMode, setScreen]);
+    setAdminView('back-office');
+  }, [requestAdminAccess, setMode]);
 
   const handleReturnToProjectMode = useCallback(() => {
     setMode('user');
@@ -5549,21 +5547,21 @@ const updateProjectFilters = useCallback((updater) => {
                   {t('app.nav.switchToProjectModeLabel')}
                 </button>
               )}
-              {!isAdminMode && (
+              {!isAdminMode && (isCurrentUserAdmin || hasScopedBackOfficeAccess) && (
                 <button
                   type="button"
                   onClick={handleActivateAdminOnHome}
                   className={`w-full sm:w-auto px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition-all flex items-center justify-center ${
-                    isAdminHomeView
+                    isAdminBackOfficeView
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
-                  aria-pressed={isAdminHomeView}
-                  aria-label={t('app.nav.activateAdmin')}
-                  title={t('app.nav.activateAdmin')}
+                  aria-pressed={isAdminBackOfficeView}
+                  aria-label={t('app.nav.accessBackOffice')}
+                  title={t('app.nav.accessBackOffice')}
                 >
                   <Lock className="text-lg sm:text-xl" />
-                  <span className="sr-only">{t('app.nav.adminModeSrOnly')}</span>
+                  <span className="sr-only">{t('app.nav.accessBackOffice')}</span>
                 </button>
               )}
               {isAdminMode && screen === 'home' && (

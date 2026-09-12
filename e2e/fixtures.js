@@ -191,28 +191,43 @@ export async function createAndSubmitProject(page) {
   await page.waitForTimeout(400);
 }
 
+// Le bouton cadenas qui ouvre le back-office n'est visible que pour une personne déjà désignée
+// (adminEmails, contact d'équipe ou membre de comité) : on ne peut plus, comme avant, l'atteindre
+// via le mot de passe partagé en tant qu'utilisateur quelconque. Pour les tests, on désigne donc
+// le compte de test avant même que l'app ne démarre (page.addInitScript, pas evaluate() après coup
+// : App.jsx re-persiste son état sur pagehide, ce qui écraserait un patch écrit avant une navigation
+// à venir — voir la note équivalente pour les statuts de conformité plus haut dans ce fichier).
+export async function grantAdminAccess(page, email = 'bertrand.darieux@lfb.fr') {
+  await page.addInitScript((adminEmail) => {
+    const KEY = 'complianceNavigatorState';
+    let state = {};
+    try {
+      state = JSON.parse(window.localStorage.getItem(KEY) || '{}') || {};
+    } catch {
+      state = {};
+    }
+    const existing = Array.isArray(state.adminEmails) ? state.adminEmails : [];
+    state.adminEmails = existing.includes(adminEmail) ? existing : [...existing, adminEmail];
+    window.localStorage.setItem(KEY, JSON.stringify(state));
+  }, email);
+  await page.reload();
+  await page.getByRole('button', { name: /Accéder au Back-office/ }).click();
+  await expect(page.getByRole('heading', { name: 'Back-office' })).toBeVisible();
+}
+
 // Rend l'utilisateur courant (mock local, bertrand.darieux@lfb.fr) expert compliance de la
 // première équipe ET membre du comité de validation par défaut, tout en gardant l'accès admin
 // complet au back-office (sinon s'ajouter soi-même comme contact d'équipe/comité bascule
 // silencieusement la session en vue "responsable compliance" restreinte — voir allowedTabIds
-// dans BackOffice.jsx — qui masque entre autres l'onglet Administrateurs). L'ordre des étapes
-// (Administrateurs d'abord) est donc important, pas accessoire.
-export async function grantSelfComplianceExpertAndCommitteeAccess(page, adminPassword) {
-  await page.getByRole('button', { name: /Activer le mode administrateur/ }).click();
-  await page.getByRole('heading', { name: 'Accès back-office' }).waitFor();
-  await page.getByLabel('Mot de passe').fill(adminPassword);
-  await page.getByRole('button', { name: 'Déverrouiller' }).click();
-  await page.getByRole('button', { name: /Accéder au Back-office/ }).click();
-  await expect(page.getByRole('heading', { name: 'Back-office' })).toBeVisible();
+// dans BackOffice.jsx — qui masque entre autres l'onglet Administrateurs). Passer par
+// grantAdminAccess d'abord (droits admin persistés dès le boot) est donc important, pas accessoire.
+export async function grantSelfComplianceExpertAndCommitteeAccess(page) {
+  await grantAdminAccess(page);
 
-  // Les 3 champs ci-dessous sont un PeoplePicker (src/components/PeoplePicker.jsx) : on tape
+  // Les 2 champs ci-dessous sont un PeoplePicker (src/components/PeoplePicker.jsx) : on tape
   // l'adresse puis Entrée la valide et l'ajoute à la liste existante (pas de fill/blur sur un
-  // textarea brut comme avant son introduction).
-  await page.getByRole('tab', { name: /Administrateurs/ }).click();
-  const adminEmailsField = page.getByLabel('Adresses e-mail des administrateurs');
-  await adminEmailsField.fill('bertrand.darieux@lfb.fr');
-  await adminEmailsField.press('Enter');
-
+  // textarea brut comme avant son introduction). Pas besoin de passer par l'onglet
+  // Administrateurs : grantAdminAccess a déjà rendu les droits admin persistants dès le boot.
   await page.getByRole('tab', { name: /Équipes/ }).click();
   const contactsField = page.locator('input[id$="-contact"]').first();
   await contactsField.fill('bertrand.darieux@lfb.fr');
@@ -227,13 +242,18 @@ export async function grantSelfComplianceExpertAndCommitteeAccess(page, adminPas
   await expect(page.getByRole('button', { name: /Créer un projet/ }).first()).toBeVisible();
 }
 
-// Ouvre le premier projet listé dans la section "Projets déclenchés pour vous" et déplie la
-// carte de l'équipe donnée (les cartes sont repliées par défaut, y compris juste après un
-// enregistrement).
+// Ouvre le premier projet listé dans la section "Projets déclenchés pour vous" et s'assure que
+// la carte de l'équipe donnée est dépliée. Les cartes sont repliées par défaut, mais le bouton
+// "Ouvrir" de cette liste (vue expert/comité) déplie déjà automatiquement l'équipe concernée
+// (focusPerimeter dans SynthesisReport.jsx) : cliquer dessus inconditionnellement la replierait
+// à nouveau, d'où la vérification de aria-expanded avant de cliquer.
 export async function openTriggeredProjectAndExpandTeam(page, teamName) {
   await page.getByRole('button', { name: 'Ouvrir' }).first().click();
   await expect(page.getByRole('heading', { name: 'Synthèse' })).toBeVisible();
-  await page.getByRole('button', { name: new RegExp(teamName) }).first().click();
+  const teamToggle = page.getByRole('button', { name: new RegExp(teamName) }).first();
+  if ((await teamToggle.getAttribute('aria-expanded')) !== 'true') {
+    await teamToggle.click();
+  }
 }
 
 export function collectConsoleErrors(page) {

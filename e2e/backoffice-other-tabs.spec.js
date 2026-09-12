@@ -1,16 +1,9 @@
 import { test, expect } from '@playwright/test';
-import { gotoHome, collectConsoleErrors } from './fixtures.js';
-
-const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD;
+import { gotoHome, grantAdminAccess, collectConsoleErrors } from './fixtures.js';
 
 async function openBackOffice(page) {
   await gotoHome(page);
-  await page.getByRole('button', { name: /Activer le mode administrateur/ }).click();
-  await page.getByRole('heading', { name: 'Accès back-office' }).waitFor();
-  await page.getByLabel('Mot de passe').fill(ADMIN_PASSWORD);
-  await page.getByRole('button', { name: 'Déverrouiller' }).click();
-  await page.getByRole('button', { name: /Accéder au Back-office/ }).click();
-  await expect(page.getByRole('heading', { name: 'Back-office' })).toBeVisible();
+  await grantAdminAccess(page);
 }
 
 const OTHER_TABS = [
@@ -26,8 +19,6 @@ const OTHER_TABS = [
 ];
 
 test.describe('Back-office : autres onglets', () => {
-  test.skip(!ADMIN_PASSWORD, 'E2E_ADMIN_PASSWORD non fourni : tests back-office ignorés.');
-
   for (const tabName of OTHER_TABS) {
     test(`l'onglet "${tabName}" s'ouvre sans erreur console`, async ({ page }) => {
       const errors = collectConsoleErrors(page);
@@ -42,7 +33,10 @@ test.describe('Back-office : autres onglets', () => {
     await openBackOffice(page);
     await page.getByRole('tab', { name: /Équipes/ }).click();
     await page.getByRole('button', { name: /Ajouter une équipe/ }).click();
-    await page.locator('input[type="text"]').last().fill('Equipe e2e cross-tab');
+    // Le nom d'équipe et le contact (PeoplePicker) sont tous deux des input[type="text"] dans
+    // chaque carte équipe, dans cet ordre : cibler le dernier input du document attraperait le
+    // champ contact de la nouvelle équipe plutôt que son nom. On scope donc à sa carte.
+    await page.locator('article').last().locator('input[type="text"]').first().fill('Equipe e2e cross-tab');
 
     await page.getByRole('tab', { name: /Règles/ }).click();
     await page.getByRole('button', { name: 'Ajouter une règle' }).click();

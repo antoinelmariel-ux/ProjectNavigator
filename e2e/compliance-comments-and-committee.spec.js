@@ -7,18 +7,14 @@ import {
   collectConsoleErrors
 } from './fixtures.js';
 
-const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD;
-
 test.describe('Commentaires experts, réponses et validation par équipe', () => {
-  test.skip(!ADMIN_PASSWORD, 'E2E_ADMIN_PASSWORD non fourni : tests ignorés.');
-
   test('le statut sélectionné dans l\'éditeur de commentaire reste stable (non-régression)', async ({ page }) => {
     // Régression : relevantTeams n'était pas mémoïsé dans SynthesisReport.jsx, donc le moindre
     // re-rendu (déclenché par la sélection elle-même) réinitialisait le brouillon de statut/
     // commentaire à sa dernière valeur persistée avant que l'utilisateur ait pu l'enregistrer -
     // rendant le <select> de statut inutilisable en pratique.
     await gotoHome(page);
-    await grantSelfComplianceExpertAndCommitteeAccess(page, ADMIN_PASSWORD);
+    await grantSelfComplianceExpertAndCommitteeAccess(page);
     await createAndSubmitProject(page);
     await openTriggeredProjectAndExpandTeam(page, 'Contrôle pub');
 
@@ -34,7 +30,7 @@ test.describe('Commentaires experts, réponses et validation par équipe', () =>
   test('enregistrer un commentaire + statut le persiste correctement, puis une réponse s\'ajoute au fil', async ({ page }) => {
     const errors = collectConsoleErrors(page);
     await gotoHome(page);
-    await grantSelfComplianceExpertAndCommitteeAccess(page, ADMIN_PASSWORD);
+    await grantSelfComplianceExpertAndCommitteeAccess(page);
     await createAndSubmitProject(page);
     await openTriggeredProjectAndExpandTeam(page, 'Contrôle pub');
 
@@ -68,7 +64,7 @@ test.describe('Commentaires experts, réponses et validation par équipe', () =>
 
   test('valider une équipe déplace le projet de "À traiter" vers "Traités"', async ({ page }) => {
     await gotoHome(page);
-    await grantSelfComplianceExpertAndCommitteeAccess(page, ADMIN_PASSWORD);
+    await grantSelfComplianceExpertAndCommitteeAccess(page);
     await createAndSubmitProject(page);
 
     await expect(page.getByRole('button', { name: /À traiter \(1\)/ })).toBeVisible();
@@ -88,8 +84,6 @@ test.describe('Commentaires experts, réponses et validation par équipe', () =>
 });
 
 test.describe('Repêchage par un comité (réintégration)', () => {
-  test.skip(!ADMIN_PASSWORD, 'E2E_ADMIN_PASSWORD non fourni : tests ignorés.');
-
   test('un membre de comité peut réintégrer un projet hors scope, qui bascule alors en "À traiter" pour ce comité', async ({ page }) => {
     const errors = collectConsoleErrors(page);
     await gotoHome(page);
@@ -97,7 +91,7 @@ test.describe('Repêchage par un comité (réintégration)', () => {
     // teamTriggers vides) : il ne se déclenche donc jamais automatiquement, ce qui en fait
     // un candidat "hors scope" idéal pour tester la réintégration sans configuration
     // supplémentaire.
-    await grantSelfComplianceExpertAndCommitteeAccess(page, ADMIN_PASSWORD);
+    await grantSelfComplianceExpertAndCommitteeAccess(page);
     await createAndSubmitProject(page);
 
     await page.getByRole('button', { name: /Hors scope comité \(1\)/ }).click();
