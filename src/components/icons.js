@@ -321,3 +321,18 @@ export const LayoutList = createIcon(
     <line x1="14" y1="19" x2="21" y2="19" />
   </React.Fragment>
 );
+
+export const Clock = createIcon(
+  <React.Fragment>
+    <circle cx="12" cy="12" r="9" />
+    <polyline points="12 7 12 12 15.5 14" />
+  </React.Fragment>
+);
+
+export const XCircle = createIcon(
+  <React.Fragment>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M9 9l6 6" />
+    <path d="M15 9l-6 6" />
+  </React.Fragment>
+);

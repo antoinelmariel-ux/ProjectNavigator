@@ -30,6 +30,7 @@ import {
 import { formatTeamContacts, normalizeTeamContacts } from '../utils/teamContacts.js';
 import { createAttachmentFromFile } from '../utils/documentStore.js';
 import { normalizeEmail } from '../utils/normalizeEmail.js';
+import { stripRichTextToPlainText } from '../utils/richText.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { getLocaleTag } from '../i18n/languages.js';
 
@@ -1463,6 +1464,7 @@ export const SynthesisReport = ({
   }, [analysis, answers, effectiveProjectName, onSubmitProject, relevantTeams, timelineDetails]);
 
   const teamsHeadingLabel = t('synthesisReport.teamsHeadingLabel');
+  const headingProjectName = stripRichTextToPlainText(effectiveProjectName).trim();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 px-4 py-6 sm:px-8 sm:py-10">
@@ -1475,7 +1477,15 @@ export const SynthesisReport = ({
         >
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-6">
             <div className="flex flex-col gap-2">
-              <h1 className="text-3xl font-bold text-gray-800 sm:text-4xl">{t('synthesisReport.title')}</h1>
+              <h1 className="text-3xl font-bold text-gray-800 sm:text-4xl">
+                {t('synthesisReport.title')}
+                {headingProjectName.length > 0 && (
+                  <React.Fragment>
+                    <span className="text-gray-300 font-normal" aria-hidden="true"> — </span>
+                    <span className="text-blue-700">{headingProjectName}</span>
+                  </React.Fragment>
+                )}
+              </h1>
               {projectStatusLabel && (
                 <span
                   className={`inline-flex items-center self-start rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${projectStatusClasses}`}

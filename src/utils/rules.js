@@ -361,7 +361,7 @@ const resolveRuleAssignedTeam = (rule, answers) => {
 
   return primaryTeamId;
 };
-const evaluateRule = (rule, answers) => {
+export const evaluateRule = (rule, answers) => {
   const timingContexts = [];
   const conditionGroups = normalizeConditionGroups(rule, sanitizeRuleCondition);
 

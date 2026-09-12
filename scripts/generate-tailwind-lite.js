@@ -402,6 +402,7 @@ const fontSizes = {
 };
 
 const fontWeights = {
+  'font-normal': '400',
   'font-medium': '500',
   'font-semibold': '600',
   'font-bold': '700',
