@@ -29,7 +29,8 @@ import {
   buildNumberUnitAnswerId,
   formatAnswer,
   getNumberUnitOptions,
-  getQuestionOptionEntries
+  getQuestionOptionEntries,
+  normalizeQuestionOptions
 } from '../utils/questions.js';
 import { renderTextWithLinks } from '../utils/linkify.js';
 import { splitRichTextIntoBlocks } from '../utils/richText.js';
@@ -533,6 +534,76 @@ const getFormattedAnswer = (questions, answers, id, missingInfoLabel, language) 
   }
 
   return question.required ? missingInfoLabel : '';
+};
+
+// Pour q27 (« Dans quels pays ce projet sera-t-il déployé ? »), la chip vitrine ne doit
+// montrer que les pays concrets — pas le libellé du regroupement parent (« Pays liés à des
+// filiales hors France ») ni « Autre » : on descend donc directement aux sous-pays cochés et
+// au texte libre « Autre » plutôt que de réutiliser formatAnswer(), qui garde le libellé parent.
+const formatDeploymentCountries = (question, answer, language) => {
+  if (!question || answer === null || answer === undefined) {
+    return '';
+  }
+
+  const labelByValue = new Map(
+    getQuestionOptionEntries(question, { language }).map((entry) => [entry.value, entry.label])
+  );
+  const resolveLabel = (value) => labelByValue.get(value == null ? '' : String(value)) || '';
+
+  if (Array.isArray(answer)) {
+    return answer.map(resolveLabel).filter(Boolean).join(', ');
+  }
+
+  if (typeof answer !== 'object') {
+    return '';
+  }
+
+  const values = Array.isArray(answer.values) ? answer.values : [];
+  const children = answer.children && typeof answer.children === 'object' ? answer.children : {};
+  const otherText = typeof answer.otherText === 'string' ? answer.otherText.trim() : '';
+  const otherOptionValue = normalizeQuestionOptions(question, { language }).find((option) => option.isOther)?.value || '';
+
+  const parts = [];
+  values.forEach((value) => {
+    const optionValue = value == null ? '' : String(value);
+
+    if (otherOptionValue && optionValue === otherOptionValue) {
+      if (otherText) {
+        parts.push(otherText);
+      }
+      return;
+    }
+
+    const childValues = Array.isArray(children[optionValue]) ? children[optionValue] : [];
+    if (childValues.length > 0) {
+      childValues.forEach((childValue) => {
+        const childLabel = resolveLabel(childValue);
+        if (childLabel) {
+          parts.push(childLabel);
+        }
+      });
+      return;
+    }
+
+    const label = resolveLabel(optionValue);
+    if (label) {
+      parts.push(label);
+    }
+  });
+
+  return parts.join(', ');
+};
+
+// Contrairement aux autres chips du hero, celle-ci ne doit jamais afficher le libellé
+// « information manquante » : tant qu'aucun pays n'a été renseigné, la chip reste absente
+// plutôt que d'occuper de la place avec un texte d'espace réservé.
+const getFormattedDeploymentCountries = (questions, answers, id, language) => {
+  const question = findQuestionById(questions, id);
+  if (!question) {
+    return '';
+  }
+
+  return formatDeploymentCountries(question, answers?.[id], language).trim();
 };
 
 const getRawAnswer = (answers, id) => {
@@ -1896,7 +1967,7 @@ const REQUIRED_SHOWCASE_QUESTION_IDS = [
   'roadmapMilestones'
 ];
 
-const buildHeroHighlights = ({ targetAudience, projectEnvironment, runway, t }) => {
+const buildHeroHighlights = ({ targetAudience, projectEnvironment, deploymentCountries, t }) => {
   const highlights = [];
 
   if (hasText(targetAudience)) {
@@ -1917,16 +1988,12 @@ const buildHeroHighlights = ({ targetAudience, projectEnvironment, runway, t }) 
     });
   }
 
-  if (runway) {
+  if (hasText(deploymentCountries)) {
     highlights.push({
-      id: 'runway',
-      label: t('projectShowcase.countdownLabel'),
-      value: `${runway.weeksLabel} (${runway.daysLabel})`,
-      caption: runway.isOverdue
-        ? t('projectShowcase.launchOverdueCaption', { date: runway.launchLabel })
-        : runway.isToday
-          ? t('projectShowcase.launchTodayCaption', { date: runway.launchLabel })
-          : t('projectShowcase.launchUpcomingCaption', { date: runway.launchLabel })
+      id: 'deploymentCountries',
+      label: t('projectShowcase.deploymentCountriesLabel'),
+      value: deploymentCountries,
+      caption: ''
     });
   }
 
@@ -2792,6 +2859,7 @@ export const ProjectShowcase = ({
   const slogan = getFormattedAnswer(questions, previewAnswers, 'projectSlogan', missingInfoLabel, language);
   const targetAudience = getFormattedAnswer(questions, previewAnswers, 'targetAudience', missingInfoLabel, language);
   const projectEnvironment = getFormattedAnswer(questions, previewAnswers, 'showcaseTheme', missingInfoLabel, language);
+  const deploymentCountries = getFormattedDeploymentCountries(questions, previewAnswers, 'q27', language);
   const problemPainPoints = parseProblemPainPoints(getRawAnswer(previewAnswers, 'problemPainPoints'));
 
   const solutionDescription = getFormattedAnswer(questions, previewAnswers, 'solutionDescription', missingInfoLabel, language);
@@ -2936,10 +3004,10 @@ export const ProjectShowcase = ({
       buildHeroHighlights({
         targetAudience,
         projectEnvironment,
-        runway,
+        deploymentCountries,
         t
       }),
-    [targetAudience, projectEnvironment, runway, t]
+    [targetAudience, projectEnvironment, deploymentCountries, t]
   );
 
   const teamMemberCards = useMemo(
