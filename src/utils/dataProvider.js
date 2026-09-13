@@ -10,7 +10,20 @@ const normalizeStatus = (status) => {
   if (status === 'submitted' || status === 'Submitted') {
     return 'Submitted';
   }
+  if (status === 'cancelled' || status === 'Cancelled') {
+    return 'Cancelled';
+  }
   return 'Draft';
+};
+
+const fromSharePointStatus = (status) => {
+  if (status === 'Submitted') {
+    return 'submitted';
+  }
+  if (status === 'Cancelled') {
+    return 'cancelled';
+  }
+  return 'draft';
 };
 
 const DEFAULT_PROJECTS = initialMockSharePointProjects;
@@ -22,13 +35,14 @@ const toProjectEntry = (item) => {
   return {
     id: item.ProjectId,
     projectName: item.Title || 'Projet sans nom',
-    status: item.Status === 'Submitted' ? 'submitted' : 'draft',
+    status: fromSharePointStatus(item.Status),
     answers,
     analysis,
     answeredQuestions: Number(item.ProgressAnswered) || 0,
     totalQuestions: Number(item.ProgressTotal) || 0,
     lastUpdated: item.LastAutosaveAt || new Date().toISOString(),
     submittedAt: item.SubmissionDate || null,
+    cancelledAt: item.CancelledDate || null,
     ownerEmail: item.OwnerEmail || '',
     rowVersion: Number(item.RowVersion) || 1,
     lastModifiedBy: item.UpdatedByEmail || item.CreatedByEmail || ''
@@ -45,7 +59,11 @@ const toListItem = (project, userEmail) => ({
   AnalysisJson: cloneDeep(project.analysis || {}),
   ProgressAnswered: Number(project.answeredQuestions) || 0,
   ProgressTotal: Number(project.totalQuestions) || 0,
-  SubmissionDate: project.status === 'submitted' ? project.submittedAt || new Date().toISOString() : null,
+  SubmissionDate:
+    project.status === 'submitted' || project.status === 'cancelled'
+      ? project.submittedAt || new Date().toISOString()
+      : null,
+  CancelledDate: project.status === 'cancelled' ? project.cancelledAt || new Date().toISOString() : null,
   LastAutosaveAt: new Date().toISOString(),
   RowVersion: Number(project.rowVersion) || 1,
   CreatedByEmail: project.ownerEmail || userEmail || '',

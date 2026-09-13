@@ -92,6 +92,21 @@ test('resolveProjectAnalysis : un projet soumis garde son analyse figée, sans r
   assert.equal(called, false, 'computeAnalysis ne doit pas être appelé pour un projet soumis déjà analysé');
 });
 
+test('resolveProjectAnalysis : un projet annulé garde son analyse figée, sans recalcul', () => {
+  const frozenAnalysis = { riskScore: 42, teams: ['dpo'] };
+  const project = { status: 'cancelled', analysis: frozenAnalysis, answers: { q1: 'oui' } };
+  let called = false;
+  const computeAnalysis = () => {
+    called = true;
+    return { riskScore: 999, teams: [] };
+  };
+
+  const result = resolveProjectAnalysis(project, computeAnalysis);
+
+  assert.equal(result, frozenAnalysis);
+  assert.equal(called, false, 'computeAnalysis ne doit pas être appelé pour un projet annulé déjà analysé');
+});
+
 test('resolveProjectAnalysis : un projet brouillon recalcule via computeAnalysis', () => {
   const project = { status: 'draft', analysis: { riskScore: 1 }, answers: { q1: 'oui' } };
   const freshAnalysis = { riskScore: 7 };

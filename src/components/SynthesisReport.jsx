@@ -786,11 +786,13 @@ export const SynthesisReport = ({
     typeof projectStatus === 'string' ? projectStatus.toLowerCase() : null;
   const statusLabelMap = {
     draft: t('synthesisReport.statusDraft'),
-    submitted: t('synthesisReport.statusSubmitted')
+    submitted: t('synthesisReport.statusSubmitted'),
+    cancelled: t('synthesisReport.statusCancelled')
   };
   const statusClassMap = {
     draft: 'bg-yellow-100 text-yellow-800 border border-yellow-200',
-    submitted: 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+    submitted: 'bg-emerald-100 text-emerald-800 border border-emerald-200',
+    cancelled: 'bg-gray-100 text-gray-700 border border-gray-200'
   };
   const projectStatusLabel = normalizedProjectStatus
     ? statusLabelMap[normalizedProjectStatus] || projectStatus

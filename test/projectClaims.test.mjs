@@ -247,12 +247,20 @@ test('la vue charge agrège les prises en charge, les retards et les orphelines'
       id: 'p2',
       projectName: 'Projet B'
     },
-    { id: 'p3', projectName: 'Projet C', answers: {} }
+    { id: 'p3', projectName: 'Projet C', answers: {} },
+    {
+      ...projectWithClaim({ assigneeEmail: 'alice@lfb.fr', assignedAt: '2026-09-01T08:00:00Z' }),
+      id: 'p4',
+      projectName: 'Projet annulé',
+      status: 'cancelled'
+    }
   ];
 
   const summary = summarizeTeamClaimLoad(projects, TEAM, { now: '2026-09-15T08:00:00Z' });
 
+  // Le projet annulé (p4) est hors circuit : il ne pèse ni dans la charge ni dans les alertes.
   assert.equal(summary.claims.length, 2);
+  assert.ok(!summary.claims.some((entry) => entry.projectId === 'p4'));
   assert.equal(summary.staleClaims.length, 1);
   assert.equal(summary.orphanClaims.length, 1);
   assert.equal(summary.orphanClaims[0].projectId, 'p2');

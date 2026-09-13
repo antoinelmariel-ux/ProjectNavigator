@@ -339,6 +339,7 @@ export default {
     sortAsc: 'Oldest first',
     statusDraft: 'Draft in progress',
     statusSubmitted: 'Summary finalized',
+    statusCancelled: 'Submission cancelled',
     validationStatusValidated: 'Approved',
     validationStatusPending: 'Awaiting approval',
     validationStatusRejected: 'Rejected',
@@ -440,6 +441,13 @@ export default {
     duplicateProjectTitle: 'Duplicate the project',
     deleteProjectAriaLabel: 'Delete the project {{name}}',
     deleteProjectTitle: 'Delete the project',
+    cancelSubmissionDialogTitle: 'Cancel the submission?',
+    cancelSubmissionDescription:
+      'You are about to cancel the submission of “{{name}}”. The project will no longer be processed by the compliance teams and no notification will be sent.',
+    confirmCancelSubmission: 'Cancel the submission',
+    cancelSubmissionAriaLabel: 'Cancel the submission of the project {{name}}',
+    cancelSubmissionTitle: 'Cancel the submission',
+    cancelledOn: 'Submission cancelled on {{date}}',
     visibleToAllBadge: 'Visible to everyone',
     makeVisibleToAll: 'Make visible to everyone',
     makeVisibleToAllTitle: 'Make this submitted project visible to all users',
@@ -1658,6 +1666,13 @@ export default {
     backButton: 'Back to questionnaire',
     proceedButton: 'Go to summary'
   },
+  submissionCancelledNotice: {
+    title: 'Submission cancelled',
+    description: 'The project owner has cancelled this submission. The project is no longer accessible from this link.',
+    descriptionWithName:
+      'The owner of the project “{{name}}” has cancelled its submission. The project is no longer accessible from this link.',
+    backToHome: 'Back to home'
+  },
   synthesisReport: {
     claim: {
       label: 'Ownership:',
@@ -1717,6 +1732,7 @@ export default {
     defaultUserLabel: 'User',
     statusDraft: 'Draft',
     statusSubmitted: 'Submitted',
+    statusCancelled: 'Cancelled',
     projectSynthesisAriaLabel: 'Project synthesis',
     title: 'Synthesis',
     statusLabelTemplate: 'Status: {{status}}',

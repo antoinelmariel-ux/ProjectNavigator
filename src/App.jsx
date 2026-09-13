@@ -14,6 +14,7 @@ import {
 } from './lazyComponents.jsx';
 import { Link, Lock, MessageSquare, Settings, Sparkles, UserCircle } from './components/icons.js';
 import { MandatoryQuestionsSummary } from './components/MandatoryQuestionsSummary.jsx';
+import { SubmissionCancelledNotice } from './components/SubmissionCancelledNotice.jsx';
 import { ActivityScopeSelector } from './components/ActivityScopeSelector.jsx';
 import { useLanguage, LanguageContext } from './i18n/LanguageContext.jsx';
 import { SUPPORTED_LANGUAGES, LANGUAGE_LABELS, getLocaleTag } from './i18n/languages.js';
@@ -885,6 +886,7 @@ export const App = () => {
   const [validationError, setValidationError] = useState(null);
   const [saveFeedback, setSaveFeedback] = useState(null);
   const [submittedProjectNotice, setSubmittedProjectNotice] = useState(null);
+  const [cancelledSubmissionNotice, setCancelledSubmissionNotice] = useState(null);
   const [showcaseProjectContext, setShowcaseProjectContext] = useState(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [publishedReferentialSignatures, setPublishedReferentialSignatures] = useState(null);
@@ -3607,8 +3609,11 @@ const updateProjectFilters = useCallback((updater) => {
     && (!userProfile || !userProfile.hasCompletedOnboarding)
     && !isOpeningSharedShowcaseLink
     && !isSimulatedSession;
+  // Une soumission annulée redevient modifiable par son porteur, exactement comme un
+  // brouillon — c'est le sens même de l'annulation, pas un simple retrait de la file
+  // compliance.
   const isActiveProjectEditable = !activeProject
-    || (canManageProject(activeProject) && activeProject.status === 'draft')
+    || (canManageProject(activeProject) && (activeProject.status === 'draft' || activeProject.status === 'cancelled'))
     || isAdminMode;
   const annotationOffsetClass = isAnnotationModeEnabled && screen === 'showcase'
     ? 'pt-20 lg:pt-24'
@@ -3697,7 +3702,7 @@ const updateProjectFilters = useCallback((updater) => {
           return prevProjects;
         }
 
-        const canUpdateProject = project.status === 'draft' || isAdminMode;
+        const canUpdateProject = project.status === 'draft' || project.status === 'cancelled' || isAdminMode;
         if (!canUpdateProject) {
           return prevProjects;
         }
@@ -3780,7 +3785,7 @@ const updateProjectFilters = useCallback((updater) => {
             return prevProjects;
           }
 
-          const canUpdateProject = project.status === 'draft' || isAdminMode;
+          const canUpdateProject = project.status === 'draft' || project.status === 'cancelled' || isAdminMode;
           if (!canUpdateProject) {
             return prevProjects;
           }
@@ -4888,7 +4893,8 @@ const updateProjectFilters = useCallback((updater) => {
     const missingIndex = firstMissingId
       ? derivedQuestions.findIndex(question => question.id === firstMissingId)
       : -1;
-    const startingIndex = missingIndex >= 0 ? missingIndex : project.status === 'draft' ? sanitizedIndex : 0;
+    const isResumableProject = project.status === 'draft' || project.status === 'cancelled';
+    const startingIndex = missingIndex >= 0 ? missingIndex : isResumableProject ? sanitizedIndex : 0;
 
     setAnswers(projectAnswers);
     setAnalysis(derivedAnalysis);
@@ -5256,6 +5262,16 @@ const updateProjectFilters = useCallback((updater) => {
     const pendingView = pendingProjectViewRef.current;
     pendingProjectViewRef.current = null;
 
+    // Un lien de notification envoyé avant l'annulation de la soumission ne doit jamais
+    // exposer le projet (synthèse ou vitrine) : la personne qui clique dessus atterrit sur
+    // une annonce dédiée, sans plus de détail.
+    if (matchingProject.status === 'cancelled') {
+      setCancelledSubmissionNotice({ projectName: matchingProject.projectName || '' });
+      previousScreenRef.current = null;
+      setScreen('submission-cancelled');
+      return;
+    }
+
     if (pendingView === 'synthesis') {
       handleOpenProject(pendingProjectId, { view: 'synthesis' });
     } else {
@@ -5344,13 +5360,15 @@ const updateProjectFilters = useCallback((updater) => {
     const projectId = showcaseProjectContext?.projectId;
     const project = projectId ? projects.find(entry => entry.id === projectId) : null;
 
+    const isEditableStatus = (status) => status === 'draft' || status === 'cancelled';
+
     if (
       !showcaseProjectContext ||
       !projectId ||
-      (showcaseProjectContext.status !== 'draft' && !isAdminMode)
+      (!isEditableStatus(showcaseProjectContext.status) && !isAdminMode)
       || !canManageProject(project)
       || !project
-      || (project.status !== 'draft' && !isAdminMode)
+      || (!isEditableStatus(project.status) && !isAdminMode)
     ) {
       return;
     }
@@ -5626,6 +5644,45 @@ const updateProjectFilters = useCallback((updater) => {
 
   const handleDismissSubmittedProjectNotice = useCallback(() => {
     setSubmittedProjectNotice(null);
+  }, []);
+
+  // Annuler une soumission n'envoie volontairement aucune notification (contrairement à
+  // `notifyProjectSubmission`) : c'est un retrait discret, pas un événement à relayer aux
+  // équipes compliance. Le projet garde son historique (réponses, analyse figée, date de
+  // soumission) — seul son statut change, ce qui le sort de toutes les listes filtrées sur
+  // `status === 'submitted'` (file compliance, projets publics, etc.).
+  const handleCancelProjectSubmission = useCallback((projectId) => {
+    if (!projectId) {
+      return;
+    }
+
+    const targetProject = projectsRef.current.find((project) => project?.id === projectId);
+    if (!targetProject || targetProject.status !== 'submitted' || !canManageProject(targetProject)) {
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const updatedProject = {
+      ...targetProject,
+      status: 'cancelled',
+      cancelledAt: now,
+      lastUpdated: now
+    };
+
+    setProjects((prevProjects) => prevProjects.map((project) => (
+      project.id === projectId ? updatedProject : project
+    )));
+
+    const expectedRowVersion = typeof updatedProject.rowVersion === 'number' ? updatedProject.rowVersion : undefined;
+    autosaveQueueRef.current?.enqueue({
+      project: updatedProject,
+      expectedRowVersion
+    });
+  }, [canManageProject]);
+
+  const handleReturnHomeFromCancelledSubmissionNotice = useCallback(() => {
+    setCancelledSubmissionNotice(null);
+    setScreen('home');
   }, []);
 
   const handleBackToQuestionnaire = useCallback(() => {
@@ -6840,6 +6897,7 @@ const updateProjectFilters = useCallback((updater) => {
             onShowProjectShowcase={handleShowProjectShowcase}
             canShowProjectShowcase={canShowProjectShowcase}
             onDuplicateProject={handleDuplicateProject}
+            onCancelProjectSubmission={handleCancelProjectSubmission}
             onReintegrateProjectInCommittee={handleReintegrateProjectInCommittee}
             onToggleProjectVisibility={handleToggleProjectVisibility}
             canSetProjectVisibility={canSetProjectVisibility}
@@ -6903,6 +6961,11 @@ const updateProjectFilters = useCallback((updater) => {
             onNavigateToQuestion={handleNavigateToQuestion}
             onProceedToSynthesis={handleProceedToSynthesis}
           />
+        ) : screen === 'submission-cancelled' ? (
+          <SubmissionCancelledNotice
+            projectName={cancelledSubmissionNotice?.projectName || ''}
+            onBackToHome={handleReturnHomeFromCancelledSubmissionNotice}
+          />
         ) : screen === 'synthesis' ? (
           <Suspense fallback={(<LoadingFallback label={t('app.loading.synthesisLabel')} hint={t('app.loading.synthesisHint')} />)}>
             <LazySynthesisReport
@@ -6945,7 +7008,7 @@ const updateProjectFilters = useCallback((updater) => {
         ) : screen === 'showcase' ? (
           showcaseProjectContext ? (
             <div className="space-y-4">
-              {showcaseProjectContext.status !== 'draft' && (
+              {showcaseProjectContext.status !== 'draft' && showcaseProjectContext.status !== 'cancelled' && (
                 <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
                   {isAdminMode
                     ? t('app.showcaseStatus.adminEditable')
@@ -6981,7 +7044,7 @@ const updateProjectFilters = useCallback((updater) => {
                       ? undefined
                       : isOnboardingActive
                         ? noop
-                        : showcaseProjectContext.status === 'draft' || isAdminMode
+                        : showcaseProjectContext.status === 'draft' || showcaseProjectContext.status === 'cancelled' || isAdminMode
                           ? handleUpdateProjectShowcaseAnswers
                           : undefined
                   }

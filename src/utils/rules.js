@@ -835,7 +835,7 @@ export const normalizeAnalysis = (analysis) => {
 };
 
 export const resolveProjectAnalysis = (project, computeAnalysis) => {
-  if (project?.status === 'submitted' && project?.analysis) {
+  if ((project?.status === 'submitted' || project?.status === 'cancelled') && project?.analysis) {
     return project.analysis;
   }
   const answers = project?.answers || {};

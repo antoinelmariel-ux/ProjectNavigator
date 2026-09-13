@@ -343,6 +343,11 @@ export const collectTeamClaims = (projects, team, { now = new Date().toISOString
   }
 
   return projects
+    // Une soumission annulée par son porteur est sortie du circuit compliance (voir le filtre
+    // équivalent dans HomeScreen.jsx) : la compter dans la charge d'une équipe, la remonter dans
+    // l'alerte des prises en charge orphelines ou la proposer à la réattribution ferait travailler
+    // quelqu'un sur un projet retiré.
+    .filter((project) => project?.status !== 'cancelled')
     .map((project) => {
       const entry = getTeamPerimeterEntry(project, team.id);
       const claim = getPerimeterClaim(entry);

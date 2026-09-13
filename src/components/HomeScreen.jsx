@@ -259,7 +259,8 @@ const buildInitialFiltersState = (config) => {
 
 const STATUS_CLASSNAMES = {
   draft: 'bg-yellow-50 border-yellow-200 text-yellow-600',
-  submitted: 'bg-emerald-50 border-emerald-200 text-emerald-600'
+  submitted: 'bg-emerald-50 border-emerald-200 text-emerald-600',
+  cancelled: 'bg-gray-100 border-gray-300 text-gray-600'
 };
 
 // Sur un projet soumis, ce badge remplace le badge « soumis » plutot que de s'ajouter a lui :
@@ -356,6 +357,7 @@ export const HomeScreen = ({
   onStartNewProject,
   onOpenProject,
   onDeleteProject,
+  onCancelProjectSubmission,
   submittedProjectNotice = null,
   onDismissSubmittedProjectNotice,
   onShowProjectShowcase,
@@ -429,6 +431,12 @@ export const HomeScreen = ({
   }));
   const deleteCancelButtonRef = useRef(null);
   const deleteConfirmButtonRef = useRef(null);
+  const [cancelSubmissionDialogState, setCancelSubmissionDialogState] = useState(() => ({
+    isOpen: false,
+    project: null
+  }));
+  const cancelSubmissionDismissButtonRef = useRef(null);
+  const cancelSubmissionConfirmButtonRef = useRef(null);
   const previouslyFocusedElementRef = useRef(null);
 
   const isOwnedOrSharedProject = useCallback((project) => {
@@ -464,7 +472,9 @@ export const HomeScreen = ({
     }
 
     return projects.filter((project) => (
-      project?.answers?.[PUBLIC_VISIBILITY_KEY] === true && !isOwnedOrSharedProject(project)
+      project?.status !== 'cancelled'
+      && project?.answers?.[PUBLIC_VISIBILITY_KEY] === true
+      && !isOwnedOrSharedProject(project)
     ));
   }, [projects, isAdminMode, currentUserEmail, isOwnedOrSharedProject]);
 
@@ -561,6 +571,9 @@ export const HomeScreen = ({
     const nowIso = new Date().toISOString();
 
     return projects
+      // Une soumission annulée sort immédiatement de la file compliance : elle ne doit plus
+      // apparaître ni « à traiter » ni « traitée », le porteur l'a retirée du circuit.
+      .filter((project) => project?.status !== 'cancelled')
       .map((project) => {
         const comments = normalizeComplianceComments(project?.answers?.[COMPLIANCE_COMMENTS_KEY]);
         const forcedCommitteeIds = comments.forcedCommitteeIds;
@@ -833,6 +846,41 @@ export const HomeScreen = ({
     closeDeleteDialog();
   }, [closeDeleteDialog, deleteDialogState.project, onDeleteProject]);
 
+  const closeCancelSubmissionDialog = useCallback(() => {
+    setCancelSubmissionDialogState({ isOpen: false, project: null });
+  }, []);
+
+  const handleDismissCancelSubmissionDialog = useCallback(() => {
+    closeCancelSubmissionDialog();
+  }, [closeCancelSubmissionDialog]);
+
+  const handleRequestSubmissionCancellation = useCallback((project) => {
+    if (!project || !project.id || typeof onCancelProjectSubmission !== 'function') {
+      return;
+    }
+
+    if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+      previouslyFocusedElementRef.current = document.activeElement;
+    } else {
+      previouslyFocusedElementRef.current = null;
+    }
+
+    setCancelSubmissionDialogState({
+      isOpen: true,
+      project
+    });
+  }, [onCancelProjectSubmission]);
+
+  const handleConfirmCancelSubmission = useCallback(() => {
+    if (!cancelSubmissionDialogState.project || typeof onCancelProjectSubmission !== 'function') {
+      closeCancelSubmissionDialog();
+      return;
+    }
+
+    onCancelProjectSubmission(cancelSubmissionDialogState.project.id);
+    closeCancelSubmissionDialog();
+  }, [closeCancelSubmissionDialog, cancelSubmissionDialogState.project, onCancelProjectSubmission]);
+
   const handleDuplicateProjectWithFeedback = useCallback((projectId) => {
     if (typeof onDuplicateProject !== 'function') {
       return;
@@ -950,6 +998,82 @@ export const HomeScreen = ({
       }
     };
   }, [deleteDialogState.isOpen, handleCancelDeleteProject]);
+
+  useEffect(() => {
+    if (!cancelSubmissionDialogState.isOpen) {
+      if (
+        previouslyFocusedElementRef.current &&
+        typeof previouslyFocusedElementRef.current.focus === 'function'
+      ) {
+        const shouldRestoreFocus =
+          typeof document === 'undefined' ||
+          document.contains(previouslyFocusedElementRef.current);
+
+        if (shouldRestoreFocus) {
+          previouslyFocusedElementRef.current.focus();
+        }
+
+        previouslyFocusedElementRef.current = null;
+      }
+      return undefined;
+    }
+
+    const timeoutId = typeof window !== 'undefined'
+      ? window.setTimeout(() => {
+        if (
+          cancelSubmissionDismissButtonRef.current &&
+          typeof cancelSubmissionDismissButtonRef.current.focus === 'function'
+        ) {
+          cancelSubmissionDismissButtonRef.current.focus();
+        }
+      }, 0)
+      : null;
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        handleDismissCancelSubmissionDialog();
+        return;
+      }
+
+      if (event.key === 'Tab') {
+        const focusableElements = [
+          cancelSubmissionDismissButtonRef.current,
+          cancelSubmissionConfirmButtonRef.current
+        ].filter((element) => element && typeof element.focus === 'function');
+
+        if (focusableElements.length === 0) {
+          return;
+        }
+
+        const activeElement = typeof document !== 'undefined' ? document.activeElement : null;
+        const currentIndex = focusableElements.indexOf(activeElement);
+        let nextIndex = currentIndex;
+
+        if (event.shiftKey) {
+          nextIndex = currentIndex <= 0 ? focusableElements.length - 1 : currentIndex - 1;
+        } else {
+          nextIndex = currentIndex === focusableElements.length - 1 ? 0 : currentIndex + 1;
+        }
+
+        event.preventDefault();
+        focusableElements[nextIndex]?.focus();
+      }
+    };
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('keydown', handleKeyDown);
+      }
+      if (timeoutId !== null && typeof window !== 'undefined') {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }, [cancelSubmissionDialogState.isOpen, handleDismissCancelSubmissionDialog]);
 
   useEffect(() => {
     setFiltersState(prevState => {
@@ -1352,6 +1476,24 @@ export const HomeScreen = ({
     return t('home.projectNameFallback');
   }, [deleteDialogState.project, t]);
 
+  const pendingCancelSubmissionProjectName = useMemo(() => {
+    if (!cancelSubmissionDialogState.project) {
+      return '';
+    }
+
+    const directName = stripRichTextToPlainText(cancelSubmissionDialogState.project.projectName);
+    if (directName.length > 0) {
+      return directName;
+    }
+
+    const answerName = stripRichTextToPlainText(cancelSubmissionDialogState.project.answers?.projectName);
+    if (answerName.length > 0) {
+      return answerName;
+    }
+
+    return t('home.projectNameFallback');
+  }, [cancelSubmissionDialogState.project, t]);
+
   const hasActiveFilters = useMemo(() => {
     if (projectSearch.trim().length > 0) {
       return true;
@@ -1573,9 +1715,14 @@ export const HomeScreen = ({
   const renderProjectCard = (project) => {
     const risksCount = project.analysis?.risks?.length ?? 0;
     const isDraft = project.status === 'draft';
+    const isCancelled = project.status === 'cancelled';
     const projectStatus = {
       className: STATUS_CLASSNAMES[project.status] || STATUS_CLASSNAMES.submitted,
-      label: isDraft ? t('home.statusDraft') : t('home.statusSubmitted')
+      label: isDraft
+        ? t('home.statusDraft')
+        : isCancelled
+          ? t('home.statusCancelled')
+          : t('home.statusSubmitted')
     };
     const remainingQuestions = computeRemainingQuestions(project);
     const progressTotal = typeof project.totalQuestions === 'number' ? project.totalQuestions : 0;
@@ -1585,7 +1732,10 @@ export const HomeScreen = ({
     const progressPercent = progressTotal > 0
       ? Math.round((progressAnswered / progressTotal) * 100)
       : 0;
-    const adminCanEditSubmitted = isAdminMode && !isDraft;
+    // Annuler une soumission la rend à nouveau modifiable par son porteur, exactement comme
+    // un admin peut déjà rouvrir n'importe quel projet soumis : même bascule « Modifier » +
+    // bouton « Voir la synthèse » séparé, plutôt qu'un unique lien vers la synthèse figée.
+    const canEditNonDraftProject = (isAdminMode || isCancelled) && !isDraft;
     const leadName = getSafeString(project?.answers?.teamLead).trim();
     const leadTeam = resolveChoiceOptionLabel(teamLeadTeamQuestion, project?.answers?.teamLeadTeam);
     const leadDisplay = leadName.length > 0
@@ -1606,12 +1756,16 @@ export const HomeScreen = ({
     const displayProjectName = stripRichTextToPlainText(project.projectName);
     const isPubliclyVisible = project?.answers?.[PUBLIC_VISIBILITY_KEY] === true;
     const canToggleVisibility = !isDraft
+      && !isCancelled
       && typeof onToggleProjectVisibility === 'function'
       && typeof canSetProjectVisibility === 'function'
       && canSetProjectVisibility(project);
-    const validation = isDraft ? null : getProjectValidationStatus(project);
+    const validation = (isDraft || isCancelled) ? null : getProjectValidationStatus(project);
     const validationBadge = validation ? VALIDATION_BADGE_META[validation.status] : null;
     const ValidationIcon = validationBadge?.icon;
+    const canCancelSubmission = project.status === 'submitted'
+      && typeof onCancelProjectSubmission === 'function'
+      && (isAdminMode || isOwnedOrSharedProject(project));
 
     return (
       <article
@@ -1638,7 +1792,9 @@ export const HomeScreen = ({
             <p className="text-sm text-gray-500 mt-1">
               {isDraft
                 ? t('home.lastUpdated', { date: formatDate(project.lastUpdated || project.submittedAt, language, t('home.dateUnknown')) })
-                : t('home.submittedOn', { date: formatDate(project.submittedAt || project.lastUpdated, language, t('home.dateUnknown')) })}
+                : isCancelled
+                  ? t('home.cancelledOn', { date: formatDate(project.cancelledAt || project.lastUpdated, language, t('home.dateUnknown')) })
+                  : t('home.submittedOn', { date: formatDate(project.submittedAt || project.lastUpdated, language, t('home.dateUnknown')) })}
             </p>
           </div>
           <div className="flex items-start gap-3">
@@ -1705,6 +1861,17 @@ export const HomeScreen = ({
                 <Trash2 className="w-4 h-4" aria-hidden="true" />
               </button>
             )}
+            {canCancelSubmission && (
+              <button
+                type="button"
+                onClick={() => handleRequestSubmissionCancellation(project)}
+                className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
+                aria-label={t('home.cancelSubmissionAriaLabel', { name: project.projectName || t('home.projectNameFallback') })}
+                title={t('home.cancelSubmissionTitle')}
+              >
+                <XCircle className="w-4 h-4" aria-hidden="true" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -1767,7 +1934,7 @@ export const HomeScreen = ({
                 return;
               }
 
-              if (adminCanEditSubmitted) {
+              if (canEditNonDraftProject) {
                 onOpenProject(project.id, { view: 'questionnaire' });
                 return;
               }
@@ -1775,7 +1942,7 @@ export const HomeScreen = ({
               onOpenProject(project.id);
             }}
             className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all ${
-              isDraft || adminCanEditSubmitted
+              isDraft || canEditNonDraftProject
                 ? 'hv-button-draft text-white'
                 : 'bg-blue-600 text-white hover:bg-blue-700'
             }`}
@@ -1785,7 +1952,7 @@ export const HomeScreen = ({
                 <Edit className="w-4 h-4" aria-hidden="true" />
                 <span>{t('home.continueEditing')}</span>
               </>
-            ) : adminCanEditSubmitted ? (
+            ) : canEditNonDraftProject ? (
               <>
                 <Edit className="w-4 h-4" aria-hidden="true" />
                 <span>{t('home.editProject')}</span>
@@ -1797,7 +1964,7 @@ export const HomeScreen = ({
               </>
             )}
           </button>
-          {adminCanEditSubmitted && (
+          {canEditNonDraftProject && (
             <button
               type="button"
               onClick={() => onOpenProject(project.id, { view: 'synthesis' })}
@@ -2850,6 +3017,57 @@ export const HomeScreen = ({
                 className="inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition-colors"
               >
                 {t('home.deletePermanently')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {cancelSubmissionDialogState.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
+          <div
+            className="absolute inset-0 bg-gray-900 bg-opacity-60"
+            aria-hidden="true"
+            onClick={handleDismissCancelSubmissionDialog}
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="cancel-submission-dialog-title"
+            aria-describedby="cancel-submission-dialog-description"
+            className="relative z-10 w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl focus:outline-none"
+          >
+            <div className="flex items-start gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-red-600">
+                <XCircle className="h-6 w-6" aria-hidden="true" />
+              </div>
+              <div>
+                <h2 id="cancel-submission-dialog-title" className="text-xl font-semibold text-gray-900">
+                  {t('home.cancelSubmissionDialogTitle')}
+                </h2>
+                <p id="cancel-submission-dialog-description" className="mt-2 text-sm text-gray-600">
+                  {t('home.cancelSubmissionDescription', {
+                    name: pendingCancelSubmissionProjectName || t('home.projectNameFallback')
+                  })}
+                </p>
+              </div>
+            </div>
+            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
+              <button
+                type="button"
+                ref={cancelSubmissionDismissButtonRef}
+                onClick={handleDismissCancelSubmissionDialog}
+                className="inline-flex items-center justify-center rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                {t('home.cancel')}
+              </button>
+              <button
+                type="button"
+                ref={cancelSubmissionConfirmButtonRef}
+                onClick={handleConfirmCancelSubmission}
+                className="inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition-colors"
+              >
+                {t('home.confirmCancelSubmission')}
               </button>
             </div>
           </div>
