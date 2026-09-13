@@ -62,6 +62,11 @@ a {
   background-color: rgba(245,158,11, var(--tw-bg-opacity));
 }
 
+.bg-amber-600 {
+  --tw-bg-opacity: 1;
+  background-color: rgba(217,119,6, var(--tw-bg-opacity));
+}
+
 .bg-black {
   --tw-bg-opacity: 1;
   background-color: rgba(0,0,0, var(--tw-bg-opacity));
@@ -261,6 +266,11 @@ a {
 .bg-red-600 {
   --tw-bg-opacity: 1;
   background-color: rgba(220,38,38, var(--tw-bg-opacity));
+}
+
+.bg-rose-100 {
+  --tw-bg-opacity: 1;
+  background-color: rgba(255,228,230, var(--tw-bg-opacity));
 }
 
 .bg-transparent {
@@ -491,6 +501,10 @@ a {
 
 .bottom-6 {
   bottom: 1.5rem;
+}
+
+.break-all {
+  word-break: break-all;
 }
 
 .cursor-move {
@@ -1675,6 +1689,11 @@ a {
   color: rgba(225,29,72, var(--tw-text-opacity));
 }
 
+.text-rose-800 {
+  --tw-text-opacity: 1;
+  color: rgba(159,18,57, var(--tw-text-opacity));
+}
+
 .text-slate-600 {
   --tw-text-opacity: 1;
   color: rgba(71,85,105, var(--tw-text-opacity));
@@ -2416,6 +2435,11 @@ a {
 .hover\:bg-amber-600:hover {
   --tw-bg-opacity: 1;
   background-color: rgba(217,119,6, var(--tw-bg-opacity));
+}
+
+.hover\:bg-amber-700:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgba(180,83,9, var(--tw-bg-opacity));
 }
 
 .hover\:bg-blue-100:hover {

@@ -247,13 +247,20 @@ export const LIST_SCHEMAS = {
       'NameJson',
       'Expertise',
       'AcceptedLanguagesJson',
+      'MemberRulesJson',
       'SortOrder',
       'RowVersion',
       'CreatedByEmail',
       'UpdatedByEmail',
       'UpdatedAt'
     ],
-    json: { ContactsJson: ARRAY, NameJson: OBJECT, Expertise: OBJECT, AcceptedLanguagesJson: ARRAY },
+    json: {
+      ContactsJson: ARRAY,
+      NameJson: OBJECT,
+      Expertise: OBJECT,
+      AcceptedLanguagesJson: ARRAY,
+      MemberRulesJson: ARRAY
+    },
     numbers: ['SortOrder', 'RowVersion'],
     booleans: []
   }

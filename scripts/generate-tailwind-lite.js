@@ -93,6 +93,7 @@ const handWrittenClasses = new Set();
 }
 
 const knownPrefix = [
+  'break',
   'bg',
   'text',
   'font',
@@ -1124,6 +1125,9 @@ function baseRule(base) {
   }
   if (base === 'z-10') return { declarations: { 'z-index': '10' } };
   if (base === 'z-50') return { declarations: { 'z-index': '50' } };
+  if (base === 'break-all') {
+    return { declarations: { 'word-break': 'break-all' } };
+  }
   if (base === 'whitespace-nowrap') {
     return { declarations: { 'white-space': 'nowrap' } };
   }

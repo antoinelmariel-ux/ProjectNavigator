@@ -292,6 +292,12 @@ natives — ce n'est plus la source de vérité de l'app. `AcceptedLanguagesJson
 (parmi les 4 ci-dessus) dans lesquelles l'équipe peut échanger avec les porteurs de projet, ex.
 `["fr","en"]` ; un tableau vide ou absent signifie que toutes les langues sont acceptées.
 
+`MemberRulesJson` porte le routage par membre d'une équipe à plusieurs contacts : une entrée par
+membre *conditionné*, de la forme `{"email":"...","mode":"include|exclude","conditionGroups":[...]}`
+(mêmes groupes de conditions que les règles). `include` = ce membre n'est sollicité que si les
+critères sont remplis, `exclude` = il l'est sauf si. Un contact sans entrée est toujours sollicité,
+donc une colonne vide ou absente reproduit exactement le comportement historique.
+
 | Colonne | Type |
 |---|---|
 | Title | (existante — nom de l'équipe, langue par défaut, dérivé automatiquement) |
@@ -300,6 +306,7 @@ natives — ce n'est plus la source de vérité de l'app. `AcceptedLanguagesJson
 | NameJson | Texte long (nom traduit, ex. `{"en":"Legal","fr":"Juridique"}`) |
 | Expertise | Texte long (domaine d'expertise traduit, ex. `{"en":"...","fr":"..."}`) |
 | AcceptedLanguagesJson | Texte long (langues de réponse acceptées, ex. `["fr","en"]`) |
+| MemberRulesJson | Texte long (critères de sollicitation par membre, ex. `[{"email":"queres@lfb.fr","mode":"include","conditionGroups":[...]}]`) |
 | SortOrder | Nombre |
 | RowVersion | Nombre |
 | CreatedByEmail | Une ligne de texte |

@@ -56,7 +56,7 @@ import {
   isSharedShowcaseSearch,
   readShowcaseShareToken
 } from './utils/showcaseShareLink.js';
-import { normalizeTeamContacts } from './utils/teamContacts.js';
+import { resolveTeamRecipients } from './utils/teamMemberRules.js';
 import { normalizeRulesTeamReferences } from './utils/teamIds.js';
 import { getCurrentUser, getRealUser } from './utils/spContext.js';
 import { isImpersonating } from './utils/impersonation.js';
@@ -3775,7 +3775,7 @@ const updateProjectFilters = useCallback((updater) => {
           const teamRecipients = Object.keys(teamEntries)
             .flatMap((teamId) => {
               const team = teams.find((entry) => entry?.id === teamId);
-              return normalizeTeamContacts(team);
+              return resolveTeamRecipients(team, project?.answers || {});
             });
           const committeeRecipients = Object.keys(committeeEntries)
             .flatMap((committeeId) => {
@@ -4963,7 +4963,7 @@ const updateProjectFilters = useCallback((updater) => {
       .filter(Boolean);
     const teamNames = notifiedTeams.map((team) => resolveLocalizedText(team.name, DEFAULT_LANGUAGE)).filter(Boolean);
     const teamRecipients = normalizeRecipientList(
-      notifiedTeams.flatMap((team) => normalizeTeamContacts(team))
+      notifiedTeams.flatMap((team) => resolveTeamRecipients(team, project?.answers || {}))
     );
 
     if (teamRecipients.length > 0) {
