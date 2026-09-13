@@ -81,7 +81,7 @@ script (nécessaire au-delà de 5 000 éléments).
 |---|---|
 | `CN_Projects` | ProjectId📌, Status📌 (Choix : Draft/Submitted), OwnerEmail, CurrentEditorEmail, AnswersJson (texte long), AnalysisJson (texte long), ProgressAnswered (nombre), ProgressTotal (nombre), SubmissionDate (date), LastAutosaveAt (date), RowVersion (nombre), CreatedByEmail, UpdatedByEmail |
 | `CN_Inspirations` | InspirationId📌, Visibility (Choix : Personal/Shared), InspirationJson (texte long), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
-| `CN_ComplianceComments` | CommentId📌, ProjectId📌, SectionKey, Message (texte long), CommentType, ThreadId, **Status**, **AttachmentsJson (texte long)**, Resolved (oui/non), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
+| `CN_ComplianceComments` | CommentId📌, ProjectId📌, SectionKey, Message (texte long), CommentType, ThreadId, **Status**, **AttachmentsJson (texte long)**, Resolved (oui/non), AssigneeEmail, ClaimJson (texte long), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
 | `CN_ProjectDiscussions` | MessageId📌, ProjectId📌, ThreadId, SenderEmail, RecipientRole, Message (texte long), AttachmentsJson (texte long), RowVersion (nombre), CreatedAt (date), UpdatedAt (date) |
 | `CN_ProjectMembers` | EntryId, ProjectId📌, MemberEmail📌, Role, CanSubmit (oui/non) |
 | `CN_BackofficeChanges` | ChangeId, EntityType📌, EntityId, PayloadJson (texte long), ChangeType, RequiresValidation (oui/non), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
@@ -89,13 +89,17 @@ script (nécessaire au-delà de 5 000 éléments).
 | `CN_FilesIndex` | FileId, EntityType📌, EntityId📌, Path, UploadedBy, UploadedAt (date), Checksum |
 | `CN_NotificationsQueue` | NotificationType, ToEmails (texte long), CcEmails (texte long), Body (texte long), ProjectId, Status📌 (Choix : Pending/Sent/Error, défaut Pending), SentAt (date), ErrorMessage (texte long) |
 | `CN_SiteAccessRequests` | TargetEmail📌, DisplayName, RequestedByEmail, Context, Status📌 (Choix : Pending/Done/Error, défaut Pending), ProcessedAt (date), ErrorMessage (texte long) |
-| `CN_UserProfiles` | UserEmail📌, ActivityScopeJson (texte long), PreferredLanguage, HasCompletedOnboarding (oui/non), UpdatedAt (date) |
+| `CN_UserProfiles` | UserEmail📌, ActivityScopeJson (texte long), PreferredLanguage, HasCompletedOnboarding (oui/non), TeamPreferencesJson (texte long), AbsenceJson (texte long), UpdatedAt (date) |
 | `CN_Rules` | RuleId📌, PayloadJson (texte long), SortOrder (nombre), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
-| `CN_Teams` | TeamId📌, ContactsJson (texte long), Expertise (texte long), SortOrder (nombre), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
+| `CN_Teams` | TeamId📌, ContactsJson (texte long), NameJson (texte long), Expertise (texte long), AcceptedLanguagesJson (texte long), MemberRulesJson (texte long), ClaimStaleDays (nombre), ClaimReminderDays (nombre), SortOrder (nombre), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
 | `CN_SampleProjects` | SampleId📌, AnswersJson (texte long), SortOrder (nombre), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
 
 (Les colonnes en **gras** sont celles corrigées le 29/08/2026, voir l'encart d'avertissement en
-haut de ce document. `CN_Rules`/`CN_Teams` remplacent les fichiers `rules.json`/`teams.json` qui
+haut de ce document. `AssigneeEmail`/`ClaimJson` sur `CN_ComplianceComments`,
+`TeamPreferencesJson`/`AbsenceJson` sur `CN_UserProfiles` et `ClaimStaleDays`/`ClaimReminderDays`
+sur `CN_Teams` servent à la prise en charge des projets par un membre d'équipe ; les lignes
+`CN_Teams` et `CN_UserProfiles` ci-dessus étaient par ailleurs en retard sur `listSchemas.js`
+(`NameJson`, `AcceptedLanguagesJson`, `MemberRulesJson` manquaient) et sont désormais alignées. `CN_Rules`/`CN_Teams` remplacent les fichiers `rules.json`/`teams.json` qui
 existaient auparavant dans `CN-Config` — une ligne par règle/équipe plutôt qu'un fichier unique.)
 
 ## Le script
@@ -252,6 +256,8 @@ existaient auparavant dans `CN-Config` — une ligne par règle/équipe plutôt 
         { name: 'Status', type: 'Text' },
         { name: 'AttachmentsJson', type: 'Note' },
         { name: 'Resolved', type: 'Boolean' },
+        { name: 'AssigneeEmail', type: 'Text' },
+        { name: 'ClaimJson', type: 'Note' },
         { name: 'RowVersion', type: 'Number' },
         { name: 'CreatedByEmail', type: 'Text' },
         { name: 'UpdatedByEmail', type: 'Text' },
@@ -360,6 +366,8 @@ existaient auparavant dans `CN-Config` — une ligne par règle/équipe plutôt 
         { name: 'ActivityScopeJson', type: 'Note' },
         { name: 'PreferredLanguage', type: 'Text', defaultValue: 'en' },
         { name: 'HasCompletedOnboarding', type: 'Boolean' },
+        { name: 'TeamPreferencesJson', type: 'Note' },
+        { name: 'AbsenceJson', type: 'Note' },
         { name: 'UpdatedAt', type: 'DateTime' }
       ]
     },
@@ -380,7 +388,12 @@ existaient auparavant dans `CN-Config` — une ligne par règle/équipe plutôt 
       fields: [
         { name: 'TeamId', type: 'Text', indexed: true },
         { name: 'ContactsJson', type: 'Note' },
+        { name: 'NameJson', type: 'Note' },
         { name: 'Expertise', type: 'Note' },
+        { name: 'AcceptedLanguagesJson', type: 'Note' },
+        { name: 'MemberRulesJson', type: 'Note' },
+        { name: 'ClaimStaleDays', type: 'Number' },
+        { name: 'ClaimReminderDays', type: 'Number' },
         { name: 'SortOrder', type: 'Number' },
         { name: 'RowVersion', type: 'Number' },
         { name: 'CreatedByEmail', type: 'Text' },

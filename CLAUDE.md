@@ -196,6 +196,63 @@ modal is a reuse of the rules grammar rather than a fourth copy of it (`RuleEdit
 validation-committee block in `BackOffice.jsx` still carry their own inline copies). It is in
 `DEFERRED_MODULES` because only `BackOffice.jsx` imports it.
 
+## Taking a project in charge (claim / take-over)
+
+When several contacts of the same expert team are triggered on a project, one of them can **take it
+in charge**: the project then leaves the others' « À traiter » list and the following exchanges only
+notify the person handling it. `src/utils/projectClaims.js` holds all of it, `src/utils/businessDays.js`
+the (Mon–Fri, no holiday calendar) delay arithmetic, and `src/utils/teamMemberProfile.js` the two
+per-person settings this feature needs.
+
+- **The unit is the perimeter, never the project.** A claim lives in
+  `answers['__compliance_team_comments__'].teams[teamId].claim`, right next to that perimeter's
+  compliance status, because a project can trigger several teams and one person can be a contact of
+  two of them. Counts and tab routing are therefore computed per perimeter (`openPerimeters` in
+  `HomeScreen.jsx`); a project only leaves « À traiter » when **every** still-open perimeter of that
+  person is claimed by someone else.
+- **Recipients are narrowed, access is not** — same invariant as `teamMemberRules.js`, and the two
+  compose in one direction only: `resolveClaimAwareRecipients` starts from `resolveTeamRecipients`,
+  so a claim can only ever shrink an already-routed list. `resolveClaimCopyRecipients` intersects
+  with it too, so a voluntary copy never resurrects a member the routing excluded. A claim never
+  changes who may open, comment or take over, and it never influences
+  `projectValidationStatus.js` — it is routing, not validation.
+- **Committees are not claimable** (deliberate: a committee deliberates). A committee perimeter
+  always counts as « mine », which is why a project whose team side is claimed can still sit in a
+  committee member's queue.
+- **The claim is implicit.** Posting a compliance comment, setting a status, or replying in the
+  thread claims the perimeter (`injectImplicitClaims` in `App.jsx`) — without it the queue never
+  empties, because nobody clicks a button before doing the work. Three guards: only a contact of
+  that team claims (the project owner replying claims nothing), a perimeter already claimed by
+  someone else is **never** taken over silently (the comment goes through, the claim does not move,
+  and the UI says so), and only compliance-side changes count (`status`/`comment`/a reply written by
+  that person), never a reply from the owner.
+- **Taking over is open to every contact of the team**, with no permission gate — a lock only the
+  absent person could open is exactly the failure mode to avoid. What replaces the gate: a mandatory
+  reason, an entry in `claimHistory`, and a **non-disableable** email to the dispossessed person and
+  the team. Releasing (`CLAIM_ACTION_RELEASE`) mails the team, since the project becomes everyone's
+  business again.
+- **Copies are opt-in per person, not per team** (`userProfiles.TeamPreferencesJson`), off by
+  default, and cover the take-in-charge announcement **only** — not the exchanges that follow, or the
+  checkbox brings back the very email volume the feature removes. They are sent in `to` and not `cc`
+  because there is no primary recipient (the new owner is the actor, whom `notify` filters out).
+- **The first submission mail still goes to the whole team.** You cannot claim a project you never
+  heard of; only absence substitution applies there (`resolveTeamMailRecipients`).
+- **Staleness is signalled, never auto-released.** `ClaimStaleDays` (6 business days) flags the card,
+  `ClaimReminderDays` (10) emails the owner; `0` disables either. There is no server, so the reminder
+  pass runs in the session of *any* contact of the team who opens the app — deliberately not only the
+  owner's, since an absent owner opens nothing. `claim.reminderSentAt`, re-armed by any new activity
+  on the perimeter, is what makes that pass idempotent.
+- **A claim held by someone who is no longer a contact is surfaced, not cleaned up** (`isOrphanClaim`,
+  standing `role="alert"` on the team card with a reassignment control). This is the opposite of what
+  `normalizeTeamMemberRules` does with orphan routing criteria, and on purpose: stale criteria are
+  noise, work in progress is not. Removing a contact who still holds claims opens a dialog first
+  (reassign / put back in the queue), it never orphans them silently.
+- **Absence lives in the profile, not in `memberRules`**: those conditions are evaluated against a
+  project's answers and know nothing about dates. `AbsenceJson` carries the period and a backup (who
+  must be a contact of the same team to receive anything), and it is editable by a third party from
+  the back-office — an unplanned absence is never declared by the person who is away.
+- Tests: `test/projectClaims.test.mjs`, `test/teamMemberProfile.test.mjs`, `e2e/project-claim.spec.js`.
+
 ## The rules/questions engine (the risk-critical logic)
 
 This is where correctness matters most and where tests exist:

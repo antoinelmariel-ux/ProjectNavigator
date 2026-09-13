@@ -64,6 +64,16 @@ import {
 } from '../utils/ruleDraftFromAnswers.js';
 import { normalizeTeamContacts } from '../utils/teamContacts.js';
 import {
+  CLAIM_ACTION_RELEASE,
+  CLAIM_ACTION_REASSIGN,
+  DEFAULT_CLAIM_REMINDER_DAYS,
+  DEFAULT_CLAIM_STALE_DAYS,
+  resolveTeamClaimSettings,
+  summarizeTeamClaimLoad
+} from '../utils/projectClaims.js';
+import { getActiveAbsence, normalizeAbsence } from '../utils/teamMemberProfile.js';
+import { normalizeEmail } from '../utils/normalizeEmail.js';
+import {
   MEMBER_TRIGGER_MODES,
   MEMBER_TRIGGER_MODE_EXCLUDE,
   MEMBER_TRIGGER_MODE_INCLUDE,
@@ -747,7 +757,10 @@ export const BackOffice = ({
   rulesQueueRef,
   teamsQueueRef,
   ruleServerMetaRef,
-  teamServerMetaRef
+  teamServerMetaRef,
+  userProfilesByEmail = null,
+  onSaveMemberAbsence,
+  onPerimeterClaimAction
 }) => {
   const { t, language } = useTranslation();
 
@@ -848,6 +861,16 @@ export const BackOffice = ({
   // Réattribution proposée par l'avertissement de couverture : { [teamId]: { from, to } }.
   // Une entrée absente signifie « garder les valeurs par défaut calculées au rendu ».
   const [teamMemberReassignment, setTeamMemberReassignment] = useState({});
+  // Absence d'un membre en cours d'édition, clé `${teamId}::${email}` : la renseigner pour
+  // quelqu'un d'autre est le cas normal (une absence imprévue n'est jamais déclarée par
+  // l'absent), d'où l'édition depuis la fiche d'équipe et non seulement depuis « Mon profil ».
+  const [memberAbsenceDraft, setMemberAbsenceDraft] = useState(null);
+  // Réattribution d'une prise en charge orpheline (référent qui n'est plus contact de l'équipe),
+  // clé `${teamId}::${projectId}` -> adresse cible.
+  const [orphanClaimTargets, setOrphanClaimTargets] = useState({});
+  // Retrait d'un contact qui porte encore des prises en charge : on suspend le retrait le temps
+  // de décider du sort de ses projets (réattribution ou retour dans « À traiter »).
+  const [contactRemovalDialog, setContactRemovalDialog] = useState(null);
   const [inspirationEditingLanguage, setInspirationEditingLanguage] = useState(language);
   // Périmètre d'activité du banc d'essai : celui du profil par défaut, ou celui que l'expert
   // simule pour vérifier ce que verrait quelqu'un d'un autre périmètre. `null` = pas de
@@ -4579,6 +4602,67 @@ export const BackOffice = ({
     });
   };
 
+  // Retirer un contact qui porte encore des projets ne doit pas les rendre orphelins en silence :
+  // contrairement aux critères de routage (que normalizeTeamMemberRules supprime), une prise en
+  // charge est du travail en cours. On demande donc quoi en faire avant d'appliquer le retrait.
+  const handleTeamContactsChange = (team, emails) => {
+    const nextEmails = Array.isArray(emails) ? emails : [];
+    const nextKeys = nextEmails.map((email) => normalizeEmail(email));
+    const removedKeys = normalizeTeamContacts(team)
+      .map((contact) => normalizeEmail(contact))
+      .filter((key) => key && !nextKeys.includes(key));
+
+    if (removedKeys.length === 0 || typeof onPerimeterClaimAction !== 'function') {
+      updateTeamContacts(team.id, nextEmails);
+      return;
+    }
+
+    const heldClaims = summarizeTeamClaimLoad(projects, team).claims
+      .filter((entry) => removedKeys.includes(entry.claim.assigneeEmail));
+
+    if (heldClaims.length === 0) {
+      updateTeamContacts(team.id, nextEmails);
+      return;
+    }
+
+    setContactRemovalDialog({
+      teamId: team.id,
+      teamName: resolveLocalizedText(team.name, language) || team.id,
+      emails: nextEmails,
+      removedKeys,
+      claims: heldClaims,
+      targetEmail: nextEmails[0] || ''
+    });
+  };
+
+  const resolveContactRemoval = (mode) => {
+    const dialog = contactRemovalDialog;
+    setContactRemovalDialog(null);
+
+    if (!dialog) {
+      return;
+    }
+
+    if (mode !== 'cancel' && typeof onPerimeterClaimAction === 'function') {
+      dialog.claims.forEach((entry) => {
+        if (mode === 'reassign' && dialog.targetEmail) {
+          onPerimeterClaimAction(entry.projectId, dialog.teamId, CLAIM_ACTION_REASSIGN, {
+            assigneeEmail: dialog.targetEmail,
+            reason: 'departure'
+          });
+        } else {
+          onPerimeterClaimAction(entry.projectId, dialog.teamId, CLAIM_ACTION_RELEASE, {
+            reason: 'departure'
+          });
+        }
+      });
+    }
+
+    if (mode !== 'cancel') {
+      updateTeamContacts(dialog.teamId, dialog.emails);
+    }
+  };
+
   // Le mode vit dans l'état du panneau, pas seulement dans l'équipe : une règle sans condition
   // n'est pas stockée (cf. applyTeamMemberRule), donc choisir « sauf si » avant d'ajouter la
   // première condition serait sinon oublié aussitôt.
@@ -4604,6 +4688,40 @@ export const BackOffice = ({
 
   const clearTeamMemberRule = (teamId, email) => {
     updateTeamMemberRule(teamId, email, (current) => ({ ...current, conditionGroups: [] }));
+  };
+
+  const openMemberAbsenceEditor = (teamId, email, absence) => {
+    setMemberAbsenceDraft({
+      key: `${teamId}::${email}`,
+      email,
+      from: absence?.from || '',
+      to: absence?.to || '',
+      backupEmail: absence?.backupEmail || ''
+    });
+  };
+
+  const submitMemberAbsence = (clear = false) => {
+    if (!memberAbsenceDraft || typeof onSaveMemberAbsence !== 'function') {
+      setMemberAbsenceDraft(null);
+      return;
+    }
+    onSaveMemberAbsence(memberAbsenceDraft.email, clear ? null : normalizeAbsence(memberAbsenceDraft));
+    setMemberAbsenceDraft(null);
+  };
+
+  const applyOrphanClaimReassignment = (teamId, projectId, targetEmail) => {
+    if (typeof onPerimeterClaimAction !== 'function' || !targetEmail) {
+      return;
+    }
+    onPerimeterClaimAction(projectId, teamId, CLAIM_ACTION_REASSIGN, {
+      assigneeEmail: targetEmail,
+      reason: 'departure'
+    });
+    setOrphanClaimTargets((previous) => {
+      const next = { ...previous };
+      delete next[`${teamId}::${projectId}`];
+      return next;
+    });
   };
 
   const applyTeamMemberReassignment = (teamId, fromEmail, toEmail) => {
@@ -8552,7 +8670,7 @@ export const BackOffice = ({
                         <PeoplePicker
                           id={`${team.id}-contact`}
                           value={teamContacts}
-                          onChange={(emails) => updateTeamContacts(team.id, emails)}
+                          onChange={(emails) => handleTeamContactsChange(team, emails)}
                           context={`Équipe : ${teamDisplayName}`}
                           placeholder={t('backOffice.main.teamContactsPlaceholder')}
                         />
@@ -8718,6 +8836,294 @@ export const BackOffice = ({
                         </div>
                       )}
 
+                      {(() => {
+                        const claimSettings = resolveTeamClaimSettings(team);
+                        const claimLoad = summarizeTeamClaimLoad(projects, team);
+                        const orphanClaims = claimLoad.orphanClaims;
+                        const loadRows = claimLoad.rows.filter((row) => row.total > 0);
+
+                        return (
+                          <div className="mb-4 space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                            <div>
+                              <h3 className="text-sm font-semibold text-gray-800">
+                                {t('backOffice.main.claimSettingsHeading')}
+                              </h3>
+                              <p className="mt-1 text-xs text-gray-600">{t('backOffice.main.claimSettingsHint')}</p>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                              <label className="text-xs font-semibold text-gray-700" htmlFor={`${team.id}-claim-stale-days`}>
+                                {t('backOffice.main.claimStaleDaysLabel')}
+                                <input
+                                  id={`${team.id}-claim-stale-days`}
+                                  type="number"
+                                  min="0"
+                                  value={claimSettings.staleDays}
+                                  onChange={(event) => updateTeamById(team.id, (entry) => ({
+                                    ...entry,
+                                    claimStaleDays: event.target.value === '' ? DEFAULT_CLAIM_STALE_DAYS : Number(event.target.value)
+                                  }))}
+                                  className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                                />
+                              </label>
+                              <label className="text-xs font-semibold text-gray-700" htmlFor={`${team.id}-claim-reminder-days`}>
+                                {t('backOffice.main.claimReminderDaysLabel')}
+                                <input
+                                  id={`${team.id}-claim-reminder-days`}
+                                  type="number"
+                                  min="0"
+                                  value={claimSettings.reminderDays}
+                                  onChange={(event) => updateTeamById(team.id, (entry) => ({
+                                    ...entry,
+                                    claimReminderDays: event.target.value === '' ? DEFAULT_CLAIM_REMINDER_DAYS : Number(event.target.value)
+                                  }))}
+                                  className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                                />
+                              </label>
+                            </div>
+                            <p className="text-xs text-gray-500">{t('backOffice.main.claimDaysZeroHint')}</p>
+
+                            {teamContacts.length > 0 && (
+                              <div className="space-y-2 border-t border-gray-200 pt-3">
+                                <div>
+                                  <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-700">
+                                    {t('backOffice.main.memberAbsenceHeading')}
+                                  </h4>
+                                  <p className="mt-1 text-xs text-gray-600">{t('backOffice.main.memberAbsenceHint')}</p>
+                                </div>
+                                <ul className="space-y-2">
+                                  {teamContacts.map((contact) => {
+                                    const draftKey = `${team.id}::${contact}`;
+                                    const storedAbsence = normalizeAbsence(
+                                      userProfilesByEmail?.get?.(normalizeEmail(contact))?.absence
+                                    );
+                                    const activeAbsence = getActiveAbsence(userProfilesByEmail, contact);
+                                    const isEditing = memberAbsenceDraft?.key === draftKey;
+                                    const backupCandidates = teamContacts.filter(
+                                      (candidate) => normalizeEmail(candidate) !== normalizeEmail(contact)
+                                    );
+
+                                    return (
+                                      <li key={`absence-${draftKey}`} className="rounded-lg border border-gray-200 bg-white px-3 py-2">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                          <span className="break-all text-sm text-gray-800">{contact}</span>
+                                          {activeAbsence ? (
+                                            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
+                                              {activeAbsence.backupEmail
+                                                ? t('backOffice.main.memberAbsenceActiveWithBackupTemplate', { member: activeAbsence.backupEmail })
+                                                : t('backOffice.main.memberAbsenceActiveBadge')}
+                                            </span>
+                                          ) : storedAbsence ? (
+                                            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                                              {t('backOffice.main.memberAbsencePlannedTemplate', {
+                                                from: storedAbsence.from || '—',
+                                                to: storedAbsence.to || '—'
+                                              })}
+                                            </span>
+                                          ) : (
+                                            <span className="text-xs text-gray-500">{t('backOffice.main.memberAbsenceNone')}</span>
+                                          )}
+                                          {typeof onSaveMemberAbsence === 'function' && !isEditing && (
+                                            <button
+                                              type="button"
+                                              onClick={() => openMemberAbsenceEditor(team.id, contact, storedAbsence)}
+                                              className="ml-auto rounded-lg border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+                                            >
+                                              {t('backOffice.main.memberAbsenceEditButton')}
+                                            </button>
+                                          )}
+                                        </div>
+
+                                        {isEditing && (
+                                          <div className="mt-2 space-y-2">
+                                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                                              <label className="text-xs font-medium text-gray-600">
+                                                {t('backOffice.main.memberAbsenceFromLabel')}
+                                                <input
+                                                  type="date"
+                                                  value={memberAbsenceDraft.from}
+                                                  onChange={(event) => setMemberAbsenceDraft((previous) => ({ ...previous, from: event.target.value }))}
+                                                  className="mt-1 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
+                                                />
+                                              </label>
+                                              <label className="text-xs font-medium text-gray-600">
+                                                {t('backOffice.main.memberAbsenceToLabel')}
+                                                <input
+                                                  type="date"
+                                                  value={memberAbsenceDraft.to}
+                                                  onChange={(event) => setMemberAbsenceDraft((previous) => ({ ...previous, to: event.target.value }))}
+                                                  className="mt-1 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
+                                                />
+                                              </label>
+                                              <label className="text-xs font-medium text-gray-600">
+                                                {t('backOffice.main.memberAbsenceBackupLabel')}
+                                                <select
+                                                  value={memberAbsenceDraft.backupEmail}
+                                                  onChange={(event) => setMemberAbsenceDraft((previous) => ({ ...previous, backupEmail: event.target.value }))}
+                                                  className="mt-1 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
+                                                >
+                                                  <option value="">{t('backOffice.main.memberAbsenceBackupNone')}</option>
+                                                  {backupCandidates.map((candidate) => (
+                                                    <option key={`${draftKey}-backup-${candidate}`} value={candidate}>{candidate}</option>
+                                                  ))}
+                                                </select>
+                                              </label>
+                                            </div>
+                                            <div className="flex flex-wrap justify-end gap-2">
+                                              <button
+                                                type="button"
+                                                onClick={() => setMemberAbsenceDraft(null)}
+                                                className="rounded-lg border border-gray-300 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                                              >
+                                                {t('backOffice.main.memberAbsenceCancelButton')}
+                                              </button>
+                                              {storedAbsence && (
+                                                <button
+                                                  type="button"
+                                                  onClick={() => submitMemberAbsence(true)}
+                                                  className="rounded-lg border border-red-200 px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-50"
+                                                >
+                                                  {t('backOffice.main.memberAbsenceClearButton')}
+                                                </button>
+                                              )}
+                                              <button
+                                                type="button"
+                                                onClick={() => submitMemberAbsence(false)}
+                                                className="rounded-lg bg-blue-600 px-3 py-1 text-xs font-semibold text-white hover:bg-blue-700"
+                                              >
+                                                {t('backOffice.main.memberAbsenceSaveButton')}
+                                              </button>
+                                            </div>
+                                          </div>
+                                        )}
+                                      </li>
+                                    );
+                                  })}
+                                </ul>
+                              </div>
+                            )}
+
+                            {orphanClaims.length > 0 && (
+                              <div role="alert" className="space-y-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                                <div className="flex items-start gap-2">
+                                  <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                                  <span>
+                                    {t('backOffice.main.claimOrphanWarningTemplate', { count: orphanClaims.length })}
+                                  </span>
+                                </div>
+                                <ul className="space-y-2">
+                                  {orphanClaims.map((orphan) => {
+                                    const selectionKey = `${team.id}::${orphan.projectId}`;
+                                    const targetEmail = orphanClaimTargets[selectionKey] || teamContacts[0] || '';
+                                    return (
+                                      <li key={selectionKey} className="flex flex-wrap items-center gap-2 rounded-lg bg-white px-3 py-2">
+                                        <span className="text-xs font-semibold text-gray-800 break-all">
+                                          {orphan.projectName || orphan.projectId}
+                                        </span>
+                                        <span className="text-xs text-gray-600 break-all">
+                                          {t('backOffice.main.claimOrphanAssigneeTemplate', { member: orphan.claim.assigneeEmail })}
+                                        </span>
+                                        {teamContacts.length > 0 && (
+                                          <>
+                                            <select
+                                              value={targetEmail}
+                                              onChange={(event) => setOrphanClaimTargets((previous) => ({
+                                                ...previous,
+                                                [selectionKey]: event.target.value
+                                              }))}
+                                              aria-label={t('backOffice.main.claimOrphanReassignToLabel')}
+                                              className="ml-auto rounded-lg border border-amber-300 bg-white px-2 py-1 text-xs"
+                                            >
+                                              {teamContacts.map((contact) => (
+                                                <option key={`${selectionKey}-to-${contact}`} value={contact}>{contact}</option>
+                                              ))}
+                                            </select>
+                                            <button
+                                              type="button"
+                                              onClick={() => applyOrphanClaimReassignment(team.id, orphan.projectId, targetEmail)}
+                                              className="rounded-lg bg-amber-600 px-3 py-1 text-xs font-semibold text-white hover:bg-amber-700"
+                                            >
+                                              {t('backOffice.main.claimOrphanReassignButton')}
+                                            </button>
+                                          </>
+                                        )}
+                                      </li>
+                                    );
+                                  })}
+                                </ul>
+                              </div>
+                            )}
+
+                            {loadRows.length > 0 && (
+                              <div className="space-y-1 border-t border-gray-200 pt-3">
+                                <p className="text-xs font-semibold text-gray-700">{t('backOffice.main.claimLoadHeading')}</p>
+                                <ul className="space-y-1">
+                                  {loadRows.map((row) => (
+                                    <li key={`${team.id}-load-${row.email}`} className="flex flex-wrap items-center gap-2 text-xs text-gray-700">
+                                      <span className="break-all font-medium">{row.email}</span>
+                                      <span>{t('backOffice.main.claimLoadTotalTemplate', { count: row.total })}</span>
+                                      {row.stale > 0 && (
+                                        <span className="rounded-full bg-amber-100 px-2 py-0.5 font-semibold text-amber-800">
+                                          {t('backOffice.main.claimLoadStaleTemplate', { count: row.stale })}
+                                        </span>
+                                      )}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {claimLoad.claims.length > 0 && teamContacts.length > 0 && (
+                              <div className="space-y-2 border-t border-gray-200 pt-3">
+                                <p className="text-xs font-semibold text-gray-700">{t('backOffice.main.claimListHeading')}</p>
+                                <p className="text-xs text-gray-600">{t('backOffice.main.claimListHint')}</p>
+                                <ul className="space-y-2">
+                                  {claimLoad.claims.map((entry) => {
+                                    const selectionKey = `${team.id}::${entry.projectId}`;
+                                    const targetEmail = orphanClaimTargets[selectionKey] || teamContacts[0] || '';
+                                    return (
+                                      <li key={`claim-${selectionKey}`} className="flex flex-wrap items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700">
+                                        <span className="break-all font-semibold text-gray-800">
+                                          {entry.projectName || entry.projectId}
+                                        </span>
+                                        <span className="break-all">
+                                          {t('backOffice.main.claimOrphanAssigneeTemplate', { member: entry.claim.assigneeEmail })}
+                                        </span>
+                                        {entry.isStale && (
+                                          <span className="rounded-full bg-amber-100 px-2 py-0.5 font-semibold text-amber-800">
+                                            {t('backOffice.main.claimStaleBadgeTemplate', { count: entry.businessDaysSinceActivity })}
+                                          </span>
+                                        )}
+                                        <select
+                                          value={targetEmail}
+                                          onChange={(event) => setOrphanClaimTargets((previous) => ({
+                                            ...previous,
+                                            [selectionKey]: event.target.value
+                                          }))}
+                                          aria-label={t('backOffice.main.claimOrphanReassignToLabel')}
+                                          className="ml-auto rounded-lg border border-gray-300 bg-white px-2 py-1"
+                                        >
+                                          {teamContacts.map((contact) => (
+                                            <option key={`${selectionKey}-target-${contact}`} value={contact}>{contact}</option>
+                                          ))}
+                                        </select>
+                                        <button
+                                          type="button"
+                                          onClick={() => applyOrphanClaimReassignment(team.id, entry.projectId, targetEmail)}
+                                          className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1 font-semibold text-blue-700 hover:bg-blue-100"
+                                        >
+                                          {t('backOffice.main.claimOrphanReassignButton')}
+                                        </button>
+                                      </li>
+                                    );
+                                  })}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+
                       <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1" htmlFor={`${team.id}-expertise`}>
                         {t('backOffice.main.expertiseAreaLabel')}
                       </label>
@@ -8758,6 +9164,78 @@ export const BackOffice = ({
                   );
                 })}
               </div>
+
+              {contactRemovalDialog && (
+                <div
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+                  role="alertdialog"
+                  aria-modal="true"
+                  aria-labelledby="contact-removal-title"
+                >
+                  <div className="w-full max-w-lg space-y-4 rounded-2xl bg-white p-6 shadow-2xl">
+                    <h3 id="contact-removal-title" className="text-lg font-semibold text-gray-900">
+                      {t('backOffice.main.contactRemovalTitle')}
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      {t('backOffice.main.contactRemovalDescriptionTemplate', {
+                        member: contactRemovalDialog.removedKeys.join(', '),
+                        count: contactRemovalDialog.claims.length,
+                        team: contactRemovalDialog.teamName
+                      })}
+                    </p>
+                    <ul className="max-h-32 space-y-1 overflow-y-auto rounded-lg border border-gray-200 bg-gray-50 p-2 text-xs text-gray-700">
+                      {contactRemovalDialog.claims.map((entry) => (
+                        <li key={`removal-claim-${entry.projectId}`} className="break-all">
+                          {entry.projectName || entry.projectId}
+                        </li>
+                      ))}
+                    </ul>
+
+                    {contactRemovalDialog.emails.length > 0 && (
+                      <label className="block text-xs font-semibold text-gray-700">
+                        {t('backOffice.main.contactRemovalReassignToLabel')}
+                        <select
+                          value={contactRemovalDialog.targetEmail}
+                          onChange={(event) => setContactRemovalDialog((previous) => (
+                            previous ? { ...previous, targetEmail: event.target.value } : previous
+                          ))}
+                          className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                        >
+                          {contactRemovalDialog.emails.map((email) => (
+                            <option key={`removal-target-${email}`} value={email}>{email}</option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
+
+                    <div className="flex flex-wrap justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => resolveContactRemoval('cancel')}
+                        className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                      >
+                        {t('backOffice.main.contactRemovalCancelButton')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => resolveContactRemoval('release')}
+                        className="rounded-lg border border-blue-200 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"
+                      >
+                        {t('backOffice.main.contactRemovalReleaseButton')}
+                      </button>
+                      {contactRemovalDialog.emails.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => resolveContactRemoval('reassign')}
+                          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                        >
+                          {t('backOffice.main.contactRemovalReassignButton')}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </section>
           )}
 

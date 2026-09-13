@@ -1,6 +1,34 @@
 import { isSharePointMode } from '../config/sharepointConfig.js';
 import { getRepository } from './listRepository.js';
 import { loadPersistedMockMap, savePersistedMockMap } from './mockProviderPersistence.js';
+import { normalizeClaim, normalizeClaimHistory } from './projectClaims.js';
+
+// La prise en charge d'un périmètre (voir projectClaims.js) voyage avec la ligne racine :
+// `AssigneeEmail` reste lisible dans les vues SharePoint natives, `ClaimJson` porte le détail
+// (date, auteur de l'attribution, motif, relance envoyée) et l'historique.
+const toClaimColumns = (entry) => {
+  const claim = normalizeClaim(entry?.claim);
+  const history = normalizeClaimHistory(entry?.claimHistory);
+
+  if (!claim && history.length === 0) {
+    return { AssigneeEmail: '', ClaimJson: {} };
+  }
+
+  return {
+    AssigneeEmail: claim?.assigneeEmail || '',
+    ClaimJson: { claim: claim || null, history }
+  };
+};
+
+const fromClaimColumns = (row) => {
+  const payload = row?.ClaimJson && typeof row.ClaimJson === 'object' ? row.ClaimJson : {};
+  const claim = normalizeClaim(payload.claim || (row?.AssigneeEmail ? { assigneeEmail: row.AssigneeEmail } : null));
+  const claimHistory = normalizeClaimHistory(payload.history);
+  return {
+    ...(claim ? { claim } : {}),
+    ...(claimHistory.length > 0 ? { claimHistory } : {})
+  };
+};
 
 // Un commentaire racine (team:<id> ou committee:<id>) a un id déterministe : le republier
 // met à jour la même ligne au lieu d’en créer une nouvelle à chaque édition.
@@ -23,6 +51,7 @@ const toRootFields = (projectId, sectionKey, entry, userEmail) => {
     Status: typeof entry.status === 'string' ? entry.status : '',
     Resolved: isResolvedStatus(entry.status),
     AttachmentsJson: Array.isArray(entry.attachments) ? entry.attachments : [],
+    ...toClaimColumns(entry),
     CreatedByEmail: userEmail || '',
     UpdatedByEmail: userEmail || '',
     UpdatedAt: new Date().toISOString()
@@ -62,7 +91,8 @@ const reconstructFromRows = (rows) => {
         status: row.Status || '',
         statusUpdatedAt: row.UpdatedAt || '',
         attachments: Array.isArray(row.AttachmentsJson) ? row.AttachmentsJson : [],
-        replies: []
+        replies: [],
+        ...fromClaimColumns(row)
       };
       roots.set(row.ThreadId || row.CommentId, entry);
       if (kind === 'committee' && id) {

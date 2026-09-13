@@ -29,6 +29,16 @@ import {
 } from '../utils/validationCommittee.js';
 import { normalizeTeamContacts } from '../utils/teamContacts.js';
 import { resolveTeamRecipients } from '../utils/teamMemberRules.js';
+import {
+  CLAIM_ACTION_CLAIM,
+  CLAIM_ACTION_RELEASE,
+  CLAIM_ACTION_TAKEOVER,
+  CLAIM_REASONS,
+  getPerimeterClaim,
+  getPerimeterClaimHistory,
+  isClaimedBy,
+  isClaimedByOther
+} from '../utils/projectClaims.js';
 import { createAttachmentFromFile } from '../utils/documentStore.js';
 import { normalizeEmail } from '../utils/normalizeEmail.js';
 import { stripRichTextToPlainText } from '../utils/richText.js';
@@ -213,12 +223,20 @@ const normalizeCommentEntry = (entry) => {
         .filter((reply) => reply.message.trim().length > 0 || reply.authorName || reply.authorEmail)
     : [];
 
+  // La prise en charge du périmètre (voir projectClaims.js) n'est pas éditée ici, mais elle vit
+  // dans la même entrée : sans ces deux champs, chaque enregistrement de commentaire ou de
+  // réponse — qui repart de cette normalisation — effacerait le référent du périmètre.
+  const claim = getPerimeterClaim(entry);
+  const claimHistory = getPerimeterClaimHistory(entry);
+
   return {
     comment,
     status,
     statusUpdatedAt: typeof entry?.statusUpdatedAt === 'string' ? entry.statusUpdatedAt : '',
     attachments: normalizeCommentAttachments(entry?.attachments),
-    replies
+    replies,
+    ...(claim ? { claim } : {}),
+    ...(claimHistory.length > 0 ? { claimHistory } : {})
   };
 };
 
@@ -527,7 +545,9 @@ export const SynthesisReport = ({
   hasIncompleteAnswers = false,
   validationCommitteeConfig = null,
   focusPerimeter = null,
-  onFocusPerimeterHandled
+  onFocusPerimeterHandled,
+  onPerimeterClaimAction,
+  isClaimActionAvailable = true
 }) => {
   const { t, language } = useTranslation();
   const [isShowcaseFallbackOpen, setIsShowcaseFallbackOpen] = useState(false);
@@ -646,6 +666,36 @@ export const SynthesisReport = ({
   const updateComplianceComments =
     typeof onUpdateComplianceComments === 'function' ? onUpdateComplianceComments : onUpdateAnswers;
   const canSaveComplianceComment = typeof updateComplianceComments === 'function';
+  // Reprise depuis la synthèse : panneau déplié en place plutôt qu'une modale, mais avec le
+  // même motif obligatoire qu'ailleurs — une reprise notifie la personne dépossédée.
+  const [claimTakeoverTeamId, setClaimTakeoverTeamId] = useState('');
+  const [claimTakeoverReason, setClaimTakeoverReason] = useState(CLAIM_REASONS[0]);
+  const [claimTakeoverNote, setClaimTakeoverNote] = useState('');
+
+  const handleClaimAction = useCallback((teamId, action, options = {}) => {
+    if (typeof onPerimeterClaimAction !== 'function' || !projectId || !teamId) {
+      return;
+    }
+    onPerimeterClaimAction(projectId, teamId, action, options);
+  }, [onPerimeterClaimAction, projectId]);
+
+  const handleOpenClaimTakeover = useCallback((teamId) => {
+    setClaimTakeoverReason(CLAIM_REASONS[0]);
+    setClaimTakeoverNote('');
+    setClaimTakeoverTeamId(teamId);
+  }, []);
+
+  const handleConfirmClaimTakeover = useCallback(() => {
+    if (!claimTakeoverTeamId) {
+      return;
+    }
+    handleClaimAction(claimTakeoverTeamId, CLAIM_ACTION_TAKEOVER, {
+      reason: claimTakeoverReason,
+      reasonNote: claimTakeoverNote.trim()
+    });
+    setClaimTakeoverTeamId('');
+  }, [claimTakeoverNote, claimTakeoverReason, claimTakeoverTeamId, handleClaimAction]);
+
   const currentUserEmail = useMemo(
     () => normalizeEmail(currentUser?.mail || currentUser?.userPrincipalName || ''),
     [currentUser]
@@ -1675,7 +1725,23 @@ export const SynthesisReport = ({
                 const teamQuestions = analysis.questions?.[team.id];
                 // Les membres réellement sollicités pour ce projet : une équipe peut router
                 // ses sollicitations selon des critères par membre (cf. teamMemberRules.js).
-                const teamContactLabel = resolveTeamRecipients(team, answers).join(' · ');
+                // Dès qu'un membre a pris le projet en charge, le porteur n'a plus une liste
+                // d'adresses mais un interlocuteur nommé — c'est le gain le plus visible de la
+                // prise en charge côté porteur.
+                const teamClaim = getPerimeterClaim(complianceComments.teams?.[team.id]);
+                const teamClaimAssigneeLabel = teamClaim
+                  ? (teamClaim.assigneeName || teamClaim.assigneeEmail)
+                  : '';
+                const teamContactLabel = teamClaim
+                  ? (teamClaim.assigneeName
+                    ? `${teamClaim.assigneeName} (${teamClaim.assigneeEmail})`
+                    : teamClaim.assigneeEmail)
+                  : resolveTeamRecipients(team, answers).join(' · ');
+                const isTeamClaimMine = isClaimedBy(teamClaim, currentUserEmail);
+                const isTeamClaimTaken = isClaimedByOther(teamClaim, currentUserEmail);
+                const canActOnTeamClaim = isClaimActionAvailable
+                  && typeof onPerimeterClaimAction === 'function'
+                  && complianceTeamIdsForUser.has(team.id);
                 const formattedTeamQuestions = Array.isArray(teamQuestions)
                   ? teamQuestions
                       .map((entry) => normalizeTeamQuestionForDisplay(entry, language))
@@ -1768,6 +1834,104 @@ export const SynthesisReport = ({
                           <div className="mt-2 text-sm text-blue-600 font-medium flex items-center gap-2">
                             <Mail className="w-4 h-4" />
                             {renderTextWithLinks(teamContactLabel)}
+                          </div>
+                        )}
+
+                        {(teamClaim || canActOnTeamClaim) && (
+                          <div className="mt-3 space-y-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-700">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-semibold text-gray-800">{t('synthesisReport.claim.label')}</span>
+                              <span>
+                                {!teamClaim
+                                  ? t('synthesisReport.claim.unassigned')
+                                  : isTeamClaimMine
+                                    ? t('synthesisReport.claim.assignedToYou')
+                                    : t('synthesisReport.claim.assignedTo', { person: teamClaimAssigneeLabel })}
+                              </span>
+                              {canActOnTeamClaim && !teamClaim && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleClaimAction(team.id, CLAIM_ACTION_CLAIM)}
+                                  className="rounded-lg border border-blue-200 bg-white px-2 py-1 font-semibold text-blue-700 hover:bg-blue-50"
+                                >
+                                  {t('synthesisReport.claim.claimButton')}
+                                </button>
+                              )}
+                              {canActOnTeamClaim && isTeamClaimMine && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleClaimAction(team.id, CLAIM_ACTION_RELEASE)}
+                                  className="rounded-lg border border-gray-300 bg-white px-2 py-1 font-semibold text-gray-700 hover:bg-gray-100"
+                                >
+                                  {t('synthesisReport.claim.releaseButton')}
+                                </button>
+                              )}
+                              {canActOnTeamClaim && isTeamClaimTaken && claimTakeoverTeamId !== team.id && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenClaimTakeover(team.id)}
+                                  className="rounded-lg border border-amber-200 bg-white px-2 py-1 font-semibold text-amber-700 hover:bg-amber-50"
+                                >
+                                  {t('synthesisReport.claim.takeOverButton')}
+                                </button>
+                              )}
+                            </div>
+                            {canActOnTeamClaim && !teamClaim && (
+                              <p className="text-gray-500">{t('synthesisReport.claim.implicitHint')}</p>
+                            )}
+                            {canActOnTeamClaim && isTeamClaimTaken && claimTakeoverTeamId !== team.id && (
+                              <p className="text-gray-500">
+                                {t('synthesisReport.claim.takenHint', { person: teamClaimAssigneeLabel })}
+                              </p>
+                            )}
+                            {claimTakeoverTeamId === team.id && (
+                              <div className="space-y-2 rounded-lg border border-amber-200 bg-white p-2">
+                                <p className="font-semibold text-gray-800">{t('synthesisReport.claim.takeOverReasonLabel')}</p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {CLAIM_REASONS.map((reason) => (
+                                    <button
+                                      key={`synthesis-takeover-${team.id}-${reason}`}
+                                      type="button"
+                                      aria-pressed={claimTakeoverReason === reason}
+                                      onClick={() => setClaimTakeoverReason(reason)}
+                                      className={`rounded-full border px-2 py-1 font-semibold transition-colors ${
+                                        claimTakeoverReason === reason
+                                          ? 'border-blue-600 bg-blue-600 text-white'
+                                          : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                                      }`}
+                                    >
+                                      {t(`synthesisReport.claim.reason.${reason}`)}
+                                    </button>
+                                  ))}
+                                </div>
+                                <label className="block space-y-1">
+                                  <span className="font-medium text-gray-700">{t('synthesisReport.claim.takeOverNoteLabel')}</span>
+                                  <textarea
+                                    value={claimTakeoverNote}
+                                    onChange={(event) => setClaimTakeoverNote(event.target.value)}
+                                    rows={2}
+                                    className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-xs text-gray-700"
+                                  />
+                                </label>
+                                <p className="text-amber-800">{t('synthesisReport.claim.takeOverNotice')}</p>
+                                <div className="flex justify-end gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => setClaimTakeoverTeamId('')}
+                                    className="rounded-lg border border-gray-300 px-2 py-1 font-medium text-gray-700 hover:bg-gray-50"
+                                  >
+                                    {t('synthesisReport.claim.cancelButton')}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={handleConfirmClaimTakeover}
+                                    className="rounded-lg bg-blue-600 px-2 py-1 font-semibold text-white hover:bg-blue-700"
+                                  >
+                                    {t('synthesisReport.claim.takeOverConfirm')}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
 

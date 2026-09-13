@@ -79,7 +79,9 @@ test('getProfile : convertit la ligne CN_UserProfiles en profil applicatif', asy
         email: 'a@b.com',
         activityScope: ['france', 'uk'],
         preferredLanguage: 'fr',
-        hasCompletedOnboarding: true
+        hasCompletedOnboarding: true,
+        teamPreferences: {},
+        absence: null
       });
     }
   );

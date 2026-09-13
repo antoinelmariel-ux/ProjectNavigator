@@ -200,6 +200,20 @@ export default {
     }
   },
   profile: {
+    claimCopySection: {
+      heading: 'Copies des prises en charge',
+      description: 'Désactivé par défaut. Une fois coché, vous recevez une copie quand un collègue prend en charge un projet pour cette équipe — cette annonce uniquement, pas les échanges qui suivent.',
+      teamLabel: 'Recevoir une copie pour {{team}}'
+    },
+    absenceSection: {
+      heading: 'Absence et suppléance',
+      description: 'Pendant cette période, les nouvelles sollicitations partent à votre suppléant et vos équipes peuvent reprendre les projets que vous suivez.',
+      fromLabel: 'Du',
+      toLabel: 'Au',
+      backupLabel: 'Suppléant',
+      backupNone: 'Aucun suppléant',
+      backupHint: 'Le suppléant doit être contact d’une de vos équipes pour recevoir vos sollicitations.'
+    },
     openButtonAriaLabel: 'Mon profil',
     title: 'Mon profil',
     scopeSection: { heading: 'Périmètre d’activité' },
@@ -287,6 +301,30 @@ export default {
     save: 'Valider'
   },
   home: {
+    teammateTab: 'Pris en charge par l’équipe ({{count}})',
+    noTeammateTriggered: 'Aucun projet n’est actuellement pris en charge par un autre membre de vos équipes.',
+    claim: {
+      listAriaLabel: 'Prise en charge par périmètre',
+      unassigned: 'Personne ne suit encore ce périmètre',
+      assignedToYou: 'Vous le suivez depuis le {{date}}',
+      assignedTo: 'Suivi par {{person}} depuis le {{date}}',
+      staleBadge: 'Sans action depuis un moment',
+      claimButton: 'Je prends en charge',
+      releaseButton: 'Libérer',
+      takeOverButton: 'Reprendre',
+      takeOverTitle: 'Reprendre ce projet',
+      takeOverDescription: '{{person}} suit actuellement ce projet pour {{team}}. Cette personne sera prévenue, avec le motif que vous indiquez.',
+      takeOverReasonLabel: 'Motif',
+      takeOverNoteLabel: 'Précision (facultatif)',
+      takeOverNotice: 'La personne qui suivait ce projet et l’équipe recevront un e-mail. Cette notification n’est pas désactivable.',
+      takeOverConfirm: 'Reprendre',
+      reason: {
+        absence: 'Absence',
+        workload: 'Surcharge',
+        departure: 'Départ',
+        other: 'Autre'
+      }
+    },
     previous: 'Précédent',
     next: 'Suivant',
     pageOf: 'Page {{page}} / {{totalPages}}',
@@ -883,6 +921,41 @@ export default {
       addConditionToActivateGroup: 'Ajoutez une condition pour activer ce groupe.'
     },
     main: {
+      claimSettingsHeading: 'Prise en charge des projets',
+      claimSettingsHint: 'Un membre de cette équipe peut prendre en charge un projet déclenché : il quitte alors la file « À traiter » des autres membres, et les échanges suivants ne partent plus qu’à lui.',
+      claimStaleDaysLabel: 'Signaler au bout de (jours ouvrés sans action)',
+      claimReminderDaysLabel: 'Relancer le référent au bout de (jours ouvrés sans action)',
+      claimDaysZeroHint: '0 désactive le signal correspondant.',
+      memberAbsenceHeading: 'Absences et suppléances',
+      memberAbsenceHint: 'Peut être renseigné pour quelqu’un d’autre : une absence imprévue n’est jamais déclarée par l’absent.',
+      memberAbsenceActiveBadge: 'Absent actuellement',
+      memberAbsenceActiveWithBackupTemplate: 'Absent actuellement, suppléant : {{member}}',
+      memberAbsencePlannedTemplate: 'Absence prévue du {{from}} au {{to}}',
+      memberAbsenceNone: 'Aucune absence déclarée',
+      memberAbsenceEditButton: 'Absence',
+      memberAbsenceFromLabel: 'Du',
+      memberAbsenceToLabel: 'Au',
+      memberAbsenceBackupLabel: 'Suppléant',
+      memberAbsenceBackupNone: 'Aucun suppléant',
+      memberAbsenceCancelButton: 'Annuler',
+      memberAbsenceClearButton: 'Supprimer l’absence',
+      memberAbsenceSaveButton: 'Enregistrer',
+      claimOrphanWarningTemplate: '{{count}} projet(s) sont pris en charge par une adresse qui n’est plus contact de cette équipe. Réattribuez-les pour qu’ils ne restent pas sans référent.',
+      claimOrphanAssigneeTemplate: 'suivi par {{member}}',
+      claimOrphanReassignToLabel: 'Réattribuer à',
+      claimOrphanReassignButton: 'Réattribuer',
+      claimListHeading: 'Projets pris en charge',
+      claimListHint: 'Une réattribution prévient la personne qui suivait le projet, avec « Départ » comme motif.',
+      claimStaleBadgeTemplate: '{{count}} jours ouvrés sans action',
+      claimLoadHeading: 'Charge actuelle',
+      claimLoadTotalTemplate: '{{count}} projet(s) suivi(s)',
+      claimLoadStaleTemplate: '{{count}} sans action',
+      contactRemovalTitle: 'Ce contact porte encore des projets',
+      contactRemovalDescriptionTemplate: '{{member}} est retiré de {{team}} mais suit encore {{count}} projet(s). Choisissez ce qu’ils deviennent.',
+      contactRemovalReassignToLabel: 'Réattribuer à',
+      contactRemovalCancelButton: 'Annuler le retrait',
+      contactRemovalReleaseButton: 'Les remettre dans « À traiter »',
+      contactRemovalReassignButton: 'Les réattribuer',
       questionTypes: {
         choice: { label: 'Liste de choix', description: 'Affiche une liste d’options exclusives.' },
         multiChoice: { label: 'Choix multiples', description: 'Permet de sélectionner plusieurs réponses.' },
@@ -1596,6 +1669,28 @@ export default {
     proceedButton: 'Accéder à la synthèse'
   },
   synthesisReport: {
+    claim: {
+      label: 'Prise en charge :',
+      unassigned: 'personne ne suit encore ce périmètre.',
+      assignedToYou: 'vous suivez ce projet pour cette équipe.',
+      assignedTo: 'suivi par {{person}}.',
+      claimButton: 'Je prends en charge',
+      releaseButton: 'Ne plus suivre',
+      takeOverButton: 'Reprendre',
+      implicitHint: 'Publier un avis ou poser un statut vous désigne référent pour cette équipe : vos collègues ne seront alors plus notifiés sur ce projet.',
+      takenHint: 'Votre commentaire sera notifié à {{person}}, qui reste référent de ce projet.',
+      takeOverReasonLabel: 'Motif de la reprise',
+      takeOverNoteLabel: 'Précision (facultatif)',
+      takeOverNotice: 'La personne qui suivait ce projet et l’équipe recevront un e-mail.',
+      takeOverConfirm: 'Confirmer la reprise',
+      cancelButton: 'Annuler',
+      reason: {
+        absence: 'Absence',
+        workload: 'Surcharge',
+        departure: 'Départ',
+        other: 'Autre'
+      }
+    },
     statusValidated: 'Validé',
     statusValidatedWithConditions: 'Validé sous conditions',
     statusPendingInformation: 'En attente d’informations',

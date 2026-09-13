@@ -56,12 +56,14 @@ export const LIST_SCHEMAS = {
       'Status',
       'AttachmentsJson',
       'Resolved',
+      'AssigneeEmail',
+      'ClaimJson',
       'RowVersion',
       'CreatedByEmail',
       'UpdatedByEmail',
       'UpdatedAt'
     ],
-    json: { AttachmentsJson: ARRAY },
+    json: { AttachmentsJson: ARRAY, ClaimJson: OBJECT },
     numbers: ['RowVersion'],
     booleans: ['Resolved']
   },
@@ -186,8 +188,16 @@ export const LIST_SCHEMAS = {
   },
   userProfiles: {
     keyField: 'UserEmail',
-    columns: ['UserEmail', 'ActivityScopeJson', 'PreferredLanguage', 'HasCompletedOnboarding', 'UpdatedAt'],
-    json: { ActivityScopeJson: ARRAY },
+    columns: [
+      'UserEmail',
+      'ActivityScopeJson',
+      'PreferredLanguage',
+      'HasCompletedOnboarding',
+      'TeamPreferencesJson',
+      'AbsenceJson',
+      'UpdatedAt'
+    ],
+    json: { ActivityScopeJson: ARRAY, TeamPreferencesJson: OBJECT, AbsenceJson: OBJECT },
     numbers: [],
     booleans: ['HasCompletedOnboarding']
   },
@@ -248,6 +258,8 @@ export const LIST_SCHEMAS = {
       'Expertise',
       'AcceptedLanguagesJson',
       'MemberRulesJson',
+      'ClaimStaleDays',
+      'ClaimReminderDays',
       'SortOrder',
       'RowVersion',
       'CreatedByEmail',
@@ -261,7 +273,7 @@ export const LIST_SCHEMAS = {
       AcceptedLanguagesJson: ARRAY,
       MemberRulesJson: ARRAY
     },
-    numbers: ['SortOrder', 'RowVersion'],
+    numbers: ['ClaimStaleDays', 'ClaimReminderDays', 'SortOrder', 'RowVersion'],
     booleans: []
   }
 };

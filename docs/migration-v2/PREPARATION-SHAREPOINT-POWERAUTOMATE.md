@@ -137,10 +137,20 @@ Conventions du tableau ci-dessous :
 | Status | Une ligne de texte |
 | AttachmentsJson | Texte long |
 | Resolved | Oui/Non |
+| AssigneeEmail | Une ligne de texte |
+| ClaimJson | Texte long |
 | RowVersion | Nombre |
 | CreatedByEmail | Une ligne de texte |
 | UpdatedByEmail | Une ligne de texte |
 | UpdatedAt | Date et heure |
+
+`AssigneeEmail` et `ClaimJson` portent la **prise en charge** du périmètre (uniquement sur les
+lignes racines, `CommentType = root`) : le membre de l'équipe qui suit ce projet. `AssigneeEmail`
+est volontairement une colonne à part, plate, pour rester lisible dans une vue SharePoint native
+(« qui suit quoi ») ; `ClaimJson` porte le détail
+(`{"claim":{"assigneeEmail":"…","assignedAt":"…","assignedByEmail":"…","reason":"absence","reasonNote":"…","reminderSentAt":"…"},"history":[…]}`)
+dont l'historique des reprises. Les deux colonnes vides = personne ne suit ce périmètre, ce qui
+est l'état d'avant cette fonctionnalité : aucune reprise de données n'est nécessaire.
 
 ### `CN_ProjectDiscussions` — fils de discussion des projets
 | Colonne | Type |
@@ -264,7 +274,15 @@ première connexion, et modifiable ensuite depuis la section « Mon profil » de
 | ActivityScopeJson | Texte long (périmètres choisis, ex. `["france","uk"]`) |
 | PreferredLanguage | Une ligne de texte — **valeur par défaut : `en`** |
 | HasCompletedOnboarding | Oui/Non |
+| TeamPreferencesJson | Texte long (copies souhaitées par équipe, ex. `{"controle_pub":{"claimCopy":true}}`) |
+| AbsenceJson | Texte long (absence et suppléant, ex. `{"from":"2026-09-14","to":"2026-09-25","backupEmail":"queres@lfb.fr"}`) |
 | UpdatedAt | Date et heure |
+
+`TeamPreferencesJson` est le réglage **par personne** des copies d'annonce de prise en charge :
+désactivé par défaut, il n'apparaît que pour les équipes dont la personne est contact. `AbsenceJson`
+porte une période d'indisponibilité et un suppléant (qui doit être contact de la même équipe pour
+recevoir les sollicitations) ; il est modifiable par un tiers depuis l'onglet **Équipes** du
+back-office, puisqu'une absence imprévue n'est jamais déclarée par l'absent.
 
 ### `CN_Rules` — les règles de conformité (une ligne par règle)
 Remplace le fichier `rules.json` qu'une version antérieure de ce document proposait de mettre
@@ -298,6 +316,11 @@ membre *conditionné*, de la forme `{"email":"...","mode":"include|exclude","con
 critères sont remplis, `exclude` = il l'est sauf si. Un contact sans entrée est toujours sollicité,
 donc une colonne vide ou absente reproduit exactement le comportement historique.
 
+`ClaimStaleDays` et `ClaimReminderDays` règlent la péremption d'une prise en charge, **en jours
+ouvrés** : au-delà du premier délai le projet est signalé dans la liste et dans la vue charge du
+back-office, au-delà du second son référent reçoit une relance par e-mail. `0` désactive le signal
+correspondant ; une colonne vide reprend les valeurs par défaut (6 et 10).
+
 | Colonne | Type |
 |---|---|
 | Title | (existante — nom de l'équipe, langue par défaut, dérivé automatiquement) |
@@ -307,6 +330,8 @@ donc une colonne vide ou absente reproduit exactement le comportement historique
 | Expertise | Texte long (domaine d'expertise traduit, ex. `{"en":"...","fr":"..."}`) |
 | AcceptedLanguagesJson | Texte long (langues de réponse acceptées, ex. `["fr","en"]`) |
 | MemberRulesJson | Texte long (critères de sollicitation par membre, ex. `[{"email":"queres@lfb.fr","mode":"include","conditionGroups":[...]}]`) |
+| ClaimStaleDays | Nombre — **valeur par défaut : 6** |
+| ClaimReminderDays | Nombre — **valeur par défaut : 10** |
 | SortOrder | Nombre |
 | RowVersion | Nombre |
 | CreatedByEmail | Une ligne de texte |
