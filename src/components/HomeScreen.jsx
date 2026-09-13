@@ -1632,7 +1632,10 @@ export const HomeScreen = ({
     const progressPercent = progressTotal > 0
       ? Math.round((progressAnswered / progressTotal) * 100)
       : 0;
-    const adminCanEditSubmitted = isAdminMode && !isDraft;
+    // Annuler une soumission la rend à nouveau modifiable par son porteur, exactement comme
+    // un admin peut déjà rouvrir n'importe quel projet soumis : même bascule « Modifier » +
+    // bouton « Voir la synthèse » séparé, plutôt qu'un unique lien vers la synthèse figée.
+    const canEditNonDraftProject = (isAdminMode || isCancelled) && !isDraft;
     const leadName = getSafeString(project?.answers?.teamLead).trim();
     const leadTeam = resolveChoiceOptionLabel(teamLeadTeamQuestion, project?.answers?.teamLeadTeam);
     const leadDisplay = leadName.length > 0
@@ -1831,7 +1834,7 @@ export const HomeScreen = ({
                 return;
               }
 
-              if (adminCanEditSubmitted) {
+              if (canEditNonDraftProject) {
                 onOpenProject(project.id, { view: 'questionnaire' });
                 return;
               }
@@ -1839,7 +1842,7 @@ export const HomeScreen = ({
               onOpenProject(project.id);
             }}
             className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all ${
-              isDraft || adminCanEditSubmitted
+              isDraft || canEditNonDraftProject
                 ? 'hv-button-draft text-white'
                 : 'bg-blue-600 text-white hover:bg-blue-700'
             }`}
@@ -1849,7 +1852,7 @@ export const HomeScreen = ({
                 <Edit className="w-4 h-4" aria-hidden="true" />
                 <span>{t('home.continueEditing')}</span>
               </>
-            ) : adminCanEditSubmitted ? (
+            ) : canEditNonDraftProject ? (
               <>
                 <Edit className="w-4 h-4" aria-hidden="true" />
                 <span>{t('home.editProject')}</span>
@@ -1861,7 +1864,7 @@ export const HomeScreen = ({
               </>
             )}
           </button>
-          {adminCanEditSubmitted && (
+          {canEditNonDraftProject && (
             <button
               type="button"
               onClick={() => onOpenProject(project.id, { view: 'synthesis' })}

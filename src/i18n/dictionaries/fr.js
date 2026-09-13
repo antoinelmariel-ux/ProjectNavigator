@@ -1647,6 +1647,7 @@ export default {
     defaultUserLabel: 'Utilisateur',
     statusDraft: 'Brouillon',
     statusSubmitted: 'Soumis',
+    statusCancelled: 'Annulé',
     projectSynthesisAriaLabel: 'Synthèse du projet',
     title: 'Synthèse',
     statusLabelTemplate: 'Statut : {{status}}',

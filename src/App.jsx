@@ -3470,8 +3470,11 @@ const updateProjectFilters = useCallback((updater) => {
     && (!userProfile || !userProfile.hasCompletedOnboarding)
     && !isOpeningSharedShowcaseLink
     && !isSimulatedSession;
+  // Une soumission annulée redevient modifiable par son porteur, exactement comme un
+  // brouillon — c'est le sens même de l'annulation, pas un simple retrait de la file
+  // compliance.
   const isActiveProjectEditable = !activeProject
-    || (canManageProject(activeProject) && activeProject.status === 'draft')
+    || (canManageProject(activeProject) && (activeProject.status === 'draft' || activeProject.status === 'cancelled'))
     || isAdminMode;
   const annotationOffsetClass = isAnnotationModeEnabled && screen === 'showcase'
     ? 'pt-20 lg:pt-24'
@@ -3560,7 +3563,7 @@ const updateProjectFilters = useCallback((updater) => {
           return prevProjects;
         }
 
-        const canUpdateProject = project.status === 'draft' || isAdminMode;
+        const canUpdateProject = project.status === 'draft' || project.status === 'cancelled' || isAdminMode;
         if (!canUpdateProject) {
           return prevProjects;
         }
@@ -3643,7 +3646,7 @@ const updateProjectFilters = useCallback((updater) => {
             return prevProjects;
           }
 
-          const canUpdateProject = project.status === 'draft' || isAdminMode;
+          const canUpdateProject = project.status === 'draft' || project.status === 'cancelled' || isAdminMode;
           if (!canUpdateProject) {
             return prevProjects;
           }
@@ -4290,7 +4293,8 @@ const updateProjectFilters = useCallback((updater) => {
     const missingIndex = firstMissingId
       ? derivedQuestions.findIndex(question => question.id === firstMissingId)
       : -1;
-    const startingIndex = missingIndex >= 0 ? missingIndex : project.status === 'draft' ? sanitizedIndex : 0;
+    const isResumableProject = project.status === 'draft' || project.status === 'cancelled';
+    const startingIndex = missingIndex >= 0 ? missingIndex : isResumableProject ? sanitizedIndex : 0;
 
     setAnswers(projectAnswers);
     setAnalysis(derivedAnalysis);
@@ -4756,13 +4760,15 @@ const updateProjectFilters = useCallback((updater) => {
     const projectId = showcaseProjectContext?.projectId;
     const project = projectId ? projects.find(entry => entry.id === projectId) : null;
 
+    const isEditableStatus = (status) => status === 'draft' || status === 'cancelled';
+
     if (
       !showcaseProjectContext ||
       !projectId ||
-      (showcaseProjectContext.status !== 'draft' && !isAdminMode)
+      (!isEditableStatus(showcaseProjectContext.status) && !isAdminMode)
       || !canManageProject(project)
       || !project
-      || (project.status !== 'draft' && !isAdminMode)
+      || (!isEditableStatus(project.status) && !isAdminMode)
     ) {
       return;
     }
@@ -6325,7 +6331,7 @@ const updateProjectFilters = useCallback((updater) => {
         ) : screen === 'showcase' ? (
           showcaseProjectContext ? (
             <div className="space-y-4">
-              {showcaseProjectContext.status !== 'draft' && (
+              {showcaseProjectContext.status !== 'draft' && showcaseProjectContext.status !== 'cancelled' && (
                 <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
                   {isAdminMode
                     ? t('app.showcaseStatus.adminEditable')
@@ -6361,7 +6367,7 @@ const updateProjectFilters = useCallback((updater) => {
                       ? undefined
                       : isOnboardingActive
                         ? noop
-                        : showcaseProjectContext.status === 'draft' || isAdminMode
+                        : showcaseProjectContext.status === 'draft' || showcaseProjectContext.status === 'cancelled' || isAdminMode
                           ? handleUpdateProjectShowcaseAnswers
                           : undefined
                   }

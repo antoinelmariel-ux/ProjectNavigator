@@ -1637,6 +1637,7 @@ export default {
     defaultUserLabel: 'User',
     statusDraft: 'Draft',
     statusSubmitted: 'Submitted',
+    statusCancelled: 'Cancelled',
     projectSynthesisAriaLabel: 'Project synthesis',
     title: 'Synthesis',
     statusLabelTemplate: 'Status: {{status}}',
