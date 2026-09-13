@@ -157,6 +157,41 @@ plain « Synthèse finalisée » badge rather than claiming a validation nobody 
 project is submitted, so the card's single badge slot carries the information that is actually
 missing; the counts stay in the `title` tooltip). Don't add a second badge here.
 
+## Per-member triggering inside an expert team
+
+A team with several contacts can route each solicitation: `src/utils/teamMemberRules.js` holds one
+optional entry per member (`team.memberRules`, persisted as `MemberRulesJson` on `CN_Teams`) made of
+a `mode` (`include` = contacted only if the criteria match, `exclude` = contacted unless they match)
+and the very same `conditionGroups` shape the rules use — `evaluateRule` from `src/utils/rules.js`
+is what evaluates them, so both grammars can never drift apart. A contact with no entry is always
+contacted, which is what makes the whole feature backward-compatible: with no entry anywhere,
+`resolveTeamRecipients(team, answers)` returns exactly `normalizeTeamContacts(team)`.
+
+Three things are deliberate here:
+
+- **Recipients are narrowed, access is not.** `App.jsx` (submission mail, compliance-comment mail)
+  and `SynthesisReport.jsx`'s displayed contact line go through `resolveTeamRecipients`; the
+  `normalizeTeamContacts` calls that decide *who may comment or review* (`complianceTeamIdsForUser`,
+  thread authorship, `hasScopedBackOfficeAccess`) stay on the full contact list. A member who isn't
+  solicited for one project must still be able to open it, or removing yourself from a mail routing
+  would lock you out of your own team's back-office.
+- **An entry without conditions is not an entry.** `normalizeTeamMemberRules` drops rules with no
+  condition and rules whose email is no longer a team contact, so an address removed and later
+  re-added never silently inherits invisible old criteria. Note that `conditionGroups` present but
+  empty is authoritative in this module (`resolveMemberConditionGroups`) — the legacy flat
+  `conditions` fallback in `normalizeRuleConditionGroups` would otherwise resurrect the criteria the
+  admin just cleared.
+- **The back-office warns when nobody is unconditional.** `getTeamMemberCoverageWarning` returns
+  `allConditional` as soon as every remaining contact carries criteria: there is then a set of
+  answers for which the team solicits nobody. The teams tab renders it as a standing `role="alert"`
+  on the card rather than a toast, so it shows up the moment a member is removed *and* stays until
+  someone fixes the routing. `e2e/backoffice-team-member-routing.spec.js` covers both paths.
+
+The criteria panel itself is `src/components/ConditionGroupsEditor.jsx`, extracted so the member
+modal is a reuse of the rules grammar rather than a fourth copy of it (`RuleEditor.jsx` and the
+validation-committee block in `BackOffice.jsx` still carry their own inline copies). It is in
+`DEFERRED_MODULES` because only `BackOffice.jsx` imports it.
+
 ## The rules/questions engine (the risk-critical logic)
 
 This is where correctness matters most and where tests exist:

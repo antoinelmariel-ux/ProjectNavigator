@@ -41,7 +41,10 @@ const DEFERRED_MODULES = new Set([
   'src/components/PeoplePicker.jsx',
   'src/utils/peopleSearch.js',
   'src/utils/siteAccessQueue.js',
-  'src/data/mockOrgDirectory.js'
+  'src/data/mockOrgDirectory.js',
+  // Panneau de critères partagé (règles / membres d'équipe) : seul BackOffice.jsx
+  // (déjà différé) l'importe.
+  'src/components/ConditionGroupsEditor.jsx'
 ]);
 
 const ALLOWED_EXTENSIONS = new Set(['.js', '.jsx', '.json']);

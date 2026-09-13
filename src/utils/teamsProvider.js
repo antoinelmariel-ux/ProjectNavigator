@@ -2,6 +2,7 @@ import { isSharePointMode } from '../config/sharepointConfig.js';
 import { getRepository } from './listRepository.js';
 import { resolveLocalizedText } from './localizedContent.js';
 import { DEFAULT_LANGUAGE } from '../i18n/languages.js';
+import { normalizeTeamMemberRules } from './teamMemberRules.js';
 
 // `NameJson`/`Expertise` transportent {en, fr, de, es} (voir listSchemas.js) ; `Title` reste une
 // chaîne simple dérivée pour rester lisible tel quel dans les vues SharePoint natives.
@@ -10,7 +11,8 @@ const toTeam = (record) => ({
   name: record.NameJson && Object.keys(record.NameJson).length > 0 ? record.NameJson : (record.Title || ''),
   contacts: Array.isArray(record.ContactsJson) ? record.ContactsJson : [],
   expertise: record.Expertise || {},
-  acceptedLanguages: Array.isArray(record.AcceptedLanguagesJson) ? record.AcceptedLanguagesJson : []
+  acceptedLanguages: Array.isArray(record.AcceptedLanguagesJson) ? record.AcceptedLanguagesJson : [],
+  memberRules: Array.isArray(record.MemberRulesJson) ? record.MemberRulesJson : []
 });
 
 const toMeta = (record) => ({
@@ -33,6 +35,7 @@ const toRecord = (team, { sortOrder, userEmail } = {}) => ({
   NameJson: team.name && typeof team.name === 'object' ? team.name : (team.name ? { [DEFAULT_LANGUAGE]: team.name } : {}),
   Expertise: team.expertise && typeof team.expertise === 'object' ? team.expertise : (team.expertise ? { [DEFAULT_LANGUAGE]: team.expertise } : {}),
   AcceptedLanguagesJson: Array.isArray(team.acceptedLanguages) ? team.acceptedLanguages : [],
+  MemberRulesJson: normalizeTeamMemberRules(team),
   SortOrder: typeof sortOrder === 'number' ? sortOrder : 0,
   UpdatedByEmail: userEmail || '',
   UpdatedAt: new Date().toISOString()

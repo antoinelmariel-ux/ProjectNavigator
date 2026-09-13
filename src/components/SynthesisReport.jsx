@@ -27,7 +27,8 @@ import {
   getTriggeredValidationCommittees,
   normalizeValidationCommitteeConfig
 } from '../utils/validationCommittee.js';
-import { formatTeamContacts, normalizeTeamContacts } from '../utils/teamContacts.js';
+import { normalizeTeamContacts } from '../utils/teamContacts.js';
+import { resolveTeamRecipients } from '../utils/teamMemberRules.js';
 import { createAttachmentFromFile } from '../utils/documentStore.js';
 import { normalizeEmail } from '../utils/normalizeEmail.js';
 import { stripRichTextToPlainText } from '../utils/richText.js';
@@ -1672,7 +1673,9 @@ export const SynthesisReport = ({
               {sortedRelevantTeams.map(team => {
                 const teamPriority = getTeamPriority(analysis, team.id);
                 const teamQuestions = analysis.questions?.[team.id];
-                const teamContactLabel = formatTeamContacts(team, ' · ');
+                // Les membres réellement sollicités pour ce projet : une équipe peut router
+                // ses sollicitations selon des critères par membre (cf. teamMemberRules.js).
+                const teamContactLabel = resolveTeamRecipients(team, answers).join(' · ');
                 const formattedTeamQuestions = Array.isArray(teamQuestions)
                   ? teamQuestions
                       .map((entry) => normalizeTeamQuestionForDisplay(entry, language))

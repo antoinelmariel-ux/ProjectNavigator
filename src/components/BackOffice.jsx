@@ -63,6 +63,18 @@ import {
   sortCandidates
 } from '../utils/ruleDraftFromAnswers.js';
 import { normalizeTeamContacts } from '../utils/teamContacts.js';
+import {
+  MEMBER_TRIGGER_MODES,
+  MEMBER_TRIGGER_MODE_EXCLUDE,
+  MEMBER_TRIGGER_MODE_INCLUDE,
+  TEAM_MEMBER_COVERAGE_ALL_CONDITIONAL,
+  TEAM_MEMBER_COVERAGE_NO_MEMBER,
+  applyTeamMemberRule,
+  getTeamMemberCoverageWarning,
+  getTeamMemberRule,
+  normalizeTeamMemberRules
+} from '../utils/teamMemberRules.js';
+import { ConditionGroupsEditor } from './ConditionGroupsEditor.jsx';
 import { ACTIVITY_SCOPE_LABELS, ACTIVITY_SCOPE_VALUES } from '../utils/activityScope.js';
 import { PeoplePicker } from './PeoplePicker.jsx';
 import { buildImpersonationUrl, isImpersonating } from '../utils/impersonation.js';
@@ -830,6 +842,8 @@ export const BackOffice = ({
 
   const [onboardingEditingLanguage, setOnboardingEditingLanguage] = useState(language);
   const [teamsEditingLanguage, setTeamsEditingLanguage] = useState(language);
+  // Panneau de critères d'un membre d'équipe : { teamId, email } quand il est ouvert.
+  const [teamMemberRuleModal, setTeamMemberRuleModal] = useState(null);
   const [inspirationEditingLanguage, setInspirationEditingLanguage] = useState(language);
   // Périmètre d'activité du banc d'essai : celui du profil par défaut, ou celui que l'expert
   // simule pour vérifier ce que verrait quelqu'un d'un autre périmètre. `null` = pas de
@@ -4534,6 +4548,58 @@ export const BackOffice = ({
     const sortOrder = teamServerMetaRef?.current?.get(updatedTeam.id)?.sortOrder
       ?? nextSortOrder(teams, teamServerMetaRef);
     enqueueTeamWrite('save', { team: updatedTeam, sortOrder });
+  };
+
+  // `visibleTeams` peut être un sous-ensemble filtré de `teams` (accès restreint) : tout ce qui
+  // est déclenché depuis une carte d'équipe passe par l'id, jamais par l'index de rendu.
+  const updateTeamById = (teamId, updater) => {
+    const index = teams.findIndex((team) => team?.id === teamId);
+    if (index < 0) {
+      return;
+    }
+    const next = teams.slice();
+    next[index] = updater(next[index]);
+    setTeams(next);
+    const updatedTeam = next[index];
+    const sortOrder = teamServerMetaRef?.current?.get(updatedTeam.id)?.sortOrder
+      ?? nextSortOrder(teams, teamServerMetaRef);
+    enqueueTeamWrite('save', { team: updatedTeam, sortOrder });
+  };
+
+  // Retirer un contact retire aussi ses critères : les garder ferait ressusciter des critères
+  // invisibles si la même adresse était réintroduite plus tard.
+  const updateTeamContacts = (teamId, emails) => {
+    updateTeamById(teamId, (team) => {
+      const nextTeam = { ...team, contacts: Array.isArray(emails) ? emails : [] };
+      return { ...nextTeam, memberRules: normalizeTeamMemberRules(nextTeam) };
+    });
+  };
+
+  // Le mode vit dans l'état du panneau, pas seulement dans l'équipe : une règle sans condition
+  // n'est pas stockée (cf. applyTeamMemberRule), donc choisir « sauf si » avant d'ajouter la
+  // première condition serait sinon oublié aussitôt.
+  const openTeamMemberRuleModal = (teamId, email) => {
+    const team = teams.find((entry) => entry?.id === teamId);
+    const storedRule = team ? getTeamMemberRule(team, email) : null;
+    setTeamMemberRuleModal({
+      teamId,
+      email,
+      mode: storedRule?.mode === MEMBER_TRIGGER_MODE_EXCLUDE
+        ? MEMBER_TRIGGER_MODE_EXCLUDE
+        : MEMBER_TRIGGER_MODE_INCLUDE
+    });
+  };
+
+  const closeTeamMemberRuleModal = () => {
+    setTeamMemberRuleModal(null);
+  };
+
+  const updateTeamMemberRule = (teamId, email, updater) => {
+    updateTeamById(teamId, (team) => applyTeamMemberRule(team, email, updater));
+  };
+
+  const clearTeamMemberRule = (teamId, email) => {
+    updateTeamMemberRule(teamId, email, (current) => ({ ...current, conditionGroups: [] }));
   };
 
   const applyRuleUpdate = (ruleId, updater) => {
@@ -8436,15 +8502,21 @@ export const BackOffice = ({
               />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {visibleTeams.map((team, index) => {
+                {visibleTeams.map((team) => {
                   const teamDisplayName = resolveLocalizedText(team.name, language);
+                  const teamContacts = normalizeTeamContacts(team);
+                  const teamMemberRules = normalizeTeamMemberRules(team);
+                  const coverageWarning = getTeamMemberCoverageWarning(team);
+                  // Le routage par membre n'a de sens qu'à plusieurs ; on garde le panneau visible
+                  // si des critères existent déjà, sinon ils deviendraient impossibles à corriger.
+                  const showMemberRouting = teamContacts.length > 1 || teamMemberRules.length > 0;
                   return (
                     <article key={team.id} className="border border-gray-200 rounded-xl p-6 bg-white shadow-sm" aria-label={t('backOffice.main.teamAriaLabelTemplate', { name: teamDisplayName })}>
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-4">
                         <input
                           type="text"
                           value={getLocalizedRaw(team.name, teamsEditingLanguage)}
-                          onChange={(event) => updateTeamField(index, 'name', setLocalizedText(team.name, teamsEditingLanguage, event.target.value))}
+                          onChange={(event) => updateTeamById(team.id, (entry) => ({ ...entry, name: setLocalizedText(entry.name, teamsEditingLanguage, event.target.value) }))}
                           className="text-lg font-semibold text-gray-800 border-b border-transparent focus:border-blue-600 focus:outline-none flex-1"
                           aria-label={t('backOffice.main.teamNameAriaLabelTemplate', { id: team.id })}
                         />
@@ -8466,12 +8538,85 @@ export const BackOffice = ({
                       <div className="mb-4">
                         <PeoplePicker
                           id={`${team.id}-contact`}
-                          value={normalizeTeamContacts(team)}
-                          onChange={(emails) => updateTeamField(index, 'contacts', emails)}
+                          value={teamContacts}
+                          onChange={(emails) => updateTeamContacts(team.id, emails)}
                           context={`Équipe : ${teamDisplayName}`}
                           placeholder={t('backOffice.main.teamContactsPlaceholder')}
                         />
                       </div>
+
+                      {coverageWarning === TEAM_MEMBER_COVERAGE_ALL_CONDITIONAL && (
+                        <div
+                          role="alert"
+                          className="mb-4 flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"
+                        >
+                          <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                          <span>{t('backOffice.main.teamMemberCoverageAllConditionalWarning')}</span>
+                        </div>
+                      )}
+
+                      {coverageWarning === TEAM_MEMBER_COVERAGE_NO_MEMBER && (
+                        <div
+                          role="alert"
+                          className="mb-4 flex items-start gap-2 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800"
+                        >
+                          <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                          <span>{t('backOffice.main.teamMemberCoverageNoMemberWarning')}</span>
+                        </div>
+                      )}
+
+                      {showMemberRouting && (
+                        <div className="mb-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                          <h3 className="text-sm font-semibold text-gray-800">
+                            {t('backOffice.main.teamMemberRoutingHeading')}
+                          </h3>
+                          <p className="mt-1 text-xs text-gray-600">{t('backOffice.main.teamMemberRoutingHint')}</p>
+
+                          <ul className="mt-3 space-y-2">
+                            {teamContacts.map((contact) => {
+                              const memberRule = getTeamMemberRule(team, contact);
+                              const memberGroupCount = memberRule
+                                ? normalizeRuleConditionGroups(memberRule).length
+                                : 0;
+                              const badgeLabel = !memberRule
+                                ? t('backOffice.main.teamMemberAlwaysTriggeredBadge')
+                                : memberRule.mode === MEMBER_TRIGGER_MODE_EXCLUDE
+                                  ? t('backOffice.main.teamMemberExcludeBadge')
+                                  : t('backOffice.main.teamMemberIncludeBadge');
+                              const badgeClassName = !memberRule
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : memberRule.mode === MEMBER_TRIGGER_MODE_EXCLUDE
+                                  ? 'bg-rose-100 text-rose-800'
+                                  : 'bg-blue-100 text-blue-800';
+
+                              return (
+                                <li
+                                  key={`${team.id}-member-${contact}`}
+                                  className="flex flex-wrap items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2"
+                                >
+                                  <span className="text-sm text-gray-800 break-all">{contact}</span>
+                                  <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${badgeClassName}`}>
+                                    {badgeLabel}
+                                  </span>
+                                  {memberGroupCount > 0 && (
+                                    <span className="text-xs text-gray-500">
+                                      {t('backOffice.main.teamMemberGroupCountTemplate', { count: memberGroupCount })}
+                                    </span>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => openTeamMemberRuleModal(team.id, contact)}
+                                    className="ml-auto inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+                                  >
+                                    <Settings className="h-3.5 w-3.5" />
+                                    {t('backOffice.main.teamMemberConfigureButton')}
+                                  </button>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </div>
+                      )}
 
                       <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1" htmlFor={`${team.id}-expertise`}>
                         {t('backOffice.main.expertiseAreaLabel')}
@@ -8479,7 +8624,7 @@ export const BackOffice = ({
                       <textarea
                         id={`${team.id}-expertise`}
                         value={getLocalizedRaw(team.expertise, teamsEditingLanguage)}
-                        onChange={(event) => updateTeamField(index, 'expertise', setLocalizedText(team.expertise, teamsEditingLanguage, event.target.value))}
+                        onChange={(event) => updateTeamById(team.id, (entry) => ({ ...entry, expertise: setLocalizedText(entry.expertise, teamsEditingLanguage, event.target.value) }))}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-y"
                         rows={3}
                       />
@@ -8501,7 +8646,7 @@ export const BackOffice = ({
                                   const next = event.target.checked
                                     ? [...new Set([...currentList, code])]
                                     : currentList.filter((entry) => entry !== code);
-                                  updateTeamField(index, 'acceptedLanguages', next);
+                                  updateTeamById(team.id, (entry) => ({ ...entry, acceptedLanguages: next }));
                                 }}
                               />
                               {LANGUAGE_LABELS[code]}
@@ -9468,6 +9613,175 @@ export const BackOffice = ({
             teams={teams}
           />
         )}
+
+        {teamMemberRuleModal && (() => {
+          const modalTeam = teams.find((team) => team?.id === teamMemberRuleModal.teamId);
+          if (!modalTeam) {
+            return null;
+          }
+
+          const memberEmail = teamMemberRuleModal.email;
+          const memberRule = getTeamMemberRule(modalTeam, memberEmail);
+          const memberMode = teamMemberRuleModal.mode === MEMBER_TRIGGER_MODE_EXCLUDE
+            ? MEMBER_TRIGGER_MODE_EXCLUDE
+            : MEMBER_TRIGGER_MODE_INCLUDE;
+          const memberGroups = memberRule ? normalizeRuleConditionGroups(memberRule) : [];
+          const isExcludeMode = memberMode === MEMBER_TRIGGER_MODE_EXCLUDE;
+          const summary = memberGroups.length === 0 ? null : memberGroups.length === 1 ? (
+            (() => {
+              const logic = memberGroups[0].logic === 'any' ? 'any' : 'all';
+              const logicLabel = logic === 'any'
+                ? t('backOffice.main.logicOr')
+                : t('backOffice.main.logicAnd');
+              const logicDescription = logic === 'any'
+                ? t('backOffice.main.atLeastOneConditionMet')
+                : t('backOffice.main.allConditionsMet');
+              const template = isExcludeMode
+                ? t('backOffice.main.teamMemberTriggersUnlessTemplate')
+                : t('backOffice.main.teamMemberTriggersIfTemplate');
+
+              return (
+                <p>
+                  <strong>{t('backOffice.main.logicLabel')}</strong>{' '}
+                  {interpolateNodes(template, {
+                    member: <strong className="text-blue-700">{memberEmail}</strong>,
+                    description: <strong className="text-blue-700">{logicDescription}</strong>,
+                    logic: logicLabel
+                  })}
+                </p>
+              );
+            })()
+          ) : (
+            <div className="space-y-1">
+              <p>
+                <strong>{t('backOffice.main.logicLabel')}</strong>{' '}
+                {interpolateNodes(
+                  isExcludeMode
+                    ? t('backOffice.main.teamMemberTriggersUnlessEachGroupTemplate')
+                    : t('backOffice.main.teamMemberTriggersWhenEachGroupTemplate'),
+                  {
+                    member: <strong className="text-blue-700">{memberEmail}</strong>,
+                    groupLabel: (
+                      <strong className="text-blue-700">{t('backOffice.main.eachGroupOfConditionsBold')}</strong>
+                    ),
+                    andLabel: <strong>{t('backOffice.main.logicAnd')}</strong>
+                  }
+                )}
+              </p>
+              <p>
+                {interpolateNodes(t('backOffice.main.insideGroupChooseHintTemplate'), {
+                  allLabel: <strong className="text-blue-700">{t('backOffice.main.allBold')}</strong>,
+                  atLeastOneLabel: (
+                    <strong className="text-blue-700">{t('backOffice.main.atLeastOneBold')}</strong>
+                  )
+                })}
+              </p>
+            </div>
+          );
+
+          return (
+            <div className="fixed inset-0 z-[60] flex items-center justify-center px-4 py-6">
+              <div
+                className="absolute inset-0 bg-gray-900/50"
+                onClick={closeTeamMemberRuleModal}
+                aria-hidden="true"
+              />
+              <div
+                className="relative w-full max-w-4xl rounded-2xl bg-white p-6 shadow-xl"
+                role="dialog"
+                aria-modal="true"
+                aria-label={t('backOffice.main.teamMemberModalTitleTemplate', { member: memberEmail })}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h3 className="text-xl font-semibold text-gray-900">
+                      {t('backOffice.main.teamMemberModalTitleTemplate', { member: memberEmail })}
+                    </h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                      {t('backOffice.main.teamMemberModalDescriptionTemplate', {
+                        team: resolveLocalizedText(modalTeam.name, language) || modalTeam.id
+                      })}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={closeTeamMemberRuleModal}
+                    className="text-sm font-semibold text-gray-500 hover:text-gray-700"
+                  >
+                    {t('backOffice.main.teamMemberCloseButton')}
+                  </button>
+                </div>
+
+                <div className="mt-6 max-h-[65vh] space-y-4 overflow-y-auto pr-1">
+                  <fieldset className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                    <legend className="px-1 text-sm font-semibold text-gray-800">
+                      {t('backOffice.main.teamMemberModeLegend')}
+                    </legend>
+                    <div className="space-y-2">
+                      {MEMBER_TRIGGER_MODES.map((mode) => (
+                        <label key={mode} className="flex items-start gap-2 text-sm text-gray-700">
+                          <input
+                            type="radio"
+                            className="mt-1 h-4 w-4 border-gray-300 text-blue-600"
+                            name={`team-member-mode-${modalTeam.id}`}
+                            value={mode}
+                            checked={memberMode === mode}
+                            onChange={() => {
+                              setTeamMemberRuleModal((prev) => (prev ? { ...prev, mode } : prev));
+                              updateTeamMemberRule(modalTeam.id, memberEmail, (current) => ({
+                                ...current,
+                                mode
+                              }));
+                            }}
+                          />
+                          <span>
+                            {mode === MEMBER_TRIGGER_MODE_EXCLUDE
+                              ? t('backOffice.main.teamMemberModeExcludeOption')
+                              : t('backOffice.main.teamMemberModeIncludeOption')}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+
+                  <ConditionGroupsEditor
+                    idPrefix={`team-member-${modalTeam.id}`}
+                    groups={memberGroups}
+                    onChange={(nextGroups) =>
+                      updateTeamMemberRule(modalTeam.id, memberEmail, (current) => ({
+                        ...current,
+                        mode: memberMode,
+                        conditionGroups: nextGroups
+                      }))}
+                    questions={questions}
+                    language={language}
+                    emptyStateText={t('backOffice.main.teamMemberNoConditionYet')}
+                    summary={summary}
+                  />
+                </div>
+
+                <div className="mt-6 flex flex-wrap justify-end gap-3">
+                  {memberGroups.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => clearTeamMemberRule(modalTeam.id, memberEmail)}
+                      className="rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+                    >
+                      {t('backOffice.main.teamMemberClearButton')}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={closeTeamMemberRuleModal}
+                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                  >
+                    {t('backOffice.main.teamMemberDoneButton')}
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );

@@ -263,6 +263,11 @@ a {
   background-color: rgba(220,38,38, var(--tw-bg-opacity));
 }
 
+.bg-rose-100 {
+  --tw-bg-opacity: 1;
+  background-color: rgba(255,228,230, var(--tw-bg-opacity));
+}
+
 .bg-transparent {
   background-color: transparent;
 }
@@ -491,6 +496,10 @@ a {
 
 .bottom-6 {
   bottom: 1.5rem;
+}
+
+.break-all {
+  word-break: break-all;
 }
 
 .cursor-move {
@@ -1673,6 +1682,11 @@ a {
 .text-rose-600 {
   --tw-text-opacity: 1;
   color: rgba(225,29,72, var(--tw-text-opacity));
+}
+
+.text-rose-800 {
+  --tw-text-opacity: 1;
+  color: rgba(159,18,57, var(--tw-text-opacity));
 }
 
 .text-slate-600 {
