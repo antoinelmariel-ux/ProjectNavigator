@@ -34,6 +34,10 @@ test.describe('Persistance transverse', () => {
     await expect(page.getByText(/espace de stockage|quota|sauvegarde/i).first()).toBeVisible();
   });
 
+  // Adresse volontairement absente de l'annuaire simulé, pour qu'aucune suggestion ne vienne
+  // se substituer à la saisie au moment de valider.
+  const MEMBER_EMAIL = 'collegue-e2e@lfb.fr';
+
   test("un membre ajouté au projet persiste dans le stockage local après un rechargement", async ({ page }) => {
     const errors = collectConsoleErrors(page);
     await gotoHome(page);
@@ -43,13 +47,42 @@ test.describe('Persistance transverse', () => {
       await page.getByRole('button', { name: /Accéder à la synthèse/ }).click();
     }
 
-    await page.locator('input[type="email"]').first().fill('collegue-e2e@lfb.fr');
-    await page.getByRole('button', { name: 'Ajouter' }).first().click();
-    await page.waitForTimeout(300);
+    // Le partage passe par un PeoplePicker (src/components/PeoplePicker.jsx) : on tape
+    // l'adresse puis Entrée la valide. Plus de <input type="email"> ni de bouton « Ajouter »
+    // comme avant son introduction — c'est ce qui avait silencieusement périmé ce test.
+    const picker = page.getByPlaceholder('prenom.nom@lfb.fr');
+    await picker.fill(MEMBER_EMAIL);
+    await picker.press('Enter');
+
+    // Entrée valide la première suggestion de l'annuaire quand il y en a une, et seulement à
+    // défaut le texte saisi : on vérifie donc ce qui a réellement été ajouté avant de tester
+    // sa persistance, plutôt que de supposer que c'est bien MEMBER_EMAIL.
+    await expect(page.getByText(MEMBER_EMAIL, { exact: false }).first()).toBeVisible();
+
+    // Soumettre avant de recharger : c'est ce qui donne sur la carte d'accueil le bouton
+    // « Consulter la synthèse », seul chemin de retour vers l'écran qui affiche les membres
+    // (un brouillon ne propose que « Continuer l'édition », qui rouvre le questionnaire).
+    // Le partage, lui, n'existe que sur la synthèse d'avant soumission, d'où cet ordre.
+    await page.getByRole('button', { name: 'Soumettre le projet' }).click();
+    await page.waitForTimeout(400);
 
     await page.reload();
-    const membersRaw = await page.evaluate(() => window.localStorage.getItem('complianceNavigatorMockProjectMembers'));
-    expect(membersRaw).toContain('collegue-e2e@lfb.fr');
+
+    // Deux vérifications distinctes, parce que deux mécanismes distincts peuvent casser :
+    // l'écriture (le membre atteint-il localStorage ?) et surtout la RELECTURE au rechargement.
+    // C'est la seconde qui garde la régression documentée dans CLAUDE.md : un Mock*Provider
+    // adossé à une Map nue réécrit bien dans localStorage mais repart vide à chaque F5, le
+    // membre disparaissant de l'écran alors que la clé de stockage, elle, reste correcte.
+    const membersRaw = await page.evaluate(
+      () => window.localStorage.getItem('complianceNavigatorMockProjectMembers')
+    );
+    expect(membersRaw).toContain(MEMBER_EMAIL);
+
+    // Le rechargement ramène à l'accueil : il faut rouvrir la synthèse du projet pour voir si
+    // le membre est toujours là.
+    const card = page.locator('article[id^="project-card-"]').first();
+    await card.getByRole('button', { name: 'Consulter la synthèse' }).click();
+    await expect(page.getByText(MEMBER_EMAIL, { exact: false }).first()).toBeVisible();
     expect(errors).toEqual([]);
   });
 });
