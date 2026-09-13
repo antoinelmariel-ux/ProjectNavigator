@@ -67,6 +67,7 @@ import { userProfileProvider } from './utils/userProfileProvider.js';
 import { showcaseStickyNotesProvider } from './utils/showcaseStickyNotesProvider.js';
 import { complianceCommentsProvider } from './utils/complianceCommentsProvider.js';
 import { rulesProvider } from './utils/rulesProvider.js';
+import { sampleProjectsProvider } from './utils/sampleProjectsProvider.js';
 import { teamsProvider } from './utils/teamsProvider.js';
 import { mergeComplianceComments } from './utils/mergeComplianceComments.js';
 import { createAutosaveQueue } from './utils/autosaveQueue.js';
@@ -932,6 +933,12 @@ export const App = () => {
     () => !!currentUserEmail && normalizedAdminRightsEmails.includes(currentUserEmail),
     [currentUserEmail, normalizedAdminRightsEmails]
   );
+  // Hors SharePoint (poste local, `file://`, recette), il n'existe aucune session SPO pour
+  // désigner qui que ce soit : le cadenas reste donc visible pour tout le monde et c'est le
+  // mot de passe partagé qui fait foi. En mode SharePoint le bouton reste réservé aux
+  // personnes déjà désignées (admin, contact d'équipe, membre de comité).
+  const isSharedPasswordEntryAvailable = !isSharePointMode();
+
   // Contacts d'équipe conformité / membres de comité de validation : accès restreint au
   // back-office (cf. allowedTabIds dans BackOffice.jsx) sans passer par le mot de passe partagé.
   const hasScopedBackOfficeAccess = useMemo(() => {
@@ -1032,11 +1039,13 @@ export const App = () => {
   const complianceCommentsQueueRef = useRef(null);
   const userProfileQueueRef = useRef(null);
   const rulesQueueRef = useRef(null);
+  const sampleProjectsQueueRef = useRef(null);
   const teamsQueueRef = useRef(null);
   const inspirationsQueueRef = useRef(null);
   // Métadonnées SharePoint (spItemId/RowVersion/SortOrder) par id de règle/équipe — jamais
   // injectées dans l'objet applicatif consommé par le moteur de règles (rules.js).
   const ruleServerMetaRef = useRef(new Map());
+  const sampleProjectServerMetaRef = useRef(new Map());
   const teamServerMetaRef = useRef(new Map());
   const loadedProjectMembersRef = useRef(new Set());
   const loadedStickyNotesRef = useRef(new Set());
@@ -1679,7 +1688,14 @@ const updateProjectFilters = useCallback((updater) => {
 
     const hydrateFromSharePoint = async () => {
       try {
-        const [serverProjects, referentials, complianceCommentsByProject, ruleEntries, teamEntries] =
+        const [
+          serverProjects,
+          referentials,
+          complianceCommentsByProject,
+          ruleEntries,
+          teamEntries,
+          sampleEntries
+        ] =
           await Promise.all([
             dataProvider.listProjects(),
             loadReferentials(),
@@ -1688,7 +1704,8 @@ const updateProjectFilters = useCallback((updater) => {
             // référentiels de se charger normalement.
             complianceCommentsProvider.listAllComments().catch(() => ({})),
             rulesProvider.listAllRules().catch(() => []),
-            teamsProvider.listAllTeams().catch(() => [])
+            teamsProvider.listAllTeams().catch(() => []),
+            sampleProjectsProvider.listAllSampleProjects().catch(() => [])
           ]);
 
         if (cancelled) {
@@ -1708,6 +1725,12 @@ const updateProjectFilters = useCallback((updater) => {
           teamServerMetaRef.current = new Map(teamEntries.map(({ team, meta }) => [team.id, meta]));
           setTeams(teamEntries.map(({ team }) => team));
         }
+
+        // Les projets types, eux, peuvent légitimement être vides (aucun expert n'en a encore
+        // enregistré) : on reflète la liste telle quelle, y compris vide, contrairement aux
+        // règles/équipes dont un tableau vide signifierait « référentiel jamais publié ».
+        sampleProjectServerMetaRef.current = new Map(sampleEntries.map(({ sample, meta }) => [sample.id, meta]));
+        setComplianceSampleProjects(sampleEntries.map(({ sample }) => sample));
 
         const fallbackQuestionsLength = Array.isArray(referentials.slices.questions)
           ? referentials.slices.questions.length
@@ -2774,6 +2797,22 @@ const updateProjectFilters = useCallback((updater) => {
       getItemKey: (payload) => (payload.action === 'remove' ? payload.ruleId : payload.rule.id)
     });
 
+    sampleProjectsQueueRef.current = createRetryQueue({
+      processItem: async (payload) => {
+        if (payload.action === 'remove') {
+          await sampleProjectsProvider.removeSampleProject(payload.sampleId);
+          sampleProjectServerMetaRef.current.delete(payload.sampleId);
+          return;
+        }
+        const { sample, meta } = await sampleProjectsProvider.saveSampleProject(payload.sample, {
+          sortOrder: payload.sortOrder,
+          userEmail: currentUserEmail
+        });
+        sampleProjectServerMetaRef.current.set(sample.id, meta);
+      },
+      getItemKey: (payload) => (payload.action === 'remove' ? payload.sampleId : payload.sample.id)
+    });
+
     teamsQueueRef.current = createRetryQueue({
       processItem: async (payload) => {
         if (payload.action === 'remove') {
@@ -2829,6 +2868,7 @@ const updateProjectFilters = useCallback((updater) => {
       userProfileQueueRef.current?.flush();
       rulesQueueRef.current?.flush();
       teamsQueueRef.current?.flush();
+      sampleProjectsQueueRef.current?.flush();
       inspirationsQueueRef.current?.flush();
     };
     const handleOffline = () => setIsOnline(false);
@@ -5562,7 +5602,7 @@ const updateProjectFilters = useCallback((updater) => {
                   {t('app.nav.switchToProjectModeLabel')}
                 </button>
               )}
-              {!isAdminMode && (isCurrentUserAdmin || hasScopedBackOfficeAccess) && (
+              {!isAdminMode && (isCurrentUserAdmin || hasScopedBackOfficeAccess || isSharedPasswordEntryAvailable) && (
                 <button
                   type="button"
                   onClick={handleActivateAdminOnHome}
@@ -5928,6 +5968,8 @@ const updateProjectFilters = useCallback((updater) => {
                 sharePointReinitializeState={sharePointReinitState}
                 onPublishReferentialSettings={handlePublishReferentialSettings}
                 publishReferentialSettingsState={sharePointPublishSettingsState}
+                sampleProjectsQueueRef={sampleProjectsQueueRef}
+                sampleProjectServerMetaRef={sampleProjectServerMetaRef}
                 rulesQueueRef={rulesQueueRef}
                 teamsQueueRef={teamsQueueRef}
                 ruleServerMetaRef={ruleServerMetaRef}

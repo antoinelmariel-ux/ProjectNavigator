@@ -15,7 +15,8 @@ export const sharepointConfig = {
     siteAccessRequests: 'CN_SiteAccessRequests',
     userProfiles: 'CN_UserProfiles',
     rules: 'CN_Rules',
-    teams: 'CN_Teams'
+    teams: 'CN_Teams',
+    sampleProjects: 'CN_SampleProjects'
   },
   libraries: {
     app: 'CN-App',

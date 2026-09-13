@@ -70,7 +70,7 @@ Dans le site : **Contenu du site → Nouveau → Bibliothèque de documents**. N
 | `CN-Config` | Les fichiers de paramètres JSON (règles et équipes n'en font plus partie, voir `CN_Rules`/`CN_Teams` étape 4) — **créée vide, l'app la remplira toute seule** |
 | `CN-Documents` | Les pièces jointes ajoutées par les utilisateurs |
 
-## Étape 4 — Créer les 13 listes
+## Étape 4 — Créer les 14 listes
 
 > **Mise à jour du 29/08/2026** : les tableaux `CN_ComplianceComments` et `CN_ShowcaseStickyNotes`
 > ci-dessous avaient chacun deux colonnes manquantes (`Status`/`AttachmentsJson` pour le premier,
@@ -303,6 +303,40 @@ natives — ce n'est plus la source de vérité de l'app.
 | UpdatedByEmail | Une ligne de texte |
 | UpdatedAt | Date et heure |
 
+### `CN_SampleProjects` — les projets types du banc d'essai (une ligne par projet type)
+
+Sert au banc d'essai de l'onglet **Revue Compliance** du back-office : un projet type est un jeu
+de réponses nommé (« Étude clinique Ph. III », « Outil interne RH »…) que les experts chargent
+pour voir ce que les règles produisent, puis dont ils repartent pour créer une nouvelle règle.
+
+Trois points à garder en tête :
+
+- **Ce ne sont jamais de vrais projets.** Rien de ce qui est ici n'est soumis, notifié, scoré ni
+  visible des chefs de projet. `AnswersJson` a la même forme que `AnswersJson` de `CN_Projects`
+  (c'est ce qui permet d'importer un projet réel comme projet type en un clic), mais la liste vit
+  à part, et les experts y écrivent librement.
+- **La liste peut légitimement rester vide** : tant qu'aucun expert n'a enregistré de projet type,
+  l'application affiche simplement un corpus vide. Contrairement à `CN_Rules`/`CN_Teams`, une
+  liste vide ne veut donc pas dire « référentiel jamais publié » et ne déclenche aucun repli.
+- **Les droits sont ceux des autres listes de configuration** : lecture pour tous les membres du
+  site, écriture pour les personnes qui accèdent au back-office. Un projet type importé depuis un
+  projet réel en recopie les réponses — si ton site héberge des projets sensibles, aligne les
+  droits de `CN_SampleProjects` sur ceux de `CN_Projects`.
+
+| Colonne | Type |
+|---|---|
+| Title | (existante — nom du projet type, ex. « Étude clinique Ph. III ») |
+| SampleId 📌 | Une ligne de texte |
+| AnswersJson | Texte long (les réponses du projet type, même forme que `CN_Projects.AnswersJson`) |
+| SortOrder | Nombre |
+| RowVersion | Nombre |
+| CreatedByEmail | Une ligne de texte |
+| UpdatedByEmail | Une ligne de texte |
+| UpdatedAt | Date et heure |
+
+Aucun flux Power Automate n'est associé à cette liste : elle ne déclenche ni mail, ni Teams, ni
+planification.
+
 💡 **Astuce de vérification** : une fois les listes créées, l'application dispose d'un écran de
 diagnostic (voir étape 6) qui te dira précisément quelle liste ou quelle colonne manque. Inutile
 de tout relire à la main.
@@ -422,7 +456,7 @@ C'est très court maintenant. Copie-colle ceci complété dans la conversation a
 ```
 URL du site SharePoint  : https://lfb1.sharepoint.com/sites/........
 URL exacte de la page   : https://lfb1.sharepoint.com/sites/......../CN-App/index.aspx
-Les 13 listes CN_... sont créées avec les noms de colonnes exacts : oui / non
+Les 14 listes CN_... sont créées avec les noms de colonnes exacts : oui / non
 Bibliothèques CN-App / CN-Config / CN-Documents créées          : oui / non
 Flux Power Automate de notifications créé et activé              : oui / non
 Flux Power Automate d'ajout comme membre du site créé et activé : oui / non

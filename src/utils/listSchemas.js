@@ -191,6 +191,28 @@ export const LIST_SCHEMAS = {
     numbers: [],
     booleans: ['HasCompletedOnboarding']
   },
+  // Une ligne par projet type du banc d'essai (onglet « Revue Compliance ») : un jeu de réponses
+  // nommé, partagé par l'équipe conformité, qui sert à tester les règles et à en créer de
+  // nouvelles. `AnswersJson` porte les réponses telles que le questionnaire les produit — même
+  // forme que `AnswersJson` de CN_Projects, mais ce n'est jamais un projet réel : rien ici n'est
+  // soumis, notifié ni scoré en production. `SortOrder` fixe l'ordre d'affichage de la liste
+  // déroulante, comme pour CN_Rules/CN_Teams (aucun glisser-déposer côté application).
+  sampleProjects: {
+    keyField: 'SampleId',
+    columns: [
+      'Title',
+      'SampleId',
+      'AnswersJson',
+      'SortOrder',
+      'RowVersion',
+      'CreatedByEmail',
+      'UpdatedByEmail',
+      'UpdatedAt'
+    ],
+    json: { AnswersJson: OBJECT },
+    numbers: ['SortOrder', 'RowVersion'],
+    booleans: []
+  },
   // Une ligne par règle : la structure (conditions imbriquées, questions par équipe, risques
   // i18n) est trop profonde pour un mapping colonne par colonne, donc l'objet entier voyage
   // dans PayloadJson — RuleId/Title n'existent que pour l'indexation et la lecture dans SharePoint.

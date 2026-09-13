@@ -692,6 +692,8 @@ export const BackOffice = ({
   setTechnicalContactEmails,
   complianceSampleProjects = [],
   setComplianceSampleProjects,
+  sampleProjectsQueueRef,
+  sampleProjectServerMetaRef,
   currentUserEmail = '',
   isCurrentUserAdmin = false,
   activityScope,
@@ -1544,6 +1546,21 @@ export const BackOffice = ({
         : { action: 'save', rule: payload.rule, sortOrder: payload.sortOrder }
     );
   }, [rulesQueueRef]);
+
+  const enqueueSampleProjectWrite = useCallback((action, payload) => {
+    if (!isSharePointMode()) {
+      return;
+    }
+    const queue = sampleProjectsQueueRef?.current;
+    if (!queue || typeof queue.enqueue !== 'function') {
+      return;
+    }
+    queue.enqueue(
+      action === 'remove'
+        ? { action: 'remove', sampleId: payload.sampleId }
+        : { action: 'save', sample: payload.sample, sortOrder: payload.sortOrder }
+    );
+  }, [sampleProjectsQueueRef]);
 
   const enqueueTeamWrite = useCallback((action, payload) => {
     if (!isSharePointMode()) {
@@ -3976,27 +3993,33 @@ export const BackOffice = ({
     // Meme nom qu'un projet type deja charge : on met a jour celui-la plutot que d'en empiler
     // un homonyme, sinon la liste se remplit de variantes indistinguables.
     if (existing && existing.name === trimmed) {
+      const updated = { ...existing, answers: { ...complianceReviewAnswers }, updatedAt: new Date().toISOString() };
       setComplianceSampleProjects((prev) => (Array.isArray(prev) ? prev : []).map((entry) => (
-        entry.id === existing.id
-          ? { ...entry, answers: { ...complianceReviewAnswers }, updatedAt: new Date().toISOString() }
-          : entry
+        entry.id === existing.id ? updated : entry
       )));
+      enqueueSampleProjectWrite('save', {
+        sample: updated,
+        sortOrder: sampleProjectServerMetaRef?.current?.get(existing.id)?.sortOrder
+          ?? nextSortOrder(complianceSampleList, sampleProjectServerMetaRef)
+      });
       setComplianceReviewSampleDirty(false);
       setIsSampleNameRowOpen(false);
       return;
     }
 
     const id = `sample_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
-    setComplianceSampleProjects((prev) => [
-      ...(Array.isArray(prev) ? prev : []),
-      {
-        id,
-        name: trimmed,
-        answers: { ...complianceReviewAnswers },
-        createdBy: currentUserEmail || '',
-        updatedAt: new Date().toISOString()
-      }
-    ]);
+    const created = {
+      id,
+      name: trimmed,
+      answers: { ...complianceReviewAnswers },
+      createdBy: currentUserEmail || '',
+      updatedAt: new Date().toISOString()
+    };
+    setComplianceSampleProjects((prev) => [...(Array.isArray(prev) ? prev : []), created]);
+    enqueueSampleProjectWrite('save', {
+      sample: created,
+      sortOrder: nextSortOrder(complianceSampleList, sampleProjectServerMetaRef)
+    });
     setComplianceReviewSampleId(`sample:${id}`);
     setComplianceReviewSampleLabel(trimmed);
     setComplianceReviewSampleDirty(false);
@@ -4006,7 +4029,9 @@ export const BackOffice = ({
     complianceReviewSampleId,
     complianceSampleList,
     currentUserEmail,
+    enqueueSampleProjectWrite,
     sampleNameDraft,
+    sampleProjectServerMetaRef,
     setComplianceSampleProjects,
     t
   ]);
@@ -4018,10 +4043,11 @@ export const BackOffice = ({
 
     const sampleId = complianceReviewSampleId.slice(7);
     setComplianceSampleProjects((prev) => (Array.isArray(prev) ? prev : []).filter((entry) => entry.id !== sampleId));
+    enqueueSampleProjectWrite('remove', { sampleId });
     setComplianceReviewSampleId('');
     setComplianceReviewSampleLabel('');
     setComplianceReviewSampleDirty(false);
-  }, [complianceReviewSampleId, setComplianceSampleProjects]);
+  }, [complianceReviewSampleId, enqueueSampleProjectWrite, setComplianceSampleProjects]);
 
   // L'analyse « projet entier », independante du mode d'affichage choisi a droite : c'est elle
   // qui alimente la creation de regle, ou raisonner sur un prefixe du questionnaire n'aurait
