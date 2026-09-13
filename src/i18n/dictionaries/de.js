@@ -178,7 +178,8 @@ export default {
       publishing: 'Fragen und Einstellungen werden an SharePoint veröffentlicht…',
       publishedSuccess: 'Fragen und Einstellungen in {{library}} veröffentlicht ({{details}}).',
       failedGeneric: 'Veröffentlichung der Fragen und Einstellungen fehlgeschlagen.',
-      nothingSelected: 'Wählen Sie mindestens ein zu veröffentlichendes Element aus.'
+      nothingSelected: 'Wählen Sie mindestens ein zu veröffentlichendes Element aus.',
+      itemPublishedSuccess: 'In SharePoint veröffentlicht.'
     },
     onboardingTourEmpty: 'Die Onboarding-Tour ist leer. Bitte überprüfen Sie die Konfiguration.',
     genericUserFallback: 'Benutzer',
@@ -1205,6 +1206,13 @@ export default {
       referentialItemRules: 'Regeln',
       referentialItemTeams: 'Teams',
       referentialSelectionEmptyHint: 'Wählen Sie mindestens ein zu veröffentlichendes Element aus.',
+      referentialPublishButton: 'In SharePoint veröffentlichen',
+      referentialPublishInProgress: 'Veröffentlichung läuft…',
+      referentialPublishDirtyHint: 'Nicht veröffentlichte Änderungen: Es wird nichts automatisch in SharePoint gespeichert — andere Benutzer sehen sie erst, wenn Sie auf „In SharePoint veröffentlichen“ klicken.',
+      referentialPublishUpToDateHint: 'Aktuell in SharePoint: keine ausstehenden Änderungen für dieses Element.',
+      referentialSettingsSharedNote: 'Diese Schaltfläche veröffentlicht die gesamte Datei „Allgemeine Einstellungen“ (Administratoren, Onboarding, Validierungsausschuss, Vitrinenformular, Filter) erneut, nicht nur die Felder dieses Tabs.',
+      globalUnpublishedWarningTitle: 'Nicht in SharePoint veröffentlichte Änderungen',
+      globalUnpublishedWarningHint: 'Öffnen Sie den betreffenden Tab und klicken Sie auf „In SharePoint veröffentlichen“, damit andere Benutzer diese Änderungen sehen.',
       riskLevelsTitle: 'Risikostufen',
       riskLevelsSubtitle: 'Passen Sie die Schwellenwerte an, die zur Berechnung der den Teams angezeigten Compliance-Komplexität verwendet werden.',
       addLevelButton: 'Stufe hinzufügen',

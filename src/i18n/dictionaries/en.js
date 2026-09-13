@@ -178,7 +178,8 @@ export default {
       publishing: 'Publishing questions and settings to SharePoint…',
       publishedSuccess: 'Questions and settings published in {{library}} ({{details}}).',
       failedGeneric: 'Failed to publish questions and settings.',
-      nothingSelected: 'Select at least one item to publish.'
+      nothingSelected: 'Select at least one item to publish.',
+      itemPublishedSuccess: 'Published to SharePoint.'
     },
     onboardingTourEmpty: 'The onboarding tour is empty. Please check the configuration.',
     genericUserFallback: 'User',
@@ -1194,6 +1195,13 @@ export default {
       referentialItemRules: 'Rules',
       referentialItemTeams: 'Teams',
       referentialSelectionEmptyHint: 'Select at least one item to publish.',
+      referentialPublishButton: 'Publish to SharePoint',
+      referentialPublishInProgress: 'Publishing…',
+      referentialPublishDirtyHint: 'Unpublished changes: nothing is saved to SharePoint automatically — other users won’t see them until you click “Publish to SharePoint”.',
+      referentialPublishUpToDateHint: 'Up to date on SharePoint: no pending changes for this item.',
+      referentialSettingsSharedNote: 'This button republishes the whole “General settings” file (administrators, onboarding, validation committee, showcase form, filters), not just this tab’s fields.',
+      globalUnpublishedWarningTitle: 'Unpublished changes to SharePoint',
+      globalUnpublishedWarningHint: 'Open the relevant tab and click “Publish to SharePoint” so other users see these changes.',
       riskLevelsTitle: 'Risk levels',
       riskLevelsSubtitle: 'Adjust the thresholds used to calculate the compliance complexity shown to teams.',
       addLevelButton: 'Add a level',

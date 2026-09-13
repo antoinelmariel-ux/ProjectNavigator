@@ -18,7 +18,8 @@ import {
   Sparkles,
   Save,
   LayoutList,
-  UserCircle
+  UserCircle,
+  Send
 } from './icons.js';
 import { QuestionEditor } from './QuestionEditor.jsx';
 import { RuleEditor } from './RuleEditor.jsx';
@@ -727,6 +728,9 @@ export const BackOffice = ({
   publishReferentialSettingsState = { inProgress: false, message: '', status: 'idle' },
   publishSettingsSelection = {},
   onTogglePublishSettingsSelection,
+  unpublishedReferentials = {},
+  referentialPublishState = {},
+  onPublishSingleReferential,
   rulesQueueRef,
   teamsQueueRef,
   ruleServerMetaRef,
@@ -766,6 +770,63 @@ export const BackOffice = ({
       </div>
     </fieldset>
   );
+
+  // Bouton de publication d'un seul référentiel-fichier, posé directement sur l'onglet qui
+  // l'édite (Questions, Niveaux de risque, Pondérations, Thèmes de vitrine — et, pour
+  // settings.json, chacun des quatre onglets qui y contribuent). Volontairement voyant quand
+  // des modifications locales n'ont pas encore été poussées vers SharePoint : il n'y a pas
+  // d'enregistrement automatique côté SharePoint, contrairement à `complianceNavigatorState`.
+  const renderReferentialPublishControl = (key, { titleKey, noteKey } = {}) => {
+    if (!isSharePointMode()) {
+      return null;
+    }
+    const state = referentialPublishState[key] || { inProgress: false, message: '', status: 'idle' };
+    const isDirty = Boolean(unpublishedReferentials[key]);
+    return (
+      <div
+        className={`flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between ${
+          isDirty ? 'border-amber-300 bg-amber-50' : 'border-gray-200 bg-gray-50'
+        }`}
+      >
+        <div className="flex items-start gap-2 text-sm">
+          {isDirty ? (
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+          ) : (
+            <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+          )}
+          <span className={isDirty ? 'font-medium text-amber-900' : 'text-gray-600'}>
+            {titleKey && <strong className="mr-1">{t(`backOffice.main.${titleKey}`)} —</strong>}
+            {isDirty
+              ? t('backOffice.main.referentialPublishDirtyHint')
+              : t('backOffice.main.referentialPublishUpToDateHint')}
+            {noteKey && <span className="block text-xs text-gray-500 mt-1">{t(`backOffice.main.${noteKey}`)}</span>}
+          </span>
+        </div>
+        <div className="flex flex-col items-start gap-1 sm:items-end">
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof onPublishSingleReferential === 'function') {
+                onPublishSingleReferential(key);
+              }
+            }}
+            disabled={state.inProgress || typeof onPublishSingleReferential !== 'function'}
+            className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+              isDirty ? 'bg-amber-500 text-white hover:bg-amber-600' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+            }`}
+          >
+            <Send className="h-4 w-4" />
+            {state.inProgress ? t('backOffice.main.referentialPublishInProgress') : t('backOffice.main.referentialPublishButton')}
+          </button>
+          {state.message && (
+            <p className={`text-xs ${state.status === 'error' ? 'text-red-700' : 'text-gray-600'}`} role="status">
+              {state.message}
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   const [onboardingEditingLanguage, setOnboardingEditingLanguage] = useState(language);
   const [teamsEditingLanguage, setTeamsEditingLanguage] = useState(language);
@@ -3677,6 +3738,10 @@ export const BackOffice = ({
   const isSharePointReinitSelectionEmpty = [...REFERENTIAL_SELECTION_ITEMS, ...REINIT_EXTRA_SELECTION_ITEMS].every(
     ({ key }) => sharePointReinitSelection[key] === false
   );
+  // Persiste au-dessus des onglets (pas seulement sur celui qui édite le référentiel) pour
+  // qu'un admin qui quitte l'onglet Questions sans avoir cliqué sur « Publier vers SharePoint »
+  // continue de voir le rappel une fois sur un autre onglet.
+  const dirtyReferentialItems = REFERENTIAL_SELECTION_ITEMS.filter(({ key }) => unpublishedReferentials[key]);
   const validationCommitteeRuleOptions = useMemo(
     () =>
       (Array.isArray(rules) ? rules : [])
@@ -4713,6 +4778,29 @@ export const BackOffice = ({
             )}
           </section>
 
+          {isSharePointMode() && dirtyReferentialItems.length > 0 && (
+            <section
+              className="mb-6 rounded-2xl border border-amber-200 bg-amber-50/80 p-4"
+              role="status"
+              aria-live="polite"
+            >
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-6 h-6 text-amber-600 mt-1" />
+                <div>
+                  <p className="text-sm font-semibold text-amber-900">
+                    {t('backOffice.main.globalUnpublishedWarningTitle')}
+                  </p>
+                  <p className="mt-1 text-sm text-amber-800">
+                    {dirtyReferentialItems.map(({ labelKey }) => t(`backOffice.main.${labelKey}`)).join(' · ')}
+                  </p>
+                  <p className="mt-1 text-xs text-amber-700">
+                    {t('backOffice.main.globalUnpublishedWarningHint')}
+                  </p>
+                </div>
+              </div>
+            </section>
+          )}
+
           <nav className="flex flex-wrap gap-2 border-b border-gray-200 pb-2 mb-6" role="tablist" aria-label={t('backOffice.main.backOfficeNavAriaLabel')}>
             {tabDefinitions.map((tab) => (
               <button
@@ -4773,6 +4861,8 @@ export const BackOffice = ({
                     {t('backOffice.main.resetFiltersButton')}
                   </button>
                 </header>
+
+                {renderReferentialPublishControl('settings', { noteKey: 'referentialSettingsSharedNote' })}
 
                 <div className="flex flex-col gap-4">
                   <div className="rounded-xl border border-dashed border-blue-200 bg-blue-50/70 p-4 md:flex md:items-end md:justify-between md:gap-4">
@@ -4982,6 +5072,9 @@ export const BackOffice = ({
                 label={t('backOffice.main.inspirationEditingLanguageLabel')}
                 hint={t('backOffice.main.inspirationEditingLanguageHint')}
               />
+
+              {renderReferentialPublishControl('settings', { noteKey: 'referentialSettingsSharedNote' })}
+
               <article className="space-y-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
                 <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="space-y-2">
@@ -5557,6 +5650,8 @@ export const BackOffice = ({
                   </button>
                 </div>
 
+                {renderReferentialPublishControl('showcaseThemes')}
+
                 {showcaseThemeActivationConflicts.length > 0 && (
                   <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
                     <p className="font-semibold">{t('backOffice.main.multipleThemesWarning')}</p>
@@ -5762,6 +5857,8 @@ export const BackOffice = ({
                     </button>
                   </div>
                 </header>
+
+                {renderReferentialPublishControl('settings', { noteKey: 'referentialSettingsSharedNote' })}
 
                 <LanguageEditSwitcher
                   editingLanguage={onboardingEditingLanguage}
@@ -6095,6 +6192,8 @@ export const BackOffice = ({
                   {t('backOffice.main.addQuestionButton')}
                 </button>
               </div>
+
+              {renderReferentialPublishControl('questions')}
 
               <div className="rounded-lg border border-blue-100 bg-blue-50/60 px-4 py-3 text-sm text-blue-900">
                 <p className="font-medium">{t('backOffice.main.showcaseQuestionsHeading')}</p>
@@ -7115,6 +7214,8 @@ export const BackOffice = ({
                   </p>
                 </header>
 
+                {renderReferentialPublishControl('settings', { noteKey: 'referentialSettingsSharedNote' })}
+
                 <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900">
                   {t('backOffice.main.commentRequestInfoBox')}
                 </div>
@@ -8114,6 +8215,8 @@ export const BackOffice = ({
                 </p>
               </div>
 
+              {renderReferentialPublishControl('riskLevelRules')}
+
               <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm space-y-4">
                 <div>
                   <h3 className="text-lg font-semibold text-gray-800">{t('backOffice.main.criticalityWeightingTitle')}</h3>
@@ -8121,6 +8224,9 @@ export const BackOffice = ({
                     {t('backOffice.main.criticalityWeightingSubtitle')}
                   </p>
                 </div>
+
+                {renderReferentialPublishControl('riskWeights')}
+
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                   {buildRiskWeightFields(t).map((field) => (
                     <div key={field.key} className="border border-gray-200 rounded-lg p-4 bg-gray-50">

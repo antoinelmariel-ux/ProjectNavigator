@@ -178,7 +178,8 @@ export default {
       publishing: 'Publication des questions et paramètres vers SharePoint…',
       publishedSuccess: 'Questions et paramètres publiés dans {{library}} ({{details}}).',
       failedGeneric: 'Échec de la publication des questions et paramètres.',
-      nothingSelected: 'Sélectionnez au moins un élément à publier.'
+      nothingSelected: 'Sélectionnez au moins un élément à publier.',
+      itemPublishedSuccess: 'Publié vers SharePoint.'
     },
     onboardingTourEmpty: 'Le tour d’onboarding est vide. Veuillez vérifier la configuration.',
     genericUserFallback: 'Utilisateur',
@@ -1203,6 +1204,13 @@ export default {
       referentialItemRules: 'Règles',
       referentialItemTeams: 'Équipes',
       referentialSelectionEmptyHint: 'Sélectionnez au moins un élément à publier.',
+      referentialPublishButton: 'Publier vers SharePoint',
+      referentialPublishInProgress: 'Publication en cours…',
+      referentialPublishDirtyHint: 'Modifications non publiées : rien n’est enregistré automatiquement vers SharePoint, les autres utilisateurs ne les voient pas tant que vous n’avez pas cliqué sur « Publier vers SharePoint ».',
+      referentialPublishUpToDateHint: 'À jour sur SharePoint : aucune modification en attente sur cet élément.',
+      referentialSettingsSharedNote: 'Ce bouton republie le fichier « Réglages généraux » complet (administrateurs, onboarding, comité de validation, formulaire vitrine, filtres), pas seulement les champs de cet onglet.',
+      globalUnpublishedWarningTitle: 'Modifications non publiées vers SharePoint',
+      globalUnpublishedWarningHint: 'Ouvrez l’onglet concerné et cliquez sur « Publier vers SharePoint » pour que les autres utilisateurs voient ces changements.',
       riskLevelsTitle: 'Niveaux de risque',
       riskLevelsSubtitle: 'Ajustez les seuils utilisés pour calculer la complexité compliance affichée aux équipes.',
       addLevelButton: 'Ajouter un niveau',

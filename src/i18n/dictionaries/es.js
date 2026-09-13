@@ -178,7 +178,8 @@ export default {
       publishing: 'Publicando preguntas y ajustes en SharePoint…',
       publishedSuccess: 'Preguntas y ajustes publicados en {{library}} ({{details}}).',
       failedGeneric: 'Error al publicar las preguntas y ajustes.',
-      nothingSelected: 'Seleccione al menos un elemento para publicar.'
+      nothingSelected: 'Seleccione al menos un elemento para publicar.',
+      itemPublishedSuccess: 'Publicado en SharePoint.'
     },
     onboardingTourEmpty: 'El recorrido de incorporación está vacío. Verifique la configuración.',
     genericUserFallback: 'Usuario',
@@ -1195,6 +1196,13 @@ export default {
       referentialItemRules: 'Reglas',
       referentialItemTeams: 'Equipos',
       referentialSelectionEmptyHint: 'Seleccione al menos un elemento para publicar.',
+      referentialPublishButton: 'Publicar en SharePoint',
+      referentialPublishInProgress: 'Publicación en curso…',
+      referentialPublishDirtyHint: 'Cambios sin publicar: nada se guarda automáticamente en SharePoint — el resto de usuarios no los verá hasta que haga clic en «Publicar en SharePoint».',
+      referentialPublishUpToDateHint: 'Actualizado en SharePoint: no hay cambios pendientes para este elemento.',
+      referentialSettingsSharedNote: 'Este botón vuelve a publicar todo el archivo «Ajustes generales» (administradores, incorporación, comité de validación, formulario de la vitrina, filtros), no solo los campos de esta pestaña.',
+      globalUnpublishedWarningTitle: 'Cambios sin publicar en SharePoint',
+      globalUnpublishedWarningHint: 'Abra la pestaña correspondiente y haga clic en «Publicar en SharePoint» para que el resto de usuarios vea estos cambios.',
       riskLevelsTitle: 'Niveles de riesgo',
       riskLevelsSubtitle: 'Ajuste los umbrales utilizados para calcular la complejidad de cumplimiento mostrada a los equipos.',
       addLevelButton: 'Añadir un nivel',
