@@ -1,7 +1,14 @@
 import { normalizeRuleConditionGroups, applyRuleConditionGroups } from './ruleConditions.js';
 import { evaluateRule } from './rules.js';
+import { SUPPORTED_LANGUAGES } from '../i18n/languages.js';
 
 export const DEFAULT_COMMITTEE_ID = 'committee-default';
+
+// Stocke la sélection telle quelle (un tableau vide reste vide) : c'est au moment de vérifier
+// si une langue est acceptée, pas à la sauvegarde, que "rien de coché" doit se lire comme
+// "toutes les langues acceptées" (voir isLanguageAcceptedBy dans translationAudit.js).
+const sanitizeAcceptedLanguages = (value) =>
+  Array.isArray(value) ? value.filter((code) => SUPPORTED_LANGUAGES.includes(code)) : [];
 
 const sanitizeTextValue = (value) => (typeof value === 'string' ? value.trim() : '');
 
@@ -79,6 +86,7 @@ const normalizeCommittee = (value = {}, index = 0) => {
       name,
       emails,
       commentRequired: normalizeCommentRequirement(value?.commentRequired),
+      acceptedLanguages: sanitizeAcceptedLanguages(value?.acceptedLanguages),
       ruleTriggers: normalizeRuleTriggers(value?.ruleTriggers),
       riskTriggers: normalizeRiskTriggers(value?.riskTriggers),
       teamTriggers: normalizeTeamTriggers(value?.teamTriggers)
