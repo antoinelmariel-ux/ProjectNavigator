@@ -100,7 +100,7 @@ Conventions du tableau ci-dessous :
 |---|---|
 | Title | (existante — nom du projet) |
 | ProjectId 📌 | Une ligne de texte |
-| Status 📌 | Choix : `Draft`, `Submitted` |
+| Status 📌 | Choix : `Draft`, `Submitted`, `Cancelled` |
 | OwnerEmail | Une ligne de texte |
 | CurrentEditorEmail | Une ligne de texte |
 | AnswersJson | Texte long |
@@ -108,6 +108,7 @@ Conventions du tableau ci-dessous :
 | ProgressAnswered | Nombre |
 | ProgressTotal | Nombre |
 | SubmissionDate | Date et heure |
+| CancelledDate | Date et heure |
 | LastAutosaveAt | Date et heure |
 | RowVersion | Nombre |
 | CreatedByEmail | Une ligne de texte |

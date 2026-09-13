@@ -303,6 +303,7 @@ export default {
     sortAsc: 'Les plus anciens en premier',
     statusDraft: 'Brouillon en cours',
     statusSubmitted: 'Synthèse finalisée',
+    statusCancelled: 'Soumission annulée',
     validationStatusValidated: 'Validé',
     validationStatusPending: 'En attente de validation',
     validationStatusRejected: 'Refusé',
@@ -408,6 +409,13 @@ export default {
     duplicateProjectTitle: 'Dupliquer le projet',
     deleteProjectAriaLabel: 'Supprimer le projet {{name}}',
     deleteProjectTitle: 'Supprimer le projet',
+    cancelSubmissionDialogTitle: 'Annuler la soumission ?',
+    cancelSubmissionDescription:
+      'Vous êtes sur le point d’annuler la soumission de « {{name}} ». Le projet ne sera plus traité par les équipes compliance et n’enverra aucune notification.',
+    confirmCancelSubmission: 'Annuler la soumission',
+    cancelSubmissionAriaLabel: 'Annuler la soumission du projet {{name}}',
+    cancelSubmissionTitle: 'Annuler la soumission',
+    cancelledOn: 'Soumission annulée le {{date}}',
     visibleToAllBadge: 'Visible par tous',
     makeVisibleToAll: 'Rendre visible à tous',
     makeVisibleToAllTitle: 'Rendre ce projet soumis visible par tous les utilisateurs',
@@ -1594,6 +1602,13 @@ export default {
       'Toutes les réponses obligatoires ont été fournies. Vous pouvez générer la synthèse quand vous le souhaitez.',
     backButton: 'Retour au questionnaire',
     proceedButton: 'Accéder à la synthèse'
+  },
+  submissionCancelledNotice: {
+    title: 'Soumission annulée',
+    description: 'Le porteur de ce projet a annulé sa soumission. Le projet n’est plus accessible depuis ce lien.',
+    descriptionWithName:
+      'Le porteur du projet « {{name}} » a annulé sa soumission. Le projet n’est plus accessible depuis ce lien.',
+    backToHome: 'Retour à l’accueil'
   },
   synthesisReport: {
     statusValidated: 'Validé',

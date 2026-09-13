@@ -345,8 +345,8 @@ Points de vigilance propres aux mappers :
   existant.
 - **Booléens** : colonnes Oui/Non → `true`/`false` natifs.
 - **Colonnes de choix** (`Status`, `Visibility`) : envoyer exactement la chaîne définie dans la
-  liste (`Draft`/`Submitted`, `Personal`/`Shared`) — la normalisation existe déjà côté app
-  (`normalizeStatus`).
+  liste (`Draft`/`Submitted`/`Cancelled`, `Personal`/`Shared`) — la normalisation existe déjà côté
+  app (`normalizeStatus`).
 - Les noms internes de colonnes sont identiques aux noms d'affichage (le document de préparation
   impose de les créer sans espace ni accent). `Title` est la colonne native.
 
