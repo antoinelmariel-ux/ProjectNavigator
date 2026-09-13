@@ -303,6 +303,7 @@ export default {
     sortAsc: 'Älteste zuerst',
     statusDraft: 'Entwurf in Bearbeitung',
     statusSubmitted: 'Zusammenfassung fertiggestellt',
+    statusCancelled: 'Einreichung storniert',
     validationStatusValidated: 'Genehmigt',
     validationStatusPending: 'Genehmigung ausstehend',
     validationStatusRejected: 'Abgelehnt',
@@ -410,6 +411,13 @@ export default {
     duplicateProjectTitle: 'Projekt duplizieren',
     deleteProjectAriaLabel: 'Projekt {{name}} löschen',
     deleteProjectTitle: 'Projekt löschen',
+    cancelSubmissionDialogTitle: 'Einreichung stornieren?',
+    cancelSubmissionDescription:
+      'Sie sind dabei, die Einreichung von „{{name}}“ zu stornieren. Das Projekt wird von den Compliance-Teams nicht mehr bearbeitet und es wird keine Benachrichtigung versendet.',
+    confirmCancelSubmission: 'Einreichung stornieren',
+    cancelSubmissionAriaLabel: 'Einreichung des Projekts {{name}} stornieren',
+    cancelSubmissionTitle: 'Einreichung stornieren',
+    cancelledOn: 'Einreichung storniert am {{date}}',
     visibleToAllBadge: 'Für alle sichtbar',
     makeVisibleToAll: 'Für alle sichtbar machen',
     makeVisibleToAllTitle: 'Dieses eingereichte Projekt für alle Nutzer sichtbar machen',
@@ -1596,6 +1604,13 @@ export default {
     backButton: 'Zurück zum Fragebogen',
     proceedButton: 'Zur Zusammenfassung'
   },
+  submissionCancelledNotice: {
+    title: 'Einreichung storniert',
+    description: 'Der Projektverantwortliche hat diese Einreichung storniert. Das Projekt ist über diesen Link nicht mehr zugänglich.',
+    descriptionWithName:
+      'Der Verantwortliche des Projekts „{{name}}“ hat die Einreichung storniert. Das Projekt ist über diesen Link nicht mehr zugänglich.',
+    backToHome: 'Zurück zur Startseite'
+  },
   synthesisReport: {
     statusValidated: 'Genehmigt',
     statusValidatedWithConditions: 'Genehmigt unter Bedingungen',
@@ -1633,6 +1648,7 @@ export default {
     defaultUserLabel: 'Benutzer',
     statusDraft: 'Entwurf',
     statusSubmitted: 'Eingereicht',
+    statusCancelled: 'Storniert',
     projectSynthesisAriaLabel: 'Projektzusammenfassung',
     title: 'Zusammenfassung',
     statusLabelTemplate: 'Status: {{status}}',

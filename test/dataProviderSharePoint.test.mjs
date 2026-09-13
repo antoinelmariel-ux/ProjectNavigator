@@ -89,6 +89,7 @@ test('SharePointRestProvider : listProjects convertit les lignes en projets', as
         totalQuestions: 10,
         lastUpdated: '2026-08-02T09:00:00Z',
         submittedAt: '2026-08-01T09:00:00Z',
+        cancelledAt: null,
         ownerEmail: 'a@lfb.fr',
         rowVersion: 2,
         lastModifiedBy: 'b@lfb.fr'
@@ -130,6 +131,66 @@ test('SharePointRestProvider : upsertProject sérialise les réponses et renvoie
       assert.deepEqual(result.project.answers, { q1: 'non' });
       assert.equal(result.updatedBy, 'moi@lfb.fr');
       assert.equal(result.etag, 'W/"p-new-1"');
+    }
+  );
+});
+
+test('SharePointRestProvider : une soumission annulée envoie Status Cancelled et garde sa date de soumission', async () => {
+  await withFetch(
+    (url, init) => {
+      if (init.method === 'GET') {
+        return makeResponse(200, { value: [] });
+      }
+      return makeResponse(201, { Id: 22 });
+    },
+    async (calls) => {
+      await new SharePointRestProvider().upsertProject(
+        {
+          id: 'p-cancelled',
+          projectName: 'Projet annulé',
+          status: 'cancelled',
+          submittedAt: '2026-08-01T09:00:00Z',
+          cancelledAt: '2026-08-05T09:00:00Z',
+          answers: { q1: 'oui' },
+          analysis: { riskScore: 2 }
+        },
+        { userEmail: 'moi@lfb.fr' }
+      );
+
+      const write = calls.find((call) => call.init.method === 'POST' && call.url.includes('/items'));
+      const body = JSON.parse(write.init.body);
+      assert.equal(body.Status, 'Cancelled');
+      assert.equal(body.SubmissionDate, '2026-08-01T09:00:00Z');
+      assert.equal(body.CancelledDate, '2026-08-05T09:00:00Z');
+    }
+  );
+});
+
+test('SharePointRestProvider : listProjects restitue le statut annulé', async () => {
+  await withFetch(
+    () =>
+      makeResponse(200, {
+        value: [
+          {
+            Id: 4,
+            ProjectId: 'p-cancelled',
+            Title: 'Projet annulé',
+            Status: 'Cancelled',
+            OwnerEmail: 'a@lfb.fr',
+            AnswersJson: '{"q1":"oui"}',
+            AnalysisJson: '{"riskScore":2}',
+            SubmissionDate: '2026-08-01T09:00:00Z',
+            CancelledDate: '2026-08-05T09:00:00Z',
+            RowVersion: 3
+          }
+        ]
+      }),
+    async () => {
+      const projects = await new SharePointRestProvider().listProjects();
+      assert.equal(projects.length, 1);
+      assert.equal(projects[0].status, 'cancelled');
+      assert.equal(projects[0].submittedAt, '2026-08-01T09:00:00Z');
+      assert.equal(projects[0].cancelledAt, '2026-08-05T09:00:00Z');
     }
   );
 });

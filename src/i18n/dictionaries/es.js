@@ -302,6 +302,7 @@ export default {
     sortAsc: 'Más antiguos primero',
     statusDraft: 'Borrador en curso',
     statusSubmitted: 'Resumen finalizado',
+    statusCancelled: 'Envío cancelado',
     validationStatusValidated: 'Validado',
     validationStatusPending: 'Pendiente de validación',
     validationStatusRejected: 'Rechazado',
@@ -403,6 +404,13 @@ export default {
     duplicateProjectTitle: 'Duplicar el proyecto',
     deleteProjectAriaLabel: 'Eliminar el proyecto {{name}}',
     deleteProjectTitle: 'Eliminar el proyecto',
+    cancelSubmissionDialogTitle: '¿Cancelar el envío?',
+    cancelSubmissionDescription:
+      'Está a punto de cancelar el envío de «{{name}}». El proyecto ya no será tratado por los equipos de cumplimiento y no se enviará ninguna notificación.',
+    confirmCancelSubmission: 'Cancelar el envío',
+    cancelSubmissionAriaLabel: 'Cancelar el envío del proyecto {{name}}',
+    cancelSubmissionTitle: 'Cancelar el envío',
+    cancelledOn: 'Envío cancelado el {{date}}',
     visibleToAllBadge: 'Visible para todos',
     makeVisibleToAll: 'Hacer visible para todos',
     makeVisibleToAllTitle: 'Hacer que este proyecto enviado sea visible para todos los usuarios',
@@ -1585,6 +1593,13 @@ export default {
     backButton: 'Volver al cuestionario',
     proceedButton: 'Ir al resumen'
   },
+  submissionCancelledNotice: {
+    title: 'Envío cancelado',
+    description: 'El responsable de este proyecto ha cancelado su envío. El proyecto ya no está disponible desde este enlace.',
+    descriptionWithName:
+      'El responsable del proyecto «{{name}}» ha cancelado su envío. El proyecto ya no está disponible desde este enlace.',
+    backToHome: 'Volver al inicio'
+  },
   synthesisReport: {
     statusValidated: 'Validado',
     statusValidatedWithConditions: 'Validado con condiciones',
@@ -1622,6 +1637,7 @@ export default {
     defaultUserLabel: 'Usuario',
     statusDraft: 'Borrador',
     statusSubmitted: 'Enviado',
+    statusCancelled: 'Cancelado',
     projectSynthesisAriaLabel: 'Resumen del proyecto',
     title: 'Resumen',
     statusLabelTemplate: 'Estado: {{status}}',

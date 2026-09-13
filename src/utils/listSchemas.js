@@ -19,6 +19,7 @@ export const LIST_SCHEMAS = {
       'ProgressAnswered',
       'ProgressTotal',
       'SubmissionDate',
+      'CancelledDate',
       'LastAutosaveAt',
       'RowVersion',
       'CreatedByEmail',
