@@ -177,11 +177,18 @@ export const saveReferential = async (key, value) => {
   return { key, file: definition.file, etag: nextEtag };
 };
 
-export const publishAllReferentials = async (state) => {
+// `selectedKeys` (Set de clés REFERENTIAL_FILES) restreint la publication à un sous-ensemble ;
+// omis, tout est publié comme avant. Permet à l'admin d'exclure un référentiel (ex. ne pas
+// écraser les questions déjà retouchées par quelqu'un d'autre) sans renoncer au reste.
+export const publishAllReferentials = async (state, selectedKeys) => {
   const payload = buildReferentialPayload(state);
   const results = [];
 
   for (const [key, definition] of Object.entries(REFERENTIAL_FILES)) {
+    if (selectedKeys && !selectedKeys.has(key)) {
+      results.push({ key, file: definition.file, label: definition.label, status: 'skipped' });
+      continue;
+    }
     const value = payload[key];
     if (value === undefined) {
       results.push({ key, file: definition.file, label: definition.label, status: 'skipped' });

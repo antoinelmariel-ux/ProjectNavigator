@@ -78,7 +78,7 @@ import {
   reinitializeSharePointConfiguration
 } from './utils/sharePointSetup.js';
 import { isSharePointMode } from './config/sharepointConfig.js';
-import { loadReferentials } from './utils/referentialStore.js';
+import { REFERENTIAL_FILES, loadReferentials } from './utils/referentialStore.js';
 import { mergeServerAndLocalProjects } from './utils/syncMerge.js';
 import { queueNotification } from './utils/notificationQueue.js';
 import { NOTIFICATION_TYPES, buildNotification } from './utils/notificationTemplates.js';
@@ -271,6 +271,17 @@ const verifyBackOfficePassword = async (value) => {
 const COMPLIANCE_COMMENTS_KEY = '__compliance_team_comments__';
 const PUBLIC_VISIBILITY_KEY = '__public_visibility__';
 const SHOWCASE_COMMENT_EDIT_DEBOUNCE_MS = 1200;
+
+const REFERENTIAL_SELECTION_KEYS = Object.keys(REFERENTIAL_FILES);
+const REFERENTIAL_FILE_NAME_TO_KEY = Object.fromEntries(
+  Object.entries(REFERENTIAL_FILES).map(([key, definition]) => [definition.file, key])
+);
+const buildReferentialFlags = (value) =>
+  REFERENTIAL_SELECTION_KEYS.reduce((acc, key) => {
+    acc[key] = value;
+    return acc;
+  }, {});
+const buildFullReferentialSelection = () => buildReferentialFlags(true);
 
 // Libellés (en anglais, comme le reste des gabarits de notification) des statuts de validation
 // posés par une équipe/un comité conformité sur le rapport de synthèse — voir COMMENT_STATUS_OPTIONS
@@ -845,7 +856,8 @@ export const App = () => {
   const [submittedProjectNotice, setSubmittedProjectNotice] = useState(null);
   const [showcaseProjectContext, setShowcaseProjectContext] = useState(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [hasUnpublishedConfigChanges, setHasUnpublishedConfigChanges] = useState(false);
+  const [publishedReferentialSignatures, setPublishedReferentialSignatures] = useState(null);
+  const [referentialPublishState, setReferentialPublishState] = useState({});
   const [syncStatus, setSyncStatus] = useState({ state: 'synced', updatedAt: null, updatedBy: '' });
   const [isOnline, setIsOnline] = useState(
     () => typeof navigator === 'undefined' || navigator.onLine !== false
@@ -1024,6 +1036,12 @@ export const App = () => {
     message: '',
     status: 'idle'
   });
+  const [publishSettingsSelection, setPublishSettingsSelection] = useState(buildFullReferentialSelection);
+  const [sharePointReinitSelection, setSharePointReinitSelection] = useState(() => ({
+    ...buildFullReferentialSelection(),
+    rules: true,
+    teams: true
+  }));
   const annotationNotesRef = useRef(annotationNotes);
   const loadedStylesRef = useRef(new Set());
   const pendingShowcaseProjectIdRef = useRef(null);
@@ -1291,23 +1309,24 @@ export const App = () => {
     };
   }, [hasUnsavedChanges, t]);
 
-  // Signature des référentiels-fichiers publiés via le bouton « Publier la configuration »
-  // (questions.json, risk-level-rules.json, risk-weighting.json, showcase-themes.json,
-  // settings.json — voir REFERENTIAL_FILES dans referentialStore.js). `rules`/`teams` en sont
-  // délibérément absents : ils se synchronisent déjà tout seuls, ligne par ligne, via
-  // rulesQueueRef/teamsQueueRef.
-  const configPublishSignature = useMemo(() => JSON.stringify({
-    questions,
-    riskLevelRules,
-    riskWeights,
-    showcaseThemes,
-    adminEmails,
-    technicalContactEmails,
-    onboardingTourConfig,
-    validationCommitteeConfig,
-    inspirationFormFields,
-    projectFilters,
-    inspirationFilters
+  // Signature par référentiel-fichier (questions.json, risk-level-rules.json,
+  // risk-weighting.json, showcase-themes.json, settings.json — voir REFERENTIAL_FILES dans
+  // referentialStore.js). `rules`/`teams` en sont délibérément absents : ils se synchronisent
+  // déjà tout seuls, ligne par ligne, via rulesQueueRef/teamsQueueRef.
+  const referentialSignatures = useMemo(() => ({
+    questions: JSON.stringify(questions),
+    riskLevelRules: JSON.stringify(riskLevelRules),
+    riskWeights: JSON.stringify(riskWeights),
+    showcaseThemes: JSON.stringify(showcaseThemes),
+    settings: JSON.stringify({
+      adminEmails,
+      technicalContactEmails,
+      onboardingTourConfig,
+      validationCommitteeConfig,
+      inspirationFormFields,
+      projectFilters,
+      inspirationFilters
+    })
   }), [
     questions,
     riskLevelRules,
@@ -1321,23 +1340,33 @@ export const App = () => {
     projectFilters,
     inspirationFilters
   ]);
-  const configPublishSignatureRef = useRef(null);
 
   useEffect(() => {
-    if (!isHydrated) {
-      return;
+    if (isHydrated && publishedReferentialSignatures === null) {
+      setPublishedReferentialSignatures(referentialSignatures);
     }
+  }, [isHydrated, publishedReferentialSignatures, referentialSignatures]);
 
-    if (configPublishSignatureRef.current === null) {
-      configPublishSignatureRef.current = configPublishSignature;
-      return;
+  // Un référentiel reste « non publié » tant que sa signature courante diverge de la dernière
+  // signature effectivement envoyée à SharePoint — mise à jour clé par clé par
+  // handlePublishSingleReferential, handlePublishReferentialSettings et
+  // handleSharePointReinitialization, jamais en bloc, pour qu'un push partiel (un seul onglet,
+  // ou une sélection restreinte) ne masque pas les autres référentiels toujours en attente.
+  const unpublishedReferentials = useMemo(() => {
+    if (!publishedReferentialSignatures) {
+      return buildReferentialFlags(false);
     }
+    const result = {};
+    REFERENTIAL_SELECTION_KEYS.forEach((key) => {
+      result[key] = referentialSignatures[key] !== publishedReferentialSignatures[key];
+    });
+    return result;
+  }, [referentialSignatures, publishedReferentialSignatures]);
 
-    if (configPublishSignatureRef.current !== configPublishSignature) {
-      configPublishSignatureRef.current = configPublishSignature;
-      setHasUnpublishedConfigChanges(true);
-    }
-  }, [configPublishSignature, isHydrated]);
+  const hasUnpublishedConfigChanges = useMemo(
+    () => Object.values(unpublishedReferentials).some(Boolean),
+    [unpublishedReferentials]
+  );
 
   useEffect(() => {
     if (typeof window === 'undefined' || !isSharePointMode()) {
@@ -5176,7 +5205,27 @@ const updateProjectFilters = useCallback((updater) => {
     setShowcaseShareFeedback(t('app.showcaseShare.shortcutDownloaded'));
   }, [showcaseProjectId, showcaseShareUrl, t]);
 
+  const handleToggleSharePointReinitSelection = useCallback((key) => {
+    setSharePointReinitSelection((previous) => ({ ...previous, [key]: !previous[key] }));
+  }, []);
+
   const handleSharePointReinitialization = useCallback(async () => {
+    const selectedFileKeys = new Set(
+      REFERENTIAL_SELECTION_KEYS.filter((key) => sharePointReinitSelection[key])
+    );
+    const includeRules = sharePointReinitSelection.rules !== false;
+    const includeTeams = sharePointReinitSelection.teams !== false;
+    const signatureSnapshot = referentialSignatures;
+
+    if (selectedFileKeys.size === 0 && !includeRules && !includeTeams) {
+      setSharePointReinitState({
+        inProgress: false,
+        message: t('app.reinit.nothingSelected'),
+        status: 'error'
+      });
+      return;
+    }
+
     setSharePointReinitState({
       inProgress: true,
       message: t('app.reinit.checking'),
@@ -5185,7 +5234,9 @@ const updateProjectFilters = useCallback((updater) => {
 
     try {
       const diagnostic = await diagnoseSharePointInstallation();
-      const alreadyPublished = diagnostic.files.filter((entry) => entry.present);
+      const alreadyPublished = diagnostic.files.filter(
+        (entry) => entry.present && selectedFileKeys.has(REFERENTIAL_FILE_NAME_TO_KEY[entry.name])
+      );
 
       if (alreadyPublished.length > 0) {
         const confirmed =
@@ -5212,22 +5263,25 @@ const updateProjectFilters = useCallback((updater) => {
         status: 'pending'
       });
 
-      const summary = await reinitializeSharePointConfiguration({
-        questions,
-        rules,
-        teams,
-        riskLevelRules,
-        riskWeights,
-        projectFilters,
-        inspirationFilters,
-        inspirationFormFields,
-        onboardingTourConfig,
-        validationCommitteeConfig,
-        showcaseThemes,
-        adminEmails,
-        technicalContactEmails,
-        userEmail: currentUserEmail
-      });
+      const summary = await reinitializeSharePointConfiguration(
+        {
+          questions,
+          rules,
+          teams,
+          riskLevelRules,
+          riskWeights,
+          projectFilters,
+          inspirationFilters,
+          inspirationFormFields,
+          onboardingTourConfig,
+          validationCommitteeConfig,
+          showcaseThemes,
+          adminEmails,
+          technicalContactEmails,
+          userEmail: currentUserEmail
+        },
+        { files: selectedFileKeys, rules: includeRules, teams: includeTeams }
+      );
 
       const details = summary.lists
         .map((entry) => `${entry.name}: ${entry.count}`)
@@ -5238,7 +5292,13 @@ const updateProjectFilters = useCallback((updater) => {
         message: t('app.reinit.publishedSuccess', { library: summary.libraryName, details }),
         status: 'success'
       });
-      setHasUnpublishedConfigChanges(false);
+      setPublishedReferentialSignatures((previous) => {
+        const next = { ...(previous || {}) };
+        selectedFileKeys.forEach((key) => {
+          next[key] = signatureSnapshot[key];
+        });
+        return next;
+      });
     } catch (error) {
       setSharePointReinitState({
         inProgress: false,
@@ -5255,17 +5315,36 @@ const updateProjectFilters = useCallback((updater) => {
     onboardingTourConfig,
     projectFilters,
     questions,
+    referentialSignatures,
     riskLevelRules,
     riskWeights,
     rules,
-    setHasUnpublishedConfigChanges,
+    sharePointReinitSelection,
     showcaseThemes,
     t,
     teams,
     validationCommitteeConfig
   ]);
 
+  const handleTogglePublishSettingsSelection = useCallback((key) => {
+    setPublishSettingsSelection((previous) => ({ ...previous, [key]: !previous[key] }));
+  }, []);
+
   const handlePublishReferentialSettings = useCallback(async () => {
+    const selectedKeys = new Set(
+      REFERENTIAL_SELECTION_KEYS.filter((key) => publishSettingsSelection[key])
+    );
+    const signatureSnapshot = referentialSignatures;
+
+    if (selectedKeys.size === 0) {
+      setSharePointPublishSettingsState({
+        inProgress: false,
+        message: t('app.publishSettings.nothingSelected'),
+        status: 'error'
+      });
+      return;
+    }
+
     setSharePointPublishSettingsState({
       inProgress: true,
       message: t('app.publishSettings.checking'),
@@ -5274,7 +5353,9 @@ const updateProjectFilters = useCallback((updater) => {
 
     try {
       const diagnostic = await diagnoseSharePointInstallation();
-      const alreadyPublished = diagnostic.files.filter((entry) => entry.present);
+      const alreadyPublished = diagnostic.files.filter(
+        (entry) => entry.present && selectedKeys.has(REFERENTIAL_FILE_NAME_TO_KEY[entry.name])
+      );
 
       if (alreadyPublished.length > 0) {
         const confirmed =
@@ -5301,19 +5382,22 @@ const updateProjectFilters = useCallback((updater) => {
         status: 'pending'
       });
 
-      const summary = await publishReferentialSettings({
-        questions,
-        riskLevelRules,
-        riskWeights,
-        projectFilters,
-        inspirationFilters,
-        inspirationFormFields,
-        onboardingTourConfig,
-        validationCommitteeConfig,
-        showcaseThemes,
-        adminEmails,
-        technicalContactEmails
-      });
+      const summary = await publishReferentialSettings(
+        {
+          questions,
+          riskLevelRules,
+          riskWeights,
+          projectFilters,
+          inspirationFilters,
+          inspirationFormFields,
+          onboardingTourConfig,
+          validationCommitteeConfig,
+          showcaseThemes,
+          adminEmails,
+          technicalContactEmails
+        },
+        selectedKeys
+      );
 
       const details = summary.lists
         .map((entry) => `${entry.name}: ${entry.count}`)
@@ -5324,7 +5408,13 @@ const updateProjectFilters = useCallback((updater) => {
         message: t('app.publishSettings.publishedSuccess', { library: summary.libraryName, details }),
         status: 'success'
       });
-      setHasUnpublishedConfigChanges(false);
+      setPublishedReferentialSignatures((previous) => {
+        const next = { ...(previous || {}) };
+        selectedKeys.forEach((key) => {
+          next[key] = signatureSnapshot[key];
+        });
+        return next;
+      });
     } catch (error) {
       setSharePointPublishSettingsState({
         inProgress: false,
@@ -5339,10 +5429,79 @@ const updateProjectFilters = useCallback((updater) => {
     inspirationFormFields,
     onboardingTourConfig,
     projectFilters,
+    publishSettingsSelection,
     questions,
+    referentialSignatures,
     riskLevelRules,
     riskWeights,
-    setHasUnpublishedConfigChanges,
+    showcaseThemes,
+    t,
+    validationCommitteeConfig
+  ]);
+
+  // Publie un seul référentiel-fichier depuis l'onglet qui l'édite (Questions, Niveaux de
+  // risque, Pondérations, Thèmes de vitrine, ou l'un des quatre onglets qui alimentent
+  // settings.json) — même route que le bouton groupé de l'onglet Administrateurs, mais sans
+  // diagnostic ni confirmation préalables pour rester rapide dans le flux d'édition courant.
+  const handlePublishSingleReferential = useCallback(async (key) => {
+    if (!REFERENTIAL_SELECTION_KEYS.includes(key)) {
+      return;
+    }
+
+    const signatureSnapshot = referentialSignatures[key];
+
+    setReferentialPublishState((previous) => ({
+      ...previous,
+      [key]: { inProgress: true, message: t('app.publishSettings.publishing'), status: 'pending' }
+    }));
+
+    try {
+      await publishReferentialSettings(
+        {
+          questions,
+          riskLevelRules,
+          riskWeights,
+          projectFilters,
+          inspirationFilters,
+          inspirationFormFields,
+          onboardingTourConfig,
+          validationCommitteeConfig,
+          showcaseThemes,
+          adminEmails,
+          technicalContactEmails
+        },
+        new Set([key])
+      );
+
+      setPublishedReferentialSignatures((previous) => ({
+        ...(previous || {}),
+        [key]: signatureSnapshot
+      }));
+      setReferentialPublishState((previous) => ({
+        ...previous,
+        [key]: { inProgress: false, message: t('app.publishSettings.itemPublishedSuccess'), status: 'success' }
+      }));
+    } catch (error) {
+      setReferentialPublishState((previous) => ({
+        ...previous,
+        [key]: {
+          inProgress: false,
+          message: error?.message || t('app.publishSettings.failedGeneric'),
+          status: 'error'
+        }
+      }));
+    }
+  }, [
+    adminEmails,
+    technicalContactEmails,
+    inspirationFilters,
+    inspirationFormFields,
+    onboardingTourConfig,
+    projectFilters,
+    questions,
+    referentialSignatures,
+    riskLevelRules,
+    riskWeights,
     showcaseThemes,
     t,
     validationCommitteeConfig
@@ -5966,8 +6125,15 @@ const updateProjectFilters = useCallback((updater) => {
                 activityScope={activityScope}
                 onSharePointReinitialize={handleSharePointReinitialization}
                 sharePointReinitializeState={sharePointReinitState}
+                sharePointReinitSelection={sharePointReinitSelection}
+                onToggleSharePointReinitSelection={handleToggleSharePointReinitSelection}
                 onPublishReferentialSettings={handlePublishReferentialSettings}
                 publishReferentialSettingsState={sharePointPublishSettingsState}
+                publishSettingsSelection={publishSettingsSelection}
+                onTogglePublishSettingsSelection={handleTogglePublishSettingsSelection}
+                unpublishedReferentials={unpublishedReferentials}
+                referentialPublishState={referentialPublishState}
+                onPublishSingleReferential={handlePublishSingleReferential}
                 sampleProjectsQueueRef={sampleProjectsQueueRef}
                 sampleProjectServerMetaRef={sampleProjectServerMetaRef}
                 rulesQueueRef={rulesQueueRef}

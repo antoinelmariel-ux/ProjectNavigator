@@ -244,6 +244,41 @@ test('publishAllReferentials : un échec est rapporté sans interrompre les autr
   );
 });
 
+test('publishAllReferentials : une sélection restreint les fichiers publiés', async () => {
+  await withFetch(
+    (url, init) => {
+      if (init.method === 'GET' && url.endsWith('/$value')) {
+        return makeResponse(404, { error: { message: 'File Not Found.' } });
+      }
+      if (init.method === 'GET') {
+        return makeResponse(200, { 'odata.etag': '"{GUID},1"' });
+      }
+      return makeResponse(200, {});
+    },
+    async (calls) => {
+      const results = await publishAllReferentials(
+        {
+          questions: [{ id: 'q1' }],
+          riskLevelRules: [],
+          riskWeights: {},
+          showcaseThemes: [],
+          adminEmails: ['a@b.fr']
+        },
+        new Set(['questions'])
+      );
+
+      assert.equal(results.find((entry) => entry.key === 'questions').status, 'published');
+      assert.equal(results.find((entry) => entry.key === 'riskLevelRules').status, 'skipped');
+      assert.equal(results.find((entry) => entry.key === 'riskWeights').status, 'skipped');
+      assert.equal(results.find((entry) => entry.key === 'showcaseThemes').status, 'skipped');
+      assert.equal(results.find((entry) => entry.key === 'settings').status, 'skipped');
+
+      assert.ok(!calls.some((call) => call.url.includes('risk-level-rules.json')));
+      assert.ok(!calls.some((call) => call.url.includes('settings.json')));
+    }
+  );
+});
+
 test('diagnoseInstallation : signale listes, bibliothèques et fichiers manquants', async () => {
   const presentTitles = [
     ...Object.values(sharepointConfig.lists),
