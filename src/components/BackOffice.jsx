@@ -14,10 +14,14 @@ import {
   AlertTriangle,
   CheckCircle,
   ChevronRight,
-  ChevronLeft
+  ChevronLeft,
+  Sparkles,
+  Save,
+  LayoutList
 } from './icons.js';
 import { QuestionEditor } from './QuestionEditor.jsx';
 import { RuleEditor } from './RuleEditor.jsx';
+import { RuleDraftBuilder } from './RuleDraftBuilder.jsx';
 import { BackOfficeDashboard } from './BackOfficeDashboard.jsx';
 import { VirtualizedList } from './VirtualizedList.jsx';
 import { renderTextWithLinks } from '../utils/linkify.js';
@@ -48,6 +52,13 @@ import {
   sanitizeRuleCondition
 } from '../utils/ruleConditions.js';
 import { ensureOperatorForType, getOperatorOptionsForType } from '../utils/operatorOptions.js';
+import {
+  annotateCandidates,
+  buildConditionCandidates,
+  buildDraftConditionGroups,
+  countMatchingSamples,
+  sortCandidates
+} from '../utils/ruleDraftFromAnswers.js';
 import { normalizeTeamContacts } from '../utils/teamContacts.js';
 import { PeoplePicker } from './PeoplePicker.jsx';
 import { buildImpersonationUrl, isImpersonating } from '../utils/impersonation.js';
@@ -679,6 +690,8 @@ export const BackOffice = ({
   setAdminEmails,
   technicalContactEmails,
   setTechnicalContactEmails,
+  complianceSampleProjects = [],
+  setComplianceSampleProjects,
   currentUserEmail = '',
   isCurrentUserAdmin = false,
   activityScope,
@@ -881,6 +894,19 @@ export const BackOffice = ({
   const [complianceReviewAnswers, setComplianceReviewAnswers] = useState({});
   const [complianceReviewDisplayMode, setComplianceReviewDisplayMode] = useState('direct');
   const [complianceReviewActiveQuestionId, setComplianceReviewActiveQuestionId] = useState('');
+  const [complianceReviewSampleId, setComplianceReviewSampleId] = useState('');
+  const [complianceReviewSampleLabel, setComplianceReviewSampleLabel] = useState('');
+  const [complianceReviewSampleDirty, setComplianceReviewSampleDirty] = useState(false);
+  const [isSampleNameRowOpen, setIsSampleNameRowOpen] = useState(false);
+  const [sampleNameDraft, setSampleNameDraft] = useState('');
+  const [isRuleDraftOpen, setIsRuleDraftOpen] = useState(false);
+  const [ruleDraftSelectedIds, setRuleDraftSelectedIds] = useState(() => new Set());
+  const [ruleDraftOperators, setRuleDraftOperators] = useState({});
+  const [ruleDraftPerQuestionLogic, setRuleDraftPerQuestionLogic] = useState({});
+  const [ruleDraftMode, setRuleDraftMode] = useState('all');
+  const [ruleDraftSort, setRuleDraftSort] = useState('relevance');
+  const [ruleDraftName, setRuleDraftName] = useState('');
+  const [ruleDraftTeamIds, setRuleDraftTeamIds] = useState([]);
   const [isComplianceReviewGuidanceOpen, setIsComplianceReviewGuidanceOpen] = useState(false);
 
   useEffect(() => {
@@ -947,6 +973,13 @@ export const BackOffice = ({
   }, [complianceReviewActiveQuestionId, complianceReviewQuestionIndexById]);
 
   const complianceReviewScopedAnswers = useMemo(() => {
+    // Mode « Projet complet » : on evalue toutes les reponses chargees, independamment de la
+    // question affichee. C'est le mode d'un projet type pre-charge, ou l'expert veut le verdict
+    // du projet entier et non celui du prefixe de questionnaire qu'il a parcouru.
+    if (complianceReviewDisplayMode === 'complete') {
+      return complianceReviewAnswers;
+    }
+
     if (!complianceReviewEffectiveActiveQuestionId) {
       return {};
     }
@@ -3536,6 +3569,8 @@ export const BackOffice = ({
       return;
     }
 
+    setComplianceReviewSampleDirty(true);
+
     setComplianceReviewAnswers((prev) => {
       const nextValue = typeof valueOrUpdater === 'function'
         ? valueOrUpdater(prev[questionId], prev)
@@ -3578,6 +3613,9 @@ export const BackOffice = ({
   const handleComplianceReviewResetQuestionnaire = useCallback(() => {
     setComplianceReviewAnswers({});
     setComplianceReviewActiveQuestionId('');
+    setComplianceReviewSampleId('');
+    setComplianceReviewSampleLabel('');
+    setComplianceReviewSampleDirty(false);
   }, []);
 
   useEffect(() => {
@@ -3868,6 +3906,251 @@ export const BackOffice = ({
     }
     enqueueRuleWrite('save', { rule: newRule, sortOrder: nextSortOrder(rules, ruleServerMetaRef) });
   };
+
+  // ---------------------------------------------------------------------------
+  // Banc d'essai : projets types + creation de regle a partir d'un projet charge
+  // ---------------------------------------------------------------------------
+  const complianceSampleList = useMemo(
+    () => (Array.isArray(complianceSampleProjects) ? complianceSampleProjects.filter((entry) => entry && entry.id) : []),
+    [complianceSampleProjects]
+  );
+
+  const complianceRealProjects = useMemo(
+    () => (Array.isArray(projects) ? projects : [])
+      .filter((project) => project && project.answers && typeof project.answers === 'object')
+      .map((project) => ({
+        id: project.id,
+        name: project.projectName || project.answers?.projectName || t('backOffice.main.benchUntitledProject'),
+        answers: project.answers
+      })),
+    [projects, t]
+  );
+
+  const applyComplianceSampleAnswers = useCallback((answers, label, sampleId) => {
+    setComplianceReviewAnswers(answers && typeof answers === 'object' ? { ...answers } : {});
+    setComplianceReviewSampleId(sampleId || '');
+    setComplianceReviewSampleLabel(label || '');
+    setComplianceReviewSampleDirty(false);
+    setComplianceReviewDisplayMode('complete');
+    setComplianceReviewActiveQuestionId('');
+  }, []);
+
+  const handleLoadComplianceSample = useCallback((rawValue) => {
+    if (!rawValue) {
+      applyComplianceSampleAnswers({}, '', '');
+      setComplianceReviewDisplayMode('direct');
+      return;
+    }
+
+    if (rawValue.startsWith('sample:')) {
+      const sample = complianceSampleList.find((entry) => entry.id === rawValue.slice(7));
+      if (sample) {
+        applyComplianceSampleAnswers(sample.answers, sample.name, `sample:${sample.id}`);
+      }
+      return;
+    }
+
+    if (rawValue.startsWith('project:')) {
+      const project = complianceRealProjects.find((entry) => entry.id === rawValue.slice(8));
+      if (project) {
+        applyComplianceSampleAnswers(project.answers, project.name, `project:${project.id}`);
+      }
+    }
+  }, [applyComplianceSampleAnswers, complianceRealProjects, complianceSampleList]);
+
+  const handleOpenSampleNameRow = useCallback(() => {
+    setSampleNameDraft(complianceReviewSampleLabel || '');
+    setIsSampleNameRowOpen(true);
+  }, [complianceReviewSampleLabel]);
+
+  const handleSaveComplianceSample = useCallback(() => {
+    if (typeof setComplianceSampleProjects !== 'function') {
+      return;
+    }
+
+    const trimmed = sampleNameDraft.trim() || t('backOffice.main.benchNewSampleDefaultName');
+    const existing = complianceReviewSampleId.startsWith('sample:')
+      ? complianceSampleList.find((entry) => entry.id === complianceReviewSampleId.slice(7))
+      : null;
+
+    // Meme nom qu'un projet type deja charge : on met a jour celui-la plutot que d'en empiler
+    // un homonyme, sinon la liste se remplit de variantes indistinguables.
+    if (existing && existing.name === trimmed) {
+      setComplianceSampleProjects((prev) => (Array.isArray(prev) ? prev : []).map((entry) => (
+        entry.id === existing.id
+          ? { ...entry, answers: { ...complianceReviewAnswers }, updatedAt: new Date().toISOString() }
+          : entry
+      )));
+      setComplianceReviewSampleDirty(false);
+      setIsSampleNameRowOpen(false);
+      return;
+    }
+
+    const id = `sample_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+    setComplianceSampleProjects((prev) => [
+      ...(Array.isArray(prev) ? prev : []),
+      {
+        id,
+        name: trimmed,
+        answers: { ...complianceReviewAnswers },
+        createdBy: currentUserEmail || '',
+        updatedAt: new Date().toISOString()
+      }
+    ]);
+    setComplianceReviewSampleId(`sample:${id}`);
+    setComplianceReviewSampleLabel(trimmed);
+    setComplianceReviewSampleDirty(false);
+    setIsSampleNameRowOpen(false);
+  }, [
+    complianceReviewAnswers,
+    complianceReviewSampleId,
+    complianceSampleList,
+    currentUserEmail,
+    sampleNameDraft,
+    setComplianceSampleProjects,
+    t
+  ]);
+
+  const handleDeleteComplianceSample = useCallback(() => {
+    if (typeof setComplianceSampleProjects !== 'function' || !complianceReviewSampleId.startsWith('sample:')) {
+      return;
+    }
+
+    const sampleId = complianceReviewSampleId.slice(7);
+    setComplianceSampleProjects((prev) => (Array.isArray(prev) ? prev : []).filter((entry) => entry.id !== sampleId));
+    setComplianceReviewSampleId('');
+    setComplianceReviewSampleLabel('');
+    setComplianceReviewSampleDirty(false);
+  }, [complianceReviewSampleId, setComplianceSampleProjects]);
+
+  // L'analyse « projet entier », independante du mode d'affichage choisi a droite : c'est elle
+  // qui alimente la creation de regle, ou raisonner sur un prefixe du questionnaire n'aurait
+  // aucun sens.
+  const complianceBenchAnalysis = useMemo(
+    () => analyzeAnswers(complianceReviewAnswers, Array.isArray(rules) ? rules : [], safeRiskLevelRules, normalizedRiskWeights),
+    [complianceReviewAnswers, rules, safeRiskLevelRules, normalizedRiskWeights, analyzeAnswers]
+  );
+
+  const ruleDraftCandidates = useMemo(
+    () => annotateCandidates(
+      buildConditionCandidates(complianceReviewAnswers, questions, { language }),
+      complianceSampleList
+    ),
+    [complianceReviewAnswers, questions, language, complianceSampleList]
+  );
+
+  const ruleDraftOrderedCandidates = useMemo(
+    () => sortCandidates(ruleDraftCandidates, ruleDraftSort),
+    [ruleDraftCandidates, ruleDraftSort]
+  );
+
+  // Regroupement par question : deux valeurs d'une meme question forment un « ou », c'est la
+  // forme que prennent deja neuf groupes sur dix du referentiel existant.
+  const ruleDraftGroupedCandidates = useMemo(() => {
+    const groups = [];
+    const byQuestion = new Map();
+
+    ruleDraftOrderedCandidates.forEach((candidate) => {
+      if (!byQuestion.has(candidate.questionId)) {
+        const entry = { questionId: candidate.questionId, questionLabel: candidate.questionLabel, candidates: [] };
+        byQuestion.set(candidate.questionId, entry);
+        groups.push(entry);
+      }
+      byQuestion.get(candidate.questionId).candidates.push(candidate);
+    });
+
+    return groups;
+  }, [ruleDraftOrderedCandidates]);
+
+  const ruleDraftSelectedCandidates = useMemo(
+    () => ruleDraftCandidates
+      .filter((candidate) => ruleDraftSelectedIds.has(candidate.id))
+      .map((candidate) => ({ ...candidate, operator: ruleDraftOperators[candidate.id] || candidate.operator })),
+    [ruleDraftCandidates, ruleDraftSelectedIds, ruleDraftOperators]
+  );
+
+  const ruleDraftConditionGroups = useMemo(
+    () => buildDraftConditionGroups(ruleDraftSelectedCandidates, {
+      mode: ruleDraftMode,
+      perQuestionLogic: ruleDraftPerQuestionLogic
+    }),
+    [ruleDraftSelectedCandidates, ruleDraftMode, ruleDraftPerQuestionLogic]
+  );
+
+  const ruleDraftSampleMatch = useMemo(
+    () => countMatchingSamples(ruleDraftConditionGroups, complianceSampleList),
+    [ruleDraftConditionGroups, complianceSampleList]
+  );
+
+  const ruleDraftProjectMatch = useMemo(
+    () => countMatchingSamples(ruleDraftConditionGroups, complianceRealProjects),
+    [ruleDraftConditionGroups, complianceRealProjects]
+  );
+
+  const handleToggleRuleDraftCandidate = useCallback((candidateId) => {
+    setRuleDraftSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(candidateId)) {
+        next.delete(candidateId);
+      } else {
+        next.add(candidateId);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleOpenRuleDraft = useCallback(() => {
+    setRuleDraftSelectedIds(new Set());
+    setRuleDraftOperators({});
+    setRuleDraftPerQuestionLogic({});
+    setRuleDraftMode('all');
+    setRuleDraftTeamIds(selectedComplianceReviewTeamId ? [selectedComplianceReviewTeamId] : []);
+    setRuleDraftName('');
+    setIsRuleDraftOpen(true);
+  }, [selectedComplianceReviewTeamId]);
+
+  const handleCreateRuleFromDraft = useCallback(() => {
+    if (ruleDraftSelectedCandidates.length === 0) {
+      return;
+    }
+
+    const newRule = applyRuleConditionGroups(
+      {
+        id: getNextId(rules, 'rule'),
+        name: ruleDraftName.trim() || t('backOffice.main.benchDraftRuleDefaultName'),
+        notifyTeam: true,
+        conditions: [],
+        conditionGroups: [],
+        conditionLogic: 'all',
+        teams: [...ruleDraftTeamIds],
+        teamRoutingRules: [],
+        questions: {},
+        risks: []
+      },
+      ruleDraftConditionGroups
+    );
+
+    setRules([...rules, newRule]);
+    enqueueRuleWrite('save', { rule: newRule, sortOrder: nextSortOrder(rules, ruleServerMetaRef) });
+    setPendingNewRuleId(newRule.id);
+    setExpandedRuleIds((prev) => {
+      const next = new Set(prev);
+      next.add(newRule.id);
+      return next;
+    });
+    setIsRuleDraftOpen(false);
+    setEditingRule(newRule);
+  }, [
+    enqueueRuleWrite,
+    ruleDraftConditionGroups,
+    ruleDraftName,
+    ruleDraftSelectedCandidates,
+    ruleDraftTeamIds,
+    rules,
+    ruleServerMetaRef,
+    setRules,
+    t
+  ]);
 
   const deleteRule = (id) => {
     const targetIndex = rules.findIndex((rule) => rule.id === id);
@@ -7734,6 +8017,115 @@ export const BackOffice = ({
                 </p>
               </div>
 
+              <div className="rounded-xl border border-indigo-200 bg-indigo-50/70 p-4 space-y-3">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-2">
+                    <LayoutList className="w-5 h-5 text-indigo-600" />
+                    <h3 className="text-sm font-bold uppercase tracking-wide text-indigo-900">{t('backOffice.main.benchSampleBarTitle')}</h3>
+                  </div>
+                  {complianceReviewSampleLabel && (
+                    <span className="text-xs font-medium text-indigo-800">
+                      {complianceReviewSampleDirty
+                        ? t('backOffice.main.benchSampleLoadedModifiedTemplate', { name: complianceReviewSampleLabel })
+                        : t('backOffice.main.benchSampleLoadedTemplate', { name: complianceReviewSampleLabel })}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
+                  <select
+                    id="compliance-review-sample"
+                    value={complianceReviewSampleId}
+                    onChange={(event) => handleLoadComplianceSample(event.target.value)}
+                    aria-label={t('backOffice.main.benchSampleSelectLabel')}
+                    className="w-full lg:max-w-md px-3 py-2 border border-indigo-200 rounded-lg text-sm bg-white"
+                  >
+                    <option value="">{t('backOffice.main.benchSampleBlankOption')}</option>
+                    {complianceSampleList.length > 0 && (
+                      <optgroup label={t('backOffice.main.benchSampleMineGroup')}>
+                        {complianceSampleList.map((sample) => (
+                          <option key={sample.id} value={`sample:${sample.id}`}>{sample.name}</option>
+                        ))}
+                      </optgroup>
+                    )}
+                    {complianceRealProjects.length > 0 && (
+                      <optgroup label={t('backOffice.main.benchSampleProjectsGroup')}>
+                        {complianceRealProjects.map((project) => (
+                          <option key={project.id} value={`project:${project.id}`}>{project.name}</option>
+                        ))}
+                      </optgroup>
+                    )}
+                  </select>
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={handleOpenSampleNameRow}
+                      disabled={Object.keys(complianceReviewAnswers).length === 0}
+                      className="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium bg-white border border-indigo-300 text-indigo-700 hover:bg-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Save className="w-4 h-4 mr-1.5" />
+                      {t('backOffice.main.benchSaveSampleButton')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDeleteComplianceSample}
+                      disabled={!complianceReviewSampleId.startsWith('sample:')}
+                      className="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium text-red-700 bg-white border border-red-200 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <Trash2 className="w-4 h-4 mr-1.5" />
+                      {t('backOffice.main.benchDeleteSampleButton')}
+                    </button>
+                  </div>
+                </div>
+
+                {isSampleNameRowOpen && (
+                  <div className="flex flex-col gap-2 rounded-lg border border-indigo-300 bg-white p-3 sm:flex-row sm:items-end">
+                    <div className="flex-1">
+                      <label htmlFor="bench-sample-name" className="block text-xs font-semibold uppercase tracking-wide text-gray-600">
+                        {t('backOffice.main.benchSamplePromptLabel')}
+                      </label>
+                      <input
+                        id="bench-sample-name"
+                        type="text"
+                        autoFocus
+                        value={sampleNameDraft}
+                        onChange={(event) => setSampleNameDraft(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') {
+                            event.preventDefault();
+                            handleSaveComplianceSample();
+                          }
+                          if (event.key === 'Escape') {
+                            setIsSampleNameRowOpen(false);
+                          }
+                        }}
+                        placeholder={t('backOffice.main.benchNewSampleDefaultName')}
+                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleSaveComplianceSample}
+                        className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+                      >
+                        {t('backOffice.main.benchSampleConfirmButton')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsSampleNameRowOpen(false)}
+                        className="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
+                      >
+                        {t('backOffice.main.benchCancelButton')}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <p className="text-xs text-indigo-800">{t('backOffice.main.benchSampleBarHint')}</p>
+              </div>
+
               <div className="rounded-xl border border-gray-200 bg-white p-4">
                 <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-2" htmlFor="compliance-review-team">
                   {t('backOffice.main.complianceTeamToDisplayLabel')}
@@ -8265,6 +8657,18 @@ export const BackOffice = ({
                       >
                         {t('backOffice.main.cumulativeModeButton')}
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => setComplianceReviewDisplayMode('complete')}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-md transition ${
+                          complianceReviewDisplayMode === 'complete'
+                            ? 'bg-white text-blue-700 shadow-sm border border-blue-100'
+                            : 'text-gray-600 hover:text-gray-800'
+                        }`}
+                        aria-pressed={complianceReviewDisplayMode === 'complete'}
+                      >
+                        {t('backOffice.main.completeModeButton')}
+                      </button>
                     </div>
                   </div>
 
@@ -8321,11 +8725,62 @@ export const BackOffice = ({
                       )}
                     </div>
                   </div>
+
+                  <div className="pt-3 border-t border-gray-200 space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-600">
+                      <span>{t('backOffice.main.benchGlobalTriggersTemplate', { count: Array.isArray(complianceBenchAnalysis?.triggeredRules) ? complianceBenchAnalysis.triggeredRules.length : 0 })}</span>
+                      <span>{t('backOffice.main.benchGlobalScoreTemplate', { score: complianceBenchAnalysis?.riskScore ?? 0 })}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleOpenRuleDraft}
+                      disabled={Object.keys(complianceReviewAnswers).length === 0}
+                      className="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-lg text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      {t('backOffice.main.benchCreateRuleButton')}
+                    </button>
+                    <p className="text-xs text-gray-500">{t('backOffice.main.benchCreateRuleHint')}</p>
+                  </div>
                 </article>
               </div>
             </section>
           )}
         </div>
+
+        {isRuleDraftOpen && (
+          <RuleDraftBuilder
+            t={t}
+            language={language}
+            sampleLabel={complianceReviewSampleLabel}
+            groupedCandidates={ruleDraftGroupedCandidates}
+            selectedIds={ruleDraftSelectedIds}
+            onToggleCandidate={handleToggleRuleDraftCandidate}
+            operators={ruleDraftOperators}
+            onOperatorChange={(candidateId, operator) =>
+              setRuleDraftOperators((prev) => ({ ...prev, [candidateId]: operator }))}
+            perQuestionLogic={ruleDraftPerQuestionLogic}
+            onPerQuestionLogicChange={(questionId, logic) =>
+              setRuleDraftPerQuestionLogic((prev) => ({ ...prev, [questionId]: logic }))}
+            mode={ruleDraftMode}
+            onModeChange={setRuleDraftMode}
+            sort={ruleDraftSort}
+            onSortChange={setRuleDraftSort}
+            selectedCandidates={ruleDraftSelectedCandidates}
+            sampleMatch={ruleDraftSampleMatch}
+            projectMatch={ruleDraftProjectMatch}
+            name={ruleDraftName}
+            onNameChange={setRuleDraftName}
+            teams={teams}
+            teamIds={ruleDraftTeamIds}
+            onToggleTeam={(teamId) =>
+              setRuleDraftTeamIds((prev) => (prev.includes(teamId)
+                ? prev.filter((entry) => entry !== teamId)
+                : [...prev, teamId]))}
+            onCancel={() => setIsRuleDraftOpen(false)}
+            onConfirm={handleCreateRuleFromDraft}
+          />
+        )}
 
         {editingQuestion && (
           <QuestionEditor

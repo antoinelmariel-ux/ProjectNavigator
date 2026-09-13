@@ -786,6 +786,17 @@ const buildInitialTechnicalContactEmailsState = () => {
   return cloneDeep(initialTechnicalContactEmails);
 };
 
+// Projets types du banc d'essai du back-office : jeux de reponses nommes, partages par
+// l'equipe conformite, qu'un expert charge pour voir ce que les regles produisent.
+const buildInitialComplianceSampleProjectsState = () => {
+  const savedState = loadPersistedState();
+  if (savedState && Array.isArray(savedState.complianceSampleProjects)) {
+    return savedState.complianceSampleProjects;
+  }
+
+  return [];
+};
+
 const isOnboardingProject = (project) => {
   if (!project || typeof project !== 'object') {
     return false;
@@ -865,6 +876,7 @@ export const App = () => {
   const [validationCommitteeConfig, setValidationCommitteeConfig] = useState(buildInitialValidationCommitteeConfig);
   const [adminEmails, setAdminEmails] = useState(buildInitialAdminEmailsState);
   const [technicalContactEmails, setTechnicalContactEmails] = useState(buildInitialTechnicalContactEmailsState);
+  const [complianceSampleProjects, setComplianceSampleProjects] = useState(buildInitialComplianceSampleProjectsState);
   const [isBackOfficeUnlocked, setIsBackOfficeUnlocked] = useState(false);
   const [backOfficeAuthError, setBackOfficeAuthError] = useState(null);
   const [isBackOfficePromptOpen, setIsBackOfficePromptOpen] = useState(false);
@@ -1647,6 +1659,7 @@ const updateProjectFilters = useCallback((updater) => {
       if (Array.isArray(slices.showcaseThemes)) setShowcaseThemes(slices.showcaseThemes);
       if (Array.isArray(slices.adminEmails)) setAdminEmails(slices.adminEmails);
       if (Array.isArray(slices.technicalContactEmails)) setTechnicalContactEmails(slices.technicalContactEmails);
+      if (Array.isArray(slices.complianceSampleProjects)) setComplianceSampleProjects(slices.complianceSampleProjects);
       if (slices.projectFilters && typeof slices.projectFilters === 'object') {
         setProjectFiltersState(normalizeProjectFilterConfig(stripRetiredProjectFilterFields(slices.projectFilters)));
       }
@@ -1810,7 +1823,8 @@ const updateProjectFilters = useCallback((updater) => {
       onboardingTourConfig,
       validationCommitteeConfig,
       adminEmails,
-      technicalContactEmails
+      technicalContactEmails,
+      complianceSampleProjects
     };
 
     // Référentiels volumineux : persistés seulement s’ils diffèrent du défaut
@@ -1849,6 +1863,7 @@ const updateProjectFilters = useCallback((updater) => {
     validationCommitteeConfig,
     adminEmails,
     technicalContactEmails,
+    complianceSampleProjects,
     persistDefaults
   ]);
 
@@ -5904,6 +5919,8 @@ const updateProjectFilters = useCallback((updater) => {
                 setAdminEmails={setAdminEmails}
                 technicalContactEmails={technicalContactEmails}
                 setTechnicalContactEmails={setTechnicalContactEmails}
+                complianceSampleProjects={complianceSampleProjects}
+                setComplianceSampleProjects={setComplianceSampleProjects}
                 currentUserEmail={currentUserEmail}
                 isCurrentUserAdmin={isCurrentUserAdmin}
                 activityScope={activityScope}

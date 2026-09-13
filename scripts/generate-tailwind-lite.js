@@ -1218,6 +1218,7 @@ function baseRule(base) {
   if (base === 'border-r') return { declarations: { 'border-right-width': '1px' } };
   if (base === 'border-b-2') return { declarations: { 'border-bottom-width': '2px' } };
   if (base === 'border-t-2') return { declarations: { 'border-top-width': '2px' } };
+  if (base === 'border-t-0') return { declarations: { 'border-top-width': '0px' } };
   if (base === 'border-l-2') return { declarations: { 'border-left-width': '2px' } };
   if (base === 'border-l-4') return { declarations: { 'border-left-width': '4px' } };
   if (base === 'border-0') return { declarations: { 'border-width': '0' } };
