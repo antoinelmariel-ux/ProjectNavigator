@@ -4142,7 +4142,7 @@ const updateProjectFilters = useCallback((updater) => {
   }, [currentUserDisplayName, currentUserEmail, teams]);
 
   // Relance du référent d'un projet pris en charge mais sans action depuis le délai configuré
-  // par l'équipe (10 jours ouvrés par défaut). L'application n'a pas de serveur : la passe est
+  // par l'équipe (3 jours ouvrés par défaut). L'application n'a pas de serveur : la passe est
   // faite par la session de n'importe quel contact de l'équipe qui ouvre l'app — y compris
   // quelqu'un d'autre que le référent, justement parce qu'un référent absent n'ouvre rien.
   // `reminderSentAt`, réarmé par toute nouvelle activité sur le périmètre, rend la passe

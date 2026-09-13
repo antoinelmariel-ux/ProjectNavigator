@@ -125,33 +125,40 @@ test('un périmètre revendiqué se lit depuis le projet', () => {
   assert.equal(isClaimedByOther(null, 'bob@lfb.fr'), false);
 });
 
-test('péremption : 6 jours ouvrés signalent, 10 relancent, et une activité réarme la relance', () => {
+// Avec les valeurs par défaut (3 pour la relance, 6 pour le signalement), la relance par
+// e-mail au référent arrive avant le signalement visuel dans la vue charge — les deux réglages
+// sont indépendants, l'un ne suppose pas l'autre.
+test('péremption : 3 jours ouvrés relancent, 6 signalent, et une activité réarme la relance', () => {
   const entry = {
     claim: { assigneeEmail: 'alice@lfb.fr', assignedAt: '2026-09-01T08:00:00Z' },
     statusUpdatedAt: '2026-09-01T08:00:00Z',
     replies: []
   };
 
-  assert.equal(getClaimStaleness(entry, { team: TEAM, now: '2026-09-04T08:00:00Z' }).isStale, false);
+  const early = getClaimStaleness(entry, { team: TEAM, now: '2026-09-03T08:00:00Z' });
+  assert.equal(early.businessDaysSinceActivity, 2);
+  assert.equal(early.isStale, false);
+  assert.equal(early.isReminderDue, false);
+
+  const due = getClaimStaleness(entry, { team: TEAM, now: '2026-09-04T08:00:00Z' });
+  assert.equal(due.businessDaysSinceActivity, 3);
+  assert.equal(due.isStale, false);
+  assert.equal(due.isReminderDue, true);
 
   const stale = getClaimStaleness(entry, { team: TEAM, now: '2026-09-10T08:00:00Z' });
   assert.equal(stale.businessDaysSinceActivity, 7);
   assert.equal(stale.isStale, true);
-  assert.equal(stale.isReminderDue, false);
+  assert.equal(stale.isReminderDue, true);
 
-  const due = getClaimStaleness(entry, { team: TEAM, now: '2026-09-16T08:00:00Z' });
-  assert.equal(due.businessDaysSinceActivity, 11);
-  assert.equal(due.isReminderDue, true);
-
-  const reminded = markClaimReminderSent(entry, '2026-09-16T08:05:00Z');
-  assert.equal(getClaimStaleness(reminded, { team: TEAM, now: '2026-09-17T08:00:00Z' }).isReminderDue, false);
+  const reminded = markClaimReminderSent(entry, '2026-09-10T08:05:00Z');
+  assert.equal(getClaimStaleness(reminded, { team: TEAM, now: '2026-09-11T08:00:00Z' }).isReminderDue, false);
 
   const answered = {
     ...reminded,
-    replies: [{ createdAt: '2026-09-18T08:00:00Z', authorEmail: 'owner@lfb.fr' }]
+    replies: [{ createdAt: '2026-09-14T08:00:00Z', authorEmail: 'owner@lfb.fr' }]
   };
-  assert.equal(getPerimeterLastActivityAt(answered), '2026-09-18T08:00:00Z');
-  assert.equal(getClaimStaleness(answered, { team: TEAM, now: '2026-10-05T08:00:00Z' }).isReminderDue, true);
+  assert.equal(getPerimeterLastActivityAt(answered), '2026-09-14T08:00:00Z');
+  assert.equal(getClaimStaleness(answered, { team: TEAM, now: '2026-09-17T08:00:00Z' }).isReminderDue, true);
 
   const noDelays = { ...TEAM, claimStaleDays: 0, claimReminderDays: 0 };
   const disabled = getClaimStaleness(entry, { team: noDelays, now: '2026-12-01T08:00:00Z' });

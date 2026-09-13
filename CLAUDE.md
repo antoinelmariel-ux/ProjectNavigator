@@ -238,7 +238,7 @@ per-person settings this feature needs.
 - **The first submission mail still goes to the whole team.** You cannot claim a project you never
   heard of; only absence substitution applies there (`resolveTeamMailRecipients`).
 - **Staleness is signalled, never auto-released.** `ClaimStaleDays` (6 business days) flags the card,
-  `ClaimReminderDays` (10) emails the owner; `0` disables either. There is no server, so the reminder
+  `ClaimReminderDays` (3) emails the owner; `0` disables either. There is no server, so the reminder
   pass runs in the session of *any* contact of the team who opens the app — deliberately not only the
   owner's, since an absent owner opens nothing. `claim.reminderSentAt`, re-armed by any new activity
   on the perimeter, is what makes that pass idempotent.
