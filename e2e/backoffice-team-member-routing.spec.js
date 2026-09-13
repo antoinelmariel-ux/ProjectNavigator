@@ -56,6 +56,36 @@ test.describe('Back-office : déclenchement par membre d’équipe', () => {
     expect(errors).toEqual([]);
   });
 
+  test('l’avertissement propose une réattribution qui rétablit la couverture', async ({ page }) => {
+    await openTeamsTab(page);
+
+    const card = teamCard(page);
+    const members = card.locator('li', { has: page.getByRole('button', { name: 'Critères' }) });
+    const memberCount = await members.count();
+
+    for (let index = 0; index < memberCount; index += 1) {
+      await members.nth(index).getByRole('button', { name: 'Critères' }).click();
+      const dialog = page.getByRole('dialog');
+      await dialog.getByRole('button', { name: 'Créer un groupe de conditions' }).click();
+      await dialog.locator('select').filter({ hasText: 'Sélectionner...' }).first().selectOption({ index: 1 });
+      await dialog.getByRole('button', { name: 'Terminé' }).click();
+    }
+
+    const alert = card.getByRole('alert');
+    await expect(alert).toBeVisible();
+
+    // La cible porte déjà des critères ici : la mise en garde sur leur remplacement doit s'afficher.
+    await expect(alert.getByText(/seront remplacés/)).toBeVisible();
+
+    const sourceEmail = await alert.locator('select').first().inputValue();
+    await alert.getByRole('button', { name: 'Réattribuer' }).click();
+
+    await expect(card.getByRole('alert')).toHaveCount(0);
+    await expect(
+      members.filter({ hasText: sourceEmail }).getByText('Toujours sollicité', { exact: true })
+    ).toBeVisible();
+  });
+
   test('le mode « non sollicité si » choisi avant la première condition est conservé', async ({ page }) => {
     await openTeamsTab(page);
 

@@ -181,11 +181,15 @@ Three things are deliberate here:
   empty is authoritative in this module (`resolveMemberConditionGroups`) — the legacy flat
   `conditions` fallback in `normalizeRuleConditionGroups` would otherwise resurrect the criteria the
   admin just cleared.
-- **The back-office warns when nobody is unconditional.** `getTeamMemberCoverageWarning` returns
-  `allConditional` as soon as every remaining contact carries criteria: there is then a set of
-  answers for which the team solicits nobody. The teams tab renders it as a standing `role="alert"`
-  on the card rather than a toast, so it shows up the moment a member is removed *and* stays until
-  someone fixes the routing. `e2e/backoffice-team-member-routing.spec.js` covers both paths.
+- **The back-office warns when nobody is unconditional, and offers the way out.**
+  `getTeamMemberCoverageWarning` returns `allConditional` as soon as every remaining contact carries
+  criteria: there is then a set of answers for which the team solicits nobody. The teams tab renders
+  it as a standing `role="alert"` on the card rather than a toast, so it shows up the moment a member
+  is removed *and* stays until someone fixes the routing. The alert embeds a reassignment control
+  (`reassignTeamMemberRule`): moving one member's criteria onto another frees the first, who becomes
+  unconditional again — which is why that single action always clears the warning. The target's own
+  criteria are overwritten, so the alert says so before the click.
+  `e2e/backoffice-team-member-routing.spec.js` covers all of it.
 
 The criteria panel itself is `src/components/ConditionGroupsEditor.jsx`, extracted so the member
 modal is a reuse of the rules grammar rather than a fourth copy of it (`RuleEditor.jsx` and the

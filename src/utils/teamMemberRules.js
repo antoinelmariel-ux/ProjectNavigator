@@ -137,3 +137,38 @@ export const applyTeamMemberRule = (team, email, updater) => {
 
   return { ...team, memberRules };
 };
+
+// Réattribuer les critères d'un membre à un autre libère le premier : il repasse « toujours
+// sollicité », ce qui suffit à rétablir la couverture de l'équipe (cf. hasUnconditionalTeamMember).
+// C'est la sortie proposée par l'avertissement du back-office quand plus personne n'est sollicité
+// systématiquement.
+export const reassignTeamMemberRule = (team, fromEmail, toEmail) => {
+  const fromKey = normalizeEmail(fromEmail);
+  const toKey = normalizeEmail(toEmail);
+
+  if (!fromKey || !toKey || fromKey === toKey) {
+    return team;
+  }
+
+  const contactKeys = new Set(normalizeTeamContacts(team).map((contact) => normalizeEmail(contact)));
+  if (!contactKeys.has(toKey)) {
+    return team;
+  }
+
+  const movedRule = getTeamMemberRule(team, fromEmail);
+  if (!movedRule) {
+    return team;
+  }
+
+  const targetEmail = normalizeTeamContacts(team).find((contact) => normalizeEmail(contact) === toKey);
+  const withoutSource = applyTeamMemberRule(team, fromEmail, (current) => ({
+    ...current,
+    conditionGroups: []
+  }));
+
+  return applyTeamMemberRule(withoutSource, targetEmail, () => ({
+    email: targetEmail,
+    mode: movedRule.mode,
+    conditionGroups: normalizeRuleConditionGroups(movedRule)
+  }));
+};

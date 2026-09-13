@@ -11,6 +11,7 @@ import {
   getTeamMemberRule,
   hasUnconditionalTeamMember,
   normalizeTeamMemberRules,
+  reassignTeamMemberRule,
   resolveTeamRecipients
 } from '../src/utils/teamMemberRules.js';
 
@@ -203,4 +204,68 @@ test('les critères d’un membre restent isolés des autres membres', () => {
 
   assert.deepEqual(resolveTeamRecipients(team, { country: 'FR' }), ['alice@lfb.fr', 'carole@lfb.fr']);
   assert.deepEqual(resolveTeamRecipients(team, { country: 'DE' }), ['bob@lfb.fr', 'carole@lfb.fr']);
+});
+
+const conditionedTeam = () =>
+  buildTeam([
+    {
+      email: 'alice@lfb.fr',
+      mode: MEMBER_TRIGGER_MODE_EXCLUDE,
+      conditionGroups: [group([condition('country', 'FR')])]
+    },
+    {
+      email: 'bob@lfb.fr',
+      mode: MEMBER_TRIGGER_MODE_INCLUDE,
+      conditionGroups: [group([condition('kind', 'clinique')])]
+    },
+    {
+      email: 'carole@lfb.fr',
+      mode: MEMBER_TRIGGER_MODE_INCLUDE,
+      conditionGroups: [group([condition('budget', 100, 'gt')])]
+    }
+  ]);
+
+test('réattribuer les critères libère la source et rétablit la couverture', () => {
+  const team = conditionedTeam();
+  assert.equal(getTeamMemberCoverageWarning(team), TEAM_MEMBER_COVERAGE_ALL_CONDITIONAL);
+
+  const next = reassignTeamMemberRule(team, 'alice@lfb.fr', 'bob@lfb.fr');
+
+  assert.equal(getTeamMemberCoverageWarning(next), TEAM_MEMBER_COVERAGE_OK);
+  assert.equal(getTeamMemberRule(next, 'alice@lfb.fr'), null);
+  // La règle « sauf si pays = FR » a bien suivi : c'est Bob qui saute désormais sur FR, et
+  // Alice, libérée, est la seule que rien ne peut écarter.
+  assert.deepEqual(resolveTeamRecipients(next, { country: 'FR' }), ['alice@lfb.fr']);
+  assert.deepEqual(resolveTeamRecipients(next, { country: 'DE' }), ['alice@lfb.fr', 'bob@lfb.fr']);
+});
+
+test('la cible hérite du mode et des groupes de la source, et perd les siens', () => {
+  const next = reassignTeamMemberRule(conditionedTeam(), 'alice@lfb.fr', 'bob@lfb.fr');
+  const moved = getTeamMemberRule(next, 'bob@lfb.fr');
+
+  assert.equal(moved.mode, MEMBER_TRIGGER_MODE_EXCLUDE);
+  assert.deepEqual(
+    moved.conditionGroups.map((entry) => entry.conditions.map((item) => item.question)),
+    [['country']]
+  );
+  // Le membre non concerné garde les siens intacts.
+  assert.equal(getTeamMemberRule(next, 'carole@lfb.fr').mode, MEMBER_TRIGGER_MODE_INCLUDE);
+});
+
+test('la réattribution est sans effet si la source, la cible ou le couple est invalide', () => {
+  const team = conditionedTeam();
+
+  assert.deepEqual(normalizeTeamMemberRules(reassignTeamMemberRule(team, 'alice@lfb.fr', 'alice@lfb.fr')), normalizeTeamMemberRules(team));
+  assert.deepEqual(normalizeTeamMemberRules(reassignTeamMemberRule(team, 'alice@lfb.fr', 'inconnu@lfb.fr')), normalizeTeamMemberRules(team));
+  assert.deepEqual(normalizeTeamMemberRules(reassignTeamMemberRule(team, '', 'bob@lfb.fr')), normalizeTeamMemberRules(team));
+
+  const withoutRule = buildTeam();
+  assert.deepEqual(normalizeTeamMemberRules(reassignTeamMemberRule(withoutRule, 'alice@lfb.fr', 'bob@lfb.fr')), []);
+});
+
+test('la réattribution ignore la casse des adresses', () => {
+  const next = reassignTeamMemberRule(conditionedTeam(), 'ALICE@lfb.fr', ' Bob@LFB.fr ');
+
+  assert.equal(getTeamMemberRule(next, 'alice@lfb.fr'), null);
+  assert.equal(getTeamMemberRule(next, 'bob@lfb.fr').mode, MEMBER_TRIGGER_MODE_EXCLUDE);
 });

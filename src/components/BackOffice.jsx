@@ -72,7 +72,8 @@ import {
   applyTeamMemberRule,
   getTeamMemberCoverageWarning,
   getTeamMemberRule,
-  normalizeTeamMemberRules
+  normalizeTeamMemberRules,
+  reassignTeamMemberRule
 } from '../utils/teamMemberRules.js';
 import { ConditionGroupsEditor } from './ConditionGroupsEditor.jsx';
 import { ACTIVITY_SCOPE_LABELS, ACTIVITY_SCOPE_VALUES } from '../utils/activityScope.js';
@@ -844,6 +845,9 @@ export const BackOffice = ({
   const [teamsEditingLanguage, setTeamsEditingLanguage] = useState(language);
   // Panneau de critères d'un membre d'équipe : { teamId, email } quand il est ouvert.
   const [teamMemberRuleModal, setTeamMemberRuleModal] = useState(null);
+  // Réattribution proposée par l'avertissement de couverture : { [teamId]: { from, to } }.
+  // Une entrée absente signifie « garder les valeurs par défaut calculées au rendu ».
+  const [teamMemberReassignment, setTeamMemberReassignment] = useState({});
   const [inspirationEditingLanguage, setInspirationEditingLanguage] = useState(language);
   // Périmètre d'activité du banc d'essai : celui du profil par défaut, ou celui que l'expert
   // simule pour vérifier ce que verrait quelqu'un d'un autre périmètre. `null` = pas de
@@ -4600,6 +4604,15 @@ export const BackOffice = ({
 
   const clearTeamMemberRule = (teamId, email) => {
     updateTeamMemberRule(teamId, email, (current) => ({ ...current, conditionGroups: [] }));
+  };
+
+  const applyTeamMemberReassignment = (teamId, fromEmail, toEmail) => {
+    updateTeamById(teamId, (team) => reassignTeamMemberRule(team, fromEmail, toEmail));
+    setTeamMemberReassignment((prev) => {
+      const next = { ...prev };
+      delete next[teamId];
+      return next;
+    });
   };
 
   const applyRuleUpdate = (ruleId, updater) => {
@@ -8548,10 +8561,97 @@ export const BackOffice = ({
                       {coverageWarning === TEAM_MEMBER_COVERAGE_ALL_CONDITIONAL && (
                         <div
                           role="alert"
-                          className="mb-4 flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"
+                          className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"
                         >
-                          <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                          <span>{t('backOffice.main.teamMemberCoverageAllConditionalWarning')}</span>
+                          <div className="flex items-start gap-2">
+                            <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                            <span>{t('backOffice.main.teamMemberCoverageAllConditionalWarning')}</span>
+                          </div>
+
+                          {teamContacts.length > 1 && (() => {
+                            const selection = teamMemberReassignment[team.id] || {};
+                            const sourceEmail = teamMemberRules.some((entry) => entry.email === selection.from)
+                              ? selection.from
+                              : teamMemberRules[0].email;
+                            const targetCandidates = teamContacts.filter((contact) => contact !== sourceEmail);
+                            const targetEmail = targetCandidates.includes(selection.to)
+                              ? selection.to
+                              : targetCandidates[0];
+                            // Réattribuer écrase les critères éventuels de la cible : le dire avant,
+                            // sinon la manœuvre qui répare la couverture en détruit une autre en silence.
+                            const targetHasRule = Boolean(getTeamMemberRule(team, targetEmail));
+
+                            const setSelection = (patch) =>
+                              setTeamMemberReassignment((prev) => ({
+                                ...prev,
+                                [team.id]: { from: sourceEmail, to: targetEmail, ...patch }
+                              }));
+
+                            return (
+                              <div className="mt-3 border-t border-amber-200 pt-3">
+                                <p className="text-xs text-amber-800">
+                                  {t('backOffice.main.teamMemberReassignIntro')}
+                                </p>
+                                <div className="mt-2 flex flex-wrap items-end gap-2">
+                                  <div className="min-w-0 flex-1">
+                                    <label
+                                      className="mb-1 block text-xs font-semibold text-amber-900"
+                                      htmlFor={`${team.id}-reassign-from`}
+                                    >
+                                      {t('backOffice.main.teamMemberReassignFromLabel')}
+                                    </label>
+                                    <select
+                                      id={`${team.id}-reassign-from`}
+                                      value={sourceEmail}
+                                      onChange={(event) => setSelection({ from: event.target.value, to: undefined })}
+                                      className="w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm"
+                                    >
+                                      {teamMemberRules.map((entry) => (
+                                        <option key={`${team.id}-from-${entry.email}`} value={entry.email}>
+                                          {entry.email}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+
+                                  <div className="min-w-0 flex-1">
+                                    <label
+                                      className="mb-1 block text-xs font-semibold text-amber-900"
+                                      htmlFor={`${team.id}-reassign-to`}
+                                    >
+                                      {t('backOffice.main.teamMemberReassignToLabel')}
+                                    </label>
+                                    <select
+                                      id={`${team.id}-reassign-to`}
+                                      value={targetEmail}
+                                      onChange={(event) => setSelection({ to: event.target.value })}
+                                      className="w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm"
+                                    >
+                                      {targetCandidates.map((contact) => (
+                                        <option key={`${team.id}-to-${contact}`} value={contact}>
+                                          {contact}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => applyTeamMemberReassignment(team.id, sourceEmail, targetEmail)}
+                                    className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700"
+                                  >
+                                    {t('backOffice.main.teamMemberReassignButton')}
+                                  </button>
+                                </div>
+
+                                {targetHasRule && (
+                                  <p className="mt-2 text-xs font-medium text-amber-800">
+                                    {t('backOffice.main.teamMemberReassignOverwriteTemplate', { member: targetEmail })}
+                                  </p>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       )}
 
