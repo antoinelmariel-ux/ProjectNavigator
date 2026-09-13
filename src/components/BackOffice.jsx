@@ -14,10 +14,15 @@ import {
   AlertTriangle,
   CheckCircle,
   ChevronRight,
-  ChevronLeft
+  ChevronLeft,
+  Sparkles,
+  Save,
+  LayoutList,
+  UserCircle
 } from './icons.js';
 import { QuestionEditor } from './QuestionEditor.jsx';
 import { RuleEditor } from './RuleEditor.jsx';
+import { RuleDraftBuilder } from './RuleDraftBuilder.jsx';
 import { BackOfficeDashboard } from './BackOfficeDashboard.jsx';
 import { VirtualizedList } from './VirtualizedList.jsx';
 import { renderTextWithLinks } from '../utils/linkify.js';
@@ -48,7 +53,16 @@ import {
   sanitizeRuleCondition
 } from '../utils/ruleConditions.js';
 import { ensureOperatorForType, getOperatorOptionsForType } from '../utils/operatorOptions.js';
+import {
+  annotateCandidates,
+  buildConditionCandidates,
+  buildDraftConditionGroups,
+  countMatchingSamples,
+  describeDraftGroups,
+  sortCandidates
+} from '../utils/ruleDraftFromAnswers.js';
 import { normalizeTeamContacts } from '../utils/teamContacts.js';
+import { ACTIVITY_SCOPE_LABELS, ACTIVITY_SCOPE_VALUES } from '../utils/activityScope.js';
 import { PeoplePicker } from './PeoplePicker.jsx';
 import { buildImpersonationUrl, isImpersonating } from '../utils/impersonation.js';
 import {
@@ -679,6 +693,10 @@ export const BackOffice = ({
   setAdminEmails,
   technicalContactEmails,
   setTechnicalContactEmails,
+  complianceSampleProjects = [],
+  setComplianceSampleProjects,
+  sampleProjectsQueueRef,
+  sampleProjectServerMetaRef,
   currentUserEmail = '',
   isCurrentUserAdmin = false,
   activityScope,
@@ -695,27 +713,47 @@ export const BackOffice = ({
   const [onboardingEditingLanguage, setOnboardingEditingLanguage] = useState(language);
   const [teamsEditingLanguage, setTeamsEditingLanguage] = useState(language);
   const [inspirationEditingLanguage, setInspirationEditingLanguage] = useState(language);
+  // Périmètre d'activité du banc d'essai : celui du profil par défaut, ou celui que l'expert
+  // simule pour vérifier ce que verrait quelqu'un d'un autre périmètre. `null` = pas de
+  // simulation, on suit le profil réel (et on continue de le suivre s'il change).
+  const [benchScopeOverride, setBenchScopeOverride] = useState(null);
+  const profileActivityScope = useMemo(
+    () => (Array.isArray(activityScope) ? activityScope : []),
+    [activityScope]
+  );
+  const benchEffectiveScope = benchScopeOverride ?? profileActivityScope;
+  const isBenchScopeSimulated = useMemo(() => {
+    if (benchScopeOverride === null) {
+      return false;
+    }
+    if (benchScopeOverride.length !== profileActivityScope.length) {
+      return true;
+    }
+    return benchScopeOverride.some((value) => !profileActivityScope.includes(value));
+  }, [benchScopeOverride, profileActivityScope]);
+
   // Aperçu de conditions (onglet questions/règles) : simule les réponses avec le périmètre
-  // d'activité réel de la personne connectée, comme dans le vrai questionnaire.
+  // d'activité du banc — celui de la personne connectée tant qu'aucune simulation n'est
+  // active, comme dans le vrai questionnaire.
   const shouldShowQuestion = useCallback(
     (question, answersForEvaluation) =>
-      shouldShowQuestionBase(question, withActivityScope(answersForEvaluation, activityScope)),
-    [activityScope]
+      shouldShowQuestionBase(question, withActivityScope(answersForEvaluation, benchEffectiveScope)),
+    [benchEffectiveScope]
   );
   const shouldShowOption = useCallback(
     (option, answersForEvaluation) =>
-      shouldShowOptionBase(option, withActivityScope(answersForEvaluation, activityScope)),
-    [activityScope]
+      shouldShowOptionBase(option, withActivityScope(answersForEvaluation, benchEffectiveScope)),
+    [benchEffectiveScope]
   );
   const analyzeAnswers = useCallback(
     (answersForEvaluation, rulesArg, riskLevelRulesArg, riskWeightsArg) =>
       analyzeAnswersBase(
-        withActivityScope(answersForEvaluation, activityScope),
+        withActivityScope(answersForEvaluation, benchEffectiveScope),
         rulesArg,
         riskLevelRulesArg,
         riskWeightsArg
       ),
-    [activityScope]
+    [benchEffectiveScope]
   );
   const [activeTab, setActiveTab] = useState('dashboard');
   const [editingRule, setEditingRule] = useState(null);
@@ -881,6 +919,21 @@ export const BackOffice = ({
   const [complianceReviewAnswers, setComplianceReviewAnswers] = useState({});
   const [complianceReviewDisplayMode, setComplianceReviewDisplayMode] = useState('direct');
   const [complianceReviewActiveQuestionId, setComplianceReviewActiveQuestionId] = useState('');
+  const [complianceReviewSampleId, setComplianceReviewSampleId] = useState('');
+  const [complianceReviewSampleLabel, setComplianceReviewSampleLabel] = useState('');
+  const [complianceReviewSampleDirty, setComplianceReviewSampleDirty] = useState(false);
+  const [isSampleNameRowOpen, setIsSampleNameRowOpen] = useState(false);
+  const [sampleNameDraft, setSampleNameDraft] = useState('');
+  const [isRuleDraftOpen, setIsRuleDraftOpen] = useState(false);
+  const [ruleDraftSelectedIds, setRuleDraftSelectedIds] = useState(() => new Set());
+  const [ruleDraftOperators, setRuleDraftOperators] = useState({});
+  const [ruleDraftPerQuestionLogic, setRuleDraftPerQuestionLogic] = useState({});
+  const [ruleDraftMode, setRuleDraftMode] = useState('all');
+  const [ruleDraftSort, setRuleDraftSort] = useState('relevance');
+  const [ruleDraftName, setRuleDraftName] = useState('');
+  const [ruleDraftTeamIds, setRuleDraftTeamIds] = useState([]);
+  const [benchRuleFilter, setBenchRuleFilter] = useState('');
+  const [benchRuleScope, setBenchRuleScope] = useState('triggered');
   const [isComplianceReviewGuidanceOpen, setIsComplianceReviewGuidanceOpen] = useState(false);
 
   useEffect(() => {
@@ -947,6 +1000,13 @@ export const BackOffice = ({
   }, [complianceReviewActiveQuestionId, complianceReviewQuestionIndexById]);
 
   const complianceReviewScopedAnswers = useMemo(() => {
+    // Mode « Projet complet » : on evalue toutes les reponses chargees, independamment de la
+    // question affichee. C'est le mode d'un projet type pre-charge, ou l'expert veut le verdict
+    // du projet entier et non celui du prefixe de questionnaire qu'il a parcouru.
+    if (complianceReviewDisplayMode === 'complete') {
+      return complianceReviewAnswers;
+    }
+
     if (!complianceReviewEffectiveActiveQuestionId) {
       return {};
     }
@@ -1511,6 +1571,21 @@ export const BackOffice = ({
         : { action: 'save', rule: payload.rule, sortOrder: payload.sortOrder }
     );
   }, [rulesQueueRef]);
+
+  const enqueueSampleProjectWrite = useCallback((action, payload) => {
+    if (!isSharePointMode()) {
+      return;
+    }
+    const queue = sampleProjectsQueueRef?.current;
+    if (!queue || typeof queue.enqueue !== 'function') {
+      return;
+    }
+    queue.enqueue(
+      action === 'remove'
+        ? { action: 'remove', sampleId: payload.sampleId }
+        : { action: 'save', sample: payload.sample, sortOrder: payload.sortOrder }
+    );
+  }, [sampleProjectsQueueRef]);
 
   const enqueueTeamWrite = useCallback((action, payload) => {
     if (!isSharePointMode()) {
@@ -3536,6 +3611,8 @@ export const BackOffice = ({
       return;
     }
 
+    setComplianceReviewSampleDirty(true);
+
     setComplianceReviewAnswers((prev) => {
       const nextValue = typeof valueOrUpdater === 'function'
         ? valueOrUpdater(prev[questionId], prev)
@@ -3578,6 +3655,9 @@ export const BackOffice = ({
   const handleComplianceReviewResetQuestionnaire = useCallback(() => {
     setComplianceReviewAnswers({});
     setComplianceReviewActiveQuestionId('');
+    setComplianceReviewSampleId('');
+    setComplianceReviewSampleLabel('');
+    setComplianceReviewSampleDirty(false);
   }, []);
 
   useEffect(() => {
@@ -3868,6 +3948,314 @@ export const BackOffice = ({
     }
     enqueueRuleWrite('save', { rule: newRule, sortOrder: nextSortOrder(rules, ruleServerMetaRef) });
   };
+
+  // ---------------------------------------------------------------------------
+  // Banc d'essai : projets types + creation de regle a partir d'un projet charge
+  // ---------------------------------------------------------------------------
+  const complianceSampleList = useMemo(
+    () => (Array.isArray(complianceSampleProjects) ? complianceSampleProjects.filter((entry) => entry && entry.id) : []),
+    [complianceSampleProjects]
+  );
+
+  const complianceRealProjects = useMemo(
+    () => (Array.isArray(projects) ? projects : [])
+      .filter((project) => project && project.answers && typeof project.answers === 'object')
+      .map((project) => ({
+        id: project.id,
+        name: project.projectName || project.answers?.projectName || t('backOffice.main.benchUntitledProject'),
+        answers: project.answers
+      })),
+    [projects, t]
+  );
+
+  const applyComplianceSampleAnswers = useCallback((answers, label, sampleId) => {
+    setComplianceReviewAnswers(answers && typeof answers === 'object' ? { ...answers } : {});
+    setComplianceReviewSampleId(sampleId || '');
+    setComplianceReviewSampleLabel(label || '');
+    setComplianceReviewSampleDirty(false);
+    setComplianceReviewDisplayMode('complete');
+    setComplianceReviewActiveQuestionId('');
+  }, []);
+
+  const handleLoadComplianceSample = useCallback((rawValue) => {
+    if (!rawValue) {
+      applyComplianceSampleAnswers({}, '', '');
+      setComplianceReviewDisplayMode('direct');
+      return;
+    }
+
+    if (rawValue.startsWith('sample:')) {
+      const sample = complianceSampleList.find((entry) => entry.id === rawValue.slice(7));
+      if (sample) {
+        applyComplianceSampleAnswers(sample.answers, sample.name, `sample:${sample.id}`);
+      }
+      return;
+    }
+
+    if (rawValue.startsWith('project:')) {
+      const project = complianceRealProjects.find((entry) => entry.id === rawValue.slice(8));
+      if (project) {
+        applyComplianceSampleAnswers(project.answers, project.name, `project:${project.id}`);
+      }
+    }
+  }, [applyComplianceSampleAnswers, complianceRealProjects, complianceSampleList]);
+
+  const handleOpenSampleNameRow = useCallback(() => {
+    setSampleNameDraft(complianceReviewSampleLabel || '');
+    setIsSampleNameRowOpen(true);
+  }, [complianceReviewSampleLabel]);
+
+  const handleSaveComplianceSample = useCallback(() => {
+    if (typeof setComplianceSampleProjects !== 'function') {
+      return;
+    }
+
+    const trimmed = sampleNameDraft.trim() || t('backOffice.main.benchNewSampleDefaultName');
+    const existing = complianceReviewSampleId.startsWith('sample:')
+      ? complianceSampleList.find((entry) => entry.id === complianceReviewSampleId.slice(7))
+      : null;
+
+    // Meme nom qu'un projet type deja charge : on met a jour celui-la plutot que d'en empiler
+    // un homonyme, sinon la liste se remplit de variantes indistinguables.
+    if (existing && existing.name === trimmed) {
+      const updated = { ...existing, answers: { ...complianceReviewAnswers }, updatedAt: new Date().toISOString() };
+      setComplianceSampleProjects((prev) => (Array.isArray(prev) ? prev : []).map((entry) => (
+        entry.id === existing.id ? updated : entry
+      )));
+      enqueueSampleProjectWrite('save', {
+        sample: updated,
+        sortOrder: sampleProjectServerMetaRef?.current?.get(existing.id)?.sortOrder
+          ?? nextSortOrder(complianceSampleList, sampleProjectServerMetaRef)
+      });
+      setComplianceReviewSampleDirty(false);
+      setIsSampleNameRowOpen(false);
+      return;
+    }
+
+    const id = `sample_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+    const created = {
+      id,
+      name: trimmed,
+      answers: { ...complianceReviewAnswers },
+      createdBy: currentUserEmail || '',
+      updatedAt: new Date().toISOString()
+    };
+    setComplianceSampleProjects((prev) => [...(Array.isArray(prev) ? prev : []), created]);
+    enqueueSampleProjectWrite('save', {
+      sample: created,
+      sortOrder: nextSortOrder(complianceSampleList, sampleProjectServerMetaRef)
+    });
+    setComplianceReviewSampleId(`sample:${id}`);
+    setComplianceReviewSampleLabel(trimmed);
+    setComplianceReviewSampleDirty(false);
+    setIsSampleNameRowOpen(false);
+  }, [
+    complianceReviewAnswers,
+    complianceReviewSampleId,
+    complianceSampleList,
+    currentUserEmail,
+    enqueueSampleProjectWrite,
+    sampleNameDraft,
+    sampleProjectServerMetaRef,
+    setComplianceSampleProjects,
+    t
+  ]);
+
+  const handleDeleteComplianceSample = useCallback(() => {
+    if (typeof setComplianceSampleProjects !== 'function' || !complianceReviewSampleId.startsWith('sample:')) {
+      return;
+    }
+
+    const sampleId = complianceReviewSampleId.slice(7);
+    setComplianceSampleProjects((prev) => (Array.isArray(prev) ? prev : []).filter((entry) => entry.id !== sampleId));
+    enqueueSampleProjectWrite('remove', { sampleId });
+    setComplianceReviewSampleId('');
+    setComplianceReviewSampleLabel('');
+    setComplianceReviewSampleDirty(false);
+  }, [complianceReviewSampleId, enqueueSampleProjectWrite, setComplianceSampleProjects]);
+
+  // L'analyse « projet entier », independante du mode d'affichage choisi a droite : c'est elle
+  // qui alimente la creation de regle, ou raisonner sur un prefixe du questionnaire n'aurait
+  // aucun sens.
+  const complianceBenchAnalysis = useMemo(
+    () => analyzeAnswers(complianceReviewAnswers, Array.isArray(rules) ? rules : [], safeRiskLevelRules, normalizedRiskWeights),
+    [complianceReviewAnswers, rules, safeRiskLevelRules, normalizedRiskWeights, analyzeAnswers]
+  );
+
+  // Toutes les règles du référentiel, étiquetées par leur état sur le projet chargé. C'est ce
+  // qui permet de consulter et corriger une règle existante sans quitter le banc d'essai :
+  // `setEditingRule` ouvre exactement le même éditeur que l'onglet Règles.
+  const benchScopeOptions = useMemo(
+    () => ACTIVITY_SCOPE_VALUES.map((value) => ({
+      value,
+      label: resolveLocalizedText(ACTIVITY_SCOPE_LABELS[value], language) || value,
+      selected: benchEffectiveScope.includes(value)
+    })),
+    [benchEffectiveScope, language]
+  );
+
+  const toggleBenchScopeValue = useCallback((value) => {
+    setBenchScopeOverride((prev) => {
+      const current = prev ?? profileActivityScope;
+      return current.includes(value)
+        ? current.filter((entry) => entry !== value)
+        : [...current, value];
+    });
+  }, [profileActivityScope]);
+
+  const benchTriggeredRuleIds = useMemo(() => {
+    const triggered = Array.isArray(complianceBenchAnalysis?.triggeredRules)
+      ? complianceBenchAnalysis.triggeredRules
+      : [];
+    return new Set(triggered.map((rule) => rule?.id).filter(Boolean));
+  }, [complianceBenchAnalysis]);
+
+  const benchRuleEntries = useMemo(() => {
+    const safeRules = Array.isArray(rules) ? rules : [];
+    const needle = benchRuleFilter.trim().toLowerCase();
+
+    return safeRules
+      .map((rule) => ({
+        rule,
+        label: resolveLocalizedText(rule?.name, language) || rule?.id || '',
+        isTriggered: benchTriggeredRuleIds.has(rule?.id),
+        groupCount: normalizeConditionGroups(rule, sanitizeRuleCondition).filter(
+          (group) => Array.isArray(group?.conditions) && group.conditions.length > 0
+        ).length
+      }))
+      .filter((entry) => (benchRuleScope === 'triggered' ? entry.isTriggered : true))
+      .filter((entry) => needle === '' || entry.label.toLowerCase().includes(needle));
+  }, [rules, language, benchTriggeredRuleIds, benchRuleScope, benchRuleFilter]);
+
+  const ruleDraftCandidates = useMemo(
+    () => annotateCandidates(
+      buildConditionCandidates(complianceReviewAnswers, questions, {
+        language,
+        activityScope: benchEffectiveScope
+      }),
+      complianceSampleList,
+      benchEffectiveScope
+    ),
+    [complianceReviewAnswers, questions, language, complianceSampleList, benchEffectiveScope]
+  );
+
+  const ruleDraftOrderedCandidates = useMemo(
+    () => sortCandidates(ruleDraftCandidates, ruleDraftSort),
+    [ruleDraftCandidates, ruleDraftSort]
+  );
+
+  // Regroupement par question : deux valeurs d'une meme question forment un « ou », c'est la
+  // forme que prennent deja neuf groupes sur dix du referentiel existant.
+  const ruleDraftGroupedCandidates = useMemo(() => {
+    const groups = [];
+    const byQuestion = new Map();
+
+    ruleDraftOrderedCandidates.forEach((candidate) => {
+      if (!byQuestion.has(candidate.questionId)) {
+        const entry = { questionId: candidate.questionId, questionLabel: candidate.questionLabel, candidates: [] };
+        byQuestion.set(candidate.questionId, entry);
+        groups.push(entry);
+      }
+      byQuestion.get(candidate.questionId).candidates.push(candidate);
+    });
+
+    return groups;
+  }, [ruleDraftOrderedCandidates]);
+
+  const ruleDraftSelectedCandidates = useMemo(
+    () => ruleDraftCandidates
+      .filter((candidate) => ruleDraftSelectedIds.has(candidate.id))
+      .map((candidate) => ({ ...candidate, operator: ruleDraftOperators[candidate.id] || candidate.operator })),
+    [ruleDraftCandidates, ruleDraftSelectedIds, ruleDraftOperators]
+  );
+
+  const ruleDraftConditionGroups = useMemo(
+    () => buildDraftConditionGroups(ruleDraftSelectedCandidates, {
+      mode: ruleDraftMode,
+      perQuestionLogic: ruleDraftPerQuestionLogic
+    }),
+    [ruleDraftSelectedCandidates, ruleDraftMode, ruleDraftPerQuestionLogic]
+  );
+
+  const ruleDraftDescribedGroups = useMemo(
+    () => describeDraftGroups(ruleDraftConditionGroups, ruleDraftCandidates),
+    [ruleDraftConditionGroups, ruleDraftCandidates]
+  );
+
+  const ruleDraftSampleMatch = useMemo(
+    () => countMatchingSamples(ruleDraftConditionGroups, complianceSampleList, benchEffectiveScope),
+    [ruleDraftConditionGroups, complianceSampleList, benchEffectiveScope]
+  );
+
+  const ruleDraftProjectMatch = useMemo(
+    () => countMatchingSamples(ruleDraftConditionGroups, complianceRealProjects, benchEffectiveScope),
+    [ruleDraftConditionGroups, complianceRealProjects, benchEffectiveScope]
+  );
+
+  const handleToggleRuleDraftCandidate = useCallback((candidateId) => {
+    setRuleDraftSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(candidateId)) {
+        next.delete(candidateId);
+      } else {
+        next.add(candidateId);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleOpenRuleDraft = useCallback(() => {
+    setRuleDraftSelectedIds(new Set());
+    setRuleDraftOperators({});
+    setRuleDraftPerQuestionLogic({});
+    setRuleDraftMode('all');
+    setRuleDraftTeamIds(selectedComplianceReviewTeamId ? [selectedComplianceReviewTeamId] : []);
+    setRuleDraftName('');
+    setIsRuleDraftOpen(true);
+  }, [selectedComplianceReviewTeamId]);
+
+  const handleCreateRuleFromDraft = useCallback(() => {
+    if (ruleDraftSelectedCandidates.length === 0) {
+      return;
+    }
+
+    const newRule = applyRuleConditionGroups(
+      {
+        id: getNextId(rules, 'rule'),
+        name: ruleDraftName.trim() || t('backOffice.main.benchDraftRuleDefaultName'),
+        notifyTeam: true,
+        conditions: [],
+        conditionGroups: [],
+        conditionLogic: 'all',
+        teams: [...ruleDraftTeamIds],
+        teamRoutingRules: [],
+        questions: {},
+        risks: []
+      },
+      ruleDraftConditionGroups
+    );
+
+    setRules([...rules, newRule]);
+    enqueueRuleWrite('save', { rule: newRule, sortOrder: nextSortOrder(rules, ruleServerMetaRef) });
+    setPendingNewRuleId(newRule.id);
+    setExpandedRuleIds((prev) => {
+      const next = new Set(prev);
+      next.add(newRule.id);
+      return next;
+    });
+    setIsRuleDraftOpen(false);
+    setEditingRule(newRule);
+  }, [
+    enqueueRuleWrite,
+    ruleDraftConditionGroups,
+    ruleDraftName,
+    ruleDraftSelectedCandidates,
+    ruleDraftTeamIds,
+    rules,
+    ruleServerMetaRef,
+    setRules,
+    t
+  ]);
 
   const deleteRule = (id) => {
     const targetIndex = rules.findIndex((rule) => rule.id === id);
@@ -7734,6 +8122,186 @@ export const BackOffice = ({
                 </p>
               </div>
 
+              <div className="rounded-xl border border-indigo-200 bg-indigo-50/70 p-4 space-y-3">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-2">
+                    <LayoutList className="w-5 h-5 text-indigo-600" />
+                    <h3 className="text-sm font-bold uppercase tracking-wide text-indigo-900">{t('backOffice.main.benchSampleBarTitle')}</h3>
+                  </div>
+                  {complianceReviewSampleLabel && (
+                    <span className="text-xs font-medium text-indigo-800">
+                      {complianceReviewSampleDirty
+                        ? t('backOffice.main.benchSampleLoadedModifiedTemplate', { name: complianceReviewSampleLabel })
+                        : t('backOffice.main.benchSampleLoadedTemplate', { name: complianceReviewSampleLabel })}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
+                  <select
+                    id="compliance-review-sample"
+                    value={complianceReviewSampleId}
+                    onChange={(event) => handleLoadComplianceSample(event.target.value)}
+                    aria-label={t('backOffice.main.benchSampleSelectLabel')}
+                    className="w-full lg:max-w-md px-3 py-2 border border-indigo-200 rounded-lg text-sm bg-white"
+                  >
+                    <option value="">{t('backOffice.main.benchSampleBlankOption')}</option>
+                    {complianceSampleList.length > 0 && (
+                      <optgroup label={t('backOffice.main.benchSampleMineGroup')}>
+                        {complianceSampleList.map((sample) => (
+                          <option key={sample.id} value={`sample:${sample.id}`}>{sample.name}</option>
+                        ))}
+                      </optgroup>
+                    )}
+                    {complianceRealProjects.length > 0 && (
+                      <optgroup label={t('backOffice.main.benchSampleProjectsGroup')}>
+                        {complianceRealProjects.map((project) => (
+                          <option key={project.id} value={`project:${project.id}`}>{project.name}</option>
+                        ))}
+                      </optgroup>
+                    )}
+                  </select>
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={handleOpenSampleNameRow}
+                      disabled={Object.keys(complianceReviewAnswers).length === 0}
+                      className="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium bg-white border border-indigo-300 text-indigo-700 hover:bg-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Save className="w-4 h-4 mr-1.5" />
+                      {t('backOffice.main.benchSaveSampleButton')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDeleteComplianceSample}
+                      disabled={!complianceReviewSampleId.startsWith('sample:')}
+                      className="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium text-red-700 bg-white border border-red-200 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <Trash2 className="w-4 h-4 mr-1.5" />
+                      {t('backOffice.main.benchDeleteSampleButton')}
+                    </button>
+                  </div>
+                </div>
+
+                {isSampleNameRowOpen && (
+                  <div className="flex flex-col gap-2 rounded-lg border border-indigo-300 bg-white p-3 sm:flex-row sm:items-end">
+                    <div className="flex-1">
+                      <label htmlFor="bench-sample-name" className="block text-xs font-semibold uppercase tracking-wide text-gray-600">
+                        {t('backOffice.main.benchSamplePromptLabel')}
+                      </label>
+                      <input
+                        id="bench-sample-name"
+                        type="text"
+                        autoFocus
+                        value={sampleNameDraft}
+                        onChange={(event) => setSampleNameDraft(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') {
+                            event.preventDefault();
+                            handleSaveComplianceSample();
+                          }
+                          if (event.key === 'Escape') {
+                            setIsSampleNameRowOpen(false);
+                          }
+                        }}
+                        placeholder={t('backOffice.main.benchNewSampleDefaultName')}
+                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleSaveComplianceSample}
+                        className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+                      >
+                        {t('backOffice.main.benchSampleConfirmButton')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsSampleNameRowOpen(false)}
+                        className="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
+                      >
+                        {t('backOffice.main.benchCancelButton')}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <p className="text-xs text-indigo-800">{t('backOffice.main.benchSampleBarHint')}</p>
+              </div>
+
+              {/* Le moteur injecte silencieusement le périmètre d'activité du profil dans chaque
+                  évaluation de ce module (withActivityScope). Le rendre visible évite de chercher
+                  pourquoi une question apparaît ou une règle se déclenche « sans raison ». */}
+              <div
+                className={`rounded-xl border p-4 space-y-3 ${
+                  isBenchScopeSimulated
+                    ? 'border-amber-300 bg-amber-50/80'
+                    : 'border-emerald-200 bg-emerald-50/70'
+                }`}
+              >
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <h3
+                      className={`flex items-center gap-2 text-sm font-bold uppercase tracking-wide ${
+                        isBenchScopeSimulated ? 'text-amber-900' : 'text-emerald-900'
+                      }`}
+                    >
+                      <UserCircle className="h-4 w-4" />
+                      {isBenchScopeSimulated
+                        ? t('backOffice.main.benchScopeSimulatedHeading')
+                        : t('backOffice.main.benchProfileHeading')}
+                    </h3>
+                    <p className={`mt-1 text-xs ${isBenchScopeSimulated ? 'text-amber-800' : 'text-emerald-800'}`}>
+                      {isBenchScopeSimulated
+                        ? t('backOffice.main.benchScopeSimulatedHint')
+                        : t('backOffice.main.benchProfileHint')}
+                    </p>
+                  </div>
+                  <div className={`text-sm ${isBenchScopeSimulated ? 'text-amber-900' : 'text-emerald-900'}`}>
+                    {currentUserEmail && <p className="font-medium">{currentUserEmail}</p>}
+                    {isBenchScopeSimulated && (
+                      <button
+                        type="button"
+                        onClick={() => setBenchScopeOverride(null)}
+                        className="mt-1 rounded-lg border border-amber-400 bg-white px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100"
+                      >
+                        {t('backOffice.main.benchScopeResetButton')}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div
+                  className="flex flex-wrap gap-1.5"
+                  role="group"
+                  aria-label={t('backOffice.main.benchScopeSelectorAriaLabel')}
+                >
+                  {benchScopeOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => toggleBenchScopeValue(option.value)}
+                      aria-pressed={option.selected}
+                      className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+                        option.selected
+                          ? isBenchScopeSimulated
+                            ? 'border-amber-500 bg-amber-500 text-white'
+                            : 'border-emerald-500 bg-emerald-600 text-white'
+                          : 'border-gray-300 bg-white text-gray-600 hover:border-gray-400'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+
+                {benchEffectiveScope.length === 0 && (
+                  <p className="text-xs italic text-gray-600">{t('backOffice.main.benchProfileNoScope')}</p>
+                )}
+              </div>
+
               <div className="rounded-xl border border-gray-200 bg-white p-4">
                 <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-2" htmlFor="compliance-review-team">
                   {t('backOffice.main.complianceTeamToDisplayLabel')}
@@ -8265,6 +8833,18 @@ export const BackOffice = ({
                       >
                         {t('backOffice.main.cumulativeModeButton')}
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => setComplianceReviewDisplayMode('complete')}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-md transition ${
+                          complianceReviewDisplayMode === 'complete'
+                            ? 'bg-white text-blue-700 shadow-sm border border-blue-100'
+                            : 'text-gray-600 hover:text-gray-800'
+                        }`}
+                        aria-pressed={complianceReviewDisplayMode === 'complete'}
+                      >
+                        {t('backOffice.main.completeModeButton')}
+                      </button>
                     </div>
                   </div>
 
@@ -8321,11 +8901,139 @@ export const BackOffice = ({
                       )}
                     </div>
                   </div>
+
+                  <div className="pt-3 border-t border-gray-200 space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-600">
+                      <span>{t('backOffice.main.benchGlobalTriggersTemplate', { count: Array.isArray(complianceBenchAnalysis?.triggeredRules) ? complianceBenchAnalysis.triggeredRules.length : 0 })}</span>
+                      <span>{t('backOffice.main.benchGlobalScoreTemplate', { score: complianceBenchAnalysis?.riskScore ?? 0 })}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleOpenRuleDraft}
+                      disabled={Object.keys(complianceReviewAnswers).length === 0}
+                      className="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-lg text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      {t('backOffice.main.benchCreateRuleButton')}
+                    </button>
+                    <p className="text-xs text-gray-500">{t('backOffice.main.benchCreateRuleHint')}</p>
+                  </div>
                 </article>
               </div>
+
+              {/* Consulter et corriger le référentiel sans quitter le banc : chaque ligne ouvre
+                  le même éditeur complet que l'onglet Règles, groupes de conditions compris. */}
+              <article className="rounded-xl border border-gray-200 bg-white p-4 space-y-3">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800">{t('backOffice.main.benchRulesPanelTitle')}</h3>
+                    <p className="text-sm text-gray-600">{t('backOffice.main.benchRulesPanelSubtitle')}</p>
+                  </div>
+                  <div className="inline-flex rounded-lg border border-gray-300 bg-gray-50 p-1" role="group" aria-label={t('backOffice.main.benchRulesScopeAriaLabel')}>
+                    <button
+                      type="button"
+                      onClick={() => setBenchRuleScope('triggered')}
+                      aria-pressed={benchRuleScope === 'triggered'}
+                      className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${benchRuleScope === 'triggered' ? 'bg-white text-blue-700 shadow-sm border border-blue-100' : 'text-gray-600'}`}
+                    >
+                      {t('backOffice.main.benchRulesScopeTriggered')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBenchRuleScope('all')}
+                      aria-pressed={benchRuleScope === 'all'}
+                      className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${benchRuleScope === 'all' ? 'bg-white text-blue-700 shadow-sm border border-blue-100' : 'text-gray-600'}`}
+                    >
+                      {t('backOffice.main.benchRulesScopeAll')}
+                    </button>
+                  </div>
+                </div>
+
+                <input
+                  type="text"
+                  value={benchRuleFilter}
+                  onChange={(event) => setBenchRuleFilter(event.target.value)}
+                  placeholder={t('backOffice.main.benchRulesFilterPlaceholder')}
+                  aria-label={t('backOffice.main.benchRulesFilterPlaceholder')}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                />
+
+                {benchRuleEntries.length === 0 ? (
+                  <p className="rounded-lg border border-dashed border-gray-300 p-4 text-center text-sm text-gray-500">
+                    {benchRuleScope === 'triggered'
+                      ? t('backOffice.main.benchRulesNoneTriggered')
+                      : t('backOffice.main.benchRulesNoneMatching')}
+                  </p>
+                ) : (
+                  <ul className="max-h-80 space-y-2 overflow-y-auto pr-1 list-none">
+                    {benchRuleEntries.map((entry) => (
+                      <li key={entry.rule.id}>
+                        <button
+                          type="button"
+                          onClick={() => setEditingRule(entry.rule)}
+                          className="flex w-full items-center gap-3 rounded-lg border border-gray-200 px-3 py-2 text-left text-sm hover:border-blue-300 hover:bg-blue-50"
+                          aria-label={t('backOffice.main.benchOpenRuleAriaLabelTemplate', { name: entry.label })}
+                        >
+                          <span
+                            className={`inline-flex flex-shrink-0 items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                              entry.isTriggered
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : 'bg-gray-100 text-gray-600'
+                            }`}
+                          >
+                            {entry.isTriggered
+                              ? t('backOffice.main.benchRuleTriggeredBadge')
+                              : t('backOffice.main.benchRuleNotTriggeredBadge')}
+                          </span>
+                          <span className="flex-1 font-medium text-gray-800">{entry.label}</span>
+                          <span className="flex-shrink-0 text-xs text-gray-500">
+                            {t('backOffice.main.benchRuleGroupCountTemplate', { count: entry.groupCount })}
+                          </span>
+                          <Edit className="h-4 w-4 flex-shrink-0 text-blue-600" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </article>
             </section>
           )}
         </div>
+
+        {isRuleDraftOpen && (
+          <RuleDraftBuilder
+            t={t}
+            language={language}
+            sampleLabel={complianceReviewSampleLabel}
+            groupedCandidates={ruleDraftGroupedCandidates}
+            selectedIds={ruleDraftSelectedIds}
+            onToggleCandidate={handleToggleRuleDraftCandidate}
+            operators={ruleDraftOperators}
+            onOperatorChange={(candidateId, operator) =>
+              setRuleDraftOperators((prev) => ({ ...prev, [candidateId]: operator }))}
+            perQuestionLogic={ruleDraftPerQuestionLogic}
+            onPerQuestionLogicChange={(questionId, logic) =>
+              setRuleDraftPerQuestionLogic((prev) => ({ ...prev, [questionId]: logic }))}
+            mode={ruleDraftMode}
+            onModeChange={setRuleDraftMode}
+            sort={ruleDraftSort}
+            onSortChange={setRuleDraftSort}
+            selectedCandidates={ruleDraftSelectedCandidates}
+            describedGroups={ruleDraftDescribedGroups}
+            sampleMatch={ruleDraftSampleMatch}
+            projectMatch={ruleDraftProjectMatch}
+            name={ruleDraftName}
+            onNameChange={setRuleDraftName}
+            teams={teams}
+            teamIds={ruleDraftTeamIds}
+            onToggleTeam={(teamId) =>
+              setRuleDraftTeamIds((prev) => (prev.includes(teamId)
+                ? prev.filter((entry) => entry !== teamId)
+                : [...prev, teamId]))}
+            onCancel={() => setIsRuleDraftOpen(false)}
+            onConfirm={handleCreateRuleFromDraft}
+          />
+        )}
 
         {editingQuestion && (
           <QuestionEditor

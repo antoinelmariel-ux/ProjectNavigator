@@ -32,6 +32,8 @@ const DEFERRED_MODULES = new Set([
   'src/components/showcase/SectionInserter.jsx',
   'src/components/showcase/ShowcaseEditorBar.jsx',
   'src/components/showcase/ShowcaseOutline.jsx',
+  // Constructeur de règle du banc d'essai : seul BackOffice.jsx (déjà différé) l'importe.
+  'src/components/RuleDraftBuilder.jsx',
   // Recherche d'annuaire (people picker) : seuls BackOffice.jsx et SynthesisReport.jsx
   // (déjà différés) l'importent.
   'src/components/PeoplePicker.jsx',
