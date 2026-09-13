@@ -31,6 +31,7 @@ export const RuleDraftBuilder = ({
   sort,
   onSortChange,
   selectedCandidates,
+  describedGroups,
   sampleMatch,
   projectMatch,
   name,
@@ -290,19 +291,35 @@ export const RuleDraftBuilder = ({
                 {!hasConditions ? (
                   <p className="italic text-gray-400">{t('backOffice.main.benchPreviewEmpty')}</p>
                 ) : (
-                  <p>
-                    <span className="font-semibold text-indigo-700">{t('backOffice.main.benchPreviewIf')}</span>{' '}
-                    {selectedCandidates.map((candidate, index) => (
-                      <span key={candidate.id}>
-                        {index > 0 && (
-                          <span className="font-semibold text-indigo-700">
-                            {mode === 'any' ? ` ${t('backOffice.main.logicOr')} ` : ` ${t('backOffice.main.logicAnd')} `}
-                          </span>
-                        )}
-                        <span className="rounded bg-indigo-50 px-1.5 py-0.5">{candidate.valueLabel}</span>
-                      </span>
-                    ))}
-                  </p>
+                  <div className="space-y-2">
+                    <p className="leading-7">
+                      <span className="font-semibold text-indigo-700">{t('backOffice.main.benchPreviewIf')}</span>{' '}
+                      {describedGroups.map((group, groupIndex) => (
+                        <span key={`group-${groupIndex}`}>
+                          {groupIndex > 0 && (
+                            <span className="font-semibold text-indigo-700">{` ${t('backOffice.main.logicAnd')} `}</span>
+                          )}
+                          {group.items.length > 1 && <span className="text-gray-400">(</span>}
+                          {group.items.map((item, itemIndex) => (
+                            <span key={item.id}>
+                              {itemIndex > 0 && (
+                                <span className="font-semibold text-indigo-700">
+                                  {group.logic === 'all'
+                                    ? ` ${t('backOffice.main.logicAnd')} `
+                                    : ` ${t('backOffice.main.logicOr')} `}
+                                </span>
+                              )}
+                              <span className="rounded bg-indigo-50 px-1.5 py-0.5">{item.valueLabel}</span>
+                            </span>
+                          ))}
+                          {group.items.length > 1 && <span className="text-gray-400">)</span>}
+                        </span>
+                      ))}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {t('backOffice.main.benchPreviewGroupsTemplate', { count: describedGroups.length })}
+                    </p>
+                  </div>
                 )}
               </div>
             </div>

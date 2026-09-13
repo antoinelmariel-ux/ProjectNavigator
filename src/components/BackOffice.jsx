@@ -17,7 +17,8 @@ import {
   ChevronLeft,
   Sparkles,
   Save,
-  LayoutList
+  LayoutList,
+  UserCircle
 } from './icons.js';
 import { QuestionEditor } from './QuestionEditor.jsx';
 import { RuleEditor } from './RuleEditor.jsx';
@@ -57,9 +58,11 @@ import {
   buildConditionCandidates,
   buildDraftConditionGroups,
   countMatchingSamples,
+  describeDraftGroups,
   sortCandidates
 } from '../utils/ruleDraftFromAnswers.js';
 import { normalizeTeamContacts } from '../utils/teamContacts.js';
+import { ACTIVITY_SCOPE_LABELS } from '../utils/activityScope.js';
 import { PeoplePicker } from './PeoplePicker.jsx';
 import { buildImpersonationUrl, isImpersonating } from '../utils/impersonation.js';
 import {
@@ -909,6 +912,8 @@ export const BackOffice = ({
   const [ruleDraftSort, setRuleDraftSort] = useState('relevance');
   const [ruleDraftName, setRuleDraftName] = useState('');
   const [ruleDraftTeamIds, setRuleDraftTeamIds] = useState([]);
+  const [benchRuleFilter, setBenchRuleFilter] = useState('');
+  const [benchRuleScope, setBenchRuleScope] = useState('triggered');
   const [isComplianceReviewGuidanceOpen, setIsComplianceReviewGuidanceOpen] = useState(false);
 
   useEffect(() => {
@@ -4057,6 +4062,40 @@ export const BackOffice = ({
     [complianceReviewAnswers, rules, safeRiskLevelRules, normalizedRiskWeights, analyzeAnswers]
   );
 
+  // Toutes les règles du référentiel, étiquetées par leur état sur le projet chargé. C'est ce
+  // qui permet de consulter et corriger une règle existante sans quitter le banc d'essai :
+  // `setEditingRule` ouvre exactement le même éditeur que l'onglet Règles.
+  const benchActivityScopeLabels = useMemo(
+    () => (Array.isArray(activityScope) ? activityScope : [])
+      .map((value) => resolveLocalizedText(ACTIVITY_SCOPE_LABELS[value], language) || value)
+      .filter(Boolean),
+    [activityScope, language]
+  );
+
+  const benchTriggeredRuleIds = useMemo(() => {
+    const triggered = Array.isArray(complianceBenchAnalysis?.triggeredRules)
+      ? complianceBenchAnalysis.triggeredRules
+      : [];
+    return new Set(triggered.map((rule) => rule?.id).filter(Boolean));
+  }, [complianceBenchAnalysis]);
+
+  const benchRuleEntries = useMemo(() => {
+    const safeRules = Array.isArray(rules) ? rules : [];
+    const needle = benchRuleFilter.trim().toLowerCase();
+
+    return safeRules
+      .map((rule) => ({
+        rule,
+        label: resolveLocalizedText(rule?.name, language) || rule?.id || '',
+        isTriggered: benchTriggeredRuleIds.has(rule?.id),
+        groupCount: normalizeConditionGroups(rule, sanitizeRuleCondition).filter(
+          (group) => Array.isArray(group?.conditions) && group.conditions.length > 0
+        ).length
+      }))
+      .filter((entry) => (benchRuleScope === 'triggered' ? entry.isTriggered : true))
+      .filter((entry) => needle === '' || entry.label.toLowerCase().includes(needle));
+  }, [rules, language, benchTriggeredRuleIds, benchRuleScope, benchRuleFilter]);
+
   const ruleDraftCandidates = useMemo(
     () => annotateCandidates(
       buildConditionCandidates(complianceReviewAnswers, questions, { language }),
@@ -4101,6 +4140,11 @@ export const BackOffice = ({
       perQuestionLogic: ruleDraftPerQuestionLogic
     }),
     [ruleDraftSelectedCandidates, ruleDraftMode, ruleDraftPerQuestionLogic]
+  );
+
+  const ruleDraftDescribedGroups = useMemo(
+    () => describeDraftGroups(ruleDraftConditionGroups, ruleDraftCandidates),
+    [ruleDraftConditionGroups, ruleDraftCandidates]
   );
 
   const ruleDraftSampleMatch = useMemo(
@@ -8152,6 +8196,40 @@ export const BackOffice = ({
                 <p className="text-xs text-indigo-800">{t('backOffice.main.benchSampleBarHint')}</p>
               </div>
 
+              {/* Le moteur injecte silencieusement le périmètre d'activité du profil dans chaque
+                  évaluation de ce module (withActivityScope). Le rendre visible évite de chercher
+                  pourquoi une question apparaît ou une règle se déclenche « sans raison ». */}
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-4">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-emerald-900">
+                      <UserCircle className="h-4 w-4" />
+                      {t('backOffice.main.benchProfileHeading')}
+                    </h3>
+                    <p className="mt-1 text-xs text-emerald-800">{t('backOffice.main.benchProfileHint')}</p>
+                  </div>
+                  <div className="text-sm text-emerald-900">
+                    {currentUserEmail && (
+                      <p className="font-medium">{currentUserEmail}</p>
+                    )}
+                    {benchActivityScopeLabels.length === 0 ? (
+                      <p className="italic text-emerald-700">{t('backOffice.main.benchProfileNoScope')}</p>
+                    ) : (
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        {benchActivityScopeLabels.map((label) => (
+                          <span
+                            key={label}
+                            className="rounded-full border border-emerald-300 bg-white px-2 py-0.5 text-xs font-medium text-emerald-800"
+                          >
+                            {label}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <div className="rounded-xl border border-gray-200 bg-white p-4">
                 <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-2" htmlFor="compliance-review-team">
                   {t('backOffice.main.complianceTeamToDisplayLabel')}
@@ -8770,6 +8848,82 @@ export const BackOffice = ({
                   </div>
                 </article>
               </div>
+
+              {/* Consulter et corriger le référentiel sans quitter le banc : chaque ligne ouvre
+                  le même éditeur complet que l'onglet Règles, groupes de conditions compris. */}
+              <article className="rounded-xl border border-gray-200 bg-white p-4 space-y-3">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800">{t('backOffice.main.benchRulesPanelTitle')}</h3>
+                    <p className="text-sm text-gray-600">{t('backOffice.main.benchRulesPanelSubtitle')}</p>
+                  </div>
+                  <div className="inline-flex rounded-lg border border-gray-300 bg-gray-50 p-1" role="group" aria-label={t('backOffice.main.benchRulesScopeAriaLabel')}>
+                    <button
+                      type="button"
+                      onClick={() => setBenchRuleScope('triggered')}
+                      aria-pressed={benchRuleScope === 'triggered'}
+                      className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${benchRuleScope === 'triggered' ? 'bg-white text-blue-700 shadow-sm border border-blue-100' : 'text-gray-600'}`}
+                    >
+                      {t('backOffice.main.benchRulesScopeTriggered')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBenchRuleScope('all')}
+                      aria-pressed={benchRuleScope === 'all'}
+                      className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${benchRuleScope === 'all' ? 'bg-white text-blue-700 shadow-sm border border-blue-100' : 'text-gray-600'}`}
+                    >
+                      {t('backOffice.main.benchRulesScopeAll')}
+                    </button>
+                  </div>
+                </div>
+
+                <input
+                  type="text"
+                  value={benchRuleFilter}
+                  onChange={(event) => setBenchRuleFilter(event.target.value)}
+                  placeholder={t('backOffice.main.benchRulesFilterPlaceholder')}
+                  aria-label={t('backOffice.main.benchRulesFilterPlaceholder')}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                />
+
+                {benchRuleEntries.length === 0 ? (
+                  <p className="rounded-lg border border-dashed border-gray-300 p-4 text-center text-sm text-gray-500">
+                    {benchRuleScope === 'triggered'
+                      ? t('backOffice.main.benchRulesNoneTriggered')
+                      : t('backOffice.main.benchRulesNoneMatching')}
+                  </p>
+                ) : (
+                  <ul className="max-h-80 space-y-2 overflow-y-auto pr-1 list-none">
+                    {benchRuleEntries.map((entry) => (
+                      <li key={entry.rule.id}>
+                        <button
+                          type="button"
+                          onClick={() => setEditingRule(entry.rule)}
+                          className="flex w-full items-center gap-3 rounded-lg border border-gray-200 px-3 py-2 text-left text-sm hover:border-blue-300 hover:bg-blue-50"
+                          aria-label={t('backOffice.main.benchOpenRuleAriaLabelTemplate', { name: entry.label })}
+                        >
+                          <span
+                            className={`inline-flex flex-shrink-0 items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                              entry.isTriggered
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : 'bg-gray-100 text-gray-600'
+                            }`}
+                          >
+                            {entry.isTriggered
+                              ? t('backOffice.main.benchRuleTriggeredBadge')
+                              : t('backOffice.main.benchRuleNotTriggeredBadge')}
+                          </span>
+                          <span className="flex-1 font-medium text-gray-800">{entry.label}</span>
+                          <span className="flex-shrink-0 text-xs text-gray-500">
+                            {t('backOffice.main.benchRuleGroupCountTemplate', { count: entry.groupCount })}
+                          </span>
+                          <Edit className="h-4 w-4 flex-shrink-0 text-blue-600" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </article>
             </section>
           )}
         </div>
@@ -8793,6 +8947,7 @@ export const BackOffice = ({
             sort={ruleDraftSort}
             onSortChange={setRuleDraftSort}
             selectedCandidates={ruleDraftSelectedCandidates}
+            describedGroups={ruleDraftDescribedGroups}
             sampleMatch={ruleDraftSampleMatch}
             projectMatch={ruleDraftProjectMatch}
             name={ruleDraftName}

@@ -264,3 +264,34 @@ export const sortCandidates = (candidates, sortMode = 'questionnaire') => {
     return (a.questionIndex - b.questionIndex) || a.value.localeCompare(b.value);
   });
 };
+
+// Décrit les groupes réellement produits, pour que l'aperçu montre la structure que le moteur
+// va évaluer — et non la liste à plat des cases cochées. Deux valeurs d'une même question
+// forment un « ou » à l'intérieur d'un groupe : les afficher séparées par « et » (ce que faisait
+// un rendu à plat) décrit une règle qui ne se déclencherait jamais sur une question à choix unique.
+export const describeDraftGroups = (conditionGroups, candidates) => {
+  const groups = Array.isArray(conditionGroups) ? conditionGroups : [];
+  const byKey = new Map(
+    (Array.isArray(candidates) ? candidates : []).map((candidate) => [
+      buildCandidateId(candidate.questionId, candidate.value),
+      candidate
+    ])
+  );
+
+  return groups
+    .map((group) => {
+      const conditions = Array.isArray(group && group.conditions) ? group.conditions : [];
+      const items = conditions.map((condition) => {
+        const candidate = byKey.get(buildCandidateId(condition.question, condition.value));
+        return {
+          id: buildCandidateId(condition.question, condition.value),
+          questionLabel: candidate?.questionLabel || condition.question,
+          valueLabel: candidate?.valueLabel || String(condition.value),
+          operator: condition.operator || 'equals'
+        };
+      });
+
+      return { logic: group.logic === 'all' ? 'all' : 'any', items };
+    })
+    .filter((group) => group.items.length > 0);
+};

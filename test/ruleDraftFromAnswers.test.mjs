@@ -7,6 +7,7 @@ import {
   buildDraftConditionGroups,
   classifyCandidate,
   countMatchingSamples,
+  describeDraftGroups,
   matchesConditionGroups,
   sortCandidates
 } from '../src/utils/ruleDraftFromAnswers.js';
@@ -166,4 +167,34 @@ test('sortCandidates by relevance puts discriminating conditions first', () => {
 
   assert.deepEqual(sortCandidates(candidates, 'relevance').map((candidate) => candidate.id), ['b', 'a']);
   assert.deepEqual(sortCandidates(candidates, 'questionnaire').map((candidate) => candidate.id), ['b', 'a']);
+});
+
+test('describeDraftGroups reflète le OU interne à une question, pas un ET à plat', () => {
+  const candidates = buildConditionCandidates(answers, questions, { language: 'fr' });
+  const selected = candidates.filter((candidate) => candidate.questionId === 'components' && candidate.value !== 'true');
+  const groups = buildDraftConditionGroups(selected, { mode: 'all' });
+  const described = describeDraftGroups(groups, candidates);
+
+  assert.equal(described.length, 1);
+  assert.equal(described[0].logic, 'any');
+  assert.deepEqual(described[0].items.map((item) => item.valueLabel), ['Site internet', "Outil d'IA"]);
+});
+
+test('describeDraftGroups sépare les questions en groupes distincts', () => {
+  const candidates = buildConditionCandidates(answers, questions, { language: 'fr' });
+  const selected = candidates.filter((candidate) => ['ProjectType', 'components'].includes(candidate.questionId));
+  const described = describeDraftGroups(buildDraftConditionGroups(selected, { mode: 'all' }), candidates);
+
+  assert.equal(described.length, 2);
+  assert.deepEqual(described.map((group) => group.items.length), [1, 2]);
+});
+
+test('describeDraftGroups retombe sur les identifiants quand le candidat a disparu', () => {
+  const described = describeDraftGroups(
+    [{ logic: 'any', conditions: [{ question: 'q_inconnue', operator: 'equals', value: 'v' }] }],
+    []
+  );
+
+  assert.equal(described[0].items[0].questionLabel, 'q_inconnue');
+  assert.equal(described[0].items[0].valueLabel, 'v');
 });

@@ -412,6 +412,9 @@ const lineHeights = {
   'leading-tight': '1.25',
   'leading-snug': '1.375',
   'leading-relaxed': '1.625',
+  // Interlignage fixe (Tailwind : 1.75rem), utilisé par l'aperçu de règle du banc d'essai où
+  // les pastilles de conditions ont besoin d'air entre deux lignes qui se replient.
+  'leading-7': '1.75rem',
 };
 
 const gradientDirections = {

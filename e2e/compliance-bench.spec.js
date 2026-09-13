@@ -139,3 +139,89 @@ test('un projet type survit au rechargement de la page', async ({ page }) => {
     page.getByLabel('Charger un projet type').locator('option', { hasText: 'Cas persistant' })
   ).toHaveCount(1);
 });
+
+test('le module de revue montre le perimetre d activite issu de l onboarding', async ({ page }) => {
+  await gotoHome(page);
+  await grantAdminAccess(page);
+  await page.getByRole('tab', { name: /Revue Compliance/i }).click();
+
+  await expect(page.getByRole('heading', { name: 'Votre profil (onboarding)' })).toBeVisible();
+  await expect(page.getByText(/Les conditions portant sur le périmètre d’activité/)).toBeVisible();
+  // gotoHome a coché le premier périmètre de l'onboarding : il doit apparaître ici.
+  await expect(page.getByText('bertrand.darieux@lfb.fr')).toBeVisible();
+  await page.screenshot({ path: `${SHOT}/12-profile-scope.png`, fullPage: true });
+});
+
+test('le module de revue liste les regles existantes et permet de les ouvrir', async ({ page }) => {
+  await gotoHome(page);
+  await createAndSubmitProject(page);
+  await grantAdminAccess(page);
+  await page.getByRole('tab', { name: /Revue Compliance/i }).click();
+
+  const sampleSelect = page.getByLabel('Charger un projet type');
+  const projectValue = await sampleSelect
+    .locator('optgroup[label="Projets réels soumis"] option')
+    .first()
+    .getAttribute('value');
+  await sampleSelect.selectOption(projectValue);
+
+  await expect(page.getByRole('heading', { name: 'Règles du référentiel' })).toBeVisible();
+
+  // Vue « Déclenchées » par défaut, puis bascule sur tout le référentiel.
+  const triggeredRows = page.locator('button[aria-label^="Ouvrir la règle"]');
+  const triggeredCount = await triggeredRows.count();
+  expect(triggeredCount).toBeGreaterThan(0);
+
+  await page.getByRole('button', { name: 'Toutes', exact: true }).click();
+  expect(await triggeredRows.count()).toBeGreaterThan(triggeredCount);
+  await page.screenshot({ path: `${SHOT}/13-rules-panel.png`, fullPage: true });
+
+  // Filtrer puis ouvrir une règle : l'éditeur complet s'ouvre, groupes de conditions compris.
+  await page.getByPlaceholder('Filtrer par nom de règle…').fill('Généralité');
+  await triggeredRows.first().click();
+  await expect(page.getByRole('heading', { name: 'Édition de règle' })).toBeVisible();
+  await expect(page.getByText('Conditions de déclenchement')).toBeVisible();
+  await page.screenshot({ path: `${SHOT}/14-rule-opened-from-bench.png`, fullPage: true });
+});
+
+test('l apercu de regle montre les groupes reels et non une liste a plat', async ({ page }) => {
+  await gotoHome(page);
+  await createAndSubmitProject(page);
+  await grantAdminAccess(page);
+  await page.getByRole('tab', { name: /Revue Compliance/i }).click();
+
+  const sampleSelect = page.getByLabel('Charger un projet type');
+  const projectValue = await sampleSelect
+    .locator('optgroup[label="Projets réels soumis"] option')
+    .first()
+    .getAttribute('value');
+  await sampleSelect.selectOption(projectValue);
+
+  await page.getByRole('button', { name: 'Créer une règle à partir de ce projet' }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toBeVisible();
+
+  // Une condition venant d'une question : un seul groupe.
+  const articles = dialog.locator('article');
+  await articles.first().locator('button[aria-pressed="false"]').first().click();
+  await expect(dialog.getByText('1 groupe(s) de conditions', { exact: false })).toBeVisible();
+
+  // Une condition d'une seconde question : deux groupes, combinés en ET.
+  await articles.nth(1).locator('button[aria-pressed="false"]').first().click();
+  await expect(dialog.getByText('2 groupe(s) de conditions', { exact: false })).toBeVisible();
+
+  // Deux valeurs d'une même question restent UN groupe : le moteur les combine en OU, et
+  // l'aperçu doit le montrer plutôt que d'aligner les pastilles séparées par des « et ».
+  const multiValue = articles.filter({ has: page.locator('button[aria-pressed="false"]') });
+  const count = await multiValue.count();
+  for (let index = 0; index < count; index += 1) {
+    const remaining = multiValue.nth(index).locator('button[aria-pressed="false"]');
+    if (await remaining.count() > 0 && await multiValue.nth(index).locator('button[aria-pressed="true"]').count() > 0) {
+      await remaining.first().click();
+      await expect(dialog.getByText('2 groupe(s) de conditions', { exact: false })).toBeVisible();
+      break;
+    }
+  }
+
+  await page.screenshot({ path: `${SHOT}/15-preview-groups.png`, fullPage: true });
+});
