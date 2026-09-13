@@ -74,32 +74,44 @@ const buildPublishSummary = (results) => ({
 // Publie uniquement les référentiels JSON (questions, niveaux de risque, pondérations,
 // thèmes, réglages) : n'écrit jamais les listes CN_Rules/CN_Teams, qui se synchronisent déjà
 // ligne par ligne au fil des éditions du back-office (voir rulesProvider/teamsProvider).
-export const publishReferentialSettings = async (referentialPayload) => {
+// `selectedKeys` (Set) restreint quels référentiels sont republiés ; omis, tous le sont.
+export const publishReferentialSettings = async (referentialPayload, selectedKeys) => {
   await ensureSharePointStructureReady();
-  const results = await publishAllReferentials(referentialPayload);
+  const results = await publishAllReferentials(referentialPayload, selectedKeys);
   throwOnFailures(results);
   return buildPublishSummary(results);
 };
 
-export const reinitializeSharePointConfiguration = async (payload) => {
+// `selection` (optionnelle) restreint ce que la réinitialisation écrase :
+// `selection.files` (Set de clés REFERENTIAL_FILES) pour les référentiels JSON, et
+// `selection.rules`/`selection.teams` (booléens, true par défaut) pour les listes.
+export const reinitializeSharePointConfiguration = async (payload, selection) => {
   const { rules, teams, userEmail, ...referentialPayload } = payload || {};
 
   await ensureSharePointStructureReady();
 
+  const includeRules = !selection || selection.rules !== false;
+  const includeTeams = !selection || selection.teams !== false;
+  const fileKeys = selection ? selection.files : undefined;
+
   const [fileResults, rulesResult, teamsResult] = await Promise.all([
-    publishAllReferentials(referentialPayload),
-    publishRowList(rules, (rule, options) => rulesProvider.saveRule(rule, options), {
-      key: 'rules',
-      file: sharepointConfig.lists.rules,
-      label: 'Règles',
-      userEmail
-    }),
-    publishRowList(teams, (team, options) => teamsProvider.saveTeam(team, options), {
-      key: 'teams',
-      file: sharepointConfig.lists.teams,
-      label: 'Équipes',
-      userEmail
-    })
+    publishAllReferentials(referentialPayload, fileKeys),
+    includeRules
+      ? publishRowList(rules, (rule, options) => rulesProvider.saveRule(rule, options), {
+        key: 'rules',
+        file: sharepointConfig.lists.rules,
+        label: 'Règles',
+        userEmail
+      })
+      : Promise.resolve({ key: 'rules', file: sharepointConfig.lists.rules, label: 'Règles', status: 'skipped' }),
+    includeTeams
+      ? publishRowList(teams, (team, options) => teamsProvider.saveTeam(team, options), {
+        key: 'teams',
+        file: sharepointConfig.lists.teams,
+        label: 'Équipes',
+        userEmail
+      })
+      : Promise.resolve({ key: 'teams', file: sharepointConfig.lists.teams, label: 'Équipes', status: 'skipped' })
   ]);
 
   const results = [...fileResults, rulesResult, teamsResult];

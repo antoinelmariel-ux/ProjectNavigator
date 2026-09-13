@@ -167,6 +167,7 @@ export default {
       publishing: 'Konfiguration wird an SharePoint veröffentlicht…',
       publishedSuccess: 'Konfiguration in {{library}} veröffentlicht ({{details}}).',
       failedGeneric: 'SharePoint-Zurücksetzung fehlgeschlagen.',
+      nothingSelected: 'Wählen Sie mindestens ein zu veröffentlichendes Element aus.',
       beforeUnloadMessage: 'Konfigurationsänderungen (Fragen, Risikoregeln…) wurden nicht auf SharePoint veröffentlicht. Wenn Sie jetzt fortfahren, gehen sie für andere Benutzer verloren.'
     },
     publishSettings: {
@@ -176,7 +177,8 @@ export default {
       cancelledPublish: 'Veröffentlichung abgebrochen: Die veröffentlichten Fragen und Einstellungen sind unverändert.',
       publishing: 'Fragen und Einstellungen werden an SharePoint veröffentlicht…',
       publishedSuccess: 'Fragen und Einstellungen in {{library}} veröffentlicht ({{details}}).',
-      failedGeneric: 'Veröffentlichung der Fragen und Einstellungen fehlgeschlagen.'
+      failedGeneric: 'Veröffentlichung der Fragen und Einstellungen fehlgeschlagen.',
+      nothingSelected: 'Wählen Sie mindestens ein zu veröffentlichendes Element aus.'
     },
     onboardingTourEmpty: 'Die Onboarding-Tour ist leer. Bitte überprüfen Sie die Konfiguration.',
     genericUserFallback: 'Benutzer',
@@ -1194,6 +1196,15 @@ export default {
       sharePointResetDescription: 'Veröffentlicht die gesamte Konfiguration (Fragen, Regeln, Teams, Einstellungen) erneut in der CN-Config-Bibliothek und den SharePoint-Listen und überschreibt dabei ohne Versionsprüfung die Regeln und Teams, die aktuell in diesem Browser vorliegen. Erfordert, dass die SharePoint-Listen und -Bibliotheken bereits existieren — diese Aktion erstellt sie nicht neu.',
       resetInProgress: 'Zurücksetzung läuft…',
       resetConfigButton: 'Konfiguration zurücksetzen',
+      referentialSelectionLegend: 'Zu veröffentlichende Elemente (deaktivieren Sie, was nicht überschrieben werden soll)',
+      referentialItemQuestions: 'Fragen',
+      referentialItemRiskLevelRules: 'Risikostufen',
+      referentialItemRiskWeights: 'Risikogewichtungen',
+      referentialItemShowcaseThemes: 'Vitrinen-Themen',
+      referentialItemSettings: 'Allgemeine Einstellungen',
+      referentialItemRules: 'Regeln',
+      referentialItemTeams: 'Teams',
+      referentialSelectionEmptyHint: 'Wählen Sie mindestens ein zu veröffentlichendes Element aus.',
       riskLevelsTitle: 'Risikostufen',
       riskLevelsSubtitle: 'Passen Sie die Schwellenwerte an, die zur Berechnung der den Teams angezeigten Compliance-Komplexität verwendet werden.',
       addLevelButton: 'Stufe hinzufügen',

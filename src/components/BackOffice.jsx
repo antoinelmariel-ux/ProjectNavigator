@@ -457,6 +457,23 @@ const getRiskLevelLabel = (t, level) =>
 
 const RISK_WEIGHT_KEYS = ['low', 'medium', 'high'];
 
+// Éléments publiables individuellement depuis l'onglet Administrateurs (« Publier les
+// nouvelles questions et paramètres » et « Réinitialiser toute la configuration ») — mêmes
+// clés que REFERENTIAL_FILES côté src/utils/referentialStore.js, plus règles/équipes pour la
+// réinitialisation (qui, elles, vivent dans des listes SharePoint distinctes).
+const REFERENTIAL_SELECTION_ITEMS = [
+  { key: 'questions', labelKey: 'referentialItemQuestions' },
+  { key: 'riskLevelRules', labelKey: 'referentialItemRiskLevelRules' },
+  { key: 'riskWeights', labelKey: 'referentialItemRiskWeights' },
+  { key: 'showcaseThemes', labelKey: 'referentialItemShowcaseThemes' },
+  { key: 'settings', labelKey: 'referentialItemSettings' }
+];
+
+const REINIT_EXTRA_SELECTION_ITEMS = [
+  { key: 'rules', labelKey: 'referentialItemRules' },
+  { key: 'teams', labelKey: 'referentialItemTeams' }
+];
+
 const buildRiskWeightFields = (t) =>
   RISK_WEIGHT_KEYS.map((key) => ({
     key,
@@ -704,14 +721,52 @@ export const BackOffice = ({
   activityScope,
   onSharePointReinitialize,
   sharePointReinitializeState = { inProgress: false, message: '', status: 'idle' },
+  sharePointReinitSelection = {},
+  onToggleSharePointReinitSelection,
   onPublishReferentialSettings,
   publishReferentialSettingsState = { inProgress: false, message: '', status: 'idle' },
+  publishSettingsSelection = {},
+  onTogglePublishSettingsSelection,
   rulesQueueRef,
   teamsQueueRef,
   ruleServerMetaRef,
   teamServerMetaRef
 }) => {
   const { t, language } = useTranslation();
+
+  const renderReferentialSelectionChecklist = (items, selection, onToggle, idPrefix) => (
+    <fieldset className="space-y-2">
+      <legend className="text-sm font-medium text-gray-700">
+        {t('backOffice.main.referentialSelectionLegend')}
+      </legend>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        {items.map(({ key, labelKey }) => {
+          const inputId = `${idPrefix}-${key}`;
+          return (
+            <label
+              key={key}
+              htmlFor={inputId}
+              className="flex items-center gap-2 text-sm text-gray-700"
+            >
+              <input
+                id={inputId}
+                type="checkbox"
+                checked={selection[key] !== false}
+                onChange={() => {
+                  if (typeof onToggle === 'function') {
+                    onToggle(key);
+                  }
+                }}
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span>{t(`backOffice.main.${labelKey}`)}</span>
+            </label>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+
   const [onboardingEditingLanguage, setOnboardingEditingLanguage] = useState(language);
   const [teamsEditingLanguage, setTeamsEditingLanguage] = useState(language);
   const [inspirationEditingLanguage, setInspirationEditingLanguage] = useState(language);
@@ -3615,6 +3670,13 @@ export const BackOffice = ({
   const inspirationFilterCount = inspirationFilterFields.length;
   const inspirationFormCount = inspirationFormFieldEntries.length;
   const adminEmailCount = normalizedAdminEmails.length;
+
+  const isPublishSettingsSelectionEmpty = REFERENTIAL_SELECTION_ITEMS.every(
+    ({ key }) => publishSettingsSelection[key] === false
+  );
+  const isSharePointReinitSelectionEmpty = [...REFERENTIAL_SELECTION_ITEMS, ...REINIT_EXTRA_SELECTION_ITEMS].every(
+    ({ key }) => sharePointReinitSelection[key] === false
+  );
   const validationCommitteeRuleOptions = useMemo(
     () =>
       (Array.isArray(rules) ? rules : [])
@@ -7935,14 +7997,29 @@ export const BackOffice = ({
                     </p>
                   </div>
 
+                  {renderReferentialSelectionChecklist(
+                    REFERENTIAL_SELECTION_ITEMS,
+                    publishSettingsSelection,
+                    onTogglePublishSettingsSelection,
+                    'publish-settings-selection'
+                  )}
+
                   <button
                     type="button"
                     onClick={onPublishReferentialSettings}
-                    disabled={publishReferentialSettingsState.inProgress || typeof onPublishReferentialSettings !== 'function'}
+                    disabled={
+                      publishReferentialSettingsState.inProgress ||
+                      typeof onPublishReferentialSettings !== 'function' ||
+                      isPublishSettingsSelectionEmpty
+                    }
                     className="inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   >
                     {publishReferentialSettingsState.inProgress ? t('backOffice.main.publishSettingsInProgress') : t('backOffice.main.publishSettingsButton')}
                   </button>
+
+                  {isPublishSettingsSelectionEmpty && (
+                    <p className="text-xs text-red-700">{t('backOffice.main.referentialSelectionEmptyHint')}</p>
+                  )}
 
                   {publishReferentialSettingsState.message && (
                     <p
@@ -7964,14 +8041,29 @@ export const BackOffice = ({
                     </p>
                   </div>
 
+                  {renderReferentialSelectionChecklist(
+                    [...REFERENTIAL_SELECTION_ITEMS, ...REINIT_EXTRA_SELECTION_ITEMS],
+                    sharePointReinitSelection,
+                    onToggleSharePointReinitSelection,
+                    'sharepoint-reinit-selection'
+                  )}
+
                   <button
                     type="button"
                     onClick={onSharePointReinitialize}
-                    disabled={sharePointReinitializeState.inProgress || typeof onSharePointReinitialize !== 'function'}
+                    disabled={
+                      sharePointReinitializeState.inProgress ||
+                      typeof onSharePointReinitialize !== 'function' ||
+                      isSharePointReinitSelectionEmpty
+                    }
                     className="inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   >
                     {sharePointReinitializeState.inProgress ? t('backOffice.main.resetInProgress') : t('backOffice.main.resetConfigButton')}
                   </button>
+
+                  {isSharePointReinitSelectionEmpty && (
+                    <p className="text-xs text-red-700">{t('backOffice.main.referentialSelectionEmptyHint')}</p>
+                  )}
 
                   {sharePointReinitializeState.message && (
                     <p

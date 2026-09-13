@@ -167,6 +167,7 @@ export default {
       publishing: 'Publication de la configuration vers SharePoint…',
       publishedSuccess: 'Configuration publiée dans {{library}} ({{details}}).',
       failedGeneric: 'Échec de la réinitialisation SharePoint.',
+      nothingSelected: 'Sélectionnez au moins un élément à publier.',
       beforeUnloadMessage: 'Des modifications de la configuration (questions, règles de risque…) n’ont pas été publiées vers SharePoint. Quitter maintenant les perdra pour les autres utilisateurs.'
     },
     publishSettings: {
@@ -176,7 +177,8 @@ export default {
       cancelledPublish: 'Publication annulée : les questions et paramètres publiés restent inchangés.',
       publishing: 'Publication des questions et paramètres vers SharePoint…',
       publishedSuccess: 'Questions et paramètres publiés dans {{library}} ({{details}}).',
-      failedGeneric: 'Échec de la publication des questions et paramètres.'
+      failedGeneric: 'Échec de la publication des questions et paramètres.',
+      nothingSelected: 'Sélectionnez au moins un élément à publier.'
     },
     onboardingTourEmpty: 'Le tour d’onboarding est vide. Veuillez vérifier la configuration.',
     genericUserFallback: 'Utilisateur',
@@ -1192,6 +1194,15 @@ export default {
       sharePointResetDescription: 'Republie toute la configuration (questions, règles, équipes, réglages) dans la bibliothèque CN-Config et les listes SharePoint, en écrasant sans contrôle de version les règles et équipes actuellement présentes dans ce navigateur. Nécessite que les listes et bibliothèques SharePoint existent déjà — cette action ne les recrée pas.',
       resetInProgress: 'Réinitialisation en cours…',
       resetConfigButton: 'Réinitialiser la configuration',
+      referentialSelectionLegend: 'Éléments à publier (décochez ce que vous ne voulez pas écraser)',
+      referentialItemQuestions: 'Questions',
+      referentialItemRiskLevelRules: 'Niveaux de risque',
+      referentialItemRiskWeights: 'Pondérations de risque',
+      referentialItemShowcaseThemes: 'Thèmes de vitrine',
+      referentialItemSettings: 'Réglages généraux',
+      referentialItemRules: 'Règles',
+      referentialItemTeams: 'Équipes',
+      referentialSelectionEmptyHint: 'Sélectionnez au moins un élément à publier.',
       riskLevelsTitle: 'Niveaux de risque',
       riskLevelsSubtitle: 'Ajustez les seuils utilisés pour calculer la complexité compliance affichée aux équipes.',
       addLevelButton: 'Ajouter un niveau',

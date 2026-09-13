@@ -78,7 +78,7 @@ import {
   reinitializeSharePointConfiguration
 } from './utils/sharePointSetup.js';
 import { isSharePointMode } from './config/sharepointConfig.js';
-import { loadReferentials } from './utils/referentialStore.js';
+import { REFERENTIAL_FILES, loadReferentials } from './utils/referentialStore.js';
 import { mergeServerAndLocalProjects } from './utils/syncMerge.js';
 import { queueNotification } from './utils/notificationQueue.js';
 import { NOTIFICATION_TYPES, buildNotification } from './utils/notificationTemplates.js';
@@ -271,6 +271,16 @@ const verifyBackOfficePassword = async (value) => {
 const COMPLIANCE_COMMENTS_KEY = '__compliance_team_comments__';
 const PUBLIC_VISIBILITY_KEY = '__public_visibility__';
 const SHOWCASE_COMMENT_EDIT_DEBOUNCE_MS = 1200;
+
+const REFERENTIAL_SELECTION_KEYS = Object.keys(REFERENTIAL_FILES);
+const REFERENTIAL_FILE_NAME_TO_KEY = Object.fromEntries(
+  Object.entries(REFERENTIAL_FILES).map(([key, definition]) => [definition.file, key])
+);
+const buildFullReferentialSelection = () =>
+  REFERENTIAL_SELECTION_KEYS.reduce((acc, key) => {
+    acc[key] = true;
+    return acc;
+  }, {});
 
 // Libellés (en anglais, comme le reste des gabarits de notification) des statuts de validation
 // posés par une équipe/un comité conformité sur le rapport de synthèse — voir COMMENT_STATUS_OPTIONS
@@ -1024,6 +1034,12 @@ export const App = () => {
     message: '',
     status: 'idle'
   });
+  const [publishSettingsSelection, setPublishSettingsSelection] = useState(buildFullReferentialSelection);
+  const [sharePointReinitSelection, setSharePointReinitSelection] = useState(() => ({
+    ...buildFullReferentialSelection(),
+    rules: true,
+    teams: true
+  }));
   const annotationNotesRef = useRef(annotationNotes);
   const loadedStylesRef = useRef(new Set());
   const pendingShowcaseProjectIdRef = useRef(null);
@@ -5176,7 +5192,26 @@ const updateProjectFilters = useCallback((updater) => {
     setShowcaseShareFeedback(t('app.showcaseShare.shortcutDownloaded'));
   }, [showcaseProjectId, showcaseShareUrl, t]);
 
+  const handleToggleSharePointReinitSelection = useCallback((key) => {
+    setSharePointReinitSelection((previous) => ({ ...previous, [key]: !previous[key] }));
+  }, []);
+
   const handleSharePointReinitialization = useCallback(async () => {
+    const selectedFileKeys = new Set(
+      REFERENTIAL_SELECTION_KEYS.filter((key) => sharePointReinitSelection[key])
+    );
+    const includeRules = sharePointReinitSelection.rules !== false;
+    const includeTeams = sharePointReinitSelection.teams !== false;
+
+    if (selectedFileKeys.size === 0 && !includeRules && !includeTeams) {
+      setSharePointReinitState({
+        inProgress: false,
+        message: t('app.reinit.nothingSelected'),
+        status: 'error'
+      });
+      return;
+    }
+
     setSharePointReinitState({
       inProgress: true,
       message: t('app.reinit.checking'),
@@ -5185,7 +5220,9 @@ const updateProjectFilters = useCallback((updater) => {
 
     try {
       const diagnostic = await diagnoseSharePointInstallation();
-      const alreadyPublished = diagnostic.files.filter((entry) => entry.present);
+      const alreadyPublished = diagnostic.files.filter(
+        (entry) => entry.present && selectedFileKeys.has(REFERENTIAL_FILE_NAME_TO_KEY[entry.name])
+      );
 
       if (alreadyPublished.length > 0) {
         const confirmed =
@@ -5212,22 +5249,25 @@ const updateProjectFilters = useCallback((updater) => {
         status: 'pending'
       });
 
-      const summary = await reinitializeSharePointConfiguration({
-        questions,
-        rules,
-        teams,
-        riskLevelRules,
-        riskWeights,
-        projectFilters,
-        inspirationFilters,
-        inspirationFormFields,
-        onboardingTourConfig,
-        validationCommitteeConfig,
-        showcaseThemes,
-        adminEmails,
-        technicalContactEmails,
-        userEmail: currentUserEmail
-      });
+      const summary = await reinitializeSharePointConfiguration(
+        {
+          questions,
+          rules,
+          teams,
+          riskLevelRules,
+          riskWeights,
+          projectFilters,
+          inspirationFilters,
+          inspirationFormFields,
+          onboardingTourConfig,
+          validationCommitteeConfig,
+          showcaseThemes,
+          adminEmails,
+          technicalContactEmails,
+          userEmail: currentUserEmail
+        },
+        { files: selectedFileKeys, rules: includeRules, teams: includeTeams }
+      );
 
       const details = summary.lists
         .map((entry) => `${entry.name}: ${entry.count}`)
@@ -5259,13 +5299,31 @@ const updateProjectFilters = useCallback((updater) => {
     riskWeights,
     rules,
     setHasUnpublishedConfigChanges,
+    sharePointReinitSelection,
     showcaseThemes,
     t,
     teams,
     validationCommitteeConfig
   ]);
 
+  const handleTogglePublishSettingsSelection = useCallback((key) => {
+    setPublishSettingsSelection((previous) => ({ ...previous, [key]: !previous[key] }));
+  }, []);
+
   const handlePublishReferentialSettings = useCallback(async () => {
+    const selectedKeys = new Set(
+      REFERENTIAL_SELECTION_KEYS.filter((key) => publishSettingsSelection[key])
+    );
+
+    if (selectedKeys.size === 0) {
+      setSharePointPublishSettingsState({
+        inProgress: false,
+        message: t('app.publishSettings.nothingSelected'),
+        status: 'error'
+      });
+      return;
+    }
+
     setSharePointPublishSettingsState({
       inProgress: true,
       message: t('app.publishSettings.checking'),
@@ -5274,7 +5332,9 @@ const updateProjectFilters = useCallback((updater) => {
 
     try {
       const diagnostic = await diagnoseSharePointInstallation();
-      const alreadyPublished = diagnostic.files.filter((entry) => entry.present);
+      const alreadyPublished = diagnostic.files.filter(
+        (entry) => entry.present && selectedKeys.has(REFERENTIAL_FILE_NAME_TO_KEY[entry.name])
+      );
 
       if (alreadyPublished.length > 0) {
         const confirmed =
@@ -5301,19 +5361,22 @@ const updateProjectFilters = useCallback((updater) => {
         status: 'pending'
       });
 
-      const summary = await publishReferentialSettings({
-        questions,
-        riskLevelRules,
-        riskWeights,
-        projectFilters,
-        inspirationFilters,
-        inspirationFormFields,
-        onboardingTourConfig,
-        validationCommitteeConfig,
-        showcaseThemes,
-        adminEmails,
-        technicalContactEmails
-      });
+      const summary = await publishReferentialSettings(
+        {
+          questions,
+          riskLevelRules,
+          riskWeights,
+          projectFilters,
+          inspirationFilters,
+          inspirationFormFields,
+          onboardingTourConfig,
+          validationCommitteeConfig,
+          showcaseThemes,
+          adminEmails,
+          technicalContactEmails
+        },
+        selectedKeys
+      );
 
       const details = summary.lists
         .map((entry) => `${entry.name}: ${entry.count}`)
@@ -5339,6 +5402,7 @@ const updateProjectFilters = useCallback((updater) => {
     inspirationFormFields,
     onboardingTourConfig,
     projectFilters,
+    publishSettingsSelection,
     questions,
     riskLevelRules,
     riskWeights,
@@ -5966,8 +6030,12 @@ const updateProjectFilters = useCallback((updater) => {
                 activityScope={activityScope}
                 onSharePointReinitialize={handleSharePointReinitialization}
                 sharePointReinitializeState={sharePointReinitState}
+                sharePointReinitSelection={sharePointReinitSelection}
+                onToggleSharePointReinitSelection={handleToggleSharePointReinitSelection}
                 onPublishReferentialSettings={handlePublishReferentialSettings}
                 publishReferentialSettingsState={sharePointPublishSettingsState}
+                publishSettingsSelection={publishSettingsSelection}
+                onTogglePublishSettingsSelection={handleTogglePublishSettingsSelection}
                 sampleProjectsQueueRef={sampleProjectsQueueRef}
                 sampleProjectServerMetaRef={sampleProjectServerMetaRef}
                 rulesQueueRef={rulesQueueRef}

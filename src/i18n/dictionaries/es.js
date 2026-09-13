@@ -167,6 +167,7 @@ export default {
       publishing: 'Publicando la configuración en SharePoint…',
       publishedSuccess: 'Configuración publicada en {{library}} ({{details}}).',
       failedGeneric: 'Error al reinicializar SharePoint.',
+      nothingSelected: 'Seleccione al menos un elemento para publicar.',
       beforeUnloadMessage: 'Los cambios de configuración (preguntas, reglas de riesgo…) no se han publicado en SharePoint. Salir ahora los perderá para el resto de usuarios.'
     },
     publishSettings: {
@@ -176,7 +177,8 @@ export default {
       cancelledPublish: 'Publicación cancelada: las preguntas y ajustes publicados no han cambiado.',
       publishing: 'Publicando preguntas y ajustes en SharePoint…',
       publishedSuccess: 'Preguntas y ajustes publicados en {{library}} ({{details}}).',
-      failedGeneric: 'Error al publicar las preguntas y ajustes.'
+      failedGeneric: 'Error al publicar las preguntas y ajustes.',
+      nothingSelected: 'Seleccione al menos un elemento para publicar.'
     },
     onboardingTourEmpty: 'El recorrido de incorporación está vacío. Verifique la configuración.',
     genericUserFallback: 'Usuario',
@@ -1184,6 +1186,15 @@ export default {
       sharePointResetDescription: 'Vuelve a publicar toda la configuración (preguntas, reglas, equipos, ajustes) en la biblioteca CN-Config y en las listas de SharePoint, sobrescribiendo sin control de versión las reglas y equipos que están actualmente en este navegador. Requiere que las listas y bibliotecas de SharePoint ya existan; esta acción no las vuelve a crear.',
       resetInProgress: 'Restablecimiento en curso…',
       resetConfigButton: 'Restablecer la configuración',
+      referentialSelectionLegend: 'Elementos a publicar (desmarque lo que no quiera sobrescribir)',
+      referentialItemQuestions: 'Preguntas',
+      referentialItemRiskLevelRules: 'Niveles de riesgo',
+      referentialItemRiskWeights: 'Ponderaciones de riesgo',
+      referentialItemShowcaseThemes: 'Temas de la vitrina',
+      referentialItemSettings: 'Ajustes generales',
+      referentialItemRules: 'Reglas',
+      referentialItemTeams: 'Equipos',
+      referentialSelectionEmptyHint: 'Seleccione al menos un elemento para publicar.',
       riskLevelsTitle: 'Niveles de riesgo',
       riskLevelsSubtitle: 'Ajuste los umbrales utilizados para calcular la complejidad de cumplimiento mostrada a los equipos.',
       addLevelButton: 'Añadir un nivel',
