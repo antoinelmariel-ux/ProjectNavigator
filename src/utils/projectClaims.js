@@ -32,9 +32,9 @@ export const CLAIM_REASONS = [
 ];
 
 // Décisions produit : on signale un projet pris en charge mais sans action depuis 6 jours
-// ouvrés, et on relance son référent par e-mail au bout de 10. 0 (ou vide) désactive.
+// ouvrés, et on relance son référent par e-mail au bout de 3. 0 (ou vide) désactive.
 export const DEFAULT_CLAIM_STALE_DAYS = 6;
-export const DEFAULT_CLAIM_REMINDER_DAYS = 10;
+export const DEFAULT_CLAIM_REMINDER_DAYS = 3;
 export const CLAIM_HISTORY_LIMIT = 20;
 
 const readDayCount = (value, fallback) => {

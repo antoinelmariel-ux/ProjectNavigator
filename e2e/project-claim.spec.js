@@ -151,7 +151,7 @@ test.describe('Prise en charge d’un projet par un membre d’équipe', () => {
     const staleInput = page.getByLabel('Signaler au bout de (jours ouvrés sans action)').first();
     await expect(staleInput).toHaveValue('6');
     await expect(page.getByLabel('Relancer le référent au bout de (jours ouvrés sans action)').first())
-      .toHaveValue('10');
+      .toHaveValue('3');
     await staleInput.fill('3');
     await page.waitForTimeout(600);
     const storedStaleDays = await page.evaluate(() => {

@@ -318,9 +318,11 @@ critères sont remplis, `exclude` = il l'est sauf si. Un contact sans entrée es
 donc une colonne vide ou absente reproduit exactement le comportement historique.
 
 `ClaimStaleDays` et `ClaimReminderDays` règlent la péremption d'une prise en charge, **en jours
-ouvrés** : au-delà du premier délai le projet est signalé dans la liste et dans la vue charge du
-back-office, au-delà du second son référent reçoit une relance par e-mail. `0` désactive le signal
-correspondant ; une colonne vide reprend les valeurs par défaut (6 et 10).
+ouvrés**, et sont indépendants l'un de l'autre : au-delà de `ClaimStaleDays` le projet est signalé
+dans la liste et dans la vue charge du back-office, au-delà de `ClaimReminderDays` son référent
+reçoit une relance par e-mail — avec les valeurs par défaut (6 et 3), la relance par e-mail arrive
+donc avant le signalement visuel. `0` désactive le signal correspondant ; une colonne vide reprend
+les valeurs par défaut.
 
 | Colonne | Type |
 |---|---|
@@ -332,7 +334,7 @@ correspondant ; une colonne vide reprend les valeurs par défaut (6 et 10).
 | AcceptedLanguagesJson | Texte long (langues de réponse acceptées, ex. `["fr","en"]`) |
 | MemberRulesJson | Texte long (critères de sollicitation par membre, ex. `[{"email":"queres@lfb.fr","mode":"include","conditionGroups":[...]}]`) |
 | ClaimStaleDays | Nombre — **valeur par défaut : 6** |
-| ClaimReminderDays | Nombre — **valeur par défaut : 10** |
+| ClaimReminderDays | Nombre — **valeur par défaut : 3** |
 | SortOrder | Nombre |
 | RowVersion | Nombre |
 | CreatedByEmail | Une ligne de texte |
