@@ -235,7 +235,9 @@ export const LIST_SCHEMAS = {
   // Une ligne par équipe : forme plate (id/name/contacts/expertise), donc colonnes explicites
   // plutôt qu'un blob JSON. `Title` reste une chaîne simple dérivée (lisible telle quelle dans
   // les vues SharePoint natives) ; `NameJson`/`Expertise` transportent le nom et le domaine
-  // d'expertise traduits {en, fr, de, es}.
+  // d'expertise traduits {en, fr, de, es}. `AcceptedLanguagesJson` liste les langues (parmi les 4
+  // supportées) dans lesquelles l'équipe peut échanger avec les porteurs de projet ; un tableau
+  // vide signifie « toutes les langues acceptées » (voir isLanguageAcceptedBy/translationAudit.js).
   teams: {
     keyField: 'TeamId',
     columns: [
@@ -244,13 +246,14 @@ export const LIST_SCHEMAS = {
       'ContactsJson',
       'NameJson',
       'Expertise',
+      'AcceptedLanguagesJson',
       'SortOrder',
       'RowVersion',
       'CreatedByEmail',
       'UpdatedByEmail',
       'UpdatedAt'
     ],
-    json: { ContactsJson: ARRAY, NameJson: OBJECT, Expertise: OBJECT },
+    json: { ContactsJson: ARRAY, NameJson: OBJECT, Expertise: OBJECT, AcceptedLanguagesJson: ARRAY },
     numbers: ['SortOrder', 'RowVersion'],
     booleans: []
   }

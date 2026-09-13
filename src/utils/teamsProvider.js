@@ -9,7 +9,8 @@ const toTeam = (record) => ({
   id: record.TeamId,
   name: record.NameJson && Object.keys(record.NameJson).length > 0 ? record.NameJson : (record.Title || ''),
   contacts: Array.isArray(record.ContactsJson) ? record.ContactsJson : [],
-  expertise: record.Expertise || {}
+  expertise: record.Expertise || {},
+  acceptedLanguages: Array.isArray(record.AcceptedLanguagesJson) ? record.AcceptedLanguagesJson : []
 });
 
 const toMeta = (record) => ({
@@ -31,6 +32,7 @@ const toRecord = (team, { sortOrder, userEmail } = {}) => ({
   ContactsJson: Array.isArray(team.contacts) ? team.contacts : [],
   NameJson: team.name && typeof team.name === 'object' ? team.name : (team.name ? { [DEFAULT_LANGUAGE]: team.name } : {}),
   Expertise: team.expertise && typeof team.expertise === 'object' ? team.expertise : (team.expertise ? { [DEFAULT_LANGUAGE]: team.expertise } : {}),
+  AcceptedLanguagesJson: Array.isArray(team.acceptedLanguages) ? team.acceptedLanguages : [],
   SortOrder: typeof sortOrder === 'number' ? sortOrder : 0,
   UpdatedByEmail: userEmail || '',
   UpdatedAt: new Date().toISOString()

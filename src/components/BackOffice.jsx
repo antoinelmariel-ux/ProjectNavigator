@@ -87,9 +87,11 @@ import { initialShowcaseThemes } from '../data/showcaseThemes.js';
 import { normalizeValidationCommitteeConfig } from '../utils/validationCommittee.js';
 import { getShowcaseThemeActivationConflicts, normalizeThemeActivation } from '../utils/showcase.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
-import { DEFAULT_LANGUAGE, getLocaleTag } from '../i18n/languages.js';
+import { DEFAULT_LANGUAGE, getLocaleTag, SUPPORTED_LANGUAGES, LANGUAGE_LABELS } from '../i18n/languages.js';
 import { resolveLocalizedText, getLocalizedRaw, setLocalizedText } from '../utils/localizedContent.js';
+import { collectTranslationItems } from '../utils/translationAudit.js';
 import { LanguageEditSwitcher } from './LocalizedFieldEditor.jsx';
+import { BackOfficeTranslations } from './BackOfficeTranslations.jsx';
 import { isSharePointMode } from '../config/sharepointConfig.js';
 
 const QUESTION_TYPE_KEYS = {
@@ -895,6 +897,7 @@ export const BackOffice = ({
       ids.add('teams');
       ids.add('rules');
       ids.add('complianceReview');
+      ids.add('translations');
     }
 
     if (hasValidationCommitteeScopedAccess) {
@@ -914,6 +917,23 @@ export const BackOffice = ({
       return associatedTeamIds.some((teamId) => currentUserTeamIds.includes(teamId));
     });
   }, [allowedTabIds, currentUserTeamIds, rules]);
+
+  // Contenu localisé auquel il manque au moins une langue (questionnaire, règles, équipes).
+  // `teamIds` vide = contenu global, réservé aux administrateurs ; sinon visible aussi des
+  // contacts de l'équipe concernée, filtré ci-dessous.
+  const allTranslationItems = useMemo(
+    () => collectTranslationItems({ questions, rules, teams }),
+    [questions, rules, teams]
+  );
+  const missingTranslationItems = useMemo(() => {
+    if (isCurrentUserAdmin || !allowedTabIds) {
+      return allTranslationItems;
+    }
+    if (!allowedTabIds.has('translations')) {
+      return [];
+    }
+    return allTranslationItems.filter((item) => item.teamIds.some((teamId) => currentUserTeamIds.includes(teamId)));
+  }, [allTranslationItems, allowedTabIds, currentUserTeamIds, isCurrentUserAdmin]);
 
   const [selectedComplianceReviewTeamId, setSelectedComplianceReviewTeamId] = useState('');
   const [complianceReviewAnswers, setComplianceReviewAnswers] = useState({});
@@ -3754,6 +3774,11 @@ export const BackOffice = ({
       id: 'complianceReview',
       label: t('backOffice.main.tabComplianceReview'),
       panelId: 'backoffice-tabpanel-complianceReview'
+    },
+    {
+      id: 'translations',
+      label: t('backOffice.main.tabTranslationsTemplate', { count: missingTranslationItems.length }),
+      panelId: 'backoffice-tabpanel-translations'
     }
   ].filter((tab) => !allowedTabIds || allowedTabIds.has(tab.id));
 
@@ -4382,6 +4407,133 @@ export const BackOffice = ({
     const sortOrder = teamServerMetaRef?.current?.get(updatedTeam.id)?.sortOrder
       ?? nextSortOrder(teams, teamServerMetaRef);
     enqueueTeamWrite('save', { team: updatedTeam, sortOrder });
+  };
+
+  const applyRuleUpdate = (ruleId, updater) => {
+    const index = rules.findIndex((rule) => rule.id === ruleId);
+    if (index < 0) {
+      return;
+    }
+    const next = rules.slice();
+    next[index] = updater(next[index]);
+    setRules(next);
+    const updatedRule = next[index];
+    const sortOrder = ruleServerMetaRef?.current?.get(updatedRule.id)?.sortOrder
+      ?? nextSortOrder(rules, ruleServerMetaRef);
+    enqueueRuleWrite('save', { rule: updatedRule, sortOrder });
+  };
+
+  const applyQuestionUpdate = (questionId, updater) => {
+    const index = questions.findIndex((question) => question.id === questionId);
+    if (index < 0) {
+      return;
+    }
+    const next = questions.slice();
+    next[index] = updater(next[index]);
+    setQuestions(next);
+  };
+
+  // Dispatcher générique de l'onglet Traductions : chaque type d'item (question, option de
+  // question, aide, nom de règle, question de règle par équipe, risque, équipe) sait comment
+  // se réécrire dans son tableau d'origine, en réutilisant les mêmes chemins d'écriture
+  // (setQuestions/setRules + enqueueRuleWrite, updateTeamField + enqueueTeamWrite) que les
+  // onglets Questions/Règles/Équipes existants.
+  const handleTranslationValueChange = (item, languageCode, text) => {
+    const nextValue = setLocalizedText(item.value, languageCode, text);
+    switch (item.kind) {
+      case 'team': {
+        const index = teams.findIndex((team) => team.id === item.refs.teamId);
+        if (index >= 0) {
+          updateTeamField(index, item.refs.field, nextValue);
+        }
+        break;
+      }
+      case 'question': {
+        applyQuestionUpdate(item.refs.questionId, (question) => ({ ...question, question: nextValue }));
+        break;
+      }
+      case 'questionOption': {
+        applyQuestionUpdate(item.refs.questionId, (question) => {
+          const options = (question.options || []).slice();
+          options[item.refs.optionIndex] = { ...options[item.refs.optionIndex], label: nextValue };
+          return { ...question, options };
+        });
+        break;
+      }
+      case 'questionGuidanceObjective': {
+        applyQuestionUpdate(item.refs.questionId, (question) => ({
+          ...question,
+          guidance: { ...question.guidance, objective: nextValue }
+        }));
+        break;
+      }
+      case 'questionGuidanceDetails': {
+        applyQuestionUpdate(item.refs.questionId, (question) => ({
+          ...question,
+          guidance: { ...question.guidance, details: nextValue }
+        }));
+        break;
+      }
+      case 'questionGuidanceTip': {
+        applyQuestionUpdate(item.refs.questionId, (question) => {
+          const tips = (question.guidance?.tips || []).slice();
+          tips[item.refs.tipIndex] = nextValue;
+          return { ...question, guidance: { ...question.guidance, tips } };
+        });
+        break;
+      }
+      case 'questionExtraCheckboxLabel': {
+        applyQuestionUpdate(item.refs.questionId, (question) => ({
+          ...question,
+          extraCheckbox: { ...question.extraCheckbox, label: nextValue }
+        }));
+        break;
+      }
+      case 'questionOtherOptionLabel': {
+        applyQuestionUpdate(item.refs.questionId, (question) => ({
+          ...question,
+          otherOption: { ...question.otherOption, label: nextValue }
+        }));
+        break;
+      }
+      case 'questionRankingTitle': {
+        applyQuestionUpdate(item.refs.questionId, (question) => ({
+          ...question,
+          rankingConfig: { ...question.rankingConfig, title: nextValue }
+        }));
+        break;
+      }
+      case 'questionRankingCriterion': {
+        applyQuestionUpdate(item.refs.questionId, (question) => {
+          const criteria = (question.rankingConfig?.criteria || []).slice();
+          criteria[item.refs.criterionIndex] = { ...criteria[item.refs.criterionIndex], label: nextValue };
+          return { ...question, rankingConfig: { ...question.rankingConfig, criteria } };
+        });
+        break;
+      }
+      case 'ruleName': {
+        applyRuleUpdate(item.refs.ruleId, (rule) => ({ ...rule, name: nextValue }));
+        break;
+      }
+      case 'ruleQuestion': {
+        applyRuleUpdate(item.refs.ruleId, (rule) => {
+          const teamQuestions = (rule.questions?.[item.refs.teamId] || []).slice();
+          teamQuestions[item.refs.questionIndex] = { ...teamQuestions[item.refs.questionIndex], text: nextValue };
+          return { ...rule, questions: { ...rule.questions, [item.refs.teamId]: teamQuestions } };
+        });
+        break;
+      }
+      case 'risk': {
+        applyRuleUpdate(item.refs.ruleId, (rule) => {
+          const risks = (rule.risks || []).slice();
+          risks[item.refs.riskIndex] = { ...risks[item.refs.riskIndex], [item.refs.field]: nextValue };
+          return { ...rule, risks };
+        });
+        break;
+      }
+      default:
+        break;
+    }
   };
 
   const deleteTeam = (id) => {
@@ -7016,6 +7168,33 @@ export const BackOffice = ({
                               />
                             </div>
                           </div>
+                          <div>
+                            <span className="block text-sm font-medium text-gray-700">
+                              {t('backOffice.main.acceptedLanguagesLabel')}
+                            </span>
+                            <p className="text-xs text-gray-500 mt-1 mb-2">{t('backOffice.main.acceptedLanguagesHint')}</p>
+                            <div className="flex flex-wrap gap-3">
+                              {SUPPORTED_LANGUAGES.map((code) => {
+                                const currentList = Array.isArray(committee.acceptedLanguages) ? committee.acceptedLanguages : [];
+                                return (
+                                  <label key={code} className="inline-flex items-center gap-2 text-sm text-gray-700">
+                                    <input
+                                      type="checkbox"
+                                      className="h-4 w-4 rounded border-gray-300 text-blue-600"
+                                      checked={currentList.includes(code)}
+                                      onChange={(event) => {
+                                        const next = event.target.checked
+                                          ? [...new Set([...currentList, code])]
+                                          : currentList.filter((entry) => entry !== code);
+                                        updateCommitteeEntry(committee.id, (prev) => ({ ...prev, acceptedLanguages: next }));
+                                      }}
+                                    />
+                                    {LANGUAGE_LABELS[code]}
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </div>
                         </div>
 
                         <div className="space-y-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
@@ -8106,6 +8285,32 @@ export const BackOffice = ({
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-y"
                         rows={3}
                       />
+
+                      <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mt-4 mb-1">
+                        {t('backOffice.main.acceptedLanguagesLabel')}
+                      </label>
+                      <p className="text-xs text-gray-500 mb-2">{t('backOffice.main.acceptedLanguagesHint')}</p>
+                      <div className="flex flex-wrap gap-3">
+                        {SUPPORTED_LANGUAGES.map((code) => {
+                          const currentList = Array.isArray(team.acceptedLanguages) ? team.acceptedLanguages : [];
+                          return (
+                            <label key={code} className="inline-flex items-center gap-2 text-sm text-gray-700">
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4 rounded border-gray-300 text-blue-600"
+                                checked={currentList.includes(code)}
+                                onChange={(event) => {
+                                  const next = event.target.checked
+                                    ? [...new Set([...currentList, code])]
+                                    : currentList.filter((entry) => entry !== code);
+                                  updateTeamField(index, 'acceptedLanguages', next);
+                                }}
+                              />
+                              {LANGUAGE_LABELS[code]}
+                            </label>
+                          );
+                        })}
+                      </div>
                     </article>
                   );
                 })}
@@ -8996,6 +9201,18 @@ export const BackOffice = ({
                   </ul>
                 )}
               </article>
+            </section>
+          )}
+
+          {activeTab === 'translations' && (
+            <section id="backoffice-tabpanel-translations" role="tabpanel" aria-labelledby="backoffice-tab-translations">
+              <BackOfficeTranslations
+                items={missingTranslationItems}
+                teams={teams}
+                isCurrentUserAdmin={isCurrentUserAdmin}
+                onChange={handleTranslationValueChange}
+                t={t}
+              />
             </section>
           )}
         </div>

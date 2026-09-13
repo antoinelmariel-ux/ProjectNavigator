@@ -38,6 +38,10 @@ a {
   position: absolute;
 }
 
+.align-top {
+  vertical-align: top;
+}
+
 .bg-amber-100 {
   --tw-bg-opacity: 1;
   background-color: rgba(254,243,199, var(--tw-bg-opacity));
@@ -324,6 +328,11 @@ a {
   border-color: rgba(253,230,138, var(--tw-border-opacity));
 }
 
+.border-amber-300 {
+  --tw-border-opacity: 1;
+  border-color: rgba(252,211,77, var(--tw-border-opacity));
+}
+
 .border-amber-400 {
   --tw-border-opacity: 1;
   border-color: rgba(251,191,36, var(--tw-border-opacity));
@@ -489,6 +498,18 @@ a {
 
 .cursor-pointer {
   cursor: pointer;
+}
+
+.divide-gray-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(243,244,246, var(--tw-divide-opacity, 1));
+}
+
+.divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(229,231,235, var(--tw-divide-opacity, 1));
+}
+
+.divide-y > :not([hidden]) ~ :not([hidden]) {
+  border-top-width: 1px;
 }
 
 .duration-200 {
@@ -864,12 +885,20 @@ a {
   min-width: 10rem;
 }
 
+.min-w-\[180px\] {
+  min-width: 180px;
+}
+
 .min-w-\[220px\] {
   min-width: 220px;
 }
 
 .min-w-0 {
   min-width: 0;
+}
+
+.min-w-full {
+  min-width: 100%;
 }
 
 .ml-1 {
@@ -977,6 +1006,10 @@ a {
 
 .overflow-hidden {
   overflow: hidden;
+}
+
+.overflow-x-auto {
+  overflow-x: auto;
 }
 
 .overflow-y-auto {
@@ -1771,6 +1804,10 @@ a {
 
 .via-white {
   --tw-gradient-stops: var(--tw-gradient-from), rgb(255,255,255), var(--tw-gradient-to, rgba(255, 255, 255, 0));
+}
+
+.w-1\/4 {
+  width: 25%;
 }
 
 .w-10 {

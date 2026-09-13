@@ -32,7 +32,8 @@ import { createAttachmentFromFile } from '../utils/documentStore.js';
 import { normalizeEmail } from '../utils/normalizeEmail.js';
 import { stripRichTextToPlainText } from '../utils/richText.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
-import { getLocaleTag } from '../i18n/languages.js';
+import { getLocaleTag, LANGUAGE_LABELS } from '../i18n/languages.js';
+import { isLanguageAcceptedBy, normalizeAcceptedLanguages } from '../utils/translationAudit.js';
 
 const formatNumber = (value, options = {}, language) => {
   return Number(value).toLocaleString(getLocaleTag(language), options);
@@ -1791,6 +1792,15 @@ export const SynthesisReport = ({
 
                         {shouldShowComplianceCommentsSection && (
                           <div className="mt-6 border-t border-gray-200 pt-4 space-y-4">
+                            {!isLanguageAcceptedBy(team.acceptedLanguages, language) && (
+                              <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+                                {t('synthesisReport.teamAcceptedLanguagesNoticeTemplate', {
+                                  languages: normalizeAcceptedLanguages(team.acceptedLanguages)
+                                    .map((code) => LANGUAGE_LABELS[code])
+                                    .join(', ')
+                                })}
+                              </div>
+                            )}
                             <div className="flex items-start justify-between gap-2">
                               <div>
                                 <h4 className="text-sm font-semibold text-gray-800">{t('synthesisReport.expertCommentTitle')}</h4>
@@ -2364,6 +2374,16 @@ export const SynthesisReport = ({
                             </span>
                           )}
                         </div>
+
+                        {!isLanguageAcceptedBy(committee.acceptedLanguages, language) && (
+                          <div className="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+                            {t('synthesisReport.committeeAcceptedLanguagesNoticeTemplate', {
+                              languages: normalizeAcceptedLanguages(committee.acceptedLanguages)
+                                .map((code) => LANGUAGE_LABELS[code])
+                                .join(', ')
+                            })}
+                          </div>
+                        )}
 
                         {canBypassCompliancePerimeter ? (
                           <form

@@ -288,7 +288,9 @@ traduisibles dans les 4 langues de l'app (anglais, français, allemand, espagnol
 et `Expertise` transportent un objet JSON `{en, fr, de, es}` (une langue peut être absente tant
 qu'elle n'a pas été traduite depuis le back-office). `Title` reste une chaîne simple dérivée du
 nom (langue par défaut) uniquement pour rester lisible telle quelle dans les vues SharePoint
-natives — ce n'est plus la source de vérité de l'app.
+natives — ce n'est plus la source de vérité de l'app. `AcceptedLanguagesJson` liste les langues
+(parmi les 4 ci-dessus) dans lesquelles l'équipe peut échanger avec les porteurs de projet, ex.
+`["fr","en"]` ; un tableau vide ou absent signifie que toutes les langues sont acceptées.
 
 | Colonne | Type |
 |---|---|
@@ -297,6 +299,7 @@ natives — ce n'est plus la source de vérité de l'app.
 | ContactsJson | Texte long (liste d'emails, ex. `["dpo@lfb.fr"]`) |
 | NameJson | Texte long (nom traduit, ex. `{"en":"Legal","fr":"Juridique"}`) |
 | Expertise | Texte long (domaine d'expertise traduit, ex. `{"en":"...","fr":"..."}`) |
+| AcceptedLanguagesJson | Texte long (langues de réponse acceptées, ex. `["fr","en"]`) |
 | SortOrder | Nombre |
 | RowVersion | Nombre |
 | CreatedByEmail | Une ligne de texte |

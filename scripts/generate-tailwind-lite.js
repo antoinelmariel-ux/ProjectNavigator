@@ -762,6 +762,42 @@ function baseRule(base) {
       };
     }
   }
+  if (base === 'divide-y') {
+    return {
+      nested: [
+        {
+          selector: '> :not([hidden]) ~ :not([hidden])',
+          declarations: { 'border-top-width': '1px' },
+        },
+      ],
+    };
+  }
+  if (base === 'divide-x') {
+    return {
+      nested: [
+        {
+          selector: '> :not([hidden]) ~ :not([hidden])',
+          declarations: { 'border-left-width': '1px' },
+        },
+      ],
+    };
+  }
+  if (base.startsWith('divide-')) {
+    const colorInfo = getColor(base.replace('divide-', ''));
+    if (colorInfo) {
+      const borderColor = colorInfo.type === 'rgba'
+        ? colorInfo.value
+        : `rgba(${colorInfo.rgb}, var(--tw-divide-opacity, 1))`;
+      return {
+        nested: [
+          {
+            selector: '> :not([hidden]) ~ :not([hidden])',
+            declarations: { 'border-color': borderColor },
+          },
+        ],
+      };
+    }
+  }
   if (base.startsWith('grid-cols-')) {
     const token = base.replace('grid-cols-', '');
     return { declarations: { 'grid-template-columns': `repeat(${token}, minmax(0, 1fr))` } };
@@ -1136,6 +1172,7 @@ function baseRule(base) {
   if (base === 'resize') return { declarations: { resize: 'both' } };
   if (base === 'resize-none') return { declarations: { resize: 'none' } };
   if (base === 'align-middle') return { declarations: { 'vertical-align': 'middle' } };
+  if (base === 'align-top') return { declarations: { 'vertical-align': 'top' } };
   if (base === 'list-none') return { declarations: { 'list-style-type': 'none' } };
   if (base === 'list-decimal') return { declarations: { 'list-style-type': 'decimal' } };
   if (base === 'overflow-hidden') return { declarations: { overflow: 'hidden' } };

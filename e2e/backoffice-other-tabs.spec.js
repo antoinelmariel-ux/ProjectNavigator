@@ -15,7 +15,8 @@ const OTHER_TABS = [
   'Administrateurs',
   'Niveaux de complexité',
   'Équipes',
-  'Revue Compliance'
+  'Revue Compliance',
+  'Traductions'
 ];
 
 test.describe('Back-office : autres onglets', () => {
