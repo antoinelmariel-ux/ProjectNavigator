@@ -58,6 +58,28 @@ import {
   readShowcaseShareToken
 } from './utils/showcaseShareLink.js';
 import { resolveTeamRecipients } from './utils/teamMemberRules.js';
+import { normalizeTeamContacts } from './utils/teamContacts.js';
+import {
+  CLAIM_ACTION_CLAIM,
+  CLAIM_ACTION_IMPLICIT,
+  CLAIM_ACTION_REASSIGN,
+  CLAIM_ACTION_RELEASE,
+  CLAIM_ACTION_TAKEOVER,
+  applyClaimAction,
+  getClaimStaleness,
+  getPerimeterClaim,
+  getPerimeterClaimHistory,
+  isTeamContact,
+  markClaimReminderSent,
+  resolveClaimAwareRecipients,
+  resolveClaimCopyRecipients
+} from './utils/projectClaims.js';
+import {
+  applyAbsenceSubstitution,
+  normalizeAbsence,
+  normalizeTeamPreferences,
+  setTeamPreference
+} from './utils/teamMemberProfile.js';
 import { normalizeRulesTeamReferences } from './utils/teamIds.js';
 import { getCurrentUser, getRealUser } from './utils/spContext.js';
 import { isImpersonating } from './utils/impersonation.js';
@@ -293,6 +315,15 @@ const COMPLIANCE_STATUS_EMAIL_LABELS = {
   pending_information: 'Pending information',
   not_concerned: 'Not concerned',
   rejected: 'Rejected'
+};
+
+// Motifs de reprise d'un projet déjà pris en charge (voir CLAIM_REASONS dans projectClaims.js),
+// en anglais eux aussi puisqu'ils partent dans l'extrait de la notification.
+const CLAIM_REASON_EMAIL_LABELS = {
+  absence: 'Absence',
+  workload: 'Workload',
+  departure: 'Departure',
+  other: 'Other reason'
 };
 
 const normalizeRecipientList = (emails = []) => {
@@ -978,11 +1009,25 @@ export const App = () => {
   const [userProfileLoadFailed, setUserProfileLoadFailed] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [profileDraftScope, setProfileDraftScope] = useState([]);
+  const [profileDraftTeamPreferences, setProfileDraftTeamPreferences] = useState({});
+  const [profileDraftAbsence, setProfileDraftAbsence] = useState({ from: '', to: '', backupEmail: '' });
   const activityScope = userProfile?.activityScope;
+
+  // Profils de tout le monde, et non du seul utilisateur connecté : les copies volontaires
+  // d'annonce de prise en charge et les absences/suppléances se lisent dans le profil des
+  // *autres* membres de l'équipe (voir teamMemberProfile.js).
+  const [userProfilesByEmail, setUserProfilesByEmail] = useState(() => new Map());
 
   useEffect(() => {
     if (isProfileModalOpen) {
       setProfileDraftScope(userProfile?.activityScope || []);
+      setProfileDraftTeamPreferences(normalizeTeamPreferences(userProfile?.teamPreferences));
+      const absence = normalizeAbsence(userProfile?.absence);
+      setProfileDraftAbsence({
+        from: absence?.from || '',
+        to: absence?.to || '',
+        backupEmail: absence?.backupEmail || ''
+      });
     }
   }, [isProfileModalOpen, userProfile]);
 
@@ -1847,6 +1892,31 @@ const updateProjectFilters = useCallback((updater) => {
       cancelled = true;
     };
   }, [isHydrated, currentUserEmail]);
+
+  // Best-effort : sans cette table, les copies volontaires et les suppléances ne s'appliquent
+  // simplement pas (personne n'est notifié à tort, et aucun écran ne casse).
+  useEffect(() => {
+    if (!isHydrated) {
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    Promise.resolve(userProfileProvider.listAllProfiles?.() || [])
+      .then((profiles) => {
+        if (cancelled || !Array.isArray(profiles)) return;
+        setUserProfilesByEmail(new Map(
+          profiles
+            .filter((profile) => normalizeEmail(profile?.email))
+            .map((profile) => [normalizeEmail(profile.email), profile])
+        ));
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isHydrated, userProfile]);
 
   useEffect(() => {
     if (homeView === 'inspiration' || screen === 'inspiration-form' || screen === 'inspiration-detail') {
@@ -2878,9 +2948,78 @@ const updateProjectFilters = useCallback((updater) => {
   }, [currentUserEmail]);
 
   const handleSaveProfileFromModal = useCallback(() => {
-    handleSaveUserProfile({ activityScope: profileDraftScope, preferredLanguage: language });
+    const absence = normalizeAbsence(profileDraftAbsence);
+    handleSaveUserProfile({
+      activityScope: profileDraftScope,
+      preferredLanguage: language,
+      teamPreferences: normalizeTeamPreferences(profileDraftTeamPreferences),
+      absence: absence
+        ? { ...absence, updatedByEmail: currentUserEmail, updatedAt: new Date().toISOString() }
+        : null
+    });
     setIsProfileModalOpen(false);
-  }, [handleSaveUserProfile, profileDraftScope, language]);
+  }, [
+    currentUserEmail,
+    handleSaveUserProfile,
+    language,
+    profileDraftAbsence,
+    profileDraftScope,
+    profileDraftTeamPreferences
+  ]);
+
+  const handleToggleProfileTeamCopy = useCallback((teamId, enabled) => {
+    setProfileDraftTeamPreferences((previous) => setTeamPreference(previous, teamId, { claimCopy: enabled }));
+  }, []);
+
+  // Une absence imprévue n'est jamais déclarée par l'absent : un administrateur (ou un collègue
+  // via le back-office) doit pouvoir la renseigner à sa place. La file de profils accepte déjà
+  // une adresse arbitraire, et saveProfile fusionne avec la ligne existante — le périmètre
+  // d'activité et la langue de la personne ne sont donc pas écrasés.
+  const handleSaveMemberAbsence = useCallback((email, absence) => {
+    const targetEmail = normalizeEmail(email);
+    if (!targetEmail || isSimulatedSession) {
+      return;
+    }
+
+    const normalized = normalizeAbsence(absence);
+    const patch = {
+      absence: normalized
+        ? { ...normalized, updatedByEmail: currentUserEmail, updatedAt: new Date().toISOString() }
+        : null
+    };
+
+    setUserProfilesByEmail((previous) => {
+      const next = new Map(previous);
+      next.set(targetEmail, { ...(previous.get(targetEmail) || { email: targetEmail }), ...patch });
+      return next;
+    });
+
+    if (targetEmail === currentUserEmail) {
+      setUserProfile((prev) => ({ ...(prev || {}), ...patch }));
+    }
+
+    userProfileQueueRef.current?.enqueue({ email: targetEmail, patch });
+  }, [currentUserEmail, isSimulatedSession]);
+
+  // Équipes expertes dont la personne connectée est contact : c'est le périmètre de ses réglages
+  // de copie et le vivier de suppléants possibles pour son absence.
+  const currentUserTeams = useMemo(
+    () => teams.filter((team) => isTeamContact(team, currentUserEmail)),
+    [currentUserEmail, teams]
+  );
+
+  const profileBackupCandidates = useMemo(() => {
+    const candidates = new Map();
+    currentUserTeams.forEach((team) => {
+      normalizeTeamContacts(team).forEach((contact) => {
+        const key = normalizeEmail(contact);
+        if (key && key !== currentUserEmail && !candidates.has(key)) {
+          candidates.set(key, contact);
+        }
+      });
+    });
+    return Array.from(candidates.values()).sort((a, b) => a.localeCompare(b));
+  }, [currentUserEmail, currentUserTeams]);
 
   // Un seul écouteur global : au retour de connexion, on rejoue uniquement ce qui était en
   // attente dans chaque file (jamais un renvoi de l'état complet, pour ne jamais écraser un
@@ -3695,16 +3834,449 @@ const updateProjectFilters = useCallback((updater) => {
     shouldShowQuestion
   ]);
 
+  // Destinataires « équipe » d'un projet, avec substitution des absents par leur suppléant.
+  // La substitution ne change que les destinataires, jamais les accès (même invariant que le
+  // routage par membre de teamMemberRules.js).
+  const resolveTeamMailRecipients = useCallback((team, projectAnswers) => normalizeRecipientList(
+    applyAbsenceSubstitution(resolveTeamRecipients(team, projectAnswers || {}), {
+      team,
+      profiles: userProfilesByEmail
+    })
+  ), [userProfilesByEmail]);
+
+  // Événements de prise en charge. Trois régimes très différents, volontairement :
+  //   - revendiquer : aucun e-mail, sauf aux membres qui ont coché la copie dans leur profil ;
+  //   - reprendre / réattribuer : e-mail systématique et non désactivable au référent
+  //     dépossédé, l'équipe en copie — une reprise silencieuse est ce qui casserait la
+  //     confiance dans tout le dispositif ;
+  //   - libérer : e-mail à l'équipe, puisque le projet redevient l'affaire de tous.
+  const notifyPerimeterClaimEvent = useCallback((project, team, {
+    action,
+    previousClaim = null,
+    nextClaim = null,
+    reason = '',
+    reasonNote = ''
+  } = {}) => {
+    if (!project || !team) {
+      return;
+    }
+
+    const projectAnswers = project.answers && typeof project.answers === 'object' ? project.answers : {};
+    const teamNames = [resolveLocalizedText(team.name, DEFAULT_LANGUAGE)].filter(Boolean);
+    const reasonLabel = CLAIM_REASON_EMAIL_LABELS[reason] || '';
+    const excerpt = [reasonLabel ? `Reason: ${reasonLabel}` : '', reasonNote || '']
+      .filter(Boolean)
+      .join('\n');
+
+    if ((action === CLAIM_ACTION_TAKEOVER || action === CLAIM_ACTION_REASSIGN) && previousClaim?.assigneeEmail) {
+      const to = normalizeRecipientList([previousClaim.assigneeEmail]);
+      const cc = resolveTeamMailRecipients(team, projectAnswers).filter((email) => !to.includes(email));
+      notify({
+        type: NOTIFICATION_TYPES.PERIMETER_TAKEN_OVER,
+        project,
+        to,
+        cc,
+        teamNames,
+        excerpt,
+        view: 'synthesis'
+      });
+      return;
+    }
+
+    if (action === CLAIM_ACTION_RELEASE) {
+      notify({
+        type: NOTIFICATION_TYPES.PERIMETER_RELEASED,
+        project,
+        to: resolveTeamMailRecipients(team, projectAnswers),
+        teamNames,
+        excerpt,
+        view: 'synthesis'
+      });
+      return;
+    }
+
+    // Les copies partent en `to` et non en `cc` : il n'y a pas de destinataire principal (le
+    // nouveau référent est l'auteur de l'action, que `notify` retire de la liste), et une file
+    // de notifications sans destinataire principal n'a pas de sens pour le flux Power Automate.
+    // Le corps du message dit explicitement que rien n'est attendu du lecteur.
+    const copies = normalizeRecipientList(resolveClaimCopyRecipients(team, projectAnswers, {
+      assigneeEmail: nextClaim?.assigneeEmail || '',
+      profiles: userProfilesByEmail
+    }));
+
+    if (copies.length === 0) {
+      return;
+    }
+
+    notify({
+      type: NOTIFICATION_TYPES.PERIMETER_CLAIMED,
+      project,
+      to: copies,
+      teamNames,
+      view: 'synthesis'
+    });
+  }, [notify, resolveTeamMailRecipients, userProfilesByEmail]);
+
+  // Revendiquer / reprendre / libérer un périmètre. Une seule action pour les trois, parce que
+  // l'écriture est la même : l'état vit dans le commentaire de conformité de l'équipe
+  // (answers['__compliance_team_comments__'].teams[teamId].claim), est répercuté dans
+  // CN_ComplianceComments par la file de réessais, et l'e-mail dépend du seul verbe utilisé.
+  // La reprise n'est protégée par aucune permission : tout contact de l'équipe peut reprendre
+  // (un verrou que seul l'absent pourrait ouvrir est exactement le mode de défaillance à
+  // éviter), un administrateur aussi, pour traiter un départ depuis le back-office.
+  const handlePerimeterClaimAction = useCallback((projectId, teamId, action, options = {}) => {
+    if (!projectId || !teamId || !action || isSimulatedSession) {
+      return;
+    }
+
+    const project = projects.find((entry) => entry?.id === projectId);
+    const team = teams.find((entry) => entry?.id === teamId);
+    if (!project || !team) {
+      return;
+    }
+
+    if (!isTeamContact(team, currentUserEmail) && !isAdminMode) {
+      return;
+    }
+
+    const isRelease = action === CLAIM_ACTION_RELEASE;
+    const assigneeEmail = isRelease
+      ? ''
+      : (normalizeEmail(options.assigneeEmail) || currentUserEmail);
+
+    if (!isRelease && !isTeamContact(team, assigneeEmail)) {
+      return;
+    }
+
+    const projectAnswers = project.answers && typeof project.answers === 'object' ? project.answers : {};
+    const rawComments = projectAnswers[COMPLIANCE_COMMENTS_KEY];
+    const comments = rawComments && typeof rawComments === 'object' && !Array.isArray(rawComments)
+      ? rawComments
+      : {};
+    const teamEntries = comments.teams && typeof comments.teams === 'object' && !Array.isArray(comments.teams)
+      ? comments.teams
+      : {};
+    const baseEntry = teamEntries[teamId] && typeof teamEntries[teamId] === 'object' && !Array.isArray(teamEntries[teamId])
+      ? teamEntries[teamId]
+      : {};
+    const previousClaim = getPerimeterClaim(baseEntry);
+
+    const now = new Date().toISOString();
+    const nextEntry = applyClaimAction(baseEntry, {
+      action,
+      assigneeEmail,
+      assigneeName: assigneeEmail === currentUserEmail
+        ? currentUserDisplayName
+        : (typeof options.assigneeName === 'string' ? options.assigneeName : ''),
+      actorEmail: currentUserEmail,
+      reason: options.reason || '',
+      reasonNote: options.reasonNote || '',
+      now
+    });
+
+    // Rien n'a bougé (re-revendication de ce qu'on suit déjà, libération d'un périmètre libre) :
+    // pas d'écriture, pas d'e-mail, pas de ligne d'historique.
+    if (nextEntry === baseEntry) {
+      return;
+    }
+
+    // La fusion est refaite dans l'updater, à partir de l'état courant : plusieurs actions
+    // enchaînées (réattribution en série depuis le back-office) ne doivent pas se recouvrir en
+    // repartant chacune du même instantané de `projects`.
+    const mergeEntry = (sourceAnswers) => {
+      const currentAnswers = sourceAnswers && typeof sourceAnswers === 'object' ? sourceAnswers : {};
+      const currentRaw = currentAnswers[COMPLIANCE_COMMENTS_KEY];
+      const currentComments = currentRaw && typeof currentRaw === 'object' && !Array.isArray(currentRaw)
+        ? currentRaw
+        : {};
+      const currentTeams = currentComments.teams && typeof currentComments.teams === 'object' && !Array.isArray(currentComments.teams)
+        ? currentComments.teams
+        : {};
+      return {
+        ...currentAnswers,
+        [COMPLIANCE_COMMENTS_KEY]: { ...currentComments, teams: { ...currentTeams, [teamId]: nextEntry } }
+      };
+    };
+
+    setProjects((prevProjects) => prevProjects.map((entry) => (
+      entry?.id === projectId
+        ? { ...entry, answers: mergeEntry(entry.answers), lastUpdated: now }
+        : entry
+    )));
+
+    if (projectId === activeProjectId) {
+      setAnswers((prevAnswers) => mergeEntry(prevAnswers));
+    }
+
+    complianceCommentsQueueRef.current?.enqueue({
+      projectId,
+      targetType: 'team',
+      targetId: teamId,
+      entry: nextEntry,
+      userEmail: currentUserEmail
+    });
+
+    notifyPerimeterClaimEvent(project, team, {
+      action,
+      previousClaim,
+      nextClaim: getPerimeterClaim(nextEntry),
+      reason: options.reason || '',
+      reasonNote: options.reasonNote || ''
+    });
+  }, [
+    activeProjectId,
+    currentUserDisplayName,
+    currentUserEmail,
+    isAdminMode,
+    isSimulatedSession,
+    notifyPerimeterClaimEvent,
+    projects,
+    teams
+  ]);
+
+  // Revendication implicite (décision produit) : poster un commentaire de conformité, changer un
+  // statut ou répondre dans le fil vaut prise en charge du périmètre. Sans cela, le référent
+  // reste « libre » chez les autres alors que le travail est déjà fait, et la file « À traiter »
+  // ne se vide jamais. Trois garde-fous :
+  //   - seul un contact de l'équipe revendique (le porteur qui répond ne revendique rien) ;
+  //   - un périmètre déjà pris par quelqu'un d'autre n'est jamais repris en silence : le
+  //     commentaire passe, la prise en charge ne bouge pas ;
+  //   - seules les actions « côté conformité » comptent : un statut, un commentaire racine, ou
+  //     une réponse écrite par la personne elle-même — pas une réponse du porteur.
+  const injectImplicitClaims = useCallback((nextValue, project) => {
+    if (!nextValue || typeof nextValue !== 'object' || Array.isArray(nextValue) || !currentUserEmail) {
+      return { value: nextValue, claimedTeamIds: [] };
+    }
+
+    const nextTeams = nextValue.teams && typeof nextValue.teams === 'object' && !Array.isArray(nextValue.teams)
+      ? nextValue.teams
+      : null;
+
+    if (!nextTeams) {
+      return { value: nextValue, claimedTeamIds: [] };
+    }
+
+    const previousComments = project?.answers?.[COMPLIANCE_COMMENTS_KEY];
+    const previousTeams = previousComments?.teams && typeof previousComments.teams === 'object'
+      ? previousComments.teams
+      : {};
+
+    const now = new Date().toISOString();
+    const claimedTeamIds = [];
+    const restoredTeamIds = [];
+    const patchedTeams = { ...nextTeams };
+
+    Object.entries(nextTeams).forEach(([teamId, entry]) => {
+      if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+        return;
+      }
+
+      const team = teams.find((candidate) => candidate?.id === teamId);
+      if (!team || !isTeamContact(team, currentUserEmail)) {
+        return;
+      }
+
+      const previousEntry = previousTeams[teamId] && typeof previousTeams[teamId] === 'object'
+        ? previousTeams[teamId]
+        : {};
+
+      // L'éditeur de la synthèse reconstruit l'entrée à partir d'un brouillon qui ne connaît pas
+      // la prise en charge : si elle s'est perdue en route, on la restaure depuis l'état
+      // précédent. C'est App qui fait autorité sur ce champ, jamais le formulaire.
+      const previousClaim = getPerimeterClaim(previousEntry);
+      const restoredEntry = !getPerimeterClaim(entry) && previousClaim
+        ? { ...entry, claim: previousClaim, claimHistory: getPerimeterClaimHistory(previousEntry) }
+        : entry;
+
+      const keepRestoredEntry = () => {
+        if (restoredEntry !== entry) {
+          patchedTeams[teamId] = restoredEntry;
+          restoredTeamIds.push(teamId);
+        }
+      };
+
+      // Un périmètre déjà suivi par quelqu'un d'autre n'est jamais repris en silence : le
+      // commentaire passe, la prise en charge ne bouge pas.
+      const claim = getPerimeterClaim(restoredEntry);
+      if (claim && claim.assigneeEmail !== currentUserEmail) {
+        keepRestoredEntry();
+        return;
+      }
+
+      const previousReplyIds = new Set(
+        (Array.isArray(previousEntry.replies) ? previousEntry.replies : []).map((reply) => reply?.id)
+      );
+      const hasOwnNewReply = (Array.isArray(entry.replies) ? entry.replies : []).some((reply) => (
+        !previousReplyIds.has(reply?.id) && normalizeEmail(reply?.authorEmail) === currentUserEmail
+      ));
+      const hasComplianceAction = entry.status !== previousEntry.status
+        || entry.comment !== previousEntry.comment
+        || hasOwnNewReply;
+
+      if (!hasComplianceAction) {
+        keepRestoredEntry();
+        return;
+      }
+
+      const claimedEntry = applyClaimAction(restoredEntry, {
+        action: CLAIM_ACTION_IMPLICIT,
+        assigneeEmail: currentUserEmail,
+        assigneeName: currentUserDisplayName,
+        actorEmail: currentUserEmail,
+        now
+      });
+
+      if (claimedEntry !== restoredEntry) {
+        patchedTeams[teamId] = claimedEntry;
+        claimedTeamIds.push(teamId);
+      } else {
+        keepRestoredEntry();
+      }
+    });
+
+    if (claimedTeamIds.length === 0 && restoredTeamIds.length === 0) {
+      return { value: nextValue, claimedTeamIds: [] };
+    }
+
+    return { value: { ...nextValue, teams: patchedTeams }, claimedTeamIds };
+  }, [currentUserDisplayName, currentUserEmail, teams]);
+
+  // Relance du référent d'un projet pris en charge mais sans action depuis le délai configuré
+  // par l'équipe (10 jours ouvrés par défaut). L'application n'a pas de serveur : la passe est
+  // faite par la session de n'importe quel contact de l'équipe qui ouvre l'app — y compris
+  // quelqu'un d'autre que le référent, justement parce qu'un référent absent n'ouvre rien.
+  // `reminderSentAt`, réarmé par toute nouvelle activité sur le périmètre, rend la passe
+  // idempotente ; le garde-fou de session évite en plus de la rejouer à chaque rendu.
+  const claimRemindersSentRef = useRef(new Set());
+
+  useEffect(() => {
+    if (!isHydrated || !currentUserEmail || isSimulatedSession || projects.length === 0) {
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const dueReminders = [];
+
+    projects.forEach((project) => {
+      if (!project?.id || project.status !== 'submitted') {
+        return;
+      }
+
+      const rawComments = project.answers?.[COMPLIANCE_COMMENTS_KEY];
+      const teamEntries = rawComments?.teams && typeof rawComments.teams === 'object' && !Array.isArray(rawComments.teams)
+        ? rawComments.teams
+        : {};
+
+      Object.entries(teamEntries).forEach(([teamId, entry]) => {
+        const team = teams.find((candidate) => candidate?.id === teamId);
+        if (!team || !isTeamContact(team, currentUserEmail)) {
+          return;
+        }
+
+        const staleness = getClaimStaleness(entry, { team, now });
+        if (!staleness.isReminderDue) {
+          return;
+        }
+
+        const guardKey = `${project.id}::${teamId}::${staleness.lastActivityAt}`;
+        if (claimRemindersSentRef.current.has(guardKey)) {
+          return;
+        }
+        claimRemindersSentRef.current.add(guardKey);
+        dueReminders.push({ project, team, teamId, entry, staleness });
+      });
+    });
+
+    if (dueReminders.length === 0) {
+      return;
+    }
+
+    dueReminders.forEach(({ project, team, teamId, entry, staleness }) => {
+      const remindedEntry = markClaimReminderSent(entry, now);
+
+      setProjects((prevProjects) => prevProjects.map((candidate) => {
+        if (candidate?.id !== project.id) {
+          return candidate;
+        }
+        const candidateAnswers = candidate.answers && typeof candidate.answers === 'object' ? candidate.answers : {};
+        const candidateComments = candidateAnswers[COMPLIANCE_COMMENTS_KEY];
+        const comments = candidateComments && typeof candidateComments === 'object' && !Array.isArray(candidateComments)
+          ? candidateComments
+          : {};
+        const currentTeams = comments.teams && typeof comments.teams === 'object' && !Array.isArray(comments.teams)
+          ? comments.teams
+          : {};
+        return {
+          ...candidate,
+          answers: {
+            ...candidateAnswers,
+            [COMPLIANCE_COMMENTS_KEY]: { ...comments, teams: { ...currentTeams, [teamId]: remindedEntry } }
+          }
+        };
+      }));
+
+      if (project.id === activeProjectId) {
+        setAnswers((prevAnswers) => {
+          const comments = prevAnswers?.[COMPLIANCE_COMMENTS_KEY];
+          if (!comments || typeof comments !== 'object' || Array.isArray(comments)) {
+            return prevAnswers;
+          }
+          const currentTeams = comments.teams && typeof comments.teams === 'object' ? comments.teams : {};
+          return {
+            ...prevAnswers,
+            [COMPLIANCE_COMMENTS_KEY]: { ...comments, teams: { ...currentTeams, [teamId]: remindedEntry } }
+          };
+        });
+      }
+
+      complianceCommentsQueueRef.current?.enqueue({
+        projectId: project.id,
+        targetType: 'team',
+        targetId: teamId,
+        entry: remindedEntry,
+        userEmail: currentUserEmail
+      });
+
+      notify({
+        type: NOTIFICATION_TYPES.PERIMETER_STALE_REMINDER,
+        project,
+        to: [staleness.claim.assigneeEmail],
+        teamNames: [resolveLocalizedText(team.name, DEFAULT_LANGUAGE)].filter(Boolean),
+        excerpt: `No action recorded for ${staleness.businessDaysSinceActivity} business days.`,
+        view: 'synthesis',
+        // Le référent est presque toujours la personne connectée quand elle ouvre l'app :
+        // sans ceci, `notify` retirerait le seul destinataire de la relance.
+        includeActor: true
+      });
+    });
+  }, [
+    activeProjectId,
+    currentUserEmail,
+    isHydrated,
+    isSimulatedSession,
+    notify,
+    projects,
+    teams
+  ]);
+
   const handleUpdateComplianceComments = useCallback((updates) => {
     if (!activeProjectId || !updates || typeof updates !== 'object') {
       return;
     }
 
+    const projectBeforeUpdate = projects.find((entry) => entry?.id === activeProjectId);
+    const { value: claimAwareComments, claimedTeamIds } = isSimulatedSession
+      ? { value: updates[COMPLIANCE_COMMENTS_KEY], claimedTeamIds: [] }
+      : injectImplicitClaims(updates[COMPLIANCE_COMMENTS_KEY], projectBeforeUpdate);
+    const effectiveUpdates = COMPLIANCE_COMMENTS_KEY in updates
+      ? { ...updates, [COMPLIANCE_COMMENTS_KEY]: claimAwareComments }
+      : updates;
+
     let sanitizedResult = null;
 
     setAnswers(prevAnswers => {
       const nextAnswers = { ...prevAnswers };
-      Object.entries(updates).forEach(([key, value]) => {
+      Object.entries(effectiveUpdates).forEach(([key, value]) => {
         if (value === null || value === undefined) {
           delete nextAnswers[key];
         } else {
@@ -3777,10 +4349,20 @@ const updateProjectFilters = useCallback((updater) => {
           .join('\n\n');
 
         if (isOwnerOrCoOwner) {
+          // Une fois le périmètre pris en charge, les échanges ne partent plus qu'à son
+          // référent : c'est tout l'objet de la revendication côté volume d'e-mails.
           const teamRecipients = Object.keys(teamEntries)
             .flatMap((teamId) => {
               const team = teams.find((entry) => entry?.id === teamId);
-              return resolveTeamRecipients(team, project?.answers || {});
+              if (!team) {
+                return [];
+              }
+              return resolveClaimAwareRecipients(
+                team,
+                project?.answers || {},
+                getPerimeterClaim(teamEntries[teamId]),
+                { profiles: userProfilesByEmail }
+              );
             });
           const committeeRecipients = Object.keys(committeeEntries)
             .flatMap((committeeId) => {
@@ -3809,6 +4391,20 @@ const updateProjectFilters = useCallback((updater) => {
             excerpt: commentExcerpt
           });
         }
+
+        // Prises en charge implicites déclenchées par cette écriture : seules les copies
+        // volontaires reçoivent un e-mail (voir notifyPerimeterClaimEvent).
+        claimedTeamIds.forEach((teamId) => {
+          const team = teams.find((entry) => entry?.id === teamId);
+          if (!team) {
+            return;
+          }
+          notifyPerimeterClaimEvent(project, team, {
+            action: CLAIM_ACTION_IMPLICIT,
+            previousClaim: null,
+            nextClaim: getPerimeterClaim(teamEntries[teamId])
+          });
+        });
       }
 
       setHasUnsavedChanges(true);
@@ -3837,11 +4433,15 @@ const updateProjectFilters = useCallback((updater) => {
   }, [
     activeProjectId,
     currentUserEmail,
+    injectImplicitClaims,
+    isSimulatedSession,
     notify,
     notifyOwnerAndCoOwners,
+    notifyPerimeterClaimEvent,
     projects,
     setHasUnsavedChanges,
     teams,
+    userProfilesByEmail,
     validationCommitteeConfig
   ]);
 
@@ -4980,8 +5580,11 @@ const updateProjectFilters = useCallback((updater) => {
       .map((teamId) => teams.find((entry) => entry?.id === teamId))
       .filter(Boolean);
     const teamNames = notifiedTeams.map((team) => resolveLocalizedText(team.name, DEFAULT_LANGUAGE)).filter(Boolean);
+    // La première notification part à toute l'équipe, jamais au seul référent : on ne peut pas
+    // revendiquer un projet dont on n'a pas entendu parler. Seule la substitution des absents
+    // par leur suppléant s'applique ici.
     const teamRecipients = normalizeRecipientList(
-      notifiedTeams.flatMap((team) => resolveTeamRecipients(team, project?.answers || {}))
+      notifiedTeams.flatMap((team) => resolveTeamMailRecipients(team, project?.answers || {}))
     );
 
     if (teamRecipients.length > 0) {
@@ -5006,7 +5609,7 @@ const updateProjectFilters = useCallback((updater) => {
       // Le porteur qui soumet doit recevoir sa propre confirmation.
       includeActor: true
     });
-  }, [buildOwnerNotificationRecipients, notify, teams]);
+  }, [buildOwnerNotificationRecipients, notify, resolveTeamMailRecipients, teams]);
 
   const handleSubmitProject = useCallback((payload = {}) => {
     if (autosaveQueueRef.current && autosaveQueueRef.current.size() > 0) {
@@ -5908,6 +6511,73 @@ const updateProjectFilters = useCallback((updater) => {
                 ))}
               </select>
             </div>
+            {currentUserTeams.length > 0 && (
+              <div className="space-y-3 border-t border-gray-100 pt-5">
+                <div>
+                  <p className="text-sm font-medium text-gray-700">{t('profile.claimCopySection.heading')}</p>
+                  <p className="mt-1 text-xs text-gray-500">{t('profile.claimCopySection.description')}</p>
+                </div>
+                <ul className="space-y-2">
+                  {currentUserTeams.map((team) => {
+                    const teamLabel = resolveLocalizedText(team.name, language) || team.id;
+                    return (
+                      <li key={`profile-claim-copy-${team.id}`}>
+                        <label className="flex items-start gap-2 text-sm text-gray-700">
+                          <input
+                            type="checkbox"
+                            className="mt-1"
+                            checked={Boolean(normalizeTeamPreferences(profileDraftTeamPreferences)[team.id]?.claimCopy)}
+                            onChange={(event) => handleToggleProfileTeamCopy(team.id, event.target.checked)}
+                          />
+                          <span>{t('profile.claimCopySection.teamLabel', { team: teamLabel })}</span>
+                        </label>
+                      </li>
+                    );
+                  })}
+                </ul>
+
+                <div className="space-y-2 rounded-xl border border-gray-200 bg-gray-50 p-3">
+                  <p className="text-sm font-medium text-gray-700">{t('profile.absenceSection.heading')}</p>
+                  <p className="text-xs text-gray-500">{t('profile.absenceSection.description')}</p>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <label className="text-xs font-medium text-gray-600">
+                      {t('profile.absenceSection.fromLabel')}
+                      <input
+                        type="date"
+                        value={profileDraftAbsence.from}
+                        onChange={(event) => setProfileDraftAbsence((previous) => ({ ...previous, from: event.target.value }))}
+                        className="mt-1 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-700"
+                      />
+                    </label>
+                    <label className="text-xs font-medium text-gray-600">
+                      {t('profile.absenceSection.toLabel')}
+                      <input
+                        type="date"
+                        value={profileDraftAbsence.to}
+                        onChange={(event) => setProfileDraftAbsence((previous) => ({ ...previous, to: event.target.value }))}
+                        className="mt-1 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-700"
+                      />
+                    </label>
+                  </div>
+                  <label className="block text-xs font-medium text-gray-600">
+                    {t('profile.absenceSection.backupLabel')}
+                    <select
+                      value={profileDraftAbsence.backupEmail}
+                      onChange={(event) => setProfileDraftAbsence((previous) => ({ ...previous, backupEmail: event.target.value }))}
+                      className="mt-1 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-700"
+                    >
+                      <option value="">{t('profile.absenceSection.backupNone')}</option>
+                      {profileBackupCandidates.map((candidate) => (
+                        <option key={`profile-backup-${candidate}`} value={candidate}>{candidate}</option>
+                      ))}
+                    </select>
+                  </label>
+                  {profileDraftAbsence.backupEmail && (
+                    <p className="text-xs text-gray-500">{t('profile.absenceSection.backupHint')}</p>
+                  )}
+                </div>
+              </div>
+            )}
             <div className="flex justify-end gap-3">
               <button
                 type="button"
@@ -6197,6 +6867,9 @@ const updateProjectFilters = useCallback((updater) => {
                 teamsQueueRef={teamsQueueRef}
                 ruleServerMetaRef={ruleServerMetaRef}
                 teamServerMetaRef={teamServerMetaRef}
+                userProfilesByEmail={userProfilesByEmail}
+                onSaveMemberAbsence={handleSaveMemberAbsence}
+                onPerimeterClaimAction={handlePerimeterClaimAction}
               />
             </Suspense>
           </AdminBackOfficeErrorBoundary>
@@ -6231,6 +6904,8 @@ const updateProjectFilters = useCallback((updater) => {
             isAdminMode={isAdminMode}
             tourContext={tourContext}
             isProjectsLoading={sharePointSync.state === 'loading'}
+            onPerimeterClaimAction={handlePerimeterClaimAction}
+            isClaimActionAvailable={!isSimulatedSession}
             />
           </Suspense>
         ) : screen === 'inspiration-form' ? (
@@ -6326,6 +7001,8 @@ const updateProjectFilters = useCallback((updater) => {
               adminEmails={normalizedAdminRightsEmails}
               focusPerimeter={synthesisFocusPerimeter}
               onFocusPerimeterHandled={() => setSynthesisFocusPerimeter(null)}
+              onPerimeterClaimAction={activeProjectId ? handlePerimeterClaimAction : undefined}
+              isClaimActionAvailable={!isSimulatedSession}
             />
           </Suspense>
         ) : screen === 'showcase' ? (

@@ -200,6 +200,20 @@ export default {
     }
   },
   profile: {
+    claimCopySection: {
+      heading: 'Kopien bei Übernahmen',
+      description: 'Standardmäßig deaktiviert. Aktiviert erhalten Sie eine Kopie, wenn ein Kollege ein Projekt für dieses Team übernimmt — nur diese Ankündigung, nicht den weiteren Austausch.',
+      teamLabel: 'Kopie für {{team}} erhalten'
+    },
+    absenceSection: {
+      heading: 'Abwesenheit und Vertretung',
+      description: 'In diesem Zeitraum gehen neue Anfragen an Ihre Vertretung, und Ihre Teams können die von Ihnen betreuten Projekte übernehmen.',
+      fromLabel: 'Von',
+      toLabel: 'Bis',
+      backupLabel: 'Vertretung',
+      backupNone: 'Keine Vertretung',
+      backupHint: 'Die Vertretung muss Kontakt eines Ihrer Teams sein, um Ihre Anfragen zu erhalten.'
+    },
     openButtonAriaLabel: 'Mein Profil',
     title: 'Mein Profil',
     scopeSection: { heading: 'Tätigkeitsbereich' },
@@ -287,6 +301,30 @@ export default {
     save: 'Speichern'
   },
   home: {
+    teammateTab: 'Vom Team übernommen ({{count}})',
+    noTeammateTriggered: 'Derzeit wird kein Projekt von einem anderen Mitglied Ihrer Teams betreut.',
+    claim: {
+      listAriaLabel: 'Betreuung je Zuständigkeitsbereich',
+      unassigned: 'Diesen Bereich betreut noch niemand',
+      assignedToYou: 'Sie betreuen ihn seit {{date}}',
+      assignedTo: 'Betreut von {{person}} seit {{date}}',
+      staleBadge: 'Seit längerem ohne Aktion',
+      claimButton: 'Ich übernehme',
+      releaseButton: 'Freigeben',
+      takeOverButton: 'Übernehmen',
+      takeOverTitle: 'Dieses Projekt übernehmen',
+      takeOverDescription: '{{person}} betreut dieses Projekt derzeit für {{team}}. Diese Person wird mit dem angegebenen Grund benachrichtigt.',
+      takeOverReasonLabel: 'Grund',
+      takeOverNoteLabel: 'Erläuterung (optional)',
+      takeOverNotice: 'Die bisher zuständige Person und das Team erhalten eine E-Mail. Diese Benachrichtigung kann nicht deaktiviert werden.',
+      takeOverConfirm: 'Übernehmen',
+      reason: {
+        absence: 'Abwesenheit',
+        workload: 'Überlastung',
+        departure: 'Austritt',
+        other: 'Sonstiges'
+      }
+    },
     previous: 'Zurück',
     next: 'Weiter',
     pageOf: 'Seite {{page}} / {{totalPages}}',
@@ -893,6 +931,41 @@ export default {
       addConditionToActivateGroup: 'Fügen Sie eine Bedingung hinzu, um diese Gruppe zu aktivieren.'
     },
     main: {
+      claimSettingsHeading: 'Übernahme von Projekten',
+      claimSettingsHint: 'Ein Mitglied dieses Teams kann ein ausgelöstes Projekt übernehmen: es verlässt dann die Liste „Zu bearbeiten“ der anderen Mitglieder, und der weitere Austausch geht nur noch an diese Person.',
+      claimStaleDaysLabel: 'Melden nach (Arbeitstage ohne Aktion)',
+      claimReminderDaysLabel: 'Zuständige Person erinnern nach (Arbeitstage ohne Aktion)',
+      claimDaysZeroHint: '0 deaktiviert das jeweilige Signal.',
+      memberAbsenceHeading: 'Abwesenheiten und Vertretungen',
+      memberAbsenceHint: 'Kann für andere eingetragen werden: eine unvorhergesehene Abwesenheit meldet die abwesende Person nie selbst.',
+      memberAbsenceActiveBadge: 'Derzeit abwesend',
+      memberAbsenceActiveWithBackupTemplate: 'Derzeit abwesend, Vertretung: {{member}}',
+      memberAbsencePlannedTemplate: 'Abwesenheit geplant von {{from}} bis {{to}}',
+      memberAbsenceNone: 'Keine Abwesenheit erfasst',
+      memberAbsenceEditButton: 'Abwesenheit',
+      memberAbsenceFromLabel: 'Von',
+      memberAbsenceToLabel: 'Bis',
+      memberAbsenceBackupLabel: 'Vertretung',
+      memberAbsenceBackupNone: 'Keine Vertretung',
+      memberAbsenceCancelButton: 'Abbrechen',
+      memberAbsenceClearButton: 'Abwesenheit löschen',
+      memberAbsenceSaveButton: 'Speichern',
+      claimOrphanWarningTemplate: '{{count}} Projekt(e) werden von einer Adresse betreut, die kein Kontakt dieses Teams mehr ist. Weisen Sie sie neu zu, damit sie nicht unbetreut bleiben.',
+      claimOrphanAssigneeTemplate: 'betreut von {{member}}',
+      claimOrphanReassignToLabel: 'Neu zuweisen an',
+      claimOrphanReassignButton: 'Neu zuweisen',
+      claimListHeading: 'Derzeit betreute Projekte',
+      claimListHint: 'Eine Neuzuweisung benachrichtigt die bisher zuständige Person, mit „Austritt“ als Grund.',
+      claimStaleBadgeTemplate: '{{count}} Arbeitstage ohne Aktion',
+      claimLoadHeading: 'Aktuelle Auslastung',
+      claimLoadTotalTemplate: '{{count}} betreute(s) Projekt(e)',
+      claimLoadStaleTemplate: '{{count}} ohne Aktion',
+      contactRemovalTitle: 'Dieser Kontakt betreut noch Projekte',
+      contactRemovalDescriptionTemplate: '{{member}} wird aus {{team}} entfernt, betreut aber noch {{count}} Projekt(e). Entscheiden Sie, was damit geschieht.',
+      contactRemovalReassignToLabel: 'Neu zuweisen an',
+      contactRemovalCancelButton: 'Entfernen abbrechen',
+      contactRemovalReleaseButton: 'Zurück in die Team-Warteschlange',
+      contactRemovalReassignButton: 'Neu zuweisen',
       questionTypes: {
         choice: { label: 'Auswahlliste', description: 'Zeigt eine Liste sich ausschließender Optionen an.' },
         multiChoice: { label: 'Mehrfachauswahl', description: 'Ermöglicht die Auswahl mehrerer Antworten.' },
@@ -1612,6 +1685,28 @@ export default {
     backToHome: 'Zurück zur Startseite'
   },
   synthesisReport: {
+    claim: {
+      label: 'Betreuung:',
+      unassigned: 'diesen Bereich betreut noch niemand.',
+      assignedToYou: 'Sie betreuen dieses Projekt für dieses Team.',
+      assignedTo: 'betreut von {{person}}.',
+      claimButton: 'Ich übernehme',
+      releaseButton: 'Nicht mehr betreuen',
+      takeOverButton: 'Übernehmen',
+      implicitHint: 'Wenn Sie eine Stellungnahme verfassen oder einen Status setzen, werden Sie für dieses Team zuständig: Ihre Kolleginnen und Kollegen erhalten dann keine Benachrichtigungen mehr zu diesem Projekt.',
+      takenHint: 'Ihr Kommentar wird {{person}} zugestellt, die weiterhin für dieses Projekt zuständig ist.',
+      takeOverReasonLabel: 'Grund der Übernahme',
+      takeOverNoteLabel: 'Erläuterung (optional)',
+      takeOverNotice: 'Die bisher zuständige Person und das Team erhalten eine E-Mail.',
+      takeOverConfirm: 'Übernahme bestätigen',
+      cancelButton: 'Abbrechen',
+      reason: {
+        absence: 'Abwesenheit',
+        workload: 'Überlastung',
+        departure: 'Austritt',
+        other: 'Sonstiges'
+      }
+    },
     statusValidated: 'Genehmigt',
     statusValidatedWithConditions: 'Genehmigt unter Bedingungen',
     statusPendingInformation: 'Warten auf Informationen',

@@ -14,7 +14,11 @@ export const NOTIFICATION_TYPES = {
   SYNTHESIS_COMMENT_TO_OWNER: 'synthesis-comment-to-owner',
   SYNTHESIS_COMMENT_TO_TEAM: 'synthesis-comment-to-team',
   SYNTHESIS_COMMENT_REPLY: 'synthesis-comment-reply',
-  COMMITTEE_REINTEGRATION: 'committee-reintegration'
+  COMMITTEE_REINTEGRATION: 'committee-reintegration',
+  PERIMETER_CLAIMED: 'perimeter-claimed',
+  PERIMETER_TAKEN_OVER: 'perimeter-taken-over',
+  PERIMETER_RELEASED: 'perimeter-released',
+  PERIMETER_STALE_REMINDER: 'perimeter-stale-reminder'
 };
 
 const quoted = (value) => `"${value}"`;
@@ -129,6 +133,65 @@ export const NOTIFICATION_CATALOG = {
       'Prepare the presentation materials expected by the committee.'
     ],
     reason: () => 'you are the owner or co-owner of this project.'
+  },
+
+  // Annonce de prise en charge : envoyée uniquement aux membres de l'équipe qui ont demandé à
+  // être copiés (case décochée par défaut dans leur profil). Elle ne couvre que cet événement,
+  // jamais les échanges qui suivront — sinon la case cochée ramène le volume d'e-mails que la
+  // prise en charge est censée supprimer.
+  [NOTIFICATION_TYPES.PERIMETER_CLAIMED]: {
+    actionType: 'Project taken in charge',
+    intro: (ctx) =>
+      ctx.teamNames.length > 0
+        ? `${ctx.actorName} is now handling the project ${quoted(ctx.projectName)} for ${ctx.teamNames.join(', ')}.`
+        : `${ctx.actorName} is now handling the project ${quoted(ctx.projectName)}.`,
+    expected: () => [
+      'Nothing is expected from you: this message is a copy, for information only.',
+      'The project has left your "To review" list and further exchanges will go to the person handling it.',
+      'You can still open the project, comment on it, or take it over from Project Navigator.'
+    ],
+    reason: () =>
+      'you asked to be copied when a colleague takes charge of a project for this team. You can turn this off in "My profile".'
+  },
+
+  [NOTIFICATION_TYPES.PERIMETER_TAKEN_OVER]: {
+    actionType: 'Project review taken over',
+    intro: (ctx) =>
+      ctx.teamNames.length > 0
+        ? `${ctx.actorName} took over the review of the project ${quoted(ctx.projectName)} for ${ctx.teamNames.join(', ')}.`
+        : `${ctx.actorName} took over the review of the project ${quoted(ctx.projectName)}.`,
+    expected: () => [
+      'Check the reason given for the take-over and the current state of the review.',
+      'Pass on anything the new reviewer needs to know, in the project discussion thread.',
+      'Take the project back from Project Navigator if the take-over was a mistake.'
+    ],
+    reason: () => 'you were handling this project, or you are a contact of the team concerned.'
+  },
+
+  [NOTIFICATION_TYPES.PERIMETER_RELEASED]: {
+    actionType: 'Project back in the team queue',
+    intro: (ctx) =>
+      ctx.teamNames.length > 0
+        ? `${ctx.actorName} released the project ${quoted(ctx.projectName)}: it is back in the queue for ${ctx.teamNames.join(', ')}.`
+        : `${ctx.actorName} released the project ${quoted(ctx.projectName)}: it is back in the team queue.`,
+    expected: () => [
+      'The project is in your "To review" list again.',
+      'Take it in charge in Project Navigator if it falls within your area.'
+    ],
+    reason: () => 'you are a contact of the team concerned by this project.'
+  },
+
+  [NOTIFICATION_TYPES.PERIMETER_STALE_REMINDER]: {
+    actionType: 'Reminder: project waiting for your review',
+    intro: (ctx) =>
+      ctx.teamNames.length > 0
+        ? `You are handling the project ${quoted(ctx.projectName)} for ${ctx.teamNames.join(', ')}, and no action has been recorded on it for a while.`
+        : `You are handling the project ${quoted(ctx.projectName)}, and no action has been recorded on it for a while.`,
+    expected: () => [
+      'Open the synthesis report and post your review, or update the compliance status.',
+      'Release the project so that another member of your team can pick it up, if you cannot handle it.'
+    ],
+    reason: () => 'you took this project in charge for your team and it is still waiting.'
   }
 };
 

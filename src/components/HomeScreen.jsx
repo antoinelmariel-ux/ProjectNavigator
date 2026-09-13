@@ -26,6 +26,16 @@ import {
   getTriggeredValidationCommittees,
   normalizeValidationCommitteeConfig
 } from '../utils/validationCommittee.js';
+import {
+  CLAIM_ACTION_CLAIM,
+  CLAIM_ACTION_RELEASE,
+  CLAIM_ACTION_TAKEOVER,
+  CLAIM_REASONS,
+  getClaimStaleness,
+  getPerimeterClaim,
+  isClaimedBy,
+  isClaimedByOther
+} from '../utils/projectClaims.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { resolveLocalizedText } from '../utils/localizedContent.js';
 import { getLocaleTag } from '../i18n/languages.js';
@@ -362,7 +372,9 @@ export const HomeScreen = ({
   teams = [],
   questions = [],
   validationCommitteeConfig = null,
-  isProjectsLoading = false
+  isProjectsLoading = false,
+  onPerimeterClaimAction,
+  isClaimActionAvailable = true
 }) => {
   const { t, language } = useTranslation();
   const projectTypeQuestion = useMemo(
@@ -556,6 +568,8 @@ export const HomeScreen = ({
       return [];
     }
 
+    const nowIso = new Date().toISOString();
+
     return projects
       // Une soumission annulée sort immédiatement de la file compliance : elle ne doit plus
       // apparaître ni « à traiter » ni « traitée », le porteur l'a retirée du circuit.
@@ -571,12 +585,20 @@ export const HomeScreen = ({
             const contacts = normalizeTeamContacts(team);
             return contacts.some((contact) => normalizeEmail(contact) === currentUserEmail);
           })
-          .map((team) => ({
-            id: team.id,
-            name: resolveLocalizedText(team.name, language) || team.id,
-            type: 'team',
-            complianceEmails: normalizeTeamContacts(team).map(normalizeEmail)
-          }));
+          .map((team) => {
+            const teamEntry = comments.teams?.[team.id];
+            const claim = getPerimeterClaim(teamEntry);
+            return {
+              id: team.id,
+              name: resolveLocalizedText(team.name, language) || team.id,
+              type: 'team',
+              complianceEmails: normalizeTeamContacts(team).map(normalizeEmail),
+              claim,
+              isMine: isClaimedBy(claim, currentUserEmail),
+              isHandledByOther: isClaimedByOther(claim, currentUserEmail),
+              isStale: getClaimStaleness(teamEntry, { team, now: nowIso }).isStale
+            };
+          });
 
         const triggeredCommittees = getTriggeredValidationCommittees(normalizedValidationCommitteeConfig, {
           answers: project?.answers || {},
@@ -592,17 +614,32 @@ export const HomeScreen = ({
             id: committee.id,
             name: committee.name || committee.id,
             type: 'committee',
-            complianceEmails: (Array.isArray(committee.emails) ? committee.emails : []).map(normalizeEmail)
+            complianceEmails: (Array.isArray(committee.emails) ? committee.emails : []).map(normalizeEmail),
+            // Un comité délibère : il n'est pas revendicable (décision produit), et un projet
+            // dont un comité reste ouvert ne quitte donc jamais la file de ses membres.
+            claim: null,
+            isMine: false,
+            isHandledByOther: false,
+            isStale: false
           }));
 
-        const triggeredPerimeters = [...triggeredTeams, ...triggeredCommittees];
+        const triggeredPerimeters = [...triggeredTeams, ...triggeredCommittees].map((entry) => ({
+          ...entry,
+          isResolved: isCompliancePerimeterResolved(
+            entry.type === 'committee' ? comments.committees?.[entry.id] : comments.teams?.[entry.id],
+            entry.complianceEmails
+          )
+        }));
 
-        const allValidated = triggeredPerimeters.length > 0 && triggeredPerimeters.every((entry) => {
-          const statusEntry = entry.type === 'committee'
-            ? comments.committees?.[entry.id]
-            : comments.teams?.[entry.id];
-          return isCompliancePerimeterResolved(statusEntry, entry.complianceEmails);
-        });
+        const allValidated = triggeredPerimeters.length > 0
+          && triggeredPerimeters.every((entry) => entry.isResolved);
+
+        // « Pris en charge par l'équipe » ne vaut que si *tous* les périmètres encore ouverts de
+        // cette personne sont suivis par quelqu'un d'autre : une équipe reprise par un collègue
+        // ne fait pas disparaître le comité qui attend encore.
+        const openPerimeters = triggeredPerimeters.filter((entry) => !entry.isResolved);
+        const isHandledByTeammate = openPerimeters.length > 0
+          && openPerimeters.every((entry) => entry.isHandledByOther);
 
         const allExpertsValidated = relevantTeams.every((team) => comments.teams?.[team.id]?.status === 'validated');
         const userOutOfScopeCommittees = currentUserCommittees.filter(
@@ -618,7 +655,9 @@ export const HomeScreen = ({
         return {
           project,
           triggeredPerimeters,
+          openPerimeters,
           allValidated,
+          isHandledByTeammate,
           isOutOfScopeCandidate,
           userOutOfScopeCommittees
         };
@@ -637,7 +676,18 @@ export const HomeScreen = ({
   ]);
 
   const pendingComplianceProjects = useMemo(
-    () => complianceTriggeredProjects.filter((entry) => entry.triggeredPerimeters.length > 0 && !entry.allValidated),
+    () => complianceTriggeredProjects.filter((entry) => (
+      entry.triggeredPerimeters.length > 0 && !entry.allValidated && !entry.isHandledByTeammate
+    )),
+    [complianceTriggeredProjects]
+  );
+
+  // Volontairement pas une disparition : une prise en charge oubliée par quelqu'un d'absent
+  // deviendrait un projet que plus personne ne voit. L'onglet est secondaire, le projet reste là.
+  const teammateHandledComplianceProjects = useMemo(
+    () => complianceTriggeredProjects.filter((entry) => (
+      entry.triggeredPerimeters.length > 0 && !entry.allValidated && entry.isHandledByTeammate
+    )),
     [complianceTriggeredProjects]
   );
 
@@ -655,8 +705,58 @@ export const HomeScreen = ({
     ? treatedComplianceProjects
     : complianceProjectsView === 'out_of_scope'
       ? outOfScopeCommitteeProjects
-      : pendingComplianceProjects;
+      : complianceProjectsView === 'teammate'
+        ? teammateHandledComplianceProjects
+        : pendingComplianceProjects;
 
+
+  // Revendiquer et libérer sont des gestes à un clic (réversibles, peu risqués) ; reprendre
+  // passe par une modale, parce qu'une reprise notifie la personne dépossédée et doit dire
+  // pourquoi. Aucune permission ne protège la reprise : c'est la traçabilité qui en tient lieu.
+  const [claimTakeoverTarget, setClaimTakeoverTarget] = useState(null);
+  const [claimTakeoverReason, setClaimTakeoverReason] = useState(CLAIM_REASONS[0]);
+  const [claimTakeoverNote, setClaimTakeoverNote] = useState('');
+
+  const canActOnClaims = isClaimActionAvailable && typeof onPerimeterClaimAction === 'function';
+
+  const handleClaimPerimeter = useCallback((projectId, perimeter) => {
+    if (typeof onPerimeterClaimAction !== 'function') {
+      return;
+    }
+    onPerimeterClaimAction(projectId, perimeter.id, CLAIM_ACTION_CLAIM);
+  }, [onPerimeterClaimAction]);
+
+  const handleReleasePerimeter = useCallback((projectId, perimeter) => {
+    if (typeof onPerimeterClaimAction !== 'function') {
+      return;
+    }
+    onPerimeterClaimAction(projectId, perimeter.id, CLAIM_ACTION_RELEASE);
+  }, [onPerimeterClaimAction]);
+
+  const handleOpenClaimTakeover = useCallback((projectEntry, perimeter) => {
+    setClaimTakeoverReason(CLAIM_REASONS[0]);
+    setClaimTakeoverNote('');
+    setClaimTakeoverTarget({
+      projectId: projectEntry.project.id,
+      projectName: projectEntry.project.projectName || '',
+      teamId: perimeter.id,
+      teamName: perimeter.name,
+      assigneeLabel: perimeter.claim?.assigneeName || perimeter.claim?.assigneeEmail || ''
+    });
+  }, []);
+
+  const handleConfirmClaimTakeover = useCallback(() => {
+    if (!claimTakeoverTarget || typeof onPerimeterClaimAction !== 'function') {
+      setClaimTakeoverTarget(null);
+      return;
+    }
+
+    onPerimeterClaimAction(claimTakeoverTarget.projectId, claimTakeoverTarget.teamId, CLAIM_ACTION_TAKEOVER, {
+      reason: claimTakeoverReason,
+      reasonNote: claimTakeoverNote.trim()
+    });
+    setClaimTakeoverTarget(null);
+  }, [claimTakeoverNote, claimTakeoverReason, claimTakeoverTarget, onPerimeterClaimAction]);
 
   const handleReintegrateInCommittee = useCallback((projectEntry) => {
     if (!projectEntry || typeof onReintegrateProjectInCommittee !== 'function') {
@@ -2020,7 +2120,7 @@ export const HomeScreen = ({
                 </h2>
                 <p className="mt-1 text-sm text-gray-600">{t('home.triggeredSubtitle')}</p>
               </div>
-              <div className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 p-1" role="group" aria-label={t('home.triggeredFilterAriaLabel')}>
+              <div className="flex flex-wrap items-center gap-1 rounded-full border border-blue-200 bg-blue-50 p-1" role="group" aria-label={t('home.triggeredFilterAriaLabel')}>
                 <button
                   type="button"
                   onClick={() => setComplianceProjectsView('pending')}
@@ -2031,6 +2131,17 @@ export const HomeScreen = ({
                   }`}
                 >
                   {t('home.pendingTab', { count: pendingComplianceProjects.length })}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setComplianceProjectsView('teammate')}
+                  className={`rounded-full px-4 py-2 text-xs font-semibold transition-colors ${
+                    complianceProjectsView === 'teammate'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-blue-700 hover:bg-blue-100'
+                  }`}
+                >
+                  {t('home.teammateTab', { count: teammateHandledComplianceProjects.length })}
                 </button>
                 <button
                   type="button"
@@ -2063,14 +2174,21 @@ export const HomeScreen = ({
               <div className="rounded-2xl border border-dashed border-blue-200 bg-blue-50/40 p-5 text-sm text-gray-600">
                 {complianceProjectsView === 'pending'
                   ? t('home.noPendingTriggered')
-                  : complianceProjectsView === 'treated'
-                    ? t('home.noTreatedTriggered')
-                    : t('home.noOutOfScopeTriggered')}
+                  : complianceProjectsView === 'teammate'
+                    ? t('home.noTeammateTriggered')
+                    : complianceProjectsView === 'treated'
+                      ? t('home.noTreatedTriggered')
+                      : t('home.noOutOfScopeTriggered')}
               </div>
             ) : (
               <div className="space-y-3" role="list" aria-label={t('home.triggeredListAriaLabel')}>
                 {displayedComplianceProjects.map((projectEntry) => {
                   const { project, triggeredPerimeters, allValidated } = projectEntry;
+                  // Les actions de prise en charge ne portent que sur les périmètres « équipe »
+                  // encore ouverts : un comité n'est pas revendicable, un périmètre déjà traité
+                  // n'a plus besoin de référent.
+                  const claimablePerimeters = (projectEntry.openPerimeters || [])
+                    .filter((perimeter) => perimeter.type === 'team');
                   return (
                     <article
                       key={`compliance-trigger-${project.id}`}
@@ -2095,6 +2213,67 @@ export const HomeScreen = ({
                               </span>
                             ))}
                           </div>
+                          {claimablePerimeters.length > 0 && (
+                            <ul className="space-y-1.5" aria-label={t('home.claim.listAriaLabel')}>
+                              {claimablePerimeters.map((perimeter) => {
+                                const assigneeLabel = perimeter.claim?.assigneeName
+                                  || perimeter.claim?.assigneeEmail
+                                  || '';
+                                const assignedDate = formatDate(
+                                  perimeter.claim?.assignedAt,
+                                  language,
+                                  t('home.dateUnknown')
+                                );
+                                return (
+                                  <li
+                                    key={`${project.id}-claim-${perimeter.id}`}
+                                    className="flex flex-wrap items-center gap-2 text-xs text-gray-600"
+                                  >
+                                    <span className="font-semibold text-gray-700">{perimeter.name}</span>
+                                    <span>
+                                      {!perimeter.claim
+                                        ? t('home.claim.unassigned')
+                                        : perimeter.isMine
+                                          ? t('home.claim.assignedToYou', { date: assignedDate })
+                                          : t('home.claim.assignedTo', { person: assigneeLabel, date: assignedDate })}
+                                    </span>
+                                    {perimeter.isStale && (
+                                      <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 font-semibold text-amber-700">
+                                        {t('home.claim.staleBadge')}
+                                      </span>
+                                    )}
+                                    {canActOnClaims && !perimeter.claim && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleClaimPerimeter(project.id, perimeter)}
+                                        className="rounded-lg border border-blue-200 px-2 py-1 font-semibold text-blue-700 hover:bg-blue-50"
+                                      >
+                                        {t('home.claim.claimButton')}
+                                      </button>
+                                    )}
+                                    {canActOnClaims && perimeter.isMine && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleReleasePerimeter(project.id, perimeter)}
+                                        className="rounded-lg border border-gray-300 px-2 py-1 font-semibold text-gray-700 hover:bg-gray-50"
+                                      >
+                                        {t('home.claim.releaseButton')}
+                                      </button>
+                                    )}
+                                    {canActOnClaims && perimeter.isHandledByOther && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleOpenClaimTakeover(projectEntry, perimeter)}
+                                        className="rounded-lg border border-amber-200 px-2 py-1 font-semibold text-amber-700 hover:bg-amber-50"
+                                      >
+                                        {t('home.claim.takeOverButton')}
+                                      </button>
+                                    )}
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          )}
                         </div>
                         <div className="flex items-center gap-3">
                           <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${
@@ -2690,6 +2869,75 @@ export const HomeScreen = ({
           </section>
         )}
       </div>
+
+      {claimTakeoverTarget && (
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="claim-takeover-title"
+        >
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl space-y-4">
+            <h3 id="claim-takeover-title" className="text-lg font-semibold text-gray-900">
+              {t('home.claim.takeOverTitle')}
+            </h3>
+            <p className="text-sm text-gray-600">
+              {t('home.claim.takeOverDescription', {
+                person: claimTakeoverTarget.assigneeLabel,
+                team: claimTakeoverTarget.teamName
+              })}
+            </p>
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-gray-700">{t('home.claim.takeOverReasonLabel')}</p>
+              <div className="flex flex-wrap gap-2">
+                {CLAIM_REASONS.map((reason) => (
+                  <button
+                    key={`takeover-reason-${reason}`}
+                    type="button"
+                    aria-pressed={claimTakeoverReason === reason}
+                    onClick={() => setClaimTakeoverReason(reason)}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      claimTakeoverReason === reason
+                        ? 'border-blue-600 bg-blue-600 text-white'
+                        : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    {t(`home.claim.reason.${reason}`)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <label className="block space-y-1">
+              <span className="text-sm font-medium text-gray-700">{t('home.claim.takeOverNoteLabel')}</span>
+              <textarea
+                value={claimTakeoverNote}
+                onChange={(event) => setClaimTakeoverNote(event.target.value)}
+                rows={3}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700"
+              />
+            </label>
+            <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              {t('home.claim.takeOverNotice')}
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setClaimTakeoverTarget(null)}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                {t('home.cancel')}
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmClaimTakeover}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+              >
+                {t('home.claim.takeOverConfirm')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {committeeSelectionModal.isOpen && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4">

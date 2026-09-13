@@ -2,19 +2,26 @@ import { isSharePointMode } from '../config/sharepointConfig.js';
 import { getRepository } from './listRepository.js';
 import { normalizeEmail } from './normalizeEmail.js';
 import { loadPersistedMockMap, savePersistedMockMap } from './mockProviderPersistence.js';
+import { normalizeAbsence, normalizeTeamPreferences } from './teamMemberProfile.js';
 
 const toProfile = (record) => ({
   email: record.UserEmail,
   activityScope: Array.isArray(record.ActivityScopeJson) ? record.ActivityScopeJson : [],
   preferredLanguage: record.PreferredLanguage || '',
-  hasCompletedOnboarding: Boolean(record.HasCompletedOnboarding)
+  hasCompletedOnboarding: Boolean(record.HasCompletedOnboarding),
+  // Réglages portés par la personne et non par l'équipe : copies d'annonce de prise en charge
+  // par équipe, et période d'absence avec suppléant (voir teamMemberProfile.js).
+  teamPreferences: normalizeTeamPreferences(record.TeamPreferencesJson),
+  absence: normalizeAbsence(record.AbsenceJson)
 });
 
-const buildRecord = (email, { activityScope, preferredLanguage, hasCompletedOnboarding }) => ({
+const buildRecord = (email, { activityScope, preferredLanguage, hasCompletedOnboarding, teamPreferences, absence }) => ({
   UserEmail: normalizeEmail(email),
   ActivityScopeJson: Array.isArray(activityScope) ? activityScope : [],
   PreferredLanguage: preferredLanguage || '',
   HasCompletedOnboarding: Boolean(hasCompletedOnboarding),
+  TeamPreferencesJson: normalizeTeamPreferences(teamPreferences),
+  AbsenceJson: normalizeAbsence(absence) || {},
   UpdatedAt: new Date().toISOString()
 });
 
@@ -31,6 +38,10 @@ class MockUserProfileProvider {
   async getProfile(email) {
     const record = this.profiles.get(normalizeEmail(email));
     return record ? toProfile(record) : null;
+  }
+
+  async listAllProfiles() {
+    return Array.from(this.profiles.values()).map(toProfile);
   }
 
   async saveProfile(email, patch) {
@@ -51,6 +62,14 @@ export class SharePointUserProfileProvider {
   async getProfile(email) {
     const record = await this.repository.findByKey(normalizeEmail(email));
     return record ? toProfile(record) : null;
+  }
+
+  // Chargement en un appel de tous les profils : les copies volontaires d'annonce de prise en
+  // charge et les absences/suppléances se lisent dans le profil des *autres* membres de
+  // l'équipe, pas seulement dans celui de la personne connectée.
+  async listAllProfiles() {
+    const records = await this.repository.getAll();
+    return records.map(toProfile);
   }
 
   async saveProfile(email, patch) {

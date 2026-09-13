@@ -200,6 +200,20 @@ export default {
     }
   },
   profile: {
+    claimCopySection: {
+      heading: 'Copias de las tomas a cargo',
+      description: 'Desactivado por defecto. Al activarlo, recibirá una copia cuando un colega asuma un proyecto para ese equipo — solo ese aviso, no los intercambios posteriores.',
+      teamLabel: 'Recibir una copia para {{team}}'
+    },
+    absenceSection: {
+      heading: 'Ausencia y suplencia',
+      description: 'Durante ese periodo, las nuevas solicitudes van a su suplente y sus equipos pueden retomar los proyectos que usted sigue.',
+      fromLabel: 'Del',
+      toLabel: 'Al',
+      backupLabel: 'Suplente',
+      backupNone: 'Sin suplente',
+      backupHint: 'El suplente debe ser contacto de uno de sus equipos para recibir sus solicitudes.'
+    },
     openButtonAriaLabel: 'Mi perfil',
     title: 'Mi perfil',
     scopeSection: { heading: 'Ámbito de actividad' },
@@ -286,6 +300,30 @@ export default {
     save: 'Guardar'
   },
   home: {
+    teammateTab: 'Asumidos por el equipo ({{count}})',
+    noTeammateTriggered: 'Actualmente ningún proyecto está asumido por otro miembro de sus equipos.',
+    claim: {
+      listAriaLabel: 'Responsable por ámbito',
+      unassigned: 'Nadie sigue todavía este ámbito',
+      assignedToYou: 'Usted lo sigue desde el {{date}}',
+      assignedTo: 'Seguido por {{person}} desde el {{date}}',
+      staleBadge: 'Sin acción desde hace tiempo',
+      claimButton: 'Lo asumo',
+      releaseButton: 'Liberar',
+      takeOverButton: 'Retomar',
+      takeOverTitle: 'Retomar este proyecto',
+      takeOverDescription: '{{person}} sigue actualmente este proyecto para {{team}}. Se le avisará, con el motivo que indique.',
+      takeOverReasonLabel: 'Motivo',
+      takeOverNoteLabel: 'Detalle (opcional)',
+      takeOverNotice: 'La persona que seguía este proyecto y el equipo recibirán un correo. Esta notificación no se puede desactivar.',
+      takeOverConfirm: 'Retomar',
+      reason: {
+        absence: 'Ausencia',
+        workload: 'Sobrecarga',
+        departure: 'Baja',
+        other: 'Otro'
+      }
+    },
     previous: 'Anterior',
     next: 'Siguiente',
     pageOf: 'Página {{page}} / {{totalPages}}',
@@ -883,6 +921,41 @@ export default {
       addConditionToActivateGroup: 'Añada una condición para activar este grupo.'
     },
     main: {
+      claimSettingsHeading: 'Toma a cargo de los proyectos',
+      claimSettingsHint: 'Un miembro de este equipo puede asumir un proyecto activado: entonces sale de la lista «Por tratar» de los demás miembros y los intercambios posteriores solo le llegan a él.',
+      claimStaleDaysLabel: 'Señalar tras (días hábiles sin acción)',
+      claimReminderDaysLabel: 'Avisar al responsable tras (días hábiles sin acción)',
+      claimDaysZeroHint: '0 desactiva la señal correspondiente.',
+      memberAbsenceHeading: 'Ausencias y suplencias',
+      memberAbsenceHint: 'Puede rellenarse por otra persona: una ausencia imprevista nunca la declara quien está ausente.',
+      memberAbsenceActiveBadge: 'Ausente actualmente',
+      memberAbsenceActiveWithBackupTemplate: 'Ausente actualmente, suplente: {{member}}',
+      memberAbsencePlannedTemplate: 'Ausencia prevista del {{from}} al {{to}}',
+      memberAbsenceNone: 'Ninguna ausencia declarada',
+      memberAbsenceEditButton: 'Ausencia',
+      memberAbsenceFromLabel: 'Del',
+      memberAbsenceToLabel: 'Al',
+      memberAbsenceBackupLabel: 'Suplente',
+      memberAbsenceBackupNone: 'Sin suplente',
+      memberAbsenceCancelButton: 'Cancelar',
+      memberAbsenceClearButton: 'Eliminar la ausencia',
+      memberAbsenceSaveButton: 'Guardar',
+      claimOrphanWarningTemplate: '{{count}} proyecto(s) están asumidos por una dirección que ya no es contacto de este equipo. Reasígnelos para que no queden sin responsable.',
+      claimOrphanAssigneeTemplate: 'seguido por {{member}}',
+      claimOrphanReassignToLabel: 'Reasignar a',
+      claimOrphanReassignButton: 'Reasignar',
+      claimListHeading: 'Proyectos asumidos',
+      claimListHint: 'Una reasignación avisa a la persona que seguía el proyecto, con «Baja» como motivo.',
+      claimStaleBadgeTemplate: '{{count}} días hábiles sin acción',
+      claimLoadHeading: 'Carga actual',
+      claimLoadTotalTemplate: '{{count}} proyecto(s) seguido(s)',
+      claimLoadStaleTemplate: '{{count}} sin acción',
+      contactRemovalTitle: 'Este contacto todavía tiene proyectos',
+      contactRemovalDescriptionTemplate: '{{member}} se retira de {{team}} pero todavía sigue {{count}} proyecto(s). Decida qué ocurre con ellos.',
+      contactRemovalReassignToLabel: 'Reasignar a',
+      contactRemovalCancelButton: 'Cancelar la retirada',
+      contactRemovalReleaseButton: 'Devolverlos a «Por tratar»',
+      contactRemovalReassignButton: 'Reasignarlos',
       questionTypes: {
         choice: { label: 'Lista de opciones', description: 'Muestra una lista de opciones excluyentes.' },
         multiChoice: { label: 'Opción múltiple', description: 'Permite seleccionar varias respuestas.' },
@@ -1601,6 +1674,28 @@ export default {
     backToHome: 'Volver al inicio'
   },
   synthesisReport: {
+    claim: {
+      label: 'Responsable:',
+      unassigned: 'nadie sigue todavía este ámbito.',
+      assignedToYou: 'usted sigue este proyecto para este equipo.',
+      assignedTo: 'seguido por {{person}}.',
+      claimButton: 'Lo asumo',
+      releaseButton: 'Dejar de seguirlo',
+      takeOverButton: 'Retomar',
+      implicitHint: 'Publicar una opinión o fijar un estado le designa responsable para este equipo: sus colegas dejarán de recibir notificaciones de este proyecto.',
+      takenHint: 'Su comentario se notificará a {{person}}, que sigue siendo responsable de este proyecto.',
+      takeOverReasonLabel: 'Motivo del relevo',
+      takeOverNoteLabel: 'Detalle (opcional)',
+      takeOverNotice: 'La persona que seguía este proyecto y el equipo recibirán un correo.',
+      takeOverConfirm: 'Confirmar el relevo',
+      cancelButton: 'Cancelar',
+      reason: {
+        absence: 'Ausencia',
+        workload: 'Sobrecarga',
+        departure: 'Baja',
+        other: 'Otro'
+      }
+    },
     statusValidated: 'Validado',
     statusValidatedWithConditions: 'Validado con condiciones',
     statusPendingInformation: 'A la espera de información',

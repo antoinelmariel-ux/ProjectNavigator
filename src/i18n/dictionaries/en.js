@@ -200,6 +200,20 @@ export default {
     }
   },
   profile: {
+    claimCopySection: {
+      heading: 'Copies of take-over announcements',
+      description: 'Off by default. When enabled, you receive a copy when a colleague takes charge of a project for that team — that announcement only, not the exchanges that follow.',
+      teamLabel: 'Receive a copy for {{team}}'
+    },
+    absenceSection: {
+      heading: 'Absence and backup',
+      description: 'During this period, new solicitations go to your backup and your teams can take over the projects you are handling.',
+      fromLabel: 'From',
+      toLabel: 'Until',
+      backupLabel: 'Backup',
+      backupNone: 'No backup',
+      backupHint: 'The backup must be a contact of one of your teams to receive your solicitations.'
+    },
     openButtonAriaLabel: 'My profile',
     title: 'My profile',
     scopeSection: { heading: 'Activity scope' },
@@ -285,6 +299,30 @@ export default {
     save: 'Save'
   },
   home: {
+    teammateTab: 'Handled by the team ({{count}})',
+    noTeammateTriggered: 'No project is currently handled by another member of your teams.',
+    claim: {
+      listAriaLabel: 'Ownership per perimeter',
+      unassigned: 'Nobody is handling this perimeter yet',
+      assignedToYou: 'You are handling it since {{date}}',
+      assignedTo: 'Handled by {{person}} since {{date}}',
+      staleBadge: 'No action for a while',
+      claimButton: 'I will handle it',
+      releaseButton: 'Release',
+      takeOverButton: 'Take over',
+      takeOverTitle: 'Take this project over',
+      takeOverDescription: '{{person}} is currently handling this project for {{team}}. They will be notified, with the reason you give.',
+      takeOverReasonLabel: 'Reason',
+      takeOverNoteLabel: 'Details (optional)',
+      takeOverNotice: 'The person currently handling this project and the team will receive an email. This notification cannot be disabled.',
+      takeOverConfirm: 'Take over',
+      reason: {
+        absence: 'Absence',
+        workload: 'Workload',
+        departure: 'Departure',
+        other: 'Other'
+      }
+    },
     previous: 'Previous',
     next: 'Next',
     pageOf: 'Page {{page}} / {{totalPages}}',
@@ -882,6 +920,41 @@ export default {
       addConditionToActivateGroup: 'Add a condition to activate this group.'
     },
     main: {
+      claimSettingsHeading: 'Taking projects in charge',
+      claimSettingsHint: 'A member of this team can take a triggered project in charge: it then leaves the other members’ "To review" list, and further exchanges only go to them.',
+      claimStaleDaysLabel: 'Flag after (business days without action)',
+      claimReminderDaysLabel: 'Email the owner after (business days without action)',
+      claimDaysZeroHint: '0 disables the corresponding signal.',
+      memberAbsenceHeading: 'Absences and backups',
+      memberAbsenceHint: 'Can be filled in for someone else: an unplanned absence is never declared by the person who is away.',
+      memberAbsenceActiveBadge: 'Currently away',
+      memberAbsenceActiveWithBackupTemplate: 'Currently away, backup: {{member}}',
+      memberAbsencePlannedTemplate: 'Absence planned from {{from}} to {{to}}',
+      memberAbsenceNone: 'No absence recorded',
+      memberAbsenceEditButton: 'Absence',
+      memberAbsenceFromLabel: 'From',
+      memberAbsenceToLabel: 'Until',
+      memberAbsenceBackupLabel: 'Backup',
+      memberAbsenceBackupNone: 'No backup',
+      memberAbsenceCancelButton: 'Cancel',
+      memberAbsenceClearButton: 'Clear the absence',
+      memberAbsenceSaveButton: 'Save',
+      claimOrphanWarningTemplate: '{{count}} project(s) are handled by an address that is no longer a contact of this team. Reassign them so they do not stay unattended.',
+      claimOrphanAssigneeTemplate: 'handled by {{member}}',
+      claimOrphanReassignToLabel: 'Reassign to',
+      claimOrphanReassignButton: 'Reassign',
+      claimListHeading: 'Projects currently handled',
+      claimListHint: 'Reassigning notifies the person who was handling the project, with "Departure" as the reason.',
+      claimStaleBadgeTemplate: '{{count}} business days without action',
+      claimLoadHeading: 'Current workload',
+      claimLoadTotalTemplate: '{{count}} project(s) handled',
+      claimLoadStaleTemplate: '{{count}} without action',
+      contactRemovalTitle: 'This contact still handles projects',
+      contactRemovalDescriptionTemplate: '{{member}} is being removed from {{team}} but still handles {{count}} project(s). Choose what happens to them.',
+      contactRemovalReassignToLabel: 'Reassign to',
+      contactRemovalCancelButton: 'Cancel the removal',
+      contactRemovalReleaseButton: 'Put them back in the team queue',
+      contactRemovalReassignButton: 'Reassign them',
       questionTypes: {
         choice: { label: 'Choice list', description: 'Displays a list of exclusive options.' },
         multiChoice: { label: 'Multiple choice', description: 'Allows selecting several answers.' },
@@ -1601,6 +1674,28 @@ export default {
     backToHome: 'Back to home'
   },
   synthesisReport: {
+    claim: {
+      label: 'Ownership:',
+      unassigned: 'nobody is handling this perimeter yet.',
+      assignedToYou: 'you are handling this project for this team.',
+      assignedTo: 'handled by {{person}}.',
+      claimButton: 'I will handle it',
+      releaseButton: 'Stop handling it',
+      takeOverButton: 'Take over',
+      implicitHint: 'Posting a comment or setting a status makes you the owner for this team: your colleagues then stop receiving notifications for this project.',
+      takenHint: 'Your comment will be sent to {{person}}, who keeps handling this project.',
+      takeOverReasonLabel: 'Reason for taking over',
+      takeOverNoteLabel: 'Details (optional)',
+      takeOverNotice: 'The person currently handling this project and the team will receive an email.',
+      takeOverConfirm: 'Confirm take-over',
+      cancelButton: 'Cancel',
+      reason: {
+        absence: 'Absence',
+        workload: 'Workload',
+        departure: 'Departure',
+        other: 'Other'
+      }
+    },
     statusValidated: 'Approved',
     statusValidatedWithConditions: 'Approved with conditions',
     statusPendingInformation: 'Awaiting information',

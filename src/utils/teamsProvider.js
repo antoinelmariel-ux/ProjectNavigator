@@ -3,6 +3,7 @@ import { getRepository } from './listRepository.js';
 import { resolveLocalizedText } from './localizedContent.js';
 import { DEFAULT_LANGUAGE } from '../i18n/languages.js';
 import { normalizeTeamMemberRules } from './teamMemberRules.js';
+import { resolveTeamClaimSettings } from './projectClaims.js';
 
 // `NameJson`/`Expertise` transportent {en, fr, de, es} (voir listSchemas.js) ; `Title` reste une
 // chaîne simple dérivée pour rester lisible tel quel dans les vues SharePoint natives.
@@ -12,7 +13,9 @@ const toTeam = (record) => ({
   contacts: Array.isArray(record.ContactsJson) ? record.ContactsJson : [],
   expertise: record.Expertise || {},
   acceptedLanguages: Array.isArray(record.AcceptedLanguagesJson) ? record.AcceptedLanguagesJson : [],
-  memberRules: Array.isArray(record.MemberRulesJson) ? record.MemberRulesJson : []
+  memberRules: Array.isArray(record.MemberRulesJson) ? record.MemberRulesJson : [],
+  claimStaleDays: record.ClaimStaleDays,
+  claimReminderDays: record.ClaimReminderDays
 });
 
 const toMeta = (record) => ({
@@ -36,6 +39,8 @@ const toRecord = (team, { sortOrder, userEmail } = {}) => ({
   Expertise: team.expertise && typeof team.expertise === 'object' ? team.expertise : (team.expertise ? { [DEFAULT_LANGUAGE]: team.expertise } : {}),
   AcceptedLanguagesJson: Array.isArray(team.acceptedLanguages) ? team.acceptedLanguages : [],
   MemberRulesJson: normalizeTeamMemberRules(team),
+  ClaimStaleDays: resolveTeamClaimSettings(team).staleDays,
+  ClaimReminderDays: resolveTeamClaimSettings(team).reminderDays,
   SortOrder: typeof sortOrder === 'number' ? sortOrder : 0,
   UpdatedByEmail: userEmail || '',
   UpdatedAt: new Date().toISOString()
