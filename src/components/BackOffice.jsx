@@ -62,7 +62,7 @@ import {
   sortCandidates
 } from '../utils/ruleDraftFromAnswers.js';
 import { normalizeTeamContacts } from '../utils/teamContacts.js';
-import { ACTIVITY_SCOPE_LABELS } from '../utils/activityScope.js';
+import { ACTIVITY_SCOPE_LABELS, ACTIVITY_SCOPE_VALUES } from '../utils/activityScope.js';
 import { PeoplePicker } from './PeoplePicker.jsx';
 import { buildImpersonationUrl, isImpersonating } from '../utils/impersonation.js';
 import {
@@ -713,27 +713,47 @@ export const BackOffice = ({
   const [onboardingEditingLanguage, setOnboardingEditingLanguage] = useState(language);
   const [teamsEditingLanguage, setTeamsEditingLanguage] = useState(language);
   const [inspirationEditingLanguage, setInspirationEditingLanguage] = useState(language);
+  // Périmètre d'activité du banc d'essai : celui du profil par défaut, ou celui que l'expert
+  // simule pour vérifier ce que verrait quelqu'un d'un autre périmètre. `null` = pas de
+  // simulation, on suit le profil réel (et on continue de le suivre s'il change).
+  const [benchScopeOverride, setBenchScopeOverride] = useState(null);
+  const profileActivityScope = useMemo(
+    () => (Array.isArray(activityScope) ? activityScope : []),
+    [activityScope]
+  );
+  const benchEffectiveScope = benchScopeOverride ?? profileActivityScope;
+  const isBenchScopeSimulated = useMemo(() => {
+    if (benchScopeOverride === null) {
+      return false;
+    }
+    if (benchScopeOverride.length !== profileActivityScope.length) {
+      return true;
+    }
+    return benchScopeOverride.some((value) => !profileActivityScope.includes(value));
+  }, [benchScopeOverride, profileActivityScope]);
+
   // Aperçu de conditions (onglet questions/règles) : simule les réponses avec le périmètre
-  // d'activité réel de la personne connectée, comme dans le vrai questionnaire.
+  // d'activité du banc — celui de la personne connectée tant qu'aucune simulation n'est
+  // active, comme dans le vrai questionnaire.
   const shouldShowQuestion = useCallback(
     (question, answersForEvaluation) =>
-      shouldShowQuestionBase(question, withActivityScope(answersForEvaluation, activityScope)),
-    [activityScope]
+      shouldShowQuestionBase(question, withActivityScope(answersForEvaluation, benchEffectiveScope)),
+    [benchEffectiveScope]
   );
   const shouldShowOption = useCallback(
     (option, answersForEvaluation) =>
-      shouldShowOptionBase(option, withActivityScope(answersForEvaluation, activityScope)),
-    [activityScope]
+      shouldShowOptionBase(option, withActivityScope(answersForEvaluation, benchEffectiveScope)),
+    [benchEffectiveScope]
   );
   const analyzeAnswers = useCallback(
     (answersForEvaluation, rulesArg, riskLevelRulesArg, riskWeightsArg) =>
       analyzeAnswersBase(
-        withActivityScope(answersForEvaluation, activityScope),
+        withActivityScope(answersForEvaluation, benchEffectiveScope),
         rulesArg,
         riskLevelRulesArg,
         riskWeightsArg
       ),
-    [activityScope]
+    [benchEffectiveScope]
   );
   const [activeTab, setActiveTab] = useState('dashboard');
   const [editingRule, setEditingRule] = useState(null);
@@ -4065,12 +4085,23 @@ export const BackOffice = ({
   // Toutes les règles du référentiel, étiquetées par leur état sur le projet chargé. C'est ce
   // qui permet de consulter et corriger une règle existante sans quitter le banc d'essai :
   // `setEditingRule` ouvre exactement le même éditeur que l'onglet Règles.
-  const benchActivityScopeLabels = useMemo(
-    () => (Array.isArray(activityScope) ? activityScope : [])
-      .map((value) => resolveLocalizedText(ACTIVITY_SCOPE_LABELS[value], language) || value)
-      .filter(Boolean),
-    [activityScope, language]
+  const benchScopeOptions = useMemo(
+    () => ACTIVITY_SCOPE_VALUES.map((value) => ({
+      value,
+      label: resolveLocalizedText(ACTIVITY_SCOPE_LABELS[value], language) || value,
+      selected: benchEffectiveScope.includes(value)
+    })),
+    [benchEffectiveScope, language]
   );
+
+  const toggleBenchScopeValue = useCallback((value) => {
+    setBenchScopeOverride((prev) => {
+      const current = prev ?? profileActivityScope;
+      return current.includes(value)
+        ? current.filter((entry) => entry !== value)
+        : [...current, value];
+    });
+  }, [profileActivityScope]);
 
   const benchTriggeredRuleIds = useMemo(() => {
     const triggered = Array.isArray(complianceBenchAnalysis?.triggeredRules)
@@ -4098,10 +4129,14 @@ export const BackOffice = ({
 
   const ruleDraftCandidates = useMemo(
     () => annotateCandidates(
-      buildConditionCandidates(complianceReviewAnswers, questions, { language }),
-      complianceSampleList
+      buildConditionCandidates(complianceReviewAnswers, questions, {
+        language,
+        activityScope: benchEffectiveScope
+      }),
+      complianceSampleList,
+      benchEffectiveScope
     ),
-    [complianceReviewAnswers, questions, language, complianceSampleList]
+    [complianceReviewAnswers, questions, language, complianceSampleList, benchEffectiveScope]
   );
 
   const ruleDraftOrderedCandidates = useMemo(
@@ -4148,13 +4183,13 @@ export const BackOffice = ({
   );
 
   const ruleDraftSampleMatch = useMemo(
-    () => countMatchingSamples(ruleDraftConditionGroups, complianceSampleList),
-    [ruleDraftConditionGroups, complianceSampleList]
+    () => countMatchingSamples(ruleDraftConditionGroups, complianceSampleList, benchEffectiveScope),
+    [ruleDraftConditionGroups, complianceSampleList, benchEffectiveScope]
   );
 
   const ruleDraftProjectMatch = useMemo(
-    () => countMatchingSamples(ruleDraftConditionGroups, complianceRealProjects),
-    [ruleDraftConditionGroups, complianceRealProjects]
+    () => countMatchingSamples(ruleDraftConditionGroups, complianceRealProjects, benchEffectiveScope),
+    [ruleDraftConditionGroups, complianceRealProjects, benchEffectiveScope]
   );
 
   const handleToggleRuleDraftCandidate = useCallback((candidateId) => {
@@ -8199,35 +8234,72 @@ export const BackOffice = ({
               {/* Le moteur injecte silencieusement le périmètre d'activité du profil dans chaque
                   évaluation de ce module (withActivityScope). Le rendre visible évite de chercher
                   pourquoi une question apparaît ou une règle se déclenche « sans raison ». */}
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-4">
+              <div
+                className={`rounded-xl border p-4 space-y-3 ${
+                  isBenchScopeSimulated
+                    ? 'border-amber-300 bg-amber-50/80'
+                    : 'border-emerald-200 bg-emerald-50/70'
+                }`}
+              >
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div>
-                    <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-emerald-900">
+                    <h3
+                      className={`flex items-center gap-2 text-sm font-bold uppercase tracking-wide ${
+                        isBenchScopeSimulated ? 'text-amber-900' : 'text-emerald-900'
+                      }`}
+                    >
                       <UserCircle className="h-4 w-4" />
-                      {t('backOffice.main.benchProfileHeading')}
+                      {isBenchScopeSimulated
+                        ? t('backOffice.main.benchScopeSimulatedHeading')
+                        : t('backOffice.main.benchProfileHeading')}
                     </h3>
-                    <p className="mt-1 text-xs text-emerald-800">{t('backOffice.main.benchProfileHint')}</p>
+                    <p className={`mt-1 text-xs ${isBenchScopeSimulated ? 'text-amber-800' : 'text-emerald-800'}`}>
+                      {isBenchScopeSimulated
+                        ? t('backOffice.main.benchScopeSimulatedHint')
+                        : t('backOffice.main.benchProfileHint')}
+                    </p>
                   </div>
-                  <div className="text-sm text-emerald-900">
-                    {currentUserEmail && (
-                      <p className="font-medium">{currentUserEmail}</p>
-                    )}
-                    {benchActivityScopeLabels.length === 0 ? (
-                      <p className="italic text-emerald-700">{t('backOffice.main.benchProfileNoScope')}</p>
-                    ) : (
-                      <div className="mt-1 flex flex-wrap gap-1.5">
-                        {benchActivityScopeLabels.map((label) => (
-                          <span
-                            key={label}
-                            className="rounded-full border border-emerald-300 bg-white px-2 py-0.5 text-xs font-medium text-emerald-800"
-                          >
-                            {label}
-                          </span>
-                        ))}
-                      </div>
+                  <div className={`text-sm ${isBenchScopeSimulated ? 'text-amber-900' : 'text-emerald-900'}`}>
+                    {currentUserEmail && <p className="font-medium">{currentUserEmail}</p>}
+                    {isBenchScopeSimulated && (
+                      <button
+                        type="button"
+                        onClick={() => setBenchScopeOverride(null)}
+                        className="mt-1 rounded-lg border border-amber-400 bg-white px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100"
+                      >
+                        {t('backOffice.main.benchScopeResetButton')}
+                      </button>
                     )}
                   </div>
                 </div>
+
+                <div
+                  className="flex flex-wrap gap-1.5"
+                  role="group"
+                  aria-label={t('backOffice.main.benchScopeSelectorAriaLabel')}
+                >
+                  {benchScopeOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => toggleBenchScopeValue(option.value)}
+                      aria-pressed={option.selected}
+                      className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+                        option.selected
+                          ? isBenchScopeSimulated
+                            ? 'border-amber-500 bg-amber-500 text-white'
+                            : 'border-emerald-500 bg-emerald-600 text-white'
+                          : 'border-gray-300 bg-white text-gray-600 hover:border-gray-400'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+
+                {benchEffectiveScope.length === 0 && (
+                  <p className="text-xs italic text-gray-600">{t('backOffice.main.benchProfileNoScope')}</p>
+                )}
               </div>
 
               <div className="rounded-xl border border-gray-200 bg-white p-4">

@@ -225,3 +225,63 @@ test('l apercu de regle montre les groupes reels et non une liste a plat', async
 
   await page.screenshot({ path: `${SHOT}/15-preview-groups.png`, fullPage: true });
 });
+
+test('le perimetre d activite est simulable et change ce que le banc evalue', async ({ page }) => {
+  await gotoHome(page);
+  await grantAdminAccess(page);
+  await page.getByRole('tab', { name: /Revue Compliance/i }).click();
+
+  const scopeGroup = page.getByRole('group', { name: /Périmètre d’activité utilisé/ });
+  await expect(scopeGroup).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Votre profil (onboarding)' })).toBeVisible();
+
+  // L'onboarding a coché le premier périmètre : « Monde entier » est actif, les autres non.
+  const worldwide = scopeGroup.getByRole('button', { name: 'Monde entier' });
+  await expect(worldwide).toHaveAttribute('aria-pressed', 'true');
+  const france = scopeGroup.getByRole('button', { name: 'France', exact: true });
+  await expect(france).toHaveAttribute('aria-pressed', 'false');
+
+  // Basculer un périmètre passe la carte en mode simulation, sans toucher au profil.
+  await france.click();
+  await expect(page.getByRole('heading', { name: 'Périmètre d’activité simulé' })).toBeVisible();
+  await expect(page.getByText(/Votre profil n’est pas modifié/)).toBeVisible();
+  await expect(france).toHaveAttribute('aria-pressed', 'true');
+  await page.screenshot({ path: `${SHOT}/16-scope-simulated.png`, fullPage: true });
+
+  // Retour au profil réel.
+  await page.getByRole('button', { name: 'Revenir à mon profil' }).click();
+  await expect(page.getByRole('heading', { name: 'Votre profil (onboarding)' })).toBeVisible();
+  await expect(france).toHaveAttribute('aria-pressed', 'false');
+});
+
+test('le perimetre simule est proposable comme condition de regle', async ({ page }) => {
+  await gotoHome(page);
+  await createAndSubmitProject(page);
+  await grantAdminAccess(page);
+  await page.getByRole('tab', { name: /Revue Compliance/i }).click();
+
+  const sampleSelect = page.getByLabel('Charger un projet type');
+  const projectValue = await sampleSelect
+    .locator('optgroup[label="Projets réels soumis"] option')
+    .first()
+    .getAttribute('value');
+  await sampleSelect.selectOption(projectValue);
+
+  const scopeGroup = page.getByRole('group', { name: /Périmètre d’activité utilisé/ });
+  await scopeGroup.getByRole('button', { name: 'France', exact: true }).click();
+
+  await page.getByRole('button', { name: 'Créer une règle à partir de ce projet' }).click();
+  const dialog = page.getByRole('dialog');
+
+  // La pseudo-question « Périmètre d'activité » doit être offerte comme condition. Le libellé
+  // vient de ACTIVITY_SCOPE_CONDITION_LABEL, qui utilise une apostrophe droite là où le reste
+  // de l'interface française en a une typographique : on cible sans l'apostrophe.
+  const scopeArticle = dialog.locator('article').filter({ hasText: /Périmètre d.activité/ });
+  await expect(scopeArticle).toHaveCount(1);
+  await scopeArticle.getByRole('button', { name: 'France', exact: true }).click();
+
+  await expect(dialog.getByText(/1 groupe\(s\) de conditions/)).toBeVisible();
+  // Le corpus est évalué avec le périmètre simulé : la condition y est vraie partout.
+  await expect(dialog.getByText(/Se déclencherait sur \d+ projet\(s\) réel\(s\)/)).toBeVisible();
+  await page.screenshot({ path: `${SHOT}/17-scope-as-condition.png`, fullPage: true });
+});

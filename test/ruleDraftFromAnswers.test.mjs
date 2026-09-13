@@ -198,3 +198,42 @@ test('describeDraftGroups retombe sur les identifiants quand le candidat a dispa
   assert.equal(described[0].items[0].questionLabel, 'q_inconnue');
   assert.equal(described[0].items[0].valueLabel, 'v');
 });
+
+test('le périmètre d’activité simulé devient une condition sélectionnable', () => {
+  const candidates = buildConditionCandidates(answers, questions, {
+    language: 'fr',
+    activityScope: ['france', 'benelux']
+  });
+  const scopeCandidates = candidates.filter((candidate) => candidate.questionId === '__activity_scope__');
+
+  assert.deepEqual(scopeCandidates.map((candidate) => candidate.value), ['france', 'benelux']);
+  assert.equal(scopeCandidates[0].valueLabel, 'France');
+  assert.equal(scopeCandidates[0].questionLabel, "Périmètre d'activité");
+});
+
+test('sans périmètre simulé, aucune condition de périmètre n’est proposée', () => {
+  const candidates = buildConditionCandidates(answers, questions, { language: 'fr' });
+  assert.equal(candidates.some((candidate) => candidate.questionId === '__activity_scope__'), false);
+});
+
+test('une condition de périmètre est évaluée avec le périmètre du banc, pas avec le projet', () => {
+  const groups = buildDraftConditionGroups(
+    [{ questionId: '__activity_scope__', operator: 'equals', value: 'france' }],
+    { mode: 'all' }
+  );
+
+  // Le projet type ne porte aucun périmètre : c'est celui du banc qui décide.
+  assert.equal(matchesConditionGroups(groups, { ProjectType: 'lfb' }, ['france']), true);
+  assert.equal(matchesConditionGroups(groups, { ProjectType: 'lfb' }, ['uk']), false);
+  assert.equal(matchesConditionGroups(groups, { ProjectType: 'lfb' }, []), false);
+});
+
+test('countMatchingSamples applique le périmètre simulé à tout le corpus', () => {
+  const groups = buildDraftConditionGroups(
+    [{ questionId: '__activity_scope__', operator: 'equals', value: 'france' }],
+    { mode: 'all' }
+  );
+
+  assert.equal(countMatchingSamples(groups, samples, ['france']).count, samples.length);
+  assert.equal(countMatchingSamples(groups, samples, ['uk']).count, 0);
+});

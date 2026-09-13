@@ -118,11 +118,6 @@ a {
   background-color: rgba(236,253,245, 0.60);
 }
 
-.bg-emerald-50\/70 {
-  --tw-bg-opacity: 1;
-  background-color: rgba(236,253,245, 0.70);
-}
-
 .bg-emerald-500 {
   --tw-bg-opacity: 1;
   background-color: rgba(16,185,129, var(--tw-bg-opacity));
@@ -327,6 +322,11 @@ a {
 .border-amber-200 {
   --tw-border-opacity: 1;
   border-color: rgba(253,230,138, var(--tw-border-opacity));
+}
+
+.border-amber-400 {
+  --tw-border-opacity: 1;
+  border-color: rgba(251,191,36, var(--tw-border-opacity));
 }
 
 .border-b {
@@ -2359,6 +2359,11 @@ a {
   .xl\:grid-cols-4 {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
+}
+
+.hover\:bg-amber-100:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgba(254,243,199, var(--tw-bg-opacity));
 }
 
 .hover\:bg-amber-50:hover {

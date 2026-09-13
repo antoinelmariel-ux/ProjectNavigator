@@ -1,9 +1,12 @@
 import { evaluateRule } from './rules.js';
 import {
+  ACTIVITY_SCOPE_QUESTION_ID,
   buildExtraCheckboxQuestionId,
   getQuestionOptionEntries,
-  normalizeAnswerForComparison
+  normalizeAnswerForComparison,
+  withActivityScope
 } from './questions.js';
+import { ACTIVITY_SCOPE_LABELS, ACTIVITY_SCOPE_CONDITION_LABEL } from './activityScope.js';
 import { getOperatorOptionsForType } from './operatorOptions.js';
 import { resolveLocalizedText } from './localizedContent.js';
 import { DEFAULT_LANGUAGE } from '../i18n/languages.js';
@@ -163,6 +166,28 @@ export const buildConditionCandidates = (answers, questions, options = {}) => {
     }
   });
 
+  // Le périmètre d'activité n'est pas une question du questionnaire mais une pseudo-question
+  // injectée à l'évaluation (withActivityScope) : il est sélectionnable comme condition au même
+  // titre qu'une vraie question, sinon une règle réservée à un périmètre serait impossible à
+  // construire depuis ce module alors qu'elle l'est depuis l'éditeur de règles.
+  const scope = Array.isArray(options.activityScope) ? options.activityScope : [];
+  scope.forEach((value) => {
+    if (typeof value !== 'string' || value.trim() === '') {
+      return;
+    }
+    candidates.push({
+      id: buildCandidateId(ACTIVITY_SCOPE_QUESTION_ID, value),
+      questionId: ACTIVITY_SCOPE_QUESTION_ID,
+      questionIndex: safeQuestions.length,
+      questionLabel: resolveLocalizedText(ACTIVITY_SCOPE_CONDITION_LABEL, language),
+      questionType: 'multi_choice',
+      operator: 'equals',
+      operatorOptions: getOperatorOptionsForType('multi_choice'),
+      value,
+      valueLabel: resolveLocalizedText(ACTIVITY_SCOPE_LABELS[value], language) || value
+    });
+  });
+
   return candidates;
 };
 
@@ -206,18 +231,24 @@ export const buildDraftConditionGroups = (selectedCandidates, options = {}) => {
   }));
 };
 
-export const matchesConditionGroups = (conditionGroups, answers) => {
+// Le périmètre d'activité vient du profil de la personne, pas du projet : un projet type n'en
+// porte donc aucun. On injecte celui avec lequel le banc évalue, pour répondre à la vraie
+// question — « que produirait cette règle pour quelqu'un dont le périmètre est celui-ci ».
+export const matchesConditionGroups = (conditionGroups, answers, activityScope) => {
   const groups = Array.isArray(conditionGroups) ? conditionGroups : [];
   if (groups.length === 0) {
     return true;
   }
 
-  return Boolean(evaluateRule({ conditionGroups: groups }, answers || {}).triggered);
+  return Boolean(
+    evaluateRule({ conditionGroups: groups }, withActivityScope(answers || {}, activityScope)).triggered
+  );
 };
 
-export const countMatchingSamples = (conditionGroups, samples) => {
+export const countMatchingSamples = (conditionGroups, samples, activityScope) => {
   const safeSamples = Array.isArray(samples) ? samples : [];
-  const matching = safeSamples.filter((sample) => matchesConditionGroups(conditionGroups, sample?.answers));
+  const matching = safeSamples.filter((sample) =>
+    matchesConditionGroups(conditionGroups, sample?.answers, activityScope));
 
   return { matching, total: safeSamples.length, count: matching.length };
 };
@@ -225,9 +256,9 @@ export const countMatchingSamples = (conditionGroups, samples) => {
 // Répartit chaque candidat dans l'une des trois classes qui disent à l'expert, sans score
 // inventé, ce que la condition apporte : elle sépare le corpus (discriminante), elle ne vise
 // que ce projet-là (spécifique) ou elle est vraie partout et n'apporte rien (universelle).
-export const classifyCandidate = (candidate, samples) => {
+export const classifyCandidate = (candidate, samples, activityScope) => {
   const groups = buildDraftConditionGroups([candidate], { mode: 'all' });
-  const { count, total } = countMatchingSamples(groups, samples);
+  const { count, total } = countMatchingSamples(groups, samples, activityScope);
 
   if (total === 0) {
     return { tier: CANDIDATE_TIERS.DISCRIMINANT, count, total };
@@ -244,9 +275,12 @@ export const classifyCandidate = (candidate, samples) => {
   return { tier: CANDIDATE_TIERS.DISCRIMINANT, count, total };
 };
 
-export const annotateCandidates = (candidates, samples) => {
+export const annotateCandidates = (candidates, samples, activityScope) => {
   const safeCandidates = Array.isArray(candidates) ? candidates : [];
-  return safeCandidates.map((candidate) => ({ ...candidate, ...classifyCandidate(candidate, samples) }));
+  return safeCandidates.map((candidate) => ({
+    ...candidate,
+    ...classifyCandidate(candidate, samples, activityScope)
+  }));
 };
 
 export const sortCandidates = (candidates, sortMode = 'questionnaire') => {
