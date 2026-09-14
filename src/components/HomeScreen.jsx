@@ -16,7 +16,9 @@ import {
   Close,
   Sparkles,
   Clock,
-  XCircle
+  XCircle,
+  Undo,
+  Redo
 } from './icons.js';
 import { normalizeProjectFilterConfig } from '../utils/projectFilters.js';
 import { normalizeInspirationFiltersConfig } from '../utils/inspirationConfig.js';
@@ -1402,15 +1404,15 @@ export const HomeScreen = ({
   }, [accessibleInspirationProjects, normalizedInspirationFilters.fields, inspirationFiltersState]);
 
   const submittedProjects = useMemo(() => {
-    if (!Array.isArray(projects)) {
+    if (!Array.isArray(accessibleProjects)) {
       return [];
     }
 
-    return projects
+    return accessibleProjects
       .filter((project) => project?.status === 'submitted')
       .slice()
       .sort((a, b) => getProjectTimestamp(b) - getProjectTimestamp(a));
-  }, [projects]);
+  }, [accessibleProjects]);
 
   const personalInspirationProjects = useMemo(
     () => filteredInspirationProjects.filter((project) => project?.visibility !== 'shared'),
@@ -2214,7 +2216,11 @@ export const HomeScreen = ({
                             ))}
                           </div>
                           {claimablePerimeters.length > 0 && (
-                            <ul className="space-y-1.5" aria-label={t('home.claim.listAriaLabel')}>
+                            <div
+                              className="space-y-1.5"
+                              role="list"
+                              aria-label={t('home.claim.listAriaLabel')}
+                            >
                               {claimablePerimeters.map((perimeter) => {
                                 const assigneeLabel = perimeter.claim?.assigneeName
                                   || perimeter.claim?.assigneeEmail
@@ -2224,55 +2230,70 @@ export const HomeScreen = ({
                                   language,
                                   t('home.dateUnknown')
                                 );
+                                const statusToneClasses = !perimeter.claim
+                                  ? 'border-gray-200 bg-white text-gray-500'
+                                  : perimeter.isMine
+                                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                    : 'border-blue-200 bg-blue-50 text-blue-700';
                                 return (
-                                  <li
+                                  <div
                                     key={`${project.id}-claim-${perimeter.id}`}
-                                    className="flex flex-wrap items-center gap-2 text-xs text-gray-600"
+                                    role="listitem"
+                                    className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2 text-xs"
                                   >
-                                    <span className="font-semibold text-gray-700">{perimeter.name}</span>
-                                    <span>
-                                      {!perimeter.claim
-                                        ? t('home.claim.unassigned')
-                                        : perimeter.isMine
-                                          ? t('home.claim.assignedToYou', { date: assignedDate })
-                                          : t('home.claim.assignedTo', { person: assigneeLabel, date: assignedDate })}
-                                    </span>
-                                    {perimeter.isStale && (
-                                      <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 font-semibold text-amber-700">
-                                        {t('home.claim.staleBadge')}
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <span className="font-semibold text-gray-700">{perimeter.name}</span>
+                                      <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-medium ${statusToneClasses}`}>
+                                        {perimeter.isMine && <CheckCircle className="w-3 h-3" aria-hidden="true" />}
+                                        {!perimeter.claim
+                                          ? t('home.claim.unassigned')
+                                          : perimeter.isMine
+                                            ? t('home.claim.assignedToYou', { date: assignedDate })
+                                            : t('home.claim.assignedTo', { person: assigneeLabel, date: assignedDate })}
                                       </span>
-                                    )}
-                                    {canActOnClaims && !perimeter.claim && (
-                                      <button
-                                        type="button"
-                                        onClick={() => handleClaimPerimeter(project.id, perimeter)}
-                                        className="rounded-lg border border-blue-200 px-2 py-1 font-semibold text-blue-700 hover:bg-blue-50"
-                                      >
-                                        {t('home.claim.claimButton')}
-                                      </button>
-                                    )}
-                                    {canActOnClaims && perimeter.isMine && (
-                                      <button
-                                        type="button"
-                                        onClick={() => handleReleasePerimeter(project.id, perimeter)}
-                                        className="rounded-lg border border-gray-300 px-2 py-1 font-semibold text-gray-700 hover:bg-gray-50"
-                                      >
-                                        {t('home.claim.releaseButton')}
-                                      </button>
-                                    )}
-                                    {canActOnClaims && perimeter.isHandledByOther && (
-                                      <button
-                                        type="button"
-                                        onClick={() => handleOpenClaimTakeover(projectEntry, perimeter)}
-                                        className="rounded-lg border border-amber-200 px-2 py-1 font-semibold text-amber-700 hover:bg-amber-50"
-                                      >
-                                        {t('home.claim.takeOverButton')}
-                                      </button>
-                                    )}
-                                  </li>
+                                      {perimeter.isStale && (
+                                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 font-semibold text-amber-700">
+                                          <Clock className="w-3 h-3" aria-hidden="true" />
+                                          {t('home.claim.staleBadge')}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      {canActOnClaims && !perimeter.claim && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleClaimPerimeter(project.id, perimeter)}
+                                          className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1 font-semibold text-white shadow-sm hover:bg-blue-700"
+                                        >
+                                          <CheckCircle className="w-3.5 h-3.5" aria-hidden="true" />
+                                          {t('home.claim.claimButton')}
+                                        </button>
+                                      )}
+                                      {canActOnClaims && perimeter.isMine && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleReleasePerimeter(project.id, perimeter)}
+                                          className="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-2.5 py-1 font-semibold text-gray-600 hover:bg-gray-100"
+                                        >
+                                          <Undo className="w-3.5 h-3.5" aria-hidden="true" />
+                                          {t('home.claim.releaseButton')}
+                                        </button>
+                                      )}
+                                      {canActOnClaims && perimeter.isHandledByOther && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleOpenClaimTakeover(projectEntry, perimeter)}
+                                          className="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-white px-2.5 py-1 font-semibold text-amber-700 hover:bg-amber-50"
+                                        >
+                                          <Redo className="w-3.5 h-3.5" aria-hidden="true" />
+                                          {t('home.claim.takeOverButton')}
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
                                 );
                               })}
-                            </ul>
+                            </div>
                           )}
                         </div>
                         <div className="flex items-center gap-3">
