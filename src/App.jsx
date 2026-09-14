@@ -1764,6 +1764,9 @@ const updateProjectFilters = useCallback((updater) => {
 
     const hydrateFromSharePoint = async () => {
       try {
+        let rulesFetchFailed = false;
+        let teamsFetchFailed = false;
+
         const [
           serverProjects,
           referentials,
@@ -1779,8 +1782,14 @@ const updateProjectFilters = useCallback((updater) => {
             // listes (pas encore créée, droits insuffisants) ne doit pas empêcher les projets et
             // référentiels de se charger normalement.
             complianceCommentsProvider.listAllComments().catch(() => ({})),
-            rulesProvider.listAllRules().catch(() => []),
-            teamsProvider.listAllTeams().catch(() => []),
+            rulesProvider.listAllRules().catch(() => {
+              rulesFetchFailed = true;
+              return [];
+            }),
+            teamsProvider.listAllTeams().catch(() => {
+              teamsFetchFailed = true;
+              return [];
+            }),
             sampleProjectsProvider.listAllSampleProjects().catch(() => [])
           ]);
 
@@ -1840,6 +1849,17 @@ const updateProjectFilters = useCallback((updater) => {
               files: referentials.errors.map((entry) => entry.file).join(', ')
             })
           );
+        }
+        if (rulesFetchFailed || teamsFetchFailed) {
+          // Un échec réel de récupération (droits, réseau) ne doit jamais se confondre avec une
+          // liste CN_Rules/CN_Teams légitimement vide : dans ce cas les règles/équipes affichées
+          // (et donc l'audit de traductions) restent celles du cache local/des fichiers de
+          // secours, pas celles de SharePoint — on le signale plutôt que de le masquer.
+          const labels = [
+            rulesFetchFailed ? t('app.banners.rulesTeamsSource.rules') : null,
+            teamsFetchFailed ? t('app.banners.rulesTeamsSource.teams') : null
+          ].filter(Boolean);
+          warnings.push(t('app.banners.rulesTeamsFetchFailedWarning', { lists: labels.join(', ') }));
         }
 
         setSharePointSync({
@@ -6492,7 +6512,7 @@ const updateProjectFilters = useCallback((updater) => {
           aria-modal="true"
           aria-labelledby="profile-modal-title"
         >
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full my-4 sm:my-8 p-6 sm:p-8 space-y-6 hv-modal-panel">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full my-4 sm:my-8 p-6 sm:p-8 space-y-6 overflow-y-auto hv-modal-panel">
             <div className="text-center">
               <h2 id="profile-modal-title" className="text-xl font-semibold text-gray-800">
                 {t('profile.title')}
