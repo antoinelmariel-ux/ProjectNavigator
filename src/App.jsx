@@ -6545,11 +6545,11 @@ const updateProjectFilters = useCallback((updater) => {
                   <p className="text-sm font-medium text-gray-700">{t('profile.claimCopySection.heading')}</p>
                   <p className="mt-1 text-xs text-gray-500">{t('profile.claimCopySection.description')}</p>
                 </div>
-                <ul className="space-y-2">
+                <div className="space-y-2" role="list">
                   {currentUserTeams.map((team) => {
                     const teamLabel = resolveLocalizedText(team.name, language) || team.id;
                     return (
-                      <li key={`profile-claim-copy-${team.id}`}>
+                      <div key={`profile-claim-copy-${team.id}`} role="listitem">
                         <label className="flex items-start gap-2 text-sm text-gray-700">
                           <input
                             type="checkbox"
@@ -6559,10 +6559,10 @@ const updateProjectFilters = useCallback((updater) => {
                           />
                           <span>{t('profile.claimCopySection.teamLabel', { team: teamLabel })}</span>
                         </label>
-                      </li>
+                      </div>
                     );
                   })}
-                </ul>
+                </div>
 
                 <div className="space-y-2 rounded-xl border border-gray-200 bg-gray-50 p-3">
                   <p className="text-sm font-medium text-gray-700">{t('profile.absenceSection.heading')}</p>
