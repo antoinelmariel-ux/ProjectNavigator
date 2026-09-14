@@ -460,6 +460,46 @@ avec un 403, et toutes les demandes finissent en `Error`.
 
 ---
 
+## Étape 5 ter — Power Automate : le flux de relance des dossiers pris en charge (recommandé)
+
+> ⚠️ **Contrairement aux autres flux « optionnels » de ce document, celui-ci remplace un
+> comportement qui existait déjà côté application — il ne s'ajoute pas à lui.** Quand un membre
+> d'une équipe prend en charge un dossier (voir la fonctionnalité « prise en charge » dans
+> `CLAUDE.md`) et qu'il ne s'y passe plus rien pendant le délai configuré (`ClaimReminderDays`,
+> 3 jours ouvrés par défaut), le référent reçoit une relance par e-mail. **Sans serveur dédié**,
+> cette relance était jusqu'ici calculée et envoyée par la session de n'importe quel contact de
+> l'équipe qui ouvrait l'application — ce qui veut dire qu'**aucune relance ne partait si personne
+> de l'équipe n'ouvrait l'app**. L'application a été modifiée pour ne plus faire ce calcul du tout
+> en mode SharePoint (`isSharePointMode()` désactive la passe dans `src/App.jsx`) : **sans ce
+> flux, plus aucune relance de dossier pris en charge ne part une fois basculé sur SharePoint.**
+> Elle continue de fonctionner sans ce flux en mode local/mock (`file://`), qui n'a pas
+> d'alternative serveur.
+
+**Marche à suivre condensée** — le détail complet (calcul des jours ouvrés, lecture/écriture du
+`ClaimJson`, gabarit de l'e-mail) est dans
+[`MODE-OPERATOIRE-POWER-AUTOMATE.md`](MODE-OPERATOIRE-POWER-AUTOMATE.md), section
+« Flux 6 — Relance des dossiers pris en charge » :
+
+**Flux « CN – Relance des dossiers pris en charge »**
+
+1. **Déclencheur** : Périodicité → une fois par jour (ouvré de préférence).
+2. **Action** : SharePoint → « Obtenir les éléments » sur `CN_ComplianceComments`, filtré sur
+   `CommentType eq 'root' and AssigneeEmail ne '' and startswith(SectionKey,'team:')` (les
+   comités ne sont jamais pris en charge, voir `CLAUDE.md` — inutile de les traiter ici).
+3. **Pour chaque élément** : retrouver le seuil `ClaimReminderDays` de l'équipe concernée
+   (`CN_Teams`, via l'identifiant après `team:` dans `SectionKey`), calculer les jours ouvrés
+   écoulés depuis la dernière activité du périmètre (dernier changement de statut, dernière
+   réponse du fil, ou à défaut la date de prise en charge), et comparer au seuil.
+4. **Si la relance est due** (seuil dépassé et pas déjà relancé depuis) : déposer une ligne dans
+   `CN_NotificationsQueue` (même flux d'envoi que l'étape 5, rien à reconfigurer) adressée au
+   référent, puis mettre à jour `ClaimJson` sur la ligne `CN_ComplianceComments` pour y noter la
+   date de relance (`claim.reminderSentAt`).
+
+Aucune colonne supplémentaire à créer : tout ce dont ce flux a besoin (`AssigneeEmail`,
+`ClaimJson`, `ClaimReminderDays`) existe déjà dans les listes de l'étape 4.
+
+---
+
 ## Étape 6 — Ce que fait l'application toute seule (pour info)
 
 - **Aucun fichier de paramètres à téléverser à la main.** L'app disposera dans son back-office
@@ -486,6 +526,9 @@ avec un 403, et toutes les demandes finissent en `Error`.
   connue : une personne qui a accès au site uniquement via un groupe de sécurité reste trouvable
   normalement dans la recherche, mais l'app ne peut pas vérifier si elle a déjà accès au site par
   ce biais — elle demandera donc parfois un ajout redondant (sans risque, juste inutile).
+- **Relance des dossiers pris en charge :** en mode SharePoint, l'app ne calcule et n'envoie plus
+  elle-même cette relance (voir [étape 5 ter](#étape-5-ter--power-automate--le-flux-de-relance-des-dossiers-pris-en-charge-recommandé))
+  — **ce flux Power Automate est le seul mécanisme restant.**
 
 ## Étape 7 — Ce que tu me transmets pour lancer la migration
 
@@ -498,6 +541,7 @@ Les 14 listes CN_... sont créées avec les noms de colonnes exacts : oui / non
 Bibliothèques CN-App / CN-Config / CN-Documents créées          : oui / non
 Flux Power Automate de notifications créé et activé              : oui / non
 Flux Power Automate d'ajout comme membre du site créé et activé : oui / non
+Flux Power Automate de relance des dossiers pris en charge créé et activé : oui / non
 Boîte d'envoi utilisée par le flux : ma boîte / boîte partagée : ...............
 ```
 

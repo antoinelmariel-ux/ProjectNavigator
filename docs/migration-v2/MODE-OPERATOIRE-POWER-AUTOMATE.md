@@ -15,6 +15,7 @@
 | 3 | Relance des commentaires non résolus | Optionnel | 10 min | [§6](#6-flux-3--relance-des-commentaires-non-résolus-optionnel) |
 | 4 | Purge du journal des notifications | Optionnel (entretien) | 10 min | [§7](#7-flux-4--purge-du-journal-optionnel) |
 | 5 | Ajout automatique comme membre du site | Selon ta décision — voir [§7 bis](#7-bis-flux-5--ajout-automatique-comme-membre-du-site-selon-ta-décision) | 20 min | [§7 bis](#7-bis-flux-5--ajout-automatique-comme-membre-du-site-selon-ta-décision) |
+| 6 | Relance des dossiers pris en charge | ⚠️ **Recommandé** — sans lui, plus aucune relance ne part une fois basculé en mode SharePoint | 25 min | [§7 ter](#7-ter-flux-6--relance-des-dossiers-pris-en-charge-recommandé) |
 
 **Commence par le flux 1 et teste-le** ([§4](#4-recette-du-flux-1--5-minutes)) avant d'aborder les autres.
 
@@ -439,6 +440,176 @@ Sans étape dédiée, cet échec disparaît silencieusement — même patron qu'
 
 ---
 
+## 7 ter. Flux 6 — Relance des dossiers pris en charge (recommandé)
+
+> ⚠️ **Ce flux n'est pas un flux « en plus » : il remplace un mécanisme qui existait déjà côté
+> application.** Quand un contact d'une équipe prend en charge un dossier et n'y touche plus
+> pendant `ClaimReminderDays` jours ouvrés (3 par défaut), le référent reçoit une relance. Sans
+> serveur, ce calcul tournait jusqu'ici dans la session de **n'importe quel** contact de l'équipe
+> qui ouvrait l'app — ce qui ne se produisait pas si personne ne l'ouvrait. Le code applicatif
+> (`src/App.jsx`) a été modifié pour ne plus faire ce calcul du tout dès que l'app tourne en mode
+> SharePoint : **sans ce flux, cette relance ne part plus jamais** une fois basculé sur
+> SharePoint. (Elle continue de fonctionner sans lui en mode local/mock `file://`, qui n'a pas
+> d'autre option.)
+
+### 7 ter.1 Où vit la donnée
+
+Tout ce dont ce flux a besoin est déjà dans les listes de la préparation, en colonnes plates ou en
+JSON simple à parser — pas besoin de fouiller dans le gros `AnswersJson` de `CN_Projects` :
+
+| Donnée | Liste | Colonne |
+|---|---|---|
+| Qui a pris en charge le dossier | `CN_ComplianceComments` (ligne `CommentType = root`) | `AssigneeEmail` |
+| Détail de la prise en charge (date, relance déjà envoyée) | `CN_ComplianceComments` | `ClaimJson` → `{"claim":{"assignedAt":"...","reminderSentAt":"..."},"history":[...]}` |
+| Périmètre concerné | `CN_ComplianceComments` | `SectionKey` (`team:<id>` ou `committee:<id>` — **seuls les `team:` sont pris en charge**, un comité ne se prend jamais en charge) |
+| Dernier changement de statut | `CN_ComplianceComments` (ligne racine) | `UpdatedAt` |
+| Dernière réponse dans le fil | `CN_ComplianceComments` (lignes `CommentType = reply`, même `ThreadId` que la racine) | `UpdatedAt` |
+| Seuil de relance de l'équipe | `CN_Teams` | `ClaimReminderDays` (vide = valeur par défaut 3 ; `0` = relance désactivée pour cette équipe) |
+
+### 7 ter.2 Créer le flux et son déclencheur
+
+1. **Créer** → **Flux de cloud planifié**. Nom : `CN - Relance des dossiers pris en charge`.
+   Tous les **1 Jour**, à l'heure de ton choix (ex. **08:00**), fuseau Paris.
+2. SharePoint → **« Obtenir les éléments »** :
+
+   | Champ | Valeur |
+   |---|---|
+   | Adresse du site | ton site |
+   | Nom de la liste | `CN_ComplianceComments` |
+   | Requête de filtre (Paramètres avancés) | `CommentType eq 'root' and AssigneeEmail ne '' and startswith(SectionKey,'team:')` |
+   | Nombre max d'éléments | `2000` |
+
+3. Power Automate ajoute automatiquement une boucle **« Appliquer à chacun »** dès que tu utilises
+   une action référençant `value` de cette étape. Tout ce qui suit se construit **à l'intérieur**
+   de cette boucle.
+
+### 7 ter.3 Retrouver le seuil de l'équipe
+
+1. Dans la boucle → **Compose** : `substring(items('Appliquer_à_chacun')?['SectionKey'], 5)`
+   (retire le préfixe `team:`, qui fait 5 caractères) → c'est le `TeamId`.
+2. SharePoint → **« Obtenir les éléments »** sur `CN_Teams`, filtre
+   `TeamId eq '@{outputs('Compose')}'`, nombre max `1`.
+3. **Compose** (seuil effectif) : expression
+   `coalesce(first(outputs('Obtenir_les_éléments_2')?['body/value'])?['ClaimReminderDays'], 3)`.
+   *(reproduit exactement la valeur par défaut de `DEFAULT_CLAIM_REMINDER_DAYS` dans
+   `src/utils/projectClaims.js`.)*
+
+### 7 ter.4 Calculer les jours ouvrés depuis la dernière activité
+
+Pas de calendrier de jours fériés ici (l'app n'en a pas non plus, voir
+`src/utils/businessDays.js`) : uniquement lundi-vendredi.
+
+1. **Parse JSON** sur `ClaimJson` de l'élément courant (`items('Appliquer_à_chacun')?['ClaimJson']`)
+   — schéma libre, ou coche « Générer à partir d'un exemple » avec
+   `{"claim":{"assignedAt":"2026-01-01T00:00:00Z","reminderSentAt":""},"history":[]}`.
+2. SharePoint → **« Obtenir les éléments »** (réponses du fil) sur `CN_ComplianceComments`,
+   filtre `ThreadId eq '@{items('Appliquer_à_chacun')?['CommentId']}' and CommentType eq 'reply'`,
+   **Trier par** `UpdatedAt` **décroissant**, nombre max `1`.
+3. **Compose** (dernière activité) — trois candidats, on garde le plus récent (comparaison de
+   texte ISO 8601, valide tant que toutes les dates sont en UTC comme le fait l'app) :
+   ```
+   if(
+     greater(items('Appliquer_à_chacun')?['UpdatedAt'], coalesce(first(outputs('Obtenir_les_éléments_3')?['body/value'])?['UpdatedAt'], '')),
+     items('Appliquer_à_chacun')?['UpdatedAt'],
+     coalesce(first(outputs('Obtenir_les_éléments_3')?['body/value'])?['UpdatedAt'], body('Parse_JSON')?['claim']?['assignedAt'])
+   )
+   ```
+4. **Initialiser une variable** `varCursor` (type Chaîne) = la sortie de l'étape précédente,
+   tronquée à la date : expression `formatDateTime(outputs('Compose_dernière_activité'), 'yyyy-MM-dd')`.
+   **Initialiser une variable** `varBusinessDays` (type Entier) = `0`.
+5. **Do until** `varCursor` est supérieur ou égal à `formatDateTime(utcNow(), 'yyyy-MM-dd')` :
+   - **Ajouter du temps** : `varCursor` + 1 jour → réaffecter `varCursor` (expression
+     `formatDateTime(addDays(varCursor, 1), 'yyyy-MM-dd')`).
+   - **Condition** : `dayOfWeek(varCursor)` n'est ni `0` (dimanche) ni `6` (samedi) →
+     si oui, **Incrémenter la variable** `varBusinessDays` de `1`.
+   - ⚠️ **Modifie les limites de la boucle** (**⋯** sur l'action Do until → **Paramètres** →
+     **Nombre de tentatives**/« Count ») : la valeur par défaut de **60** suffit à peine à deux
+     mois de retard. Monte-la à **3660** (10 ans, large marge) — un dossier oublié depuis très
+     longtemps ne doit pas faire échouer le flux.
+
+   *(Ce calcul reproduit volontairement `countBusinessDaysBetween` jour par jour plutôt qu'avec une
+   formule fermée, pour rester lisible et auditable dans l'éditeur Power Automate — exactement ce
+   que fait la boucle JS d'origine.)*
+
+### 7 ter.5 Décider si la relance est due
+
+**Condition** — toutes ces conditions réunies (groupe « ET ») :
+
+| Membre gauche | Opérateur | Membre droit |
+|---|---|---|
+| Seuil effectif (§7 ter.3) | est supérieur à | `0` |
+| `varBusinessDays` | est supérieur ou égal à | Seuil effectif |
+| `body('Parse_JSON')?['claim']?['reminderSentAt']` | est vide **OU** est inférieur à la dernière activité (§7 ter.4) | — |
+
+*(Reproduit `isReminderDue` de `getClaimStaleness` dans `projectClaims.js` : seuil désactivé si
+`0`, et une relance déjà envoyée depuis la dernière activité ne se rejoue pas.)*
+
+### 7 ter.6 Envoyer la relance et marquer `reminderSentAt`
+
+Dans la branche **« Si oui »** :
+
+1. SharePoint → **« Obtenir un élément »** sur `CN_Projects`, filtré sur
+   `ProjectId eq '@{items('Appliquer_à_chacun')?['ProjectId']}'` (nombre max `1`), pour récupérer
+   le nom du projet (`Title`) — `CN_ComplianceComments` ne le porte pas.
+2. SharePoint → **« Créer un élément »** sur `CN_NotificationsQueue` :
+
+   | Colonne | Valeur |
+   |---|---|
+   | `Title` | `concat('[Project Navigator] Reminder: project waiting for your review - ', first(outputs('Obtenir_un_élément')?['body/value'])?['Title'])` |
+   | `ToEmails` | `items('Appliquer_à_chacun')?['AssigneeEmail']` |
+   | `Body` (mode `</>`, comme au §3.4) | `concat('<p>You are handling the project "', first(outputs('Obtenir_un_élément')?['body/value'])?['Title'], '" and no action has been recorded on it for ', string(variables('varBusinessDays')), ' business days.</p><p>Open the synthesis report and post your review, or update the compliance status. Release the project so that another member of your team can pick it up if you cannot handle it.</p>')` |
+   | `NotificationType` | `Reminder: project waiting for your review` |
+   | `ProjectId` | `items('Appliquer_à_chacun')?['ProjectId']` |
+   | `Status` | `Pending` |
+
+   *(Le flux 1 se charge de l'envoi — aucune action Outlook à ajouter ici. Le texte anglais
+   reprend volontairement le gabarit `PERIMETER_STALE_REMINDER` de
+   `src/utils/notificationTemplates.js`, pour que cette relance ressemble aux autres.)*
+
+3. SharePoint → **« Mettre à jour l'élément »** sur `CN_ComplianceComments`, `Id` =
+   `items('Appliquer_à_chacun')?['ID']` :
+
+   | Colonne | Valeur |
+   |---|---|
+   | `ClaimJson` | `string(setProperty(body('Parse_JSON'), 'claim', setProperty(body('Parse_JSON')?['claim'], 'reminderSentAt', utcNow())))` |
+
+   ⚠️ **Ne touche pas à `UpdatedAt` sur cette mise à jour.** L'app considère `UpdatedAt` comme un
+   signe d'activité sur le dossier (`getPerimeterLastActivityAt`) ; si ce flux le modifiait en même
+   temps que `reminderSentAt`, la prochaine exécution verrait une « nouvelle activité » fictive et
+   ne renverrait donc jamais de seconde relance même en cas de silence prolongé. En laissant
+   `UpdatedAt` inchangé, `reminderSentAt` reste bien ≥ à la dernière vraie activité tant que rien
+   ne bouge, ce qui est exactement le comportement voulu par `isReminderDue`.
+
+4. **Gestion d'erreur** : même principe qu'au §3.6 (branche « Configurer l'exécution après » sur
+   l'action de création dans `CN_NotificationsQueue`, `Status` = `Error`).
+
+### 7 ter.7 Recette — 10 minutes
+
+1. Choisis un dossier de test déjà pris en charge (ou prends-en un en charge depuis l'app), puis
+   recule sa dernière activité à la main : ouvre la ligne racine correspondante dans
+   `CN_ComplianceComments` et avance `UpdatedAt` de plusieurs jours dans le passé (au-delà du
+   `ClaimReminderDays` de son équipe, en jours ouvrés).
+2. **Tester** le flux → *Manuellement*.
+3. Contrôle :
+   - [ ] Une nouvelle ligne `Pending` apparaît dans `CN_NotificationsQueue`, adressée au référent.
+   - [ ] Cette ligne passe ensuite à `Sent` (flux 1) et l'e-mail arrive.
+   - [ ] `ClaimJson` de la ligne racine porte désormais un `reminderSentAt` récent.
+4. **Relance-toi le flux immédiatement** (toujours *Manuellement*, sans rien changer) : aucune
+   nouvelle ligne ne doit apparaître dans `CN_NotificationsQueue` — c'est le test de
+   l'idempotence (§7 ter.5).
+
+### 7 ter.8 Sécurité et gouvernance
+
+- **Ajoute un co-propriétaire**, comme pour les autres flux (§3.7).
+- Ce flux ne lit et n'écrit que dans `CN_ComplianceComments`, `CN_Teams`, `CN_Projects` (lecture
+  seule) et `CN_NotificationsQueue` — les mêmes permissions que celles déjà accordées à l'app pour
+  ces listes suffisent, pas besoin d'un compte avec des droits élevés (contrairement au flux 5).
+- Si tu fais évoluer un jour la règle de relance dans le code (seuil, calendrier de jours fériés,
+  etc.), pense à reporter le même changement dans ce flux — c'est la seule partie de cette logique
+  qui vit à deux endroits. Voir la note de synchronisation en [§10](#10-références-techniques-pour-claude).
+
+---
+
 ## 8. Catalogue des notifications envoyées par l'application
 
 Le flux 1 traite **tous** ces messages : aucune configuration supplémentaire n'est nécessaire.
@@ -454,6 +625,12 @@ Le flux 1 traite **tous** ces messages : aucune configuration supplémentaire n'
 | 7 | Réponse du porteur sur le **rapport** | `Réponse du porteur de projet` | Équipes / comités ayant commenté | Confirmer que le point est levé, ou poursuivre |
 | 8 | Réponse dans un fil du **rapport** | `Réponse à votre commentaire` | Auteur du message précédent | Prendre connaissance de la réponse |
 | 9 | **Réintégration en comité** | `Réintégration en comité de validation` | Porteur + co-porteurs | Vérifier le dossier, préparer le passage |
+
+> ℹ️ **La relance des dossiers pris en charge (« Reminder: project waiting for your review ») n'est
+> volontairement pas dans ce tableau.** En mode SharePoint, l'application ne la déclenche plus du
+> tout — c'est le flux 6 ([§7 ter](#7-ter-flux-6--relance-des-dossiers-pris-en-charge-recommandé))
+> qui dépose lui-même la ligne dans `CN_NotificationsQueue`. Le flux 1 l'envoie ensuite exactement
+> comme les neuf autres, sans rien à ajouter de ce côté.
 
 **Deux règles appliquées automatiquement par l'application :**
 
@@ -515,6 +692,8 @@ et `Body`.
 - [ ] Co-propriétaire ajouté sur chaque flux
 - [ ] Boîte d'envoi décidée (personnelle ou partagée)
 - [ ] Vue « Anomalies » créée sur `CN_NotificationsQueue`
+- [ ] Flux 6 (relance des dossiers pris en charge) créé, testé ([§7 ter.7](#7-ter7-recette--10-minutes))
+  et **Activé** — sans lui, cette relance ne part plus du tout
 - [ ] Flux optionnels créés si souhaité
 
 ---
@@ -545,3 +724,26 @@ au bon endroit, puis compléter le tableau de la [§8](#8-catalogue-des-notifica
   membre du site »), pas à un comportement que l'app impose. S'il n'est jamais créé, les demandes
   s'accumulent simplement dans `CN_SiteAccessRequests` sans être traitées — l'app continue de
   fonctionner normalement, rien ne casse.
+
+### Flux 6 — Relance des dossiers pris en charge
+
+- Logique de seuil/idempotence dupliquée par ce flux :
+  `getClaimStaleness`/`resolveTeamClaimSettings` dans
+  [`src/utils/projectClaims.js`](../../src/utils/projectClaims.js), et le calcul des jours ouvrés
+  dans [`src/utils/businessDays.js`](../../src/utils/businessDays.js) (`countBusinessDaysBetween`,
+  aucun calendrier de jours fériés).
+- Gabarit de l'e-mail repris à la main dans le flux : `PERIMETER_STALE_REMINDER` dans
+  [`src/utils/notificationTemplates.js`](../../src/utils/notificationTemplates.js).
+- Ancien point d'appel côté app (toujours actif en mode local/mock, désactivé en mode SharePoint
+  via `isSharePointMode()`) : l'effet juste avant `handleUpdateComplianceComments` dans
+  [`src/App.jsx`](../../src/App.jsx) (commentaire « Relance du référent d'un projet pris en
+  charge… »).
+- Stockage de la prise en charge : `toClaimColumns`/`fromClaimColumns` dans
+  [`src/utils/complianceCommentsProvider.js`](../../src/utils/complianceCommentsProvider.js)
+  (`AssigneeEmail` + `ClaimJson` sur la ligne racine `CN_ComplianceComments`).
+- Tests : `test/projectClaims.test.mjs`, `test/businessDays.test.mjs` (si présent).
+- **⚠️ Point de synchronisation manuelle** : c'est la seule notification de ce document dont la
+  règle de déclenchement vit dans **deux** endroits (le JS et ce flux) plutôt qu'un seul. Si le
+  seuil, le calendrier de jours ouvrés ou la définition de « dernière activité » changent un jour
+  côté code, il faut reporter le même changement dans le flux — sinon l'app et Power Automate
+  finiront par ne plus être d'accord sur la date à laquelle une relance est due.

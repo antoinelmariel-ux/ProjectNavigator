@@ -4142,15 +4142,23 @@ const updateProjectFilters = useCallback((updater) => {
   }, [currentUserDisplayName, currentUserEmail, teams]);
 
   // Relance du référent d'un projet pris en charge mais sans action depuis le délai configuré
-  // par l'équipe (3 jours ouvrés par défaut). L'application n'a pas de serveur : la passe est
-  // faite par la session de n'importe quel contact de l'équipe qui ouvre l'app — y compris
-  // quelqu'un d'autre que le référent, justement parce qu'un référent absent n'ouvre rien.
-  // `reminderSentAt`, réarmé par toute nouvelle activité sur le périmètre, rend la passe
-  // idempotente ; le garde-fou de session évite en plus de la rejouer à chaque rendu.
+  // par l'équipe (3 jours ouvrés par défaut). En mode local/mock (pas de serveur), c'est le seul
+  // mécanisme disponible : la passe est faite par la session de n'importe quel contact de
+  // l'équipe qui ouvre l'app — y compris quelqu'un d'autre que le référent, justement parce
+  // qu'un référent absent n'ouvre rien. `reminderSentAt`, réarmé par toute nouvelle activité sur
+  // le périmètre, rend la passe idempotente ; le garde-fou de session évite en plus de la rejouer
+  // à chaque rendu.
+  // En mode SharePoint, ce même calcul est repris par le flux Power Automate « CN – Relance des
+  // dossiers pris en charge » (voir PREPARATION-SHAREPOINT-POWERAUTOMATE.md), qui tourne sans
+  // dépendre de l'ouverture de l'app par qui que ce soit. Les deux mécanismes lisent/écrivent le
+  // même `ClaimJson.claim.reminderSentAt` sur la ligne racine CN_ComplianceComments, donc les
+  // laisser actifs tous les deux enverrait régulièrement la relance en double (l'un dès qu'un
+  // contact ouvre l'app, l'autre chaque jour) : on désactive donc la passe côté app dès que
+  // `isSharePointMode()` est vrai, pour ne garder qu'une seule source d'envoi.
   const claimRemindersSentRef = useRef(new Set());
 
   useEffect(() => {
-    if (!isHydrated || !currentUserEmail || isSimulatedSession || projects.length === 0) {
+    if (!isHydrated || !currentUserEmail || isSimulatedSession || projects.length === 0 || isSharePointMode()) {
       return;
     }
 
