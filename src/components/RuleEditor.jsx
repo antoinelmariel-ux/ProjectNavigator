@@ -932,7 +932,7 @@ export const RuleEditor = ({ rule, onSave, onCancel, questions, teams }) => {
               <Users className="w-5 h-5 text-blue-500" />
               {t('backOffice.ruleEditor.teamsHeading')}
             </h3>
-            <label className="mb-4 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+            <label className="mb-1 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
               <input
                 type="checkbox"
                 checked={editedRule.notifyTeam !== false}
@@ -945,6 +945,7 @@ export const RuleEditor = ({ rule, onSave, onCancel, questions, teams }) => {
               />
               {t('backOffice.ruleEditor.notifyTeamLabel')}
             </label>
+            <p className="mb-4 text-xs text-gray-500">{t('backOffice.ruleEditor.notifyTeamHint')}</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {teams.map(team => (
                 <button

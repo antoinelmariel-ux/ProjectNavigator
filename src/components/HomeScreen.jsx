@@ -43,6 +43,7 @@ import { resolveLocalizedText } from '../utils/localizedContent.js';
 import { getLocaleTag } from '../i18n/languages.js';
 import { stripRichTextToPlainText } from '../utils/richText.js';
 import { computeProjectValidationStatus } from '../utils/projectValidationStatus.js';
+import { resolveEffectiveTeamComplianceEntry } from '../utils/complianceAutoValidation.js';
 
 const formatDate = (isoDate, language, unknownDateLabel) => {
   if (!isoDate) {
@@ -588,7 +589,7 @@ export const HomeScreen = ({
             return contacts.some((contact) => normalizeEmail(contact) === currentUserEmail);
           })
           .map((team) => {
-            const teamEntry = comments.teams?.[team.id];
+            const teamEntry = resolveEffectiveTeamComplianceEntry(comments.teams?.[team.id], project?.analysis, team.id, language);
             const claim = getPerimeterClaim(teamEntry);
             return {
               id: team.id,
@@ -628,7 +629,9 @@ export const HomeScreen = ({
         const triggeredPerimeters = [...triggeredTeams, ...triggeredCommittees].map((entry) => ({
           ...entry,
           isResolved: isCompliancePerimeterResolved(
-            entry.type === 'committee' ? comments.committees?.[entry.id] : comments.teams?.[entry.id],
+            entry.type === 'committee'
+              ? comments.committees?.[entry.id]
+              : resolveEffectiveTeamComplianceEntry(comments.teams?.[entry.id], project?.analysis, entry.id, language),
             entry.complianceEmails
           )
         }));
@@ -643,7 +646,8 @@ export const HomeScreen = ({
         const isHandledByTeammate = openPerimeters.length > 0
           && openPerimeters.every((entry) => entry.isHandledByOther);
 
-        const allExpertsValidated = relevantTeams.every((team) => comments.teams?.[team.id]?.status === 'validated');
+        const allExpertsValidated = relevantTeams.every((team) =>
+          resolveEffectiveTeamComplianceEntry(comments.teams?.[team.id], project?.analysis, team.id, language)?.status === 'validated');
         const userOutOfScopeCommittees = currentUserCommittees.filter(
           (committee) => !triggeredCommittees.some((entry) => entry.id === committee.id)
         );

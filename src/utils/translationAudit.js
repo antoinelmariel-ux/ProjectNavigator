@@ -18,7 +18,10 @@ const referenceLabel = (value) => {
 
 const pushItem = (items, { id, kind, refs, teamIds, contextLabel, value, multiline }) => {
   const missingLanguages = getMissingLanguages(value);
-  if (missingLanguages.length === 0) {
+  // Aucune langue manquante : rien à signaler. Toutes les langues manquantes : le champ n'a
+  // jamais été renseigné (ex. un libellé optionnel jamais utilisé) — ce n'est pas un défaut de
+  // traduction, donc pas davantage à afficher dans l'onglet Traductions.
+  if (missingLanguages.length === 0 || missingLanguages.length === SUPPORTED_LANGUAGES.length) {
     return;
   }
   items.push({

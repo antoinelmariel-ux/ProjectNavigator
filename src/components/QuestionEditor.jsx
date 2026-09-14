@@ -291,6 +291,42 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
     reorderOptions(index, index + 1);
   };
 
+  const reorderSubOptions = (index, fromSubIndex, toSubIndex) => {
+    if (fromSubIndex === toSubIndex) return;
+
+    setEditedQuestion(prev => {
+      const newOptions = [...prev.options];
+      const current = newOptions[index];
+      const existing = Array.isArray(current?.subOptions) ? [...current.subOptions] : [];
+      const [moved] = existing.splice(fromSubIndex, 1);
+      existing.splice(toSubIndex, 0, moved);
+
+      newOptions[index] = {
+        ...(current && typeof current === 'object' ? current : {}),
+        subOptions: existing
+      };
+
+      return {
+        ...prev,
+        options: newOptions
+      };
+    });
+  };
+
+  const moveSubOptionUp = (index, subIndex) => {
+    if (subIndex <= 0) {
+      return;
+    }
+    reorderSubOptions(index, subIndex, subIndex - 1);
+  };
+
+  const moveSubOptionDown = (index, subIndex, subOptionsLength) => {
+    if (subIndex >= subOptionsLength - 1) {
+      return;
+    }
+    reorderSubOptions(index, subIndex, subIndex + 1);
+  };
+
   const updateRankingConfig = (updater) => {
     setEditedQuestion(prev => {
       const baseConfig = buildDefaultRankingConfig(prev.rankingConfig);
@@ -1067,6 +1103,21 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
                 </label>
               </div>
 
+              <div>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(editedQuestion.isDraft)}
+                    onChange={(e) => setEditedQuestion({ ...editedQuestion, isDraft: e.target.checked })}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <label className="ml-2 text-sm font-medium text-gray-700">
+                    {t('backOffice.questionEditor.draftLabel')}
+                  </label>
+                </div>
+                <p className="text-xs text-gray-500 mt-1 ml-6">{t('backOffice.questionEditor.draftHint')}</p>
+              </div>
+
               <div className="border border-gray-200 rounded-lg p-4 space-y-3">
                 <div className="flex items-center">
                   <input
@@ -1318,8 +1369,30 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
                             </select>
                           </div>
                           <div className="space-y-2">
-                            {(option?.subOptions || []).map((subOption, subIdx) => (
+                            {(option?.subOptions || []).map((subOption, subIdx, subOptionsArray) => (
                               <div key={`${idx}-sub-${subIdx}`} className="flex items-center gap-2">
+                                <div className="flex flex-col gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => moveSubOptionUp(idx, subIdx)}
+                                    disabled={subIdx === 0}
+                                    className="rounded border border-gray-200 p-1 text-gray-500 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-30"
+                                    aria-label={t('backOffice.questionEditor.moveSubOptionUpAriaLabel', { number: subIdx + 1 })}
+                                    title={t('backOffice.questionEditor.moveUp')}
+                                  >
+                                    <ArrowUp className="h-3.5 w-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => moveSubOptionDown(idx, subIdx, subOptionsArray.length)}
+                                    disabled={subIdx === subOptionsArray.length - 1}
+                                    className="rounded border border-gray-200 p-1 text-gray-500 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-30"
+                                    aria-label={t('backOffice.questionEditor.moveSubOptionDownAriaLabel', { number: subIdx + 1 })}
+                                    title={t('backOffice.questionEditor.moveDown')}
+                                  >
+                                    <ArrowDown className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
                                 <input
                                   type="text"
                                   value={getLocalizedRaw(subOption?.label, editingLanguage)}

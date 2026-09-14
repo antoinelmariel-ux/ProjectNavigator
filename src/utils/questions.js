@@ -242,6 +242,10 @@ const evaluateConditionGroups = (conditionGroups, answers) => {
 };
 
 export const shouldShowQuestion = (question, answers) => {
+  if (question?.isDraft) {
+    return false;
+  }
+
   const conditionGroups = normalizeConditionGroups(question);
   return evaluateConditionGroups(conditionGroups, answers);
 };

@@ -26,6 +26,19 @@ test('collectTranslationItems ignore les champs déjà complets dans les 4 langu
   assert.equal(items.length, 0);
 });
 
+test('collectTranslationItems ignore un champ absent dans les 4 langues (jamais renseigné)', () => {
+  const items = collectTranslationItems({
+    questions: [{
+      id: 'q1',
+      question: { en: 'a', fr: 'b', de: 'c', es: 'd' },
+      extraCheckbox: { enabled: false, label: {} }
+    }],
+    rules: [],
+    teams: []
+  });
+  assert.equal(items.length, 0);
+});
+
 test('collectTranslationItems remonte une question incomplète comme contenu global (sans équipe)', () => {
   const items = collectTranslationItems({
     questions: [{ id: 'q1', question: { fr: 'Quel est votre nom ?' } }],
