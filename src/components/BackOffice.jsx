@@ -8897,7 +8897,7 @@ export const BackOffice = ({
                                   </h4>
                                   <p className="mt-1 text-xs text-gray-600">{t('backOffice.main.memberAbsenceHint')}</p>
                                 </div>
-                                <ul className="space-y-2">
+                                <ul className="list-none space-y-2">
                                   {teamContacts.map((contact) => {
                                     const draftKey = `${team.id}::${contact}`;
                                     const storedAbsence = normalizeAbsence(
