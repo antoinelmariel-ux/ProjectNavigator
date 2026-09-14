@@ -74,6 +74,12 @@ export default {
       close: 'Cerrar',
       missingConfigWarning: 'configuración no publicada ({{files}})',
       unreadableFilesWarning: 'archivos ilegibles: {{files}}',
+      rulesTeamsFetchFailedWarning:
+        'no se pudo recuperar desde SharePoint: {{lists}} — los datos mostrados (y la auditoría de traducciones) provienen de la última copia local, no de SharePoint',
+      rulesTeamsSource: {
+        rules: 'reglas',
+        teams: 'equipos'
+      },
       unknownError: 'Error desconocido.'
     },
     impersonation: {

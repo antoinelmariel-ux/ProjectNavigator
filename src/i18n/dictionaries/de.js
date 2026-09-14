@@ -74,6 +74,12 @@ export default {
       close: 'Schließen',
       missingConfigWarning: 'nicht veröffentlichte Konfiguration ({{files}})',
       unreadableFilesWarning: 'unlesbare Dateien: {{files}}',
+      rulesTeamsFetchFailedWarning:
+        'Abruf von SharePoint fehlgeschlagen: {{lists}} — die angezeigten Daten (und die Übersetzungsprüfung) stammen aus der letzten lokalen Kopie, nicht von SharePoint',
+      rulesTeamsSource: {
+        rules: 'Regeln',
+        teams: 'Teams'
+      },
       unknownError: 'Unbekannter Fehler.'
     },
     impersonation: {

@@ -74,6 +74,12 @@ export default {
       close: 'Close',
       missingConfigWarning: 'unpublished configuration ({{files}})',
       unreadableFilesWarning: 'unreadable files: {{files}}',
+      rulesTeamsFetchFailedWarning:
+        'could not fetch from SharePoint: {{lists}} — the data shown (and the translation audit) comes from the last local copy, not from SharePoint',
+      rulesTeamsSource: {
+        rules: 'rules',
+        teams: 'teams'
+      },
       unknownError: 'Unknown error.'
     },
     impersonation: {
