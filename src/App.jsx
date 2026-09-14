@@ -2498,8 +2498,10 @@ const updateProjectFilters = useCallback((updater) => {
 
     switch (stepId) {
       case 'welcome':
+      case 'quick-intro':
       case 'create-project': {
         setScreen('home');
+        setHomeView('platform');
         setShowcaseProjectContext(null);
         setActiveProjectId(null);
         setValidationError(null);
@@ -2508,7 +2510,10 @@ const updateProjectFilters = useCallback((updater) => {
         break;
       }
       case 'question-overview':
-      case 'question-guidance': {
+      case 'question-guidance':
+      case 'question-summary':
+      case 'question-answer-types':
+      case 'quick-questionnaire': {
         setShowcaseProjectContext(null);
         setScreen('questionnaire');
         setActiveProjectId('onboarding-demo');
@@ -2536,12 +2541,32 @@ const updateProjectFilters = useCallback((updater) => {
         setCurrentQuestionIndex(finishButtonIndex);
         break;
       }
+      case 'compliance-missing-info': {
+        setShowcaseProjectContext(null);
+        setAnswers(cloneDeep(demoData.answers));
+        setAnalysis(null);
+        setActiveProjectId('onboarding-demo');
+        setCurrentQuestionIndex(0);
+        setValidationError(null);
+        setScreen('mandatory-summary');
+        setSaveFeedback(null);
+        setHasUnsavedChanges(false);
+        break;
+      }
       case 'compliance-report-top':
       case 'compliance-teams':
       case 'compliance-risks':
       case 'compliance-submit':
       case 'compliance-save':
-      case 'compliance-showcase-button': {
+      case 'compliance-showcase-button':
+      case 'compliance-delays':
+      case 'compliance-cancel-submission':
+      case 'compliance-exchanges':
+      case 'compliance-committees':
+      case 'project-share-member':
+      case 'quick-analysis':
+      case 'quick-experts': {
+        setShowcaseProjectContext(null);
         setAnswers(cloneDeep(demoData.answers));
         setAnalysis(demoData.analysis);
         setCurrentQuestionIndex(0);
@@ -2551,7 +2576,8 @@ const updateProjectFilters = useCallback((updater) => {
         setHasUnsavedChanges(false);
         break;
       }
-      case 'showcase-top': {
+      case 'showcase-top':
+      case 'quick-showcase': {
         openDemoShowcase();
         ensureShowcaseTopVisible();
         break;
@@ -2561,7 +2587,10 @@ const updateProjectFilters = useCallback((updater) => {
       case 'showcase-edit':
       case 'showcase-custom-sections':
       case 'showcase-save-edits':
-      case 'showcase-back-to-report': {
+      case 'showcase-usage-mode-selection':
+      case 'showcase-back-to-report':
+      case 'quick-showcase-edit':
+      case 'project-early-feedback': {
         openDemoShowcase();
         break;
       }
@@ -2584,7 +2613,8 @@ const updateProjectFilters = useCallback((updater) => {
         setIsAnnotationPaused(false);
         break;
       }
-      case 'showcase-comments-postits': {
+      case 'showcase-comments-postits':
+      case 'quick-postits': {
         openDemoShowcase();
         setIsShowcaseShareOpen(false);
         setShowcaseShareFeedback('');
@@ -2596,11 +2626,32 @@ const updateProjectFilters = useCallback((updater) => {
         }));
         break;
       }
-      case 'project-filters':
       case 'project-inspiration':
-      case 'home-goodbye': {
+      case 'home-goodbye':
+      case 'quick-end':
+      case 'create-end':
+      case 'validate-end':
+      case 'showcase-end':
+      case 'inspiration-end': {
         setShowcaseProjectContext(null);
         setScreen('home');
+        setHomeView('platform');
+        setActiveProjectId(null);
+        setValidationError(null);
+        setSaveFeedback(null);
+        setHasUnsavedChanges(false);
+        break;
+      }
+      // La séquence « Trouver l'inspiration » bascule l'accueil sur l'onglet Inspiration :
+      // le bouton d'ajout et les inspirations elles-mêmes n'existent pas dans l'autre vue.
+      case 'project-filters':
+      case 'inspiration-toggle':
+      case 'inspiration-add':
+      case 'inspiration-content':
+      case 'inspiration-visibility': {
+        setShowcaseProjectContext(null);
+        setScreen('home');
+        setHomeView('inspiration');
         setActiveProjectId(null);
         setValidationError(null);
         setSaveFeedback(null);
@@ -2623,6 +2674,7 @@ const updateProjectFilters = useCallback((updater) => {
     setIsAnnotationPaused,
     setCurrentQuestionIndex,
     setHasUnsavedChanges,
+    setHomeView,
     setIsShowcaseShareOpen,
     setSaveFeedback,
     setScreen,
@@ -7015,8 +7067,8 @@ const updateProjectFilters = useCallback((updater) => {
               currentUser={currentUser}
               sharedMembers={activeProject?.sharedWith || []}
               ownerEmail={activeProject?.ownerEmail || ''}
-              onShareProjectMember={activeProjectId && canManageProject(activeProject) ? handleAddSharedMember : undefined}
-              onRemoveProjectMember={activeProjectId && canManageProject(activeProject) ? handleRemoveSharedMember : undefined}
+              onShareProjectMember={isOnboardingActive || (activeProjectId && canManageProject(activeProject)) ? handleAddSharedMember : undefined}
+              onRemoveProjectMember={isOnboardingActive || (activeProjectId && canManageProject(activeProject)) ? handleRemoveSharedMember : undefined}
               onSubmitProject={handleSubmitProject}
               onNavigateToQuestion={handleNavigateToQuestionFromReport}
               isExistingProject={Boolean(activeProjectId)}

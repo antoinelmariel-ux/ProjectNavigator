@@ -84,6 +84,16 @@ const DEFAULT_SELECT_FILTER_VALUE = 'all';
 const DEFAULT_TEXT_FILTER_VALUE = '';
 const COMPLIANCE_COMMENTS_KEY = '__compliance_team_comments__';
 const PUBLIC_VISIBILITY_KEY = '__public_visibility__';
+const TOUR_STEP_SCROLL_TARGETS = {
+  'create-project': '[data-tour-id="home-create-project"]',
+  'quick-intro': '[data-tour-id="home-create-project"]',
+  'project-filters': '[data-tour-id="home-inspiration-filters"]',
+  'project-inspiration': '[data-tour-id="home-inspiration-block"]',
+  'inspiration-toggle': '[data-tour-id="home-inspiration-toggle"]',
+  'inspiration-add': '[data-tour-id="home-add-inspiration"]',
+  'inspiration-content': '[data-tour-id="home-add-inspiration"]',
+  'inspiration-visibility': '[data-tour-id="home-inspiration-block"]'
+};
 const PROJECTS_PAGE_SIZE = 6;
 const INSPIRATIONS_PAGE_SIZE = 6;
 
@@ -807,15 +817,7 @@ export const HomeScreen = ({
     }
 
     const { activeStep } = tourContext;
-    let selector = null;
-
-    if (activeStep === 'create-project') {
-      selector = '[data-tour-id="home-create-project"]';
-    } else if (activeStep === 'project-filters') {
-      selector = '[data-tour-id="home-filters"]';
-    } else if (activeStep === 'project-inspiration') {
-      selector = '[data-tour-id="home-inspiration-block"]';
-    }
+    const selector = TOUR_STEP_SCROLL_TARGETS[activeStep] || null;
 
     if (selector) {
       const element = document.querySelector(selector);
@@ -2700,6 +2702,7 @@ export const HomeScreen = ({
                   className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-4"
                   role="region"
                   aria-label={t('home.inspirationFiltersAriaLabel')}
+                  data-tour-id="home-inspiration-filters"
                 >
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-700">

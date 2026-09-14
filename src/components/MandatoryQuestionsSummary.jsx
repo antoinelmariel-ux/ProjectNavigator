@@ -36,7 +36,10 @@ export const MandatoryQuestionsSummary = ({
   return (
     <div className="py-10 px-4 sm:px-8">
       <div className="max-w-4xl mx-auto">
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 sm:p-8 space-y-6">
+        <div
+          className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 sm:p-8 space-y-6"
+          data-tour-id="mandatory-summary-panel"
+        >
           <div className="flex items-start gap-4">
             {hasPending ? (
               <AlertTriangle className="w-6 h-6 text-yellow-500 mt-1" />

@@ -82,6 +82,19 @@ const formatCriterionScore = (value) => {
 };
 
 const COMPLIANCE_COMMENTS_KEY = '__compliance_team_comments__';
+const TOUR_STEP_SCROLL_TARGETS = {
+  'compliance-report': '[data-tour-id="synthesis-summary"]',
+  'compliance-report-top': '[data-tour-id="synthesis-summary"]',
+  'quick-analysis': '[data-tour-id="synthesis-summary"]',
+  'compliance-teams': '[data-tour-id="synthesis-teams"]',
+  'compliance-risks': '[data-tour-id="synthesis-risks"]',
+  'compliance-delays': '[data-tour-id="synthesis-vigilance"]',
+  'compliance-exchanges': '[data-tour-id="synthesis-team-exchange"]',
+  'quick-experts': '[data-tour-id="synthesis-team-exchange"]',
+  'compliance-committees': '[data-tour-id="synthesis-committees"]',
+  'project-share-member': '[data-tour-id="synthesis-share-member"]'
+};
+const TEAM_EXCHANGE_TOUR_STEPS = new Set(['compliance-exchanges', 'quick-experts']);
 const COMMENT_STATUS_OPTIONS = [
   {
     value: 'validated',
@@ -577,14 +590,7 @@ export const SynthesisReport = ({
       return;
     }
 
-    const stepToSelectorMap = {
-      'compliance-report': '[data-tour-id="synthesis-summary"]',
-      'compliance-report-top': '[data-tour-id="synthesis-summary"]',
-      'compliance-teams': '[data-tour-id="synthesis-teams"]',
-      'compliance-risks': '[data-tour-id="synthesis-risks"]'
-    };
-
-    const selector = stepToSelectorMap[tourContext.activeStep];
+    const selector = TOUR_STEP_SCROLL_TARGETS[tourContext.activeStep];
     if (!selector) {
       return;
     }
@@ -593,7 +599,9 @@ export const SynthesisReport = ({
     if (element && typeof element.scrollIntoView === 'function') {
       element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-  }, [tourContext]);
+    // teamCollapsedOverrides : le fil d'échanges n'entre dans le DOM qu'une fois l'équipe
+    // dépliée par l'effet ci-dessous, donc après ce premier passage.
+  }, [tourContext, teamCollapsedOverrides]);
   // Mémoïsé : une nouvelle référence de tableau à chaque rendu casserait l'effet plus bas qui
   // dépend de relevantTeams pour reconstruire complianceCommentDrafts — sans ça, n'importe quel
   // rendu non lié (ex : déplier une équipe) écrase le statut/commentaire en cours de saisie en
@@ -603,6 +611,25 @@ export const SynthesisReport = ({
     () => teams.filter(team => (analysisTeamIds || []).includes(team.id)),
     [teams, analysisTeamIds]
   );
+  // Les équipes sont repliées par défaut : sans ce dépliage, les étapes du tour qui montrent
+  // le fil d'échanges avec les experts pointeraient un élément absent du DOM.
+  useEffect(() => {
+    if (!tourContext?.isActive || !TEAM_EXCHANGE_TOUR_STEPS.has(tourContext.activeStep)) {
+      return;
+    }
+
+    setTeamCollapsedOverrides((previous) => {
+      const next = { ...previous };
+      let hasChanged = false;
+      relevantTeams.forEach((team) => {
+        if (next[team.id] !== false) {
+          next[team.id] = false;
+          hasChanged = true;
+        }
+      });
+      return hasChanged ? next : previous;
+    });
+  }, [tourContext, relevantTeams]);
   const sharedTeamBlocks = useMemo(() => {
     const blocks = Array.isArray(analysis?.sharedTeamBlocks) ? analysis.sharedTeamBlocks : [];
     return blocks.map((block) => {
@@ -1596,7 +1623,7 @@ export const SynthesisReport = ({
           </div>
 
           {(onShareProjectMember || onRemoveProjectMember) && (
-            <div className="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <div className="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-4" data-tour-id="synthesis-share-member">
               <div>
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-600">
                   {t('synthesisReport.shareSectionTitle')}
@@ -1967,7 +1994,7 @@ export const SynthesisReport = ({
                         )}
 
                         {shouldShowComplianceCommentsSection && (
-                          <div className="mt-6 border-t border-gray-200 pt-4 space-y-4">
+                          <div className="mt-6 border-t border-gray-200 pt-4 space-y-4" data-tour-id="synthesis-team-exchange">
                             {!isLanguageAcceptedBy(team.acceptedLanguages, language) && (
                               <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
                                 {t('synthesisReport.teamAcceptedLanguagesNoticeTemplate', {
@@ -2434,7 +2461,7 @@ export const SynthesisReport = ({
             ))}
 
             {vigilanceAlerts.length > 0 && (
-              <section aria-labelledby="vigilance-heading" className="mt-8">
+              <section aria-labelledby="vigilance-heading" className="mt-8" data-tour-id="synthesis-vigilance">
                 <h2 id="vigilance-heading" className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
                   <CheckCircle className="w-6 h-6 mr-2 text-emerald-500" />
                   {t('synthesisReport.vigilanceHeadingTemplate', { count: vigilanceAlerts.length })}
@@ -2487,7 +2514,7 @@ export const SynthesisReport = ({
           </div>
 
           {shouldShowCommitteeSection && (
-            <section className="mt-8" aria-labelledby="compliance-comments-heading">
+            <section className="mt-8" aria-labelledby="compliance-comments-heading" data-tour-id="synthesis-committees">
               <div className="bg-white rounded-xl border border-blue-200 p-6 space-y-6">
                 <div className="flex items-center">
                   <Info className="w-6 h-6 mr-2 text-blue-600" />
