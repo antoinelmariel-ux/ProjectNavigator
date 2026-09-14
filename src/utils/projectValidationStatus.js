@@ -1,4 +1,5 @@
 import { getTriggeredValidationCommittees } from './validationCommittee.js';
+import { resolveEffectiveTeamComplianceEntry } from './complianceAutoValidation.js';
 
 export const COMPLIANCE_COMMENTS_KEY = '__compliance_team_comments__';
 
@@ -57,7 +58,7 @@ export const getProjectCompliancePerimeters = (project, options = {}) => {
       id: team.id,
       type: 'team',
       required: true,
-      status: readStatus(comments.teams?.[team.id])
+      status: readStatus(resolveEffectiveTeamComplianceEntry(comments.teams?.[team.id], analysis, team.id))
     })),
     ...triggeredCommittees.map((committee) => ({
       id: committee.id,

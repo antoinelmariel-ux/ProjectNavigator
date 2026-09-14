@@ -6530,6 +6530,9 @@ export const BackOffice = ({
                                     {question.required && (
                                       <span className="text-xs text-red-700 bg-red-100 px-2 py-1 rounded-full">{t('backOffice.main.mandatoryBadge')}</span>
                                     )}
+                                    {question.isDraft && (
+                                      <span className="text-xs text-amber-800 bg-amber-100 px-2 py-1 rounded-full font-medium">{t('backOffice.main.draftQuestionBadge')}</span>
+                                    )}
                                   </div>
                                   <h3 className="text-lg font-semibold text-gray-800">{resolveLocalizedText(question.question, language)}</h3>
                                   <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
@@ -6779,6 +6782,9 @@ export const BackOffice = ({
                                   )}
                                   {question.required && (
                                     <span className="text-xs text-red-700 bg-red-100 px-2 py-1 rounded-full">{t('backOffice.main.mandatoryBadge')}</span>
+                                  )}
+                                  {question.isDraft && (
+                                    <span className="text-xs text-amber-800 bg-amber-100 px-2 py-1 rounded-full font-medium">{t('backOffice.main.draftQuestionBadge')}</span>
                                   )}
                                 </div>
                                 <h3 className="text-lg font-semibold text-gray-800">{resolveLocalizedText(question.question, language)}</h3>

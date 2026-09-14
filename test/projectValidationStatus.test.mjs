@@ -133,6 +133,32 @@ test('un comité ajouté manuellement devient un avis requis', () => {
   assert.equal(result.requiredCount, 1);
 });
 
+test('une équipe jamais notifiée (règle "notifyTeam: false") est considérée validée sous conditions', () => {
+  const project = {
+    id: 'p1',
+    status: 'submitted',
+    analysis: {
+      teams: ['quality', 'legal'],
+      notifiedTeams: ['legal'],
+      questions: { quality: [{ text: { fr: 'Merci de fournir un document' } }] }
+    },
+    answers: {
+      [COMPLIANCE_KEY]: {
+        teams: { legal: { status: 'validated' } },
+        committees: { 'committee-main': { status: 'validated' } }
+      }
+    }
+  };
+
+  const perimeters = getProjectCompliancePerimeters(project, options);
+  const qualityPerimeter = perimeters.find((entry) => entry.id === 'quality');
+  assert.equal(qualityPerimeter.status, 'validated_with_conditions');
+
+  const result = computeProjectValidationStatus(project, options);
+  assert.equal(result.status, 'validated');
+  assert.equal(result.conditionalCount, 1);
+});
+
 test('commentaires de conformité absents ou mal formés : en attente', () => {
   assert.equal(
     computeProjectValidationStatus({ analysis: { teams: ['quality'] }, answers: {} }, options).status,

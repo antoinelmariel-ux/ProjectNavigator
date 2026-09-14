@@ -45,6 +45,7 @@ import { stripRichTextToPlainText } from '../utils/richText.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { getLocaleTag, LANGUAGE_LABELS } from '../i18n/languages.js';
 import { isLanguageAcceptedBy, normalizeAcceptedLanguages } from '../utils/translationAudit.js';
+import { resolveEffectiveTeamComplianceEntry } from '../utils/complianceAutoValidation.js';
 
 const formatNumber = (value, options = {}, language) => {
   return Number(value).toLocaleString(getLocaleTag(language), options);
@@ -289,7 +290,7 @@ const normalizeComplianceComments = (value) => {
   };
 };
 
-const buildComplianceCommentDrafts = (comments, teams, committees) => {
+const buildComplianceCommentDrafts = (comments, teams, committees, analysis, language) => {
   const teamDrafts = {};
   const committeeDrafts = {};
 
@@ -297,7 +298,9 @@ const buildComplianceCommentDrafts = (comments, teams, committees) => {
     if (!team?.id) {
       return;
     }
-    teamDrafts[team.id] = normalizeCommentEntry(comments?.teams?.[team.id]);
+    teamDrafts[team.id] = normalizeCommentEntry(
+      resolveEffectiveTeamComplianceEntry(comments?.teams?.[team.id], analysis, team.id, language)
+    );
   });
 
   (Array.isArray(committees) ? committees : []).forEach((committee) => {
@@ -627,8 +630,10 @@ export const SynthesisReport = ({
     [answers]
   );
   const getStoredTeamStatus = useCallback(
-    (teamId) => normalizeCommentEntry(complianceComments.teams?.[teamId]).status,
-    [complianceComments]
+    (teamId) => normalizeCommentEntry(
+      resolveEffectiveTeamComplianceEntry(complianceComments.teams?.[teamId], analysis, teamId, language)
+    ).status,
+    [complianceComments, analysis, language]
   );
   const sortedRelevantTeams = useMemo(() => {
     return [...relevantTeams].sort((a, b) => {
@@ -660,7 +665,7 @@ export const SynthesisReport = ({
     setOpenTeamReplyBoxes((prev) => ({ ...prev, [teamId]: !prev[teamId] }));
   }, []);
   const [complianceCommentDrafts, setComplianceCommentDrafts] = useState(() =>
-    buildComplianceCommentDrafts(complianceComments, relevantTeams, [])
+    buildComplianceCommentDrafts(complianceComments, relevantTeams, [], analysis, language)
   );
   const [complianceCommentFeedback, setComplianceCommentFeedback] = useState(null);
   const updateComplianceComments =
@@ -914,9 +919,9 @@ export const SynthesisReport = ({
 
   useEffect(() => {
     setComplianceCommentDrafts(
-      buildComplianceCommentDrafts(complianceComments, relevantTeams, validationCommittees)
+      buildComplianceCommentDrafts(complianceComments, relevantTeams, validationCommittees, analysis, language)
     );
-  }, [complianceComments, relevantTeams, validationCommittees]);
+  }, [complianceComments, relevantTeams, validationCommittees, analysis, language]);
 
   useEffect(() => {
     return () => {
@@ -1750,7 +1755,9 @@ export const SynthesisReport = ({
                       .filter(question => (question.text || '').trim().length > 0)
                   : [];
 
-                const storedEntry = normalizeCommentEntry(complianceComments.teams?.[team.id]);
+                const storedEntry = normalizeCommentEntry(
+                  resolveEffectiveTeamComplianceEntry(complianceComments.teams?.[team.id], analysis, team.id, language)
+                );
                 const draftEntry = complianceCommentDrafts.teams?.[team.id] || storedEntry;
                 const headerStatusMeta = getCommentStatusMeta(storedEntry.status, t);
                 const statusMeta = getCommentStatusMeta(canBypassCompliancePerimeter ? draftEntry.status : storedEntry.status, t);

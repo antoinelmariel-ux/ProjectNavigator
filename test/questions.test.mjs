@@ -14,6 +14,18 @@ test('shouldShowQuestion : une question sans condition est toujours affichée', 
   assert.equal(shouldShowQuestion({ id: 'q1', conditions: [] }, {}), true);
 });
 
+test('shouldShowQuestion : une question en brouillon n’est jamais affichée', () => {
+  assert.equal(shouldShowQuestion({ id: 'q1', isDraft: true }, {}), false);
+
+  const conditionalQuestion = {
+    id: 'q2',
+    isDraft: true,
+    conditionGroups: [{ logic: 'all', conditions: [{ question: 'pays', operator: 'equals', value: 'France' }] }]
+  };
+  assert.equal(shouldShowQuestion(conditionalQuestion, { pays: 'France' }), false);
+  assert.equal(shouldShowQuestion({ ...conditionalQuestion, isDraft: false }, { pays: 'France' }), true);
+});
+
 test('shouldShowQuestion : condition "equals" respectée / non respectée', () => {
   const question = {
     id: 'q2',
