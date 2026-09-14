@@ -31,6 +31,15 @@ colonnes utilisées par le code — c'est la source de vérité. Le document jum
 > (`GET .../lists/getbytitle('CN-Config')/rootFolder?$select=ServerRelativeUrl`, mis en cache) au
 > lieu de le reconstruire depuis `sharepointConfig.libraries`. Aucune action requise côté
 > SharePoint : le nom de dossier réel, avec ou sans tiret, n'a plus d'importance.
+>
+> ⚠️ **Constat du 14/09/2026** : le script (et le tableau ci-dessous) omettait la colonne
+> `CancelledDate` sur `CN_Projects`, et la liste de choix de `Status` n'incluait pas `Cancelled` —
+> deux écarts par rapport à `listSchemas.js`/`dataProvider.js`, qui lisent/écrivent bien ce champ
+> pour les projets annulés. Sur un site créé avant cette date, l'app échoue au chargement avec
+> « Il n'existe pas de champ ni de propriété « CancelledDate ». ». Relance le script en mode
+> `apply` pour créer la colonne manquante (le script ne corrige pas rétroactivement la liste de
+> choix d'une colonne `Status` déjà créée sans `Cancelled` — ajoute ce choix à la main depuis les
+> paramètres de la colonne si besoin).
 
 ## Comment utiliser le script
 
@@ -79,7 +88,7 @@ script (nécessaire au-delà de 5 000 éléments).
 
 | Liste | Colonnes (hors Title) |
 |---|---|
-| `CN_Projects` | ProjectId📌, Status📌 (Choix : Draft/Submitted), OwnerEmail, CurrentEditorEmail, AnswersJson (texte long), AnalysisJson (texte long), ProgressAnswered (nombre), ProgressTotal (nombre), SubmissionDate (date), LastAutosaveAt (date), RowVersion (nombre), CreatedByEmail, UpdatedByEmail |
+| `CN_Projects` | ProjectId📌, Status📌 (Choix : Draft/Submitted/Cancelled), OwnerEmail, CurrentEditorEmail, AnswersJson (texte long), AnalysisJson (texte long), ProgressAnswered (nombre), ProgressTotal (nombre), SubmissionDate (date), **CancelledDate (date)**, LastAutosaveAt (date), RowVersion (nombre), CreatedByEmail, UpdatedByEmail |
 | `CN_Inspirations` | InspirationId📌, Visibility (Choix : Personal/Shared), InspirationJson (texte long), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
 | `CN_ComplianceComments` | CommentId📌, ProjectId📌, SectionKey, Message (texte long), CommentType, ThreadId, **Status**, **AttachmentsJson (texte long)**, Resolved (oui/non), AssigneeEmail, ClaimJson (texte long), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
 | `CN_ProjectDiscussions` | MessageId📌, ProjectId📌, ThreadId, SenderEmail, RecipientRole, Message (texte long), AttachmentsJson (texte long), RowVersion (nombre), CreatedAt (date), UpdatedAt (date) |
@@ -218,7 +227,7 @@ existaient auparavant dans `CN-Config` — une ligne par règle/équipe plutôt 
       title: 'CN_Projects',
       fields: [
         { name: 'ProjectId', type: 'Text', indexed: true },
-        { name: 'Status', type: 'Choice', choices: ['Draft', 'Submitted'], indexed: true },
+        { name: 'Status', type: 'Choice', choices: ['Draft', 'Submitted', 'Cancelled'], indexed: true },
         { name: 'OwnerEmail', type: 'Text' },
         { name: 'CurrentEditorEmail', type: 'Text' },
         { name: 'AnswersJson', type: 'Note' },
@@ -226,6 +235,7 @@ existaient auparavant dans `CN-Config` — une ligne par règle/équipe plutôt 
         { name: 'ProgressAnswered', type: 'Number' },
         { name: 'ProgressTotal', type: 'Number' },
         { name: 'SubmissionDate', type: 'DateTime' },
+        { name: 'CancelledDate', type: 'DateTime' },
         { name: 'LastAutosaveAt', type: 'DateTime' },
         { name: 'RowVersion', type: 'Number' },
         { name: 'CreatedByEmail', type: 'Text' },
