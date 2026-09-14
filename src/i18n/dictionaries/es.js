@@ -280,7 +280,7 @@ export default {
     subtitle: 'Documente un proyecto inspirador de otro laboratorio para enriquecer la base de ejemplos.',
     back: 'Volver',
     privacyNotice:
-      'LFB trata los datos recopilados para gestionar los proyectos que se presentarán a los equipos de cumplimiento.',
+      'LFB trata los datos recopilados para gestionar los proyectos que se presentarán a los equipos de expertos internos.',
     privacyLink: 'Más información sobre sus datos y sus derechos',
     selectPlaceholder: 'Seleccionar...',
     visibilityPersonal: 'Personal',
@@ -382,7 +382,7 @@ export default {
     feature4Body: 'Encuentre en cualquier momento los proyectos ya enviados y actualícelos si es necesario.',
     triggeredHeading: 'Proyectos activados para usted',
     triggeredSubtitle:
-      'Encuentre los proyectos en los que se le solicita como experto de cumplimiento o miembro de comité.',
+      'Encuentre los proyectos en los que se le solicita como experto o miembro de comité.',
     triggeredFilterAriaLabel: 'Filtro de proyectos activados',
     pendingTab: 'Por tratar ({{count}})',
     treatedTab: 'Tratados ({{count}})',
@@ -444,7 +444,7 @@ export default {
     deleteProjectTitle: 'Eliminar el proyecto',
     cancelSubmissionDialogTitle: '¿Cancelar el envío?',
     cancelSubmissionDescription:
-      'Está a punto de cancelar el envío de «{{name}}». El proyecto ya no será tratado por los equipos de cumplimiento y no se enviará ninguna notificación.',
+      'Está a punto de cancelar el envío de «{{name}}». El proyecto ya no será tratado por los equipos y no se enviará ninguna notificación.',
     confirmCancelSubmission: 'Cancelar el envío',
     cancelSubmissionAriaLabel: 'Cancelar el envío del proyecto {{name}}',
     cancelSubmissionTitle: 'Cancelar el envío',
@@ -530,7 +530,7 @@ export default {
     questionProgress: 'Pregunta {{current}} de {{total}}',
     visibilityHint: 'Algunas preguntas pueden aparecer según sus respuestas',
     privacyNotice:
-      'LFB trata los datos recopilados para gestionar los proyectos que se presentarán a los equipos de cumplimiento.',
+      'LFB trata los datos recopilados para gestionar los proyectos que se presentarán a los equipos de expertos internos.',
     privacyLink: 'Más información sobre sus datos y sus derechos',
     close: 'Cerrar',
     hideHelp: 'Ocultar la ayuda',

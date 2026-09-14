@@ -281,7 +281,7 @@ export default {
       'Documentez un projet inspirant issu d’un autre laboratoire afin d’enrichir la base d’exemples.',
     back: 'Retour',
     privacyNotice:
-      'Le LFB traite les données recueillies pour gérer les projets à soumettre aux équipes compliance.',
+      'Le LFB traite les données recueillies pour gérer les projets à soumettre aux équipes d’experts internes.',
     privacyLink: 'En savoir plus sur vos données et vos droits',
     selectPlaceholder: 'Sélectionner...',
     visibilityPersonal: 'Personnel',
@@ -385,7 +385,7 @@ export default {
     feature4Body: 'Retrouvez à tout moment les projets déjà soumis et mettez-les à jour si nécessaire.',
     triggeredHeading: 'Projets déclenchés pour vous',
     triggeredSubtitle:
-      'Retrouvez les projets sur lesquels vous êtes sollicité(e) en tant qu’expert compliance ou membre de comité.',
+      'Retrouvez les projets sur lesquels vous êtes sollicité(e) en tant qu’expert ou membre de comité.',
     triggeredFilterAriaLabel: 'Filtre des projets déclenchés',
     pendingTab: 'À traiter ({{count}})',
     treatedTab: 'Traités ({{count}})',
@@ -449,7 +449,7 @@ export default {
     deleteProjectTitle: 'Supprimer le projet',
     cancelSubmissionDialogTitle: 'Annuler la soumission ?',
     cancelSubmissionDescription:
-      'Vous êtes sur le point d’annuler la soumission de « {{name}} ». Le projet ne sera plus traité par les équipes compliance et n’enverra aucune notification.',
+      'Vous êtes sur le point d’annuler la soumission de « {{name}} ». Le projet ne sera plus traité par les équipes et n’enverra aucune notification.',
     confirmCancelSubmission: 'Annuler la soumission',
     cancelSubmissionAriaLabel: 'Annuler la soumission du projet {{name}}',
     cancelSubmissionTitle: 'Annuler la soumission',
@@ -535,7 +535,7 @@ export default {
     questionProgress: 'Question {{current}} sur {{total}}',
     visibilityHint: 'Certaines questions peuvent apparaître en fonction de vos réponses',
     privacyNotice:
-      'Le LFB traite les données recueillies pour gérer les projets à soumettre aux équipes compliance.',
+      'Le LFB traite les données recueillies pour gérer les projets à soumettre aux équipes d’experts internes.',
     privacyLink: 'En savoir plus sur vos données et vos droits',
     close: 'Fermer',
     hideHelp: 'Masquer l’aide',

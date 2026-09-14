@@ -281,7 +281,7 @@ export default {
       'Dokumentieren Sie ein inspirierendes Projekt aus einem anderen Labor, um die Beispieldatenbank zu erweitern.',
     back: 'Zurück',
     privacyNotice:
-      'LFB verarbeitet die erhobenen Daten, um die den Compliance-Teams vorzulegenden Projekte zu verwalten.',
+      'LFB verarbeitet die erhobenen Daten, um die den internen Expertenteams vorzulegenden Projekte zu verwalten.',
     privacyLink: 'Erfahren Sie mehr über Ihre Daten und Ihre Rechte',
     selectPlaceholder: 'Auswählen...',
     visibilityPersonal: 'Persönlich',
@@ -386,7 +386,7 @@ export default {
     feature4Body: 'Finden Sie jederzeit bereits eingereichte Projekte und aktualisieren Sie sie bei Bedarf.',
     triggeredHeading: 'Für Sie ausgelöste Projekte',
     triggeredSubtitle:
-      'Finden Sie die Projekte, bei denen Sie als Compliance-Experte oder Ausschussmitglied angefragt werden.',
+      'Finden Sie die Projekte, bei denen Sie als Experte oder Ausschussmitglied angefragt werden.',
     triggeredFilterAriaLabel: 'Filter für ausgelöste Projekte',
     pendingTab: 'Zu bearbeiten ({{count}})',
     treatedTab: 'Bearbeitet ({{count}})',
@@ -451,7 +451,7 @@ export default {
     deleteProjectTitle: 'Projekt löschen',
     cancelSubmissionDialogTitle: 'Einreichung stornieren?',
     cancelSubmissionDescription:
-      'Sie sind dabei, die Einreichung von „{{name}}“ zu stornieren. Das Projekt wird von den Compliance-Teams nicht mehr bearbeitet und es wird keine Benachrichtigung versendet.',
+      'Sie sind dabei, die Einreichung von „{{name}}“ zu stornieren. Das Projekt wird von den Teams nicht mehr bearbeitet und es wird keine Benachrichtigung versendet.',
     confirmCancelSubmission: 'Einreichung stornieren',
     cancelSubmissionAriaLabel: 'Einreichung des Projekts {{name}} stornieren',
     cancelSubmissionTitle: 'Einreichung stornieren',
@@ -538,7 +538,7 @@ export default {
     questionProgress: 'Frage {{current}} von {{total}}',
     visibilityHint: 'Je nach Ihren Antworten können weitere Fragen erscheinen',
     privacyNotice:
-      'LFB verarbeitet die erhobenen Daten, um die den Compliance-Teams vorzulegenden Projekte zu verwalten.',
+      'LFB verarbeitet die erhobenen Daten, um die den internen Expertenteams vorzulegenden Projekte zu verwalten.',
     privacyLink: 'Erfahren Sie mehr über Ihre Daten und Ihre Rechte',
     close: 'Schließen',
     hideHelp: 'Hilfe ausblenden',
