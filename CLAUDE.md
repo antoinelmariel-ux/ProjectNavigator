@@ -100,6 +100,33 @@ The app is being migrated off mocks onto real SharePoint lists, using the **Shar
 - Never seed `createDemoProject()` when `isSharePointMode()` is true (see the `isSharePointMode()` guards around it in `App.jsx`, and the demo-project filter in `syncMerge.js`). The demo project only makes sense as first-run local filler; in SharePoint mode it raced the autosave effect and got written to the real `CN_Projects` list as a fake row before the server hydration had a chance to reconcile it away.
 - **The top-level `AppErrorBoundary` (`src/main.jsx`) reports every crash to `CN_NotificationsQueue` automatically**, in `componentDidCatch` — the maintenance team must hear about a crash even if the user closes the tab without clicking anything. The "send a report" button on screen is a second, optional step: with an empty comment it does nothing beyond confirming to the user that their incident is already known (no second network call); with a comment, it queues a follow-up notification (`buildErrorReportEmail({..., isFollowUp: true})`, subject prefixed "Error report - details added") carrying that context, so the technical team doesn't mistake it for a second, unrelated crash. `src/utils/notificationTemplates.js#buildErrorReportEmail` formats message/stack/component-stack/screen/user/comment into the same HTML-email shape `buildNotification()` uses elsewhere, and `queueNotification(...)` puts it on the existing notifications queue/Power Automate flow — no new list, no new flow. Recipients are read directly from `loadPersistedState().adminEmails` (falling back to `initialAdminEmails`) rather than from `App.jsx` state, since the boundary wraps `App` and can't assume it mounted.
 
+## The onboarding tour
+
+`src/data/onboardingTour.js` holds the default tour: an entry menu (`welcome`) offering five
+self-contained sequences — quick tour, create, get approved, present, find inspiration — wired
+together by `goTo` actions. Steps of one sequence must stay **contiguous** in the `steps` array
+(the "Next" button walks the array), and each sequence ends with a menu step carrying
+`showDefaultButtons: false` so it never spills into the next sequence.
+
+Two things are load-bearing:
+
+- **The screen a step lands on is hard-coded by step id** in the `switch (stepId)` of
+  `handleOnboardingStepEnter` (`App.jsx`). Adding a step to the config without adding its `case`
+  leaves it on whatever screen the previous step used. The tour runs on the demo project
+  (`getDemoData()`), never on real data.
+- **`version` gates the rollout.** The config is persisted in full to `localStorage` *and* to the
+  published `settings.json`, so a config already stored would otherwise outlive any rework:
+  `normalizeOnboardingConfig` replaces a stored config whose `version` is lower than the built-in
+  one. Bumping it therefore discards back-office customisations of the tour — only do it for a
+  deliberate rework.
+
+A step whose target selector matches nothing degrades to a centred tooltip (vendored
+`tourguide.js`), which is how steps pointing at conditional blocks behave on the demo project:
+`synthesis-vigilance` (no delay alert on the demo) and `home-inspiration-filters` (no inspiration
+yet). Expert teams are collapsed by default in `SynthesisReport.jsx`, so the steps showing the
+exchange thread expand them explicitly (`TEAM_EXCHANGE_TOUR_STEPS`). `e2e/onboarding-tour.spec.js`
+walks all five sequences.
+
 ## Identity simulation ("Voir en tant que")
 
 An admin can check what another person actually sees by opening the app in a **second tab** with

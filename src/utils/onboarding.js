@@ -84,14 +84,24 @@ export const createOnboardingAction = () => ({
   variant: 'ghost'
 });
 
+const resolveConfigVersion = (config) => {
+  const value = config && typeof config === 'object' ? config.version : undefined;
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+};
+
 export const normalizeOnboardingConfig = (config, fallback = initialOnboardingTourConfig) => {
-  const base = config && typeof config === 'object' ? config : fallback;
+  const candidate = config && typeof config === 'object' ? config : fallback;
+  // Une config persistée (localStorage, ou settings.json déjà publié) antérieure à la version
+  // livrée ne décrit plus les mêmes étapes : elle est remplacée par le défaut, sans quoi une
+  // refonte du tour n'atteindrait jamais les personnes qui ont déjà ouvert l'application.
+  const base = resolveConfigVersion(candidate) < resolveConfigVersion(fallback) ? fallback : candidate;
   const fallbackLabels = fallback?.labels || {};
   const labels = base?.labels || {};
 
   const steps = Array.isArray(base?.steps) ? base.steps : Array.isArray(fallback?.steps) ? fallback.steps : [];
 
   return {
+    version: resolveConfigVersion(base),
     allowClose: typeof base?.allowClose === 'boolean' ? base.allowClose : fallback?.allowClose ?? true,
     showStepDots: typeof base?.showStepDots === 'boolean' ? base.showStepDots : fallback?.showStepDots ?? true,
     labels: {

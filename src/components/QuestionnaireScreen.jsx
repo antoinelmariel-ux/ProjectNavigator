@@ -1334,7 +1334,11 @@ export const QuestionnaireScreen = ({
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 px-4 py-6 sm:px-8 sm:py-10">
       <div className="max-w-6xl mx-auto flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
-        <aside className="w-full lg:w-72 lg:shrink-0 lg:sticky lg:top-6" aria-label={t('questionnaire.summaryAriaLabel')}>
+        <aside
+          className="w-full lg:w-72 lg:shrink-0 lg:sticky lg:top-6"
+          aria-label={t('questionnaire.summaryAriaLabel')}
+          data-tour-id="question-summary-panel"
+        >
           <div className="bg-white rounded-2xl shadow-xl p-4">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-700">{t('questionnaire.summaryHeading')}</h2>
             <p className="mt-1 text-xs text-gray-500">
