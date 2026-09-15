@@ -351,6 +351,17 @@ export const QuestionnaireScreen = ({
   }, [currentQuestion.id]);
 
   useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.scrollTo !== 'function') {
+      return;
+    }
+
+    // Défilement instantané : un défilement animé («smooth») laisserait la page en
+    // mouvement pendant qu'un clic (utilisateur ou test automatisé) cible déjà la nouvelle
+    // question, et le clic peut alors rater sa cible ou tomber au mauvais endroit.
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [currentQuestion.id]);
+
+  useEffect(() => {
     if (questionType === 'choice') {
       if (choiceAnswerState.value && !visibleOptionValues.includes(choiceAnswerState.value)) {
         onAnswer(currentQuestion.id, null);

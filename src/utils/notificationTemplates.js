@@ -18,7 +18,8 @@ export const NOTIFICATION_TYPES = {
   PERIMETER_CLAIMED: 'perimeter-claimed',
   PERIMETER_TAKEN_OVER: 'perimeter-taken-over',
   PERIMETER_RELEASED: 'perimeter-released',
-  PERIMETER_STALE_REMINDER: 'perimeter-stale-reminder'
+  PERIMETER_STALE_REMINDER: 'perimeter-stale-reminder',
+  TEAM_MANUALLY_REQUESTED: 'team-manually-requested'
 };
 
 const quoted = (value) => `"${value}"`;
@@ -192,6 +193,21 @@ export const NOTIFICATION_CATALOG = {
       'Release the project so that another member of your team can pick it up, if you cannot handle it.'
     ],
     reason: () => 'you took this project in charge for your team and it is still waiting.'
+  },
+
+  // Une équipe que le moteur de règles n'avait pas identifiée peut être ajoutée à la main par
+  // le porteur de projet ou un expert Compliance (cf. manualTeamRequests.js) : elle reçoit
+  // cette notification comme si elle avait été déclenchée normalement.
+  [NOTIFICATION_TYPES.TEAM_MANUALLY_REQUESTED]: {
+    actionType: 'Team requested for review',
+    intro: (ctx) =>
+      `${ctx.actorName} added your team to the review of the project ${quoted(ctx.projectName)}.`,
+    expected: () => [
+      'Open the project’s synthesis report in Project Navigator.',
+      'Assess the points that fall within your area and identify any potential blockers.',
+      'Post your remarks directly in the synthesis report: the project owner will be notified automatically.'
+    ],
+    reason: () => 'your team was not identified automatically and was added manually to this project.'
   }
 };
 

@@ -93,6 +93,14 @@ export const Info = createIcon(
   </React.Fragment>
 );
 
+export const HelpCircle = createIcon(
+  <React.Fragment>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M9.5 9a2.5 2.5 0 014.94-.5c0 1.67-2.44 2-2.44 3.5" />
+    <circle cx="12" cy="17" r="0.6" fill="currentColor" stroke="none" />
+  </React.Fragment>
+);
+
 export const Edit = createIcon(
   <React.Fragment>
     <path d="M4 17.5V20h2.5l9.86-9.86a1.77 1.77 0 00-2.5-2.5z" />

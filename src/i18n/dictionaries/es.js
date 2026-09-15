@@ -194,6 +194,8 @@ export default {
   },
   onboarding: {
     title: 'Bienvenido a Project Navigator',
+    helpButton: 'Ayuda',
+    helpButtonAriaLabel: 'Abrir las preguntas frecuentes (nueva pestaña)',
     scopeStep: {
       description: 'Para adaptar el cuestionario a su situación, seleccione su ámbito de actividad (puede elegir varios).',
       continueButton: 'Continuar'
@@ -1760,6 +1762,10 @@ export default {
     teamsHeadingLabel: 'Equipos a involucrar',
     teamsHeadingTemplate: '{{label}} ({{count}})',
     incompleteAnswersMessage: 'A la espera de toda la información del proyecto para una evaluación completa.',
+    requestAdditionalTeamLabel: '¿Un equipo no se identificó automáticamente? Añádalo a la síntesis.',
+    requestAdditionalTeamPlaceholder: 'Seleccionar un equipo',
+    requestAdditionalTeamButton: 'Solicitar este equipo',
+    teamRequestSentMessage: 'El equipo {{team}} se añadió a la síntesis y fue notificado.',
     sharedBlockAriaLabelTemplate: 'Bloque compartido {{ruleName}}',
     ruleFallback: 'regla',
     unnamedRuleFallback: 'Regla sin nombre',

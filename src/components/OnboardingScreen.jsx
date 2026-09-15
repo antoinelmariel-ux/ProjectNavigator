@@ -1,7 +1,20 @@
 import React, { useState } from '../react.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { ActivityScopeSelector } from './ActivityScopeSelector.jsx';
-import { Sparkles } from './icons.js';
+import { Sparkles, HelpCircle } from './icons.js';
+
+const OnboardingHelpButton = ({ label, ariaLabel }) => (
+  <a
+    href="./faq.html"
+    target="_blank"
+    rel="noopener noreferrer"
+    aria-label={ariaLabel}
+    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-gray-600 border border-gray-200 hover:bg-gray-50 transition-all"
+  >
+    <HelpCircle className="w-4 h-4" aria-hidden="true" />
+    {label}
+  </a>
+);
 
 // Premier écran vu par une personne n'ayant pas encore de profil enregistré (cf. App.jsx,
 // gate `shouldShowOnboarding`). Deux étapes : choix du périmètre, puis proposition de la
@@ -26,7 +39,8 @@ export const OnboardingScreen = ({ onComplete, onStartTour, onSkipTour }) => {
               <p className="text-sm text-gray-600">{t('onboarding.scopeStep.description')}</p>
             </div>
             <ActivityScopeSelector value={selectedScope} onChange={setSelectedScope} />
-            <div className="flex justify-end">
+            <div className="flex items-center justify-between gap-3">
+              <OnboardingHelpButton label={t('onboarding.helpButton')} ariaLabel={t('onboarding.helpButtonAriaLabel')} />
               <button
                 type="button"
                 onClick={handleContinue}
@@ -63,6 +77,7 @@ export const OnboardingScreen = ({ onComplete, onStartTour, onSkipTour }) => {
               >
                 {t('onboarding.tourStep.skipButton')}
               </button>
+              <OnboardingHelpButton label={t('onboarding.helpButton')} ariaLabel={t('onboarding.helpButtonAriaLabel')} />
             </div>
           </div>
         )}
