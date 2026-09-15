@@ -97,6 +97,11 @@ a {
   background-color: rgba(239,246,255, 0.40);
 }
 
+.bg-blue-50\/50 {
+  --tw-bg-opacity: 1;
+  background-color: rgba(239,246,255, 0.50);
+}
+
 .bg-blue-50\/60 {
   --tw-bg-opacity: 1;
   background-color: rgba(239,246,255, 0.60);
@@ -1954,6 +1959,12 @@ a {
 @media (min-width: 640px) {
   .sm\:flex {
     display: flex;
+  }
+}
+
+@media (min-width: 640px) {
+  .sm\:flex-1 {
+    flex: 1 1 0%;
   }
 }
 

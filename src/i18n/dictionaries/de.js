@@ -194,6 +194,8 @@ export default {
   },
   onboarding: {
     title: 'Willkommen bei Project Navigator',
+    helpButton: 'Hilfe',
+    helpButtonAriaLabel: 'FAQ öffnen (neuer Tab)',
     scopeStep: {
       description: 'Damit der Fragebogen zu Ihnen passt, wählen Sie Ihren Tätigkeitsbereich aus (Mehrfachauswahl möglich).',
       continueButton: 'Weiter'
@@ -1771,6 +1773,10 @@ export default {
     teamsHeadingLabel: 'Einzubindende Teams',
     teamsHeadingTemplate: '{{label}} ({{count}})',
     incompleteAnswersMessage: 'Warten auf alle Projektinformationen für eine vollständige Bewertung.',
+    requestAdditionalTeamLabel: 'Ein Team wurde nicht automatisch erkannt? Fügen Sie es zur Synthese hinzu.',
+    requestAdditionalTeamPlaceholder: 'Team auswählen',
+    requestAdditionalTeamButton: 'Dieses Team anfragen',
+    teamRequestSentMessage: 'Das Team {{team}} wurde zur Synthese hinzugefügt und benachrichtigt.',
     sharedBlockAriaLabelTemplate: 'Gemeinsamer Block {{ruleName}}',
     ruleFallback: 'Regel',
     unnamedRuleFallback: 'Unbenannte Regel',

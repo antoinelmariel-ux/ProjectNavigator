@@ -81,6 +81,7 @@ import {
   setTeamPreference
 } from './utils/teamMemberProfile.js';
 import { normalizeRulesTeamReferences } from './utils/teamIds.js';
+import { MANUAL_TEAM_REQUESTS_KEY, addManualTeamRequest, normalizeManualTeamRequests } from './utils/manualTeamRequests.js';
 import { getCurrentUser, getRealUser } from './utils/spContext.js';
 import { isImpersonating } from './utils/impersonation.js';
 import { dataProvider } from './utils/dataProvider.js';
@@ -4538,6 +4539,62 @@ const updateProjectFilters = useCallback((updater) => {
     });
   }, [activeProjectId, notifyThreadLastAuthor]);
 
+  // Porteur de projet ou expert Compliance ajoutant à la main une équipe que le moteur de
+  // règles n'a pas identifiée (cf. manualTeamRequests.js) : la demande est persistée à part de
+  // `analysis.teams`, pour survivre à un recalcul de l'analyse, puis l'équipe est notifiée
+  // exactement comme si elle avait été déclenchée par une règle.
+  const handleRequestAdditionalTeam = useCallback((teamId) => {
+    if (!activeProjectId) {
+      return;
+    }
+
+    const project = projects.find((entry) => entry?.id === activeProjectId);
+    const team = teams.find((entry) => entry?.id === teamId);
+    if (!project || !team) {
+      return;
+    }
+
+    const existingRequests = normalizeManualTeamRequests(project.answers?.[MANUAL_TEAM_REQUESTS_KEY]);
+    if (existingRequests.some((entry) => entry.teamId === teamId)) {
+      return;
+    }
+
+    const nextRequests = addManualTeamRequest(existingRequests, {
+      teamId,
+      requestedBy: currentUserEmail
+    });
+
+    setAnswers((prevAnswers) => ({
+      ...prevAnswers,
+      [MANUAL_TEAM_REQUESTS_KEY]: nextRequests
+    }));
+    setHasUnsavedChanges(true);
+    setProjects((prevProjects) => prevProjects.map((entry) => {
+      if (entry.id !== activeProjectId) {
+        return entry;
+      }
+      return {
+        ...entry,
+        answers: {
+          ...entry.answers,
+          [MANUAL_TEAM_REQUESTS_KEY]: nextRequests
+        },
+        lastUpdated: new Date().toISOString()
+      };
+    }));
+
+    const teamRecipients = normalizeRecipientList(resolveTeamMailRecipients(team, project.answers || {}));
+    if (teamRecipients.length > 0) {
+      notify({
+        type: NOTIFICATION_TYPES.TEAM_MANUALLY_REQUESTED,
+        project,
+        to: teamRecipients,
+        teamNames: [resolveLocalizedText(team.name, DEFAULT_LANGUAGE)].filter(Boolean),
+        view: 'synthesis'
+      });
+    }
+  }, [activeProjectId, currentUserEmail, notify, projects, resolveTeamMailRecipients, setHasUnsavedChanges, teams]);
+
   const handleAddSharedMember = useCallback((email) => {
     if (!activeProjectId) {
       return;
@@ -7083,6 +7140,7 @@ const updateProjectFilters = useCallback((updater) => {
               onFocusPerimeterHandled={() => setSynthesisFocusPerimeter(null)}
               onPerimeterClaimAction={activeProjectId ? handlePerimeterClaimAction : undefined}
               isClaimActionAvailable={!isSimulatedSession}
+              onRequestAdditionalTeam={activeProjectId ? handleRequestAdditionalTeam : undefined}
             />
           </Suspense>
         ) : screen === 'showcase' ? (

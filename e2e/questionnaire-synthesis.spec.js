@@ -41,6 +41,31 @@ test.describe('Questionnaire adaptatif -> Synthèse', () => {
     expect(errors).toEqual([]);
   });
 
+  test('le porteur de projet peut ajouter une équipe non identifiée automatiquement', async ({ page }) => {
+    await startNewProject(page);
+    await walkToSynthesis(page, { maxSteps: 30 });
+    if (await page.getByText('Questions obligatoires à compléter').count() > 0) {
+      await page.getByRole('button', { name: /Accéder à la synthèse/ }).click();
+    }
+    await expect(page.getByRole('heading', { name: 'Synthèse' })).toBeVisible();
+
+    const teamSelect = page.locator('#additional-team-select');
+    await expect(teamSelect).toBeVisible();
+
+    const options = await teamSelect.locator('option').evaluateAll(
+      (nodes) => nodes.map((node) => ({ value: node.value, label: node.textContent.trim() }))
+    );
+    const teamOption = options.find((option) => option.value.length > 0);
+    expect(teamOption).toBeTruthy();
+    const teamName = teamOption.label;
+
+    await teamSelect.selectOption(teamOption.value);
+    await page.getByRole('button', { name: 'Solliciter cette équipe' }).click();
+
+    await expect(page.getByText(/a été ajoutée à la synthèse et notifiée/)).toBeVisible();
+    await expect(page.getByRole('heading', { name: teamName })).toBeVisible();
+  });
+
   test("le résumé des questions obligatoires s'affiche si des réponses manquent, et permet d'y revenir", async ({ page }) => {
     await startNewProject(page);
     // On répond à tout SAUF la question du document (facultative en pratique, mais on ne

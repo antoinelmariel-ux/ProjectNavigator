@@ -194,6 +194,8 @@ export default {
   },
   onboarding: {
     title: 'Welcome to Project Navigator',
+    helpButton: 'Help',
+    helpButtonAriaLabel: 'Open the FAQ (new tab)',
     scopeStep: {
       description: 'To tailor the questionnaire to you, select your activity scope (you can pick several).',
       continueButton: 'Continue'
@@ -1760,6 +1762,10 @@ export default {
     teamsHeadingLabel: 'Teams to involve',
     teamsHeadingTemplate: '{{label}} ({{count}})',
     incompleteAnswersMessage: 'Waiting for all project information to run a complete assessment.',
+    requestAdditionalTeamLabel: 'A team was not identified automatically? Add it to the synthesis.',
+    requestAdditionalTeamPlaceholder: 'Select a team',
+    requestAdditionalTeamButton: 'Request this team',
+    teamRequestSentMessage: 'The {{team}} team has been added to the synthesis and notified.',
     sharedBlockAriaLabelTemplate: 'Shared block {{ruleName}}',
     ruleFallback: 'rule',
     unnamedRuleFallback: 'Unnamed rule',

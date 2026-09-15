@@ -46,6 +46,7 @@ import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { getLocaleTag, LANGUAGE_LABELS } from '../i18n/languages.js';
 import { isLanguageAcceptedBy, normalizeAcceptedLanguages } from '../utils/translationAudit.js';
 import { resolveEffectiveTeamComplianceEntry } from '../utils/complianceAutoValidation.js';
+import { MANUAL_TEAM_REQUESTS_KEY, normalizeManualTeamRequests } from '../utils/manualTeamRequests.js';
 
 const formatNumber = (value, options = {}, language) => {
   return Number(value).toLocaleString(getLocaleTag(language), options);
@@ -563,7 +564,8 @@ export const SynthesisReport = ({
   focusPerimeter = null,
   onFocusPerimeterHandled,
   onPerimeterClaimAction,
-  isClaimActionAvailable = true
+  isClaimActionAvailable = true,
+  onRequestAdditionalTeam
 }) => {
   const { t, language } = useTranslation();
   const [isShowcaseFallbackOpen, setIsShowcaseFallbackOpen] = useState(false);
@@ -576,6 +578,7 @@ export const SynthesisReport = ({
   const [openTeamCommentEditors, setOpenTeamCommentEditors] = useState({});
   const [openTeamReplyBoxes, setOpenTeamReplyBoxes] = useState({});
   const [shareMemberFeedback, setShareMemberFeedback] = useState('');
+  const [additionalTeamSelection, setAdditionalTeamSelection] = useState('');
   // `analysis` peut arriver à null (projet créé mais sans réponse : resolveProjectAnalysis ne
   // recalcule rien) ou incomplet (analyse figée d'un projet soumis avec une ancienne version du
   // référentiel). Sans cette normalisation, `analysis.risks` faisait tomber tout l'écran dans
@@ -607,9 +610,20 @@ export const SynthesisReport = ({
   // rendu non lié (ex : déplier une équipe) écrase le statut/commentaire en cours de saisie en
   // le retombant sur la dernière valeur persistée avant que l'utilisateur ait pu l'enregistrer.
   const analysisTeamIds = analysis?.teams;
+  // Une équipe non identifiée par le moteur de règles peut être ajoutée à la main (porteur de
+  // projet ou expert Compliance, cf. manualTeamRequests.js) : son bloc doit alors apparaître
+  // dans la synthèse au même titre qu'une équipe déclenchée par `analysisTeamIds`.
+  const manualTeamRequests = useMemo(
+    () => normalizeManualTeamRequests(answers?.[MANUAL_TEAM_REQUESTS_KEY]),
+    [answers]
+  );
+  const manualTeamIds = useMemo(
+    () => new Set(manualTeamRequests.map((entry) => entry.teamId)),
+    [manualTeamRequests]
+  );
   const relevantTeams = useMemo(
-    () => teams.filter(team => (analysisTeamIds || []).includes(team.id)),
-    [teams, analysisTeamIds]
+    () => teams.filter(team => (analysisTeamIds || []).includes(team.id) || manualTeamIds.has(team.id)),
+    [teams, analysisTeamIds, manualTeamIds]
   );
   // Les équipes sont repliées par défaut : sans ce dépliage, les étapes du tour qui montrent
   // le fil d'échanges avec les experts pointeraient un élément absent du DOM.
@@ -782,6 +796,18 @@ export const SynthesisReport = ({
     const isCoOwner = normalizedSharedMembers.some((member) => normalizeEmail(member) === currentUserEmail);
     return isOwner || isCoOwner || (isProjectEditable && !projectId);
   }, [currentUserEmail, isProjectEditable, normalizedOwnerEmail, normalizedSharedMembers, projectId]);
+  // Un expert Compliance, ici, est un contact d'une équipe quelconque du référentiel — pas
+  // seulement des équipes déjà pertinentes pour ce projet (`complianceTeamIdsForUser`) : c'est
+  // justement lui qui peut repérer qu'une équipe absente de l'analyse devrait être sollicitée.
+  const isComplianceExpertUser = useMemo(() => {
+    if (!currentUserEmail) {
+      return false;
+    }
+    return teams.some((team) => normalizeTeamContacts(team).some((contact) => normalizeEmail(contact) === currentUserEmail));
+  }, [currentUserEmail, teams]);
+  const canRequestAdditionalTeam =
+    typeof onRequestAdditionalTeam === 'function'
+    && (canBypassCompliancePerimeter || isComplianceExpertUser || canReplyAsProjectContributor);
   const normalizedValidationCommitteeConfig = useMemo(
     () => normalizeValidationCommitteeConfig(validationCommitteeConfig),
     [validationCommitteeConfig]
@@ -1535,6 +1561,27 @@ export const SynthesisReport = ({
     [complianceCommentFeedback]
   );
 
+  const teamsAvailableForRequest = useMemo(
+    () => teams.filter((team) => team?.id && !relevantTeams.some((relevantTeam) => relevantTeam.id === team.id)),
+    [teams, relevantTeams]
+  );
+
+  const handleRequestAdditionalTeam = useCallback(() => {
+    if (typeof onRequestAdditionalTeam !== 'function' || !additionalTeamSelection) {
+      return;
+    }
+
+    const requestedTeam = teams.find((team) => team?.id === additionalTeamSelection);
+    onRequestAdditionalTeam(additionalTeamSelection);
+    setAdditionalTeamSelection('');
+    scheduleComplianceFeedback(
+      'additional-team-request',
+      t('synthesisReport.teamRequestSentMessage', {
+        team: requestedTeam ? resolveLocalizedText(requestedTeam.name, language) : ''
+      })
+    );
+  }, [additionalTeamSelection, language, onRequestAdditionalTeam, scheduleComplianceFeedback, t, teams]);
+
   const handleSubmitProject = useCallback(() => {
     if (!onSubmitProject) {
       return;
@@ -1723,6 +1770,43 @@ export const SynthesisReport = ({
                     {teamStatusSummary[entry.value]} {t(`synthesisReport.${entry.labelKey}`).toLowerCase()}
                   </span>
                 ))}
+              </div>
+            )}
+            {canRequestAdditionalTeam && (
+              <div className="mb-4 rounded-xl border border-dashed border-blue-200 bg-blue-50/50 p-4">
+                <label htmlFor="additional-team-select" className="block text-sm font-medium text-gray-700 mb-2">
+                  {t('synthesisReport.requestAdditionalTeamLabel')}
+                </label>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <select
+                    id="additional-team-select"
+                    value={additionalTeamSelection}
+                    onChange={(event) => setAdditionalTeamSelection(event.target.value)}
+                    className="w-full sm:flex-1 px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">{t('synthesisReport.requestAdditionalTeamPlaceholder')}</option>
+                    {teamsAvailableForRequest.map((team) => (
+                      <option key={team.id} value={team.id}>
+                        {resolveLocalizedText(team.name, language)}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={handleRequestAdditionalTeam}
+                    disabled={!additionalTeamSelection}
+                    className={`inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium text-white transition-all ${
+                      additionalTeamSelection ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-300 cursor-not-allowed'
+                    }`}
+                  >
+                    {t('synthesisReport.requestAdditionalTeamButton')}
+                  </button>
+                </div>
+                {getComplianceFeedbackMessage('additional-team-request') && (
+                  <p className="mt-2 text-sm text-emerald-700" role="status" aria-live="polite">
+                    {getComplianceFeedbackMessage('additional-team-request')}
+                  </p>
+                )}
               </div>
             )}
             <div className="grid grid-cols-1 gap-4">
