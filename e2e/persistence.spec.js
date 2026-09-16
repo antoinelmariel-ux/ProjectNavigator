@@ -43,9 +43,6 @@ test.describe('Persistance transverse', () => {
     await gotoHome(page);
     await page.getByRole('button', { name: /Créer un projet/ }).first().click();
     await walkToSynthesis(page, { maxSteps: 30 });
-    if ((await page.getByText('Questions obligatoires à compléter').count()) > 0) {
-      await page.getByRole('button', { name: /Accéder à la synthèse/ }).click();
-    }
 
     // Le partage passe par un PeoplePicker (src/components/PeoplePicker.jsx) : on tape
     // l'adresse puis Entrée la valide. Plus de <input type="email"> ni de bouton « Ajouter »
@@ -60,9 +57,9 @@ test.describe('Persistance transverse', () => {
     await expect(page.getByText(MEMBER_EMAIL, { exact: false }).first()).toBeVisible();
 
     // Soumettre avant de recharger : c'est ce qui donne sur la carte d'accueil le bouton
-    // « Consulter la synthèse », seul chemin de retour vers l'écran qui affiche les membres
+    // « Consulter les enjeux », seul chemin de retour vers l'écran qui affiche les membres
     // (un brouillon ne propose que « Continuer l'édition », qui rouvre le questionnaire).
-    // Le partage, lui, n'existe que sur la synthèse d'avant soumission, d'où cet ordre.
+    // Le partage, lui, n'existe que sur les enjeux d'avant soumission, d'où cet ordre.
     await page.getByRole('button', { name: 'Demander la validation' }).click();
     await page.waitForTimeout(400);
 
@@ -78,10 +75,10 @@ test.describe('Persistance transverse', () => {
     );
     expect(membersRaw).toContain(MEMBER_EMAIL);
 
-    // Le rechargement ramène à l'accueil : il faut rouvrir la synthèse du projet pour voir si
+    // Le rechargement ramène à l'accueil : il faut rouvrir les enjeux du projet pour voir si
     // le membre est toujours là.
     const card = page.locator('article[id^="project-card-"]').first();
-    await card.getByRole('button', { name: 'Consulter la synthèse' }).click();
+    await card.getByRole('button', { name: 'Consulter les enjeux' }).click();
     await expect(page.getByText(MEMBER_EMAIL, { exact: false }).first()).toBeVisible();
     expect(errors).toEqual([]);
   });

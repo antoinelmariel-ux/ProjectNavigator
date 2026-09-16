@@ -5343,27 +5343,6 @@ const updateProjectFilters = useCallback((updater) => {
     setScreen('synthesis');
   }, [analyzeAnswers, answers, riskLevelRules, riskWeights, rules]);
 
-  const leaveQuestionnaireForSynthesis = useCallback(() => {
-    if (unansweredMandatoryQuestions.length > 0) {
-      setValidationError(null);
-      setReturnToSynthesisAfterEdit(false);
-      setScreen('mandatory-summary');
-      return;
-    }
-
-    navigateToSynthesis();
-  }, [navigateToSynthesis, unansweredMandatoryQuestions]);
-
-  const handleNext = useCallback(() => {
-    if (currentQuestionIndex < activeQuestions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-      setValidationError(null);
-      return;
-    }
-
-    leaveQuestionnaireForSynthesis();
-  }, [activeQuestions, currentQuestionIndex, leaveQuestionnaireForSynthesis]);
-
   const handleBack = useCallback(() => {
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex(currentQuestionIndex - 1);
@@ -5825,6 +5804,56 @@ const updateProjectFilters = useCallback((updater) => {
     });
   }, [activeProjectId, answers, openProjectShowcase]);
 
+  // Sortie de questionnaire : la vitrine est la destination par défaut, l'outil servant d'abord
+  // à penser le projet. Les types de projet privés de vitrine retombent sur les enjeux.
+  const navigateToProjectShowcase = useCallback(() => {
+    const result = analyzeAnswers(answers, rules, riskLevelRules, riskWeights);
+    setAnalysis(result);
+    setValidationError(null);
+    setReturnToSynthesisAfterEdit(false);
+
+    if (isActiveProjectShowcaseBlocked) {
+      setScreen('synthesis');
+      return;
+    }
+
+    openProjectShowcase({
+      projectId: activeProjectId,
+      answers,
+      analysis: result
+    });
+  }, [
+    activeProjectId,
+    analyzeAnswers,
+    answers,
+    isActiveProjectShowcaseBlocked,
+    openProjectShowcase,
+    riskLevelRules,
+    riskWeights,
+    rules
+  ]);
+
+  const leaveQuestionnaireForShowcase = useCallback(() => {
+    if (unansweredMandatoryQuestions.length > 0) {
+      setValidationError(null);
+      setReturnToSynthesisAfterEdit(false);
+      setScreen('mandatory-summary');
+      return;
+    }
+
+    navigateToProjectShowcase();
+  }, [navigateToProjectShowcase, unansweredMandatoryQuestions]);
+
+  const handleNext = useCallback(() => {
+    if (currentQuestionIndex < activeQuestions.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      setValidationError(null);
+      return;
+    }
+
+    leaveQuestionnaireForShowcase();
+  }, [activeQuestions, currentQuestionIndex, leaveQuestionnaireForShowcase]);
+
   const handleCloseProjectShowcase = useCallback(() => {
     setShowcaseProjectContext(null);
     setShowcaseDisplayMode('full');
@@ -5857,7 +5886,9 @@ const updateProjectFilters = useCallback((updater) => {
     setShowcaseCommentsEnabled(false);
     setShowcaseAnnotationVisibilityMode('all');
 
-    if (previousScreenRef.current) {
+    // Le bouton annonce les enjeux : revenir au questionnaire (écran d'où l'on vient
+    // désormais en fin de formulaire) serait un autre écran que celui promis.
+    if (previousScreenRef.current && previousScreenRef.current !== 'questionnaire') {
       setScreen(previousScreenRef.current);
     } else {
       setScreen('synthesis');
@@ -6697,9 +6728,9 @@ const updateProjectFilters = useCallback((updater) => {
     navigateToSynthesis();
   }, [navigateToSynthesis]);
 
-  const handleProceedToSynthesis = useCallback(() => {
-    navigateToSynthesis();
-  }, [navigateToSynthesis]);
+  const handleProceedToShowcase = useCallback(() => {
+    navigateToProjectShowcase();
+  }, [navigateToProjectShowcase]);
 
   const syncStatusLabel = formatSyncStatusLabel(syncStatus, t);
   const syncStatusMeta = formatSyncMeta(syncStatus, t, language);
@@ -7928,7 +7959,7 @@ const updateProjectFilters = useCallback((updater) => {
             }
             isReturnToSynthesisRequested={returnToSynthesisAfterEdit}
             tourContext={tourContext}
-            onFinish={leaveQuestionnaireForSynthesis}
+            onFinish={leaveQuestionnaireForShowcase}
             projectId={activeProjectId}
             projectStage={projectStage}
             onProjectStageChange={handleProjectStageChange}
@@ -7945,7 +7976,7 @@ const updateProjectFilters = useCallback((updater) => {
             totalQuestions={activeQuestions.length}
             onBackToQuestionnaire={handleBackToQuestionnaire}
             onNavigateToQuestion={handleNavigateToQuestion}
-            onProceedToSynthesis={handleProceedToSynthesis}
+            onProceedToShowcase={handleProceedToShowcase}
           />
         ) : screen === 'submission-cancelled' ? (
           <SubmissionCancelledNotice

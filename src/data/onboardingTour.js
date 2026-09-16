@@ -9,7 +9,7 @@
 // settings.json publié) est remplacée par celle-ci au démarrage — voir
 // normalizeOnboardingConfig dans src/utils/onboarding.js. L'incrémenter écrase donc les
 // personnalisations back-office du tour : à ne faire que pour une refonte assumée.
-export const ONBOARDING_TOUR_VERSION = 2;
+export const ONBOARDING_TOUR_VERSION = 3;
 
 const ACTION_LABELS = {
   create: { en: 'Create a project', fr: 'Créer un projet', de: 'Ein Projekt erstellen', es: 'Crear un proyecto' },
@@ -365,10 +365,10 @@ export const initialOnboardingTourConfig = {
         "es": "Terminar cuando quiera"
       },
       "content": {
-        "en": "“Finish” takes you to the summary. Nothing is sent at this stage: your project stays a private draft, and you can come back to change any answer.",
-        "fr": "« Terminer » vous amène à la synthèse. Rien n’est envoyé à ce stade : votre projet reste un brouillon privé, et vous pourrez revenir modifier n’importe quelle réponse.",
-        "de": "„Fertigstellen“ führt Sie zur Zusammenfassung. In diesem Stadium wird nichts versendet: Ihr Projekt bleibt ein privater Entwurf, und Sie können jede Antwort später ändern.",
-        "es": "«Terminar» le lleva a la síntesis. Nada se envía en esta fase: su proyecto sigue siendo un borrador privado y podrá volver para modificar cualquier respuesta."
+        "en": "“Finish” takes you straight to your project showcase, so you see the project you have just described. From there, “Project stakes” opens the compliance reading of it. Nothing is sent at this stage: your project stays a private draft, and you can come back to change any answer.",
+        "fr": "« Terminer » vous amène directement à la vitrine de votre projet, pour voir le projet que vous venez de décrire. De là, « Enjeux du projet » en ouvre la lecture compliance. Rien n’est envoyé à ce stade : votre projet reste un brouillon privé, et vous pourrez revenir modifier n’importe quelle réponse.",
+        "de": "„Fertigstellen“ führt Sie direkt zum Showcase Ihres Projekts, damit Sie das eben beschriebene Projekt sehen. Von dort öffnet „Projektherausforderungen“ die Compliance-Lesart. In diesem Stadium wird nichts versendet: Ihr Projekt bleibt ein privater Entwurf, und Sie können jede Antwort später ändern.",
+        "es": "«Terminar» le lleva directamente a la vitrina de su proyecto, para ver el proyecto que acaba de describir. Desde ahí, «Retos del proyecto» abre su lectura de cumplimiento. Nada se envía en esta fase: su proyecto sigue siendo un borrador privado y podrá volver para modificar cualquier respuesta."
       },
       "placement": "top",
       "highlightScope": "target",
@@ -441,16 +441,16 @@ export const initialOnboardingTourConfig = {
       "id": "compliance-report-top",
       "target": "[data-tour-id=\"synthesis-summary\"]",
       "title": {
-        "en": "Read your summary",
-        "fr": "Lire votre synthèse",
-        "de": "Ihre Zusammenfassung lesen",
-        "es": "Leer su síntesis"
+        "en": "Read the project stakes",
+        "fr": "Lire les enjeux du projet",
+        "de": "Die Projektherausforderungen lesen",
+        "es": "Leer los retos del proyecto"
       },
       "content": {
-        "en": "The summary gathers everything: the calculated risk level, the teams concerned, the points of attention and the recap of your answers — which you can edit straight from here.",
-        "fr": "La synthèse rassemble tout : le niveau de risque calculé, les équipes concernées, les points de vigilance et le rappel de vos réponses — que vous pouvez modifier directement depuis ici.",
-        "de": "Die Zusammenfassung bündelt alles: das berechnete Risikoniveau, die betroffenen Teams, die Aufmerksamkeitspunkte und die Übersicht Ihrer Antworten — die Sie direkt von hier aus ändern können.",
-        "es": "La síntesis reúne todo: el nivel de riesgo calculado, los equipos implicados, los puntos de atención y el resumen de sus respuestas, que puede modificar directamente desde aquí."
+        "en": "The project stakes gather everything: the calculated risk level, the teams concerned, the points of attention and the recap of your answers — which you can edit straight from here.",
+        "fr": "Les enjeux du projet rassemblent tout : le niveau de risque calculé, les équipes concernées, les points de vigilance et le rappel de vos réponses — que vous pouvez modifier directement depuis ici.",
+        "de": "Die Projektherausforderungen bündeln alles: das berechnete Risikoniveau, die betroffenen Teams, die Aufmerksamkeitspunkte und die Übersicht Ihrer Antworten — die Sie direkt von hier aus ändern können.",
+        "es": "Los retos del proyecto lo reúnen todo: el nivel de riesgo calculado, los equipos implicados, los puntos de atención y el resumen de sus respuestas, que puede modificar directamente desde aquí."
       },
       "placement": "bottom",
       "highlightScope": "target",

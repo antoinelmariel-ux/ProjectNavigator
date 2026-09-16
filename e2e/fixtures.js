@@ -82,34 +82,59 @@ export async function answerCurrentQuestion(page, { onQuestion } = {}) {
   return heading;
 }
 
-// Avance jusqu'à la synthèse (ou s'arrête plus tôt si demandé), en répondant génériquement
-// à chaque question. Passe par l'écran des questions obligatoires manquantes s'il apparaît.
-export async function walkToSynthesis(page, { onQuestion, maxSteps = 60 } = {}) {
+// Avance jusqu'au bout du questionnaire (ou s'arrête plus tôt si demandé), en répondant
+// génériquement à chaque question. Passe par l'écran des questions obligatoires manquantes
+// s'il apparaît. La fin du formulaire ouvre la vitrine du projet, pas les enjeux.
+export async function walkQuestionnaireToShowcase(page, { onQuestion, maxSteps = 60 } = {}) {
   for (let step = 0; step < maxSteps; step += 1) {
     const heading = await answerCurrentQuestion(page, { onQuestion });
-    const nextBtn = page.getByRole('button', { name: /^(Suivant|Voir la synthèse)$/ });
+    const nextBtn = page.getByRole('button', { name: /^(Suivant|Voir la vitrine du projet)$/ });
     if ((await nextBtn.count()) === 0) break;
-    const isLast = (await nextBtn.first().textContent()).includes('synthèse');
+    const isLast = (await nextBtn.first().textContent()).includes('vitrine');
     await nextBtn.first().click();
     if (!isLast) {
       await waitHeadingChange(page, heading);
     } else {
       await page.waitForTimeout(300);
-      const proceedBtn = page.getByRole('button', { name: /Accéder à la synthèse/ });
-      if ((await proceedBtn.count()) > 0) {
-        await proceedBtn.click();
-        await page.waitForTimeout(300);
-      }
+      await proceedThroughMandatorySummary(page);
       return;
     }
   }
 }
 
-// Crée un projet, répond génériquement à tout le questionnaire (jalon + fichier gérés) et
-// ouvre sa vitrine depuis la synthèse. Utilisé par les specs ProjectShowcase.
+// L'écran des questions obligatoires manquantes s'intercale entre le questionnaire et la
+// vitrine ; son bouton porte le même libellé que celui de la dernière question.
+export async function proceedThroughMandatorySummary(page) {
+  const proceedBtn = page.getByRole('button', { name: /Voir la vitrine du projet/ });
+  if ((await proceedBtn.count()) > 0) {
+    await proceedBtn.first().click();
+    await page.waitForTimeout(300);
+  }
+}
+
+// Depuis la vitrine, ouvre les enjeux du projet (l'ancienne synthèse). Le bouton de la barre
+// de navigation porte un aria-label plus long que son texte visible.
+export async function openProjectStakes(page) {
+  const stakesBtn = page.getByRole('button', { name: /Voir les enjeux du projet/ });
+  if ((await stakesBtn.count()) > 0) {
+    await stakesBtn.first().click();
+    await page.waitForTimeout(300);
+  }
+}
+
+// Termine le questionnaire puis rejoint les enjeux du projet depuis la vitrine : le chemin
+// complet que suit désormais une personne qui vient de décrire son projet.
+export async function walkToSynthesis(page, options = {}) {
+  await walkQuestionnaireToShowcase(page, options);
+  await proceedThroughMandatorySummary(page);
+  await openProjectStakes(page);
+}
+
+// Crée un projet et répond génériquement à tout le questionnaire (jalon + fichier gérés) :
+// la fin du formulaire ouvre directement la vitrine. Utilisé par les specs ProjectShowcase.
 export async function createProjectAndOpenShowcase(page) {
   await page.getByRole('button', { name: /Créer un projet/ }).first().click();
-  await walkToSynthesis(page, {
+  await walkQuestionnaireToShowcase(page, {
     async onQuestion(heading, p) {
       if (heading.includes('jalons')) {
         await p.getByRole('button', { name: /Ajouter un jalon/ }).click();
@@ -127,10 +152,7 @@ export async function createProjectAndOpenShowcase(page) {
       return false;
     }
   });
-  if ((await page.getByText('Questions obligatoires à compléter').count()) > 0) {
-    await page.getByRole('button', { name: /Accéder à la synthèse/ }).click();
-  }
-  await page.getByRole('button', { name: /Vitrine du projet/ }).click();
+  await proceedThroughMandatorySummary(page);
   await expect(page.getByRole('button', { name: 'Partager' })).toBeVisible();
 }
 
@@ -166,7 +188,7 @@ export async function publishShowcaseImpactFigure(page, { figure, unit = '', cap
 // les specs commentaires experts / validation / repêchage comité.
 export async function createAndSubmitProject(page) {
   await page.getByRole('button', { name: /Créer un projet/ }).first().click();
-  await walkToSynthesis(page, {
+  await walkQuestionnaireToShowcase(page, {
     async onQuestion(heading, p) {
       if (heading.includes('jalons')) {
         await p.getByRole('button', { name: /Ajouter un jalon/ }).click();
@@ -184,9 +206,9 @@ export async function createAndSubmitProject(page) {
       return false;
     }
   });
-  if ((await page.getByText('Questions obligatoires à compléter').count()) > 0) {
-    await page.getByRole('button', { name: /Accéder à la synthèse/ }).click();
-  }
+  await proceedThroughMandatorySummary(page);
+  await openProjectStakes(page);
+  // Deux portes d'entrée depuis les enjeux : ici on demande la validation complète.
   await page.getByRole('button', { name: 'Demander la validation' }).click();
   await page.waitForTimeout(400);
 }
@@ -249,7 +271,7 @@ export async function grantSelfComplianceExpertAndCommitteeAccess(page) {
 // à nouveau, d'où la vérification de aria-expanded avant de cliquer.
 export async function openTriggeredProjectAndExpandTeam(page, teamName) {
   await page.getByRole('button', { name: 'Ouvrir' }).first().click();
-  await expect(page.getByRole('heading', { name: 'Synthèse' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Enjeux du projet' })).toBeVisible();
   const teamToggle = page.getByRole('button', { name: new RegExp(teamName) }).first();
   if ((await teamToggle.getAttribute('aria-expanded')) !== 'true') {
     await teamToggle.click();

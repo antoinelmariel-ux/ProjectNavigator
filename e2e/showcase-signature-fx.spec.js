@@ -84,8 +84,8 @@ test.describe('Effet WebGL / animations de la vitrine (ShowcaseSignatureFx)', ()
     await createProjectAndOpenShowcase(page);
     await expect(page.locator('.sg-bg')).toHaveCount(1);
 
-    await page.getByRole('button', { name: 'Synthèse' }).click();
-    await expect(page.getByRole('heading', { name: 'Synthèse' })).toBeVisible();
+    await page.getByRole('button', { name: /Voir les enjeux du projet/ }).click();
+    await expect(page.getByRole('heading', { name: 'Enjeux du projet' })).toBeVisible();
 
     await page.getByRole('button', { name: /Vitrine du projet/ }).click();
     await expect(page.locator('.sg-bg')).toHaveCount(1);

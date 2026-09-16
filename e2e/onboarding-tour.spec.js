@@ -28,6 +28,11 @@ async function walk(page, steps) {
 }
 
 test.describe('tour v2', () => {
+  // Plusieurs séquences traversent la vitrine (canvas WebGL, animations de révélation, mode
+  // édition) : comme toutes les specs `showcase-*`, elles dépassent le timeout par défaut de
+  // 30 s — « Présenter son projet » enchaîne onze étapes sur cet écran.
+  test.describe.configure({ timeout: 120000 });
+
   test('le menu d entree propose les 5 parcours', async ({ page }) => {
     const errors = collectConsoleErrors(page);
     await startTour(page);
@@ -90,7 +95,7 @@ test.describe('tour v2', () => {
     await tourAction(page, 'Valider son projet').click();
 
     await walk(page, [
-      ['Lire votre synthèse', 'synthesis-summary'],
+      ['Lire les enjeux du projet', 'synthesis-summary'],
       ['Compléter les informations obligatoires', 'mandatory-summary-panel'],
       // Le bloc « Points de vigilance » n'existe que si le projet porte une alerte de délai :
       // le projet de démonstration n'en a pas, le tour retombe alors sur une bulle centrée.

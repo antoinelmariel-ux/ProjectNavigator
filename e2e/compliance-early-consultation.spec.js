@@ -43,9 +43,6 @@ test.describe('Consultation compliance en amont', () => {
     await gotoHome(page);
     await page.getByRole('button', { name: /Créer un projet/ }).first().click();
     await answerEverything(page);
-    if ((await page.getByText('Questions obligatoires à compléter').count()) > 0) {
-      await page.getByRole('button', { name: /Accéder à la synthèse/ }).click();
-    }
 
     await expect(page.getByText('Où en est votre projet vis-à-vis de la compliance')).toBeVisible();
     await expect(page.getByText('Orientation possible')).toBeVisible();
@@ -57,9 +54,6 @@ test.describe('Consultation compliance en amont', () => {
     await gotoHome(page);
     await page.getByRole('button', { name: /Créer un projet/ }).first().click();
     await answerEverything(page);
-    if ((await page.getByText('Questions obligatoires à compléter').count()) > 0) {
-      await page.getByRole('button', { name: /Accéder à la synthèse/ }).click();
-    }
 
     await page.getByRole('button', { name: 'Demander un avis préliminaire' }).click();
 

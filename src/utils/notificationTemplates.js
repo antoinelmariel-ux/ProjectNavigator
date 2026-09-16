@@ -41,9 +41,9 @@ export const NOTIFICATION_CATALOG = {
     intro: (ctx) =>
       `${ctx.actorName} submitted the project ${quoted(ctx.projectName)} for compliance review.`,
     expected: () => [
-      'Open the project’s synthesis report in Project Navigator.',
+      'Open the project’s stakes page in Project Navigator.',
       'Assess the points that fall within your area and identify any potential blockers.',
-      'Post your remarks directly in the synthesis report: the project owner will be notified automatically.'
+      'Post your remarks directly in the project stakes page: the project owner will be notified automatically.'
     ],
     reason: (ctx) =>
       ctx.teamNames.length > 0
@@ -59,7 +59,7 @@ export const NOTIFICATION_CATALOG = {
       ctx.teamNames.length > 0
         ? `The relevant compliance teams have been notified (${ctx.teamNames.join(', ')}) and will get back to you.`
         : 'The relevant compliance teams have been notified and will get back to you.',
-      'You will receive an email as soon as a comment is posted on your synthesis report.'
+      'You will receive an email as soon as a comment is posted on your project stakes page.'
     ],
     reason: () => 'you are the owner or co-owner of this project.'
   },
@@ -259,9 +259,9 @@ export const NOTIFICATION_CATALOG = {
   [NOTIFICATION_TYPES.SYNTHESIS_COMMENT_TO_OWNER]: {
     actionType: 'Compliance comment on your report',
     intro: (ctx) =>
-      `${ctx.actorName} posted a comment on the synthesis report of the project ${quoted(ctx.projectName)}.`,
+      `${ctx.actorName} posted a comment on the project stakes page of the project ${quoted(ctx.projectName)}.`,
     expected: () => [
-      'Open the synthesis report and read the comment.',
+      'Open the project stakes page and read the comment.',
       'Provide the requested clarifications or adjust the project accordingly.',
       'Reply in the discussion thread: the compliance team will be notified of your reply.'
     ],
@@ -271,21 +271,21 @@ export const NOTIFICATION_CATALOG = {
   [NOTIFICATION_TYPES.SYNTHESIS_COMMENT_TO_TEAM]: {
     actionType: 'Reply from the project owner',
     intro: (ctx) =>
-      `${ctx.actorName} replied on the synthesis report of the project ${quoted(ctx.projectName)}.`,
+      `${ctx.actorName} replied on the project stakes page of the project ${quoted(ctx.projectName)}.`,
     expected: () => [
       'Review the project owner’s reply.',
       'Confirm that the point is resolved, or continue the exchange in the discussion thread.'
     ],
     reason: (ctx) =>
       ctx.teamNames.length > 0
-        ? `your team (${ctx.teamNames.join(', ')}) posted a comment on this synthesis report.`
-        : 'your team posted a comment on this synthesis report.'
+        ? `your team (${ctx.teamNames.join(', ')}) posted a comment on this project stakes page.`
+        : 'your team posted a comment on this project stakes page.'
   },
 
   [NOTIFICATION_TYPES.SYNTHESIS_COMMENT_REPLY]: {
     actionType: 'Reply to your comment',
     intro: (ctx) =>
-      `${ctx.actorName} replied to your comment on the synthesis report of the project ${quoted(ctx.projectName)}.`,
+      `${ctx.actorName} replied to your comment on the project stakes page of the project ${quoted(ctx.projectName)}.`,
     expected: () => [
       'Review the reply.',
       'Continue the exchange in the discussion thread if the point is not resolved.'
@@ -357,7 +357,7 @@ export const NOTIFICATION_CATALOG = {
         ? `You are handling the project ${quoted(ctx.projectName)} for ${ctx.teamNames.join(', ')}, and no action has been recorded on it for a while.`
         : `You are handling the project ${quoted(ctx.projectName)}, and no action has been recorded on it for a while.`,
     expected: () => [
-      'Open the synthesis report and post your review, or update the compliance status.',
+      'Open the project stakes page and post your review, or update the compliance status.',
       'Release the project so that another member of your team can pick it up, if you cannot handle it.'
     ],
     reason: () => 'you took this project in charge for your team and it is still waiting.'
@@ -371,9 +371,9 @@ export const NOTIFICATION_CATALOG = {
     intro: (ctx) =>
       `${ctx.actorName} added your team to the review of the project ${quoted(ctx.projectName)}.`,
     expected: () => [
-      'Open the project’s synthesis report in Project Navigator.',
+      'Open the project’s stakes page in Project Navigator.',
       'Assess the points that fall within your area and identify any potential blockers.',
-      'Post your remarks directly in the synthesis report: the project owner will be notified automatically.'
+      'Post your remarks directly in the project stakes page: the project owner will be notified automatically.'
     ],
     reason: () => 'your team was not identified automatically and was added manually to this project.'
   }

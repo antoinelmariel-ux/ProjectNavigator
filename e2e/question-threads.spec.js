@@ -63,10 +63,6 @@ test.describe('Questions ancrées sur une question du formulaire', () => {
         return false;
       }
     });
-    if ((await page.getByRole('button', { name: /Accéder à la synthèse/ }).count()) > 0) {
-      await page.getByRole('button', { name: /Accéder à la synthèse/ }).click();
-    }
-
     // Une équipe interrogée depuis le questionnaire est sollicitée comme si une règle l'avait
     // déclenchée : son bloc apparaît en synthèse, avec le fil rattaché.
     await expect(page.getByRole('heading', { name: TEAM_NAME }).first()).toBeVisible();

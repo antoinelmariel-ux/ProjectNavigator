@@ -8,7 +8,7 @@ export const MandatoryQuestionsSummary = ({
   totalQuestions = 0,
   onBackToQuestionnaire,
   onNavigateToQuestion,
-  onProceedToSynthesis
+  onProceedToShowcase
 }) => {
   const { t, language } = useTranslation();
   const hasPending = pendingQuestions.length > 0;
@@ -26,8 +26,8 @@ export const MandatoryQuestionsSummary = ({
   };
 
   const handleProceed = () => {
-    if (typeof onProceedToSynthesis === 'function') {
-      onProceedToSynthesis();
+    if (typeof onProceedToShowcase === 'function') {
+      onProceedToShowcase();
     }
   };
 
