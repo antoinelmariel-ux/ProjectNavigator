@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoFresh, walkToSynthesis } from './fixtures.js';
+import { gotoHome, walkToSynthesis } from './fixtures.js';
 
 const answerEverything = (page) => walkToSynthesis(page, {
   async onQuestion(heading, p) {
@@ -22,7 +22,7 @@ const answerEverything = (page) => walkToSynthesis(page, {
 
 test.describe('Consultation compliance en amont', () => {
   test('le stade déclaré est persisté et modifiable depuis le questionnaire', async ({ page }) => {
-    await gotoFresh(page);
+    await gotoHome(page);
     await page.getByRole('button', { name: /Créer un projet/ }).first().click();
 
     // Un projet créé maintenant part du cadrage : c'est ce qui autorise à interroger la
@@ -40,7 +40,7 @@ test.describe('Consultation compliance en amont', () => {
   });
 
   test('la synthèse propose les deux portes d’entrée et dit ce que chacune permet', async ({ page }) => {
-    await gotoFresh(page);
+    await gotoHome(page);
     await page.getByRole('button', { name: /Créer un projet/ }).first().click();
     await answerEverything(page);
     if ((await page.getByText('Questions obligatoires à compléter').count()) > 0) {
@@ -54,7 +54,7 @@ test.describe('Consultation compliance en amont', () => {
   });
 
   test('une demande d’avis préliminaire n’est pas une validation', async ({ page }) => {
-    await gotoFresh(page);
+    await gotoHome(page);
     await page.getByRole('button', { name: /Créer un projet/ }).first().click();
     await answerEverything(page);
     if ((await page.getByText('Questions obligatoires à compléter').count()) > 0) {
