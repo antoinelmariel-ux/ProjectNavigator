@@ -9,7 +9,7 @@
 // settings.json publié) est remplacée par celle-ci au démarrage — voir
 // normalizeOnboardingConfig dans src/utils/onboarding.js. L'incrémenter écrase donc les
 // personnalisations back-office du tour : à ne faire que pour une refonte assumée.
-export const ONBOARDING_TOUR_VERSION = 3;
+export const ONBOARDING_TOUR_VERSION = 4;
 
 const ACTION_LABELS = {
   create: { en: 'Create a project', fr: 'Créer un projet', de: 'Ein Projekt erstellen', es: 'Crear un proyecto' },
@@ -316,6 +316,26 @@ export const initialOnboardingTourConfig = {
       "actions": []
     },
     {
+      "id": "question-stage",
+      "target": "[data-tour-id=\"question-stage-selector\"]",
+      "title": {
+        "en": "Where is your project right now?",
+        "fr": "Où en est votre projet ?",
+        "de": "Wo steht Ihr Projekt gerade?",
+        "es": "¿En qué punto está su proyecto?"
+      },
+      "content": {
+        "en": "Framing, design or about to launch: the stage you declare decides which questions are mandatory right now, not what you will eventually have to answer. Set it honestly to consult compliance without waiting for a finished project.",
+        "fr": "Cadrage, conception ou pré-lancement : le stade que vous déclarez décide de ce qui vous est demandé maintenant, pas de ce que vous devrez trancher au final. Déclarez-le honnêtement pour consulter la compliance sans attendre un projet terminé.",
+        "de": "Konzeption, Ausarbeitung oder kurz vor dem Start: Das von Ihnen angegebene Stadium bestimmt, was jetzt von Ihnen verlangt wird — nicht, was Sie am Ende entscheiden müssen. Geben Sie es ehrlich an, um die Compliance zu konsultieren, ohne auf ein fertiges Projekt zu warten.",
+        "es": "Encuadre, diseño o a punto de lanzarse: la etapa que declara decide lo que se le pide ahora, no lo que tendrá que decidir al final. Decláelo con honestidad para consultar a compliance sin esperar a tener un proyecto terminado."
+      },
+      "placement": "right",
+      "highlightScope": "target",
+      "showDefaultButtons": true,
+      "actions": []
+    },
+    {
       "id": "question-guidance",
       "target": "[data-tour-id=\"question-guidance-toggle\"]",
       "title": {
@@ -352,6 +372,27 @@ export const initialOnboardingTourConfig = {
       },
       "placement": "top",
       "highlightScope": "target",
+      "showDefaultButtons": true,
+      "actions": []
+    },
+    {
+      "id": "question-ask-expert",
+      "target": "[data-tour-id=\"question-ask-expert\"]",
+      "title": {
+        "en": "Ask an expert without submitting anything",
+        "fr": "Interroger un expert sans rien soumettre",
+        "de": "Einen Experten fragen, ohne etwas einzureichen",
+        "es": "Preguntar a un experto sin enviar nada"
+      },
+      "content": {
+        "en": "A doubt on a specific question? Ask it right here, to the right team: your question stays attached to this question and the team is notified. Marking an answer “I do not know yet” offers the same routing when that answer changes the analysis.",
+        "fr": "Un doute sur une question précise ? Posez-la ici même, à la bonne équipe : votre question reste attachée à cette question et l’équipe est notifiée. Répondre « Je ne sais pas encore » propose le même envoi quand cette réponse influe sur l’analyse.",
+        "de": "Ein Zweifel bei einer bestimmten Frage? Stellen Sie sie genau hier dem richtigen Team: Ihre Frage bleibt an diese Frage geknüpft, und das Team wird benachrichtigt. Die Antwort „Ich weiß es noch nicht“ bietet dieselbe Weiterleitung, wenn diese Antwort die Analyse beeinflusst.",
+        "es": "¿Una duda sobre una pregunta concreta? Plantéela aquí mismo al equipo adecuado: su pregunta queda vinculada a esta pregunta y el equipo recibe una notificación. Responder «Aún no lo sé» ofrece el mismo envío cuando esa respuesta influye en el análisis."
+      },
+      "placement": "top",
+      "highlightScope": "target",
+      "scrollIntoViewOptions": { "behavior": "smooth", "block": "center", "inline": "nearest" },
       "showDefaultButtons": true,
       "actions": []
     },
@@ -459,6 +500,27 @@ export const initialOnboardingTourConfig = {
       "actions": []
     },
     {
+      "id": "compliance-readiness",
+      "target": "[data-tour-id=\"synthesis-readiness\"]",
+      "title": {
+        "en": "Consult compliance before you're done",
+        "fr": "Consulter la compliance avant d’avoir fini",
+        "de": "Die Compliance konsultieren, bevor Sie fertig sind",
+        "es": "Consultar a compliance antes de terminar"
+      },
+      "content": {
+        "en": "Orientation, technical advice or validation: this ladder shows exactly what the experts can already do with what you have filled in, and what is still missing to go further. You don't need a finished project to get a first read.",
+        "fr": "Orientation, avis technique ou validation : ce palier montre exactement ce que les experts peuvent déjà faire avec ce que vous avez renseigné, et ce qu’il manque pour aller plus loin. Pas besoin d’un projet terminé pour obtenir une première lecture.",
+        "de": "Orientierung, fachliche Einschätzung oder Validierung: Diese Stufenleiter zeigt genau, was die Experten mit Ihren bisherigen Angaben bereits tun können und was noch fehlt, um weiterzukommen. Sie brauchen kein fertiges Projekt für eine erste Einschätzung.",
+        "es": "Orientación, dictamen técnico o validación: esta escala muestra exactamente lo que los expertos ya pueden hacer con lo que ha completado y lo que falta para ir más lejos. No necesita un proyecto terminado para obtener una primera lectura."
+      },
+      "placement": "bottom",
+      "highlightScope": "target",
+      "scrollIntoViewOptions": { "behavior": "smooth", "block": "start", "inline": "nearest" },
+      "showDefaultButtons": true,
+      "actions": []
+    },
+    {
       "id": "compliance-missing-info",
       "target": "[data-tour-id=\"mandatory-summary-panel\"]",
       "title": {
@@ -523,16 +585,16 @@ export const initialOnboardingTourConfig = {
       "id": "compliance-submit",
       "target": "[data-tour-id=\"synthesis-submit\"]",
       "title": {
-        "en": "Submit the project",
-        "fr": "Soumettre le projet",
-        "de": "Das Projekt einreichen",
-        "es": "Enviar el proyecto"
+        "en": "Two ways to submit",
+        "fr": "Deux portes pour solliciter la compliance",
+        "de": "Zwei Wege zur Einreichung",
+        "es": "Dos vías para solicitar a compliance"
       },
       "content": {
-        "en": "Until you submit, your project stays invisible to the experts. On submission the project information is frozen, and each team and committee concerned automatically receives an email inviting them to assess your project. You have nobody to notify yourself.",
-        "fr": "Tant que vous n’avez pas soumis, votre projet reste invisible pour les experts. À la soumission, les informations sont figées et chaque équipe et comité concerné reçoit automatiquement un mail l’invitant à évaluer votre projet. Vous n’avez personne à prévenir vous-même.",
-        "de": "Solange Sie nicht einreichen, bleibt Ihr Projekt für die Experten unsichtbar. Bei der Einreichung werden die Projektangaben eingefroren, und jedes betroffene Team und Gremium erhält automatisch eine E-Mail mit der Bitte um Bewertung. Sie müssen niemanden selbst informieren.",
-        "es": "Mientras no lo envíe, su proyecto permanece invisible para los expertos. Al enviarlo, la información queda congelada y cada equipo y comité implicado recibe automáticamente un correo invitándole a evaluar su proyecto. No tiene que avisar a nadie usted mismo."
+        "en": "Once the base information is filled in, request a preliminary opinion: the experts orient you without freezing the project. Once every mandatory question has a firm answer, request final validation instead — this time each concerned team and committee is notified to give a formal opinion. You have nobody to notify yourself.",
+        "fr": "Dès que les informations du socle sont renseignées, demandez un avis préliminaire : les experts vous orientent sans figer le projet. Une fois toutes les questions obligatoires renseignées avec des réponses fermes, demandez plutôt la validation — chaque équipe et comité concerné est alors notifié pour rendre un avis formel. Vous n’avez personne à prévenir vous-même.",
+        "de": "Sobald die Basisangaben ausgefüllt sind, fordern Sie eine vorläufige Stellungnahme an: Die Experten geben Ihnen eine Orientierung, ohne das Projekt einzufrieren. Sobald alle Pflichtfragen mit einer endgültigen Antwort versehen sind, fordern Sie stattdessen die Validierung an — dann wird jedes betroffene Team und Gremium benachrichtigt, um eine formelle Stellungnahme abzugeben. Sie müssen niemanden selbst informieren.",
+        "es": "En cuanto la información básica esté completa, solicite un dictamen preliminar: los expertos le orientan sin congelar el proyecto. Una vez que todas las preguntas obligatorias tengan una respuesta firme, solicite en cambio la validación — entonces se notifica a cada equipo y comité implicado para que emita un dictamen formal. No tiene que avisar a nadie usted mismo."
       },
       "placement": "left",
       "highlightScope": "target",
@@ -549,10 +611,10 @@ export const initialOnboardingTourConfig = {
         "es": "Usted mantiene el control"
       },
       "content": {
-        "en": "From your project list you can cancel the submission at any time to review a few points: the project becomes editable again, the teams stop being involved, and you submit it again once corrected.",
-        "fr": "Depuis votre liste de projets, vous pouvez annuler la soumission à tout moment pour revoir certains points : le projet redevient modifiable, les équipes cessent d’être sollicitées, et vous le soumettez à nouveau une fois corrigé.",
-        "de": "Aus Ihrer Projektliste können Sie die Einreichung jederzeit zurückziehen, um Punkte zu überarbeiten: Das Projekt wird wieder bearbeitbar, die Teams werden nicht weiter einbezogen, und Sie reichen es nach der Korrektur erneut ein.",
-        "es": "Desde su lista de proyectos puede anular el envío en cualquier momento para revisar algunos puntos: el proyecto vuelve a ser modificable, los equipos dejan de ser solicitados y lo envía de nuevo una vez corregido."
+        "en": "A submitted project already stays editable: small corrections don't require anything special, and only the teams actually impacted by a change get re-notified. Cancelling the submission goes further — it pulls the project entirely out of review, from your project list, so you can rework it before submitting again.",
+        "fr": "Un projet soumis reste déjà modifiable : les petites corrections ne demandent rien de particulier, et seules les équipes réellement concernées par un changement sont re-notifiées. Annuler la soumission va plus loin — cela retire complètement le projet de la revue, depuis votre liste de projets, pour le retravailler avant de le soumettre à nouveau.",
+        "de": "Ein eingereichtes Projekt bleibt bereits bearbeitbar: kleine Korrekturen erfordern nichts Besonderes, und nur die tatsächlich betroffenen Teams werden bei einer Änderung erneut benachrichtigt. Die Einreichung zurückzuziehen geht weiter — das Projekt wird aus Ihrer Projektliste komplett aus der Prüfung genommen, damit Sie es überarbeiten können, bevor Sie es erneut einreichen.",
+        "es": "Un proyecto enviado ya permanece modificable: las pequeñas correcciones no requieren nada especial, y solo los equipos realmente afectados por un cambio vuelven a ser notificados. Anular el envío va más allá — retira por completo el proyecto de la revisión, desde su lista de proyectos, para poder retrabajarlo antes de enviarlo de nuevo."
       },
       "placement": "left",
       "highlightScope": "target",

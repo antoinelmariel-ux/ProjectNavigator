@@ -87,8 +87,10 @@ test.describe('tour v2', () => {
       ['Lancer un nouveau projet', 'home-create-project'],
       ['Répondre à votre rythme', 'question-main-content'],
       ['Suivre votre avancement', 'question-summary-panel'],
+      ['Où en est votre projet ?', 'question-stage-selector'],
       ['Comprendre chaque question', 'question-guidance-toggle'],
       ['Bien plus que du texte', 'question-main-content'],
+      ['Interroger un expert sans rien soumettre', 'question-ask-expert'],
       ['Terminer quand vous voulez', 'questionnaire-finish-button'],
       ['Travailler à plusieurs', 'synthesis-share-member'],
       ['Récolter du feedback très tôt', 'showcase-share-trigger']
@@ -109,12 +111,13 @@ test.describe('tour v2', () => {
 
     await walk(page, [
       ['Lire les enjeux du projet', 'synthesis-summary'],
+      ['Consulter la compliance avant d’avoir fini', 'synthesis-readiness'],
       ['Compléter les informations obligatoires', 'mandatory-summary-panel'],
       // Le bloc « Points de vigilance » n'existe que si le projet porte une alerte de délai :
       // le projet de démonstration n'en a pas, le tour retombe alors sur une bulle centrée.
       ['Vérifier vos délais', null],
       ['Savoir qui sera sollicité', 'synthesis-teams'],
-      ['Soumettre le projet', 'synthesis-submit'],
+      ['Deux portes pour solliciter la compliance', 'synthesis-submit'],
       ['Vous gardez la main', 'synthesis-submit'],
       ['Dialoguer avec les experts', 'synthesis-team-exchange'],
       ['Le passage en comité', 'synthesis-committees']
