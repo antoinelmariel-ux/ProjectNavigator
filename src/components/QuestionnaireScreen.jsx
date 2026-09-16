@@ -1362,29 +1362,38 @@ export const QuestionnaireScreen = ({
                 {t('questionnaire.stageHeading')}
               </h2>
               <p className="mt-1 text-xs text-gray-500">{t('questionnaire.stageHint')}</p>
-              <div className="mt-3 space-y-1">
+              {/* Contrôle segmenté plutôt que des `input[type=radio]` : la barre latérale précède
+                  la question dans le DOM, et des boutons radio y captureraient toute sélection
+                  générique visant la réponse elle-même (c'est ce qui cassait l'autopilote e2e,
+                  mais aussi ce qu'aurait fait n'importe quelle automatisation de saisie). */}
+              <div className="mt-3 space-y-1" role="radiogroup" aria-label={t('questionnaire.stageHeading')}>
                 {PROJECT_STAGE_VALUES.map((stage) => (
-                  <label
+                  <button
                     key={stage}
-                    className={`flex items-start gap-2 rounded-lg px-2 py-1.5 text-xs cursor-pointer transition-colors ${
-                      resolvedStage === stage ? 'bg-blue-50 text-blue-800 font-semibold' : 'text-gray-600 hover:bg-gray-100'
+                    type="button"
+                    role="radio"
+                    aria-checked={resolvedStage === stage}
+                    onClick={() => onProjectStageChange(stage)}
+                    className={`flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors ${
+                      resolvedStage === stage
+                        ? 'bg-blue-50 text-blue-800 font-semibold'
+                        : 'text-gray-600 hover:bg-gray-100'
                     }`}
                   >
-                    <input
-                      type="radio"
-                      name="project-stage"
-                      value={stage}
-                      checked={resolvedStage === stage}
-                      onChange={() => onProjectStageChange(stage)}
-                      className="mt-0.5 h-3.5 w-3.5 border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
+                    <span className="mt-0.5 shrink-0" aria-hidden="true">
+                      {resolvedStage === stage ? (
+                        <CheckCircle className="w-3.5 h-3.5 text-blue-600" />
+                      ) : (
+                        <span className="block w-2 h-2 mt-1 rounded-full bg-gray-300" />
+                      )}
+                    </span>
                     <span className="flex-1 min-w-0">
                       {resolveLocalizedText(PROJECT_STAGE_LABELS[stage], language)}
                       <span className="block font-normal text-[11px] text-gray-500">
                         {t(`questionnaire.stageDescription.${stage}`)}
                       </span>
                     </span>
-                  </label>
+                  </button>
                 ))}
               </div>
             </div>

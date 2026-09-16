@@ -63,7 +63,7 @@ test.describe('Persistance transverse', () => {
     // « Consulter la synthèse », seul chemin de retour vers l'écran qui affiche les membres
     // (un brouillon ne propose que « Continuer l'édition », qui rouvre le questionnaire).
     // Le partage, lui, n'existe que sur la synthèse d'avant soumission, d'où cet ordre.
-    await page.getByRole('button', { name: 'Soumettre le projet' }).click();
+    await page.getByRole('button', { name: 'Demander la validation' }).click();
     await page.waitForTimeout(400);
 
     await page.reload();

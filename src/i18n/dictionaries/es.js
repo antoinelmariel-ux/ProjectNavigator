@@ -350,6 +350,11 @@ export default {
     statusDraft: 'Borrador en curso',
     statusSubmitted: 'Resumen finalizado',
     statusCancelled: 'Envío cancelado',
+    showcaseFeedbackBadgeSingular: '{{count}} comentario',
+    showcaseFeedbackBadgePlural: '{{count}} comentarios',
+    showcaseFeedbackTooltip: 'Notas adhesivas dejadas en la vitrina de este proyecto y aún sin tratar.',
+    validationStatusPreliminary: 'Dictamen preliminar',
+    validationTooltipPreliminary: 'Dictámenes emitidos sobre una solicitud preliminar ({{approved}}/{{total}}): no es una validación.',
     validationStatusValidated: 'Validado',
     validationStatusPending: 'Pendiente de validación',
     validationStatusRejected: 'Rechazado',
@@ -419,6 +424,8 @@ export default {
     addInspiringProject: 'Añadir un proyecto inspirador',
     duplicateNoticePrefix: 'Copia creada:',
     duplicateNoticeSuffix: 'Ahora está en la parte superior de su lista, como borrador.',
+    preliminaryNoticePrefix: 'Dictamen preliminar solicitado:',
+    preliminaryNoticeSuffix: 'se ha enviado a los expertos para orientación. Puede seguir desarrollándolo.',
     submissionNoticePrefix: 'Proyecto enviado:',
     submissionNoticeSuffix: 'ha sido enviado para su revisión.',
     noProjectsYetTitle: 'Aún no hay ningún proyecto guardado.',
@@ -1701,6 +1708,8 @@ export default {
     backToHome: 'Volver al inicio'
   },
   synthesisReport: {
+    exchangeInProgressTitle: 'Intercambio en curso',
+    exchangeInProgressHint: 'Todavía no se ha emitido ningún dictamen para este ámbito. Puede plantear sus preguntas en el hilo de abajo sin esperar.',
     readiness: {
       ariaLabel: 'Lo que compliance puede hacer en esta fase',
       heading: 'Dónde está su proyecto frente a compliance',

@@ -172,7 +172,7 @@ test.describe('Questionnaire adaptatif -> Synthèse', () => {
       await page.getByRole('button', { name: /Accéder à la synthèse/ }).click();
     }
 
-    await page.getByRole('button', { name: 'Soumettre le projet' }).click();
+    await page.getByRole('button', { name: 'Demander la validation' }).click();
     await expect(page.getByText(/soumis/i).first()).toBeVisible();
   });
 });

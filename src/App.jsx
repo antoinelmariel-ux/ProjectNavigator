@@ -33,8 +33,7 @@ import { shouldShowQuestion as shouldShowQuestionBase, withActivityScope } from 
 import {
   computeMandatoryProgress,
   getMissingMandatoryQuestions,
-  isAnswerProvided,
-  isQuestionMandatoryAtStage
+  isAnswerProvided
 } from './utils/mandatoryQuestions.js';
 import {
   DEFAULT_NEW_PROJECT_STAGE,
@@ -3146,17 +3145,21 @@ const updateProjectFilters = useCallback((updater) => {
   // Les retours reçus sur la vitrine sont un signal de réflexion, pas de conformité : on ne
   // compte que les post-its écrits par quelqu'un d'autre que la personne qui regarde, et
   // seulement ceux encore ouverts.
-  const showcaseFeedbackCount = useMemo(() => {
-    if (!activeProjectId) {
-      return 0;
-    }
+  const showcaseFeedbackCounts = useMemo(() => {
+    const viewerEmail = normalizeEmail(currentUserEmail || '');
 
-    return annotationNotes.filter((note) => (
-      note?.projectId === activeProjectId
-      && note?.status !== 'closed'
-      && normalizeEmail(note?.sourceEmail || '') !== normalizeEmail(currentUserEmail || '')
-    )).length;
-  }, [activeProjectId, annotationNotes, currentUserEmail]);
+    return annotationNotes.reduce((acc, note) => {
+      const projectKey = typeof note?.projectId === 'string' ? note.projectId : '';
+      if (!projectKey || note?.status === 'closed' || normalizeEmail(note?.sourceEmail || '') === viewerEmail) {
+        return acc;
+      }
+
+      acc[projectKey] = (acc[projectKey] || 0) + 1;
+      return acc;
+    }, {});
+  }, [annotationNotes, currentUserEmail]);
+
+  const showcaseFeedbackCount = activeProjectId ? (showcaseFeedbackCounts[activeProjectId] || 0) : 0;
 
   const projectReadiness = useMemo(
     () => getProjectReadiness(activeQuestions, answers),
@@ -5054,7 +5057,9 @@ const updateProjectFilters = useCallback((updater) => {
       totalMandatoryQuestions: totalQuestions,
       answeredMandatoryQuestions: answeredQuestionsCount
     } = computeMandatoryProgress(derivedQuestions, projectAnswers);
-    const missingMandatory = derivedQuestions.filter(question => question.required && !isAnswerProvided(projectAnswers[question.id]));
+    // Reprise d'un projet : on ramène le porteur sur la première question réellement due à son
+    // stade, pas sur la première question obligatoire toutes phases confondues.
+    const missingMandatory = getMissingMandatoryQuestions(derivedQuestions, projectAnswers);
     const rawIndex = typeof project.lastQuestionIndex === 'number' ? project.lastQuestionIndex : 0;
     const sanitizedIndex = totalQuestions > 0 ? Math.min(Math.max(rawIndex, 0), totalQuestions - 1) : 0;
     const firstMissingId = missingMandatory[0]?.id;
@@ -5339,9 +5344,7 @@ const updateProjectFilters = useCallback((updater) => {
     } = computeMandatoryProgress(visibleQuestions, answersSource);
 
     const hasShowcaseIncompleteAnswers = visibleQuestions.length > 0
-      ? visibleQuestions.some(
-        question => question.required && !isAnswerProvided(answersSource[question.id])
-      )
+      ? getMissingMandatoryQuestions(visibleQuestions, answersSource).length > 0
       : Object.keys(answersSource).length === 0;
 
 
@@ -7078,6 +7081,7 @@ const updateProjectFilters = useCallback((updater) => {
           <Suspense fallback={(<LoadingFallback label={t('app.loading.screenLabel')} hint={t('app.loading.screenHint')} />)}>
             <LazyHomeScreen
             projects={projects}
+            showcaseFeedbackCounts={showcaseFeedbackCounts}
             projectFilters={projectFilters}
             teamLeadOptions={teamLeadTeamOptions}
             teams={teams}

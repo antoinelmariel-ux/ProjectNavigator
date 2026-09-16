@@ -46,7 +46,7 @@ import { ProjectReadinessPanel } from './ProjectReadinessPanel.jsx';
 import { SUBMISSION_KIND_FINAL, SUBMISSION_KIND_PRELIMINARY } from '../utils/submissionKind.js';
 import { getLocaleTag, LANGUAGE_LABELS } from '../i18n/languages.js';
 import { isLanguageAcceptedBy, normalizeAcceptedLanguages } from '../utils/translationAudit.js';
-import { resolveEffectiveTeamComplianceEntry } from '../utils/complianceAutoValidation.js';
+import { isTeamAutoValidated, resolveEffectiveTeamComplianceEntry } from '../utils/complianceAutoValidation.js';
 import { MANUAL_TEAM_REQUESTS_KEY, normalizeManualTeamRequests } from '../utils/manualTeamRequests.js';
 
 const formatNumber = (value, options = {}, language) => {
@@ -1900,6 +1900,16 @@ export const SynthesisReport = ({
                     !== JSON.stringify(normalizeCommentAttachments(storedEntry.attachments));
                 const feedbackMessage = getComplianceFeedbackMessage(`team-${team.id}`);
                 const canEditTeamComment = canBypassCompliancePerimeter || complianceTeamIdsForUser.has(team.id);
+                // Tant que l'expert n'a rien rendu, le porteur ne doit pas voir une case vide :
+                // une carte « avis » vide se lit comme un tampon manquant et transforme un
+                // échange en formalité de validation. Les périmètres auto-validés gardent
+                // volontairement leur affichage actuel — personne n'y écrira jamais, leur carte
+                // est le seul message compliance qui existe pour eux.
+                const hasExpertOpinion = storedEntry.comment.trim().length > 0
+                  || normalizeCommentAttachments(storedEntry.attachments).length > 0
+                  || storedEntry.status.length > 0;
+                const isAutoValidatedPerimeter = isTeamAutoValidated(analysis, team.id);
+                const shouldShowOpinionCard = hasExpertOpinion || isAutoValidatedPerimeter || canEditTeamComment;
                 const canReplyTeamThread = canEditTeamComment || canReplyAsProjectContributor;
                 const threadKey = `team-${team.id}`;
                 const teamDisplayName = resolveLocalizedText(team.name, language);
@@ -2114,13 +2124,26 @@ export const SynthesisReport = ({
                                 <h4 className="text-sm font-semibold text-gray-800">{t('synthesisReport.expertCommentTitle')}</h4>
                                 <p className="text-xs text-gray-500 mt-0.5">{t('synthesisReport.expertCommentSubtitleTemplate', { teamName: teamDisplayName })}</p>
                               </div>
-                              {statusMeta && (
+                              {statusMeta && shouldShowOpinionCard && (
                                 <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${statusMeta.badgeClass}`}>
                                   {statusMeta.label}
                                 </span>
                               )}
                             </div>
 
+                            {!shouldShowOpinionCard && (
+                              <div className="rounded-xl border border-gray-200 bg-white p-3 text-sm text-gray-600">
+                                <p className="flex items-center gap-2 font-semibold text-gray-700">
+                                  <MessageSquare className="w-4 h-4 text-blue-600" />
+                                  {t('synthesisReport.exchangeInProgressTitle')}
+                                </p>
+                                <p className="mt-1 text-xs text-gray-500">
+                                  {t('synthesisReport.exchangeInProgressHint')}
+                                </p>
+                              </div>
+                            )}
+
+                            {shouldShowOpinionCard && (
                             <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-3">
                               <div className="flex flex-wrap items-center justify-between gap-2">
                                 <div className="flex flex-wrap items-center gap-1.5 text-xs">
@@ -2171,6 +2194,7 @@ export const SynthesisReport = ({
                                 <p className="mt-2 text-sm text-gray-500">{t('synthesisReport.noCommentYet')}</p>
                               )}
                             </div>
+                            )}
 
                             {replyMessages.length > 0 && (
                               <div className="space-y-2">

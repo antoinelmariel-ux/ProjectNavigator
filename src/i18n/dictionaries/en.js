@@ -349,6 +349,11 @@ export default {
     statusDraft: 'Draft in progress',
     statusSubmitted: 'Summary finalized',
     statusCancelled: 'Submission cancelled',
+    showcaseFeedbackBadgeSingular: '{{count}} comment',
+    showcaseFeedbackBadgePlural: '{{count}} comments',
+    showcaseFeedbackTooltip: 'Sticky notes left on this project’s showcase and not yet handled.',
+    validationStatusPreliminary: 'Preliminary advice',
+    validationTooltipPreliminary: 'Opinions given on a preliminary request ({{approved}}/{{total}}): this is not a validation.',
     validationStatusValidated: 'Approved',
     validationStatusPending: 'Awaiting approval',
     validationStatusRejected: 'Rejected',
@@ -417,6 +422,8 @@ export default {
     addInspiringProject: 'Add an inspiring project',
     duplicateNoticePrefix: 'Copy created:',
     duplicateNoticeSuffix: 'It is now at the top of your list, as a draft.',
+    preliminaryNoticePrefix: 'Preliminary advice requested:',
+    preliminaryNoticeSuffix: 'has been sent to the experts for guidance. You can keep developing it.',
     submissionNoticePrefix: 'Project submitted:',
     submissionNoticeSuffix: 'has been sent for review.',
     noProjectsYetTitle: 'No project saved yet.',
@@ -1701,6 +1708,8 @@ export default {
     backToHome: 'Back to home'
   },
   synthesisReport: {
+    exchangeInProgressTitle: 'Exchange under way',
+    exchangeInProgressHint: 'No opinion has been given for this area yet. You can ask your questions in the thread below right away.',
     readiness: {
       ariaLabel: 'What compliance can do at this stage',
       heading: 'Where your project stands with compliance',

@@ -187,7 +187,7 @@ export async function createAndSubmitProject(page) {
   if ((await page.getByText('Questions obligatoires à compléter').count()) > 0) {
     await page.getByRole('button', { name: /Accéder à la synthèse/ }).click();
   }
-  await page.getByRole('button', { name: 'Soumettre le projet' }).click();
+  await page.getByRole('button', { name: 'Demander la validation' }).click();
   await page.waitForTimeout(400);
 }
 

@@ -351,6 +351,11 @@ export default {
     statusDraft: 'Entwurf in Bearbeitung',
     statusSubmitted: 'Zusammenfassung fertiggestellt',
     statusCancelled: 'Einreichung storniert',
+    showcaseFeedbackBadgeSingular: '{{count}} Rückmeldung',
+    showcaseFeedbackBadgePlural: '{{count}} Rückmeldungen',
+    showcaseFeedbackTooltip: 'Haftnotizen auf der Vitrine dieses Projekts, die noch offen sind.',
+    validationStatusPreliminary: 'Vorläufige Einschätzung',
+    validationTooltipPreliminary: 'Stellungnahmen zu einer vorläufigen Anfrage ({{approved}}/{{total}}): das ist keine Validierung.',
     validationStatusValidated: 'Genehmigt',
     validationStatusPending: 'Genehmigung ausstehend',
     validationStatusRejected: 'Abgelehnt',
@@ -425,6 +430,8 @@ export default {
     addInspiringProject: 'Inspirierendes Projekt hinzufügen',
     duplicateNoticePrefix: 'Kopie erstellt:',
     duplicateNoticeSuffix: 'Sie steht nun als Entwurf ganz oben in Ihrer Liste.',
+    preliminaryNoticePrefix: 'Vorläufige Einschätzung angefragt:',
+    preliminaryNoticeSuffix: 'wurde den Experten zur Orientierung übermittelt. Sie können es weiterentwickeln.',
     submissionNoticePrefix: 'Projekt eingereicht:',
     submissionNoticeSuffix: 'wurde zur Prüfung übermittelt.',
     noProjectsYetTitle: 'Noch kein Projekt gespeichert.',
@@ -1712,6 +1719,8 @@ export default {
     backToHome: 'Zurück zur Startseite'
   },
   synthesisReport: {
+    exchangeInProgressTitle: 'Austausch läuft',
+    exchangeInProgressHint: 'Für diesen Bereich liegt noch keine Stellungnahme vor. Sie können Ihre Fragen unten im Verlauf sofort stellen.',
     readiness: {
       ariaLabel: 'Was Compliance in dieser Phase leisten kann',
       heading: 'Wo Ihr Projekt gegenüber Compliance steht',

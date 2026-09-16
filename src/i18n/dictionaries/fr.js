@@ -351,6 +351,11 @@ export default {
     statusDraft: 'Brouillon en cours',
     statusSubmitted: 'Synthèse finalisée',
     statusCancelled: 'Soumission annulée',
+    showcaseFeedbackBadgeSingular: '{{count}} retour',
+    showcaseFeedbackBadgePlural: '{{count}} retours',
+    showcaseFeedbackTooltip: 'Post-its laissés sur la vitrine de ce projet et pas encore traités.',
+    validationStatusPreliminary: 'Avis préliminaire',
+    validationTooltipPreliminary: 'Avis rendus sur une demande préliminaire ({{approved}}/{{total}}) : ce n’est pas une validation.',
     validationStatusValidated: 'Validé',
     validationStatusPending: 'En attente de validation',
     validationStatusRejected: 'Refusé',
@@ -423,6 +428,8 @@ export default {
     addInspiringProject: 'Ajouter un projet inspirant',
     duplicateNoticePrefix: 'Copie créée :',
     duplicateNoticeSuffix: 'Elle est en haut de votre liste, en brouillon.',
+    preliminaryNoticePrefix: 'Avis préliminaire demandé :',
+    preliminaryNoticeSuffix: 'a été transmis aux experts pour orientation. Vous pouvez continuer à le faire évoluer.',
     submissionNoticePrefix: 'Projet soumis :',
     submissionNoticeSuffix: 'a bien été envoyé pour analyse.',
     noProjectsYetTitle: 'Aucun projet enregistré pour le moment.',
@@ -1711,6 +1718,8 @@ export default {
     backToHome: 'Retour à l’accueil'
   },
   synthesisReport: {
+    exchangeInProgressTitle: 'Échange en cours',
+    exchangeInProgressHint: 'Aucun avis n’a encore été rendu pour ce périmètre. Vous pouvez poser vos questions dans le fil ci-dessous sans attendre.',
     readiness: {
       ariaLabel: 'Ce que la compliance peut faire à ce stade',
       heading: 'Où en est votre projet vis-à-vis de la compliance',
