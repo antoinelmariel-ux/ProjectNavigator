@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { gotoHome, createAndSubmitProject, collectConsoleErrors } from './fixtures.js';
 
-// Le badge de validation remplace le badge « Synthèse finalisée » sur la carte d'un projet
+// Le badge de validation remplace le badge « Enjeux finalisés » sur la carte d'un projet
 // soumis dès qu'au moins un périmètre (équipe experte ou comité) doit se prononcer.
 //
 // Les statuts sont injectés dans le stockage plutôt que saisis dans la synthèse : l'éditeur de
@@ -66,13 +66,13 @@ test('la carte d’un projet soumis porte son statut de validation', async ({ pa
   expect(errors).toEqual([]);
 });
 
-test('le titre de la synthèse rappelle le nom du projet', async ({ page }) => {
+test('le titre des enjeux rappelle le nom du projet', async ({ page }) => {
   await gotoHome(page);
   await createAndSubmitProject(page);
-  await firstCard(page).getByRole('button', { name: 'Consulter la synthèse' }).click();
+  await firstCard(page).getByRole('button', { name: 'Consulter les enjeux' }).click();
 
   const heading = page.locator('main h1').first();
   await expect(heading).toBeVisible();
-  await expect(heading).toContainText('Synthèse');
+  await expect(heading).toContainText('Enjeux du projet');
   await expect(heading).toContainText('Réponse test.');
 });
