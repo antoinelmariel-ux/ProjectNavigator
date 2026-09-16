@@ -32,6 +32,8 @@ import {
   normalizeProjectStage
 } from '../utils/projectStage.js';
 import { UNKNOWN_ANSWER_VALUE, canAnswerBeUnknown, isUnknownAnswer } from '../utils/unknownAnswer.js';
+import { getThreadsForQuestion, isThreadAwaitingAnswer } from '../utils/questionThreads.js';
+import { normalizeEmail } from '../utils/normalizeEmail.js';
 
 const normalizeFileAnswer = (value) => {
   const rawFiles = Array.isArray(value) ? value : value ? [value] : [];
@@ -204,7 +206,12 @@ export const QuestionnaireScreen = ({
   onFinish,
   projectId = null,
   projectStage,
-  onProjectStageChange
+  onProjectStageChange,
+  teams = [],
+  currentUserEmail = '',
+  onAskQuestion,
+  onReplyToQuestionThread,
+  onResolveQuestionThread
 }) => {
   const { t, language } = useTranslation();
   const activeQuestion = questions[currentIndex];
@@ -217,6 +224,15 @@ export const QuestionnaireScreen = ({
   const currentQuestionNumberUnit = resolveLocalizedText(currentQuestion.numberUnit, language).trim();
 
   const resolvedStage = normalizeProjectStage(projectStage);
+  const questionThreads = useMemo(
+    () => getThreadsForQuestion(answers, currentQuestion.id),
+    [answers, currentQuestion.id]
+  );
+  const [isAskFormOpen, setIsAskFormOpen] = useState(false);
+  const [askTeamId, setAskTeamId] = useState('');
+  const [askMessage, setAskMessage] = useState('');
+  const [threadReplies, setThreadReplies] = useState({});
+  const normalizedCurrentUserEmail = normalizeEmail(currentUserEmail);
   const isCurrentQuestionMandatoryNow = isQuestionMandatoryAtStage(currentQuestion, resolvedStage);
   // Une question obligatoire que le stade déclaré ne rend pas encore exigible : on le dit, au
   // lieu de la laisser passer pour optionnelle (elle ne l'est pas) ou bloquante (elle ne l'est
@@ -1720,6 +1736,161 @@ export const QuestionnaireScreen = ({
                   ? t('questionnaire.unknownAnswerActiveHint')
                   : t('questionnaire.unknownAnswerHint')}
               </p>
+            </div>
+          )}
+
+          {/* Poser une question à un expert là où le doute naît, sans rien soumettre : le fil reste
+              attaché à cette question du formulaire. */}
+          {typeof onAskQuestion === 'function' && (
+            <div className="mb-8 rounded-xl border border-gray-200 bg-gray-50 p-4" data-tour-id="question-ask-expert">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">{t('questionnaire.askExpertTitle')}</p>
+                  <p className="mt-1 text-xs text-gray-600">{t('questionnaire.askExpertHint')}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsAskFormOpen((previous) => !previous)}
+                  className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-semibold text-gray-800 hover:bg-gray-100 transition-all"
+                  aria-expanded={isAskFormOpen}
+                >
+                  {isAskFormOpen ? t('questionnaire.close') : t('questionnaire.askExpertAction')}
+                </button>
+              </div>
+
+              {isAskFormOpen && (
+                <form
+                  className="mt-3 space-y-3"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    if (!askTeamId || askMessage.trim().length === 0) {
+                      return;
+                    }
+                    onAskQuestion({ questionId: currentQuestion.id, teamId: askTeamId, message: askMessage });
+                    setAskMessage('');
+                    setAskTeamId('');
+                    setIsAskFormOpen(false);
+                  }}
+                >
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1" htmlFor="ask-expert-team">
+                      {t('questionnaire.askExpertTeamLabel')}
+                    </label>
+                    <select
+                      id="ask-expert-team"
+                      value={askTeamId}
+                      onChange={(event) => setAskTeamId(event.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">{t('questionnaire.askExpertTeamPlaceholder')}</option>
+                      {teams.map((team) => (
+                        <option key={team.id} value={team.id}>
+                          {resolveLocalizedText(team.name, language) || team.id}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1" htmlFor="ask-expert-message">
+                      {t('questionnaire.askExpertMessageLabel')}
+                    </label>
+                    <textarea
+                      id="ask-expert-message"
+                      rows={3}
+                      value={askMessage}
+                      onChange={(event) => setAskMessage(event.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={!askTeamId || askMessage.trim().length === 0}
+                    className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    {t('questionnaire.askExpertSubmit')}
+                  </button>
+                </form>
+              )}
+
+              {questionThreads.length > 0 && (
+                <ul className="mt-4 space-y-3">
+                  {questionThreads.map((thread) => {
+                    const team = teams.find((entry) => entry?.id === thread.teamId);
+                    const isAsker = normalizeEmail(thread.createdBy) === normalizedCurrentUserEmail;
+
+                    return (
+                      <li key={thread.id} className="rounded-lg border border-gray-200 bg-white p-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-xs font-semibold text-gray-800">
+                            {resolveLocalizedText(team?.name, language) || thread.teamId}
+                          </span>
+                          {thread.resolvedAt ? (
+                            <span className="text-[11px] font-semibold text-emerald-700">
+                              {t('questionnaire.askExpertResolvedBadge')}
+                            </span>
+                          ) : isThreadAwaitingAnswer(thread) ? (
+                            <span className="text-[11px] font-semibold text-amber-700">
+                              {t('questionnaire.askExpertPendingBadge')}
+                            </span>
+                          ) : null}
+                        </div>
+                        <ul className="mt-2 space-y-2">
+                          {thread.messages.map((message) => (
+                            <li key={message.id} className="text-xs text-gray-700">
+                              <span className="font-semibold">{message.authorName || message.authorEmail}</span>
+                              {' : '}
+                              <span className="whitespace-pre-line">{message.message}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        {!thread.resolvedAt && typeof onReplyToQuestionThread === 'function' && (
+                          <form
+                            className="mt-2 flex flex-col gap-2 sm:flex-row"
+                            onSubmit={(event) => {
+                              event.preventDefault();
+                              const draft = (threadReplies[thread.id] || '').trim();
+                              if (draft.length === 0) {
+                                return;
+                              }
+                              onReplyToQuestionThread({ threadId: thread.id, message: draft });
+                              setThreadReplies((previous) => ({ ...previous, [thread.id]: '' }));
+                            }}
+                          >
+                            <input
+                              type="text"
+                              value={threadReplies[thread.id] || ''}
+                              onChange={(event) => setThreadReplies((previous) => ({
+                                ...previous,
+                                [thread.id]: event.target.value
+                              }))}
+                              placeholder={t('questionnaire.askExpertReplyPlaceholder')}
+                              aria-label={t('questionnaire.askExpertReplyPlaceholder')}
+                              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                            <button
+                              type="submit"
+                              className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-xs font-semibold text-gray-800 hover:bg-gray-100 transition-all"
+                            >
+                              {t('questionnaire.askExpertReplyAction')}
+                            </button>
+                          </form>
+                        )}
+                        {isAsker && typeof onResolveQuestionThread === 'function' && (
+                          <button
+                            type="button"
+                            onClick={() => onResolveQuestionThread({ threadId: thread.id, resolved: !thread.resolvedAt })}
+                            className="mt-2 text-xs font-semibold text-blue-700 underline underline-offset-2 hover:text-blue-800"
+                          >
+                            {thread.resolvedAt
+                              ? t('questionnaire.askExpertReopenAction')
+                              : t('questionnaire.askExpertResolveAction')}
+                          </button>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </div>
           )}
 

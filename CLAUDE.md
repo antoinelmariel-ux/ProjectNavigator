@@ -300,6 +300,36 @@ expert one click** in the nominal case, and makes a project that ships without i
   session of whoever opens the app — here the owner, since they are the one who decides to launch
   — and `remindersSent` keeps it idempotent. The nearest threshold wins.
 
+## Anchored questions (asking an expert from inside the questionnaire)
+
+The point of consulting early is to ask *while filling the form*, at the moment the doubt appears,
+without submitting anything. `src/utils/questionThreads.js` holds those threads, in `answers` under
+`__question_threads__` (same reason as every other project-level marker: selectable, no new
+SharePoint column). A thread is `{id, questionId, teamId, createdBy, createdAt, resolvedAt,
+messages[]}` — anchored to one questionnaire item and one expert team.
+
+- **Asking solicits the team for real.** `handleAskQuestionToTeam` (`App.jsx`) writes the thread
+  *and* an `addManualTeamRequest(...)` entry, which is what already makes a team a perimeter of the
+  synthesis. No parallel visibility mechanism was invented: `manualTeamRequests` survives a
+  recomputation of the analysis, and `HomeScreen.jsx`'s `complianceTriggeredProjects` now merges
+  manually-requested teams into `relevantTeams` exactly as `SynthesisReport.jsx` already did —
+  without that merge an anchored question on a still-draft project would land in nobody's queue
+  (and neither did a manual team request, which this fixes too).
+- **The thread is shown on both sides, in the same place each side already works**: under the
+  questionnaire item for the owner (`data-tour-id="question-ask-expert"`, collapsed form + thread
+  list), and inside that team's card in the synthesis for the expert, with the originating question
+  label on top. A team with an **unresolved** thread defaults to *expanded* in the synthesis
+  (`hasPendingQuestionThread`) — expert cards are collapsed by default, which would otherwise hide
+  the very thing waiting for an answer.
+- **Writing happens through `patchActiveProjectAnswers`**, not `setAnswers` alone: these threads live
+  on projects that are usually still drafts, so the project entry has to be patched too or the
+  thread dies with the next hydration.
+- **Closing a thread belongs to whoever opened it** (`handleResolveQuestionThread` checks
+  `thread.createdBy`): an expert who answered does not get to decide their answer was enough.
+- Replies notify **the other side only** (`QUESTION_ASKED` towards the team via
+  `resolveTeamMailRecipients`, `QUESTION_ANSWERED` back to the asker). Tests:
+  `test/questionThreads.test.mjs`, `e2e/question-threads.spec.js`.
+
 ## Project validation status (home cards)
 
 `src/utils/projectValidationStatus.js` aggregates the per-perimeter compliance statuses of one

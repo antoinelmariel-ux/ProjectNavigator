@@ -24,6 +24,7 @@ import {
 import { normalizeProjectFilterConfig } from '../utils/projectFilters.js';
 import { normalizeInspirationFiltersConfig } from '../utils/inspirationConfig.js';
 import { normalizeTeamContacts } from '../utils/teamContacts.js';
+import { MANUAL_TEAM_REQUESTS_KEY, normalizeManualTeamRequests } from '../utils/manualTeamRequests.js';
 import { normalizeEmail } from '../utils/normalizeEmail.js';
 import { isProjectOpenForEditing } from '../utils/submissionKind.js';
 import {
@@ -611,7 +612,15 @@ export const HomeScreen = ({
         const comments = normalizeComplianceComments(project?.answers?.[COMPLIANCE_COMMENTS_KEY]);
         const forcedCommitteeIds = comments.forcedCommitteeIds;
         const analysisTeamIds = Array.isArray(project?.analysis?.teams) ? project.analysis.teams : [];
-        const relevantTeams = teams.filter((team) => team?.id && analysisTeamIds.includes(team.id));
+        // Une équipe sollicitée à la main (ajout explicite en synthèse, ou question ancrée posée
+        // depuis le questionnaire) est un périmètre au même titre qu'une équipe déclenchée par une
+        // règle — la synthèse les fusionne déjà. Sans ça, une question posée sur un brouillon
+        // n'atterrirait dans la file de personne.
+        const manualTeamIds = normalizeManualTeamRequests(project?.answers?.[MANUAL_TEAM_REQUESTS_KEY])
+          .map((entry) => entry.teamId);
+        const relevantTeams = teams.filter(
+          (team) => team?.id && (analysisTeamIds.includes(team.id) || manualTeamIds.includes(team.id))
+        );
 
         const triggeredTeams = relevantTeams
           .filter((team) => {

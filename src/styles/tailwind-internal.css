@@ -2676,6 +2676,11 @@ a {
   color: rgba(29,78,216, var(--tw-text-opacity));
 }
 
+.hover\:text-blue-800:hover {
+  --tw-text-opacity: 1;
+  color: rgba(30,64,175, var(--tw-text-opacity));
+}
+
 .hover\:text-blue-900:hover {
   --tw-text-opacity: 1;
   color: rgba(30,58,138, var(--tw-text-opacity));
