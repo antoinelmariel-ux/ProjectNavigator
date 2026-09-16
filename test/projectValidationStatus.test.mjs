@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  PROJECT_VALIDATION_OUTDATED,
   PROJECT_VALIDATION_PRELIMINARY,
   PROJECT_VALIDATION_REJECTED,
   PROJECT_VALIDATION_VALIDATED,
@@ -204,4 +205,41 @@ test('un avis favorable sur une demande préliminaire ne vaut jamais validation'
     }
   };
   assert.equal(computeProjectValidationStatus(rejected, options).status, PROJECT_VALIDATION_REJECTED);
+});
+
+test('une validation portant sur un état dépassé du projet n’est plus une validation', () => {
+  const options = { teams: [{ id: 'quality' }] };
+  const build = (entry) => ({
+    status: 'submitted',
+    analysis: { teams: ['quality'] },
+    answers: { __compliance_team_comments__: { teams: { quality: entry } } }
+  });
+
+  // Avis rendu sur la v2, mise à jour v3 qui touche ce périmètre : périmé.
+  assert.equal(
+    computeProjectValidationStatus(build({ status: 'validated', reviewedVersion: 2, needsReviewSince: 3 }), options).status,
+    PROJECT_VALIDATION_OUTDATED
+  );
+
+  // La même mise à jour, sur un périmètre qu'elle ne touchait pas : la validation tient.
+  assert.equal(
+    computeProjectValidationStatus(build({ status: 'validated', reviewedVersion: 2 }), options).status,
+    PROJECT_VALIDATION_VALIDATED
+  );
+
+  // L'expert a repris son avis après la mise à jour : la validation tient de nouveau.
+  assert.equal(
+    computeProjectValidationStatus(build({ status: 'validated', reviewedVersion: 3, needsReviewSince: 3 }), options).status,
+    PROJECT_VALIDATION_VALIDATED
+  );
+
+  // Un avis rendu avant cette fonctionnalité n'a pas de version : il compte comme rendu sur la v1.
+  assert.equal(
+    computeProjectValidationStatus(build({ status: 'validated', needsReviewSince: 2 }), options).status,
+    PROJECT_VALIDATION_OUTDATED
+  );
+  assert.equal(
+    computeProjectValidationStatus(build({ status: 'validated' }), options).status,
+    PROJECT_VALIDATION_VALIDATED
+  );
 });
