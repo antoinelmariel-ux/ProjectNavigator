@@ -156,7 +156,9 @@ export default {
     submit: {
       syncing: 'Sync in progress: please wait before submitting.',
       missingMandatory: 'Unable to submit: complete the mandatory questions before sending.',
-      missingForValidation: 'Unable to request validation: every mandatory question needs a firm answer (an “I do not know yet” is no longer enough at this point).'
+      missingForValidation: 'Unable to request validation: every mandatory question needs a firm answer (an “I do not know yet” is no longer enough at this point).',
+      sentWithImpact: 'Update sent: only the teams your changes actually affect were notified.',
+      sentWithoutImpact: 'Update saved: none of your changes affect any team’s scope, so nobody was disturbed.'
     },
     sync: {
       syncing: 'Syncing…',
@@ -352,6 +354,8 @@ export default {
     showcaseFeedbackBadgeSingular: '{{count}} comment',
     showcaseFeedbackBadgePlural: '{{count}} comments',
     showcaseFeedbackTooltip: 'Sticky notes left on this project’s showcase and not yet handled.',
+    validationStatusOutdated: 'Validated — changed since',
+    validationTooltipOutdated: 'Opinions were favourable ({{approved}}/{{total}}), but an update changed the project since: at least one area has to review again.',
     validationStatusPreliminary: 'Preliminary advice',
     validationTooltipPreliminary: 'Opinions given on a preliminary request ({{approved}}/{{total}}): this is not a validation.',
     validationStatusValidated: 'Approved',
@@ -1710,9 +1714,20 @@ export default {
     backToHome: 'Back to home'
   },
   synthesisReport: {
+    reviewPendingBadge: 'To review again',
+    reviewPendingHint: 'The project changed since your opinion, and those changes affect your area.',
+    lastUpdateChangesHeading: 'Changes in the latest update',
+    narrativeChangesSinceReview: '{{count}} free-text change(s) since your opinion — no rule watches them.',
     exchangeInProgressTitle: 'Exchange under way',
     exchangeInProgressHint: 'No opinion has been given for this area yet. You can ask your questions in the thread below right away.',
     readiness: {
+      pendingChangesHeadingSingular: '{{count}} answer changed since v{{version}}, sent on {{date}}',
+      pendingChangesHeadingPlural: '{{count}} answers changed since v{{version}}, sent on {{date}}',
+      pendingChangesHint: 'Send the update whenever you see fit: only the teams whose scope actually changes will be notified, the others keep their opinion and are left alone.',
+      moreChanges: '… and {{count}} more change(s).',
+      sendUpdateAction: 'Send the update',
+      updateWithoutReferenceHeading: 'This project was submitted before change tracking existed',
+      updateWithoutReferenceHint: 'Its state at submission time was not kept, so an update will ask every concerned team to review the project again. Later updates will be targeted.',
       ariaLabel: 'What compliance can do at this stage',
       heading: 'Where your project stands with compliance',
       intro: 'You do not need a finished project to consult the experts. Here is what they can do with what you have already entered.',

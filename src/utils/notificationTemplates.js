@@ -10,6 +10,9 @@ export const NOTIFICATION_TYPES = {
   PROJECT_SUBMITTED_OWNER: 'project-submitted-owner',
   PROJECT_PRELIMINARY_TEAM: 'project-preliminary-team',
   PROJECT_PRELIMINARY_OWNER: 'project-preliminary-owner',
+  PROJECT_UPDATED_TEAM: 'project-updated-team',
+  PROJECT_PERIMETER_DROPPED_TEAM: 'project-perimeter-dropped-team',
+  PROJECT_UPDATE_SENT_OWNER: 'project-update-sent-owner',
   PROJECT_SHARED: 'project-shared',
   SHOWCASE_COMMENT: 'showcase-comment',
   SHOWCASE_COMMENT_REPLY: 'showcase-comment-reply',
@@ -84,6 +87,47 @@ export const NOTIFICATION_CATALOG = {
         ? `The relevant compliance teams have been notified (${ctx.teamNames.join(', ')}) and will get back to you with guidance.`
         : 'The relevant compliance teams have been notified and will get back to you with guidance.',
       'Preliminary guidance is not an approval: you will still have to request validation before launching.'
+    ],
+    reason: () => 'you are the owner or co-owner of this project.'
+  },
+
+  // Envoyée uniquement aux équipes dont la mise à jour change réellement quelque chose : c'est
+  // la contrepartie indispensable du droit de modifier un projet déjà soumis. Une équipe que la
+  // modification ne concerne pas ne reçoit rien, sans quoi la fonctionnalité se paierait en
+  // volume d'e-mails et les experts se désabonneraient de fait.
+  [NOTIFICATION_TYPES.PROJECT_UPDATED_TEAM]: {
+    actionType: 'Project updated - review again',
+    intro: (ctx) =>
+      `${ctx.actorName} updated the project ${quoted(ctx.projectName)}, and the changes affect your area.`,
+    expected: () => [
+      'Open the synthesis report: the changes since your last review are listed there.',
+      'Check whether your previous opinion still holds.',
+      'Update your opinion in the synthesis report — until you do, it is flagged as pending re-review.'
+    ],
+    reason: () => 'the updated answers changed the rules that involve your team on this project.'
+  },
+
+  [NOTIFICATION_TYPES.PROJECT_PERIMETER_DROPPED_TEAM]: {
+    actionType: 'Project no longer concerns your team',
+    intro: (ctx) =>
+      `After an update by ${ctx.actorName}, the project ${quoted(ctx.projectName)} no longer triggers any rule involving your team.`,
+    expected: () => [
+      'No action is required from you.',
+      'Any opinion you had already given on this project no longer applies.',
+      'You are told rather than silently removed, in case the change looks wrong to you.'
+    ],
+    reason: () => 'your team was involved in this project before its latest update.'
+  },
+
+  [NOTIFICATION_TYPES.PROJECT_UPDATE_SENT_OWNER]: {
+    actionType: 'Update sent',
+    intro: (ctx) => `Your update to ${quoted(ctx.projectName)} has been sent.`,
+    expected: (ctx) => [
+      ctx.teamNames.length > 0
+        ? `Only the teams your changes actually affect were notified (${ctx.teamNames.join(', ')}).`
+        : 'No team was affected by your changes, so nobody was notified.',
+      'The other teams keep their opinion and were deliberately left alone.',
+      'You can keep working on your project: send another update whenever it changes again.'
     ],
     reason: () => 'you are the owner or co-owner of this project.'
   },

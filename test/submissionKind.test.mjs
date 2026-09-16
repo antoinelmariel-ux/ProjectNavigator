@@ -27,13 +27,15 @@ test('le type de soumission voyage dans les réponses du projet', () => {
   assert.equal(isPreliminarySubmission({ status: 'draft', answers }), false);
 });
 
-test('un projet envoyé pour avis préliminaire reste modifiable, une validation le fige', () => {
+test('un projet soumis reste modifiable par son porteur, quelle que soit la porte empruntée', () => {
   const preliminaryAnswers = withSubmissionKind({}, SUBMISSION_KIND_PRELIMINARY);
   const finalAnswers = withSubmissionKind({}, SUBMISSION_KIND_FINAL);
 
   assert.equal(isProjectOpenForEditing({ status: 'draft' }), true);
   assert.equal(isProjectOpenForEditing({ status: 'cancelled' }), true);
   assert.equal(isProjectOpenForEditing({ status: 'submitted', answers: preliminaryAnswers }), true);
-  assert.equal(isProjectOpenForEditing({ status: 'submitted', answers: finalAnswers }), false);
-  assert.equal(isProjectOpenForEditing({ status: 'submitted', answers: {} }), false);
+  assert.equal(isProjectOpenForEditing({ status: 'submitted', answers: finalAnswers }), true);
+  // Ce qui distingue les deux portes n'est plus le droit d'éditer mais ce que vaut ensuite un
+  // avis déjà rendu (cf. projectValidationStatus).
+  assert.equal(isProjectOpenForEditing({ status: 'unknown' }), false);
 });

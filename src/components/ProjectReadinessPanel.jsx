@@ -1,6 +1,7 @@
 import React from '../react.js';
 import { AlertTriangle, CheckCircle, Info, MessageSquare, Send, Sparkles } from './icons.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
+import { getLocaleTag } from '../i18n/languages.js';
 import { resolveLocalizedText } from '../utils/localizedContent.js';
 import {
   READINESS_ADVICE,
@@ -23,7 +24,12 @@ export const ProjectReadinessPanel = ({
   onSubmitFinal,
   onNavigateToQuestion,
   onOpenShowcase,
-  showcaseFeedbackCount = 0
+  showcaseFeedbackCount = 0,
+  pendingChanges = [],
+  hasSentSnapshot = false,
+  submissionVersion = 0,
+  lastSentAt = '',
+  onSendUpdate
 }) => {
   const { t, language } = useTranslation();
 
@@ -35,6 +41,11 @@ export const ProjectReadinessPanel = ({
   const canRequestPreliminary = levelById.get(READINESS_ORIENTATION)?.reached === true;
   const canRequestValidation = levelById.get(READINESS_VALIDATION)?.reached === true;
   const isPreliminaryPending = isSubmitted && submissionKind === SUBMISSION_KIND_PRELIMINARY;
+  const hasChangesToSend = pendingChanges.length > 0;
+  const formattedLastSentAt = lastSentAt
+    ? new Intl.DateTimeFormat(getLocaleTag(language), { day: '2-digit', month: '2-digit', year: 'numeric' })
+      .format(new Date(lastSentAt))
+    : '';
 
   const renderMissing = (missing) => (
     <ul className="mt-2 space-y-1">
@@ -64,6 +75,57 @@ export const ProjectReadinessPanel = ({
       aria-label={t('synthesisReport.readiness.ariaLabel')}
       data-tour-id="synthesis-readiness"
     >
+      {isSubmitted && typeof onSendUpdate === 'function' && (hasChangesToSend || !hasSentSnapshot) && (
+        <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4" role="status">
+          <p className="text-sm font-semibold text-amber-900">
+            {hasChangesToSend
+              ? t(
+                pendingChanges.length > 1
+                  ? 'synthesisReport.readiness.pendingChangesHeadingPlural'
+                  : 'synthesisReport.readiness.pendingChangesHeadingSingular',
+                { count: pendingChanges.length, version: submissionVersion, date: formattedLastSentAt }
+              )
+              : t('synthesisReport.readiness.updateWithoutReferenceHeading')}
+          </p>
+          <p className="mt-1 text-xs text-amber-800">
+            {hasChangesToSend
+              ? t('synthesisReport.readiness.pendingChangesHint')
+              : t('synthesisReport.readiness.updateWithoutReferenceHint')}
+          </p>
+          {hasChangesToSend && (
+            <ul className="mt-2 space-y-1">
+              {pendingChanges.slice(0, 5).map((change) => (
+                <li key={change.questionId} className="text-xs text-amber-900">
+                  <button
+                    type="button"
+                    onClick={() => onNavigateToQuestion?.(change.questionId)}
+                    className="text-left underline underline-offset-2 hover:text-amber-700"
+                  >
+                    {resolveLocalizedText(change.question?.question, language) || change.questionId}
+                  </button>
+                  <span className="text-amber-800">
+                    {' '}: {change.previousLabel || '—'} → {change.currentLabel || '—'}
+                  </span>
+                </li>
+              ))}
+              {pendingChanges.length > 5 && (
+                <li className="text-xs text-amber-800">
+                  {t('synthesisReport.readiness.moreChanges', { count: pendingChanges.length - 5 })}
+                </li>
+              )}
+            </ul>
+          )}
+          <button
+            type="button"
+            onClick={onSendUpdate}
+            className="mt-3 px-4 py-2 rounded-lg font-semibold text-sm transition-all flex items-center justify-center bg-amber-600 text-white hover:bg-amber-700 shadow-md"
+          >
+            <Send className="w-4 h-4 mr-2" />
+            {t('synthesisReport.readiness.sendUpdateAction')}
+          </button>
+        </div>
+      )}
+
       <h2 className="text-lg font-semibold text-gray-900">{t('synthesisReport.readiness.heading')}</h2>
       <p className="mt-1 text-sm text-gray-500">{t('synthesisReport.readiness.intro')}</p>
 

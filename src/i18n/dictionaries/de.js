@@ -156,7 +156,9 @@ export default {
     submit: {
       syncing: 'Synchronisierung läuft: Bitte warten Sie vor dem Absenden.',
       missingMandatory: 'Absenden nicht möglich: Vervollständigen Sie die Pflichtfragen vor dem Senden.',
-      missingForValidation: 'Validierung kann nicht angefordert werden: Jede Pflichtfrage benötigt eine verbindliche Antwort („Ich weiß es noch nicht“ reicht jetzt nicht mehr).'
+      missingForValidation: 'Validierung kann nicht angefordert werden: Jede Pflichtfrage benötigt eine verbindliche Antwort („Ich weiß es noch nicht“ reicht jetzt nicht mehr).',
+      sentWithImpact: 'Aktualisierung gesendet: benachrichtigt wurden nur die Teams, die Ihre Änderungen wirklich betreffen.',
+      sentWithoutImpact: 'Aktualisierung gespeichert: keine Ihrer Änderungen betrifft den Bereich eines Teams, daher wurde niemand gestört.'
     },
     sync: {
       syncing: 'Synchronisierung…',
@@ -354,6 +356,8 @@ export default {
     showcaseFeedbackBadgeSingular: '{{count}} Rückmeldung',
     showcaseFeedbackBadgePlural: '{{count}} Rückmeldungen',
     showcaseFeedbackTooltip: 'Haftnotizen auf der Vitrine dieses Projekts, die noch offen sind.',
+    validationStatusOutdated: 'Validiert — seitdem geändert',
+    validationTooltipOutdated: 'Die Stellungnahmen waren positiv ({{approved}}/{{total}}), aber eine Aktualisierung hat das Projekt seitdem verändert: mindestens ein Bereich muss erneut prüfen.',
     validationStatusPreliminary: 'Vorläufige Einschätzung',
     validationTooltipPreliminary: 'Stellungnahmen zu einer vorläufigen Anfrage ({{approved}}/{{total}}): das ist keine Validierung.',
     validationStatusValidated: 'Genehmigt',
@@ -1721,9 +1725,20 @@ export default {
     backToHome: 'Zurück zur Startseite'
   },
   synthesisReport: {
+    reviewPendingBadge: 'Erneut prüfen',
+    reviewPendingHint: 'Das Projekt hat sich seit Ihrer Stellungnahme geändert, und diese Änderungen betreffen Ihren Bereich.',
+    lastUpdateChangesHeading: 'Änderungen der letzten Aktualisierung',
+    narrativeChangesSinceReview: '{{count}} Änderung(en) an Freitextfeldern seit Ihrer Stellungnahme — keine Regel überwacht sie.',
     exchangeInProgressTitle: 'Austausch läuft',
     exchangeInProgressHint: 'Für diesen Bereich liegt noch keine Stellungnahme vor. Sie können Ihre Fragen unten im Verlauf sofort stellen.',
     readiness: {
+      pendingChangesHeadingSingular: '{{count}} Antwort seit v{{version}} geändert, gesendet am {{date}}',
+      pendingChangesHeadingPlural: '{{count}} Antworten seit v{{version}} geändert, gesendet am {{date}}',
+      pendingChangesHint: 'Senden Sie die Aktualisierung, wann Sie es für sinnvoll halten: benachrichtigt werden nur Teams, deren Bereich sich wirklich ändert; die anderen behalten ihre Stellungnahme und bleiben unbehelligt.',
+      moreChanges: '… und {{count}} weitere Änderung(en).',
+      sendUpdateAction: 'Aktualisierung senden',
+      updateWithoutReferenceHeading: 'Dieses Projekt wurde vor der Änderungsverfolgung eingereicht',
+      updateWithoutReferenceHint: 'Sein Zustand bei der Einreichung wurde nicht gespeichert; eine Aktualisierung bittet daher alle betroffenen Teams um erneute Prüfung. Spätere Aktualisierungen sind gezielt.',
       ariaLabel: 'Was Compliance in dieser Phase leisten kann',
       heading: 'Wo Ihr Projekt gegenüber Compliance steht',
       intro: 'Sie brauchen kein fertiges Projekt, um die Experten zu befragen. Das können sie mit Ihren bisherigen Angaben tun.',

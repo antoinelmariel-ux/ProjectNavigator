@@ -19,7 +19,7 @@ const serialize = (value) => {
 
   try {
     return JSON.stringify(value);
-  } catch (error) {
+  } catch {
     return String(value);
   }
 };

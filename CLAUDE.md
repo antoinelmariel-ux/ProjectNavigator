@@ -223,6 +223,44 @@ Two UI invariants that are easy to break:
   first radio" automation aimed at the answer itself (this is what silently broke the e2e
   autopilot, and it would break any form-filling automation the same way).
 
+## After submission: the project keeps living (versions, diff, targeted notifications)
+
+Consulting compliance early is pointless if the request freezes the project. A **submitted project
+stays editable by its owner** (`isProjectOpenForEditing`), and what makes that tenable for the
+experts is that an update notifies only the perimeters it actually changes.
+
+- **One snapshot, not a version history** (`src/utils/submissionHistory.js`, stored in `answers`
+  under `__submission_history__`, so no new SharePoint column). It keeps the current version
+  number, the answers **as of the last send**, the labels of that send's changes, and a log of
+  narrative changes per version. Keeping N full answer snapshots would blow the `localStorage`
+  quota long before it helped: the only question the app ever needs to answer is "what changed
+  since what the experts received?". The snapshot excludes the meta keys (compliance comments
+  above all — they churn constantly and weigh a lot).
+- **A project submitted before this feature reads as v1 with no snapshot.** Its state at
+  submission cannot be reconstructed, and inventing one would produce a lying diff. An update on
+  such a project therefore asks *every* concerned team to re-review — deliberately conservative;
+  later updates are targeted.
+- **`answersDiff.js` is the readable diff, `perimeterImpact.js` is the truth.** The diff covers
+  real questions only (that is what a human reads). The impact compares two *analyses*, never two
+  answer sets — only the rules engine sees the extra checkboxes, the units and the activity scope.
+  It sorts every team into exactly one of four cases: newly triggered (first solicitation, whole
+  team), rules changed (re-review, claim-aware recipients), no longer concerned (told, never
+  silently dropped), unchanged (**nothing sent** — this case is the whole point).
+- **Narrative fields (`text`, `long_text`, `file`, `milestone_list`, `ranking`) never notify.** No
+  rule reads them, so no impact can be derived; they are logged per version and surfaced to the
+  expert as a count since their own review. This is the known hole that a final validation round
+  is meant to close.
+- **An opinion carries a version** (`perimeterReview.js`): `reviewedVersion` is stamped whenever a
+  status/comment changes (a reply in the thread is not a review), `needsReviewSince` when an update
+  impacts that perimeter. When the latter is greater, the perimeter is "to review again" and
+  `projectValidationStatus` returns `PROJECT_VALIDATION_OUTDATED` instead of `validated` — a green
+  stamp must never describe a state of the project that no longer exists.
+
+Gotcha worth knowing: `App.jsx` is transpiled with `const` → `var`, so referencing a `const`
+declared **later** in the component does not throw a TDZ error — it silently reads `undefined`.
+A memo placed above `activeProject` therefore computed an empty submission history on every
+render, with no error anywhere. Keep derived memos below the state they read.
+
 ## Project validation status (home cards)
 
 `src/utils/projectValidationStatus.js` aggregates the per-perimeter compliance statuses of one

@@ -156,7 +156,9 @@ export default {
     submit: {
       syncing: 'Sincronización en curso: espere antes de enviar.',
       missingMandatory: 'No se puede enviar: complete las preguntas obligatorias antes de enviar.',
-      missingForValidation: 'No se puede solicitar la validación: todas las preguntas obligatorias necesitan una respuesta firme (un «todavía no lo sé» ya no basta en esta etapa).'
+      missingForValidation: 'No se puede solicitar la validación: todas las preguntas obligatorias necesitan una respuesta firme (un «todavía no lo sé» ya no basta en esta etapa).',
+      sentWithImpact: 'Actualización enviada: solo se ha notificado a los equipos a los que sus cambios afectan realmente.',
+      sentWithoutImpact: 'Actualización guardada: ninguno de sus cambios afecta al ámbito de un equipo, así que no se ha molestado a nadie.'
     },
     sync: {
       syncing: 'Sincronizando…',
@@ -353,6 +355,8 @@ export default {
     showcaseFeedbackBadgeSingular: '{{count}} comentario',
     showcaseFeedbackBadgePlural: '{{count}} comentarios',
     showcaseFeedbackTooltip: 'Notas adhesivas dejadas en la vitrina de este proyecto y aún sin tratar.',
+    validationStatusOutdated: 'Validado — modificado después',
+    validationTooltipOutdated: 'Los dictámenes eran favorables ({{approved}}/{{total}}), pero una actualización ha cambiado el proyecto desde entonces: al menos un ámbito debe volver a examinar.',
     validationStatusPreliminary: 'Dictamen preliminar',
     validationTooltipPreliminary: 'Dictámenes emitidos sobre una solicitud preliminar ({{approved}}/{{total}}): no es una validación.',
     validationStatusValidated: 'Validado',
@@ -1710,9 +1714,20 @@ export default {
     backToHome: 'Volver al inicio'
   },
   synthesisReport: {
+    reviewPendingBadge: 'Volver a examinar',
+    reviewPendingHint: 'El proyecto ha cambiado desde su dictamen y esos cambios afectan a su ámbito.',
+    lastUpdateChangesHeading: 'Modificaciones de la última actualización',
+    narrativeChangesSinceReview: '{{count}} modificación(es) de campos libres desde su dictamen: ninguna regla las vigila.',
     exchangeInProgressTitle: 'Intercambio en curso',
     exchangeInProgressHint: 'Todavía no se ha emitido ningún dictamen para este ámbito. Puede plantear sus preguntas en el hilo de abajo sin esperar.',
     readiness: {
+      pendingChangesHeadingSingular: '{{count}} respuesta modificada desde la v{{version}}, enviada el {{date}}',
+      pendingChangesHeadingPlural: '{{count}} respuestas modificadas desde la v{{version}}, enviada el {{date}}',
+      pendingChangesHint: 'Envíe la actualización cuando lo considere oportuno: solo se notificará a los equipos cuyo ámbito cambie realmente; los demás conservan su dictamen y no se les molesta.',
+      moreChanges: '… y {{count}} modificación(es) más.',
+      sendUpdateAction: 'Enviar la actualización',
+      updateWithoutReferenceHeading: 'Este proyecto se presentó antes del seguimiento de cambios',
+      updateWithoutReferenceHint: 'No se conservó su estado en el momento del envío, así que una actualización pedirá a todos los equipos afectados que vuelvan a examinarlo. Los envíos posteriores serán selectivos.',
       ariaLabel: 'Lo que compliance puede hacer en esta fase',
       heading: 'Dónde está su proyecto frente a compliance',
       intro: 'No necesita un proyecto terminado para consultar a los expertos. Esto es lo que pueden hacer con lo que ya ha indicado.',

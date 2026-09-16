@@ -170,3 +170,36 @@ test('un saut de niveau de risque est signalé même sans changement de périmè
   assert.equal(impact.riskLevelChanged, true);
   assert.equal(impact.hasImpact, false);
 });
+
+test('un avis est daté quand il est posé ou repris, pas quand on répond dans le fil', async () => {
+  const { isPerimeterReviewPending, stampReviewedVersions } = await import('../src/utils/perimeterReview.js');
+
+  const previous = {
+    teams: {
+      quality: { status: 'validated', comment: 'RAS', reviewedVersion: 1, needsReviewSince: 2 },
+      legal: { status: 'pending_information', comment: '', reviewedVersion: 1 }
+    },
+    committees: {}
+  };
+
+  // L'expert Qualité reprend son avis : il est redaté, donc plus en attente de ré-examen.
+  const reviewed = stampReviewedVersions(
+    { ...previous, teams: { ...previous.teams, quality: { ...previous.teams.quality, comment: 'Revu, toujours OK' } } },
+    previous,
+    2
+  );
+  assert.equal(reviewed.teams.quality.reviewedVersion, 2);
+  assert.equal(isPerimeterReviewPending(reviewed.teams.quality), false);
+
+  // Une réponse dans le fil ne redate rien : le périmètre reste à ré-examiner.
+  const replied = stampReviewedVersions(
+    { ...previous, teams: { ...previous.teams, quality: { ...previous.teams.quality, replies: [{ message: 'ok' }] } } },
+    previous,
+    2
+  );
+  assert.equal(replied.teams.quality.reviewedVersion, 1);
+  assert.equal(isPerimeterReviewPending(replied.teams.quality), true);
+
+  // Un périmètre que personne n'a touché garde sa version.
+  assert.equal(replied.teams.legal.reviewedVersion, 1);
+});

@@ -42,6 +42,15 @@ import {
   normalizeProjectStage
 } from './utils/projectStage.js';
 import { getProjectReadiness } from './utils/projectReadiness.js';
+import {
+  getLastSentSnapshot,
+  getSubmissionHistory,
+  getSubmissionVersion,
+  recordSubmission
+} from './utils/submissionHistory.js';
+import { diffAnswers, getNarrativeQuestionIds } from './utils/answersDiff.js';
+import { computePerimeterImpact } from './utils/perimeterImpact.js';
+import { stampReviewedVersions, withNeedsReviewSince } from './utils/perimeterReview.js';
 import { getUncertainRuleCoverage } from './utils/uncertainCoverage.js';
 import {
   SUBMISSION_KIND_PRELIMINARY,
@@ -3225,6 +3234,22 @@ const updateProjectFilters = useCallback((updater) => {
     [inspirationProjects, activeInspirationId]
   );
 
+  // Ce qui a bougé depuis ce que les experts ont reçu. Calculé sur `answers` (le tampon d'édition
+  // en cours) et non sur les réponses persistées, pour que le bandeau suive la frappe.
+  const activeProjectSubmissionHistory = useMemo(
+    () => getSubmissionHistory(activeProject?.answers),
+    [activeProject]
+  );
+
+  const pendingProjectChanges = useMemo(() => {
+    if (!activeProject || activeProject.status !== 'submitted' || !activeProjectSubmissionHistory.snapshot) {
+      return [];
+    }
+
+    return diffAnswers(activeProjectSubmissionHistory.snapshot, answers, questions, language);
+  }, [activeProject, activeProjectSubmissionHistory, answers, questions, language]);
+
+
   const activeProjectName = useMemo(() => {
     if (typeof activeProject?.projectName === 'string' && activeProject.projectName.trim().length > 0) {
       return activeProject.projectName.trim();
@@ -4380,8 +4405,15 @@ const updateProjectFilters = useCallback((updater) => {
     const { value: claimAwareComments, claimedTeamIds } = isSimulatedSession
       ? { value: updates[COMPLIANCE_COMMENTS_KEY], claimedTeamIds: [] }
       : injectImplicitClaims(updates[COMPLIANCE_COMMENTS_KEY], projectBeforeUpdate);
+    // Un avis porte la version du projet sur laquelle il a été rendu : c'est ce qui permet, plus
+    // tard, de distinguer une validation encore valable d'une validation périmée.
+    const versionedComments = stampReviewedVersions(
+      claimAwareComments,
+      projectBeforeUpdate?.answers?.[COMPLIANCE_COMMENTS_KEY],
+      getSubmissionVersion(projectBeforeUpdate)
+    );
     const effectiveUpdates = COMPLIANCE_COMMENTS_KEY in updates
-      ? { ...updates, [COMPLIANCE_COMMENTS_KEY]: claimAwareComments }
+      ? { ...updates, [COMPLIANCE_COMMENTS_KEY]: versionedComments }
       : updates;
 
     let sanitizedResult = null;
@@ -5659,7 +5691,11 @@ const updateProjectFilters = useCallback((updater) => {
     const baseAnswers = payload.answers && typeof payload.answers === 'object' ? payload.answers : answers;
     const status = payload.status === 'submitted' ? 'submitted' : 'draft';
     const sanitizedAnswers = status === 'submitted'
-      ? withSubmissionKind(baseAnswers || {}, payload.submissionKind)
+      ? recordSubmission(withSubmissionKind(baseAnswers || {}, payload.submissionKind), {
+        kind: normalizeSubmissionKind(payload.submissionKind),
+        narrativeQuestionIds: Array.isArray(payload.narrativeQuestionIds) ? payload.narrativeQuestionIds : [],
+        changes: Array.isArray(payload.changes) ? payload.changes : []
+      })
       : (baseAnswers || {});
     const projectId = activeProjectId || payload.id || `project-${Date.now()}`;
     const relevantQuestions = questions.filter(question => shouldShowQuestion(question, sanitizedAnswers));
@@ -5715,7 +5751,16 @@ const updateProjectFilters = useCallback((updater) => {
     };
 
     if (status === 'submitted') {
-      entry.submittedAt = now;
+      // Une mise à jour n'est pas une nouvelle soumission : la carte continue d'annoncer la date
+      // à laquelle la compliance a découvert le projet. Les dates d'envoi successives vivent dans
+      // l'historique de soumission.
+      entry.submittedAt = existingProject?.status === 'submitted' && existingProject?.submittedAt
+        ? existingProject.submittedAt
+        : now;
+      // Les clés méta ajoutées ici (type de soumission, historique) doivent rejoindre l'état
+      // d'édition : sans cela la prochaine réponse saisie réécrirait le projet à partir d'un
+      // `answers` qui ne les contient pas, et les effacerait.
+      setAnswers(sanitizedAnswers);
     }
 
     setProjects(upsertProject(entry));
@@ -5793,6 +5838,87 @@ const updateProjectFilters = useCallback((updater) => {
     });
   }, [buildOwnerNotificationRecipients, notify, resolveTeamMailRecipients, teams]);
 
+  const buildChangeSummary = useCallback((changes) => changes
+    .slice(0, 8)
+    .map((change) => {
+      const label = resolveLocalizedText(change.question?.question, DEFAULT_LANGUAGE) || change.questionId;
+      const before = change.previousLabel || '—';
+      const after = change.currentLabel || '—';
+      return `${label} : ${before} → ${after}`;
+    })
+    .join('\n'), []);
+
+  // Une mise à jour ne notifie que les périmètres qu'elle change réellement. Trois cas parlent —
+  // équipe nouvellement déclenchée, règles changées, équipe qui n'est plus concernée — et chacun
+  // a son message ; le quatrième, « rien ne bouge pour cette équipe », est le silence, et c'est
+  // lui qui rend le droit de modifier un projet soumis tenable pour les experts.
+  const notifyProjectUpdate = useCallback((project, impact, changeSummary) => {
+    const projectAnswers = project?.answers && typeof project.answers === 'object' ? project.answers : {};
+    const comments = projectAnswers[COMPLIANCE_COMMENTS_KEY];
+    const teamEntries = comments?.teams && typeof comments.teams === 'object' ? comments.teams : {};
+
+    const notifyBucket = (teamIds, type, { claimAware }) => {
+      const bucketTeams = teamIds
+        .map((teamId) => teams.find((entry) => entry?.id === teamId))
+        .filter(Boolean);
+
+      if (bucketTeams.length === 0) {
+        return [];
+      }
+
+      const teamNames = bucketTeams
+        .map((team) => resolveLocalizedText(team.name, DEFAULT_LANGUAGE))
+        .filter(Boolean);
+
+      const recipients = normalizeRecipientList(bucketTeams.flatMap((team) => (
+        claimAware
+          ? resolveClaimAwareRecipients(
+            team,
+            projectAnswers,
+            getPerimeterClaim(teamEntries[team.id]),
+            { profiles: userProfilesByEmail }
+          )
+          // Une équipe qui découvre le projet ne peut pas l'avoir pris en charge : sa première
+          // sollicitation part à toute l'équipe, comme à la soumission initiale.
+          : resolveTeamMailRecipients(team, projectAnswers)
+      )));
+
+      if (recipients.length > 0) {
+        notify({ type, project, to: recipients, teamNames, excerpt: changeSummary, view: 'synthesis' });
+      }
+
+      return teamNames;
+    };
+
+    const isPreliminary = isPreliminarySubmission(project);
+    const notifiedNames = [
+      ...notifyBucket(
+        impact.added,
+        isPreliminary ? NOTIFICATION_TYPES.PROJECT_PRELIMINARY_TEAM : NOTIFICATION_TYPES.PROJECT_SUBMITTED_TEAM,
+        { claimAware: false }
+      ),
+      ...notifyBucket(impact.changed, NOTIFICATION_TYPES.PROJECT_UPDATED_TEAM, { claimAware: true }),
+      ...notifyBucket(impact.removed, NOTIFICATION_TYPES.PROJECT_PERIMETER_DROPPED_TEAM, { claimAware: true })
+    ];
+
+    const owners = buildOwnerNotificationRecipients(project);
+    notify({
+      type: NOTIFICATION_TYPES.PROJECT_UPDATE_SENT_OWNER,
+      project,
+      to: owners.to,
+      cc: owners.cc,
+      teamNames: notifiedNames,
+      excerpt: changeSummary,
+      includeActor: true
+    });
+  }, [
+    buildOwnerNotificationRecipients,
+    notify,
+    resolveTeamMailRecipients,
+    teams,
+    userProfilesByEmail
+  ]);
+
   const handleSubmitProject = useCallback((payload = {}) => {
     if (autosaveQueueRef.current && autosaveQueueRef.current.size() > 0) {
       setSaveFeedback({
@@ -5837,6 +5963,103 @@ const updateProjectFilters = useCallback((updater) => {
     t,
     unansweredFinalMandatoryQuestions,
     unansweredMandatoryQuestions
+  ]);
+
+  const handleSendProjectUpdate = useCallback(() => {
+    if (autosaveQueueRef.current && autosaveQueueRef.current.size() > 0) {
+      setSaveFeedback({ status: 'error', message: t('app.submit.syncing') });
+      return null;
+    }
+
+    const project = projectsRef.current.find((entry) => entry?.id === activeProjectId);
+    if (!project || project.status !== 'submitted' || !canManageProject(project)) {
+      return null;
+    }
+
+    const currentAnswers = project.answers && typeof project.answers === 'object' ? project.answers : {};
+    const snapshot = getLastSentSnapshot(currentAnswers);
+    const nextAnalysis = analyzeAnswers(currentAnswers, rules, riskLevelRules, riskWeights);
+
+    // Sans instantané — projet soumis avant cette fonctionnalité — on ne peut pas savoir ce qui a
+    // changé. Toutes les équipes du périmètre sont alors invitées à ré-examiner : deviner un état
+    // d'origine laisserait passer en silence exactement le changement qu'il fallait signaler.
+    const impact = snapshot
+      ? computePerimeterImpact(analyzeAnswers(snapshot, rules, riskLevelRules, riskWeights), nextAnalysis)
+      : {
+        byTeam: {},
+        added: [],
+        changed: Array.isArray(nextAnalysis?.teams) ? nextAnalysis.teams : [],
+        removed: [],
+        unchanged: [],
+        riskLevelChanged: false,
+        hasImpact: true
+      };
+
+    const changes = diffAnswers(snapshot || {}, currentAnswers, questions, language);
+    const nextVersion = getSubmissionVersion(project) + 1;
+    const impactedTeamIds = [...impact.changed, ...impact.removed];
+
+    let answersForUpdate = currentAnswers;
+    if (impactedTeamIds.length > 0) {
+      const comments = currentAnswers[COMPLIANCE_COMMENTS_KEY];
+      const teamEntries = comments?.teams && typeof comments.teams === 'object' ? comments.teams : {};
+      const stampedTeams = impactedTeamIds.reduce((acc, teamId) => {
+        if (!teamEntries[teamId]) {
+          return acc;
+        }
+        acc[teamId] = withNeedsReviewSince(teamEntries[teamId], nextVersion);
+        return acc;
+      }, { ...teamEntries });
+
+      answersForUpdate = {
+        ...currentAnswers,
+        [COMPLIANCE_COMMENTS_KEY]: { ...(comments || {}), teams: stampedTeams }
+      };
+    }
+
+    const entry = handleSaveProject({
+      id: project.id,
+      projectName: project.projectName,
+      answers: answersForUpdate,
+      analysis: nextAnalysis,
+      status: 'submitted',
+      submissionKind: getSubmissionKind(project),
+      narrativeQuestionIds: getNarrativeQuestionIds(changes),
+      changes: changes.map((change) => ({
+        questionId: change.questionId,
+        label: resolveLocalizedText(change.question?.question, DEFAULT_LANGUAGE) || change.questionId,
+        previousLabel: change.previousLabel,
+        currentLabel: change.currentLabel,
+        narrative: change.narrative
+      }))
+    });
+
+    if (!entry) {
+      return null;
+    }
+
+    notifyProjectUpdate(entry, impact, buildChangeSummary(changes));
+    setSaveFeedback({
+      status: 'success',
+      message: impact.hasImpact
+        ? t('app.update.sentWithImpact')
+        : t('app.update.sentWithoutImpact')
+    });
+
+    return entry;
+  }, [
+    activeProjectId,
+    analyzeAnswers,
+    buildChangeSummary,
+    canManageProject,
+    handleSaveProject,
+    language,
+    notifyProjectUpdate,
+    questions,
+    riskLevelRules,
+    riskWeights,
+    rules,
+    t
   ]);
 
   const handleDismissSaveFeedback = useCallback(() => {
@@ -7218,6 +7441,12 @@ const updateProjectFilters = useCallback((updater) => {
               uncertainRuleCoverage={uncertainRuleCoverage}
               submissionKind={getSubmissionKind(activeProject)}
               showcaseFeedbackCount={showcaseFeedbackCount}
+              pendingChanges={pendingProjectChanges}
+              hasSentSnapshot={Boolean(activeProjectSubmissionHistory.snapshot)}
+              submissionVersion={getSubmissionVersion(activeProject)}
+              lastSentAt={activeProjectSubmissionHistory.lastSentAt}
+              onSendUpdate={activeProjectId ? handleSendProjectUpdate : undefined}
+              submissionHistory={activeProjectSubmissionHistory}
             />
           </Suspense>
         ) : screen === 'showcase' ? (

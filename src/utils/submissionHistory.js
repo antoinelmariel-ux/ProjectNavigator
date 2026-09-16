@@ -22,7 +22,15 @@ const toPositiveInteger = (value) => (Number.isInteger(value) && value > 0 ? val
 
 export const normalizeSubmissionHistory = (value) => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return { version: 0, lastSentAt: '', lastKind: '', snapshot: null, entries: [], narrativeChanges: [] };
+    return {
+      version: 0,
+      lastSentAt: '',
+      lastKind: '',
+      snapshot: null,
+      entries: [],
+      lastChanges: [],
+      narrativeChanges: []
+    };
   }
 
   return {
@@ -39,6 +47,20 @@ export const normalizeSubmissionHistory = (value) => {
           version: entry.version,
           sentAt: typeof entry.sentAt === 'string' ? entry.sentAt : '',
           kind: typeof entry.kind === 'string' ? entry.kind : ''
+        }))
+      : [],
+    // Les modifications portées par le dernier envoi, sous forme de libellés déjà résolus :
+    // l'instantané précédent est écrasé par l'envoi, donc sans cette copie l'expert n'aurait
+    // plus aucun moyen de voir ce qui a changé quand il ouvre le projet après coup.
+    lastChanges: Array.isArray(value.lastChanges)
+      ? value.lastChanges
+        .filter((entry) => typeof entry?.questionId === 'string' && entry.questionId.length > 0)
+        .map((entry) => ({
+          questionId: entry.questionId,
+          label: typeof entry.label === 'string' ? entry.label : '',
+          previousLabel: typeof entry.previousLabel === 'string' ? entry.previousLabel : '',
+          currentLabel: typeof entry.currentLabel === 'string' ? entry.currentLabel : '',
+          narrative: entry.narrative === true
         }))
       : [],
     narrativeChanges: Array.isArray(value.narrativeChanges)
@@ -86,7 +108,9 @@ export const buildSubmissionSnapshot = (answers) => {
 // Les modifications de champs narratifs ne déclenchent aucune règle, donc aucune notification —
 // mais elles ne sont pas rien : elles sont journalisées pour que l'expert voie, à son prochain
 // passage, combien de fois la description a bougé depuis son avis.
-export const recordSubmission = (answers, { kind = '', narrativeQuestionIds = [], at } = {}) => {
+const MAX_STORED_CHANGES = 20;
+
+export const recordSubmission = (answers, { kind = '', narrativeQuestionIds = [], changes = [], at } = {}) => {
   const previous = getSubmissionHistory(answers);
   const version = previous.version + 1;
   const sentAt = typeof at === 'string' && at.length > 0 ? at : new Date().toISOString();
@@ -106,10 +130,19 @@ export const recordSubmission = (answers, { kind = '', narrativeQuestionIds = []
       lastKind: kind,
       snapshot: buildSubmissionSnapshot(answers),
       entries: [...previous.entries, { version, sentAt, kind }],
+      lastChanges: (Array.isArray(changes) ? changes : []).slice(0, MAX_STORED_CHANGES).map((change) => ({
+        questionId: change?.questionId || '',
+        label: change?.label || '',
+        previousLabel: change?.previousLabel || '',
+        currentLabel: change?.currentLabel || '',
+        narrative: change?.narrative === true
+      })),
       narrativeChanges
     }
   };
 };
+
+export const getLastSubmittedChanges = (answers) => getSubmissionHistory(answers).lastChanges;
 
 export const getNarrativeChangesSince = (answers, version) => {
   const since = toPositiveInteger(version);

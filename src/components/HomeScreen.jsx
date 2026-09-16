@@ -25,7 +25,7 @@ import { normalizeProjectFilterConfig } from '../utils/projectFilters.js';
 import { normalizeInspirationFiltersConfig } from '../utils/inspirationConfig.js';
 import { normalizeTeamContacts } from '../utils/teamContacts.js';
 import { normalizeEmail } from '../utils/normalizeEmail.js';
-import { isPreliminarySubmission } from '../utils/submissionKind.js';
+import { isProjectOpenForEditing } from '../utils/submissionKind.js';
 import {
   getTriggeredValidationCommittees,
   normalizeValidationCommitteeConfig
@@ -300,6 +300,14 @@ const VALIDATION_BADGE_META = {
     className: 'bg-red-50 border-red-200 text-red-700',
     labelKey: 'home.validationStatusRejected',
     tooltipKey: 'home.validationTooltipRejected'
+  },
+  // Les avis étaient favorables, mais une mise à jour a changé le projet depuis : le badge doit
+  // le dire, sans quoi « Validé » finit par désigner un état du projet qui n'existe plus.
+  outdated: {
+    icon: AlertTriangle,
+    className: 'bg-amber-50 border-amber-200 text-amber-700',
+    labelKey: 'home.validationStatusOutdated',
+    tooltipKey: 'home.validationTooltipOutdated'
   },
   // Une demande d'avis préliminaire à laquelle tous les périmètres ont répondu favorablement
   // n'est pas un projet validé : le badge doit dire l'orientation, jamais le tampon.
@@ -1754,10 +1762,11 @@ export const HomeScreen = ({
     // Annuler une soumission la rend à nouveau modifiable par son porteur, exactement comme
     // un admin peut déjà rouvrir n'importe quel projet soumis : même bascule « Modifier » +
     // bouton « Voir la synthèse » séparé, plutôt qu'un unique lien vers la synthèse figée.
-    // Un projet envoyé pour avis préliminaire reste modifiable par son porteur : la carte doit
-    // donc proposer « Modifier », pas seulement « Voir la synthèse ».
-    const isPreliminary = isPreliminarySubmission(project);
-    const canEditNonDraftProject = (isAdminMode || isCancelled || isPreliminary) && !isDraft;
+    // Un projet soumis reste modifiable par son porteur : la carte doit donc proposer
+    // « Modifier », pas seulement « Consulter la synthèse ». C'est ce qui rend l'envoi d'une
+    // mise à jour atteignable depuis l'accueil.
+    const canEditNonDraftProject = !isDraft
+      && (isAdminMode || isCancelled || (isProjectOpenForEditing(project) && isOwnedOrSharedProject(project)));
     const leadName = getSafeString(project?.answers?.teamLead).trim();
     const leadTeam = resolveChoiceOptionLabel(teamLeadTeamQuestion, project?.answers?.teamLeadTeam);
     const leadDisplay = leadName.length > 0

@@ -44,6 +44,8 @@ import { stripRichTextToPlainText } from '../utils/richText.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { ProjectReadinessPanel } from './ProjectReadinessPanel.jsx';
 import { SUBMISSION_KIND_FINAL, SUBMISSION_KIND_PRELIMINARY } from '../utils/submissionKind.js';
+import { getReviewedVersion, isPerimeterReviewPending } from '../utils/perimeterReview.js';
+import { normalizeSubmissionHistory } from '../utils/submissionHistory.js';
 import { getLocaleTag, LANGUAGE_LABELS } from '../i18n/languages.js';
 import { isLanguageAcceptedBy, normalizeAcceptedLanguages } from '../utils/translationAudit.js';
 import { isTeamAutoValidated, resolveEffectiveTeamComplianceEntry } from '../utils/complianceAutoValidation.js';
@@ -570,7 +572,13 @@ export const SynthesisReport = ({
   readiness = null,
   uncertainRuleCoverage = [],
   submissionKind = SUBMISSION_KIND_FINAL,
-  showcaseFeedbackCount = 0
+  showcaseFeedbackCount = 0,
+  pendingChanges = [],
+  hasSentSnapshot = false,
+  submissionVersion = 0,
+  lastSentAt = '',
+  onSendUpdate,
+  submissionHistory = null
 }) => {
   const { t, language } = useTranslation();
   const [isShowcaseFallbackOpen, setIsShowcaseFallbackOpen] = useState(false);
@@ -589,6 +597,10 @@ export const SynthesisReport = ({
   // référentiel). Sans cette normalisation, `analysis.risks` faisait tomber tout l'écran dans
   // l'ErrorBoundary global (« Affichage interrompu ») au lieu d'afficher une synthèse vide.
   const analysis = useMemo(() => normalizeAnalysis(providedAnalysis), [providedAnalysis]);
+  const normalizedSubmissionHistory = useMemo(
+    () => normalizeSubmissionHistory(submissionHistory),
+    [submissionHistory]
+  );
   useEffect(() => {
     if (!tourContext?.isActive) {
       return;
@@ -1766,6 +1778,11 @@ export const SynthesisReport = ({
               onNavigateToQuestion={onNavigateToQuestion}
               onOpenShowcase={canOpenProjectShowcase ? handleOpenShowcase : undefined}
               showcaseFeedbackCount={showcaseFeedbackCount}
+              pendingChanges={pendingChanges}
+              hasSentSnapshot={hasSentSnapshot}
+              submissionVersion={submissionVersion}
+              lastSentAt={lastSentAt}
+              onSendUpdate={onSendUpdate}
             />
           )}
 
@@ -1909,6 +1926,12 @@ export const SynthesisReport = ({
                   || normalizeCommentAttachments(storedEntry.attachments).length > 0
                   || storedEntry.status.length > 0;
                 const isAutoValidatedPerimeter = isTeamAutoValidated(analysis, team.id);
+                const rawTeamEntry = complianceComments.teams?.[team.id];
+                // « À ré-examiner » : l'avis existe toujours, mais il porte sur un état du projet
+                // qu'une mise à jour a modifié dans le périmètre de cette équipe.
+                const isTeamReviewPending = isPerimeterReviewPending(rawTeamEntry);
+                const narrativeChangesForTeam = normalizedSubmissionHistory.narrativeChanges
+                  .filter((change) => change.version > (getReviewedVersion(rawTeamEntry) || 1)).length;
                 const shouldShowOpinionCard = hasExpertOpinion || isAutoValidatedPerimeter || canEditTeamComment;
                 const canReplyTeamThread = canEditTeamComment || canReplyAsProjectContributor;
                 const threadKey = `team-${team.id}`;
@@ -2130,6 +2153,38 @@ export const SynthesisReport = ({
                                 </span>
                               )}
                             </div>
+
+                            {isTeamReviewPending && (
+                              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3" role="alert">
+                                <p className="flex items-center gap-2 text-sm font-semibold text-amber-900">
+                                  <AlertTriangle className="w-4 h-4" />
+                                  {t('synthesisReport.reviewPendingBadge')}
+                                </p>
+                                <p className="mt-1 text-xs text-amber-800">
+                                  {t('synthesisReport.reviewPendingHint')}
+                                </p>
+                                {normalizedSubmissionHistory.lastChanges.length > 0 && (
+                                  <>
+                                    <p className="mt-2 text-xs font-semibold text-amber-900">
+                                      {t('synthesisReport.lastUpdateChangesHeading')}
+                                    </p>
+                                    <ul className="mt-1 space-y-0.5">
+                                      {normalizedSubmissionHistory.lastChanges.slice(0, 6).map((change) => (
+                                        <li key={change.questionId} className="text-xs text-amber-800">
+                                          {change.label} : {change.previousLabel || '—'} → {change.currentLabel || '—'}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </>
+                                )}
+                              </div>
+                            )}
+
+                            {narrativeChangesForTeam > 0 && (
+                              <p className="text-xs text-gray-500">
+                                {t('synthesisReport.narrativeChangesSinceReview', { count: narrativeChangesForTeam })}
+                              </p>
+                            )}
 
                             {!shouldShowOpinionCard && (
                               <div className="rounded-xl border border-gray-200 bg-white p-3 text-sm text-gray-600">

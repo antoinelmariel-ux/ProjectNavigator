@@ -28,3 +28,42 @@ export const withNeedsReviewSince = (entry, version) => ({
   ...(entry && typeof entry === 'object' ? entry : {}),
   needsReviewSince: toPositiveInteger(version)
 });
+
+const readOpinionFingerprint = (entry) => JSON.stringify({
+  status: typeof entry?.status === 'string' ? entry.status : '',
+  comment: typeof entry?.comment === 'string' ? entry.comment.trim() : '',
+  attachments: Array.isArray(entry?.attachments) ? entry.attachments : []
+});
+
+// Date un avis dès qu'il est posé ou repris. Une simple réponse dans le fil n'en est pas un :
+// répondre à une question n'est pas re-valider, et compter les réponses ferait disparaître le
+// signal « à ré-examiner » au premier échange.
+export const stampReviewedVersions = (nextComments, previousComments, version) => {
+  if (!nextComments || typeof nextComments !== 'object' || Array.isArray(nextComments)) {
+    return nextComments;
+  }
+
+  const stampSection = (section, previousSection) => {
+    if (!section || typeof section !== 'object' || Array.isArray(section)) {
+      return section;
+    }
+
+    return Object.entries(section).reduce((acc, [targetId, entry]) => {
+      const previousEntry = previousSection && typeof previousSection === 'object'
+        ? previousSection[targetId]
+        : null;
+
+      acc[targetId] = readOpinionFingerprint(entry) === readOpinionFingerprint(previousEntry)
+        ? entry
+        : withReviewedVersion(entry, version);
+
+      return acc;
+    }, {});
+  };
+
+  return {
+    ...nextComments,
+    teams: stampSection(nextComments.teams, previousComments?.teams),
+    committees: stampSection(nextComments.committees, previousComments?.committees)
+  };
+};

@@ -156,7 +156,9 @@ export default {
     submit: {
       syncing: 'Synchronisation en cours : veuillez patienter avant de soumettre.',
       missingMandatory: 'Impossible de soumettre : complétez les questions obligatoires avant l’envoi.',
-      missingForValidation: 'Impossible de demander la validation : toutes les questions obligatoires doivent recevoir une réponse ferme (un « je ne sais pas encore » ne suffit plus à ce stade).'
+      missingForValidation: 'Impossible de demander la validation : toutes les questions obligatoires doivent recevoir une réponse ferme (un « je ne sais pas encore » ne suffit plus à ce stade).',
+      sentWithImpact: 'Mise à jour envoyée : seules les équipes réellement concernées par vos modifications ont été notifiées.',
+      sentWithoutImpact: 'Mise à jour enregistrée : aucune de vos modifications ne change le périmètre d’une équipe, personne n’a donc été dérangé.'
     },
     sync: {
       syncing: 'Synchronisation…',
@@ -354,6 +356,8 @@ export default {
     showcaseFeedbackBadgeSingular: '{{count}} retour',
     showcaseFeedbackBadgePlural: '{{count}} retours',
     showcaseFeedbackTooltip: 'Post-its laissés sur la vitrine de ce projet et pas encore traités.',
+    validationStatusOutdated: 'Validé — modifié depuis',
+    validationTooltipOutdated: 'Les avis étaient favorables ({{approved}}/{{total}}), mais une mise à jour a changé le projet depuis : au moins un périmètre doit ré-examiner.',
     validationStatusPreliminary: 'Avis préliminaire',
     validationTooltipPreliminary: 'Avis rendus sur une demande préliminaire ({{approved}}/{{total}}) : ce n’est pas une validation.',
     validationStatusValidated: 'Validé',
@@ -1720,9 +1724,20 @@ export default {
     backToHome: 'Retour à l’accueil'
   },
   synthesisReport: {
+    reviewPendingBadge: 'À ré-examiner',
+    reviewPendingHint: 'Le projet a changé depuis votre avis : ces modifications touchent votre périmètre.',
+    lastUpdateChangesHeading: 'Modifications de la dernière mise à jour',
+    narrativeChangesSinceReview: '{{count}} modification(s) de champs libres depuis votre avis — aucune règle ne les surveille.',
     exchangeInProgressTitle: 'Échange en cours',
     exchangeInProgressHint: 'Aucun avis n’a encore été rendu pour ce périmètre. Vous pouvez poser vos questions dans le fil ci-dessous sans attendre.',
     readiness: {
+      pendingChangesHeadingSingular: '{{count}} réponse modifiée depuis la v{{version}} envoyée le {{date}}',
+      pendingChangesHeadingPlural: '{{count}} réponses modifiées depuis la v{{version}} envoyée le {{date}}',
+      pendingChangesHint: 'Envoyez la mise à jour quand vous le jugez utile : seules les équipes dont le périmètre change réellement seront notifiées, les autres gardent leur avis et ne sont pas dérangées.',
+      moreChanges: '… et {{count}} autre(s) modification(s).',
+      sendUpdateAction: 'Envoyer la mise à jour',
+      updateWithoutReferenceHeading: 'Ce projet a été soumis avant le suivi des modifications',
+      updateWithoutReferenceHint: 'Son état au moment de l’envoi n’a pas été conservé : une mise à jour demandera donc à toutes les équipes concernées de ré-examiner le projet. Les envois suivants seront ciblés.',
       ariaLabel: 'Ce que la compliance peut faire à ce stade',
       heading: 'Où en est votre projet vis-à-vis de la compliance',
       intro: 'Vous n’avez pas besoin d’un projet terminé pour interroger les experts. Voici ce qu’ils peuvent faire avec ce que vous avez déjà saisi.',

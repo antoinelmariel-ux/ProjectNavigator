@@ -33,7 +33,12 @@ export const withSubmissionKind = (answers, submissionKind) => ({
 // même de la porte d'entrée précoce (« vous pourrez continuer à modifier votre projet »), et
 // sans elle demander un avis tôt reviendrait à se figer tôt. Une demande de validation, elle,
 // fige le projet exactement comme avant.
+// Depuis que les mises à jour sont traçables et notifiées périmètre par périmètre (cf.
+// `submissionHistory.js` / `perimeterImpact.js`), un projet soumis reste modifiable par son
+// porteur : c'est l'autre moitié de l'enjeu — interroger tôt ne sert à rien si la sollicitation
+// fige le projet. Ce qui change entre les deux portes, ce n'est plus le droit d'éditer mais ce
+// qu'un avis déjà rendu vaut ensuite.
 export const isProjectOpenForEditing = (project) =>
   project?.status === 'draft'
   || project?.status === 'cancelled'
-  || isPreliminarySubmission(project);
+  || project?.status === 'submitted';

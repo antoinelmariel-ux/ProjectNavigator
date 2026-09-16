@@ -885,6 +885,10 @@ a {
   margin-bottom: 1rem;
 }
 
+.mb-5 {
+  margin-bottom: 1.25rem;
+}
+
 .mb-6 {
   margin-bottom: 1.5rem;
 }
@@ -1375,6 +1379,10 @@ a {
 
 .space-x-3 > :not([hidden]) ~ :not([hidden]) {
   margin-left: 0.75rem;
+}
+
+.space-y-0\.5 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 0.125rem;
 }
 
 .space-y-1 > :not([hidden]) ~ :not([hidden]) {
@@ -2636,6 +2644,11 @@ a {
 .hover\:shadow-xl:hover {
   --tw-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+
+.hover\:text-amber-700:hover {
+  --tw-text-opacity: 1;
+  color: rgba(180,83,9, var(--tw-text-opacity));
 }
 
 .hover\:text-amber-900:hover {
