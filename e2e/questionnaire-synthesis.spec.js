@@ -2,6 +2,8 @@ import { test, expect } from '@playwright/test';
 import {
   gotoHome,
   walkToSynthesis,
+  walkQuestionnaireToShowcase,
+  openProjectStakes,
   getQuestionHeading,
   collectConsoleErrors
 } from './fixtures.js';
@@ -11,7 +13,7 @@ async function startNewProject(page) {
   await page.getByRole('button', { name: /Créer un projet/ }).first().click();
 }
 
-test.describe('Questionnaire adaptatif -> Synthèse', () => {
+test.describe('Questionnaire adaptatif -> Vitrine -> Enjeux du projet', () => {
   test('parcours complet sans erreur console, visibilité adaptative fonctionnelle', async ({ page }) => {
     const errors = collectConsoleErrors(page);
     await startNewProject(page);
@@ -33,7 +35,7 @@ test.describe('Questionnaire adaptatif -> Synthèse', () => {
       }
     });
 
-    await expect(page.getByRole('heading', { name: 'Synthèse' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Enjeux du projet' })).toBeVisible();
     // La visibilité adaptative a fait grandir le nombre de questions (12 -> 25 sur le
     // parcours par défaut) : si le rapport s'affiche avec une équipe à consulter, le
     // moteur de règles a bien été piloté par les réponses saisies dans l'UI.
@@ -44,10 +46,7 @@ test.describe('Questionnaire adaptatif -> Synthèse', () => {
   test('le porteur de projet peut ajouter une équipe non identifiée automatiquement', async ({ page }) => {
     await startNewProject(page);
     await walkToSynthesis(page, { maxSteps: 30 });
-    if (await page.getByText('Questions obligatoires à compléter').count() > 0) {
-      await page.getByRole('button', { name: /Accéder à la synthèse/ }).click();
-    }
-    await expect(page.getByRole('heading', { name: 'Synthèse' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Enjeux du projet' })).toBeVisible();
 
     const teamSelect = page.locator('#additional-team-select');
     await expect(teamSelect).toBeVisible();
@@ -62,19 +61,19 @@ test.describe('Questionnaire adaptatif -> Synthèse', () => {
     await teamSelect.selectOption(teamOption.value);
     await page.getByRole('button', { name: 'Solliciter cette équipe' }).click();
 
-    await expect(page.getByText(/a été ajoutée à la synthèse et notifiée/)).toBeVisible();
+    await expect(page.getByText(/a été ajoutée aux enjeux du projet et notifiée/)).toBeVisible();
     await expect(page.getByRole('heading', { name: teamName })).toBeVisible();
   });
 
   test("le résumé des questions obligatoires s'affiche si des réponses manquent, et permet d'y revenir", async ({ page }) => {
     await startNewProject(page);
     // On répond à tout SAUF la question du document (facultative en pratique, mais on ne
-    // gère pas ici les jalons) pour vérifier le routage : soit direct synthèse, soit résumé.
-    await walkToSynthesis(page, { maxSteps: 30 });
+    // gère pas ici les jalons) pour vérifier le routage : soit direct vitrine, soit résumé.
+    await walkQuestionnaireToShowcase(page, { maxSteps: 30 });
 
     const summaryHeading = page.getByText('Questions obligatoires à compléter');
-    const synthesisHeading = page.getByRole('heading', { name: 'Synthèse' });
-    await expect(summaryHeading.or(synthesisHeading)).toBeVisible();
+    const showcaseStakesButton = page.getByRole('button', { name: /Voir les enjeux du projet/ });
+    await expect(summaryHeading.or(showcaseStakesButton)).toBeVisible();
   });
 
   test('un jalon ajouté persiste après un aller-retour arrière/avant dans le questionnaire', async ({ page }) => {
@@ -102,7 +101,7 @@ test.describe('Questionnaire adaptatif -> Synthèse', () => {
     await startNewProject(page);
 
     // Avance de quelques questions puis revient en arrière changer la première réponse à
-    // choix (équipe), avant de re-avancer jusqu'à la synthèse : le point le plus probable
+    // choix (équipe), avant de re-avancer jusqu'au bout : le point le plus probable
     // de régression pour la visibilité conditionnelle des questions dépendantes.
     for (let i = 0; i < 5; i += 1) {
       await walkToSynthesisStep(page);
@@ -121,30 +120,40 @@ test.describe('Questionnaire adaptatif -> Synthèse', () => {
       }
     }
 
-    await walkToSynthesis(page, { maxSteps: 40 });
+    await walkQuestionnaireToShowcase(page, { maxSteps: 40 });
     const summaryHeading = page.getByText('Questions obligatoires à compléter');
-    const synthesisHeading = page.getByRole('heading', { name: 'Synthèse' });
-    await expect(summaryHeading.or(synthesisHeading)).toBeVisible();
+    const showcaseStakesButton = page.getByRole('button', { name: /Voir les enjeux du projet/ });
+    await expect(summaryHeading.or(showcaseStakesButton)).toBeVisible();
     expect(errors).toEqual([]);
   });
 
-  test("l'édition inline depuis la synthèse ramène bien au rapport après validation", async ({ page }) => {
+  test("l'édition inline depuis les enjeux ramène bien au rapport après validation", async ({ page }) => {
     await startNewProject(page);
     await walkToSynthesis(page, { maxSteps: 30 });
-    if (await page.getByText('Questions obligatoires à compléter').count() > 0) {
-      await page.getByRole('button', { name: /Accéder à la synthèse/ }).click();
-    }
-    await expect(page.getByRole('heading', { name: 'Synthèse' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Enjeux du projet' })).toBeVisible();
 
     await page.getByRole('button', { name: 'Afficher' }).first().click();
     const editButtons = page.locator('button[aria-label*="Modifier"]');
     await expect(editButtons.first()).toBeVisible();
     await editButtons.first().click();
 
-    await expect(page.getByText('Modification depuis le rapport Compliance')).toBeVisible();
-    await page.getByRole('button', { name: 'Valider et revenir au rapport' }).click();
+    await expect(page.getByText('Modification depuis les enjeux du projet')).toBeVisible();
+    await page.getByRole('button', { name: 'Valider et revenir aux enjeux' }).click();
 
-    await expect(page.getByRole('heading', { name: 'Synthèse' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Enjeux du projet' })).toBeVisible();
+  });
+
+  test('la fin du formulaire ouvre la vitrine, les enjeux s\'ouvrent depuis celle-ci', async ({ page }) => {
+    await startNewProject(page);
+    await walkQuestionnaireToShowcase(page, { maxSteps: 40 });
+
+    // La vitrine est la sortie du questionnaire : les enjeux ne s'affichent pas encore.
+    const stakesButton = page.getByRole('button', { name: /Voir les enjeux du projet/ });
+    await expect(stakesButton).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Enjeux du projet' })).toHaveCount(0);
+
+    await openProjectStakes(page);
+    await expect(page.getByRole('heading', { name: 'Enjeux du projet' })).toBeVisible();
   });
 
   test('la soumission du projet le fait apparaître comme soumis sur la page d\'accueil', async ({ page }) => {
@@ -168,17 +177,13 @@ test.describe('Questionnaire adaptatif -> Synthèse', () => {
         return false;
       }
     });
-    if (await page.getByText('Questions obligatoires à compléter').count() > 0) {
-      await page.getByRole('button', { name: /Accéder à la synthèse/ }).click();
-    }
-
     await page.getByRole('button', { name: 'Soumettre le projet' }).click();
     await expect(page.getByText(/soumis/i).first()).toBeVisible();
   });
 });
 
 async function walkToSynthesisStep(page) {
-  const nextBtn = page.getByRole('button', { name: /^(Suivant|Voir la synthèse)$/ });
+  const nextBtn = page.getByRole('button', { name: /^(Suivant|Voir la vitrine du projet)$/ });
   const radios = page.locator('input[type="radio"]');
   const richTextEditable = page.locator('[contenteditable="true"]');
   const checkboxes = page.locator('input[type="checkbox"]');
@@ -197,8 +202,8 @@ async function walkToSynthesisStep(page) {
 // `?projectId=…&view=synthesis`, bouton « Ouvrir » de la revue Compliance, retour depuis la
 // vitrine — faisaient alors tomber toute l'application dans l'ErrorBoundary global
 // (« Affichage interrompu ») au lieu d'afficher une synthèse vide.
-test.describe('Synthèse tolérante à une analyse absente', () => {
-  test('un projet sans réponse ouvert en synthèse affiche un rapport vide, pas l\'écran d\'erreur', async ({ page }) => {
+test.describe('Enjeux du projet tolérants à une analyse absente', () => {
+  test('un projet sans réponse ouvert sur ses enjeux affiche un rapport vide, pas l\'écran d\'erreur', async ({ page }) => {
     await gotoHome(page);
     await page.getByRole('button', { name: /Créer un projet/ }).first().click();
     await expect(page.locator('[id^="question-"]').first()).toBeVisible();
@@ -224,7 +229,7 @@ test.describe('Synthèse tolérante à une analyse absente', () => {
 
     await page.goto(`/index.html?projectId=${projectId}&view=synthesis`);
 
-    await expect(page.getByRole('heading', { name: 'Synthèse' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Enjeux du projet' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Affichage interrompu' })).toHaveCount(0);
     await expect(page.getByRole('heading', { name: /Risques identifiés \(0\)/ })).toBeVisible();
   });

@@ -69,7 +69,7 @@ Tests live in `test/*.test.mjs` and import pure logic from `src/utils/*` directl
 
 `npm run test:e2e` runs a separate Playwright suite under `e2e/*.spec.js` — it does **not** run as part of `npm test` (which stays the fast, dependency-free `node --test` logic suite) and CI/local habits built around `npm test` won't pick it up. `playwright.config.js` builds the app (`npm run build`) and serves it via `scripts/serve-e2e.js` (a throwaway static server; the real app is designed for `file://` but Playwright needs `http://` for reliable `localStorage`/navigation behavior) before running.
 
-- `e2e/fixtures.js` holds shared helpers: `gotoHome`/`gotoFresh` (clears `localStorage` once via `evaluate()` + a single `reload()` — **never** `page.addInitScript(() => localStorage.clear())` for this, since that hook re-fires on every navigation in the page, including a later `page.reload()` a test does on purpose to check persistence, silently wiping the very state being tested), `walkToSynthesis`/`answerCurrentQuestion` (generic questionnaire autopilot), `createAndSubmitProject`, `grantAdminAccess`/`grantSelfComplianceExpertAndCommitteeAccess` (back-office setup for the compliance-dashboard specs), `collectConsoleErrors`.
+- `e2e/fixtures.js` holds shared helpers: `gotoHome`/`gotoFresh` (clears `localStorage` once via `evaluate()` + a single `reload()` — **never** `page.addInitScript(() => localStorage.clear())` for this, since that hook re-fires on every navigation in the page, including a later `page.reload()` a test does on purpose to check persistence, silently wiping the very state being tested), `walkQuestionnaireToShowcase`/`walkToSynthesis`/`answerCurrentQuestion` (generic questionnaire autopilot — the first stops on the showcase the form now opens, the second carries on to « Enjeux du projet » via `openProjectStakes`), `createAndSubmitProject`, `grantAdminAccess`/`grantSelfComplianceExpertAndCommitteeAccess` (back-office setup for the compliance-dashboard specs), `collectConsoleErrors`.
 - The nav's lock button renders for someone already designated in the back-office (in `adminEmails`, a team contact, or a committee member — see `isCurrentUserAdmin`/`hasScopedBackOfficeAccess` in `App.jsx`), where clicking it goes straight to the back-office view, **and — outside SharePoint mode only — for everyone else**, where it opens the shared-password prompt instead (`isSharedPasswordEntryAvailable = !isSharePointMode()` in `App.jsx`). Under `file://` and this local server there is no SPO session to designate anyone, so the shared password is the only gate that can exist; in SharePoint mode the button stays reserved to designated people as before. `grantAdminAccess` therefore designates the mock user (`bertrand.darieux@lfb.fr`) by seeding `adminEmails` into `complianceNavigatorState` via `page.addInitScript(...)` before reloading, rather than typing the real password (never committed) into the modal — no `E2E_ADMIN_PASSWORD` environment variable is needed for these specs anymore.
 - Specs targeting the back-office as a compliance expert/committee member (`compliance-comments-and-committee.spec.js`) grant the mock user admin (`grantAdminAccess`, persisted from boot) **before** adding them as a team contact or committee member — see the `allowedTabIds` gotcha below; doing it in the other order locks the test (and a real session) out of most back-office tabs mid-setup.
 - Prefer `page.emulateMedia({ reducedMotion: 'reduce' })` over `test.use({ reducedMotion: 'reduce' })` for reduced-motion specs — in this environment the context-option form isn't reliably reflected by `matchMedia()` before the first navigation, while the explicit call is.
@@ -149,6 +149,23 @@ covers `CN_NotificationsQueue`, so no real Power Automate mail), `storage.js#per
 `ReadOnlySimulationError` as non-retryable. Onboarding is skipped in simulation since completing it
 would be blocked anyway. If you add a new write path, guard it too: the simulation tab shares
 `localStorage` with the admin's real tab and would otherwise clobber their state.
+
+## Where the questionnaire lets you out (showcase first)
+
+Finishing the creation form lands on the **project showcase**, not on the compliance report:
+the tool is meant to make someone think about their project, not just get it stamped. Both
+exits go through `navigateToProjectShowcase` in `App.jsx` — the last question's button
+(« Voir la vitrine du projet »), the mid-questionnaire « Terminer et voir la vitrine », and the
+mandatory-questions interstitial's button, which is the same journey interrupted. A project type
+that `isShowcaseAccessBlockedByProjectType` denies the showcase falls back to the report, which
+is the only way that screen is reached directly from the form.
+
+The report itself is **« Enjeux du projet »** everywhere in the UI (`synthesisReport.title`,
+`app.nav.reportSummaryLabel`, the home cards' « Consulter les enjeux »); the code keeps its
+`synthesis` screen id, `navigateToSynthesis`, `SynthesisReport.jsx` and `synthesis-*` tour ids —
+don't rename those chasing the copy. It is reached from the showcase's nav button, and
+`handleReturnToComplianceReport` deliberately ignores `previousScreenRef` when it holds
+`questionnaire`, so that button always opens what it announces.
 
 ## The showcase editor (live canvas)
 

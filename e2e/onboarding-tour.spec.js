@@ -90,7 +90,7 @@ test.describe('tour v2', () => {
     await tourAction(page, 'Valider son projet').click();
 
     await walk(page, [
-      ['Lire votre synthèse', 'synthesis-summary'],
+      ['Lire les enjeux du projet', 'synthesis-summary'],
       ['Compléter les informations obligatoires', 'mandatory-summary-panel'],
       // Le bloc « Points de vigilance » n'existe que si le projet porte une alerte de délai :
       // le projet de démonstration n'en a pas, le tour retombe alors sur une bulle centrée.

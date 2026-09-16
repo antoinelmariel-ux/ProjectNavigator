@@ -1,12 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { gotoHome, walkToSynthesis } from './fixtures.js';
+import { gotoHome, walkQuestionnaireToShowcase, proceedThroughMandatorySummary } from './fixtures.js';
 
 // Ouvre la vitrine d'un projet Tegeline : sa palette (accent #2b8f42) sert de référence
 // pour vérifier que les sections intégrées suivent le thème par défaut.
 async function openTegelineShowcase(page) {
   await gotoHome(page);
   await page.getByRole('button', { name: /Créer un projet/ }).first().click();
-  await walkToSynthesis(page, {
+  await walkQuestionnaireToShowcase(page, {
     async onQuestion(heading, p) {
       if (heading && heading.includes('produit ou environnement')) {
         await p.getByText('Produit', { exact: true }).first().click();
@@ -30,10 +30,7 @@ async function openTegelineShowcase(page) {
       return false;
     }
   });
-  if ((await page.getByText('Questions obligatoires à compléter').count()) > 0) {
-    await page.getByRole('button', { name: /Accéder à la synthèse/ }).click();
-  }
-  await page.getByRole('button', { name: /Vitrine du projet/ }).click();
+  await proceedThroughMandatorySummary(page);
   await expect(page.getByRole('button', { name: 'Partager' })).toBeVisible();
 }
 
