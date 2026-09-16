@@ -3143,6 +3143,21 @@ const updateProjectFilters = useCallback((updater) => {
     [activeQuestions, answers]
   );
 
+  // Les retours reçus sur la vitrine sont un signal de réflexion, pas de conformité : on ne
+  // compte que les post-its écrits par quelqu'un d'autre que la personne qui regarde, et
+  // seulement ceux encore ouverts.
+  const showcaseFeedbackCount = useMemo(() => {
+    if (!activeProjectId) {
+      return 0;
+    }
+
+    return annotationNotes.filter((note) => (
+      note?.projectId === activeProjectId
+      && note?.status !== 'closed'
+      && normalizeEmail(note?.sourceEmail || '') !== normalizeEmail(currentUserEmail || '')
+    )).length;
+  }, [activeProjectId, annotationNotes, currentUserEmail]);
+
   const projectReadiness = useMemo(
     () => getProjectReadiness(activeQuestions, answers),
     [activeQuestions, answers]
@@ -4696,11 +4711,15 @@ const updateProjectFilters = useCallback((updater) => {
     });
   }, [activeProjectId]);
 
+  // Un projet créé maintenant part du cadrage : c'est ce qui autorise à interroger la
+  // compliance avant d'avoir tout tranché. Un projet déjà enregistré sans stade reste, lui,
+  // considéré au stade le plus avancé (cf. getProjectStage).
   const buildDefaultAnswers = useCallback(() => {
+    const base = { [PROJECT_STAGE_ANSWER_KEY]: DEFAULT_NEW_PROJECT_STAGE };
     if (currentUserDisplayName) {
-      return { teamLead: currentUserDisplayName };
+      return { ...base, teamLead: currentUserDisplayName };
     }
-    return {};
+    return base;
   }, [currentUserDisplayName]);
 
   const resetProjectState = useCallback(() => {
@@ -5880,6 +5899,12 @@ const updateProjectFilters = useCallback((updater) => {
     setValidationError(null);
     setScreen('questionnaire');
   }, [activeQuestions, unansweredMandatoryQuestions]);
+
+  const handleProjectStageChange = useCallback((stage) => {
+    // Le stade passe par le même chemin qu'une réponse ordinaire : il vit dans les réponses,
+    // donc le changer réévalue immédiatement la visibilité conditionnelle des questions.
+    handleAnswer(PROJECT_STAGE_ANSWER_KEY, normalizeProjectStage(stage, DEFAULT_NEW_PROJECT_STAGE));
+  }, [handleAnswer]);
 
   const handleNavigateToQuestion = useCallback((questionId) => {
     const targetIndex = activeQuestions.findIndex(question => question.id === questionId);
@@ -7127,6 +7152,8 @@ const updateProjectFilters = useCallback((updater) => {
             tourContext={tourContext}
             onFinish={leaveQuestionnaireForSynthesis}
             projectId={activeProjectId}
+            projectStage={projectStage}
+            onProjectStageChange={handleProjectStageChange}
             />
           </Suspense>
         ) : screen === 'mandatory-summary' ? (
@@ -7180,6 +7207,10 @@ const updateProjectFilters = useCallback((updater) => {
               onPerimeterClaimAction={activeProjectId ? handlePerimeterClaimAction : undefined}
               isClaimActionAvailable={!isSimulatedSession}
               onRequestAdditionalTeam={activeProjectId ? handleRequestAdditionalTeam : undefined}
+              readiness={projectReadiness}
+              uncertainRuleCoverage={uncertainRuleCoverage}
+              submissionKind={getSubmissionKind(activeProject)}
+              showcaseFeedbackCount={showcaseFeedbackCount}
             />
           </Suspense>
         ) : screen === 'showcase' ? (

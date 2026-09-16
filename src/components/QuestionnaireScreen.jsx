@@ -25,6 +25,13 @@ import { normalizeRankingConfig } from '../utils/ranking.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { resolveLocalizedText } from '../utils/localizedContent.js';
 import { createAttachmentFromFile } from '../utils/documentStore.js';
+import { isAnswerProvided, isQuestionMandatoryAtStage } from '../utils/mandatoryQuestions.js';
+import {
+  PROJECT_STAGE_LABELS,
+  PROJECT_STAGE_VALUES,
+  normalizeProjectStage
+} from '../utils/projectStage.js';
+import { UNKNOWN_ANSWER_VALUE, canAnswerBeUnknown, isUnknownAnswer } from '../utils/unknownAnswer.js';
 
 const normalizeFileAnswer = (value) => {
   const rawFiles = Array.isArray(value) ? value : value ? [value] : [];
@@ -175,18 +182,6 @@ const buildMultiChoiceAnswerPayload = (values, children, otherText, childrenOthe
   };
 };
 
-const isAnswerProvided = (value) => {
-  if (Array.isArray(value)) {
-    return value.length > 0;
-  }
-
-  if (typeof value === 'string') {
-    return value.trim().length > 0;
-  }
-
-  return value !== null && value !== undefined;
-};
-
 // Question sentinelle stable : évite un « return » avant les hooks (règle des Hooks React).
 // Utilisée quand aucune question n’est disponible ; le composant rend alors null après les hooks.
 const EMPTY_QUESTION = { id: '__cn_empty_question__', type: 'choice', options: [] };
@@ -207,7 +202,9 @@ export const QuestionnaireScreen = ({
   onReturnToSynthesis,
   isReturnToSynthesisRequested = false,
   onFinish,
-  projectId = null
+  projectId = null,
+  projectStage,
+  onProjectStageChange
 }) => {
   const { t, language } = useTranslation();
   const activeQuestion = questions[currentIndex];
@@ -218,6 +215,15 @@ export const QuestionnaireScreen = ({
   const currentQuestionText = resolveLocalizedText(currentQuestion.question, language);
   const currentQuestionPlaceholder = resolveLocalizedText(currentQuestion.placeholder, language).trim();
   const currentQuestionNumberUnit = resolveLocalizedText(currentQuestion.numberUnit, language).trim();
+
+  const resolvedStage = normalizeProjectStage(projectStage);
+  const isCurrentQuestionMandatoryNow = isQuestionMandatoryAtStage(currentQuestion, resolvedStage);
+  // Une question obligatoire que le stade déclaré ne rend pas encore exigible : on le dit, au
+  // lieu de la laisser passer pour optionnelle (elle ne l'est pas) ou bloquante (elle ne l'est
+  // pas encore).
+  const isCurrentQuestionDeferred = Boolean(currentQuestion.required) && !isCurrentQuestionMandatoryNow;
+  const canSkipAsUnknown = canAnswerBeUnknown(currentQuestion);
+  const isCurrentAnswerUnknown = isUnknownAnswer(answers[currentQuestion.id]);
 
   const progress = ((currentIndex + 1) / questions.length) * 100;
   const answeredQuestionsCount = questions.filter(
@@ -1350,6 +1356,39 @@ export const QuestionnaireScreen = ({
           aria-label={t('questionnaire.summaryAriaLabel')}
           data-tour-id="question-summary-panel"
         >
+          {typeof onProjectStageChange === 'function' && (
+            <div className="bg-white rounded-2xl shadow-xl p-4 mb-4" data-tour-id="question-stage-selector">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-700">
+                {t('questionnaire.stageHeading')}
+              </h2>
+              <p className="mt-1 text-xs text-gray-500">{t('questionnaire.stageHint')}</p>
+              <div className="mt-3 space-y-1">
+                {PROJECT_STAGE_VALUES.map((stage) => (
+                  <label
+                    key={stage}
+                    className={`flex items-start gap-2 rounded-lg px-2 py-1.5 text-xs cursor-pointer transition-colors ${
+                      resolvedStage === stage ? 'bg-blue-50 text-blue-800 font-semibold' : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="project-stage"
+                      value={stage}
+                      checked={resolvedStage === stage}
+                      onChange={() => onProjectStageChange(stage)}
+                      className="mt-0.5 h-3.5 w-3.5 border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="flex-1 min-w-0">
+                      {resolveLocalizedText(PROJECT_STAGE_LABELS[stage], language)}
+                      <span className="block font-normal text-[11px] text-gray-500">
+                        {t(`questionnaire.stageDescription.${stage}`)}
+                      </span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="bg-white rounded-2xl shadow-xl p-4">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-700">{t('questionnaire.summaryHeading')}</h2>
             <p className="mt-1 text-xs text-gray-500">
@@ -1362,7 +1401,7 @@ export const QuestionnaireScreen = ({
               {questions.map((question, index) => {
                 const isAnswered = isAnswerProvided(answers[question.id]);
                 const isCurrent = index === currentIndex;
-                const isMissingRequired = Boolean(question.required) && !isAnswered;
+                const isMissingRequired = isQuestionMandatoryAtStage(question, resolvedStage) && !isAnswered;
                 const stateLabel = isMissingRequired
                   ? t('questionnaire.stateMissingRequired')
                   : isAnswered
@@ -1503,6 +1542,11 @@ export const QuestionnaireScreen = ({
                 {!currentQuestion.required && !showGuidance && (
                   <span className="inline-flex items-center px-3 py-1 text-xs font-semibold uppercase tracking-wide bg-gray-100 text-gray-600 rounded-full border border-gray-200 self-start">
                     {t('questionnaire.optionalAnswer')}
+                  </span>
+                )}
+                {isCurrentQuestionDeferred && !showGuidance && (
+                  <span className="inline-flex items-center px-3 py-1 text-xs font-semibold uppercase tracking-wide bg-amber-50 text-amber-700 rounded-full border border-amber-200 self-start">
+                    {t('questionnaire.deferredAnswer')}
                   </span>
                 )}
               </div>
@@ -1646,6 +1690,29 @@ export const QuestionnaireScreen = ({
           )}
 
           {renderQuestionInput()}
+
+          {canSkipAsUnknown && (
+            <div className="mb-8">
+              <button
+                type="button"
+                onClick={() => onAnswer(currentQuestion.id, isCurrentAnswerUnknown ? null : UNKNOWN_ANSWER_VALUE)}
+                aria-pressed={isCurrentAnswerUnknown}
+                className={`inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-all ${
+                  isCurrentAnswerUnknown
+                    ? 'border-amber-300 bg-amber-100 text-amber-800'
+                    : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {isCurrentAnswerUnknown ? <CheckCircle className="w-4 h-4" /> : <Info className="w-4 h-4" />}
+                {t('questionnaire.unknownAnswer')}
+              </button>
+              <p className="mt-2 text-xs text-gray-500">
+                {isCurrentAnswerUnknown
+                  ? t('questionnaire.unknownAnswerActiveHint')
+                  : t('questionnaire.unknownAnswerHint')}
+              </p>
+            </div>
+          )}
 
           {extraCheckbox?.enabled && extraCheckbox?.label?.trim() && (
             <div className="mb-8 rounded-xl border border-blue-200 bg-gradient-to-r from-blue-50 to-blue-100 p-4">

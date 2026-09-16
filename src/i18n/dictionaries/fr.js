@@ -155,7 +155,8 @@ export default {
     },
     submit: {
       syncing: 'Synchronisation en cours : veuillez patienter avant de soumettre.',
-      missingMandatory: 'Impossible de soumettre : complétez les questions obligatoires avant l’envoi.'
+      missingMandatory: 'Impossible de soumettre : complétez les questions obligatoires avant l’envoi.',
+      missingForValidation: 'Impossible de demander la validation : toutes les questions obligatoires doivent recevoir une réponse ferme (un « je ne sais pas encore » ne suffit plus à ce stade).'
     },
     sync: {
       syncing: 'Synchronisation…',
@@ -537,6 +538,17 @@ export default {
     summaryHeading: 'Sommaire',
     summaryProgressSingular: '{{answered}} sur {{total}} question renseignée',
     summaryProgressPlural: '{{answered}} sur {{total}} questions renseignées',
+    stageHeading: 'Stade du projet',
+    stageHint: 'Il décide de ce qui vous est demandé maintenant, pas de ce que vous devrez trancher au final.',
+    stageDescription: {
+      framing: 'L’idée est posée, rien n’est arrêté.',
+      design: 'Les grandes options sont prises, les détails s’écrivent.',
+      pre_launch: 'Le projet part bientôt : tout doit être tranché.'
+    },
+    deferredAnswer: 'À trancher plus tard',
+    unknownAnswer: 'Je ne sais pas encore',
+    unknownAnswerHint: 'Avancez sans inventer : la compliance verra que le point reste ouvert.',
+    unknownAnswerActiveHint: 'Point signalé comme ouvert. Une validation finale demandera une réponse ferme.',
     stateMissingRequired: 'obligatoire, non renseignée',
     stateAnswered: 'renseignée',
     stateNotAnswered: 'non renseignée',
@@ -1699,6 +1711,42 @@ export default {
     backToHome: 'Retour à l’accueil'
   },
   synthesisReport: {
+    readiness: {
+      ariaLabel: 'Ce que la compliance peut faire à ce stade',
+      heading: 'Où en est votre projet vis-à-vis de la compliance',
+      intro: 'Vous n’avez pas besoin d’un projet terminé pour interroger les experts. Voici ce qu’ils peuvent faire avec ce que vous avez déjà saisi.',
+      level: {
+        orientation: 'Orientation possible',
+        advice: 'Avis technique possible',
+        validation: 'Validation possible'
+      },
+      levelHint: {
+        orientation: 'Les experts peuvent dire quels sujets vous concernent et ce qu’il faudra préparer.',
+        advice: 'Les experts peuvent se prononcer sur le fond, sur la base d’un projet encore modifiable.',
+        validation: 'Les experts peuvent valider : plus aucune question obligatoire n’est en suspens.'
+      },
+      missingHeading: 'Il manque :',
+      moreMissing: '… et {{count}} autre(s) question(s).',
+      uncertainHeading: 'Des points restent ouverts et peuvent changer l’analyse',
+      uncertainHint: 'Vous avez répondu « je ne sais pas encore » à des questions qui déterminent les équipes sollicitées. Tant qu’elles sont ouvertes, le périmètre affiché peut évoluer.',
+      thinkHeading: 'Faire avancer votre réflexion',
+      thinkHint: 'La vitrine met votre projet en récit : c’est souvent en la relisant qu’on voit ce qui manque. Partagez-la pour récolter des retours en post-its, avant même de solliciter un expert.',
+      thinkAction: 'Ouvrir la vitrine',
+      feedbackCountSingular: '{{count}} retour reçu sur votre vitrine.',
+      feedbackCountPlural: '{{count}} retours reçus sur votre vitrine.',
+      preliminaryTitle: 'Demander un avis préliminaire',
+      preliminaryHint: 'Pour un projet encore en construction : les experts vous orientent, signalent les points de vigilance et les questions à préparer. Ce n’est pas une validation.',
+      preliminaryAction: 'Demander un avis préliminaire',
+      preliminaryBlocked: 'Renseignez d’abord les questions du socle pour que les experts puissent vous orienter.',
+      validationTitle: 'Demander la validation',
+      validationHint: 'Pour un projet arrêté : les experts se prononcent formellement sur chaque périmètre concerné.',
+      validationAction: 'Demander la validation',
+      validationBlocked: 'Toutes les questions obligatoires doivent avoir une réponse ferme.',
+      engagementWithTeams: 'À l’envoi, ces équipes seront notifiées : {{teams}}. Vous pourrez continuer à modifier votre projet ensuite.',
+      engagementNoTeam: 'Aucune équipe n’est concernée par vos réponses actuelles. Vous pourrez continuer à modifier votre projet après l’envoi.',
+      preliminaryPendingTitle: 'Avis préliminaire en cours',
+      preliminaryPendingHint: 'Les experts vous orientent sur un projet encore mouvant. Continuez à le faire évoluer : vous demanderez la validation quand il sera arrêté.'
+    },
     claim: {
       label: 'Prise en charge :',
       unassigned: 'personne ne suit encore ce périmètre.',

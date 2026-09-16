@@ -3,7 +3,6 @@ import {
   FileText,
   Users,
   AlertTriangle,
-  Send,
   Sparkles,
   CheckCircle,
   Mail,
@@ -43,6 +42,8 @@ import { createAttachmentFromFile } from '../utils/documentStore.js';
 import { normalizeEmail } from '../utils/normalizeEmail.js';
 import { stripRichTextToPlainText } from '../utils/richText.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
+import { ProjectReadinessPanel } from './ProjectReadinessPanel.jsx';
+import { SUBMISSION_KIND_FINAL, SUBMISSION_KIND_PRELIMINARY } from '../utils/submissionKind.js';
 import { getLocaleTag, LANGUAGE_LABELS } from '../i18n/languages.js';
 import { isLanguageAcceptedBy, normalizeAcceptedLanguages } from '../utils/translationAudit.js';
 import { resolveEffectiveTeamComplianceEntry } from '../utils/complianceAutoValidation.js';
@@ -565,7 +566,11 @@ export const SynthesisReport = ({
   onFocusPerimeterHandled,
   onPerimeterClaimAction,
   isClaimActionAvailable = true,
-  onRequestAdditionalTeam
+  onRequestAdditionalTeam,
+  readiness = null,
+  uncertainRuleCoverage = [],
+  submissionKind = SUBMISSION_KIND_FINAL,
+  showcaseFeedbackCount = 0
 }) => {
   const { t, language } = useTranslation();
   const [isShowcaseFallbackOpen, setIsShowcaseFallbackOpen] = useState(false);
@@ -1582,7 +1587,7 @@ export const SynthesisReport = ({
     );
   }, [additionalTeamSelection, language, onRequestAdditionalTeam, scheduleComplianceFeedback, t, teams]);
 
-  const handleSubmitProject = useCallback(() => {
+  const handleSubmitProject = useCallback((kind = SUBMISSION_KIND_FINAL) => {
     if (!onSubmitProject) {
       return;
     }
@@ -1592,9 +1597,20 @@ export const SynthesisReport = ({
       answers,
       analysis,
       relevantTeams,
-      timelineDetails
+      timelineDetails,
+      submissionKind: kind
     });
   }, [analysis, answers, effectiveProjectName, onSubmitProject, relevantTeams, timelineDetails]);
+
+  const handleSubmitPreliminary = useCallback(
+    () => handleSubmitProject(SUBMISSION_KIND_PRELIMINARY),
+    [handleSubmitProject]
+  );
+
+  const handleSubmitFinal = useCallback(
+    () => handleSubmitProject(SUBMISSION_KIND_FINAL),
+    [handleSubmitProject]
+  );
 
   const teamsHeadingLabel = t('synthesisReport.teamsHeadingLabel');
   const headingProjectName = stripRichTextToPlainText(effectiveProjectName).trim();
@@ -1655,17 +1671,7 @@ export const SynthesisReport = ({
                   </button>
                 )}
               </div>
-              {normalizedProjectStatus !== 'submitted' && (
-                <button
-                  type="button"
-                  onClick={handleSubmitProject}
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold shadow-md transition-all flex items-center justify-center w-full sm:w-auto text-sm sm:text-base"
-                  data-tour-id="synthesis-submit"
-                >
-                  <Send className="w-4 h-4 mr-2" />
-                  {t('synthesisReport.submitProjectButton')}
-                </button>
-              )}
+
             </div>
           </div>
 
@@ -1747,6 +1753,21 @@ export const SynthesisReport = ({
             </div>
           )}
 
+
+          {isProjectEditable && (
+            <ProjectReadinessPanel
+              readiness={readiness}
+              uncertainCoverage={uncertainRuleCoverage}
+              isSubmitted={normalizedProjectStatus === 'submitted'}
+              submissionKind={submissionKind}
+              notifiedTeamNames={relevantTeams.map((team) => resolveLocalizedText(team.name, language))}
+              onSubmitPreliminary={handleSubmitPreliminary}
+              onSubmitFinal={handleSubmitFinal}
+              onNavigateToQuestion={onNavigateToQuestion}
+              onOpenShowcase={canOpenProjectShowcase ? handleOpenShowcase : undefined}
+              showcaseFeedbackCount={showcaseFeedbackCount}
+            />
+          )}
 
           <section className="mb-8" aria-labelledby="teams-heading" data-tour-id="synthesis-teams">
             <h2 id="teams-heading" className="text-2xl font-bold text-gray-800 mb-4 flex items-center">

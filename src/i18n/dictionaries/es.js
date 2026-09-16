@@ -155,7 +155,8 @@ export default {
     },
     submit: {
       syncing: 'Sincronización en curso: espere antes de enviar.',
-      missingMandatory: 'No se puede enviar: complete las preguntas obligatorias antes de enviar.'
+      missingMandatory: 'No se puede enviar: complete las preguntas obligatorias antes de enviar.',
+      missingForValidation: 'No se puede solicitar la validación: todas las preguntas obligatorias necesitan una respuesta firme (un «todavía no lo sé» ya no basta en esta etapa).'
     },
     sync: {
       syncing: 'Sincronizando…',
@@ -532,6 +533,17 @@ export default {
     summaryHeading: 'Resumen',
     summaryProgressSingular: '{{answered}} de {{total}} pregunta respondida',
     summaryProgressPlural: '{{answered}} de {{total}} preguntas respondidas',
+    stageHeading: 'Fase del proyecto',
+    stageHint: 'Determina lo que se le pide ahora, no lo que deberá decidir al final.',
+    stageDescription: {
+      framing: 'La idea está planteada, nada está decidido.',
+      design: 'Las grandes opciones están tomadas, los detalles se escriben.',
+      pre_launch: 'El proyecto sale pronto: todo debe estar decidido.'
+    },
+    deferredAnswer: 'Por decidir más adelante',
+    unknownAnswer: 'Todavía no lo sé',
+    unknownAnswerHint: 'Avance sin inventar: compliance verá que el punto sigue abierto.',
+    unknownAnswerActiveHint: 'Punto señalado como abierto. Una validación final exigirá una respuesta firme.',
     stateMissingRequired: 'obligatoria, sin responder',
     stateAnswered: 'respondida',
     stateNotAnswered: 'sin responder',
@@ -1689,6 +1701,42 @@ export default {
     backToHome: 'Volver al inicio'
   },
   synthesisReport: {
+    readiness: {
+      ariaLabel: 'Lo que compliance puede hacer en esta fase',
+      heading: 'Dónde está su proyecto frente a compliance',
+      intro: 'No necesita un proyecto terminado para consultar a los expertos. Esto es lo que pueden hacer con lo que ya ha indicado.',
+      level: {
+        orientation: 'Orientación posible',
+        advice: 'Dictamen técnico posible',
+        validation: 'Validación posible'
+      },
+      levelHint: {
+        orientation: 'Los expertos pueden decirle qué temas le afectan y qué habrá que preparar.',
+        advice: 'Los expertos pueden pronunciarse sobre el fondo, con un proyecto aún modificable.',
+        validation: 'Los expertos pueden validar: no queda ninguna pregunta obligatoria abierta.'
+      },
+      missingHeading: 'Falta:',
+      moreMissing: '… y {{count}} pregunta(s) más.',
+      uncertainHeading: 'Hay puntos abiertos que pueden cambiar el análisis',
+      uncertainHint: 'Ha respondido «todavía no lo sé» a preguntas que determinan los equipos implicados. Mientras sigan abiertas, el alcance mostrado puede cambiar.',
+      thinkHeading: 'Hacer avanzar su reflexión',
+      thinkHint: 'La vitrina convierte su proyecto en un relato: al releerla suele verse lo que falta. Compártala para recoger comentarios en notas adhesivas, incluso antes de consultar a un experto.',
+      thinkAction: 'Abrir la vitrina',
+      feedbackCountSingular: '{{count}} comentario recibido en su vitrina.',
+      feedbackCountPlural: '{{count}} comentarios recibidos en su vitrina.',
+      preliminaryTitle: 'Pedir un dictamen preliminar',
+      preliminaryHint: 'Para un proyecto en construcción: los expertos le orientan, señalan los puntos de vigilancia y las preguntas a preparar. No es una validación.',
+      preliminaryAction: 'Pedir un dictamen preliminar',
+      preliminaryBlocked: 'Complete primero las preguntas básicas para que los expertos puedan orientarle.',
+      validationTitle: 'Solicitar la validación',
+      validationHint: 'Para un proyecto cerrado: los expertos se pronuncian formalmente sobre cada ámbito afectado.',
+      validationAction: 'Solicitar la validación',
+      validationBlocked: 'Todas las preguntas obligatorias necesitan una respuesta firme.',
+      engagementWithTeams: 'Al enviar, se notificará a estos equipos: {{teams}}. Podrá seguir modificando su proyecto después.',
+      engagementNoTeam: 'Ningún equipo se ve afectado por sus respuestas actuales. Podrá seguir modificando su proyecto tras el envío.',
+      preliminaryPendingTitle: 'Dictamen preliminar en curso',
+      preliminaryPendingHint: 'Los expertos le orientan sobre un proyecto todavía cambiante. Siga desarrollándolo: pedirá la validación cuando esté cerrado.'
+    },
     claim: {
       label: 'Responsable:',
       unassigned: 'nadie sigue todavía este ámbito.',

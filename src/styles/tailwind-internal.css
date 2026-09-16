@@ -1835,6 +1835,10 @@ a {
   text-decoration: underline;
 }
 
+.underline-offset-2 {
+  text-underline-offset: 0.5rem;
+}
+
 .underline-offset-4 {
   text-underline-offset: 1rem;
 }
@@ -2634,6 +2638,11 @@ a {
   box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
 }
 
+.hover\:text-amber-900:hover {
+  --tw-text-opacity: 1;
+  color: rgba(120,53,15, var(--tw-text-opacity));
+}
+
 .hover\:text-blue-600:hover {
   --tw-text-opacity: 1;
   color: rgba(37,99,235, var(--tw-text-opacity));
@@ -2642,6 +2651,11 @@ a {
 .hover\:text-blue-700:hover {
   --tw-text-opacity: 1;
   color: rgba(29,78,216, var(--tw-text-opacity));
+}
+
+.hover\:text-blue-900:hover {
+  --tw-text-opacity: 1;
+  color: rgba(30,58,138, var(--tw-text-opacity));
 }
 
 .hover\:text-gray-500:hover {

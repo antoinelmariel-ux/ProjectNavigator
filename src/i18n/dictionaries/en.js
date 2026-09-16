@@ -155,7 +155,8 @@ export default {
     },
     submit: {
       syncing: 'Sync in progress: please wait before submitting.',
-      missingMandatory: 'Unable to submit: complete the mandatory questions before sending.'
+      missingMandatory: 'Unable to submit: complete the mandatory questions before sending.',
+      missingForValidation: 'Unable to request validation: every mandatory question needs a firm answer (an “I do not know yet” is no longer enough at this point).'
     },
     sync: {
       syncing: 'Syncing…',
@@ -531,6 +532,17 @@ export default {
     summaryHeading: 'Summary',
     summaryProgressSingular: '{{answered}} of {{total}} question answered',
     summaryProgressPlural: '{{answered}} of {{total}} questions answered',
+    stageHeading: 'Project stage',
+    stageHint: 'It sets what is asked of you now, not what you will eventually have to settle.',
+    stageDescription: {
+      framing: 'The idea is there, nothing is settled yet.',
+      design: 'The main options are chosen, the details are being written.',
+      pre_launch: 'The project is about to launch: everything must be settled.'
+    },
+    deferredAnswer: 'To settle later',
+    unknownAnswer: 'I do not know yet',
+    unknownAnswerHint: 'Move on without making something up: compliance will see the point is still open.',
+    unknownAnswerActiveHint: 'Flagged as still open. A final validation will require a firm answer.',
     stateMissingRequired: 'required, not answered',
     stateAnswered: 'answered',
     stateNotAnswered: 'not answered',
@@ -1689,6 +1701,42 @@ export default {
     backToHome: 'Back to home'
   },
   synthesisReport: {
+    readiness: {
+      ariaLabel: 'What compliance can do at this stage',
+      heading: 'Where your project stands with compliance',
+      intro: 'You do not need a finished project to consult the experts. Here is what they can do with what you have already entered.',
+      level: {
+        orientation: 'Guidance possible',
+        advice: 'Technical opinion possible',
+        validation: 'Validation possible'
+      },
+      levelHint: {
+        orientation: 'Experts can tell you which topics concern you and what to prepare.',
+        advice: 'Experts can weigh in on the substance, on a project that can still change.',
+        validation: 'Experts can validate: no mandatory question is left open.'
+      },
+      missingHeading: 'Still missing:',
+      moreMissing: '… and {{count}} more question(s).',
+      uncertainHeading: 'Some points are still open and may change the analysis',
+      uncertainHint: 'You answered “I do not know yet” to questions that determine which teams are involved. While they stay open, the scope shown here may change.',
+      thinkHeading: 'Move your thinking forward',
+      thinkHint: 'The showcase turns your project into a narrative: rereading it is often how you spot what is missing. Share it to collect sticky-note feedback, even before consulting an expert.',
+      thinkAction: 'Open the showcase',
+      feedbackCountSingular: '{{count}} piece of feedback received on your showcase.',
+      feedbackCountPlural: '{{count}} pieces of feedback received on your showcase.',
+      preliminaryTitle: 'Ask for preliminary advice',
+      preliminaryHint: 'For a project still being shaped: experts point you in the right direction, flag what to watch and what to prepare. This is not an approval.',
+      preliminaryAction: 'Ask for preliminary advice',
+      preliminaryBlocked: 'Fill in the core questions first so the experts can guide you.',
+      validationTitle: 'Request validation',
+      validationHint: 'For a settled project: experts formally rule on every relevant area.',
+      validationAction: 'Request validation',
+      validationBlocked: 'Every mandatory question needs a firm answer.',
+      engagementWithTeams: 'On sending, these teams will be notified: {{teams}}. You can keep editing your project afterwards.',
+      engagementNoTeam: 'No team is concerned by your current answers. You can keep editing your project after sending.',
+      preliminaryPendingTitle: 'Preliminary advice under way',
+      preliminaryPendingHint: 'Experts are guiding you on a project that is still moving. Keep developing it: you will request validation once it is settled.'
+    },
     claim: {
       label: 'Ownership:',
       unassigned: 'nobody is handling this perimeter yet.',

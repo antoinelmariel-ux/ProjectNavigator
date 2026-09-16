@@ -44,7 +44,10 @@ const DEFERRED_MODULES = new Set([
   'src/data/mockOrgDirectory.js',
   // Panneau de critères partagé (règles / membres d'équipe) : seul BackOffice.jsx
   // (déjà différé) l'importe.
-  'src/components/ConditionGroupsEditor.jsx'
+  'src/components/ConditionGroupsEditor.jsx',
+  // Paliers de complétude et portes d'entrée compliance : seul SynthesisReport.jsx
+  // (déjà différé) l'importe.
+  'src/components/ProjectReadinessPanel.jsx'
 ]);
 
 const ALLOWED_EXTENSIONS = new Set(['.js', '.jsx', '.json']);

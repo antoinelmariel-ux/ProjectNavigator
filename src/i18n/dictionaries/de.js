@@ -155,7 +155,8 @@ export default {
     },
     submit: {
       syncing: 'Synchronisierung läuft: Bitte warten Sie vor dem Absenden.',
-      missingMandatory: 'Absenden nicht möglich: Vervollständigen Sie die Pflichtfragen vor dem Senden.'
+      missingMandatory: 'Absenden nicht möglich: Vervollständigen Sie die Pflichtfragen vor dem Senden.',
+      missingForValidation: 'Validierung kann nicht angefordert werden: Jede Pflichtfrage benötigt eine verbindliche Antwort („Ich weiß es noch nicht“ reicht jetzt nicht mehr).'
     },
     sync: {
       syncing: 'Synchronisierung…',
@@ -540,6 +541,17 @@ export default {
     summaryHeading: 'Übersicht',
     summaryProgressSingular: '{{answered}} von {{total}} Frage beantwortet',
     summaryProgressPlural: '{{answered}} von {{total}} Fragen beantwortet',
+    stageHeading: 'Projektphase',
+    stageHint: 'Sie bestimmt, was jetzt von Ihnen verlangt wird, nicht was Sie am Ende klären müssen.',
+    stageDescription: {
+      framing: 'Die Idee steht, nichts ist entschieden.',
+      design: 'Die großen Optionen sind gewählt, die Details entstehen.',
+      pre_launch: 'Der Start steht bevor: alles muss entschieden sein.'
+    },
+    deferredAnswer: 'Später zu klären',
+    unknownAnswer: 'Ich weiß es noch nicht',
+    unknownAnswerHint: 'Machen Sie weiter, ohne etwas zu erfinden: Compliance sieht, dass der Punkt offen bleibt.',
+    unknownAnswerActiveHint: 'Als offen markiert. Für eine endgültige Validierung wird eine verbindliche Antwort verlangt.',
     stateMissingRequired: 'Pflichtfrage, nicht beantwortet',
     stateAnswered: 'beantwortet',
     stateNotAnswered: 'nicht beantwortet',
@@ -1700,6 +1712,42 @@ export default {
     backToHome: 'Zurück zur Startseite'
   },
   synthesisReport: {
+    readiness: {
+      ariaLabel: 'Was Compliance in dieser Phase leisten kann',
+      heading: 'Wo Ihr Projekt gegenüber Compliance steht',
+      intro: 'Sie brauchen kein fertiges Projekt, um die Experten zu befragen. Das können sie mit Ihren bisherigen Angaben tun.',
+      level: {
+        orientation: 'Orientierung möglich',
+        advice: 'Fachliche Stellungnahme möglich',
+        validation: 'Validierung möglich'
+      },
+      levelHint: {
+        orientation: 'Die Experten können sagen, welche Themen Sie betreffen und was vorzubereiten ist.',
+        advice: 'Die Experten können inhaltlich Stellung nehmen – bei einem Projekt, das noch änderbar ist.',
+        validation: 'Die Experten können validieren: keine Pflichtfrage bleibt offen.'
+      },
+      missingHeading: 'Es fehlt:',
+      moreMissing: '… und {{count}} weitere Frage(n).',
+      uncertainHeading: 'Einige Punkte sind offen und können die Analyse verändern',
+      uncertainHint: 'Sie haben bei Fragen, die über die beteiligten Teams entscheiden, „Ich weiß es noch nicht“ angegeben. Solange sie offen sind, kann sich der angezeigte Geltungsbereich ändern.',
+      thinkHeading: 'Ihr Denken voranbringen',
+      thinkHint: 'Die Projektvitrine erzählt Ihr Projekt: beim Wiederlesen fällt oft auf, was fehlt. Teilen Sie sie, um Rückmeldungen per Haftnotiz zu sammeln – noch bevor Sie einen Experten einschalten.',
+      thinkAction: 'Vitrine öffnen',
+      feedbackCountSingular: '{{count}} Rückmeldung zu Ihrer Vitrine erhalten.',
+      feedbackCountPlural: '{{count}} Rückmeldungen zu Ihrer Vitrine erhalten.',
+      preliminaryTitle: 'Vorläufige Einschätzung anfragen',
+      preliminaryHint: 'Für ein Projekt im Aufbau: Die Experten geben Orientierung, nennen Aufmerksamkeitspunkte und vorzubereitende Fragen. Das ist keine Freigabe.',
+      preliminaryAction: 'Vorläufige Einschätzung anfragen',
+      preliminaryBlocked: 'Beantworten Sie zuerst die Basisfragen, damit die Experten Sie orientieren können.',
+      validationTitle: 'Validierung anfragen',
+      validationHint: 'Für ein festgelegtes Projekt: Die Experten entscheiden förmlich über jeden betroffenen Bereich.',
+      validationAction: 'Validierung anfragen',
+      validationBlocked: 'Alle Pflichtfragen brauchen eine verbindliche Antwort.',
+      engagementWithTeams: 'Beim Senden werden diese Teams benachrichtigt: {{teams}}. Sie können Ihr Projekt danach weiter bearbeiten.',
+      engagementNoTeam: 'Ihre aktuellen Antworten betreffen kein Team. Sie können Ihr Projekt nach dem Senden weiter bearbeiten.',
+      preliminaryPendingTitle: 'Vorläufige Einschätzung läuft',
+      preliminaryPendingHint: 'Die Experten orientieren Sie zu einem noch beweglichen Projekt. Entwickeln Sie es weiter: die Validierung fragen Sie an, wenn es feststeht.'
+    },
     claim: {
       label: 'Betreuung:',
       unassigned: 'diesen Bereich betreut noch niemand.',
