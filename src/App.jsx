@@ -30,6 +30,51 @@ import { initialAdminEmails } from './data/adminEmails.js';
 import { initialTechnicalContactEmails } from './data/technicalContactEmails.js';
 import { loadPersistedState, persistState } from './utils/storage.js';
 import { shouldShowQuestion as shouldShowQuestionBase, withActivityScope } from './utils/questions.js';
+import {
+  computeMandatoryProgress,
+  getMissingMandatoryQuestions,
+  isAnswerProvided
+} from './utils/mandatoryQuestions.js';
+import {
+  DEFAULT_NEW_PROJECT_STAGE,
+  PROJECT_STAGE_ANSWER_KEY,
+  getProjectStage,
+  normalizeProjectStage
+} from './utils/projectStage.js';
+import { getProjectReadiness } from './utils/projectReadiness.js';
+import {
+  getLastSentSnapshot,
+  getSubmissionHistory,
+  getSubmissionVersion,
+  recordSubmission
+} from './utils/submissionHistory.js';
+import { diffAnswers, getNarrativeQuestionIds } from './utils/answersDiff.js';
+import { computePerimeterImpact } from './utils/perimeterImpact.js';
+import {
+  CONFIRMATION_REEXAMINING,
+  getFinalValidationRoundStatus,
+  hasLaunchReminderBeenSent,
+  markLaunchReminderSent,
+  startFinalValidationRound,
+  withPerimeterConfirmation
+} from './utils/finalValidationRound.js';
+import {
+  getDueLaunchReminder,
+  getLaunchConfirmationSignal,
+  normalizeLaunchReminderDays
+} from './utils/launchConfirmation.js';
+import { isProjectLaunched, withProjectLaunch, withoutProjectLaunch } from './utils/projectLaunch.js';
+import { getProjectCompliancePerimeters } from './utils/projectValidationStatus.js';
+import { stampReviewedVersions, withNeedsReviewSince } from './utils/perimeterReview.js';
+import { getUncertainRuleCoverage } from './utils/uncertainCoverage.js';
+import {
+  SUBMISSION_KIND_PRELIMINARY,
+  getSubmissionKind,
+  isPreliminarySubmission,
+  isProjectOpenForEditing,
+  normalizeSubmissionKind,
+  withSubmissionKind
+} from './utils/submissionKind.js';
 import { analyzeAnswers as analyzeAnswersBase, resolveProjectAnalysis } from './utils/rules.js';
 import { extractProjectName } from './utils/projects.js';
 import { createDemoProject, demoProjectAnswersSnapshot } from './data/demoProject.js';
@@ -82,6 +127,13 @@ import {
 } from './utils/teamMemberProfile.js';
 import { normalizeRulesTeamReferences } from './utils/teamIds.js';
 import { MANUAL_TEAM_REQUESTS_KEY, addManualTeamRequest, normalizeManualTeamRequests } from './utils/manualTeamRequests.js';
+import {
+  addQuestionThread,
+  getQuestionThreads,
+  withQuestionThread,
+  withThreadReply,
+  withThreadResolution
+} from './utils/questionThreads.js';
 import { getCurrentUser, getRealUser } from './utils/spContext.js';
 import { isImpersonating } from './utils/impersonation.js';
 import { dataProvider } from './utils/dataProvider.js';
@@ -468,34 +520,6 @@ const restoreShowcaseQuestions = (currentQuestions, referenceQuestions = initial
 };
 
 
-const isAnswerProvided = (value) => {
-  if (Array.isArray(value)) {
-    return value.length > 0;
-  }
-
-  if (typeof value === 'string') {
-    return value.trim().length > 0;
-  }
-
-  return value !== null && value !== undefined;
-};
-
-const computeMandatoryProgress = (questions = [], answers = {}) => {
-  const mandatoryQuestions = Array.isArray(questions)
-    ? questions.filter(question => question?.required)
-    : [];
-
-  const totalMandatoryQuestions = mandatoryQuestions.length;
-  const answeredMandatoryQuestions = mandatoryQuestions.filter(
-    question => question?.id && isAnswerProvided(answers[question.id])
-  ).length;
-
-  return {
-    totalMandatoryQuestions,
-    answeredMandatoryQuestions
-  };
-};
-
 const areAnswersEqual = (previousValue, nextValue) => {
   if (previousValue === nextValue) {
     return true;
@@ -804,6 +828,14 @@ const buildInitialOnboardingConfig = () => {
   return cloneDeep(initialOnboardingTourConfig);
 };
 
+// Seuils de rappel avant lancement, côté référentiel publié comme les autres réglages globaux :
+// une organisation qui prépare ses lancements deux mois à l'avance n'a pas les mêmes repères
+// qu'une autre qui décide en trois semaines.
+const buildInitialLaunchReminderDays = () => {
+  const savedState = loadPersistedState();
+  return normalizeLaunchReminderDays(savedState?.launchReminderDays);
+};
+
 const buildInitialValidationCommitteeConfig = () => {
   const savedState = loadPersistedState();
   if (savedState && savedState.validationCommitteeConfig) {
@@ -921,6 +953,7 @@ export const App = () => {
   );
   const [persistenceError, setPersistenceError] = useState(false);
   const [validationCommitteeConfig, setValidationCommitteeConfig] = useState(buildInitialValidationCommitteeConfig);
+  const [launchReminderDays, setLaunchReminderDays] = useState(buildInitialLaunchReminderDays);
   const [adminEmails, setAdminEmails] = useState(buildInitialAdminEmailsState);
   const [technicalContactEmails, setTechnicalContactEmails] = useState(buildInitialTechnicalContactEmailsState);
   const [complianceSampleProjects, setComplianceSampleProjects] = useState(buildInitialComplianceSampleProjectsState);
@@ -1371,6 +1404,7 @@ export const App = () => {
       technicalContactEmails,
       onboardingTourConfig,
       validationCommitteeConfig,
+      launchReminderDays,
       inspirationFormFields,
       projectFilters,
       inspirationFilters
@@ -1384,6 +1418,7 @@ export const App = () => {
     technicalContactEmails,
     onboardingTourConfig,
     validationCommitteeConfig,
+    launchReminderDays,
     inspirationFormFields,
     projectFilters,
     inspirationFilters
@@ -1761,6 +1796,9 @@ const updateProjectFilters = useCallback((updater) => {
       if (slices.validationCommitteeConfig) {
         setValidationCommitteeConfig(normalizeValidationCommitteeConfig(slices.validationCommitteeConfig));
       }
+      if (slices.launchReminderDays) {
+        setLaunchReminderDays(normalizeLaunchReminderDays(slices.launchReminderDays));
+      }
     };
 
     const hydrateFromSharePoint = async () => {
@@ -1967,6 +2005,7 @@ const updateProjectFilters = useCallback((updater) => {
       inspirationFormFields,
       onboardingTourConfig,
       validationCommitteeConfig,
+      launchReminderDays,
       adminEmails,
       technicalContactEmails,
       complianceSampleProjects
@@ -2006,6 +2045,7 @@ const updateProjectFilters = useCallback((updater) => {
     inspirationFormFields,
     onboardingTourConfig,
     validationCommitteeConfig,
+    launchReminderDays,
     adminEmails,
     technicalContactEmails,
     complianceSampleProjects,
@@ -3135,10 +3175,61 @@ const updateProjectFilters = useCallback((updater) => {
     [questions, answers, shouldShowQuestion]
   );
 
+  const projectStage = useMemo(() => getProjectStage(answers), [answers]);
+
+  // Deux listes, deux portes : ce qui manque pour aller plus loin *au stade déclaré* (et donc
+  // pour demander un avis préliminaire), et ce qui manque pour une soumission finale, où le
+  // stade ne dispense de rien et où un « je ne sais pas encore » ne passe plus.
   const unansweredMandatoryQuestions = useMemo(
-    () =>
-      activeQuestions.filter(question => question.required && !isAnswerProvided(answers[question.id])),
+    () => getMissingMandatoryQuestions(activeQuestions, answers, { stage: projectStage }),
+    [activeQuestions, answers, projectStage]
+  );
+
+  const unansweredFinalMandatoryQuestions = useMemo(
+    () => getMissingMandatoryQuestions(activeQuestions, answers, { ignoreStage: true, rejectUnknown: true }),
     [activeQuestions, answers]
+  );
+
+  // Les retours reçus sur la vitrine sont un signal de réflexion, pas de conformité : on ne
+  // compte que les post-its écrits par quelqu'un d'autre que la personne qui regarde, et
+  // seulement ceux encore ouverts.
+  const showcaseFeedbackCounts = useMemo(() => {
+    const viewerEmail = normalizeEmail(currentUserEmail || '');
+
+    return annotationNotes.reduce((acc, note) => {
+      const projectKey = typeof note?.projectId === 'string' ? note.projectId : '';
+      if (!projectKey || note?.status === 'closed' || normalizeEmail(note?.sourceEmail || '') === viewerEmail) {
+        return acc;
+      }
+
+      acc[projectKey] = (acc[projectKey] || 0) + 1;
+      return acc;
+    }, {});
+  }, [annotationNotes, currentUserEmail]);
+
+  const showcaseFeedbackCount = activeProjectId ? (showcaseFeedbackCounts[activeProjectId] || 0) : 0;
+
+  // Périmètres concernés par un tour de confirmation : ceux qui se sont réellement prononcés.
+  // L'entrée brute (et non l'entrée effective) exclut d'office les périmètres auto-validés, dont
+  // personne ne viendra jamais confirmer l'avis.
+  const buildRoundPerimeters = useCallback((project) => getProjectCompliancePerimeters(project, {
+    teams,
+    validationCommitteeConfig
+  }).map((perimeter) => ({
+    id: perimeter.id,
+    type: perimeter.type,
+    hasOpinion: Boolean(perimeter.entry?.status),
+    entry: perimeter.entry
+  })), [teams, validationCommitteeConfig]);
+
+  const projectReadiness = useMemo(
+    () => getProjectReadiness(activeQuestions, answers),
+    [activeQuestions, answers]
+  );
+
+  const uncertainRuleCoverage = useMemo(
+    () => getUncertainRuleCoverage(answers, rules, activeQuestions),
+    [answers, rules, activeQuestions]
   );
 
   const pendingMandatoryQuestions = useMemo(
@@ -3193,6 +3284,40 @@ const updateProjectFilters = useCallback((updater) => {
     () => inspirationProjects.find(project => project.id === activeInspirationId) || null,
     [inspirationProjects, activeInspirationId]
   );
+
+  // Ce qui a bougé depuis ce que les experts ont reçu. Calculé sur `answers` (le tampon d'édition
+  // en cours) et non sur les réponses persistées, pour que le bandeau suive la frappe.
+  const activeProjectSubmissionHistory = useMemo(
+    () => getSubmissionHistory(activeProject?.answers),
+    [activeProject]
+  );
+
+  const pendingProjectChanges = useMemo(() => {
+    if (!activeProject || activeProject.status !== 'submitted' || !activeProjectSubmissionHistory.snapshot) {
+      return [];
+    }
+
+    return diffAnswers(activeProjectSubmissionHistory.snapshot, answers, questions, language);
+  }, [activeProject, activeProjectSubmissionHistory, answers, questions, language]);
+
+  const activeProjectRoundStatus = useMemo(
+    () => getFinalValidationRoundStatus(activeProject?.answers, buildRoundPerimeters(activeProject)),
+    [activeProject, buildRoundPerimeters]
+  );
+
+  const launchSignalsByProject = useMemo(() => projects.reduce((acc, project) => {
+    if (!project?.id || project.status !== 'submitted') {
+      return acc;
+    }
+
+    acc[project.id] = getLaunchConfirmationSignal({
+      answers: project.answers,
+      roundStatus: getFinalValidationRoundStatus(project.answers, buildRoundPerimeters(project)),
+      reminderDays: launchReminderDays
+    });
+    return acc;
+  }, {}), [projects, buildRoundPerimeters, launchReminderDays]);
+
 
   const activeProjectName = useMemo(() => {
     if (typeof activeProject?.projectName === 'string' && activeProject.projectName.trim().length > 0) {
@@ -3686,7 +3811,7 @@ const updateProjectFilters = useCallback((updater) => {
   // brouillon — c'est le sens même de l'annulation, pas un simple retrait de la file
   // compliance.
   const isActiveProjectEditable = !activeProject
-    || (canManageProject(activeProject) && (activeProject.status === 'draft' || activeProject.status === 'cancelled'))
+    || (canManageProject(activeProject) && isProjectOpenForEditing(activeProject))
     || isAdminMode;
   const annotationOffsetClass = isAnnotationModeEnabled && screen === 'showcase'
     ? 'pt-20 lg:pt-24'
@@ -3775,7 +3900,7 @@ const updateProjectFilters = useCallback((updater) => {
           return prevProjects;
         }
 
-        const canUpdateProject = project.status === 'draft' || project.status === 'cancelled' || isAdminMode;
+        const canUpdateProject = isProjectOpenForEditing(project) || isAdminMode;
         if (!canUpdateProject) {
           return prevProjects;
         }
@@ -3858,7 +3983,7 @@ const updateProjectFilters = useCallback((updater) => {
             return prevProjects;
           }
 
-          const canUpdateProject = project.status === 'draft' || project.status === 'cancelled' || isAdminMode;
+          const canUpdateProject = isProjectOpenForEditing(project) || isAdminMode;
           if (!canUpdateProject) {
             return prevProjects;
           }
@@ -4340,6 +4465,75 @@ const updateProjectFilters = useCallback((updater) => {
     teams
   ]);
 
+  // Rappel au porteur quand la date de lancement qu'il a déclarée approche et qu'aucune
+  // confirmation finale n'a été demandée. Même mécanique que la relance des prises en charge :
+  // sans serveur, la passe tourne dans la session de celui qui ouvre l'app — ici le porteur
+  // lui-même, puisque c'est lui qui décide de lancer — et `remindersSent` la rend idempotente.
+  const launchRemindersSentRef = useRef(new Set());
+
+  useEffect(() => {
+    if (!isHydrated || !currentUserEmail || isSimulatedSession || projects.length === 0 || isSharePointMode()) {
+      return;
+    }
+
+    projects.forEach((project) => {
+      if (!project?.id || project.status !== 'submitted' || !canManageProject(project)) {
+        return;
+      }
+
+      const roundStatus = getFinalValidationRoundStatus(project.answers, buildRoundPerimeters(project));
+      const dueThreshold = getDueLaunchReminder({
+        answers: project.answers,
+        roundStatus,
+        reminderDays: launchReminderDays
+      });
+
+      if (dueThreshold === null || hasLaunchReminderBeenSent(project.answers, dueThreshold)) {
+        return;
+      }
+
+      const guardKey = `${project.id}:${dueThreshold}`;
+      if (launchRemindersSentRef.current.has(guardKey)) {
+        return;
+      }
+      launchRemindersSentRef.current.add(guardKey);
+
+      const remindedAnswers = markLaunchReminderSent(project.answers || {}, dueThreshold);
+
+      setProjects((prevProjects) => prevProjects.map((entry) => (
+        entry?.id === project.id ? { ...entry, answers: remindedAnswers } : entry
+      )));
+
+      if (project.id === activeProjectId) {
+        setAnswers((prevAnswers) => markLaunchReminderSent(prevAnswers, dueThreshold));
+      }
+
+      const owners = buildOwnerNotificationRecipients(project);
+      notify({
+        type: NOTIFICATION_TYPES.FINAL_CONFIRMATION_REMINDER,
+        project,
+        to: owners.to,
+        cc: owners.cc,
+        excerpt: `Launch in ${dueThreshold} day(s) or less.`,
+        view: 'synthesis',
+        // Le porteur est presque toujours la personne connectée quand elle ouvre l'app : sans
+        // ceci, `notify` retirerait le seul destinataire du rappel.
+        includeActor: true
+      });
+    });
+  }, [
+    activeProjectId,
+    buildOwnerNotificationRecipients,
+    buildRoundPerimeters,
+    canManageProject,
+    currentUserEmail,
+    isHydrated,
+    isSimulatedSession,
+    launchReminderDays,
+    notify,
+    projects
+  ]);
+
   const handleUpdateComplianceComments = useCallback((updates) => {
     if (!activeProjectId || !updates || typeof updates !== 'object') {
       return;
@@ -4349,8 +4543,15 @@ const updateProjectFilters = useCallback((updater) => {
     const { value: claimAwareComments, claimedTeamIds } = isSimulatedSession
       ? { value: updates[COMPLIANCE_COMMENTS_KEY], claimedTeamIds: [] }
       : injectImplicitClaims(updates[COMPLIANCE_COMMENTS_KEY], projectBeforeUpdate);
+    // Un avis porte la version du projet sur laquelle il a été rendu : c'est ce qui permet, plus
+    // tard, de distinguer une validation encore valable d'une validation périmée.
+    const versionedComments = stampReviewedVersions(
+      claimAwareComments,
+      projectBeforeUpdate?.answers?.[COMPLIANCE_COMMENTS_KEY],
+      getSubmissionVersion(projectBeforeUpdate)
+    );
     const effectiveUpdates = COMPLIANCE_COMMENTS_KEY in updates
-      ? { ...updates, [COMPLIANCE_COMMENTS_KEY]: claimAwareComments }
+      ? { ...updates, [COMPLIANCE_COMMENTS_KEY]: versionedComments }
       : updates;
 
     let sanitizedResult = null;
@@ -4539,6 +4740,174 @@ const updateProjectFilters = useCallback((updater) => {
     });
   }, [activeProjectId, notifyThreadLastAuthor]);
 
+  // Écrit les réponses du projet actif à la fois dans l'état d'édition et dans la fiche projet.
+  // Les questions ancrées vivent sur des projets souvent encore en brouillon : passer par
+  // `handleSaveProject` les ferait basculer en soumission, et ne passer que par `setAnswers`
+  // laisserait la fiche projet — donc l'expert — sans rien voir.
+  const patchActiveProjectAnswers = useCallback((updater) => {
+    const project = projectsRef.current.find((entry) => entry?.id === activeProjectId);
+    if (!project) {
+      return null;
+    }
+
+    const nextAnswers = updater(project.answers && typeof project.answers === 'object' ? project.answers : {});
+    if (!nextAnswers) {
+      return null;
+    }
+
+    setAnswers(nextAnswers);
+    setProjects((prevProjects) => prevProjects.map((entry) => (
+      entry?.id === project.id
+        ? { ...entry, answers: nextAnswers, lastUpdated: new Date().toISOString() }
+        : entry
+    )));
+
+    return { project, nextAnswers };
+  }, [activeProjectId]);
+
+  // Poser une question à une équipe depuis le questionnaire, sans rien soumettre. La question
+  // reste attachée à l'item du formulaire d'où vient le doute, et la même sollicitation manuelle
+  // que la synthèse est enregistrée : c'est elle qui fait exister l'équipe comme périmètre et qui
+  // rend le projet visible côté expert, y compris sur un brouillon.
+  const handleAskQuestionToTeam = useCallback(({ questionId, teamId, message } = {}) => {
+    const team = teams.find((entry) => entry?.id === teamId);
+    if (!team) {
+      return;
+    }
+
+    let createdThread = null;
+
+    const result = patchActiveProjectAnswers((currentAnswers) => {
+      const thread = addQuestionThread(currentAnswers, {
+        questionId,
+        teamId,
+        message,
+        authorEmail: currentUserEmail,
+        authorName: currentUserDisplayName
+      });
+
+      if (!thread) {
+        return null;
+      }
+
+      createdThread = thread;
+
+      return {
+        ...withQuestionThread(currentAnswers, thread),
+        [MANUAL_TEAM_REQUESTS_KEY]: addManualTeamRequest(
+          currentAnswers[MANUAL_TEAM_REQUESTS_KEY],
+          { teamId, requestedBy: currentUserEmail }
+        )
+      };
+    });
+
+    if (!result || !createdThread) {
+      return;
+    }
+
+    setHasUnsavedChanges(true);
+
+    const recipients = normalizeRecipientList(resolveTeamMailRecipients(team, result.nextAnswers));
+    if (recipients.length === 0) {
+      return;
+    }
+
+    const questionLabel = resolveLocalizedText(
+      questions.find((entry) => entry?.id === questionId)?.question,
+      DEFAULT_LANGUAGE
+    ) || questionId;
+
+    notify({
+      type: NOTIFICATION_TYPES.QUESTION_ASKED,
+      project: { ...result.project, answers: result.nextAnswers },
+      to: recipients,
+      teamNames: [resolveLocalizedText(team.name, DEFAULT_LANGUAGE)].filter(Boolean),
+      excerpt: `${questionLabel}\n\n${createdThread.messages[0].message}`,
+      view: 'synthesis'
+    });
+  }, [
+    currentUserDisplayName,
+    currentUserEmail,
+    notify,
+    patchActiveProjectAnswers,
+    questions,
+    resolveTeamMailRecipients,
+    setHasUnsavedChanges,
+    teams
+  ]);
+
+  const handleReplyToQuestionThread = useCallback(({ threadId, message } = {}) => {
+    let repliedThread = null;
+
+    const result = patchActiveProjectAnswers((currentAnswers) => {
+      const nextAnswers = withThreadReply(currentAnswers, threadId, {
+        message,
+        authorEmail: currentUserEmail,
+        authorName: currentUserDisplayName
+      });
+
+      if (nextAnswers === currentAnswers) {
+        return null;
+      }
+
+      repliedThread = getQuestionThreads(nextAnswers).find((thread) => thread.id === threadId) || null;
+      return nextAnswers;
+    });
+
+    if (!result || !repliedThread) {
+      return;
+    }
+
+    setHasUnsavedChanges(true);
+
+    const isOwnerSide = normalizeEmail(repliedThread.createdBy) === currentUserEmail;
+    const team = teams.find((entry) => entry?.id === repliedThread.teamId);
+
+    // Une réponse va à l'autre partie : à l'équipe si c'est le porteur qui écrit, au porteur si
+    // c'est l'expert.
+    const recipients = isOwnerSide
+      ? normalizeRecipientList(team ? resolveTeamMailRecipients(team, result.nextAnswers) : [])
+      : normalizeRecipientList([repliedThread.createdBy]);
+
+    if (recipients.length === 0) {
+      return;
+    }
+
+    notify({
+      type: isOwnerSide ? NOTIFICATION_TYPES.QUESTION_ASKED : NOTIFICATION_TYPES.QUESTION_ANSWERED,
+      project: { ...result.project, answers: result.nextAnswers },
+      to: recipients,
+      teamNames: team ? [resolveLocalizedText(team.name, DEFAULT_LANGUAGE)].filter(Boolean) : [],
+      excerpt: repliedThread.messages[repliedThread.messages.length - 1]?.message || '',
+      view: 'synthesis'
+    });
+  }, [
+    currentUserDisplayName,
+    currentUserEmail,
+    notify,
+    patchActiveProjectAnswers,
+    resolveTeamMailRecipients,
+    setHasUnsavedChanges,
+    teams
+  ]);
+
+  // Clore une question est réservé à qui l'a posée : un expert qui répond n'a pas à décider que
+  // sa réponse a suffi.
+  const handleResolveQuestionThread = useCallback(({ threadId, resolved } = {}) => {
+    const result = patchActiveProjectAnswers((currentAnswers) => {
+      const thread = getQuestionThreads(currentAnswers).find((entry) => entry.id === threadId);
+      if (!thread || normalizeEmail(thread.createdBy) !== currentUserEmail) {
+        return null;
+      }
+
+      return withThreadResolution(currentAnswers, threadId, { resolved, by: currentUserEmail });
+    });
+
+    if (result) {
+      setHasUnsavedChanges(true);
+    }
+  }, [currentUserEmail, patchActiveProjectAnswers, setHasUnsavedChanges]);
+
   // Porteur de projet ou expert Compliance ajoutant à la main une équipe que le moteur de
   // règles n'a pas identifiée (cf. manualTeamRequests.js) : la demande est persistée à part de
   // `analysis.teams`, pour survivre à un recalcul de l'analyse, puis l'équipe est notifiée
@@ -4684,11 +5053,15 @@ const updateProjectFilters = useCallback((updater) => {
     });
   }, [activeProjectId]);
 
+  // Un projet créé maintenant part du cadrage : c'est ce qui autorise à interroger la
+  // compliance avant d'avoir tout tranché. Un projet déjà enregistré sans stade reste, lui,
+  // considéré au stade le plus avancé (cf. getProjectStage).
   const buildDefaultAnswers = useCallback(() => {
+    const base = { [PROJECT_STAGE_ANSWER_KEY]: DEFAULT_NEW_PROJECT_STAGE };
     if (currentUserDisplayName) {
-      return { teamLead: currentUserDisplayName };
+      return { ...base, teamLead: currentUserDisplayName };
     }
-    return {};
+    return base;
   }, [currentUserDisplayName]);
 
   const resetProjectState = useCallback(() => {
@@ -5002,14 +5375,16 @@ const updateProjectFilters = useCallback((updater) => {
       totalMandatoryQuestions: totalQuestions,
       answeredMandatoryQuestions: answeredQuestionsCount
     } = computeMandatoryProgress(derivedQuestions, projectAnswers);
-    const missingMandatory = derivedQuestions.filter(question => question.required && !isAnswerProvided(projectAnswers[question.id]));
+    // Reprise d'un projet : on ramène le porteur sur la première question réellement due à son
+    // stade, pas sur la première question obligatoire toutes phases confondues.
+    const missingMandatory = getMissingMandatoryQuestions(derivedQuestions, projectAnswers);
     const rawIndex = typeof project.lastQuestionIndex === 'number' ? project.lastQuestionIndex : 0;
     const sanitizedIndex = totalQuestions > 0 ? Math.min(Math.max(rawIndex, 0), totalQuestions - 1) : 0;
     const firstMissingId = missingMandatory[0]?.id;
     const missingIndex = firstMissingId
       ? derivedQuestions.findIndex(question => question.id === firstMissingId)
       : -1;
-    const isResumableProject = project.status === 'draft' || project.status === 'cancelled';
+    const isResumableProject = isProjectOpenForEditing(project);
     const startingIndex = missingIndex >= 0 ? missingIndex : isResumableProject ? sanitizedIndex : 0;
 
     setAnswers(projectAnswers);
@@ -5287,9 +5662,7 @@ const updateProjectFilters = useCallback((updater) => {
     } = computeMandatoryProgress(visibleQuestions, answersSource);
 
     const hasShowcaseIncompleteAnswers = visibleQuestions.length > 0
-      ? visibleQuestions.some(
-        question => question.required && !isAnswerProvided(answersSource[question.id])
-      )
+      ? getMissingMandatoryQuestions(visibleQuestions, answersSource).length > 0
       : Object.keys(answersSource).length === 0;
 
 
@@ -5528,15 +5901,17 @@ const updateProjectFilters = useCallback((updater) => {
     const projectId = showcaseProjectContext?.projectId;
     const project = projectId ? projects.find(entry => entry.id === projectId) : null;
 
-    const isEditableStatus = (status) => status === 'draft' || status === 'cancelled';
+    // Le contexte vitrine ne porte que le statut : on lui adjoint les réponses du projet pour
+    // que `isProjectOpenForEditing` puisse y lire le type de soumission.
+    const isEditableContext = (status) => isProjectOpenForEditing({ status, answers: project?.answers });
 
     if (
       !showcaseProjectContext ||
       !projectId ||
-      (!isEditableStatus(showcaseProjectContext.status) && !isAdminMode)
+      (!isEditableContext(showcaseProjectContext.status) && !isAdminMode)
       || !canManageProject(project)
       || !project
-      || (!isEditableStatus(project.status) && !isAdminMode)
+      || (!isProjectOpenForEditing(project) && !isAdminMode)
     ) {
       return;
     }
@@ -5651,8 +6026,14 @@ const updateProjectFilters = useCallback((updater) => {
 
   const handleSaveProject = useCallback((payload = {}) => {
     const baseAnswers = payload.answers && typeof payload.answers === 'object' ? payload.answers : answers;
-    const sanitizedAnswers = baseAnswers || {};
     const status = payload.status === 'submitted' ? 'submitted' : 'draft';
+    const sanitizedAnswers = status === 'submitted'
+      ? recordSubmission(withSubmissionKind(baseAnswers || {}, payload.submissionKind), {
+        kind: normalizeSubmissionKind(payload.submissionKind),
+        narrativeQuestionIds: Array.isArray(payload.narrativeQuestionIds) ? payload.narrativeQuestionIds : [],
+        changes: Array.isArray(payload.changes) ? payload.changes : []
+      })
+      : (baseAnswers || {});
     const projectId = activeProjectId || payload.id || `project-${Date.now()}`;
     const relevantQuestions = questions.filter(question => shouldShowQuestion(question, sanitizedAnswers));
     const existingProject = projects.find(project => project?.id === projectId);
@@ -5707,7 +6088,16 @@ const updateProjectFilters = useCallback((updater) => {
     };
 
     if (status === 'submitted') {
-      entry.submittedAt = now;
+      // Une mise à jour n'est pas une nouvelle soumission : la carte continue d'annoncer la date
+      // à laquelle la compliance a découvert le projet. Les dates d'envoi successives vivent dans
+      // l'historique de soumission.
+      entry.submittedAt = existingProject?.status === 'submitted' && existingProject?.submittedAt
+        ? existingProject.submittedAt
+        : now;
+      // Les clés méta ajoutées ici (type de soumission, historique) doivent rejoindre l'état
+      // d'édition : sans cela la prochaine réponse saisie réécrirait le projet à partir d'un
+      // `answers` qui ne les contient pas, et les effacerait.
+      setAnswers(sanitizedAnswers);
     }
 
     setProjects(upsertProject(entry));
@@ -5755,9 +6145,13 @@ const updateProjectFilters = useCallback((updater) => {
       notifiedTeams.flatMap((team) => resolveTeamMailRecipients(team, project?.answers || {}))
     );
 
+    const isPreliminary = isPreliminarySubmission(project);
+
     if (teamRecipients.length > 0) {
       notify({
-        type: NOTIFICATION_TYPES.PROJECT_SUBMITTED_TEAM,
+        type: isPreliminary
+          ? NOTIFICATION_TYPES.PROJECT_PRELIMINARY_TEAM
+          : NOTIFICATION_TYPES.PROJECT_SUBMITTED_TEAM,
         project,
         to: teamRecipients,
         teamNames,
@@ -5769,7 +6163,9 @@ const updateProjectFilters = useCallback((updater) => {
 
     const owners = buildOwnerNotificationRecipients(project);
     notify({
-      type: NOTIFICATION_TYPES.PROJECT_SUBMITTED_OWNER,
+      type: isPreliminary
+        ? NOTIFICATION_TYPES.PROJECT_PRELIMINARY_OWNER
+        : NOTIFICATION_TYPES.PROJECT_SUBMITTED_OWNER,
       project,
       to: owners.to,
       cc: owners.cc,
@@ -5778,6 +6174,87 @@ const updateProjectFilters = useCallback((updater) => {
       includeActor: true
     });
   }, [buildOwnerNotificationRecipients, notify, resolveTeamMailRecipients, teams]);
+
+  const buildChangeSummary = useCallback((changes) => changes
+    .slice(0, 8)
+    .map((change) => {
+      const label = resolveLocalizedText(change.question?.question, DEFAULT_LANGUAGE) || change.questionId;
+      const before = change.previousLabel || '—';
+      const after = change.currentLabel || '—';
+      return `${label} : ${before} → ${after}`;
+    })
+    .join('\n'), []);
+
+  // Une mise à jour ne notifie que les périmètres qu'elle change réellement. Trois cas parlent —
+  // équipe nouvellement déclenchée, règles changées, équipe qui n'est plus concernée — et chacun
+  // a son message ; le quatrième, « rien ne bouge pour cette équipe », est le silence, et c'est
+  // lui qui rend le droit de modifier un projet soumis tenable pour les experts.
+  const notifyProjectUpdate = useCallback((project, impact, changeSummary) => {
+    const projectAnswers = project?.answers && typeof project.answers === 'object' ? project.answers : {};
+    const comments = projectAnswers[COMPLIANCE_COMMENTS_KEY];
+    const teamEntries = comments?.teams && typeof comments.teams === 'object' ? comments.teams : {};
+
+    const notifyBucket = (teamIds, type, { claimAware }) => {
+      const bucketTeams = teamIds
+        .map((teamId) => teams.find((entry) => entry?.id === teamId))
+        .filter(Boolean);
+
+      if (bucketTeams.length === 0) {
+        return [];
+      }
+
+      const teamNames = bucketTeams
+        .map((team) => resolveLocalizedText(team.name, DEFAULT_LANGUAGE))
+        .filter(Boolean);
+
+      const recipients = normalizeRecipientList(bucketTeams.flatMap((team) => (
+        claimAware
+          ? resolveClaimAwareRecipients(
+            team,
+            projectAnswers,
+            getPerimeterClaim(teamEntries[team.id]),
+            { profiles: userProfilesByEmail }
+          )
+          // Une équipe qui découvre le projet ne peut pas l'avoir pris en charge : sa première
+          // sollicitation part à toute l'équipe, comme à la soumission initiale.
+          : resolveTeamMailRecipients(team, projectAnswers)
+      )));
+
+      if (recipients.length > 0) {
+        notify({ type, project, to: recipients, teamNames, excerpt: changeSummary, view: 'synthesis' });
+      }
+
+      return teamNames;
+    };
+
+    const isPreliminary = isPreliminarySubmission(project);
+    const notifiedNames = [
+      ...notifyBucket(
+        impact.added,
+        isPreliminary ? NOTIFICATION_TYPES.PROJECT_PRELIMINARY_TEAM : NOTIFICATION_TYPES.PROJECT_SUBMITTED_TEAM,
+        { claimAware: false }
+      ),
+      ...notifyBucket(impact.changed, NOTIFICATION_TYPES.PROJECT_UPDATED_TEAM, { claimAware: true }),
+      ...notifyBucket(impact.removed, NOTIFICATION_TYPES.PROJECT_PERIMETER_DROPPED_TEAM, { claimAware: true })
+    ];
+
+    const owners = buildOwnerNotificationRecipients(project);
+    notify({
+      type: NOTIFICATION_TYPES.PROJECT_UPDATE_SENT_OWNER,
+      project,
+      to: owners.to,
+      cc: owners.cc,
+      teamNames: notifiedNames,
+      excerpt: changeSummary,
+      includeActor: true
+    });
+  }, [
+    buildOwnerNotificationRecipients,
+    notify,
+    resolveTeamMailRecipients,
+    teams,
+    userProfilesByEmail
+  ]);
 
   const handleSubmitProject = useCallback((payload = {}) => {
     if (autosaveQueueRef.current && autosaveQueueRef.current.size() > 0) {
@@ -5788,23 +6265,377 @@ const updateProjectFilters = useCallback((updater) => {
       return null;
     }
 
-    if (unansweredMandatoryQuestions.length > 0) {
+    const submissionKind = normalizeSubmissionKind(payload.submissionKind);
+    // Un avis préliminaire n'exige que ce qui est obligatoire au stade déclaré ; une demande
+    // de validation exige tout, et une réponse ferme partout.
+    const blockingQuestions = submissionKind === SUBMISSION_KIND_PRELIMINARY
+      ? unansweredMandatoryQuestions
+      : unansweredFinalMandatoryQuestions;
+
+    if (blockingQuestions.length > 0) {
       setSaveFeedback({
         status: 'error',
-        message: t('app.submit.missingMandatory')
+        message: submissionKind === SUBMISSION_KIND_PRELIMINARY
+          ? t('app.submit.missingMandatory')
+          : t('app.submit.missingForValidation')
       });
       setScreen('synthesis');
       return null;
     }
 
-    const entry = handleSaveProject({ ...payload, status: 'submitted' });
+    const entry = handleSaveProject({ ...payload, status: 'submitted', submissionKind });
     if (entry) {
       notifyProjectSubmission(entry);
       setValidationError(null);
-      setSubmittedProjectNotice({ id: entry.id, projectName: entry.projectName });
+      setSubmittedProjectNotice({
+        id: entry.id,
+        projectName: entry.projectName,
+        submissionKind
+      });
       setScreen('home');
     }
-  }, [handleSaveProject, notifyProjectSubmission, t, unansweredMandatoryQuestions]);
+  }, [
+    handleSaveProject,
+    notifyProjectSubmission,
+    t,
+    unansweredFinalMandatoryQuestions,
+    unansweredMandatoryQuestions
+  ]);
+
+  const handleSendProjectUpdate = useCallback(() => {
+    if (autosaveQueueRef.current && autosaveQueueRef.current.size() > 0) {
+      setSaveFeedback({ status: 'error', message: t('app.submit.syncing') });
+      return null;
+    }
+
+    const project = projectsRef.current.find((entry) => entry?.id === activeProjectId);
+    if (!project || project.status !== 'submitted' || !canManageProject(project)) {
+      return null;
+    }
+
+    const currentAnswers = project.answers && typeof project.answers === 'object' ? project.answers : {};
+    const snapshot = getLastSentSnapshot(currentAnswers);
+    const nextAnalysis = analyzeAnswers(currentAnswers, rules, riskLevelRules, riskWeights);
+
+    // Sans instantané — projet soumis avant cette fonctionnalité — on ne peut pas savoir ce qui a
+    // changé. Toutes les équipes du périmètre sont alors invitées à ré-examiner : deviner un état
+    // d'origine laisserait passer en silence exactement le changement qu'il fallait signaler.
+    const impact = snapshot
+      ? computePerimeterImpact(analyzeAnswers(snapshot, rules, riskLevelRules, riskWeights), nextAnalysis)
+      : {
+        byTeam: {},
+        added: [],
+        changed: Array.isArray(nextAnalysis?.teams) ? nextAnalysis.teams : [],
+        removed: [],
+        unchanged: [],
+        riskLevelChanged: false,
+        hasImpact: true
+      };
+
+    const changes = diffAnswers(snapshot || {}, currentAnswers, questions, language);
+    const nextVersion = getSubmissionVersion(project) + 1;
+    const impactedTeamIds = [...impact.changed, ...impact.removed];
+
+    let answersForUpdate = currentAnswers;
+    if (impactedTeamIds.length > 0) {
+      const comments = currentAnswers[COMPLIANCE_COMMENTS_KEY];
+      const teamEntries = comments?.teams && typeof comments.teams === 'object' ? comments.teams : {};
+      const stampedTeams = impactedTeamIds.reduce((acc, teamId) => {
+        if (!teamEntries[teamId]) {
+          return acc;
+        }
+        acc[teamId] = withNeedsReviewSince(teamEntries[teamId], nextVersion);
+        return acc;
+      }, { ...teamEntries });
+
+      answersForUpdate = {
+        ...currentAnswers,
+        [COMPLIANCE_COMMENTS_KEY]: { ...(comments || {}), teams: stampedTeams }
+      };
+    }
+
+    const entry = handleSaveProject({
+      id: project.id,
+      projectName: project.projectName,
+      answers: answersForUpdate,
+      analysis: nextAnalysis,
+      status: 'submitted',
+      submissionKind: getSubmissionKind(project),
+      narrativeQuestionIds: getNarrativeQuestionIds(changes),
+      changes: changes.map((change) => ({
+        questionId: change.questionId,
+        label: resolveLocalizedText(change.question?.question, DEFAULT_LANGUAGE) || change.questionId,
+        previousLabel: change.previousLabel,
+        currentLabel: change.currentLabel,
+        narrative: change.narrative
+      }))
+    });
+
+    if (!entry) {
+      return null;
+    }
+
+    notifyProjectUpdate(entry, impact, buildChangeSummary(changes));
+    setSaveFeedback({
+      status: 'success',
+      message: impact.hasImpact
+        ? t('app.update.sentWithImpact')
+        : t('app.update.sentWithoutImpact')
+    });
+
+    return entry;
+  }, [
+    activeProjectId,
+    analyzeAnswers,
+    buildChangeSummary,
+    canManageProject,
+    handleSaveProject,
+    language,
+    notifyProjectUpdate,
+    questions,
+    riskLevelRules,
+    riskWeights,
+    rules,
+    t
+  ]);
+
+  // Le dernier tour est demandé par le porteur, jamais déclenché tout seul : lui seul sait qu'il
+  // lance. L'application se contente de le lui rappeler quand la date qu'il a annoncée approche.
+  // Constater qu'un projet est parti n'est pas un privilège de porteur : un expert du périmètre
+  // qui a vu la campagne sortir est souvent le mieux placé, et un administrateur doit pouvoir
+  // corriger. La déclaration reste bornée aux gens réellement dans la boucle de ce projet.
+  const canDeclareProjectLaunch = useCallback((project) => {
+    if (!project || project.status !== 'submitted') {
+      return false;
+    }
+
+    if (isCurrentUserAdmin || isAdminMode || canManageProject(project)) {
+      return true;
+    }
+
+    if (!currentUserEmail) {
+      return false;
+    }
+
+    const analysisTeamIds = Array.isArray(project.analysis?.teams) ? project.analysis.teams : [];
+    const isTeamContact = (Array.isArray(teams) ? teams : []).some((team) => (
+      analysisTeamIds.includes(team?.id)
+      && Array.isArray(team?.contacts)
+      && team.contacts.some((contact) => normalizeEmail(contact) === currentUserEmail)
+    ));
+
+    if (isTeamContact) {
+      return true;
+    }
+
+    return normalizeValidationCommitteeConfig(validationCommitteeConfig).committees.some((committee) => (
+      Array.isArray(committee?.emails)
+      && committee.emails.some((email) => normalizeEmail(email) === currentUserEmail)
+    ));
+  }, [
+    canManageProject,
+    currentUserEmail,
+    isAdminMode,
+    isCurrentUserAdmin,
+    teams,
+    validationCommitteeConfig
+  ]);
+
+  const handleDeclareProjectLaunch = useCallback((launched) => {
+    const project = projectsRef.current.find((entry) => entry?.id === activeProjectId);
+    if (!project || !canDeclareProjectLaunch(project)) {
+      return;
+    }
+
+    const nextAnswers = launched
+      ? withProjectLaunch(project.answers || {}, { by: currentUserEmail })
+      : withoutProjectLaunch(project.answers || {}, { by: currentUserEmail });
+
+    setAnswers(nextAnswers);
+    setProjects((prevProjects) => prevProjects.map((entry) => (
+      entry?.id === project.id
+        ? { ...entry, answers: nextAnswers, lastUpdated: new Date().toISOString() }
+        : entry
+    )));
+
+    if (!launched) {
+      return;
+    }
+
+    const roundStatus = getFinalValidationRoundStatus(nextAnswers, buildRoundPerimeters({ ...project, answers: nextAnswers }));
+    if (roundStatus.isComplete) {
+      return;
+    }
+
+    // Un projet parti sans confirmation complète : le seul constat de manquement du dispositif,
+    // et il ne part que parce que quelqu'un l'a déclaré.
+    const unconfirmedTeamIds = [...roundStatus.pending, ...roundStatus.reexamining];
+    const unconfirmedTeams = unconfirmedTeamIds
+      .map((teamId) => teams.find((entry) => entry?.id === teamId))
+      .filter(Boolean);
+
+    const recipients = normalizeRecipientList([
+      ...unconfirmedTeams.flatMap((team) => normalizeTeamContacts(team)),
+      ...adminEmails
+    ]);
+
+    if (recipients.length === 0) {
+      return;
+    }
+
+    notify({
+      type: NOTIFICATION_TYPES.PROJECT_LAUNCHED_WITHOUT_CONFIRMATION,
+      project: { ...project, answers: nextAnswers },
+      to: recipients,
+      teamNames: unconfirmedTeams
+        .map((team) => resolveLocalizedText(team.name, DEFAULT_LANGUAGE))
+        .filter(Boolean),
+      view: 'synthesis'
+    });
+  }, [
+    activeProjectId,
+    adminEmails,
+    buildRoundPerimeters,
+    canDeclareProjectLaunch,
+    currentUserEmail,
+    notify,
+    teams
+  ]);
+
+  const handleRequestFinalValidation = useCallback(() => {
+    const project = projectsRef.current.find((entry) => entry?.id === activeProjectId);
+    if (!project || project.status !== 'submitted' || !canManageProject(project)) {
+      return null;
+    }
+
+    const perimeters = buildRoundPerimeters(project).filter((perimeter) => perimeter.hasOpinion);
+    const nextAnswers = startFinalValidationRound(project.answers || {}, {
+      by: currentUserEmail,
+      version: getSubmissionVersion(project)
+    });
+
+    setAnswers(nextAnswers);
+    setProjects((prevProjects) => prevProjects.map((entry) => (
+      entry?.id === project.id
+        ? { ...entry, answers: nextAnswers, lastUpdated: new Date().toISOString() }
+        : entry
+    )));
+
+    const teamPerimeters = perimeters.filter((perimeter) => perimeter.type === 'team');
+    const committeePerimeters = perimeters.filter((perimeter) => perimeter.type === 'committee');
+
+    const teamRecipients = teamPerimeters.flatMap((perimeter) => {
+      const team = teams.find((entry) => entry?.id === perimeter.id);
+      if (!team) {
+        return [];
+      }
+      // La confirmation est demandée à qui a rendu l'avis : le routage par membre et la prise en
+      // charge s'appliquent, comme pour tout échange qui suit la première sollicitation.
+      return resolveClaimAwareRecipients(
+        team,
+        project.answers || {},
+        getPerimeterClaim(perimeter.entry),
+        { profiles: userProfilesByEmail }
+      );
+    });
+
+    const committeeRecipients = committeePerimeters.flatMap((perimeter) => {
+      const committee = normalizeValidationCommitteeConfig(validationCommitteeConfig).committees
+        .find((entry) => entry?.id === perimeter.id);
+      return Array.isArray(committee?.emails) ? committee.emails : [];
+    });
+
+    const recipients = normalizeRecipientList([...teamRecipients, ...committeeRecipients]);
+
+    if (recipients.length > 0) {
+      notify({
+        type: NOTIFICATION_TYPES.FINAL_CONFIRMATION_REQUESTED,
+        project: { ...project, answers: nextAnswers },
+        to: recipients,
+        teamNames: teamPerimeters
+          .map((perimeter) => resolveLocalizedText(teams.find((entry) => entry?.id === perimeter.id)?.name, DEFAULT_LANGUAGE))
+          .filter(Boolean),
+        view: 'synthesis'
+      });
+    }
+
+    setSaveFeedback({
+      status: 'success',
+      message: recipients.length > 0
+        ? t('app.finalRound.requested')
+        : t('app.finalRound.requestedWithoutRecipients')
+    });
+
+    return nextAnswers;
+  }, [
+    activeProjectId,
+    buildRoundPerimeters,
+    canManageProject,
+    currentUserEmail,
+    notify,
+    t,
+    teams,
+    userProfilesByEmail,
+    validationCommitteeConfig
+  ]);
+
+  // Deux boutons, deux minutes : confirmer, ou dire qu'on doit réexaminer. Un « je dois
+  // réexaminer » remet le périmètre dans le même état qu'une mise à jour qui l'aurait touché —
+  // même signal, même conséquence sur le badge — et prévient le porteur.
+  const handlePerimeterConfirmation = useCallback(({ targetId, targetType, state }) => {
+    const project = projectsRef.current.find((entry) => entry?.id === activeProjectId);
+    if (!project || !targetId) {
+      return;
+    }
+
+    const roundStatus = getFinalValidationRoundStatus(project.answers, buildRoundPerimeters(project));
+    if (!roundStatus.isRequested) {
+      return;
+    }
+
+    const section = targetType === 'committee' ? 'committees' : 'teams';
+    const comments = project.answers?.[COMPLIANCE_COMMENTS_KEY];
+    const sectionEntries = comments?.[section] && typeof comments[section] === 'object' ? comments[section] : {};
+    const currentEntry = sectionEntries[targetId];
+    if (!currentEntry) {
+      return;
+    }
+
+    const isReexamining = state === CONFIRMATION_REEXAMINING;
+    let nextEntry = withPerimeterConfirmation(currentEntry, {
+      round: roundStatus.round,
+      state,
+      by: currentUserEmail
+    });
+
+    if (isReexamining) {
+      nextEntry = withNeedsReviewSince(nextEntry, getSubmissionVersion(project));
+    }
+
+    handleUpdateComplianceComments({
+      [COMPLIANCE_COMMENTS_KEY]: {
+        ...(comments || {}),
+        [section]: { ...sectionEntries, [targetId]: nextEntry }
+      }
+    });
+
+    if (isReexamining) {
+      const owners = buildOwnerNotificationRecipients(project);
+      notify({
+        type: NOTIFICATION_TYPES.FINAL_CONFIRMATION_REEXAMINING,
+        project,
+        to: owners.to,
+        cc: owners.cc
+      });
+    }
+  }, [
+    activeProjectId,
+    buildOwnerNotificationRecipients,
+    buildRoundPerimeters,
+    currentUserEmail,
+    handleUpdateComplianceComments,
+    notify
+  ]);
 
   const handleDismissSaveFeedback = useCallback(() => {
     setSaveFeedback(null);
@@ -5872,6 +6703,12 @@ const updateProjectFilters = useCallback((updater) => {
     setValidationError(null);
     setScreen('questionnaire');
   }, [activeQuestions, unansweredMandatoryQuestions]);
+
+  const handleProjectStageChange = useCallback((stage) => {
+    // Le stade passe par le même chemin qu'une réponse ordinaire : il vit dans les réponses,
+    // donc le changer réévalue immédiatement la visibilité conditionnelle des questions.
+    handleAnswer(PROJECT_STAGE_ANSWER_KEY, normalizeProjectStage(stage, DEFAULT_NEW_PROJECT_STAGE));
+  }, [handleAnswer]);
 
   const handleNavigateToQuestion = useCallback((questionId) => {
     const targetIndex = activeQuestions.findIndex(question => question.id === questionId);
@@ -6986,6 +7823,9 @@ const updateProjectFilters = useCallback((updater) => {
               )}
             >
               <LazyBackOffice
+                launchSignals={launchSignalsByProject}
+                launchReminderDays={launchReminderDays}
+                setLaunchReminderDays={setLaunchReminderDays}
                 projects={projects}
                 questions={questions}
                 setQuestions={setQuestions}
@@ -7045,6 +7885,8 @@ const updateProjectFilters = useCallback((updater) => {
           <Suspense fallback={(<LoadingFallback label={t('app.loading.screenLabel')} hint={t('app.loading.screenHint')} />)}>
             <LazyHomeScreen
             projects={projects}
+            showcaseFeedbackCounts={showcaseFeedbackCounts}
+            launchSignals={launchSignalsByProject}
             projectFilters={projectFilters}
             teamLeadOptions={teamLeadTeamOptions}
             teams={teams}
@@ -7119,6 +7961,13 @@ const updateProjectFilters = useCallback((updater) => {
             tourContext={tourContext}
             onFinish={leaveQuestionnaireForShowcase}
             projectId={activeProjectId}
+            projectStage={projectStage}
+            onProjectStageChange={handleProjectStageChange}
+            teams={teams}
+            currentUserEmail={currentUserEmail}
+            onAskQuestion={activeProjectId ? handleAskQuestionToTeam : undefined}
+            onReplyToQuestionThread={activeProjectId ? handleReplyToQuestionThread : undefined}
+            onResolveQuestionThread={activeProjectId ? handleResolveQuestionThread : undefined}
             />
           </Suspense>
         ) : screen === 'mandatory-summary' ? (
@@ -7172,6 +8021,25 @@ const updateProjectFilters = useCallback((updater) => {
               onPerimeterClaimAction={activeProjectId ? handlePerimeterClaimAction : undefined}
               isClaimActionAvailable={!isSimulatedSession}
               onRequestAdditionalTeam={activeProjectId ? handleRequestAdditionalTeam : undefined}
+              readiness={projectReadiness}
+              uncertainRuleCoverage={uncertainRuleCoverage}
+              submissionKind={getSubmissionKind(activeProject)}
+              showcaseFeedbackCount={showcaseFeedbackCount}
+              pendingChanges={pendingProjectChanges}
+              hasSentSnapshot={Boolean(activeProjectSubmissionHistory.snapshot)}
+              submissionVersion={getSubmissionVersion(activeProject)}
+              lastSentAt={activeProjectSubmissionHistory.lastSentAt}
+              onSendUpdate={activeProjectId ? handleSendProjectUpdate : undefined}
+              submissionHistory={activeProjectSubmissionHistory}
+              launchSignal={activeProjectId ? (launchSignalsByProject[activeProjectId] || 'none') : 'none'}
+              roundStatus={activeProjectRoundStatus}
+              onRequestFinalValidation={activeProjectId ? handleRequestFinalValidation : undefined}
+              onPerimeterConfirmation={activeProjectId ? handlePerimeterConfirmation : undefined}
+              isLaunched={isProjectLaunched(activeProject?.answers)}
+              canDeclareLaunch={canDeclareProjectLaunch(activeProject)}
+              onDeclareLaunch={activeProjectId ? handleDeclareProjectLaunch : undefined}
+              onReplyToQuestionThread={activeProjectId ? handleReplyToQuestionThread : undefined}
+              onResolveQuestionThread={activeProjectId ? handleResolveQuestionThread : undefined}
             />
           </Suspense>
         ) : screen === 'showcase' ? (
@@ -7213,7 +8081,10 @@ const updateProjectFilters = useCallback((updater) => {
                       ? undefined
                       : isOnboardingActive
                         ? noop
-                        : showcaseProjectContext.status === 'draft' || showcaseProjectContext.status === 'cancelled' || isAdminMode
+                        : isProjectOpenForEditing({
+                          status: showcaseProjectContext.status,
+                          answers: showcaseProjectContext.answers
+                        }) || isAdminMode
                           ? handleUpdateProjectShowcaseAnswers
                           : undefined
                   }

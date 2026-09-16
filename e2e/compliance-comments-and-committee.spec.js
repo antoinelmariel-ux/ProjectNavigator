@@ -19,6 +19,9 @@ test.describe('Commentaires experts, réponses et validation par équipe', () =>
     await openTriggeredProjectAndExpandTeam(page, 'Contrôle pub');
 
     await page.getByRole('button', { name: /Modifier le commentaire/ }).first().click();
+    // Cibler le select par son id (`compliance-status-<teamId>`) et non par `select` tout court :
+    // le combobox « ajouter une équipe aux enjeux » précède les cartes d'équipe dans le DOM et
+    // serait le premier `select` de la page.
     const statusSelect = page.locator('select[id^="compliance-status-"]').first();
     await statusSelect.selectOption('validated_with_conditions');
 

@@ -3,7 +3,6 @@ import {
   FileText,
   Users,
   AlertTriangle,
-  Send,
   Sparkles,
   CheckCircle,
   Mail,
@@ -43,9 +42,15 @@ import { createAttachmentFromFile } from '../utils/documentStore.js';
 import { normalizeEmail } from '../utils/normalizeEmail.js';
 import { stripRichTextToPlainText } from '../utils/richText.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
+import { ProjectReadinessPanel } from './ProjectReadinessPanel.jsx';
+import { SUBMISSION_KIND_FINAL, SUBMISSION_KIND_PRELIMINARY } from '../utils/submissionKind.js';
+import { getReviewedVersion, isPerimeterReviewPending } from '../utils/perimeterReview.js';
+import { CONFIRMATION_CONFIRMED, CONFIRMATION_REEXAMINING } from '../utils/finalValidationRound.js';
+import { getThreadsForTeam, isThreadAwaitingAnswer } from '../utils/questionThreads.js';
+import { normalizeSubmissionHistory } from '../utils/submissionHistory.js';
 import { getLocaleTag, LANGUAGE_LABELS } from '../i18n/languages.js';
 import { isLanguageAcceptedBy, normalizeAcceptedLanguages } from '../utils/translationAudit.js';
-import { resolveEffectiveTeamComplianceEntry } from '../utils/complianceAutoValidation.js';
+import { isTeamAutoValidated, resolveEffectiveTeamComplianceEntry } from '../utils/complianceAutoValidation.js';
 import { MANUAL_TEAM_REQUESTS_KEY, normalizeManualTeamRequests } from '../utils/manualTeamRequests.js';
 
 const formatNumber = (value, options = {}, language) => {
@@ -565,7 +570,26 @@ export const SynthesisReport = ({
   onFocusPerimeterHandled,
   onPerimeterClaimAction,
   isClaimActionAvailable = true,
-  onRequestAdditionalTeam
+  onRequestAdditionalTeam,
+  readiness = null,
+  uncertainRuleCoverage = [],
+  submissionKind = SUBMISSION_KIND_FINAL,
+  showcaseFeedbackCount = 0,
+  pendingChanges = [],
+  hasSentSnapshot = false,
+  submissionVersion = 0,
+  lastSentAt = '',
+  onSendUpdate,
+  submissionHistory = null,
+  launchSignal = '',
+  roundStatus = null,
+  onRequestFinalValidation,
+  onPerimeterConfirmation,
+  isLaunched = false,
+  canDeclareLaunch = false,
+  onDeclareLaunch,
+  onReplyToQuestionThread,
+  onResolveQuestionThread
 }) => {
   const { t, language } = useTranslation();
   const [isShowcaseFallbackOpen, setIsShowcaseFallbackOpen] = useState(false);
@@ -579,11 +603,16 @@ export const SynthesisReport = ({
   const [openTeamReplyBoxes, setOpenTeamReplyBoxes] = useState({});
   const [shareMemberFeedback, setShareMemberFeedback] = useState('');
   const [additionalTeamSelection, setAdditionalTeamSelection] = useState('');
+  const [questionThreadDrafts, setQuestionThreadDrafts] = useState({});
   // `analysis` peut arriver à null (projet créé mais sans réponse : resolveProjectAnalysis ne
   // recalcule rien) ou incomplet (analyse figée d'un projet soumis avec une ancienne version du
   // référentiel). Sans cette normalisation, `analysis.risks` faisait tomber tout l'écran dans
   // l'ErrorBoundary global (« Affichage interrompu ») au lieu d'afficher une synthèse vide.
   const analysis = useMemo(() => normalizeAnalysis(providedAnalysis), [providedAnalysis]);
+  const normalizedSubmissionHistory = useMemo(
+    () => normalizeSubmissionHistory(submissionHistory),
+    [submissionHistory]
+  );
   useEffect(() => {
     if (!tourContext?.isActive) {
       return;
@@ -1582,7 +1611,7 @@ export const SynthesisReport = ({
     );
   }, [additionalTeamSelection, language, onRequestAdditionalTeam, scheduleComplianceFeedback, t, teams]);
 
-  const handleSubmitProject = useCallback(() => {
+  const handleSubmitProject = useCallback((kind = SUBMISSION_KIND_FINAL) => {
     if (!onSubmitProject) {
       return;
     }
@@ -1592,9 +1621,20 @@ export const SynthesisReport = ({
       answers,
       analysis,
       relevantTeams,
-      timelineDetails
+      timelineDetails,
+      submissionKind: kind
     });
   }, [analysis, answers, effectiveProjectName, onSubmitProject, relevantTeams, timelineDetails]);
+
+  const handleSubmitPreliminary = useCallback(
+    () => handleSubmitProject(SUBMISSION_KIND_PRELIMINARY),
+    [handleSubmitProject]
+  );
+
+  const handleSubmitFinal = useCallback(
+    () => handleSubmitProject(SUBMISSION_KIND_FINAL),
+    [handleSubmitProject]
+  );
 
   const teamsHeadingLabel = t('synthesisReport.teamsHeadingLabel');
   const headingProjectName = stripRichTextToPlainText(effectiveProjectName).trim();
@@ -1655,17 +1695,7 @@ export const SynthesisReport = ({
                   </button>
                 )}
               </div>
-              {normalizedProjectStatus !== 'submitted' && (
-                <button
-                  type="button"
-                  onClick={handleSubmitProject}
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold shadow-md transition-all flex items-center justify-center w-full sm:w-auto text-sm sm:text-base"
-                  data-tour-id="synthesis-submit"
-                >
-                  <Send className="w-4 h-4 mr-2" />
-                  {t('synthesisReport.submitProjectButton')}
-                </button>
-              )}
+
             </div>
           </div>
 
@@ -1747,6 +1777,56 @@ export const SynthesisReport = ({
             </div>
           )}
 
+
+          {!isProjectEditable && canDeclareLaunch && typeof onDeclareLaunch === 'function' && (
+            <div className="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
+              <p className="text-sm font-semibold text-gray-800">
+                {isLaunched
+                  ? t('synthesisReport.launchDeclaredTitle')
+                  : t('synthesisReport.launchQuestionTitle')}
+              </p>
+              <p className="mt-1 text-xs text-gray-600">
+                {isLaunched
+                  ? t('synthesisReport.launchDeclaredHint')
+                  : t('synthesisReport.launchQuestionHint')}
+              </p>
+              <button
+                type="button"
+                onClick={() => onDeclareLaunch(!isLaunched)}
+                className="mt-3 px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-semibold text-gray-800 hover:bg-gray-100 transition-all"
+              >
+                {isLaunched
+                  ? t('synthesisReport.readiness.launch.revertLaunchAction')
+                  : t('synthesisReport.readiness.launch.declareLaunchAction')}
+              </button>
+            </div>
+          )}
+
+          {isProjectEditable && (
+            <ProjectReadinessPanel
+              readiness={readiness}
+              uncertainCoverage={uncertainRuleCoverage}
+              isSubmitted={normalizedProjectStatus === 'submitted'}
+              submissionKind={submissionKind}
+              notifiedTeamNames={relevantTeams.map((team) => resolveLocalizedText(team.name, language))}
+              onSubmitPreliminary={handleSubmitPreliminary}
+              onSubmitFinal={handleSubmitFinal}
+              onNavigateToQuestion={onNavigateToQuestion}
+              onOpenShowcase={canOpenProjectShowcase ? handleOpenShowcase : undefined}
+              showcaseFeedbackCount={showcaseFeedbackCount}
+              pendingChanges={pendingChanges}
+              hasSentSnapshot={hasSentSnapshot}
+              submissionVersion={submissionVersion}
+              lastSentAt={lastSentAt}
+              onSendUpdate={onSendUpdate}
+              launchSignal={launchSignal}
+              roundStatus={roundStatus}
+              onRequestFinalValidation={onRequestFinalValidation}
+              isLaunched={isLaunched}
+              canDeclareLaunch={canDeclareLaunch}
+              onDeclareLaunch={onDeclareLaunch}
+            />
+          )}
 
           <section className="mb-8" aria-labelledby="teams-heading" data-tour-id="synthesis-teams">
             <h2 id="teams-heading" className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
@@ -1879,6 +1959,30 @@ export const SynthesisReport = ({
                     !== JSON.stringify(normalizeCommentAttachments(storedEntry.attachments));
                 const feedbackMessage = getComplianceFeedbackMessage(`team-${team.id}`);
                 const canEditTeamComment = canBypassCompliancePerimeter || complianceTeamIdsForUser.has(team.id);
+                // Tant que l'expert n'a rien rendu, le porteur ne doit pas voir une case vide :
+                // une carte « avis » vide se lit comme un tampon manquant et transforme un
+                // échange en formalité de validation. Les périmètres auto-validés gardent
+                // volontairement leur affichage actuel — personne n'y écrira jamais, leur carte
+                // est le seul message compliance qui existe pour eux.
+                const hasExpertOpinion = storedEntry.comment.trim().length > 0
+                  || normalizeCommentAttachments(storedEntry.attachments).length > 0
+                  || storedEntry.status.length > 0;
+                const isAutoValidatedPerimeter = isTeamAutoValidated(analysis, team.id);
+                const rawTeamEntry = complianceComments.teams?.[team.id];
+                // « À ré-examiner » : l'avis existe toujours, mais il porte sur un état du projet
+                // qu'une mise à jour a modifié dans le périmètre de cette équipe.
+                const isTeamReviewPending = isPerimeterReviewPending(rawTeamEntry);
+                // Un tour de confirmation est ouvert et cet avis n'a pas encore été confirmé :
+                // c'est la seule chose qu'on demande à l'expert à ce stade.
+                // Les questions posées depuis le questionnaire atterrissent ici : l'expert les
+                // trouve là où il travaille déjà, avec la question du formulaire qui les a fait
+                // naître.
+                const teamQuestionThreads = getThreadsForTeam(answers, team.id);
+                const isTeamConfirmationPending = Boolean(roundStatus?.isRequested)
+                  && roundStatus.pending.includes(team.id);
+                const narrativeChangesForTeam = normalizedSubmissionHistory.narrativeChanges
+                  .filter((change) => change.version > (getReviewedVersion(rawTeamEntry) || 1)).length;
+                const shouldShowOpinionCard = hasExpertOpinion || isAutoValidatedPerimeter || canEditTeamComment;
                 const canReplyTeamThread = canEditTeamComment || canReplyAsProjectContributor;
                 const threadKey = `team-${team.id}`;
                 const teamDisplayName = resolveLocalizedText(team.name, language);
@@ -1894,9 +1998,12 @@ export const SynthesisReport = ({
                 const visibleMessages = shouldCollapse ? replyMessages.slice(0, 2) : replyMessages;
                 const isCommentEditorOpen = Boolean(openTeamCommentEditors[team.id]);
                 const isReplyBoxOpen = Boolean(openTeamReplyBoxes[team.id]);
+                // Une question posée depuis le questionnaire et toujours sans réponse ne doit pas
+                // être repliée : elle attend quelqu'un, et une carte fermée la rendrait invisible.
+                const hasPendingQuestionThread = teamQuestionThreads.some((thread) => !thread.resolvedAt);
                 const isTeamCollapsed = teamCollapsedOverrides[team.id] !== undefined
                   ? teamCollapsedOverrides[team.id]
-                  : true;
+                  : !hasPendingQuestionThread;
                 const teamAccentColor = TEAM_STATUS_ACCENT_COLOR[storedEntry.status] ?? TEAM_STATUS_ACCENT_COLOR[''];
 
                 return (
@@ -2093,13 +2200,183 @@ export const SynthesisReport = ({
                                 <h4 className="text-sm font-semibold text-gray-800">{t('synthesisReport.expertCommentTitle')}</h4>
                                 <p className="text-xs text-gray-500 mt-0.5">{t('synthesisReport.expertCommentSubtitleTemplate', { teamName: teamDisplayName })}</p>
                               </div>
-                              {statusMeta && (
+                              {statusMeta && shouldShowOpinionCard && (
                                 <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${statusMeta.badgeClass}`}>
                                   {statusMeta.label}
                                 </span>
                               )}
                             </div>
 
+                            {teamQuestionThreads.length > 0 && (
+                              <div className="rounded-xl border border-gray-200 bg-white p-3">
+                                <p className="text-sm font-semibold text-gray-800">
+                                  {t('synthesisReport.questionThreadsTitle')}
+                                </p>
+                                <ul className="mt-2 space-y-3">
+                                  {teamQuestionThreads.map((thread) => {
+                                    const askedQuestion = questions?.find((entry) => entry?.id === thread.questionId);
+                                    const isAsker = normalizeEmail(thread.createdBy) === currentUserEmail;
+
+                                    return (
+                                      <li key={thread.id} className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+                                        <p className="text-xs font-semibold text-gray-700">
+                                          {resolveLocalizedText(askedQuestion?.question, language) || thread.questionId}
+                                        </p>
+                                        {thread.resolvedAt ? (
+                                          <span className="text-[11px] font-semibold text-emerald-700">
+                                            {t('synthesisReport.questionThreadResolvedBadge')}
+                                          </span>
+                                        ) : isThreadAwaitingAnswer(thread) ? (
+                                          <span className="text-[11px] font-semibold text-amber-700">
+                                            {t('synthesisReport.questionThreadPendingBadge')}
+                                          </span>
+                                        ) : null}
+                                        <ul className="mt-2 space-y-1">
+                                          {thread.messages.map((message) => (
+                                            <li key={message.id} className="text-xs text-gray-700">
+                                              <span className="font-semibold">
+                                                {message.authorName || message.authorEmail}
+                                              </span>
+                                              {' : '}
+                                              <span className="whitespace-pre-line">{message.message}</span>
+                                            </li>
+                                          ))}
+                                        </ul>
+                                        {!thread.resolvedAt
+                                          && (canEditTeamComment || canReplyAsProjectContributor)
+                                          && typeof onReplyToQuestionThread === 'function' && (
+                                          <form
+                                            className="mt-2 flex flex-col gap-2 sm:flex-row"
+                                            onSubmit={(event) => {
+                                              event.preventDefault();
+                                              const draft = (questionThreadDrafts[thread.id] || '').trim();
+                                              if (draft.length === 0) {
+                                                return;
+                                              }
+                                              onReplyToQuestionThread({ threadId: thread.id, message: draft });
+                                              setQuestionThreadDrafts((previous) => ({ ...previous, [thread.id]: '' }));
+                                            }}
+                                          >
+                                            <input
+                                              type="text"
+                                              value={questionThreadDrafts[thread.id] || ''}
+                                              onChange={(event) => setQuestionThreadDrafts((previous) => ({
+                                                ...previous,
+                                                [thread.id]: event.target.value
+                                              }))}
+                                              placeholder={t('synthesisReport.questionThreadReplyPlaceholder')}
+                                              aria-label={t('synthesisReport.questionThreadReplyPlaceholder')}
+                                              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            />
+                                            <button
+                                              type="submit"
+                                              className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-xs font-semibold text-gray-800 hover:bg-gray-100 transition-all"
+                                            >
+                                              {t('synthesisReport.questionThreadReplyAction')}
+                                            </button>
+                                          </form>
+                                        )}
+                                        {isAsker && typeof onResolveQuestionThread === 'function' && (
+                                          <button
+                                            type="button"
+                                            onClick={() => onResolveQuestionThread({
+                                              threadId: thread.id,
+                                              resolved: !thread.resolvedAt
+                                            })}
+                                            className="mt-2 text-xs font-semibold text-blue-700 underline underline-offset-2 hover:text-blue-800"
+                                          >
+                                            {thread.resolvedAt
+                                              ? t('synthesisReport.questionThreadReopenAction')
+                                              : t('synthesisReport.questionThreadResolveAction')}
+                                          </button>
+                                        )}
+                                      </li>
+                                    );
+                                  })}
+                                </ul>
+                              </div>
+                            )}
+
+                            {isTeamConfirmationPending && canEditTeamComment && (
+                              <div className="rounded-xl border border-blue-200 bg-blue-50 p-3">
+                                <p className="text-sm font-semibold text-blue-900">
+                                  {t('synthesisReport.confirmationRequestedTitle')}
+                                </p>
+                                <p className="mt-1 text-xs text-blue-800">
+                                  {t('synthesisReport.confirmationRequestedHint')}
+                                </p>
+                                <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                                  <button
+                                    type="button"
+                                    onClick={() => onPerimeterConfirmation?.({
+                                      targetId: team.id,
+                                      targetType: 'team',
+                                      state: CONFIRMATION_CONFIRMED
+                                    })}
+                                    className="px-4 py-2 rounded-lg font-semibold text-sm bg-emerald-600 text-white hover:bg-emerald-700 transition-all"
+                                  >
+                                    {t('synthesisReport.confirmOpinionAction')}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => onPerimeterConfirmation?.({
+                                      targetId: team.id,
+                                      targetType: 'team',
+                                      state: CONFIRMATION_REEXAMINING
+                                    })}
+                                    className="px-4 py-2 rounded-lg font-semibold text-sm border border-amber-300 bg-white text-amber-800 hover:bg-amber-50 transition-all"
+                                  >
+                                    {t('synthesisReport.needReviewAction')}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+
+                            {isTeamReviewPending && (
+                              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3" role="alert">
+                                <p className="flex items-center gap-2 text-sm font-semibold text-amber-900">
+                                  <AlertTriangle className="w-4 h-4" />
+                                  {t('synthesisReport.reviewPendingBadge')}
+                                </p>
+                                <p className="mt-1 text-xs text-amber-800">
+                                  {t('synthesisReport.reviewPendingHint')}
+                                </p>
+                                {normalizedSubmissionHistory.lastChanges.length > 0 && (
+                                  <>
+                                    <p className="mt-2 text-xs font-semibold text-amber-900">
+                                      {t('synthesisReport.lastUpdateChangesHeading')}
+                                    </p>
+                                    <ul className="mt-1 space-y-0.5">
+                                      {normalizedSubmissionHistory.lastChanges.slice(0, 6).map((change) => (
+                                        <li key={change.questionId} className="text-xs text-amber-800">
+                                          {change.label} : {change.previousLabel || '—'} → {change.currentLabel || '—'}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </>
+                                )}
+                              </div>
+                            )}
+
+                            {narrativeChangesForTeam > 0 && (
+                              <p className="text-xs text-gray-500">
+                                {t('synthesisReport.narrativeChangesSinceReview', { count: narrativeChangesForTeam })}
+                              </p>
+                            )}
+
+                            {!shouldShowOpinionCard && (
+                              <div className="rounded-xl border border-gray-200 bg-white p-3 text-sm text-gray-600">
+                                <p className="flex items-center gap-2 font-semibold text-gray-700">
+                                  <MessageSquare className="w-4 h-4 text-blue-600" />
+                                  {t('synthesisReport.exchangeInProgressTitle')}
+                                </p>
+                                <p className="mt-1 text-xs text-gray-500">
+                                  {t('synthesisReport.exchangeInProgressHint')}
+                                </p>
+                              </div>
+                            )}
+
+                            {shouldShowOpinionCard && (
                             <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-3">
                               <div className="flex flex-wrap items-center justify-between gap-2">
                                 <div className="flex flex-wrap items-center gap-1.5 text-xs">
@@ -2150,6 +2427,7 @@ export const SynthesisReport = ({
                                 <p className="mt-2 text-sm text-gray-500">{t('synthesisReport.noCommentYet')}</p>
                               )}
                             </div>
+                            )}
 
                             {replyMessages.length > 0 && (
                               <div className="space-y-2">

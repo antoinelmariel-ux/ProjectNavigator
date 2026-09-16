@@ -185,6 +185,168 @@ Section colours are **the theme's own colours**, nothing else. `buildAccentFamil
 
 Sharing a showcase produces a single opaque query parameter (`?sv=<token>`, `src/utils/showcaseShareLink.js`) that carries project id, display mode (`full`/`light`), comments toggle and post-it visibility — obfuscated and sealed with a checksum, so a recipient can no longer drop `showcaseMode=light` from the URL to reach the full view. It is deterrence, not security: everything still runs client-side. A tampered token decodes to `null` and opens nothing rather than falling back to full mode; the older plain-text params (`showcaseShared`/`showcaseMode`/…) are still *read* so links already shared keep working, but are never written again. A shared link also hides the app's `<nav>` (`shouldHideMainNav` in `App.jsx`, driven by `isShowcaseSharedView`, which is now seeded from the URL at first render so the bar doesn't flash during hydration); it comes back as soon as the visitor closes the showcase.
 
+## Consulting compliance early (stage, uncertainty, two doors)
+
+The whole point is that a project owner can consult compliance **before** the project is
+finished, and keep changing it afterwards. Four pieces carry that, and each one degrades
+gracefully to the old behaviour when its data is absent:
+
+- **`src/utils/projectStage.js` — the declared stage** (`framing` / `design` / `pre_launch`),
+  stored in the project's *answers* under `__project_stage__`. In answers rather than as a
+  project column because that makes it selectable as a question/rule condition through the same
+  `getConditionQuestionEntries(...)` both back-office editors already call, and it rides along in
+  `AnswersJson` with **no new SharePoint column**. A project with no stage reads as
+  `pre_launch` (`LEGACY_PROJECT_STAGE`) — never as `framing`, or questions that were mandatory
+  for an already-submitted project would retroactively stop being so. A brand-new project starts
+  at `framing` (`buildDefaultAnswers` in `App.jsx`).
+- **`question.requiredFromStage` — when a mandatory question actually becomes mandatory.**
+  Absent means "mandatory from `framing`", i.e. exactly today's behaviour, so a question nobody
+  requalified never changes regime. Editable per question in `QuestionEditor.jsx`.
+  `src/utils/mandatoryQuestions.js` is now the **only** definition of "this answer is filled in"
+  and of "this question is mandatory" — it was copy-pasted identically into `App.jsx`,
+  `QuestionnaireScreen.jsx`, `SynthesisReport.jsx` and `projectNormalization.js`, and four copies
+  that disagree about the stage would produce four different progress counts for one project.
+- **`src/utils/unknownAnswer.js` — "I do not know yet" as a real answer.** Sentinel value stored
+  like any other answer, but **no condition is ever satisfied by it**, negative conditions
+  included — the guard lives in *both* condition engines (`questions.js#evaluateQuestionCondition`
+  and `rules.js#matchesCondition`, they are separate code paths; patching one only is the trap).
+  Without that, `not_equals` would fire on an absence of information. `getUncertainRuleCoverage`
+  (`uncertainCoverage.js`) is the necessary counterpart: it names the rules such an answer leaves
+  in suspense, so the displayed scope is never taken for a settled one. It is offered on the
+  question types the rules engine reads (`canAnswerBeUnknown`), not on narrative fields.
+- **`src/utils/submissionKind.js` — two doors, one project.** `preliminary` vs `final`, stored in
+  answers (same reason as the stage). A preliminary request only requires what is mandatory *at
+  the declared stage*; a validation request requires everything, with a firm answer everywhere
+  (`rejectUnknown`). Never split this into two project objects — answers, threads, rights and the
+  showcase would all be duplicated. A favourable opinion on a preliminary request yields
+  `PROJECT_VALIDATION_PRELIMINARY`, never `PROJECT_VALIDATION_VALIDATED`, and the team/owner
+  notifications are distinct templates saying explicitly that guidance, not approval, is expected.
+
+`src/utils/projectReadiness.js` turns all of this into the three levels the synthesis shows
+(orientation / technical advice / validation) — they are *derived*, nothing extra to configure:
+level N is "every question mandatory up to stage N is answered". `ProjectReadinessPanel.jsx`
+(deferred, only `SynthesisReport.jsx` imports it) renders them, both doors, what the send
+actually commits to, and the showcase as a thinking tool.
+
+Two UI invariants that are easy to break:
+
+- **The expert opinion card is hidden until the expert has written something** — an empty
+  card reads as a missing stamp and turns an exchange into a formality. Hidden for the reader
+  only (`canEditTeamComment` still sees the editor), and **auto-validated perimeters keep their
+  current display unconditionally** (`isTeamAutoValidated`): nobody will ever write there, that
+  card is the only compliance message those perimeters will ever have.
+- **The stage selector is a segmented control, not `input[type=radio]`.** The questionnaire's
+  sidebar precedes the question in the DOM, so radio inputs there capture any generic "select the
+  first radio" automation aimed at the answer itself (this is what silently broke the e2e
+  autopilot, and it would break any form-filling automation the same way).
+
+## After submission: the project keeps living (versions, diff, targeted notifications)
+
+Consulting compliance early is pointless if the request freezes the project. A **submitted project
+stays editable by its owner** (`isProjectOpenForEditing`), and what makes that tenable for the
+experts is that an update notifies only the perimeters it actually changes.
+
+- **One snapshot, not a version history** (`src/utils/submissionHistory.js`, stored in `answers`
+  under `__submission_history__`, so no new SharePoint column). It keeps the current version
+  number, the answers **as of the last send**, the labels of that send's changes, and a log of
+  narrative changes per version. Keeping N full answer snapshots would blow the `localStorage`
+  quota long before it helped: the only question the app ever needs to answer is "what changed
+  since what the experts received?". The snapshot excludes the meta keys (compliance comments
+  above all — they churn constantly and weigh a lot).
+- **A project submitted before this feature reads as v1 with no snapshot.** Its state at
+  submission cannot be reconstructed, and inventing one would produce a lying diff. An update on
+  such a project therefore asks *every* concerned team to re-review — deliberately conservative;
+  later updates are targeted.
+- **`answersDiff.js` is the readable diff, `perimeterImpact.js` is the truth.** The diff covers
+  real questions only (that is what a human reads). The impact compares two *analyses*, never two
+  answer sets — only the rules engine sees the extra checkboxes, the units and the activity scope.
+  It sorts every team into exactly one of four cases: newly triggered (first solicitation, whole
+  team), rules changed (re-review, claim-aware recipients), no longer concerned (told, never
+  silently dropped), unchanged (**nothing sent** — this case is the whole point).
+- **Narrative fields (`text`, `long_text`, `file`, `milestone_list`, `ranking`) never notify.** No
+  rule reads them, so no impact can be derived; they are logged per version and surfaced to the
+  expert as a count since their own review. This is the known hole that a final validation round
+  is meant to close.
+- **An opinion carries a version** (`perimeterReview.js`): `reviewedVersion` is stamped whenever a
+  status/comment changes (a reply in the thread is not a review), `needsReviewSince` when an update
+  impacts that perimeter. When the latter is greater, the perimeter is "to review again" and
+  `projectValidationStatus` returns `PROJECT_VALIDATION_OUTDATED` instead of `validated` — a green
+  stamp must never describe a state of the project that no longer exists.
+
+Gotcha worth knowing: `App.jsx` is transpiled with `const` → `var`, so referencing a `const`
+declared **later** in the component does not throw a TDZ error — it silently reads `undefined`.
+A memo placed above `activeProject` therefore computed an empty submission history on every
+render, with no error anywhere. Keep derived memos below the state they read.
+
+## The final round before launch (and why it cannot block anything)
+
+There is no formal gate in the organisation: nothing can technically stop a launch. The whole
+design follows from that — the round's force is that it is **asked for explicitly**, **costs the
+expert one click** in the nominal case, and makes a project that ships without it **visible**.
+
+- **`src/utils/finalValidationRound.js`** holds the round (in `answers` under
+  `__final_validation_round__`, like every other project-level marker — no new SharePoint column).
+  The owner requests it; the app never opens one on its own, because only the owner knows they are
+  launching. It is **replayable**: a launch pushed back six months opens round 2 and archives
+  round 1, so a stale confirmation never passes for a current one.
+- **Only perimeters that actually gave an opinion enter the round.** The check reads the *raw*
+  compliance entry, which excludes auto-validated perimeters by construction — nobody will ever
+  come and confirm an opinion no human wrote. Teams that never answered stay in the ordinary
+  solicitation flow.
+- **Re-issuing an opinion after the request counts as confirming** (`reviewedAt > requestedAt`).
+  Asking an expert to click "I confirm" right after they rewrote their opinion would be a
+  formality, and formalities are what make a round expensive.
+- **"I need to review again" reuses the update machinery**: it sets `needsReviewSince`, so the
+  perimeter shows the same "to review again" state as after a project update and the home badge
+  goes `outdated`. The round stays open until a new opinion lands.
+- **A launch is declared, never inferred** (`src/utils/projectLaunch.js`). `launchDate` is a
+  forecast saved months earlier, and most owners wait for their confirmation before shipping —
+  so deducing "launched without confirmation" from a missed date accused exactly the people who
+  behave well, and a signal that is wrong about the good pupils stops being read, which destroys
+  the only force this round has. The owner, an administrator, or an expert of the project's own
+  perimeter can record the launch (and undo it; both gestures are kept in `history`).
+- **`src/utils/launchConfirmation.js`** derives the visible signal from that declaration, the
+  `launchDate` and the round: `due` → `awaiting` → `confirmed`; `late` when the announced date has
+  passed while the round is still open (the delay then sits with the review, not with the owner);
+  and `launched_without` **only** once someone has recorded the launch with an incomplete round —
+  true by construction. The dashboard keeps the two apart in two sections, because mixing a
+  reproach to the owner with a reproach to the experts makes both unreadable. `launchDate` is
+  mandatory from the `pre_launch` stage, since nothing else can drive the reminders.
+- **Reminders** (default J-30 then J-10, `0` disables, editable in the back-office's validation
+  committee tab) run the same way as the claim reminders: no server, so the pass runs in the
+  session of whoever opens the app — here the owner, since they are the one who decides to launch
+  — and `remindersSent` keeps it idempotent. The nearest threshold wins.
+
+## Anchored questions (asking an expert from inside the questionnaire)
+
+The point of consulting early is to ask *while filling the form*, at the moment the doubt appears,
+without submitting anything. `src/utils/questionThreads.js` holds those threads, in `answers` under
+`__question_threads__` (same reason as every other project-level marker: selectable, no new
+SharePoint column). A thread is `{id, questionId, teamId, createdBy, createdAt, resolvedAt,
+messages[]}` — anchored to one questionnaire item and one expert team.
+
+- **Asking solicits the team for real.** `handleAskQuestionToTeam` (`App.jsx`) writes the thread
+  *and* an `addManualTeamRequest(...)` entry, which is what already makes a team a perimeter of the
+  synthesis. No parallel visibility mechanism was invented: `manualTeamRequests` survives a
+  recomputation of the analysis, and `HomeScreen.jsx`'s `complianceTriggeredProjects` now merges
+  manually-requested teams into `relevantTeams` exactly as `SynthesisReport.jsx` already did —
+  without that merge an anchored question on a still-draft project would land in nobody's queue
+  (and neither did a manual team request, which this fixes too).
+- **The thread is shown on both sides, in the same place each side already works**: under the
+  questionnaire item for the owner (`data-tour-id="question-ask-expert"`, collapsed form + thread
+  list), and inside that team's card in the synthesis for the expert, with the originating question
+  label on top. A team with an **unresolved** thread defaults to *expanded* in the synthesis
+  (`hasPendingQuestionThread`) — expert cards are collapsed by default, which would otherwise hide
+  the very thing waiting for an answer.
+- **Writing happens through `patchActiveProjectAnswers`**, not `setAnswers` alone: these threads live
+  on projects that are usually still drafts, so the project entry has to be patched too or the
+  thread dies with the next hydration.
+- **Closing a thread belongs to whoever opened it** (`handleResolveQuestionThread` checks
+  `thread.createdBy`): an expert who answered does not get to decide their answer was enough.
+- Replies notify **the other side only** (`QUESTION_ASKED` towards the team via
+  `resolveTeamMailRecipients`, `QUESTION_ANSWERED` back to the asker). Tests:
+  `test/questionThreads.test.mjs`, `e2e/question-threads.spec.js`.
+
 ## Project validation status (home cards)
 
 `src/utils/projectValidationStatus.js` aggregates the per-perimeter compliance statuses of one

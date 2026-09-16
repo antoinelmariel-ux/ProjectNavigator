@@ -153,12 +153,15 @@ test.describe('Prise en charge d’un projet par un membre d’équipe', () => {
     await expect(page.getByLabel('Relancer le référent au bout de (jours ouvrés sans action)').first())
       .toHaveValue('3');
     await staleInput.fill('3');
-    await page.waitForTimeout(600);
-    const storedStaleDays = await page.evaluate(() => {
-      const parsed = JSON.parse(window.localStorage.getItem('complianceNavigatorState'));
-      return parsed.teams?.find((team) => team.id === 'controle_pub')?.claimStaleDays;
-    });
-    expect(storedStaleDays).toBe(3);
+    // Attente sur la valeur réellement persistée plutôt que sur un délai fixe : la persistance
+    // est debouncée (400 ms) et repart à chaque frappe, donc un timeout calé au plus juste
+    // échoue dès que le navigateur est occupé par ailleurs.
+    await expect
+      .poll(() => page.evaluate(() => {
+        const parsed = JSON.parse(window.localStorage.getItem('complianceNavigatorState'));
+        return parsed.teams?.find((team) => team.id === 'controle_pub')?.claimStaleDays ?? null;
+      }))
+      .toBe(3);
 
     // La charge de l'équipe montre la prise en charge de laure.dabel@lfb.fr…
     await expect(page.getByText('1 projet(s) suivi(s)').first()).toBeVisible();

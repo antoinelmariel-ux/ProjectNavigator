@@ -18,12 +18,15 @@ import {
   Clock,
   XCircle,
   Undo,
-  Redo
+  Redo,
+  MessageSquare
 } from './icons.js';
 import { normalizeProjectFilterConfig } from '../utils/projectFilters.js';
 import { normalizeInspirationFiltersConfig } from '../utils/inspirationConfig.js';
 import { normalizeTeamContacts } from '../utils/teamContacts.js';
+import { MANUAL_TEAM_REQUESTS_KEY, normalizeManualTeamRequests } from '../utils/manualTeamRequests.js';
 import { normalizeEmail } from '../utils/normalizeEmail.js';
+import { isProjectOpenForEditing } from '../utils/submissionKind.js';
 import {
   getTriggeredValidationCommittees,
   normalizeValidationCommitteeConfig
@@ -298,6 +301,22 @@ const VALIDATION_BADGE_META = {
     className: 'bg-red-50 border-red-200 text-red-700',
     labelKey: 'home.validationStatusRejected',
     tooltipKey: 'home.validationTooltipRejected'
+  },
+  // Les avis étaient favorables, mais une mise à jour a changé le projet depuis : le badge doit
+  // le dire, sans quoi « Validé » finit par désigner un état du projet qui n'existe plus.
+  outdated: {
+    icon: AlertTriangle,
+    className: 'bg-amber-50 border-amber-200 text-amber-700',
+    labelKey: 'home.validationStatusOutdated',
+    tooltipKey: 'home.validationTooltipOutdated'
+  },
+  // Une demande d'avis préliminaire à laquelle tous les périmètres ont répondu favorablement
+  // n'est pas un projet validé : le badge doit dire l'orientation, jamais le tampon.
+  preliminary: {
+    icon: MessageSquare,
+    className: 'bg-blue-50 border-blue-200 text-blue-700',
+    labelKey: 'home.validationStatusPreliminary',
+    tooltipKey: 'home.validationTooltipPreliminary'
   }
 };
 
@@ -359,6 +378,8 @@ const computeRemainingQuestions = (project) => {
 
 export const HomeScreen = ({
   projects = [],
+  showcaseFeedbackCounts = {},
+  launchSignals = {},
   projectFilters,
   teamLeadOptions = [],
   inspirationProjects = [],
@@ -591,7 +612,15 @@ export const HomeScreen = ({
         const comments = normalizeComplianceComments(project?.answers?.[COMPLIANCE_COMMENTS_KEY]);
         const forcedCommitteeIds = comments.forcedCommitteeIds;
         const analysisTeamIds = Array.isArray(project?.analysis?.teams) ? project.analysis.teams : [];
-        const relevantTeams = teams.filter((team) => team?.id && analysisTeamIds.includes(team.id));
+        // Une équipe sollicitée à la main (ajout explicite en synthèse, ou question ancrée posée
+        // depuis le questionnaire) est un périmètre au même titre qu'une équipe déclenchée par une
+        // règle — la synthèse les fusionne déjà. Sans ça, une question posée sur un brouillon
+        // n'atterrirait dans la file de personne.
+        const manualTeamIds = normalizeManualTeamRequests(project?.answers?.[MANUAL_TEAM_REQUESTS_KEY])
+          .map((entry) => entry.teamId);
+        const relevantTeams = teams.filter(
+          (team) => team?.id && (analysisTeamIds.includes(team.id) || manualTeamIds.includes(team.id))
+        );
 
         const triggeredTeams = relevantTeams
           .filter((team) => {
@@ -1743,7 +1772,11 @@ export const HomeScreen = ({
     // Annuler une soumission la rend à nouveau modifiable par son porteur, exactement comme
     // un admin peut déjà rouvrir n'importe quel projet soumis : même bascule « Modifier » +
     // bouton « Voir la synthèse » séparé, plutôt qu'un unique lien vers la synthèse figée.
-    const canEditNonDraftProject = (isAdminMode || isCancelled) && !isDraft;
+    // Un projet soumis reste modifiable par son porteur : la carte doit donc proposer
+    // « Modifier », pas seulement « Consulter la synthèse ». C'est ce qui rend l'envoi d'une
+    // mise à jour atteignable depuis l'accueil.
+    const canEditNonDraftProject = !isDraft
+      && (isAdminMode || isCancelled || (isProjectOpenForEditing(project) && isOwnedOrSharedProject(project)));
     const leadName = getSafeString(project?.answers?.teamLead).trim();
     const leadTeam = resolveChoiceOptionLabel(teamLeadTeamQuestion, project?.answers?.teamLeadTeam);
     const leadDisplay = leadName.length > 0
@@ -1771,6 +1804,10 @@ export const HomeScreen = ({
     const validation = (isDraft || isCancelled) ? null : getProjectValidationStatus(project);
     const validationBadge = validation ? VALIDATION_BADGE_META[validation.status] : null;
     const ValidationIcon = validationBadge?.icon;
+    const feedbackCount = showcaseFeedbackCounts[project.id] || 0;
+    // Le dernier tour ne peut rien bloquer : il ne lui reste que d'être vu. Deux états valent
+    // donc une pastille ici — le tour en cours, et le projet parti sans lui.
+    const launchSignal = launchSignals[project.id] || '';
     const canCancelSubmission = project.status === 'submitted'
       && typeof onCancelProjectSubmission === 'function'
       && (isAdminMode || isOwnedOrSharedProject(project));
@@ -1833,6 +1870,31 @@ export const HomeScreen = ({
                 <span className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700">
                   <Eye className="w-3 h-3" aria-hidden="true" />
                   {t('home.visibleToAllBadge')}
+                </span>
+              )}
+              {(launchSignal === 'awaiting' || launchSignal === 'late' || launchSignal === 'launched_without') && (
+                <span
+                  className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full border ${
+                    launchSignal === 'launched_without'
+                      ? 'border-red-200 bg-red-50 text-red-700'
+                      : 'border-amber-200 bg-amber-50 text-amber-700'
+                  }`}
+                  title={t(`home.launchSignalTooltip.${launchSignal}`)}
+                >
+                  <AlertTriangle className="w-3 h-3" aria-hidden="true" />
+                  {t(`home.launchSignalBadge.${launchSignal}`)}
+                </span>
+              )}
+              {feedbackCount > 0 && (
+                <span
+                  className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full border border-blue-200 bg-blue-50 text-blue-700"
+                  title={t('home.showcaseFeedbackTooltip')}
+                >
+                  <MessageSquare className="w-3 h-3" aria-hidden="true" />
+                  {t(
+                    feedbackCount > 1 ? 'home.showcaseFeedbackBadgePlural' : 'home.showcaseFeedbackBadgeSingular',
+                    { count: feedbackCount }
+                  )}
                 </span>
               )}
               {canToggleVisibility && (
@@ -2416,8 +2478,17 @@ export const HomeScreen = ({
             >
               <CheckCircle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
               <p>
-                {t('home.submissionNoticePrefix')}{' '}
-                <span className="font-semibold">{submittedProjectNotice.projectName}</span> {t('home.submissionNoticeSuffix')}
+                {t(
+                  submittedProjectNotice.submissionKind === 'preliminary'
+                    ? 'home.preliminaryNoticePrefix'
+                    : 'home.submissionNoticePrefix'
+                )}{' '}
+                <span className="font-semibold">{submittedProjectNotice.projectName}</span>{' '}
+                {t(
+                  submittedProjectNotice.submissionKind === 'preliminary'
+                    ? 'home.preliminaryNoticeSuffix'
+                    : 'home.submissionNoticeSuffix'
+                )}
               </p>
             </div>
           )}

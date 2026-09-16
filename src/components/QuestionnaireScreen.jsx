@@ -25,6 +25,15 @@ import { normalizeRankingConfig } from '../utils/ranking.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { resolveLocalizedText } from '../utils/localizedContent.js';
 import { createAttachmentFromFile } from '../utils/documentStore.js';
+import { isAnswerProvided, isQuestionMandatoryAtStage } from '../utils/mandatoryQuestions.js';
+import {
+  PROJECT_STAGE_LABELS,
+  PROJECT_STAGE_VALUES,
+  normalizeProjectStage
+} from '../utils/projectStage.js';
+import { UNKNOWN_ANSWER_VALUE, canAnswerBeUnknown, isUnknownAnswer } from '../utils/unknownAnswer.js';
+import { getThreadsForQuestion, isThreadAwaitingAnswer } from '../utils/questionThreads.js';
+import { normalizeEmail } from '../utils/normalizeEmail.js';
 
 const normalizeFileAnswer = (value) => {
   const rawFiles = Array.isArray(value) ? value : value ? [value] : [];
@@ -175,18 +184,6 @@ const buildMultiChoiceAnswerPayload = (values, children, otherText, childrenOthe
   };
 };
 
-const isAnswerProvided = (value) => {
-  if (Array.isArray(value)) {
-    return value.length > 0;
-  }
-
-  if (typeof value === 'string') {
-    return value.trim().length > 0;
-  }
-
-  return value !== null && value !== undefined;
-};
-
 // Question sentinelle stable : évite un « return » avant les hooks (règle des Hooks React).
 // Utilisée quand aucune question n’est disponible ; le composant rend alors null après les hooks.
 const EMPTY_QUESTION = { id: '__cn_empty_question__', type: 'choice', options: [] };
@@ -207,7 +204,14 @@ export const QuestionnaireScreen = ({
   onReturnToSynthesis,
   isReturnToSynthesisRequested = false,
   onFinish,
-  projectId = null
+  projectId = null,
+  projectStage,
+  onProjectStageChange,
+  teams = [],
+  currentUserEmail = '',
+  onAskQuestion,
+  onReplyToQuestionThread,
+  onResolveQuestionThread
 }) => {
   const { t, language } = useTranslation();
   const activeQuestion = questions[currentIndex];
@@ -218,6 +222,24 @@ export const QuestionnaireScreen = ({
   const currentQuestionText = resolveLocalizedText(currentQuestion.question, language);
   const currentQuestionPlaceholder = resolveLocalizedText(currentQuestion.placeholder, language).trim();
   const currentQuestionNumberUnit = resolveLocalizedText(currentQuestion.numberUnit, language).trim();
+
+  const resolvedStage = normalizeProjectStage(projectStage);
+  const questionThreads = useMemo(
+    () => getThreadsForQuestion(answers, currentQuestion.id),
+    [answers, currentQuestion.id]
+  );
+  const [isAskFormOpen, setIsAskFormOpen] = useState(false);
+  const [askTeamId, setAskTeamId] = useState('');
+  const [askMessage, setAskMessage] = useState('');
+  const [threadReplies, setThreadReplies] = useState({});
+  const normalizedCurrentUserEmail = normalizeEmail(currentUserEmail);
+  const isCurrentQuestionMandatoryNow = isQuestionMandatoryAtStage(currentQuestion, resolvedStage);
+  // Une question obligatoire que le stade déclaré ne rend pas encore exigible : on le dit, au
+  // lieu de la laisser passer pour optionnelle (elle ne l'est pas) ou bloquante (elle ne l'est
+  // pas encore).
+  const isCurrentQuestionDeferred = Boolean(currentQuestion.required) && !isCurrentQuestionMandatoryNow;
+  const canSkipAsUnknown = canAnswerBeUnknown(currentQuestion);
+  const isCurrentAnswerUnknown = isUnknownAnswer(answers[currentQuestion.id]);
 
   const progress = ((currentIndex + 1) / questions.length) * 100;
   const answeredQuestionsCount = questions.filter(
@@ -1350,6 +1372,48 @@ export const QuestionnaireScreen = ({
           aria-label={t('questionnaire.summaryAriaLabel')}
           data-tour-id="question-summary-panel"
         >
+          {typeof onProjectStageChange === 'function' && (
+            <div className="bg-white rounded-2xl shadow-xl p-4 mb-4" data-tour-id="question-stage-selector">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-700">
+                {t('questionnaire.stageHeading')}
+              </h2>
+              <p className="mt-1 text-xs text-gray-500">{t('questionnaire.stageHint')}</p>
+              {/* Contrôle segmenté plutôt que des `input[type=radio]` : la barre latérale précède
+                  la question dans le DOM, et des boutons radio y captureraient toute sélection
+                  générique visant la réponse elle-même (c'est ce qui cassait l'autopilote e2e,
+                  mais aussi ce qu'aurait fait n'importe quelle automatisation de saisie). */}
+              <div className="mt-3 space-y-1" role="radiogroup" aria-label={t('questionnaire.stageHeading')}>
+                {PROJECT_STAGE_VALUES.map((stage) => (
+                  <button
+                    key={stage}
+                    type="button"
+                    role="radio"
+                    aria-checked={resolvedStage === stage}
+                    onClick={() => onProjectStageChange(stage)}
+                    className={`flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors ${
+                      resolvedStage === stage
+                        ? 'bg-blue-50 text-blue-800 font-semibold'
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    <span className="mt-0.5 shrink-0" aria-hidden="true">
+                      {resolvedStage === stage ? (
+                        <CheckCircle className="w-3.5 h-3.5 text-blue-600" />
+                      ) : (
+                        <span className="block w-2 h-2 mt-1 rounded-full bg-gray-300" />
+                      )}
+                    </span>
+                    <span className="flex-1 min-w-0">
+                      {resolveLocalizedText(PROJECT_STAGE_LABELS[stage], language)}
+                      <span className="block font-normal text-[11px] text-gray-500">
+                        {t(`questionnaire.stageDescription.${stage}`)}
+                      </span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="bg-white rounded-2xl shadow-xl p-4">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-700">{t('questionnaire.summaryHeading')}</h2>
             <p className="mt-1 text-xs text-gray-500">
@@ -1362,7 +1426,7 @@ export const QuestionnaireScreen = ({
               {questions.map((question, index) => {
                 const isAnswered = isAnswerProvided(answers[question.id]);
                 const isCurrent = index === currentIndex;
-                const isMissingRequired = Boolean(question.required) && !isAnswered;
+                const isMissingRequired = isQuestionMandatoryAtStage(question, resolvedStage) && !isAnswered;
                 const stateLabel = isMissingRequired
                   ? t('questionnaire.stateMissingRequired')
                   : isAnswered
@@ -1503,6 +1567,11 @@ export const QuestionnaireScreen = ({
                 {!currentQuestion.required && !showGuidance && (
                   <span className="inline-flex items-center px-3 py-1 text-xs font-semibold uppercase tracking-wide bg-gray-100 text-gray-600 rounded-full border border-gray-200 self-start">
                     {t('questionnaire.optionalAnswer')}
+                  </span>
+                )}
+                {isCurrentQuestionDeferred && !showGuidance && (
+                  <span className="inline-flex items-center px-3 py-1 text-xs font-semibold uppercase tracking-wide bg-amber-50 text-amber-700 rounded-full border border-amber-200 self-start">
+                    {t('questionnaire.deferredAnswer')}
                   </span>
                 )}
               </div>
@@ -1646,6 +1715,184 @@ export const QuestionnaireScreen = ({
           )}
 
           {renderQuestionInput()}
+
+          {canSkipAsUnknown && (
+            <div className="mb-8">
+              <button
+                type="button"
+                onClick={() => onAnswer(currentQuestion.id, isCurrentAnswerUnknown ? null : UNKNOWN_ANSWER_VALUE)}
+                aria-pressed={isCurrentAnswerUnknown}
+                className={`inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-all ${
+                  isCurrentAnswerUnknown
+                    ? 'border-amber-300 bg-amber-100 text-amber-800'
+                    : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {isCurrentAnswerUnknown ? <CheckCircle className="w-4 h-4" /> : <Info className="w-4 h-4" />}
+                {t('questionnaire.unknownAnswer')}
+              </button>
+              <p className="mt-2 text-xs text-gray-500">
+                {isCurrentAnswerUnknown
+                  ? t('questionnaire.unknownAnswerActiveHint')
+                  : t('questionnaire.unknownAnswerHint')}
+              </p>
+            </div>
+          )}
+
+          {/* Poser une question à un expert là où le doute naît, sans rien soumettre : le fil reste
+              attaché à cette question du formulaire. */}
+          {typeof onAskQuestion === 'function' && (
+            <div className="mb-8 rounded-xl border border-gray-200 bg-gray-50 p-4" data-tour-id="question-ask-expert">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">{t('questionnaire.askExpertTitle')}</p>
+                  <p className="mt-1 text-xs text-gray-600">{t('questionnaire.askExpertHint')}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsAskFormOpen((previous) => !previous)}
+                  className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-semibold text-gray-800 hover:bg-gray-100 transition-all"
+                  aria-expanded={isAskFormOpen}
+                >
+                  {isAskFormOpen ? t('questionnaire.close') : t('questionnaire.askExpertAction')}
+                </button>
+              </div>
+
+              {isAskFormOpen && (
+                <form
+                  className="mt-3 space-y-3"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    if (!askTeamId || askMessage.trim().length === 0) {
+                      return;
+                    }
+                    onAskQuestion({ questionId: currentQuestion.id, teamId: askTeamId, message: askMessage });
+                    setAskMessage('');
+                    setAskTeamId('');
+                    setIsAskFormOpen(false);
+                  }}
+                >
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1" htmlFor="ask-expert-team">
+                      {t('questionnaire.askExpertTeamLabel')}
+                    </label>
+                    <select
+                      id="ask-expert-team"
+                      value={askTeamId}
+                      onChange={(event) => setAskTeamId(event.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">{t('questionnaire.askExpertTeamPlaceholder')}</option>
+                      {teams.map((team) => (
+                        <option key={team.id} value={team.id}>
+                          {resolveLocalizedText(team.name, language) || team.id}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1" htmlFor="ask-expert-message">
+                      {t('questionnaire.askExpertMessageLabel')}
+                    </label>
+                    <textarea
+                      id="ask-expert-message"
+                      rows={3}
+                      value={askMessage}
+                      onChange={(event) => setAskMessage(event.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={!askTeamId || askMessage.trim().length === 0}
+                    className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    {t('questionnaire.askExpertSubmit')}
+                  </button>
+                </form>
+              )}
+
+              {questionThreads.length > 0 && (
+                <ul className="mt-4 space-y-3">
+                  {questionThreads.map((thread) => {
+                    const team = teams.find((entry) => entry?.id === thread.teamId);
+                    const isAsker = normalizeEmail(thread.createdBy) === normalizedCurrentUserEmail;
+
+                    return (
+                      <li key={thread.id} className="rounded-lg border border-gray-200 bg-white p-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-xs font-semibold text-gray-800">
+                            {resolveLocalizedText(team?.name, language) || thread.teamId}
+                          </span>
+                          {thread.resolvedAt ? (
+                            <span className="text-[11px] font-semibold text-emerald-700">
+                              {t('questionnaire.askExpertResolvedBadge')}
+                            </span>
+                          ) : isThreadAwaitingAnswer(thread) ? (
+                            <span className="text-[11px] font-semibold text-amber-700">
+                              {t('questionnaire.askExpertPendingBadge')}
+                            </span>
+                          ) : null}
+                        </div>
+                        <ul className="mt-2 space-y-2">
+                          {thread.messages.map((message) => (
+                            <li key={message.id} className="text-xs text-gray-700">
+                              <span className="font-semibold">{message.authorName || message.authorEmail}</span>
+                              {' : '}
+                              <span className="whitespace-pre-line">{message.message}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        {!thread.resolvedAt && typeof onReplyToQuestionThread === 'function' && (
+                          <form
+                            className="mt-2 flex flex-col gap-2 sm:flex-row"
+                            onSubmit={(event) => {
+                              event.preventDefault();
+                              const draft = (threadReplies[thread.id] || '').trim();
+                              if (draft.length === 0) {
+                                return;
+                              }
+                              onReplyToQuestionThread({ threadId: thread.id, message: draft });
+                              setThreadReplies((previous) => ({ ...previous, [thread.id]: '' }));
+                            }}
+                          >
+                            <input
+                              type="text"
+                              value={threadReplies[thread.id] || ''}
+                              onChange={(event) => setThreadReplies((previous) => ({
+                                ...previous,
+                                [thread.id]: event.target.value
+                              }))}
+                              placeholder={t('questionnaire.askExpertReplyPlaceholder')}
+                              aria-label={t('questionnaire.askExpertReplyPlaceholder')}
+                              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                            <button
+                              type="submit"
+                              className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-xs font-semibold text-gray-800 hover:bg-gray-100 transition-all"
+                            >
+                              {t('questionnaire.askExpertReplyAction')}
+                            </button>
+                          </form>
+                        )}
+                        {isAsker && typeof onResolveQuestionThread === 'function' && (
+                          <button
+                            type="button"
+                            onClick={() => onResolveQuestionThread({ threadId: thread.id, resolved: !thread.resolvedAt })}
+                            className="mt-2 text-xs font-semibold text-blue-700 underline underline-offset-2 hover:text-blue-800"
+                          >
+                            {thread.resolvedAt
+                              ? t('questionnaire.askExpertReopenAction')
+                              : t('questionnaire.askExpertResolveAction')}
+                          </button>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          )}
 
           {extraCheckbox?.enabled && extraCheckbox?.label?.trim() && (
             <div className="mb-8 rounded-xl border border-blue-200 bg-gradient-to-r from-blue-50 to-blue-100 p-4">

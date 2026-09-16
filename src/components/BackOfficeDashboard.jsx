@@ -2,6 +2,11 @@ import React, { useMemo, useState } from '../react.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { getLocaleTag } from '../i18n/languages.js';
 import { resolveLocalizedText } from '../utils/localizedContent.js';
+import { stripRichTextToPlainText } from '../utils/richText.js';
+import {
+  LAUNCH_CONFIRMATION_LATE,
+  LAUNCH_CONFIRMATION_LAUNCHED_WITHOUT
+} from '../utils/launchConfirmation.js';
 
 const TIME_FILTER_OPTIONS = [
   {
@@ -639,7 +644,7 @@ const formatDateRangeSummary = (range, fallbackLabel, language) => {
   return `${formatter.format(range.start)} – ${formatter.format(range.end)}`;
 };
 
-export const BackOfficeDashboard = ({ projects = [], teams = [] }) => {
+export const BackOfficeDashboard = ({ projects = [], teams = [], launchSignals = {} }) => {
   const { t, language } = useTranslation();
   const [selectedLeadTeam, setSelectedLeadTeam] = useState('all');
   const [selectedTimeFilter, setSelectedTimeFilter] = useState('all');
@@ -653,6 +658,19 @@ export const BackOfficeDashboard = ({ projects = [], teams = [] }) => {
   const sanitizedProjects = useMemo(
     () => (Array.isArray(projects) ? projects.filter((project) => !(project && project.isDemo)) : []),
     [projects]
+  );
+
+  const launchedWithoutConfirmation = useMemo(
+    () => sanitizedProjects.filter((project) => launchSignals[project?.id] === LAUNCH_CONFIRMATION_LAUNCHED_WITHOUT),
+    [sanitizedProjects, launchSignals]
+  );
+
+  // Deux listes et non une : un projet parti sans confirmation est un manquement constaté, un
+  // lancement qui attend la compliance est un délai de revue. Même bandeau pour les deux
+  // mélangerait un reproche au porteur avec un reproche aux experts.
+  const launchesWaitingOnCompliance = useMemo(
+    () => sanitizedProjects.filter((project) => launchSignals[project?.id] === LAUNCH_CONFIRMATION_LATE),
+    [sanitizedProjects, launchSignals]
   );
 
   const teamOptions = useMemo(() => buildTeamOptions(sanitizedProjects, t), [sanitizedProjects, t]);
@@ -1006,6 +1024,52 @@ export const BackOfficeDashboard = ({ projects = [], teams = [] }) => {
           </span>
         </div>
       </section>
+
+      {/* Escalade du dernier tour : sans jalon opposable, un projet peut partir sans confirmation.
+          Il ne reste qu'à le rendre visible là où quelqu'un peut agir. */}
+      {launchedWithoutConfirmation.length > 0 && (
+        <section
+          className="rounded-2xl border border-red-200 bg-red-50 p-5"
+          role="alert"
+          aria-label={t('backOffice.dashboard.launchedWithoutConfirmationLabel')}
+        >
+          <p className="text-sm font-semibold text-red-800">
+            {t('backOffice.dashboard.launchedWithoutConfirmationLabel')}
+          </p>
+          <p className="mt-1 text-xs text-red-700">
+            {t('backOffice.dashboard.launchedWithoutConfirmationHint')}
+          </p>
+          <ul className="mt-3 space-y-1">
+            {launchedWithoutConfirmation.map((project) => (
+              <li key={project.id} className="text-sm text-red-900">
+                {stripRichTextToPlainText(project.projectName) || project.id}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {launchesWaitingOnCompliance.length > 0 && (
+        <section
+          className="rounded-2xl border border-amber-200 bg-amber-50 p-5"
+          role="status"
+          aria-label={t('backOffice.dashboard.launchesWaitingLabel')}
+        >
+          <p className="text-sm font-semibold text-amber-900">
+            {t('backOffice.dashboard.launchesWaitingLabel')}
+          </p>
+          <p className="mt-1 text-xs text-amber-800">
+            {t('backOffice.dashboard.launchesWaitingHint')}
+          </p>
+          <ul className="mt-3 space-y-1">
+            {launchesWaitingOnCompliance.map((project) => (
+              <li key={project.id} className="text-sm text-amber-900">
+                {stripRichTextToPlainText(project.projectName) || project.id}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-5">

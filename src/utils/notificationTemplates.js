@@ -8,6 +8,17 @@
 export const NOTIFICATION_TYPES = {
   PROJECT_SUBMITTED_TEAM: 'project-submitted-team',
   PROJECT_SUBMITTED_OWNER: 'project-submitted-owner',
+  PROJECT_PRELIMINARY_TEAM: 'project-preliminary-team',
+  PROJECT_PRELIMINARY_OWNER: 'project-preliminary-owner',
+  PROJECT_UPDATED_TEAM: 'project-updated-team',
+  PROJECT_PERIMETER_DROPPED_TEAM: 'project-perimeter-dropped-team',
+  PROJECT_UPDATE_SENT_OWNER: 'project-update-sent-owner',
+  FINAL_CONFIRMATION_REQUESTED: 'final-confirmation-requested',
+  FINAL_CONFIRMATION_REMINDER: 'final-confirmation-reminder',
+  FINAL_CONFIRMATION_REEXAMINING: 'final-confirmation-reexamining',
+  PROJECT_LAUNCHED_WITHOUT_CONFIRMATION: 'project-launched-without-confirmation',
+  QUESTION_ASKED: 'question-asked',
+  QUESTION_ANSWERED: 'question-answered',
   PROJECT_SHARED: 'project-shared',
   SHOWCASE_COMMENT: 'showcase-comment',
   SHOWCASE_COMMENT_REPLY: 'showcase-comment-reply',
@@ -51,6 +62,163 @@ export const NOTIFICATION_CATALOG = {
       'You will receive an email as soon as a comment is posted on your project stakes page.'
     ],
     reason: () => 'you are the owner or co-owner of this project.'
+  },
+
+  // Une demande d'avis préliminaire n'attend pas le même travail qu'une demande de validation :
+  // le dire explicitement est ce qui évite qu'un expert ouvre un avant-projet en croyant devoir
+  // rendre un avis ferme sur un dossier incomplet — et qu'il conclue que l'outil lui fait perdre
+  // son temps.
+  [NOTIFICATION_TYPES.PROJECT_PRELIMINARY_TEAM]: {
+    actionType: 'Request for preliminary advice',
+    intro: (ctx) =>
+      `${ctx.actorName} is asking for preliminary advice on the project ${quoted(ctx.projectName)}, which is still being shaped.`,
+    expected: () => [
+      'Open the project’s synthesis report in Project Navigator.',
+      'The project is deliberately incomplete: what is expected is guidance, not a formal opinion — the points to watch, the questions to prepare, what would block the project as it stands.',
+      'Post your guidance in the synthesis report: the project owner will be notified automatically.'
+    ],
+    reason: (ctx) =>
+      ctx.teamNames.length > 0
+        ? `the qualification questionnaire identified your team (${ctx.teamNames.join(', ')}) as a stakeholder for this project.`
+        : 'your team was identified as a stakeholder for this project.'
+  },
+
+  [NOTIFICATION_TYPES.PROJECT_PRELIMINARY_OWNER]: {
+    actionType: 'Preliminary advice requested',
+    intro: (ctx) =>
+      `Your request for preliminary advice on ${quoted(ctx.projectName)} has been sent.`,
+    expected: (ctx) => [
+      'You can keep working on your project: editing your answers does not cancel this request.',
+      ctx.teamNames.length > 0
+        ? `The relevant compliance teams have been notified (${ctx.teamNames.join(', ')}) and will get back to you with guidance.`
+        : 'The relevant compliance teams have been notified and will get back to you with guidance.',
+      'Preliminary guidance is not an approval: you will still have to request validation before launching.'
+    ],
+    reason: () => 'you are the owner or co-owner of this project.'
+  },
+
+  // Envoyée uniquement aux équipes dont la mise à jour change réellement quelque chose : c'est
+  // la contrepartie indispensable du droit de modifier un projet déjà soumis. Une équipe que la
+  // modification ne concerne pas ne reçoit rien, sans quoi la fonctionnalité se paierait en
+  // volume d'e-mails et les experts se désabonneraient de fait.
+  [NOTIFICATION_TYPES.PROJECT_UPDATED_TEAM]: {
+    actionType: 'Project updated - review again',
+    intro: (ctx) =>
+      `${ctx.actorName} updated the project ${quoted(ctx.projectName)}, and the changes affect your area.`,
+    expected: () => [
+      'Open the synthesis report: the changes since your last review are listed there.',
+      'Check whether your previous opinion still holds.',
+      'Update your opinion in the synthesis report — until you do, it is flagged as pending re-review.'
+    ],
+    reason: () => 'the updated answers changed the rules that involve your team on this project.'
+  },
+
+  [NOTIFICATION_TYPES.PROJECT_PERIMETER_DROPPED_TEAM]: {
+    actionType: 'Project no longer concerns your team',
+    intro: (ctx) =>
+      `After an update by ${ctx.actorName}, the project ${quoted(ctx.projectName)} no longer triggers any rule involving your team.`,
+    expected: () => [
+      'No action is required from you.',
+      'Any opinion you had already given on this project no longer applies.',
+      'You are told rather than silently removed, in case the change looks wrong to you.'
+    ],
+    reason: () => 'your team was involved in this project before its latest update.'
+  },
+
+  [NOTIFICATION_TYPES.PROJECT_UPDATE_SENT_OWNER]: {
+    actionType: 'Update sent',
+    intro: (ctx) => `Your update to ${quoted(ctx.projectName)} has been sent.`,
+    expected: (ctx) => [
+      ctx.teamNames.length > 0
+        ? `Only the teams your changes actually affect were notified (${ctx.teamNames.join(', ')}).`
+        : 'No team was affected by your changes, so nobody was notified.',
+      'The other teams keep their opinion and were deliberately left alone.',
+      'You can keep working on your project: send another update whenever it changes again.'
+    ],
+    reason: () => 'you are the owner or co-owner of this project.'
+  },
+
+  // Ce qu'on demande ici n'est pas de tout relire : c'est de confirmer un avis au vu de ce qui a
+  // changé. Le dire explicitement est ce qui garde le cas nominal à deux minutes — sinon le
+  // dernier tour devient le goulot qui dissuade les porteurs de faire évoluer leur projet.
+  [NOTIFICATION_TYPES.FINAL_CONFIRMATION_REQUESTED]: {
+    actionType: 'Final confirmation requested',
+    intro: (ctx) =>
+      `${ctx.actorName} is about to launch ${quoted(ctx.projectName)} and asks you to confirm the opinion you already gave.`,
+    expected: () => [
+      'Open the synthesis report: your previous opinion and everything that changed since are shown side by side.',
+      'If your opinion still holds, one click on “I confirm my opinion” is enough — you are not asked to review the whole project again.',
+      'If something changed that you need to look at, choose “I need to review again” and update your opinion.'
+    ],
+    reason: () => 'you gave an opinion on this project, and its owner is now asking to launch it.'
+  },
+
+  [NOTIFICATION_TYPES.FINAL_CONFIRMATION_REMINDER]: {
+    actionType: 'Launch approaching',
+    intro: (ctx) =>
+      `The launch date you gave for ${quoted(ctx.projectName)} is approaching, and no final confirmation has been requested yet.`,
+    expected: () => [
+      'Open the project and request the final confirmation from the synthesis report.',
+      'The teams that already gave an opinion are only asked to confirm it, which takes them a couple of minutes.',
+      'Nothing prevents you from launching without it — but the project will be flagged as launched without confirmation.'
+    ],
+    reason: () => 'you are the owner or co-owner of this project, and you declared its launch date.'
+  },
+
+  [NOTIFICATION_TYPES.FINAL_CONFIRMATION_REEXAMINING]: {
+    actionType: 'Final confirmation - review needed',
+    intro: (ctx) =>
+      `${ctx.actorName} cannot confirm their opinion on ${quoted(ctx.projectName)} as it stands and needs to review it again.`,
+    expected: () => [
+      'No action is required from you right now.',
+      'The expert will come back to you through the synthesis report.',
+      'The final confirmation stays open until they have updated their opinion.'
+    ],
+    reason: () => 'you requested the final confirmation for this project.'
+  },
+
+  // Le seul message de tout ce dispositif qui constate un manquement — et il n'est envoyé que
+  // parce que quelqu'un a déclaré le lancement, jamais parce qu'une date prévisionnelle est
+  // passée. Sans cette distinction, le reproche tomberait sur les porteurs les plus sérieux,
+  // ceux qui attendent précisément leur confirmation pour partir.
+  [NOTIFICATION_TYPES.PROJECT_LAUNCHED_WITHOUT_CONFIRMATION]: {
+    actionType: 'Project launched without final confirmation',
+    intro: (ctx) =>
+      `${ctx.actorName} recorded that ${quoted(ctx.projectName)} has launched, while the final confirmation was still open.`,
+    expected: (ctx) => [
+      ctx.teamNames.length > 0
+        ? `These areas had not confirmed their opinion: ${ctx.teamNames.join(', ')}.`
+        : 'Some areas had not confirmed their opinion.',
+      'Open the synthesis report to see where the project stands.',
+      'Nothing could have prevented the launch — this notice exists so that it is not discovered later.'
+    ],
+    reason: () => 'you are involved in the compliance review of this project.'
+  },
+
+  // Une question posée depuis le questionnaire, sur un projet qui n'est pas forcément soumis :
+  // ce qu'on demande ici est une réponse, pas une revue. Le dire évite que l'expert ouvre le
+  // projet en croyant devoir se prononcer sur un dossier qui n'existe pas encore.
+  [NOTIFICATION_TYPES.QUESTION_ASKED]: {
+    actionType: 'Question from a project owner',
+    intro: (ctx) =>
+      `${ctx.actorName} has a question for your team while filling in the project ${quoted(ctx.projectName)}.`,
+    expected: () => [
+      'Open the project: the question is attached to the questionnaire item it came from, with the answer given so far.',
+      'Answer in the thread — you are not asked to review the project, which may still be a draft.',
+      'The project owner is notified as soon as you reply.'
+    ],
+    reason: () => 'the project owner addressed this question to your team.'
+  },
+
+  [NOTIFICATION_TYPES.QUESTION_ANSWERED]: {
+    actionType: 'Answer to your question',
+    intro: (ctx) => `${ctx.actorName} answered your question on the project ${quoted(ctx.projectName)}.`,
+    expected: () => [
+      'Open the project to read the answer, next to the question it was asked about.',
+      'You can carry on the exchange in the same thread.',
+      'Once the point is settled, mark the question as resolved so it stops showing as pending.'
+    ],
+    reason: () => 'you asked this question from the questionnaire.'
   },
 
   [NOTIFICATION_TYPES.PROJECT_SHARED]: {

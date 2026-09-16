@@ -23,6 +23,11 @@ import {
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { getLocalizedRaw, setLocalizedText, trimLocalizedValue, isLocalizedValueEmpty, resolveLocalizedText } from '../utils/localizedContent.js';
 import { SUPPORTED_LANGUAGES } from '../i18n/languages.js';
+import {
+  PROJECT_STAGE_LABELS,
+  PROJECT_STAGE_VALUES,
+  getQuestionRequiredFromStage
+} from '../utils/projectStage.js';
 import { LanguageEditSwitcher } from './LocalizedFieldEditor.jsx';
 
 // Symboles monétaires : identiques dans les 4 langues, donc appliqués à toutes d'un coup
@@ -1102,6 +1107,35 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
                   {t('backOffice.questionEditor.requiredLabel')}
                 </label>
               </div>
+
+              {/* C'est ce réglage qui décide de ce qu'un porteur doit avoir tranché pour
+                  interroger la compliance : déplacer une question vers un stade plus tardif
+                  l'enlève du socle d'entrée sans la rendre facultative à l'arrivée. */}
+              {editedQuestion.required && (
+                <div>
+                  <label
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                    htmlFor="question-required-from-stage"
+                  >
+                    {t('backOffice.questionEditor.requiredFromStageLabel')}
+                  </label>
+                  <select
+                    id="question-required-from-stage"
+                    value={getQuestionRequiredFromStage(editedQuestion)}
+                    onChange={(e) => setEditedQuestion({ ...editedQuestion, requiredFromStage: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    {PROJECT_STAGE_VALUES.map((stage) => (
+                      <option key={stage} value={stage}>
+                        {resolveLocalizedText(PROJECT_STAGE_LABELS[stage], language)}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {t('backOffice.questionEditor.requiredFromStageHint')}
+                  </p>
+                </div>
+              )}
 
               <div>
                 <div className="flex items-center">

@@ -113,6 +113,10 @@ test.describe('tour v2', () => {
   });
 
   test('la sequence presenter enchaine edition, publication et partage', async ({ page }) => {
+    // La plus longue des cinq séquences : 11 étapes qui montent la vitrine, entrent en mode
+    // édition et ouvrent la fenêtre de partage. Chaque étape coûte une reprise de rendu de la
+    // vitrine complète, et le total dépasse le délai par défaut de 30 s — sans que rien n'échoue.
+    test.slow();
     const errors = collectConsoleErrors(page);
     await startTour(page);
     await tourAction(page, 'Présenter son projet').click();

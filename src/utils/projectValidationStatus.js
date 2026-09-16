@@ -1,5 +1,7 @@
 import { getTriggeredValidationCommittees } from './validationCommittee.js';
 import { resolveEffectiveTeamComplianceEntry } from './complianceAutoValidation.js';
+import { isPreliminarySubmission } from './submissionKind.js';
+import { isPerimeterReviewPending } from './perimeterReview.js';
 
 export const COMPLIANCE_COMMENTS_KEY = '__compliance_team_comments__';
 
@@ -18,6 +20,13 @@ export const PROJECT_VALIDATION_VALIDATED = 'validated';
 export const PROJECT_VALIDATION_REJECTED = 'rejected';
 export const PROJECT_VALIDATION_PENDING = 'pending';
 export const PROJECT_VALIDATION_NONE = 'none';
+// Un avis rendu sur une demande préliminaire est une orientation, pas une validation : même
+// si tous les périmètres se sont prononcés favorablement, le projet n'est pas validé — il n'a
+// jamais demandé à l'être, et sur un projet encore mouvant ce serait un tampon mensonger.
+export const PROJECT_VALIDATION_PRELIMINARY = 'preliminary';
+// Tous les avis requis sont favorables, mais l'un d'eux porte sur un état du projet que la
+// dernière mise à jour a modifié : ce n'est plus une validation, c'est une validation périmée.
+export const PROJECT_VALIDATION_OUTDATED = 'outdated';
 
 const readStatus = (entry) => (typeof entry?.status === 'string' ? entry.status : '');
 
@@ -54,19 +63,29 @@ export const getProjectCompliancePerimeters = (project, options = {}) => {
   });
 
   return [
-    ...relevantTeams.map((team) => ({
-      id: team.id,
-      type: 'team',
-      required: true,
-      status: readStatus(resolveEffectiveTeamComplianceEntry(comments.teams?.[team.id], analysis, team.id))
-    })),
+    ...relevantTeams.map((team) => {
+      const entry = resolveEffectiveTeamComplianceEntry(comments.teams?.[team.id], analysis, team.id);
+      return {
+        id: team.id,
+        type: 'team',
+        required: true,
+        status: readStatus(entry),
+        // L'entrée *brute* : un périmètre auto-validé a un statut effectif sans que personne ne
+        // l'ait écrit, et il ne faut jamais attendre de lui une confirmation que personne ne
+        // viendra donner.
+        entry: comments.teams?.[team.id] || null,
+        reviewPending: isPerimeterReviewPending(comments.teams?.[team.id])
+      };
+    }),
     ...triggeredCommittees.map((committee) => ({
       id: committee.id,
       type: 'committee',
       // Un comité dont la demande de commentaire est désactivée ne bloque pas la
       // validation, mais son refus éventuel compte quand même.
       required: committee?.commentRequired !== false,
-      status: readStatus(comments.committees?.[committee.id])
+      status: readStatus(comments.committees?.[committee.id]),
+      entry: comments.committees?.[committee.id] || null,
+      reviewPending: isPerimeterReviewPending(comments.committees?.[committee.id])
     }))
   ];
 };
@@ -90,7 +109,13 @@ export const computeProjectValidationStatus = (project, options = {}) => {
   } else if (requiredPerimeters.length === 0) {
     status = PROJECT_VALIDATION_NONE;
   } else if (approvedCount === requiredPerimeters.length) {
-    status = PROJECT_VALIDATION_VALIDATED;
+    if (isPreliminarySubmission(project)) {
+      status = PROJECT_VALIDATION_PRELIMINARY;
+    } else {
+      status = perimeters.some((perimeter) => perimeter.reviewPending)
+        ? PROJECT_VALIDATION_OUTDATED
+        : PROJECT_VALIDATION_VALIDATED;
+    }
   }
 
   return {
@@ -98,6 +123,7 @@ export const computeProjectValidationStatus = (project, options = {}) => {
     requiredCount: requiredPerimeters.length,
     approvedCount,
     rejectedCount,
-    conditionalCount
+    conditionalCount,
+    reviewPendingCount: perimeters.filter((perimeter) => perimeter.reviewPending).length
   };
 };

@@ -177,7 +177,7 @@ test.describe('Questionnaire adaptatif -> Vitrine -> Enjeux du projet', () => {
         return false;
       }
     });
-    await page.getByRole('button', { name: 'Soumettre le projet' }).click();
+    await page.getByRole('button', { name: 'Demander la validation' }).click();
     await expect(page.getByText(/soumis/i).first()).toBeVisible();
   });
 });

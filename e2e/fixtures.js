@@ -208,7 +208,8 @@ export async function createAndSubmitProject(page) {
   });
   await proceedThroughMandatorySummary(page);
   await openProjectStakes(page);
-  await page.getByRole('button', { name: 'Soumettre le projet' }).click();
+  // Deux portes d'entrée depuis les enjeux : ici on demande la validation complète.
+  await page.getByRole('button', { name: 'Demander la validation' }).click();
   await page.waitForTimeout(400);
 }
 
