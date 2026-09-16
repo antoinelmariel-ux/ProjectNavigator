@@ -42,6 +42,19 @@ test.describe('tour v2', () => {
     expect(errors).toEqual([]);
   });
 
+  test('le bouton d aide reste accessible pendant le guide', async ({ page }) => {
+    await startTour(page);
+    // Lancer la visite guidée, c'est déjà chercher de l'aide : la FAQ ne doit pas disparaître
+    // avec l'écran d'accueil.
+    const help = page.locator('.tgjs-tooltip .tgjs-help');
+    await expect(help).toBeVisible();
+    await expect(help).toHaveText('Aide');
+    await expect(help).toHaveAttribute('href', './faq.html');
+
+    await tourAction(page, 'Tour rapide').click();
+    await expect(help).toBeVisible();
+  });
+
   test('le tour rapide traverse questionnaire, synthese et vitrine', async ({ page }) => {
     const errors = collectConsoleErrors(page);
     await startTour(page);

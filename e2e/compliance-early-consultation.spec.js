@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoHome, walkToSynthesis } from './fixtures.js';
+import { answerCurrentQuestion, gotoHome, walkToSynthesis } from './fixtures.js';
 
 const answerEverything = (page) => walkToSynthesis(page, {
   async onQuestion(heading, p) {
@@ -48,6 +48,31 @@ test.describe('Consultation compliance en amont', () => {
     await expect(page.getByText('Orientation possible')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Demander un avis préliminaire' })).toBeEnabled();
     await expect(page.getByRole('button', { name: 'Demander la validation' })).toBeEnabled();
+  });
+
+  test('un doute est adressé à une équipe, qui est sollicitée', async ({ page }) => {
+    await gotoHome(page);
+    await page.getByRole('button', { name: /Créer un projet/ }).first().click();
+
+    // Jusqu'à la première question dont l'incertitude pèse sur une règle.
+    await answerCurrentQuestion(page);
+    await page.getByRole('button', { name: /^Suivant$/ }).click();
+    await answerCurrentQuestion(page);
+    await page.getByRole('button', { name: /^Suivant$/ }).click();
+
+    await page.getByRole('button', { name: 'Je ne sais pas encore' }).click();
+
+    const routing = page.locator('[data-tour-id="question-uncertainty-routing"]');
+    await expect(routing.getByText('À qui adresser ce doute ?')).toBeVisible();
+
+    // Choisir l'équipe préremplit le fil : c'est lui qui sollicite et notifie réellement.
+    await routing.getByRole('button', { name: /^Demander à / }).first().click();
+    const askBlock = page.locator('[data-tour-id="question-ask-expert"]');
+    await expect(askBlock.getByLabel('Votre question')).toHaveValue(/Je ne sais pas encore quoi répondre/);
+    await askBlock.getByRole('button', { name: 'Envoyer la question' }).click();
+
+    await expect(askBlock.getByText('En attente de réponse')).toBeVisible();
+    await expect(routing.getByText(/Doute transmis à :/)).toBeVisible();
   });
 
   test('une demande d’avis préliminaire n’est pas une validation', async ({ page }) => {

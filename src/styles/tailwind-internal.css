@@ -117,6 +117,11 @@ a {
   background-color: rgba(239,246,255, 0.80);
 }
 
+.bg-blue-500 {
+  --tw-bg-opacity: 1;
+  background-color: rgba(59,130,246, var(--tw-bg-opacity));
+}
+
 .bg-blue-600 {
   --tw-bg-opacity: 1;
   background-color: rgba(37,99,235, var(--tw-bg-opacity));
@@ -665,6 +670,10 @@ a {
   grid-template-columns: repeat(1, minmax(0, 1fr));
 }
 
+.h-1 {
+  height: 0.25rem;
+}
+
 .h-10 {
   height: 2.5rem;
 }
@@ -824,10 +833,6 @@ a {
 
 .max-h-80 {
   max-height: 20rem;
-}
-
-.max-h-96 {
-  max-height: 24rem;
 }
 
 .max-w-\[85\%\] {
@@ -1091,6 +1096,10 @@ a {
 
 .p-8 {
   padding: 2rem;
+}
+
+.pb-1 {
+  padding-bottom: 0.25rem;
 }
 
 .pb-2 {
@@ -1868,6 +1877,10 @@ a {
   --tw-gradient-stops: var(--tw-gradient-from), rgb(255,255,255), var(--tw-gradient-to, rgba(255, 255, 255, 0));
 }
 
+.w-0\.5 {
+  width: 0.125rem;
+}
+
 .w-1\/4 {
   width: 25%;
 }
@@ -1986,6 +1999,12 @@ a {
 }
 
 @media (min-width: 640px) {
+  .sm\:flex-col {
+    flex-direction: column;
+  }
+}
+
+@media (min-width: 640px) {
   .sm\:flex-row {
     flex-direction: row;
   }
@@ -1994,6 +2013,12 @@ a {
 @media (min-width: 640px) {
   .sm\:flex-wrap {
     flex-wrap: wrap;
+  }
+}
+
+@media (min-width: 640px) {
+  .sm\:gap-2 {
+    gap: 0.5rem;
   }
 }
 
@@ -2018,6 +2043,12 @@ a {
 @media (min-width: 640px) {
   .sm\:grid-cols-3 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 640px) {
+  .sm\:h-0\.5 {
+    height: 0.125rem;
   }
 }
 
@@ -2060,6 +2091,18 @@ a {
 @media (min-width: 640px) {
   .sm\:justify-start {
     justify-content: flex-start;
+  }
+}
+
+@media (min-width: 640px) {
+  .sm\:ml-2 {
+    margin-left: 0.5rem;
+  }
+}
+
+@media (min-width: 640px) {
+  .sm\:mt-0 {
+    margin-top: 0rem;
   }
 }
 
@@ -2109,6 +2152,12 @@ a {
 @media (min-width: 640px) {
   .sm\:pl-8 {
     padding-left: 2rem;
+  }
+}
+
+@media (min-width: 640px) {
+  .sm\:pr-3 {
+    padding-right: 0.75rem;
   }
 }
 
@@ -2214,6 +2263,12 @@ a {
 @media (min-width: 640px) {
   .sm\:w-auto {
     width: auto;
+  }
+}
+
+@media (min-width: 640px) {
+  .sm\:w-full {
+    width: 100%;
   }
 }
 
@@ -2659,11 +2714,6 @@ a {
 .hover\:text-amber-700:hover {
   --tw-text-opacity: 1;
   color: rgba(180,83,9, var(--tw-text-opacity));
-}
-
-.hover\:text-amber-900:hover {
-  --tw-text-opacity: 1;
-  color: rgba(120,53,15, var(--tw-text-opacity));
 }
 
 .hover\:text-blue-600:hover {

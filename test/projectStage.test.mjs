@@ -101,16 +101,20 @@ test('« je ne sais pas encore » n’est proposé que là où l’incertitude e
 test('les paliers de complétude disent ce que la compliance peut faire', () => {
   assert.equal(getProjectReadiness(questions, {}).level, READINESS_INCOMPLETE);
   assert.equal(getProjectReadiness(questions, { name: 'P', audience: 'tous' }).level, READINESS_ORIENTATION);
+
+  // L'avis technique demande le même socle que la validation : toutes les questions
+  // obligatoires du projet. Une réponse encore manquante ne l'ouvre pas.
   assert.equal(
     getProjectReadiness(questions, { name: 'P', audience: 'tous', countries: ['fr'] }).level,
-    READINESS_ADVICE
+    READINESS_ORIENTATION
   );
   assert.equal(
     getProjectReadiness(questions, { name: 'P', audience: 'tous', countries: ['fr'], budget: 120 }).level,
     READINESS_VALIDATION
   );
 
-  // Un « je ne sais pas encore » ouvre l'orientation et l'avis, jamais la validation.
+  // Ce qui distingue les deux paliers, c'est la fermeté : un « je ne sais pas encore » assumé
+  // ouvre l'avis technique, jamais la validation.
   const uncertain = getProjectReadiness(questions, {
     name: 'P',
     audience: 'tous',
@@ -120,6 +124,10 @@ test('les paliers de complétude disent ce que la compliance peut faire', () => 
   assert.equal(uncertain.level, READINESS_ADVICE);
   assert.equal(uncertain.nextLevel, READINESS_VALIDATION);
   assert.deepEqual(uncertain.missingForNextLevel.map((question) => question.id), ['budget']);
+  assert.deepEqual(
+    uncertain.levels.find((entry) => entry.id === READINESS_ADVICE).missing.map((q) => q.id),
+    []
+  );
 });
 
 test('un palier intermédiaire manquant n’est pas effacé par un palier ultérieur complet', () => {

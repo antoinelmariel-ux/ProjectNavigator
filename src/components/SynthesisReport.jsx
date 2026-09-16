@@ -1806,6 +1806,7 @@ export const SynthesisReport = ({
             <ProjectReadinessPanel
               readiness={readiness}
               uncertainCoverage={uncertainRuleCoverage}
+              teams={teams}
               isSubmitted={normalizedProjectStatus === 'submitted'}
               submissionKind={submissionKind}
               notifiedTeamNames={relevantTeams.map((team) => resolveLocalizedText(team.name, language))}

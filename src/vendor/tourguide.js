@@ -16,7 +16,11 @@
       prev: 'Précédent',
       close: 'Fermer',
       finish: 'Terminer'
-    }
+    },
+    // Lien d'aide permanent, affiché dès l'ouverture du guide : quelqu'un qui lance la visite
+    // est précisément quelqu'un qui cherche de l'aide, et l'ouvrir ne doit pas lui faire perdre
+    // le bouton qu'il avait sur l'écran d'accueil.
+    helpLink: null
   };
 
   const easeInOutCubic = (value) =>
@@ -191,6 +195,25 @@
     };
   };
 
+  const cloneHelpLink = (value) => {
+    if (!value || typeof value !== 'object') {
+      return null;
+    }
+
+    const href = typeof value.href === 'string' ? value.href.trim() : '';
+    const label = typeof value.label === 'string' ? value.label.trim() : '';
+
+    if (!href || !label) {
+      return null;
+    }
+
+    return {
+      href,
+      label,
+      ariaLabel: typeof value.ariaLabel === 'string' && value.ariaLabel.trim() ? value.ariaLabel.trim() : label
+    };
+  };
+
   const cloneScrollIntoViewOptions = (value) => {
     if (value === false) {
       return false;
@@ -259,6 +282,7 @@
         ...DEFAULT_OPTIONS,
         ...options,
         labels: cloneLabels(options.labels),
+        helpLink: cloneHelpLink(options.helpLink),
         scrollIntoViewOptions: cloneScrollIntoViewOptions(options.scrollIntoViewOptions),
         scrollDuration: sanitizeScrollDuration(options.scrollDuration)
       };
@@ -305,6 +329,7 @@
       this.prevButton = null;
       this.nextButton = null;
       this.closeButton = null;
+      this.helpLinkElement = null;
       this.dotsElement = null;
       this.stepIndicator = null;
       this.actionsWrapper = null;
@@ -523,6 +548,21 @@
       title.className = 'tgjs-title';
       header.appendChild(title);
 
+      const headerActions = document.createElement('div');
+      headerActions.className = 'tgjs-header-actions';
+
+      if (this.options.helpLink) {
+        const helpLink = document.createElement('a');
+        helpLink.className = 'tgjs-help';
+        helpLink.href = this.options.helpLink.href;
+        helpLink.target = '_blank';
+        helpLink.rel = 'noopener noreferrer';
+        helpLink.textContent = this.options.helpLink.label;
+        helpLink.setAttribute('aria-label', this.options.helpLink.ariaLabel);
+        headerActions.appendChild(helpLink);
+        this.helpLinkElement = helpLink;
+      }
+
       const closeButton = document.createElement('button');
       closeButton.type = 'button';
       closeButton.className = 'tgjs-close';
@@ -532,7 +572,8 @@
           this.close();
         }
       });
-      header.appendChild(closeButton);
+      headerActions.appendChild(closeButton);
+      header.appendChild(headerActions);
 
       const body = document.createElement('div');
       body.className = 'tgjs-tooltip__body';

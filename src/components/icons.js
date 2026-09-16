@@ -29,6 +29,10 @@ export const ChevronLeft = createIcon(
   <polyline points="15 6 9 12 15 18" />
 );
 
+export const ChevronDown = createIcon(
+  <polyline points="6 9 12 15 18 9" />
+);
+
 export const AlertTriangle = createIcon(
   <React.Fragment>
     <path d="M10.29 3.86L3.18 16.4a2 2 0 001.71 3h14.22a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
