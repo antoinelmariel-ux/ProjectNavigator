@@ -47,6 +47,7 @@ import {
   SUBMISSION_KIND_PRELIMINARY,
   getSubmissionKind,
   isPreliminarySubmission,
+  isProjectOpenForEditing,
   normalizeSubmissionKind,
   withSubmissionKind
 } from './utils/submissionKind.js';
@@ -3716,7 +3717,7 @@ const updateProjectFilters = useCallback((updater) => {
   // brouillon — c'est le sens même de l'annulation, pas un simple retrait de la file
   // compliance.
   const isActiveProjectEditable = !activeProject
-    || (canManageProject(activeProject) && (activeProject.status === 'draft' || activeProject.status === 'cancelled'))
+    || (canManageProject(activeProject) && isProjectOpenForEditing(activeProject))
     || isAdminMode;
   const annotationOffsetClass = isAnnotationModeEnabled && screen === 'showcase'
     ? 'pt-20 lg:pt-24'
@@ -3805,7 +3806,7 @@ const updateProjectFilters = useCallback((updater) => {
           return prevProjects;
         }
 
-        const canUpdateProject = project.status === 'draft' || project.status === 'cancelled' || isAdminMode;
+        const canUpdateProject = isProjectOpenForEditing(project) || isAdminMode;
         if (!canUpdateProject) {
           return prevProjects;
         }
@@ -3888,7 +3889,7 @@ const updateProjectFilters = useCallback((updater) => {
             return prevProjects;
           }
 
-          const canUpdateProject = project.status === 'draft' || project.status === 'cancelled' || isAdminMode;
+          const canUpdateProject = isProjectOpenForEditing(project) || isAdminMode;
           if (!canUpdateProject) {
             return prevProjects;
           }
@@ -5066,7 +5067,7 @@ const updateProjectFilters = useCallback((updater) => {
     const missingIndex = firstMissingId
       ? derivedQuestions.findIndex(question => question.id === firstMissingId)
       : -1;
-    const isResumableProject = project.status === 'draft' || project.status === 'cancelled';
+    const isResumableProject = isProjectOpenForEditing(project);
     const startingIndex = missingIndex >= 0 ? missingIndex : isResumableProject ? sanitizedIndex : 0;
 
     setAnswers(projectAnswers);
@@ -5531,15 +5532,17 @@ const updateProjectFilters = useCallback((updater) => {
     const projectId = showcaseProjectContext?.projectId;
     const project = projectId ? projects.find(entry => entry.id === projectId) : null;
 
-    const isEditableStatus = (status) => status === 'draft' || status === 'cancelled';
+    // Le contexte vitrine ne porte que le statut : on lui adjoint les réponses du projet pour
+    // que `isProjectOpenForEditing` puisse y lire le type de soumission.
+    const isEditableContext = (status) => isProjectOpenForEditing({ status, answers: project?.answers });
 
     if (
       !showcaseProjectContext ||
       !projectId ||
-      (!isEditableStatus(showcaseProjectContext.status) && !isAdminMode)
+      (!isEditableContext(showcaseProjectContext.status) && !isAdminMode)
       || !canManageProject(project)
       || !project
-      || (!isEditableStatus(project.status) && !isAdminMode)
+      || (!isProjectOpenForEditing(project) && !isAdminMode)
     ) {
       return;
     }
@@ -7256,7 +7259,10 @@ const updateProjectFilters = useCallback((updater) => {
                       ? undefined
                       : isOnboardingActive
                         ? noop
-                        : showcaseProjectContext.status === 'draft' || showcaseProjectContext.status === 'cancelled' || isAdminMode
+                        : isProjectOpenForEditing({
+                          status: showcaseProjectContext.status,
+                          answers: showcaseProjectContext.answers
+                        }) || isAdminMode
                           ? handleUpdateProjectShowcaseAnswers
                           : undefined
                   }

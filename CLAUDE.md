@@ -168,6 +168,61 @@ Section colours are **the theme's own colours**, nothing else. `buildAccentFamil
 
 Sharing a showcase produces a single opaque query parameter (`?sv=<token>`, `src/utils/showcaseShareLink.js`) that carries project id, display mode (`full`/`light`), comments toggle and post-it visibility — obfuscated and sealed with a checksum, so a recipient can no longer drop `showcaseMode=light` from the URL to reach the full view. It is deterrence, not security: everything still runs client-side. A tampered token decodes to `null` and opens nothing rather than falling back to full mode; the older plain-text params (`showcaseShared`/`showcaseMode`/…) are still *read* so links already shared keep working, but are never written again. A shared link also hides the app's `<nav>` (`shouldHideMainNav` in `App.jsx`, driven by `isShowcaseSharedView`, which is now seeded from the URL at first render so the bar doesn't flash during hydration); it comes back as soon as the visitor closes the showcase.
 
+## Consulting compliance early (stage, uncertainty, two doors)
+
+The whole point is that a project owner can consult compliance **before** the project is
+finished, and keep changing it afterwards. Four pieces carry that, and each one degrades
+gracefully to the old behaviour when its data is absent:
+
+- **`src/utils/projectStage.js` — the declared stage** (`framing` / `design` / `pre_launch`),
+  stored in the project's *answers* under `__project_stage__`. In answers rather than as a
+  project column because that makes it selectable as a question/rule condition through the same
+  `getConditionQuestionEntries(...)` both back-office editors already call, and it rides along in
+  `AnswersJson` with **no new SharePoint column**. A project with no stage reads as
+  `pre_launch` (`LEGACY_PROJECT_STAGE`) — never as `framing`, or questions that were mandatory
+  for an already-submitted project would retroactively stop being so. A brand-new project starts
+  at `framing` (`buildDefaultAnswers` in `App.jsx`).
+- **`question.requiredFromStage` — when a mandatory question actually becomes mandatory.**
+  Absent means "mandatory from `framing`", i.e. exactly today's behaviour, so a question nobody
+  requalified never changes regime. Editable per question in `QuestionEditor.jsx`.
+  `src/utils/mandatoryQuestions.js` is now the **only** definition of "this answer is filled in"
+  and of "this question is mandatory" — it was copy-pasted identically into `App.jsx`,
+  `QuestionnaireScreen.jsx`, `SynthesisReport.jsx` and `projectNormalization.js`, and four copies
+  that disagree about the stage would produce four different progress counts for one project.
+- **`src/utils/unknownAnswer.js` — "I do not know yet" as a real answer.** Sentinel value stored
+  like any other answer, but **no condition is ever satisfied by it**, negative conditions
+  included — the guard lives in *both* condition engines (`questions.js#evaluateQuestionCondition`
+  and `rules.js#matchesCondition`, they are separate code paths; patching one only is the trap).
+  Without that, `not_equals` would fire on an absence of information. `getUncertainRuleCoverage`
+  (`uncertainCoverage.js`) is the necessary counterpart: it names the rules such an answer leaves
+  in suspense, so the displayed scope is never taken for a settled one. It is offered on the
+  question types the rules engine reads (`canAnswerBeUnknown`), not on narrative fields.
+- **`src/utils/submissionKind.js` — two doors, one project.** `preliminary` vs `final`, stored in
+  answers (same reason as the stage). A preliminary request only requires what is mandatory *at
+  the declared stage*; a validation request requires everything, with a firm answer everywhere
+  (`rejectUnknown`). Never split this into two project objects — answers, threads, rights and the
+  showcase would all be duplicated. A favourable opinion on a preliminary request yields
+  `PROJECT_VALIDATION_PRELIMINARY`, never `PROJECT_VALIDATION_VALIDATED`, and the team/owner
+  notifications are distinct templates saying explicitly that guidance, not approval, is expected.
+
+`src/utils/projectReadiness.js` turns all of this into the three levels the synthesis shows
+(orientation / technical advice / validation) — they are *derived*, nothing extra to configure:
+level N is "every question mandatory up to stage N is answered". `ProjectReadinessPanel.jsx`
+(deferred, only `SynthesisReport.jsx` imports it) renders them, both doors, what the send
+actually commits to, and the showcase as a thinking tool.
+
+Two UI invariants that are easy to break:
+
+- **The expert opinion card is hidden until the expert has written something** — an empty
+  card reads as a missing stamp and turns an exchange into a formality. Hidden for the reader
+  only (`canEditTeamComment` still sees the editor), and **auto-validated perimeters keep their
+  current display unconditionally** (`isTeamAutoValidated`): nobody will ever write there, that
+  card is the only compliance message those perimeters will ever have.
+- **The stage selector is a segmented control, not `input[type=radio]`.** The questionnaire's
+  sidebar precedes the question in the DOM, so radio inputs there capture any generic "select the
+  first radio" automation aimed at the answer itself (this is what silently broke the e2e
+  autopilot, and it would break any form-filling automation the same way).
+
 ## Project validation status (home cards)
 
 `src/utils/projectValidationStatus.js` aggregates the per-perimeter compliance statuses of one

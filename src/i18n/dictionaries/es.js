@@ -819,6 +819,8 @@ export default {
       numberUnitOptionsLabel: 'Otras divisas disponibles',
       numberUnitOptionsHint:
         'Seleccione divisas adicionales: en cuanto haya 2 divisas disponibles para esta pregunta, la persona que responde podrá elegir la suya.',
+      requiredFromStageLabel: 'Obligatoria a partir de la fase',
+      requiredFromStageHint: 'Antes de esa fase la pregunta sigue visible y se puede responder, pero no impide consultar a compliance.',
       requiredLabel: 'Pregunta obligatoria',
       draftLabel: 'Pregunta en borrador',
       draftHint: 'Una pregunta en borrador ya no aparece en el formulario de creación de proyecto.',

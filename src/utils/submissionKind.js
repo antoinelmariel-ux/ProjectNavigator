@@ -28,3 +28,12 @@ export const withSubmissionKind = (answers, submissionKind) => ({
   ...(answers && typeof answers === 'object' ? answers : {}),
   [SUBMISSION_KIND_ANSWER_KEY]: normalizeSubmissionKind(submissionKind)
 });
+
+// Un projet soumis pour avis préliminaire reste modifiable par son porteur : c'est la promesse
+// même de la porte d'entrée précoce (« vous pourrez continuer à modifier votre projet »), et
+// sans elle demander un avis tôt reviendrait à se figer tôt. Une demande de validation, elle,
+// fige le projet exactement comme avant.
+export const isProjectOpenForEditing = (project) =>
+  project?.status === 'draft'
+  || project?.status === 'cancelled'
+  || isPreliminarySubmission(project);

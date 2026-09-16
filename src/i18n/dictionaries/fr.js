@@ -826,6 +826,8 @@ export default {
       numberUnitOptionsLabel: 'Autres devises proposées',
       numberUnitOptionsHint:
         'Sélectionnez des devises additionnelles : dès que 2 devises sont disponibles pour cette question, la personne qui répond peut choisir la sienne.',
+      requiredFromStageLabel: 'Obligatoire à partir du stade',
+      requiredFromStageHint: 'Avant ce stade, la question reste visible et répondable, mais n’empêche pas d’interroger la compliance.',
       requiredLabel: 'Question obligatoire',
       draftLabel: 'Question en brouillon',
       draftHint: 'Une question en brouillon n’apparaît plus dans le formulaire de création de projet.',

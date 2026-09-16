@@ -25,6 +25,7 @@ import { normalizeProjectFilterConfig } from '../utils/projectFilters.js';
 import { normalizeInspirationFiltersConfig } from '../utils/inspirationConfig.js';
 import { normalizeTeamContacts } from '../utils/teamContacts.js';
 import { normalizeEmail } from '../utils/normalizeEmail.js';
+import { isPreliminarySubmission } from '../utils/submissionKind.js';
 import {
   getTriggeredValidationCommittees,
   normalizeValidationCommitteeConfig
@@ -1753,7 +1754,10 @@ export const HomeScreen = ({
     // Annuler une soumission la rend à nouveau modifiable par son porteur, exactement comme
     // un admin peut déjà rouvrir n'importe quel projet soumis : même bascule « Modifier » +
     // bouton « Voir la synthèse » séparé, plutôt qu'un unique lien vers la synthèse figée.
-    const canEditNonDraftProject = (isAdminMode || isCancelled) && !isDraft;
+    // Un projet envoyé pour avis préliminaire reste modifiable par son porteur : la carte doit
+    // donc proposer « Modifier », pas seulement « Voir la synthèse ».
+    const isPreliminary = isPreliminarySubmission(project);
+    const canEditNonDraftProject = (isAdminMode || isCancelled || isPreliminary) && !isDraft;
     const leadName = getSafeString(project?.answers?.teamLead).trim();
     const leadTeam = resolveChoiceOptionLabel(teamLeadTeamQuestion, project?.answers?.teamLeadTeam);
     const leadDisplay = leadName.length > 0

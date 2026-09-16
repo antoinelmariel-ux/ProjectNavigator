@@ -829,6 +829,8 @@ export default {
       numberUnitOptionsLabel: 'Weitere verfügbare Währungen',
       numberUnitOptionsHint:
         'Wählen Sie zusätzliche Währungen aus: Sobald 2 Währungen für diese Frage verfügbar sind, kann die antwortende Person ihre Währung wählen.',
+      requiredFromStageLabel: 'Pflicht ab Phase',
+      requiredFromStageHint: 'Vor dieser Phase bleibt die Frage sichtbar und beantwortbar, verhindert aber nicht, Compliance zu befragen.',
       requiredLabel: 'Pflichtfrage',
       draftLabel: 'Frage als Entwurf',
       draftHint: 'Eine Frage im Entwurfsstatus erscheint nicht mehr im Formular zur Projekterstellung.',

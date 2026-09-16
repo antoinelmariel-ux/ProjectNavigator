@@ -818,6 +818,8 @@ export default {
       numberUnitOptionsLabel: 'Other available currencies',
       numberUnitOptionsHint:
         'Select additional currencies: as soon as 2 currencies are available for this question, the respondent can choose theirs.',
+      requiredFromStageLabel: 'Mandatory from stage',
+      requiredFromStageHint: 'Before that stage the question stays visible and answerable, but does not prevent consulting compliance.',
       requiredLabel: 'Mandatory question',
       draftLabel: 'Draft question',
       draftHint: 'A draft question no longer appears in the project creation form.',
