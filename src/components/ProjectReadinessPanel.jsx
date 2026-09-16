@@ -13,6 +13,7 @@ import {
   LAUNCH_CONFIRMATION_AWAITING,
   LAUNCH_CONFIRMATION_CONFIRMED,
   LAUNCH_CONFIRMATION_DUE,
+  LAUNCH_CONFIRMATION_LATE,
   LAUNCH_CONFIRMATION_LAUNCHED_WITHOUT
 } from '../utils/launchConfirmation.js';
 
@@ -38,7 +39,10 @@ export const ProjectReadinessPanel = ({
   onSendUpdate,
   launchSignal = '',
   roundStatus = null,
-  onRequestFinalValidation
+  onRequestFinalValidation,
+  isLaunched = false,
+  canDeclareLaunch = false,
+  onDeclareLaunch
 }) => {
   const { t, language } = useTranslation();
 
@@ -340,18 +344,37 @@ export const ProjectReadinessPanel = ({
               })
               : t(`synthesisReport.readiness.launch.${resolvedLaunchSignal}Hint`)}
           </p>
-          {resolvedLaunchSignal !== LAUNCH_CONFIRMATION_CONFIRMED
-            && resolvedLaunchSignal !== LAUNCH_CONFIRMATION_AWAITING
-            && typeof onRequestFinalValidation === 'function' && (
-            <button
-              type="button"
-              onClick={onRequestFinalValidation}
-              className="mt-3 px-4 py-2 rounded-lg font-semibold text-sm transition-all flex items-center justify-center bg-blue-600 text-white hover:bg-blue-700 shadow-md"
-            >
-              <Send className="w-4 h-4 mr-2" />
-              {t('synthesisReport.readiness.launch.requestAction')}
-            </button>
-          )}
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            {resolvedLaunchSignal !== LAUNCH_CONFIRMATION_CONFIRMED
+              && resolvedLaunchSignal !== LAUNCH_CONFIRMATION_AWAITING
+              && resolvedLaunchSignal !== LAUNCH_CONFIRMATION_LATE
+              && typeof onRequestFinalValidation === 'function' && (
+              <button
+                type="button"
+                onClick={onRequestFinalValidation}
+                className="px-4 py-2 rounded-lg font-semibold text-sm transition-all flex items-center justify-center bg-blue-600 text-white hover:bg-blue-700 shadow-md"
+              >
+                <Send className="w-4 h-4 mr-2" />
+                {t('synthesisReport.readiness.launch.requestAction')}
+              </button>
+            )}
+            {/* Le lancement est un constat, pas une déduction : il faut que quelqu'un le pose. */}
+            {canDeclareLaunch && typeof onDeclareLaunch === 'function' && (
+              <button
+                type="button"
+                onClick={() => onDeclareLaunch(!isLaunched)}
+                className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all flex items-center justify-center border ${
+                  isLaunched
+                    ? 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                    : 'border-gray-300 bg-white text-gray-800 hover:bg-gray-100'
+                }`}
+              >
+                {isLaunched
+                  ? t('synthesisReport.readiness.launch.revertLaunchAction')
+                  : t('synthesisReport.readiness.launch.declareLaunchAction')}
+              </button>
+            )}
+          </div>
         </div>
       )}
 

@@ -360,11 +360,13 @@ export default {
     showcaseFeedbackTooltip: 'Sticky notes left on this project’s showcase and not yet handled.',
     launchSignalBadge: {
       awaiting: 'Confirmation under way',
+      late: 'Launch waiting',
       launched_without: 'Launched without confirmation'
     },
     launchSignalTooltip: {
       awaiting: 'The final confirmation was requested from the experts; not all of them have answered yet.',
-      launched_without: 'The declared launch date has passed without the final confirmation being obtained.'
+      late: 'The announced launch date has passed and the final confirmation is not complete: the launch is waiting on the experts.',
+      launched_without: 'Someone recorded that this project has launched while the final confirmation was still open.'
     },
     validationStatusOutdated: 'Validated — changed since',
     validationTooltipOutdated: 'Opinions were favourable ({{approved}}/{{total}}), but an update changed the project since: at least one area has to review again.',
@@ -645,7 +647,9 @@ export default {
       activeFiltersLabel: 'Active filters',
       activeFiltersSummaryTemplate: '{{count}} · {{team}} · {{range}}',
       launchedWithoutConfirmationLabel: 'Projects launched without final confirmation',
-      launchedWithoutConfirmationHint: 'Their declared launch date has passed without the experts confirming their opinion. Nothing could prevent it: this is where it shows.',
+      launchesWaitingLabel: 'Launches waiting on compliance',
+      launchesWaitingHint: 'The announced launch date has passed and the final confirmation is not complete. The delay sits with the review, not with the owner.',
+      launchedWithoutConfirmationHint: 'Someone recorded that they launched while the final confirmation was still open. Nothing could prevent it: this is where it shows.',
       submittedProjectsLabel: 'Number of submitted projects',
       submittedProjectsHint: 'Out of a total of {{total}} imported projects.',
       avgDelayLabel: 'Average delay between submission and target launch',
@@ -1732,6 +1736,10 @@ export default {
     backToHome: 'Back to home'
   },
   synthesisReport: {
+    launchQuestionTitle: 'Has this project launched?',
+    launchQuestionHint: 'If you know it has, say so: the app cannot guess it, and a missed forecast date proves nothing.',
+    launchDeclaredTitle: 'Project recorded as launched',
+    launchDeclaredHint: 'If that was a mistake, you can undo it.',
     confirmationRequestedTitle: 'Does your opinion still hold?',
     confirmationRequestedHint: 'The owner is about to launch. You are not asked to review everything: confirm your opinion, or say you need to look at it again.',
     confirmOpinionAction: 'I confirm my opinion',
@@ -1750,8 +1758,12 @@ export default {
         awaitingHint: '{{confirmed}} of {{total}} areas have confirmed. The round stays open until the others have answered.',
         confirmedTitle: 'Final confirmation obtained',
         confirmedHint: 'Every opinion given has been confirmed against the project as it stands.',
-        launched_withoutTitle: 'The launch date has passed with no final confirmation',
-        launched_withoutHint: 'Nothing technically prevents the launch, but this project shows as launched without confirmation — to you, to the experts and in the administrators’ dashboard.',
+        launched_withoutTitle: 'Project launched without final confirmation',
+        launched_withoutHint: 'Someone recorded that this project has launched while the final confirmation was still open. The areas concerned and the administrators have been told.',
+        lateTitle: 'The launch is waiting on compliance',
+        lateHint: 'The launch date you announced has passed and the final confirmation is not complete. The areas that have not answered are being chased; the project is not at fault.',
+        declareLaunchAction: 'Record the project as launched',
+        revertLaunchAction: 'The project has not launched',
         requestAction: 'Request the final confirmation'
       },
       pendingChangesHeadingSingular: '{{count}} answer changed since v{{version}}, sent on {{date}}',

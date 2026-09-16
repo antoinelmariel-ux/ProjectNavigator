@@ -1863,7 +1863,7 @@ export const HomeScreen = ({
                   {t('home.visibleToAllBadge')}
                 </span>
               )}
-              {(launchSignal === 'awaiting' || launchSignal === 'launched_without') && (
+              {(launchSignal === 'awaiting' || launchSignal === 'late' || launchSignal === 'launched_without') && (
                 <span
                   className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full border ${
                     launchSignal === 'launched_without'

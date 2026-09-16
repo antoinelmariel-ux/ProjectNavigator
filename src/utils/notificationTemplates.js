@@ -16,6 +16,7 @@ export const NOTIFICATION_TYPES = {
   FINAL_CONFIRMATION_REQUESTED: 'final-confirmation-requested',
   FINAL_CONFIRMATION_REMINDER: 'final-confirmation-reminder',
   FINAL_CONFIRMATION_REEXAMINING: 'final-confirmation-reexamining',
+  PROJECT_LAUNCHED_WITHOUT_CONFIRMATION: 'project-launched-without-confirmation',
   PROJECT_SHARED: 'project-shared',
   SHOWCASE_COMMENT: 'showcase-comment',
   SHOWCASE_COMMENT_REPLY: 'showcase-comment-reply',
@@ -172,6 +173,24 @@ export const NOTIFICATION_CATALOG = {
       'The final confirmation stays open until they have updated their opinion.'
     ],
     reason: () => 'you requested the final confirmation for this project.'
+  },
+
+  // Le seul message de tout ce dispositif qui constate un manquement — et il n'est envoyé que
+  // parce que quelqu'un a déclaré le lancement, jamais parce qu'une date prévisionnelle est
+  // passée. Sans cette distinction, le reproche tomberait sur les porteurs les plus sérieux,
+  // ceux qui attendent précisément leur confirmation pour partir.
+  [NOTIFICATION_TYPES.PROJECT_LAUNCHED_WITHOUT_CONFIRMATION]: {
+    actionType: 'Project launched without final confirmation',
+    intro: (ctx) =>
+      `${ctx.actorName} recorded that ${quoted(ctx.projectName)} has launched, while the final confirmation was still open.`,
+    expected: (ctx) => [
+      ctx.teamNames.length > 0
+        ? `These areas had not confirmed their opinion: ${ctx.teamNames.join(', ')}.`
+        : 'Some areas had not confirmed their opinion.',
+      'Open the synthesis report to see where the project stands.',
+      'Nothing could have prevented the launch — this notice exists so that it is not discovered later.'
+    ],
+    reason: () => 'you are involved in the compliance review of this project.'
   },
 
   [NOTIFICATION_TYPES.PROJECT_SHARED]: {

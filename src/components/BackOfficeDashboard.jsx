@@ -3,7 +3,10 @@ import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { getLocaleTag } from '../i18n/languages.js';
 import { resolveLocalizedText } from '../utils/localizedContent.js';
 import { stripRichTextToPlainText } from '../utils/richText.js';
-import { LAUNCH_CONFIRMATION_LAUNCHED_WITHOUT } from '../utils/launchConfirmation.js';
+import {
+  LAUNCH_CONFIRMATION_LATE,
+  LAUNCH_CONFIRMATION_LAUNCHED_WITHOUT
+} from '../utils/launchConfirmation.js';
 
 const TIME_FILTER_OPTIONS = [
   {
@@ -662,6 +665,14 @@ export const BackOfficeDashboard = ({ projects = [], teams = [], launchSignals =
     [sanitizedProjects, launchSignals]
   );
 
+  // Deux listes et non une : un projet parti sans confirmation est un manquement constaté, un
+  // lancement qui attend la compliance est un délai de revue. Même bandeau pour les deux
+  // mélangerait un reproche au porteur avec un reproche aux experts.
+  const launchesWaitingOnCompliance = useMemo(
+    () => sanitizedProjects.filter((project) => launchSignals[project?.id] === LAUNCH_CONFIRMATION_LATE),
+    [sanitizedProjects, launchSignals]
+  );
+
   const teamOptions = useMemo(() => buildTeamOptions(sanitizedProjects, t), [sanitizedProjects, t]);
   const timeOption = useMemo(
     () => TIME_FILTER_OPTIONS.find((option) => option.id === selectedTimeFilter) || TIME_FILTER_OPTIONS[0],
@@ -1031,6 +1042,28 @@ export const BackOfficeDashboard = ({ projects = [], teams = [], launchSignals =
           <ul className="mt-3 space-y-1">
             {launchedWithoutConfirmation.map((project) => (
               <li key={project.id} className="text-sm text-red-900">
+                {stripRichTextToPlainText(project.projectName) || project.id}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {launchesWaitingOnCompliance.length > 0 && (
+        <section
+          className="rounded-2xl border border-amber-200 bg-amber-50 p-5"
+          role="status"
+          aria-label={t('backOffice.dashboard.launchesWaitingLabel')}
+        >
+          <p className="text-sm font-semibold text-amber-900">
+            {t('backOffice.dashboard.launchesWaitingLabel')}
+          </p>
+          <p className="mt-1 text-xs text-amber-800">
+            {t('backOffice.dashboard.launchesWaitingHint')}
+          </p>
+          <ul className="mt-3 space-y-1">
+            {launchesWaitingOnCompliance.map((project) => (
+              <li key={project.id} className="text-sm text-amber-900">
                 {stripRichTextToPlainText(project.projectName) || project.id}
               </li>
             ))}

@@ -362,11 +362,13 @@ export default {
     showcaseFeedbackTooltip: 'Haftnotizen auf der Vitrine dieses Projekts, die noch offen sind.',
     launchSignalBadge: {
       awaiting: 'Bestätigung läuft',
+      late: 'Start wartet',
       launched_without: 'Ohne Bestätigung gestartet'
     },
     launchSignalTooltip: {
       awaiting: 'Die endgültige Bestätigung wurde bei den Experten angefragt; noch nicht alle haben geantwortet.',
-      launched_without: 'Das angegebene Startdatum ist verstrichen, ohne dass die endgültige Bestätigung vorliegt.'
+      late: 'Das angekündigte Startdatum ist verstrichen und die endgültige Bestätigung ist unvollständig: der Start wartet auf die Experten.',
+      launched_without: 'Jemand hat erfasst, dass dieses Projekt gestartet ist, während die endgültige Bestätigung noch offen war.'
     },
     validationStatusOutdated: 'Validiert — seitdem geändert',
     validationTooltipOutdated: 'Die Stellungnahmen waren positiv ({{approved}}/{{total}}), aber eine Aktualisierung hat das Projekt seitdem verändert: mindestens ein Bereich muss erneut prüfen.',
@@ -656,7 +658,9 @@ export default {
       activeFiltersLabel: 'Aktive Filter',
       activeFiltersSummaryTemplate: '{{count}} · {{team}} · {{range}}',
       launchedWithoutConfirmationLabel: 'Ohne endgültige Bestätigung gestartete Projekte',
-      launchedWithoutConfirmationHint: 'Ihr angegebenes Startdatum ist verstrichen, ohne dass die Experten ihre Stellungnahme bestätigt haben. Verhindern ließ sich das nicht: hier wird es sichtbar.',
+      launchesWaitingLabel: 'Starts, die auf Compliance warten',
+      launchesWaitingHint: 'Das angekündigte Startdatum ist verstrichen und die endgültige Bestätigung ist unvollständig. Die Verzögerung liegt bei der Prüfung, nicht beim Projektverantwortlichen.',
+      launchedWithoutConfirmationHint: 'Jemand hat ihren Start erfasst, während die endgültige Bestätigung noch offen war. Verhindern ließ sich das nicht: hier wird es sichtbar.',
       submittedProjectsLabel: 'Anzahl eingereichter Projekte',
       submittedProjectsHint: 'Von insgesamt {{total}} importierten Projekten.',
       avgDelayLabel: 'Durchschnittliche Zeit zwischen Einreichung und Zielstart',
@@ -1743,6 +1747,10 @@ export default {
     backToHome: 'Zurück zur Startseite'
   },
   synthesisReport: {
+    launchQuestionTitle: 'Ist dieses Projekt gestartet?',
+    launchQuestionHint: 'Wenn Sie wissen, dass es gestartet ist, sagen Sie es: die Anwendung kann es nicht erraten, und ein verstrichenes Planungsdatum beweist nichts.',
+    launchDeclaredTitle: 'Projekt als gestartet erfasst',
+    launchDeclaredHint: 'War das ein Versehen, können Sie es rückgängig machen.',
     confirmationRequestedTitle: 'Gilt Ihre Stellungnahme weiterhin?',
     confirmationRequestedHint: 'Der Projektverantwortliche steht kurz vor dem Start. Sie sollen nicht alles neu lesen: bestätigen Sie Ihre Stellungnahme oder sagen Sie, dass Sie sie erneut prüfen müssen.',
     confirmOpinionAction: 'Ich bestätige meine Stellungnahme',
@@ -1761,8 +1769,12 @@ export default {
         awaitingHint: '{{confirmed}} von {{total}} Bereichen haben bestätigt. Die Runde bleibt offen, bis sich die übrigen geäußert haben.',
         confirmedTitle: 'Endgültige Bestätigung erhalten',
         confirmedHint: 'Alle abgegebenen Stellungnahmen wurden für den aktuellen Projektstand bestätigt.',
-        launched_withoutTitle: 'Das Startdatum ist ohne endgültige Bestätigung verstrichen',
-        launched_withoutHint: 'Technisch hindert nichts den Start, aber dieses Projekt gilt als ohne Bestätigung gestartet — für Sie, für die Experten und im Dashboard der Administratoren.',
+        launched_withoutTitle: 'Projekt ohne endgültige Bestätigung gestartet',
+        launched_withoutHint: 'Jemand hat erfasst, dass dieses Projekt gestartet ist, während die endgültige Bestätigung noch offen war. Die betroffenen Bereiche und die Administratoren wurden informiert.',
+        lateTitle: 'Der Start wartet auf Compliance',
+        lateHint: 'Das von Ihnen angekündigte Startdatum ist verstrichen und die endgültige Bestätigung ist unvollständig. Die Bereiche ohne Antwort werden erinnert; das Projekt trifft keine Schuld.',
+        declareLaunchAction: 'Projekt als gestartet erfassen',
+        revertLaunchAction: 'Das Projekt ist nicht gestartet',
         requestAction: 'Endgültige Bestätigung anfragen'
       },
       pendingChangesHeadingSingular: '{{count}} Antwort seit v{{version}} geändert, gesendet am {{date}}',

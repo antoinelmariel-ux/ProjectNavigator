@@ -282,11 +282,19 @@ expert one click** in the nominal case, and makes a project that ships without i
 - **"I need to review again" reuses the update machinery**: it sets `needsReviewSince`, so the
   perimeter shows the same "to review again" state as after a project update and the home badge
   goes `outdated`. The round stays open until a new opinion lands.
-- **`src/utils/launchConfirmation.js`** derives the visible signal from the declared `launchDate`
-  and the round: `due` → `awaiting` → `confirmed`, or `launched_without` once the date has passed
-  with no complete round. That last state is the only sanction available, so it shows on the home
-  card, in the synthesis and in the administrators' dashboard. `launchDate` is therefore mandatory
-  from the `pre_launch` stage.
+- **A launch is declared, never inferred** (`src/utils/projectLaunch.js`). `launchDate` is a
+  forecast saved months earlier, and most owners wait for their confirmation before shipping —
+  so deducing "launched without confirmation" from a missed date accused exactly the people who
+  behave well, and a signal that is wrong about the good pupils stops being read, which destroys
+  the only force this round has. The owner, an administrator, or an expert of the project's own
+  perimeter can record the launch (and undo it; both gestures are kept in `history`).
+- **`src/utils/launchConfirmation.js`** derives the visible signal from that declaration, the
+  `launchDate` and the round: `due` → `awaiting` → `confirmed`; `late` when the announced date has
+  passed while the round is still open (the delay then sits with the review, not with the owner);
+  and `launched_without` **only** once someone has recorded the launch with an incomplete round —
+  true by construction. The dashboard keeps the two apart in two sections, because mixing a
+  reproach to the owner with a reproach to the experts makes both unreadable. `launchDate` is
+  mandatory from the `pre_launch` stage, since nothing else can drive the reminders.
 - **Reminders** (default J-30 then J-10, `0` disables, editable in the back-office's validation
   committee tab) run the same way as the claim reminders: no server, so the pass runs in the
   session of whoever opens the app — here the owner, since they are the one who decides to launch

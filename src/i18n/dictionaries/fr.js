@@ -362,11 +362,13 @@ export default {
     showcaseFeedbackTooltip: 'Post-its laissés sur la vitrine de ce projet et pas encore traités.',
     launchSignalBadge: {
       awaiting: 'Confirmation en cours',
+      late: 'Lancement en attente',
       launched_without: 'Lancé sans confirmation'
     },
     launchSignalTooltip: {
       awaiting: 'La confirmation finale a été demandée aux experts ; tous n’ont pas encore répondu.',
-      launched_without: 'La date de lancement déclarée est passée sans que la confirmation finale ait été obtenue.'
+      late: 'La date de lancement annoncée est passée et la confirmation finale n’est pas complète : le lancement attend les experts.',
+      launched_without: 'Quelqu’un a constaté que ce projet est parti alors que la confirmation finale n’était pas complète.'
     },
     validationStatusOutdated: 'Validé — modifié depuis',
     validationTooltipOutdated: 'Les avis étaient favorables ({{approved}}/{{total}}), mais une mise à jour a changé le projet depuis : au moins un périmètre doit ré-examiner.',
@@ -653,7 +655,9 @@ export default {
       activeFiltersLabel: 'Filtres actifs',
       activeFiltersSummaryTemplate: '{{count}} · {{team}} · {{range}}',
       launchedWithoutConfirmationLabel: 'Projets lancés sans confirmation finale',
-      launchedWithoutConfirmationHint: 'Leur date de lancement déclarée est passée sans que les experts aient confirmé leur avis. Rien ne pouvait l’empêcher : c’est ici que ça se voit.',
+      launchesWaitingLabel: 'Lancements en attente de la compliance',
+      launchesWaitingHint: 'La date de lancement annoncée est passée et la confirmation finale n’est pas complète. Le délai est côté revue, pas côté porteur.',
+      launchedWithoutConfirmationHint: 'Quelqu’un a constaté leur lancement alors que la confirmation finale n’était pas complète. Rien ne pouvait l’empêcher : c’est ici que ça se voit.',
       submittedProjectsLabel: 'Nombre de projets soumis',
       submittedProjectsHint: 'Sur un total de {{total}} projets importés.',
       avgDelayLabel: 'Délai moyen entre soumission et lancement cible',
@@ -1742,6 +1746,10 @@ export default {
     backToHome: 'Retour à l’accueil'
   },
   synthesisReport: {
+    launchQuestionTitle: 'Ce projet est-il lancé ?',
+    launchQuestionHint: 'Si vous savez qu’il est parti, dites-le : l’application ne peut pas le deviner, et une date prévisionnelle dépassée ne prouve rien.',
+    launchDeclaredTitle: 'Projet déclaré lancé',
+    launchDeclaredHint: 'Si c’était une erreur, vous pouvez revenir dessus.',
     confirmationRequestedTitle: 'Votre avis est-il toujours valable ?',
     confirmationRequestedHint: 'Le porteur s’apprête à lancer. On ne vous demande pas de tout relire : confirmez votre avis, ou dites que vous devez le réexaminer.',
     confirmOpinionAction: 'Je confirme mon avis',
@@ -1760,8 +1768,12 @@ export default {
         awaitingHint: '{{confirmed}} périmètre(s) sur {{total}} ont confirmé. Le tour reste ouvert tant que les autres ne se sont pas prononcés.',
         confirmedTitle: 'Confirmation finale obtenue',
         confirmedHint: 'Tous les avis rendus ont été confirmés sur l’état actuel du projet.',
-        launched_withoutTitle: 'La date de lancement est passée sans confirmation finale',
-        launched_withoutHint: 'Rien n’empêche techniquement le lancement, mais ce projet apparaît comme lancé sans confirmation — pour vous, pour les experts et dans le tableau de bord des administrateurs.',
+        launched_withoutTitle: 'Projet lancé sans confirmation finale',
+        launched_withoutHint: 'Quelqu’un a constaté que ce projet est parti alors que la confirmation finale n’était pas complète. Les périmètres concernés et les administrateurs en ont été informés.',
+        lateTitle: 'Le lancement attend la compliance',
+        lateHint: 'La date de lancement que vous avez annoncée est passée et la confirmation finale n’est pas complète. Les périmètres qui n’ont pas répondu sont relancés ; le projet n’est pas en faute.',
+        declareLaunchAction: 'Déclarer le projet lancé',
+        revertLaunchAction: 'Le projet n’est pas lancé',
         requestAction: 'Demander la confirmation finale'
       },
       pendingChangesHeadingSingular: '{{count}} réponse modifiée depuis la v{{version}} envoyée le {{date}}',

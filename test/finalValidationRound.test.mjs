@@ -15,6 +15,7 @@ import {
 import {
   LAUNCH_CONFIRMATION_AWAITING,
   LAUNCH_CONFIRMATION_CONFIRMED,
+  LAUNCH_CONFIRMATION_LATE,
   LAUNCH_CONFIRMATION_DUE,
   LAUNCH_CONFIRMATION_LAUNCHED_WITHOUT,
   LAUNCH_CONFIRMATION_NONE,
@@ -23,6 +24,12 @@ import {
   getLaunchConfirmationSignal,
   normalizeLaunchReminderDays
 } from '../src/utils/launchConfirmation.js';
+import {
+  getProjectLaunch,
+  isProjectLaunched,
+  withProjectLaunch,
+  withoutProjectLaunch
+} from '../src/utils/projectLaunch.js';
 
 const REQUESTED_AT = '2026-05-01T09:00:00.000Z';
 
@@ -135,10 +142,17 @@ test('le signal de confirmation suit la date de lancement déclarée', () => {
     getLaunchConfirmationSignal({ answers: withLaunch('2026-05-21'), roundStatus: { isRequested: true }, now: NOW }),
     LAUNCH_CONFIRMATION_AWAITING
   );
-  // Date passée sans confirmation complète : exactement le cas que rien n'a pu empêcher.
+  // Date passée alors que le tour est ouvert : ce n'est pas le porteur qui est en faute, c'est
+  // le lancement qui attend la compliance.
   assert.equal(
     getLaunchConfirmationSignal({ answers: withLaunch('2026-04-01'), roundStatus: { isRequested: true }, now: NOW }),
-    LAUNCH_CONFIRMATION_LAUNCHED_WITHOUT
+    LAUNCH_CONFIRMATION_LATE
+  );
+  // Date passée sans que personne n'ait rien demandé : c'est au porteur d'agir, et rien ne
+  // permet d'affirmer que le projet est parti.
+  assert.equal(
+    getLaunchConfirmationSignal({ answers: withLaunch('2026-04-01'), roundStatus: notRequested, now: NOW }),
+    LAUNCH_CONFIRMATION_DUE
   );
   assert.equal(
     getLaunchConfirmationSignal({ answers: withLaunch('2026-04-01'), roundStatus: { isComplete: true }, now: NOW }),
@@ -175,4 +189,47 @@ test('le rappel le plus proche du lancement l’emporte, et zéro le désactive'
   assert.deepEqual(normalizeLaunchReminderDays(undefined), { first: 30, second: 10 });
   assert.deepEqual(normalizeLaunchReminderDays({ first: 45, second: 0 }), { first: 45, second: 0 });
   assert.deepEqual(normalizeLaunchReminderDays({ first: -3 }), { first: 30, second: 10 });
+});
+
+test('un lancement se déclare, il ne se déduit jamais d’une date', () => {
+  const overdue = { launchDate: '2026-04-01' };
+  const openRound = { isRequested: true, isComplete: false };
+
+  // Une date dépassée ne dit rien du lancement : elle est prévisionnelle, et le porteur attend
+  // en général sa confirmation pour partir.
+  assert.equal(isProjectLaunched(overdue), false);
+  assert.equal(
+    getLaunchConfirmationSignal({ answers: overdue, roundStatus: openRound, now: NOW }),
+    LAUNCH_CONFIRMATION_LATE
+  );
+
+  // Déclaré lancé avec un tour incomplet : là, et seulement là, l'application peut l'affirmer.
+  const launched = withProjectLaunch(overdue, { by: 'expert@lfb.fr', at: '2026-04-15T08:00:00.000Z' });
+  assert.equal(isProjectLaunched(launched), true);
+  assert.equal(getProjectLaunch(launched).declaredBy, 'expert@lfb.fr');
+  assert.equal(
+    getLaunchConfirmationSignal({ answers: launched, roundStatus: openRound, now: NOW }),
+    LAUNCH_CONFIRMATION_LAUNCHED_WITHOUT
+  );
+
+  // Déclaré lancé après un tour complet : rien à signaler.
+  assert.equal(
+    getLaunchConfirmationSignal({ answers: launched, roundStatus: { isComplete: true }, now: NOW }),
+    LAUNCH_CONFIRMATION_CONFIRMED
+  );
+
+  // Rappeler une date de lancement à un projet déjà parti n'a plus d'objet.
+  assert.equal(
+    getDueLaunchReminder({ answers: withProjectLaunch({ launchDate: '2026-05-06' }), roundStatus: {}, now: NOW }),
+    null
+  );
+
+  // Un clic malheureux se corrige, et l'historique garde trace des deux gestes.
+  const reverted = withoutProjectLaunch(launched, { by: 'admin@lfb.fr', at: '2026-04-16T08:00:00.000Z' });
+  assert.equal(isProjectLaunched(reverted), false);
+  assert.deepEqual(getProjectLaunch(reverted).history.map((entry) => entry.action), ['declare', 'revert']);
+  assert.equal(
+    getLaunchConfirmationSignal({ answers: reverted, roundStatus: openRound, now: NOW }),
+    LAUNCH_CONFIRMATION_LATE
+  );
 });

@@ -361,11 +361,13 @@ export default {
     showcaseFeedbackTooltip: 'Notas adhesivas dejadas en la vitrina de este proyecto y aún sin tratar.',
     launchSignalBadge: {
       awaiting: 'Confirmación en curso',
+      late: 'Lanzamiento en espera',
       launched_without: 'Lanzado sin confirmación'
     },
     launchSignalTooltip: {
       awaiting: 'Se ha solicitado la confirmación final a los expertos; todavía no han respondido todos.',
-      launched_without: 'La fecha de lanzamiento declarada ha pasado sin obtener la confirmación final.'
+      late: 'La fecha de lanzamiento anunciada ha pasado y la confirmación final no está completa: el lanzamiento espera a los expertos.',
+      launched_without: 'Alguien ha registrado que este proyecto se ha lanzado mientras la confirmación final seguía abierta.'
     },
     validationStatusOutdated: 'Validado — modificado después',
     validationTooltipOutdated: 'Los dictámenes eran favorables ({{approved}}/{{total}}), pero una actualización ha cambiado el proyecto desde entonces: al menos un ámbito debe volver a examinar.',
@@ -646,7 +648,9 @@ export default {
       activeFiltersLabel: 'Filtros activos',
       activeFiltersSummaryTemplate: '{{count}} · {{team}} · {{range}}',
       launchedWithoutConfirmationLabel: 'Proyectos lanzados sin confirmación final',
-      launchedWithoutConfirmationHint: 'Su fecha de lanzamiento declarada ha pasado sin que los expertos confirmaran su dictamen. Nada podía impedirlo: aquí es donde se ve.',
+      launchesWaitingLabel: 'Lanzamientos a la espera de compliance',
+      launchesWaitingHint: 'La fecha de lanzamiento anunciada ha pasado y la confirmación final no está completa. El retraso está del lado de la revisión, no del responsable.',
+      launchedWithoutConfirmationHint: 'Alguien ha registrado su lanzamiento mientras la confirmación final seguía abierta. Nada podía impedirlo: aquí es donde se ve.',
       submittedProjectsLabel: 'Número de proyectos enviados',
       submittedProjectsHint: 'De un total de {{total}} proyectos importados.',
       avgDelayLabel: 'Retraso medio entre el envío y el lanzamiento previsto',
@@ -1732,6 +1736,10 @@ export default {
     backToHome: 'Volver al inicio'
   },
   synthesisReport: {
+    launchQuestionTitle: '¿Este proyecto se ha lanzado?',
+    launchQuestionHint: 'Si sabe que ha salido, indíquelo: la aplicación no puede adivinarlo, y una fecha prevista vencida no prueba nada.',
+    launchDeclaredTitle: 'Proyecto registrado como lanzado',
+    launchDeclaredHint: 'Si ha sido un error, puede deshacerlo.',
     confirmationRequestedTitle: '¿Su dictamen sigue siendo válido?',
     confirmationRequestedHint: 'El responsable está a punto de lanzar. No se le pide releerlo todo: confirme su dictamen o indique que debe volver a examinarlo.',
     confirmOpinionAction: 'Confirmo mi dictamen',
@@ -1750,8 +1758,12 @@ export default {
         awaitingHint: '{{confirmed}} de {{total}} ámbitos han confirmado. La ronda sigue abierta hasta que los demás se pronuncien.',
         confirmedTitle: 'Confirmación final obtenida',
         confirmedHint: 'Todos los dictámenes emitidos se han confirmado sobre el estado actual del proyecto.',
-        launched_withoutTitle: 'La fecha de lanzamiento ha pasado sin confirmación final',
-        launched_withoutHint: 'Nada impide técnicamente el lanzamiento, pero este proyecto aparece como lanzado sin confirmación: para usted, para los expertos y en el panel de los administradores.',
+        launched_withoutTitle: 'Proyecto lanzado sin confirmación final',
+        launched_withoutHint: 'Alguien ha registrado que este proyecto se ha lanzado mientras la confirmación final seguía abierta. Se ha informado a los ámbitos afectados y a los administradores.',
+        lateTitle: 'El lanzamiento espera a compliance',
+        lateHint: 'La fecha de lanzamiento que anunció ha pasado y la confirmación final no está completa. Se está reclamando a los ámbitos que no han respondido; el proyecto no está en falta.',
+        declareLaunchAction: 'Registrar el proyecto como lanzado',
+        revertLaunchAction: 'El proyecto no está lanzado',
         requestAction: 'Solicitar la confirmación final'
       },
       pendingChangesHeadingSingular: '{{count}} respuesta modificada desde la v{{version}}, enviada el {{date}}',

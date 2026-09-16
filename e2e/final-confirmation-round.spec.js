@@ -29,9 +29,10 @@ test.describe('Confirmation finale avant lancement', () => {
       }))
       .toBe(1);
 
-    // L'autopilote renseigne une date de lancement déjà passée : le projet est donc signalé comme
-    // « lancé sans confirmation », ce qui est exactement l'état que ce tour doit rendre visible.
-    await expect(page.getByText(/date de lancement est passée sans confirmation finale/)).toBeVisible();
+    // L'autopilote renseigne une date de lancement déjà passée. Ce n'est pas un lancement pour
+    // autant — une date est prévisionnelle : le projet est signalé comme attendant la compliance,
+    // et non comme parti sans confirmation.
+    await expect(page.getByText('Le lancement attend la compliance')).toBeVisible();
 
     // Côté expert : deux boutons, pas une relecture complète.
     await page.getByRole('button', { name: /Contrôle pub/ }).first().click();
@@ -48,4 +49,40 @@ test.describe('Confirmation finale avant lancement', () => {
       }))
       .toBe('confirmed');
   });
+});
+
+test('un lancement se déclare : il n’est jamais déduit d’une date dépassée', async ({ page }) => {
+  test.slow();
+  await gotoHome(page);
+  await grantSelfComplianceExpertAndCommitteeAccess(page);
+  await createAndSubmitProject(page);
+
+  await openTriggeredProjectAndExpandTeam(page, 'Contrôle pub');
+  await page.getByRole('button', { name: /Modifier le commentaire/ }).first().click();
+  await page.locator('[id^="compliance-status-"]').first().selectOption('validated');
+  await page.locator('[id^="compliance-comment-"][contenteditable="true"]').first().click();
+  await page.keyboard.type('RAS.');
+  await page.getByRole('button', { name: 'Enregistrer le commentaire' }).click();
+
+  await page.getByRole('button', { name: 'Demander la confirmation finale' }).click();
+
+  // La date de lancement est déjà passée, mais rien ne permet d'affirmer que le projet est parti.
+  await expect(page.getByText('Le lancement attend la compliance')).toBeVisible();
+  await expect(page.getByText(/lancé sans confirmation finale/i)).toHaveCount(0);
+
+  // Quelqu'un le constate : là seulement l'application l'affirme.
+  await page.getByRole('button', { name: 'Déclarer le projet lancé' }).click();
+  await expect(page.getByText('Projet lancé sans confirmation finale')).toBeVisible();
+
+  await expect
+    .poll(() => page.evaluate(() => {
+      const parsed = JSON.parse(window.localStorage.getItem('complianceNavigatorState'));
+      const project = parsed.projects?.find((entry) => entry?.answers?.__project_launch__?.launchedAt);
+      return Boolean(project);
+    }))
+    .toBe(true);
+
+  // Et le constat se corrige.
+  await page.getByRole('button', { name: 'Le projet n’est pas lancé' }).click();
+  await expect(page.getByText('Le lancement attend la compliance')).toBeVisible();
 });

@@ -63,6 +63,7 @@ import {
   getLaunchConfirmationSignal,
   normalizeLaunchReminderDays
 } from './utils/launchConfirmation.js';
+import { isProjectLaunched, withProjectLaunch, withoutProjectLaunch } from './utils/projectLaunch.js';
 import { getProjectCompliancePerimeters } from './utils/projectValidationStatus.js';
 import { stampReviewedVersions, withNeedsReviewSince } from './utils/perimeterReview.js';
 import { getUncertainRuleCoverage } from './utils/uncertainCoverage.js';
@@ -6194,6 +6195,107 @@ const updateProjectFilters = useCallback((updater) => {
 
   // Le dernier tour est demandé par le porteur, jamais déclenché tout seul : lui seul sait qu'il
   // lance. L'application se contente de le lui rappeler quand la date qu'il a annoncée approche.
+  // Constater qu'un projet est parti n'est pas un privilège de porteur : un expert du périmètre
+  // qui a vu la campagne sortir est souvent le mieux placé, et un administrateur doit pouvoir
+  // corriger. La déclaration reste bornée aux gens réellement dans la boucle de ce projet.
+  const canDeclareProjectLaunch = useCallback((project) => {
+    if (!project || project.status !== 'submitted') {
+      return false;
+    }
+
+    if (isCurrentUserAdmin || isAdminMode || canManageProject(project)) {
+      return true;
+    }
+
+    if (!currentUserEmail) {
+      return false;
+    }
+
+    const analysisTeamIds = Array.isArray(project.analysis?.teams) ? project.analysis.teams : [];
+    const isTeamContact = (Array.isArray(teams) ? teams : []).some((team) => (
+      analysisTeamIds.includes(team?.id)
+      && Array.isArray(team?.contacts)
+      && team.contacts.some((contact) => normalizeEmail(contact) === currentUserEmail)
+    ));
+
+    if (isTeamContact) {
+      return true;
+    }
+
+    return normalizeValidationCommitteeConfig(validationCommitteeConfig).committees.some((committee) => (
+      Array.isArray(committee?.emails)
+      && committee.emails.some((email) => normalizeEmail(email) === currentUserEmail)
+    ));
+  }, [
+    canManageProject,
+    currentUserEmail,
+    isAdminMode,
+    isCurrentUserAdmin,
+    teams,
+    validationCommitteeConfig
+  ]);
+
+  const handleDeclareProjectLaunch = useCallback((launched) => {
+    const project = projectsRef.current.find((entry) => entry?.id === activeProjectId);
+    if (!project || !canDeclareProjectLaunch(project)) {
+      return;
+    }
+
+    const nextAnswers = launched
+      ? withProjectLaunch(project.answers || {}, { by: currentUserEmail })
+      : withoutProjectLaunch(project.answers || {}, { by: currentUserEmail });
+
+    setAnswers(nextAnswers);
+    setProjects((prevProjects) => prevProjects.map((entry) => (
+      entry?.id === project.id
+        ? { ...entry, answers: nextAnswers, lastUpdated: new Date().toISOString() }
+        : entry
+    )));
+
+    if (!launched) {
+      return;
+    }
+
+    const roundStatus = getFinalValidationRoundStatus(nextAnswers, buildRoundPerimeters({ ...project, answers: nextAnswers }));
+    if (roundStatus.isComplete) {
+      return;
+    }
+
+    // Un projet parti sans confirmation complète : le seul constat de manquement du dispositif,
+    // et il ne part que parce que quelqu'un l'a déclaré.
+    const unconfirmedTeamIds = [...roundStatus.pending, ...roundStatus.reexamining];
+    const unconfirmedTeams = unconfirmedTeamIds
+      .map((teamId) => teams.find((entry) => entry?.id === teamId))
+      .filter(Boolean);
+
+    const recipients = normalizeRecipientList([
+      ...unconfirmedTeams.flatMap((team) => normalizeTeamContacts(team)),
+      ...adminEmails
+    ]);
+
+    if (recipients.length === 0) {
+      return;
+    }
+
+    notify({
+      type: NOTIFICATION_TYPES.PROJECT_LAUNCHED_WITHOUT_CONFIRMATION,
+      project: { ...project, answers: nextAnswers },
+      to: recipients,
+      teamNames: unconfirmedTeams
+        .map((team) => resolveLocalizedText(team.name, DEFAULT_LANGUAGE))
+        .filter(Boolean),
+      view: 'synthesis'
+    });
+  }, [
+    activeProjectId,
+    adminEmails,
+    buildRoundPerimeters,
+    canDeclareProjectLaunch,
+    currentUserEmail,
+    notify,
+    teams
+  ]);
+
   const handleRequestFinalValidation = useCallback(() => {
     const project = projectsRef.current.find((entry) => entry?.id === activeProjectId);
     if (!project || project.status !== 'submitted' || !canManageProject(project)) {
@@ -7722,6 +7824,9 @@ const updateProjectFilters = useCallback((updater) => {
               roundStatus={activeProjectRoundStatus}
               onRequestFinalValidation={activeProjectId ? handleRequestFinalValidation : undefined}
               onPerimeterConfirmation={activeProjectId ? handlePerimeterConfirmation : undefined}
+              isLaunched={isProjectLaunched(activeProject?.answers)}
+              canDeclareLaunch={canDeclareProjectLaunch(activeProject)}
+              onDeclareLaunch={activeProjectId ? handleDeclareProjectLaunch : undefined}
             />
           </Suspense>
         ) : screen === 'showcase' ? (

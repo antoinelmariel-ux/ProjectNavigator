@@ -583,7 +583,10 @@ export const SynthesisReport = ({
   launchSignal = '',
   roundStatus = null,
   onRequestFinalValidation,
-  onPerimeterConfirmation
+  onPerimeterConfirmation,
+  isLaunched = false,
+  canDeclareLaunch = false,
+  onDeclareLaunch
 }) => {
   const { t, language } = useTranslation();
   const [isShowcaseFallbackOpen, setIsShowcaseFallbackOpen] = useState(false);
@@ -1771,6 +1774,30 @@ export const SynthesisReport = ({
           )}
 
 
+          {!isProjectEditable && canDeclareLaunch && typeof onDeclareLaunch === 'function' && (
+            <div className="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
+              <p className="text-sm font-semibold text-gray-800">
+                {isLaunched
+                  ? t('synthesisReport.launchDeclaredTitle')
+                  : t('synthesisReport.launchQuestionTitle')}
+              </p>
+              <p className="mt-1 text-xs text-gray-600">
+                {isLaunched
+                  ? t('synthesisReport.launchDeclaredHint')
+                  : t('synthesisReport.launchQuestionHint')}
+              </p>
+              <button
+                type="button"
+                onClick={() => onDeclareLaunch(!isLaunched)}
+                className="mt-3 px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-semibold text-gray-800 hover:bg-gray-100 transition-all"
+              >
+                {isLaunched
+                  ? t('synthesisReport.readiness.launch.revertLaunchAction')
+                  : t('synthesisReport.readiness.launch.declareLaunchAction')}
+              </button>
+            </div>
+          )}
+
           {isProjectEditable && (
             <ProjectReadinessPanel
               readiness={readiness}
@@ -1791,6 +1818,9 @@ export const SynthesisReport = ({
               launchSignal={launchSignal}
               roundStatus={roundStatus}
               onRequestFinalValidation={onRequestFinalValidation}
+              isLaunched={isLaunched}
+              canDeclareLaunch={canDeclareLaunch}
+              onDeclareLaunch={onDeclareLaunch}
             />
           )}
 
