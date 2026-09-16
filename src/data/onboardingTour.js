@@ -9,7 +9,7 @@
 // settings.json publié) est remplacée par celle-ci au démarrage — voir
 // normalizeOnboardingConfig dans src/utils/onboarding.js. L'incrémenter écrase donc les
 // personnalisations back-office du tour : à ne faire que pour une refonte assumée.
-export const ONBOARDING_TOUR_VERSION = 5;
+export const ONBOARDING_TOUR_VERSION = 6;
 
 const ACTION_LABELS = {
   create: { en: 'Create a project', fr: 'Créer un projet', de: 'Ein Projekt erstellen', es: 'Crear un proyecto' },
@@ -372,6 +372,27 @@ export const initialOnboardingTourConfig = {
       },
       "placement": "top",
       "highlightScope": "target",
+      "showDefaultButtons": true,
+      "actions": []
+    },
+    {
+      "id": "question-doubt",
+      "target": "[data-tour-id=\"question-doubt-toggle\"]",
+      "title": {
+        "en": "Flag a doubt",
+        "fr": "Signaler un doute",
+        "de": "Einen Zweifel melden",
+        "es": "Señalar una duda"
+      },
+      "content": {
+        "en": "Not sure about an answer? Check “I have a doubt” and explain why in a few words: the point stays visible in your answers recap without stopping you from moving on. You will only need to settle it before a final validation.",
+        "fr": "Pas sûr d’une réponse ? Cochez « J’ai un doute » et expliquez pourquoi en quelques mots : le point reste visible dans le rappel de vos réponses, sans vous empêcher d’avancer. Il faudra simplement le lever avant une validation définitive.",
+        "de": "Nicht sicher bei einer Antwort? Aktivieren Sie „Ich habe Zweifel“ und erklären Sie kurz, warum: Der Punkt bleibt in der Übersicht Ihrer Antworten sichtbar, ohne Sie am Weiterkommen zu hindern. Geklärt werden muss er erst vor einer endgültigen Validierung.",
+        "es": "¿No está seguro de una respuesta? Marque «Tengo una duda» y explique brevemente por qué: el punto queda visible en el resumen de sus respuestas sin impedirle avanzar. Solo deberá resolverlo antes de una validación definitiva."
+      },
+      "placement": "top",
+      "highlightScope": "target",
+      "scrollIntoViewOptions": { "behavior": "smooth", "block": "center", "inline": "nearest" },
       "showDefaultButtons": true,
       "actions": []
     },

@@ -90,6 +90,7 @@ test.describe('tour v2', () => {
       ['Où en est votre projet ?', 'question-stage-selector'],
       ['Comprendre chaque question', 'question-guidance-toggle'],
       ['Bien plus que du texte', 'question-main-content'],
+      ['Signaler un doute', 'question-doubt-toggle'],
       ['Terminer quand vous voulez', 'questionnaire-finish-button'],
       ['Travailler à plusieurs', 'synthesis-share-member'],
       ['Récolter du feedback très tôt', 'showcase-share-trigger']

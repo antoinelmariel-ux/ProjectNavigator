@@ -126,7 +126,7 @@ import {
 } from './utils/teamMemberProfile.js';
 import { normalizeRulesTeamReferences } from './utils/teamIds.js';
 import { MANUAL_TEAM_REQUESTS_KEY, addManualTeamRequest, normalizeManualTeamRequests } from './utils/manualTeamRequests.js';
-import { withQuestionDoubt, withoutQuestionDoubt, getOpenQuestionDoubts } from './utils/questionDoubts.js';
+import { canQuestionHaveDoubt, withQuestionDoubt, withoutQuestionDoubt, getOpenQuestionDoubts } from './utils/questionDoubts.js';
 import { getCurrentUser, getRealUser } from './utils/spContext.js';
 import { isImpersonating } from './utils/impersonation.js';
 import { dataProvider } from './utils/dataProvider.js';
@@ -2560,6 +2560,21 @@ const updateProjectFilters = useCallback((updater) => {
         setHasUnsavedChanges(false);
         break;
       }
+      case 'question-doubt': {
+        setShowcaseProjectContext(null);
+        setScreen('questionnaire');
+        setActiveProjectId('onboarding-demo');
+        const doubtAnswers = cloneDeep(demoData.answers);
+        setAnswers(doubtAnswers);
+        const visibleQuestions = questions.filter(q => shouldShowQuestion(q, doubtAnswers));
+        const doubtIndex = visibleQuestions.findIndex(q => canQuestionHaveDoubt(q));
+        setCurrentQuestionIndex(doubtIndex >= 0 ? doubtIndex : 0);
+        setAnalysis(null);
+        setValidationError(null);
+        setSaveFeedback(null);
+        setHasUnsavedChanges(false);
+        break;
+      }
       case 'questionnaire-finish': {
         setShowcaseProjectContext(null);
         setScreen('questionnaire');
@@ -2721,7 +2736,8 @@ const updateProjectFilters = useCallback((updater) => {
     setValidationError,
     buildOnboardingAnnotationNotes,
     showcaseDisplayMode,
-    isShowcaseShareOpen
+    isShowcaseShareOpen,
+    shouldShowQuestion
   ]);
 
   const handleStartOnboarding = useCallback(() => {

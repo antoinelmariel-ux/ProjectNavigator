@@ -1748,7 +1748,7 @@ export const QuestionnaireScreen = ({
           {renderQuestionInput()}
 
           {canHaveDoubt && (
-            <div className="mb-8">
+            <div className="mb-8" data-tour-id="question-doubt-toggle">
               <button
                 type="button"
                 onClick={() => {
