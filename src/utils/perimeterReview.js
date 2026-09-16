@@ -19,9 +19,13 @@ export const isPerimeterReviewPending = (entry) => {
   return getNeedsReviewSince(entry) > (getReviewedVersion(entry) || 1);
 };
 
-export const withReviewedVersion = (entry, version) => ({
+// `reviewedAt` en plus de la version : le round de confirmation finale raisonne en dates (il
+// demande « votre avis tient-il toujours ? » à un instant donné), alors que la version ne bouge
+// qu'aux mises à jour du projet. Reprendre son avis après la demande vaut confirmation.
+export const withReviewedVersion = (entry, version, at) => ({
   ...(entry && typeof entry === 'object' ? entry : {}),
-  reviewedVersion: toPositiveInteger(version)
+  reviewedVersion: toPositiveInteger(version),
+  reviewedAt: typeof at === 'string' && at.length > 0 ? at : new Date().toISOString()
 });
 
 export const withNeedsReviewSince = (entry, version) => ({
@@ -38,7 +42,7 @@ const readOpinionFingerprint = (entry) => JSON.stringify({
 // Date un avis dès qu'il est posé ou repris. Une simple réponse dans le fil n'en est pas un :
 // répondre à une question n'est pas re-valider, et compter les réponses ferait disparaître le
 // signal « à ré-examiner » au premier échange.
-export const stampReviewedVersions = (nextComments, previousComments, version) => {
+export const stampReviewedVersions = (nextComments, previousComments, version, at) => {
   if (!nextComments || typeof nextComments !== 'object' || Array.isArray(nextComments)) {
     return nextComments;
   }
@@ -55,7 +59,7 @@ export const stampReviewedVersions = (nextComments, previousComments, version) =
 
       acc[targetId] = readOpinionFingerprint(entry) === readOpinionFingerprint(previousEntry)
         ? entry
-        : withReviewedVersion(entry, version);
+        : withReviewedVersion(entry, version, at);
 
       return acc;
     }, {});

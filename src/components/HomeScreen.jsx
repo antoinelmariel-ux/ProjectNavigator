@@ -378,6 +378,7 @@ const computeRemainingQuestions = (project) => {
 export const HomeScreen = ({
   projects = [],
   showcaseFeedbackCounts = {},
+  launchSignals = {},
   projectFilters,
   teamLeadOptions = [],
   inspirationProjects = [],
@@ -1795,6 +1796,9 @@ export const HomeScreen = ({
     const validationBadge = validation ? VALIDATION_BADGE_META[validation.status] : null;
     const ValidationIcon = validationBadge?.icon;
     const feedbackCount = showcaseFeedbackCounts[project.id] || 0;
+    // Le dernier tour ne peut rien bloquer : il ne lui reste que d'être vu. Deux états valent
+    // donc une pastille ici — le tour en cours, et le projet parti sans lui.
+    const launchSignal = launchSignals[project.id] || '';
     const canCancelSubmission = project.status === 'submitted'
       && typeof onCancelProjectSubmission === 'function'
       && (isAdminMode || isOwnedOrSharedProject(project));
@@ -1857,6 +1861,19 @@ export const HomeScreen = ({
                 <span className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700">
                   <Eye className="w-3 h-3" aria-hidden="true" />
                   {t('home.visibleToAllBadge')}
+                </span>
+              )}
+              {(launchSignal === 'awaiting' || launchSignal === 'launched_without') && (
+                <span
+                  className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full border ${
+                    launchSignal === 'launched_without'
+                      ? 'border-red-200 bg-red-50 text-red-700'
+                      : 'border-amber-200 bg-amber-50 text-amber-700'
+                  }`}
+                  title={t(`home.launchSignalTooltip.${launchSignal}`)}
+                >
+                  <AlertTriangle className="w-3 h-3" aria-hidden="true" />
+                  {t(`home.launchSignalBadge.${launchSignal}`)}
                 </span>
               )}
               {feedbackCount > 0 && (

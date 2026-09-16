@@ -45,6 +45,7 @@ import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { ProjectReadinessPanel } from './ProjectReadinessPanel.jsx';
 import { SUBMISSION_KIND_FINAL, SUBMISSION_KIND_PRELIMINARY } from '../utils/submissionKind.js';
 import { getReviewedVersion, isPerimeterReviewPending } from '../utils/perimeterReview.js';
+import { CONFIRMATION_CONFIRMED, CONFIRMATION_REEXAMINING } from '../utils/finalValidationRound.js';
 import { normalizeSubmissionHistory } from '../utils/submissionHistory.js';
 import { getLocaleTag, LANGUAGE_LABELS } from '../i18n/languages.js';
 import { isLanguageAcceptedBy, normalizeAcceptedLanguages } from '../utils/translationAudit.js';
@@ -578,7 +579,11 @@ export const SynthesisReport = ({
   submissionVersion = 0,
   lastSentAt = '',
   onSendUpdate,
-  submissionHistory = null
+  submissionHistory = null,
+  launchSignal = '',
+  roundStatus = null,
+  onRequestFinalValidation,
+  onPerimeterConfirmation
 }) => {
   const { t, language } = useTranslation();
   const [isShowcaseFallbackOpen, setIsShowcaseFallbackOpen] = useState(false);
@@ -1783,6 +1788,9 @@ export const SynthesisReport = ({
               submissionVersion={submissionVersion}
               lastSentAt={lastSentAt}
               onSendUpdate={onSendUpdate}
+              launchSignal={launchSignal}
+              roundStatus={roundStatus}
+              onRequestFinalValidation={onRequestFinalValidation}
             />
           )}
 
@@ -1930,6 +1938,10 @@ export const SynthesisReport = ({
                 // « À ré-examiner » : l'avis existe toujours, mais il porte sur un état du projet
                 // qu'une mise à jour a modifié dans le périmètre de cette équipe.
                 const isTeamReviewPending = isPerimeterReviewPending(rawTeamEntry);
+                // Un tour de confirmation est ouvert et cet avis n'a pas encore été confirmé :
+                // c'est la seule chose qu'on demande à l'expert à ce stade.
+                const isTeamConfirmationPending = Boolean(roundStatus?.isRequested)
+                  && roundStatus.pending.includes(team.id);
                 const narrativeChangesForTeam = normalizedSubmissionHistory.narrativeChanges
                   .filter((change) => change.version > (getReviewedVersion(rawTeamEntry) || 1)).length;
                 const shouldShowOpinionCard = hasExpertOpinion || isAutoValidatedPerimeter || canEditTeamComment;
@@ -2153,6 +2165,41 @@ export const SynthesisReport = ({
                                 </span>
                               )}
                             </div>
+
+                            {isTeamConfirmationPending && canEditTeamComment && (
+                              <div className="rounded-xl border border-blue-200 bg-blue-50 p-3">
+                                <p className="text-sm font-semibold text-blue-900">
+                                  {t('synthesisReport.confirmationRequestedTitle')}
+                                </p>
+                                <p className="mt-1 text-xs text-blue-800">
+                                  {t('synthesisReport.confirmationRequestedHint')}
+                                </p>
+                                <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                                  <button
+                                    type="button"
+                                    onClick={() => onPerimeterConfirmation?.({
+                                      targetId: team.id,
+                                      targetType: 'team',
+                                      state: CONFIRMATION_CONFIRMED
+                                    })}
+                                    className="px-4 py-2 rounded-lg font-semibold text-sm bg-emerald-600 text-white hover:bg-emerald-700 transition-all"
+                                  >
+                                    {t('synthesisReport.confirmOpinionAction')}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => onPerimeterConfirmation?.({
+                                      targetId: team.id,
+                                      targetType: 'team',
+                                      state: CONFIRMATION_REEXAMINING
+                                    })}
+                                    className="px-4 py-2 rounded-lg font-semibold text-sm border border-amber-300 bg-white text-amber-800 hover:bg-amber-50 transition-all"
+                                  >
+                                    {t('synthesisReport.needReviewAction')}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
 
                             {isTeamReviewPending && (
                               <div className="rounded-xl border border-amber-200 bg-amber-50 p-3" role="alert">

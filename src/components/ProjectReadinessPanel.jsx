@@ -9,6 +9,12 @@ import {
   READINESS_VALIDATION
 } from '../utils/projectReadiness.js';
 import { SUBMISSION_KIND_FINAL, SUBMISSION_KIND_PRELIMINARY } from '../utils/submissionKind.js';
+import {
+  LAUNCH_CONFIRMATION_AWAITING,
+  LAUNCH_CONFIRMATION_CONFIRMED,
+  LAUNCH_CONFIRMATION_DUE,
+  LAUNCH_CONFIRMATION_LAUNCHED_WITHOUT
+} from '../utils/launchConfirmation.js';
 
 const LEVEL_ORDER = [READINESS_ORIENTATION, READINESS_ADVICE, READINESS_VALIDATION];
 
@@ -29,7 +35,10 @@ export const ProjectReadinessPanel = ({
   hasSentSnapshot = false,
   submissionVersion = 0,
   lastSentAt = '',
-  onSendUpdate
+  onSendUpdate,
+  launchSignal = '',
+  roundStatus = null,
+  onRequestFinalValidation
 }) => {
   const { t, language } = useTranslation();
 
@@ -42,6 +51,12 @@ export const ProjectReadinessPanel = ({
   const canRequestValidation = levelById.get(READINESS_VALIDATION)?.reached === true;
   const isPreliminaryPending = isSubmitted && submissionKind === SUBMISSION_KIND_PRELIMINARY;
   const hasChangesToSend = pendingChanges.length > 0;
+  // Sans date de lancement déclarée, le signal reste « none » : on propose quand même le tour
+  // final dès que la validation est possible, plutôt que d'attendre une date que le porteur
+  // n'est pas obligé de renseigner.
+  const resolvedLaunchSignal = launchSignal === 'none' && canRequestValidation && !roundStatus?.isRequested
+    ? LAUNCH_CONFIRMATION_DUE
+    : launchSignal;
   const formattedLastSentAt = lastSentAt
     ? new Intl.DateTimeFormat(getLocaleTag(language), { day: '2-digit', month: '2-digit', year: 'numeric' })
       .format(new Date(lastSentAt))
@@ -291,6 +306,53 @@ export const ProjectReadinessPanel = ({
               : t('synthesisReport.readiness.engagementNoTeam')}
           </span>
         </p>
+      )}
+
+      {/* Dernier tour avant lancement. Rien ne peut le rendre obligatoire — il n'existe pas de
+          jalon opposable — donc sa force est d'être visible et de ne coûter qu'un clic à
+          l'expert dans le cas nominal. */}
+      {isSubmitted && !isPreliminaryPending && resolvedLaunchSignal && resolvedLaunchSignal !== 'none' && (
+        <div
+          className={`mt-4 rounded-xl border p-4 ${
+            resolvedLaunchSignal === LAUNCH_CONFIRMATION_LAUNCHED_WITHOUT
+              ? 'border-red-200 bg-red-50'
+              : resolvedLaunchSignal === LAUNCH_CONFIRMATION_CONFIRMED
+                ? 'border-emerald-200 bg-emerald-50'
+                : 'border-amber-200 bg-amber-50'
+          }`}
+          role={resolvedLaunchSignal === LAUNCH_CONFIRMATION_LAUNCHED_WITHOUT ? 'alert' : 'status'}
+        >
+          <p className={`text-sm font-semibold ${
+            resolvedLaunchSignal === LAUNCH_CONFIRMATION_LAUNCHED_WITHOUT
+              ? 'text-red-800'
+              : resolvedLaunchSignal === LAUNCH_CONFIRMATION_CONFIRMED
+                ? 'text-emerald-800'
+                : 'text-amber-900'
+          }`}
+          >
+            {t(`synthesisReport.readiness.launch.${resolvedLaunchSignal}Title`)}
+          </p>
+          <p className="mt-1 text-xs text-gray-700">
+            {resolvedLaunchSignal === LAUNCH_CONFIRMATION_AWAITING && roundStatus
+              ? t('synthesisReport.readiness.launch.awaitingHint', {
+                confirmed: roundStatus.confirmed.length,
+                total: roundStatus.confirmed.length + roundStatus.pending.length + roundStatus.reexamining.length
+              })
+              : t(`synthesisReport.readiness.launch.${resolvedLaunchSignal}Hint`)}
+          </p>
+          {resolvedLaunchSignal !== LAUNCH_CONFIRMATION_CONFIRMED
+            && resolvedLaunchSignal !== LAUNCH_CONFIRMATION_AWAITING
+            && typeof onRequestFinalValidation === 'function' && (
+            <button
+              type="button"
+              onClick={onRequestFinalValidation}
+              className="mt-3 px-4 py-2 rounded-lg font-semibold text-sm transition-all flex items-center justify-center bg-blue-600 text-white hover:bg-blue-700 shadow-md"
+            >
+              <Send className="w-4 h-4 mr-2" />
+              {t('synthesisReport.readiness.launch.requestAction')}
+            </button>
+          )}
+        </div>
       )}
 
       {isPreliminaryPending && (

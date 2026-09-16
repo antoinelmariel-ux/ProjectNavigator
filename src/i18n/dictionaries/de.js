@@ -153,6 +153,10 @@ export default {
     beforeUnload: {
       message: 'Haben Sie Ihr Projekt vor dem Verlassen gespeichert?'
     },
+    finalRound: {
+      requested: 'Endgültige Bestätigung angefragt: Die Experten, die bereits Stellung genommen haben, werden um Bestätigung gebeten.',
+      requestedWithoutRecipients: 'Endgültige Bestätigung eröffnet. Zu diesem Projekt liegt noch keine Stellungnahme vor, es gibt also niemanden zu fragen.'
+    },
     submit: {
       syncing: 'Synchronisierung läuft: Bitte warten Sie vor dem Absenden.',
       missingMandatory: 'Absenden nicht möglich: Vervollständigen Sie die Pflichtfragen vor dem Senden.',
@@ -356,6 +360,14 @@ export default {
     showcaseFeedbackBadgeSingular: '{{count}} Rückmeldung',
     showcaseFeedbackBadgePlural: '{{count}} Rückmeldungen',
     showcaseFeedbackTooltip: 'Haftnotizen auf der Vitrine dieses Projekts, die noch offen sind.',
+    launchSignalBadge: {
+      awaiting: 'Bestätigung läuft',
+      launched_without: 'Ohne Bestätigung gestartet'
+    },
+    launchSignalTooltip: {
+      awaiting: 'Die endgültige Bestätigung wurde bei den Experten angefragt; noch nicht alle haben geantwortet.',
+      launched_without: 'Das angegebene Startdatum ist verstrichen, ohne dass die endgültige Bestätigung vorliegt.'
+    },
     validationStatusOutdated: 'Validiert — seitdem geändert',
     validationTooltipOutdated: 'Die Stellungnahmen waren positiv ({{approved}}/{{total}}), aber eine Aktualisierung hat das Projekt seitdem verändert: mindestens ein Bereich muss erneut prüfen.',
     validationStatusPreliminary: 'Vorläufige Einschätzung',
@@ -643,6 +655,8 @@ export default {
       endDateLabel: 'Enddatum',
       activeFiltersLabel: 'Aktive Filter',
       activeFiltersSummaryTemplate: '{{count}} · {{team}} · {{range}}',
+      launchedWithoutConfirmationLabel: 'Ohne endgültige Bestätigung gestartete Projekte',
+      launchedWithoutConfirmationHint: 'Ihr angegebenes Startdatum ist verstrichen, ohne dass die Experten ihre Stellungnahme bestätigt haben. Verhindern ließ sich das nicht: hier wird es sichtbar.',
       submittedProjectsLabel: 'Anzahl eingereichter Projekte',
       submittedProjectsHint: 'Von insgesamt {{total}} importierten Projekten.',
       avgDelayLabel: 'Durchschnittliche Zeit zwischen Einreichung und Zielstart',
@@ -1233,6 +1247,10 @@ export default {
       noRiskDocumented: 'Kein Risiko dokumentiert.',
       validationCommitteeTitle: 'Validierungsausschuss',
       validationCommitteeSubtitle: 'Definieren Sie mehrere Ausschüsse mit ihren Kontakten und Auslöseregeln.',
+      launchRemindersTitle: 'Erinnerungen vor dem Start',
+      launchRemindersHint: 'Wenn das angegebene Startdatum näher rückt und keine endgültige Bestätigung angefragt wurde, erhält der Projektverantwortliche eine Erinnerung. 0 deaktiviert die jeweilige Erinnerung.',
+      launchReminderFirstLabel: 'Erste Erinnerung (Tage vor dem Startdatum)',
+      launchReminderSecondLabel: 'Zweite Erinnerung (Tage vor dem Startdatum)',
       commentRequestInfoBox: 'Aktivieren Sie bei Bedarf die Kommentaranfrage für jeden Ausschuss. Der Kommentar ist erforderlich, wenn die Kriterien des Ausschusses und die entsprechende Option aktiv sind.',
       enableCommitteeTrackingLabel: 'Ausschüsse aktivieren',
       addCommitteeButton: 'Ausschuss hinzufügen',
@@ -1725,6 +1743,10 @@ export default {
     backToHome: 'Zurück zur Startseite'
   },
   synthesisReport: {
+    confirmationRequestedTitle: 'Gilt Ihre Stellungnahme weiterhin?',
+    confirmationRequestedHint: 'Der Projektverantwortliche steht kurz vor dem Start. Sie sollen nicht alles neu lesen: bestätigen Sie Ihre Stellungnahme oder sagen Sie, dass Sie sie erneut prüfen müssen.',
+    confirmOpinionAction: 'Ich bestätige meine Stellungnahme',
+    needReviewAction: 'Ich muss erneut prüfen',
     reviewPendingBadge: 'Erneut prüfen',
     reviewPendingHint: 'Das Projekt hat sich seit Ihrer Stellungnahme geändert, und diese Änderungen betreffen Ihren Bereich.',
     lastUpdateChangesHeading: 'Änderungen der letzten Aktualisierung',
@@ -1732,6 +1754,17 @@ export default {
     exchangeInProgressTitle: 'Austausch läuft',
     exchangeInProgressHint: 'Für diesen Bereich liegt noch keine Stellungnahme vor. Sie können Ihre Fragen unten im Verlauf sofort stellen.',
     readiness: {
+      launch: {
+        dueTitle: 'Letzte Runde vor dem Start',
+        dueHint: 'Bitten Sie die Experten, die Stellung genommen haben, ihre Einschätzung anhand des heutigen Projektstands zu bestätigen. Für sie ist das im Normalfall ein Klick.',
+        awaitingTitle: 'Endgültige Bestätigung läuft',
+        awaitingHint: '{{confirmed}} von {{total}} Bereichen haben bestätigt. Die Runde bleibt offen, bis sich die übrigen geäußert haben.',
+        confirmedTitle: 'Endgültige Bestätigung erhalten',
+        confirmedHint: 'Alle abgegebenen Stellungnahmen wurden für den aktuellen Projektstand bestätigt.',
+        launched_withoutTitle: 'Das Startdatum ist ohne endgültige Bestätigung verstrichen',
+        launched_withoutHint: 'Technisch hindert nichts den Start, aber dieses Projekt gilt als ohne Bestätigung gestartet — für Sie, für die Experten und im Dashboard der Administratoren.',
+        requestAction: 'Endgültige Bestätigung anfragen'
+      },
       pendingChangesHeadingSingular: '{{count}} Antwort seit v{{version}} geändert, gesendet am {{date}}',
       pendingChangesHeadingPlural: '{{count}} Antworten seit v{{version}} geändert, gesendet am {{date}}',
       pendingChangesHint: 'Senden Sie die Aktualisierung, wann Sie es für sinnvoll halten: benachrichtigt werden nur Teams, deren Bereich sich wirklich ändert; die anderen behalten ihre Stellungnahme und bleiben unbehelligt.',

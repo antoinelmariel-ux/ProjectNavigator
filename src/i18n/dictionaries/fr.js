@@ -153,6 +153,10 @@ export default {
     beforeUnload: {
       message: 'Avez-vous bien sauvegardé votre projet avant de quitter ?'
     },
+    finalRound: {
+      requested: 'Confirmation finale demandée : les experts qui se sont déjà prononcés sont invités à confirmer leur avis.',
+      requestedWithoutRecipients: 'Confirmation finale ouverte. Aucun avis n’a encore été rendu sur ce projet, il n’y a donc personne à relancer.'
+    },
     submit: {
       syncing: 'Synchronisation en cours : veuillez patienter avant de soumettre.',
       missingMandatory: 'Impossible de soumettre : complétez les questions obligatoires avant l’envoi.',
@@ -356,6 +360,14 @@ export default {
     showcaseFeedbackBadgeSingular: '{{count}} retour',
     showcaseFeedbackBadgePlural: '{{count}} retours',
     showcaseFeedbackTooltip: 'Post-its laissés sur la vitrine de ce projet et pas encore traités.',
+    launchSignalBadge: {
+      awaiting: 'Confirmation en cours',
+      launched_without: 'Lancé sans confirmation'
+    },
+    launchSignalTooltip: {
+      awaiting: 'La confirmation finale a été demandée aux experts ; tous n’ont pas encore répondu.',
+      launched_without: 'La date de lancement déclarée est passée sans que la confirmation finale ait été obtenue.'
+    },
     validationStatusOutdated: 'Validé — modifié depuis',
     validationTooltipOutdated: 'Les avis étaient favorables ({{approved}}/{{total}}), mais une mise à jour a changé le projet depuis : au moins un périmètre doit ré-examiner.',
     validationStatusPreliminary: 'Avis préliminaire',
@@ -640,6 +652,8 @@ export default {
       endDateLabel: 'Date de fin',
       activeFiltersLabel: 'Filtres actifs',
       activeFiltersSummaryTemplate: '{{count}} · {{team}} · {{range}}',
+      launchedWithoutConfirmationLabel: 'Projets lancés sans confirmation finale',
+      launchedWithoutConfirmationHint: 'Leur date de lancement déclarée est passée sans que les experts aient confirmé leur avis. Rien ne pouvait l’empêcher : c’est ici que ça se voit.',
       submittedProjectsLabel: 'Nombre de projets soumis',
       submittedProjectsHint: 'Sur un total de {{total}} projets importés.',
       avgDelayLabel: 'Délai moyen entre soumission et lancement cible',
@@ -1231,6 +1245,10 @@ export default {
       noRiskDocumented: 'Aucun risque documenté.',
       validationCommitteeTitle: 'Comité de validation',
       validationCommitteeSubtitle: 'Définissez plusieurs comités avec leurs contacts et leurs règles de déclenchement.',
+      launchRemindersTitle: 'Rappels avant lancement',
+      launchRemindersHint: 'Quand la date de lancement déclarée approche et qu’aucune confirmation finale n’a été demandée, le porteur reçoit un rappel. 0 désactive le rappel correspondant.',
+      launchReminderFirstLabel: 'Premier rappel (jours avant la date de lancement)',
+      launchReminderSecondLabel: 'Second rappel (jours avant la date de lancement)',
       commentRequestInfoBox: 'Activez la demande de commentaire pour chaque comité selon vos besoins. Le commentaire est requis lorsque les critères du comité et l’option dédiée sont actifs.',
       enableCommitteeTrackingLabel: 'Activer les comités',
       addCommitteeButton: 'Ajouter un comité',
@@ -1724,6 +1742,10 @@ export default {
     backToHome: 'Retour à l’accueil'
   },
   synthesisReport: {
+    confirmationRequestedTitle: 'Votre avis est-il toujours valable ?',
+    confirmationRequestedHint: 'Le porteur s’apprête à lancer. On ne vous demande pas de tout relire : confirmez votre avis, ou dites que vous devez le réexaminer.',
+    confirmOpinionAction: 'Je confirme mon avis',
+    needReviewAction: 'Je dois réexaminer',
     reviewPendingBadge: 'À ré-examiner',
     reviewPendingHint: 'Le projet a changé depuis votre avis : ces modifications touchent votre périmètre.',
     lastUpdateChangesHeading: 'Modifications de la dernière mise à jour',
@@ -1731,6 +1753,17 @@ export default {
     exchangeInProgressTitle: 'Échange en cours',
     exchangeInProgressHint: 'Aucun avis n’a encore été rendu pour ce périmètre. Vous pouvez poser vos questions dans le fil ci-dessous sans attendre.',
     readiness: {
+      launch: {
+        dueTitle: 'Dernier tour avant lancement',
+        dueHint: 'Demandez aux experts qui se sont prononcés de confirmer leur avis au vu de ce que le projet est devenu. Pour eux, c’est un clic dans le cas nominal.',
+        awaitingTitle: 'Confirmation finale en cours',
+        awaitingHint: '{{confirmed}} périmètre(s) sur {{total}} ont confirmé. Le tour reste ouvert tant que les autres ne se sont pas prononcés.',
+        confirmedTitle: 'Confirmation finale obtenue',
+        confirmedHint: 'Tous les avis rendus ont été confirmés sur l’état actuel du projet.',
+        launched_withoutTitle: 'La date de lancement est passée sans confirmation finale',
+        launched_withoutHint: 'Rien n’empêche techniquement le lancement, mais ce projet apparaît comme lancé sans confirmation — pour vous, pour les experts et dans le tableau de bord des administrateurs.',
+        requestAction: 'Demander la confirmation finale'
+      },
       pendingChangesHeadingSingular: '{{count}} réponse modifiée depuis la v{{version}} envoyée le {{date}}',
       pendingChangesHeadingPlural: '{{count}} réponses modifiées depuis la v{{version}} envoyée le {{date}}',
       pendingChangesHint: 'Envoyez la mise à jour quand vous le jugez utile : seules les équipes dont le périmètre change réellement seront notifiées, les autres gardent leur avis et ne sont pas dérangées.',

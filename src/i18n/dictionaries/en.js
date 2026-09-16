@@ -153,6 +153,10 @@ export default {
     beforeUnload: {
       message: 'Have you saved your project before leaving?'
     },
+    finalRound: {
+      requested: 'Final confirmation requested: the experts who already gave an opinion are asked to confirm it.',
+      requestedWithoutRecipients: 'Final confirmation opened. No opinion has been given on this project yet, so there is nobody to ask.'
+    },
     submit: {
       syncing: 'Sync in progress: please wait before submitting.',
       missingMandatory: 'Unable to submit: complete the mandatory questions before sending.',
@@ -354,6 +358,14 @@ export default {
     showcaseFeedbackBadgeSingular: '{{count}} comment',
     showcaseFeedbackBadgePlural: '{{count}} comments',
     showcaseFeedbackTooltip: 'Sticky notes left on this project’s showcase and not yet handled.',
+    launchSignalBadge: {
+      awaiting: 'Confirmation under way',
+      launched_without: 'Launched without confirmation'
+    },
+    launchSignalTooltip: {
+      awaiting: 'The final confirmation was requested from the experts; not all of them have answered yet.',
+      launched_without: 'The declared launch date has passed without the final confirmation being obtained.'
+    },
     validationStatusOutdated: 'Validated — changed since',
     validationTooltipOutdated: 'Opinions were favourable ({{approved}}/{{total}}), but an update changed the project since: at least one area has to review again.',
     validationStatusPreliminary: 'Preliminary advice',
@@ -632,6 +644,8 @@ export default {
       endDateLabel: 'End date',
       activeFiltersLabel: 'Active filters',
       activeFiltersSummaryTemplate: '{{count}} · {{team}} · {{range}}',
+      launchedWithoutConfirmationLabel: 'Projects launched without final confirmation',
+      launchedWithoutConfirmationHint: 'Their declared launch date has passed without the experts confirming their opinion. Nothing could prevent it: this is where it shows.',
       submittedProjectsLabel: 'Number of submitted projects',
       submittedProjectsHint: 'Out of a total of {{total}} imported projects.',
       avgDelayLabel: 'Average delay between submission and target launch',
@@ -1222,6 +1236,10 @@ export default {
       noRiskDocumented: 'No risk documented.',
       validationCommitteeTitle: 'Validation committee',
       validationCommitteeSubtitle: 'Define several committees with their contacts and trigger rules.',
+      launchRemindersTitle: 'Reminders before launch',
+      launchRemindersHint: 'When the declared launch date approaches and no final confirmation has been requested, the owner gets a reminder. 0 disables that reminder.',
+      launchReminderFirstLabel: 'First reminder (days before the launch date)',
+      launchReminderSecondLabel: 'Second reminder (days before the launch date)',
       commentRequestInfoBox: 'Enable the comment request for each committee as needed. The comment is required when the committee’s criteria and the dedicated option are both active.',
       enableCommitteeTrackingLabel: 'Enable committees',
       addCommitteeButton: 'Add a committee',
@@ -1714,6 +1732,10 @@ export default {
     backToHome: 'Back to home'
   },
   synthesisReport: {
+    confirmationRequestedTitle: 'Does your opinion still hold?',
+    confirmationRequestedHint: 'The owner is about to launch. You are not asked to review everything: confirm your opinion, or say you need to look at it again.',
+    confirmOpinionAction: 'I confirm my opinion',
+    needReviewAction: 'I need to review again',
     reviewPendingBadge: 'To review again',
     reviewPendingHint: 'The project changed since your opinion, and those changes affect your area.',
     lastUpdateChangesHeading: 'Changes in the latest update',
@@ -1721,6 +1743,17 @@ export default {
     exchangeInProgressTitle: 'Exchange under way',
     exchangeInProgressHint: 'No opinion has been given for this area yet. You can ask your questions in the thread below right away.',
     readiness: {
+      launch: {
+        dueTitle: 'Final round before launch',
+        dueHint: 'Ask the experts who gave an opinion to confirm it against what the project has become. For them it is one click in the normal case.',
+        awaitingTitle: 'Final confirmation under way',
+        awaitingHint: '{{confirmed}} of {{total}} areas have confirmed. The round stays open until the others have answered.',
+        confirmedTitle: 'Final confirmation obtained',
+        confirmedHint: 'Every opinion given has been confirmed against the project as it stands.',
+        launched_withoutTitle: 'The launch date has passed with no final confirmation',
+        launched_withoutHint: 'Nothing technically prevents the launch, but this project shows as launched without confirmation — to you, to the experts and in the administrators’ dashboard.',
+        requestAction: 'Request the final confirmation'
+      },
       pendingChangesHeadingSingular: '{{count}} answer changed since v{{version}}, sent on {{date}}',
       pendingChangesHeadingPlural: '{{count}} answers changed since v{{version}}, sent on {{date}}',
       pendingChangesHint: 'Send the update whenever you see fit: only the teams whose scope actually changes will be notified, the others keep their opinion and are left alone.',

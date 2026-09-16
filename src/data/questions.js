@@ -5428,7 +5428,8 @@ export const initialQuestions = [
       "es": "¿Cuál es la fecha de lanzamiento deseada?"
     },
     "options": [],
-    "required": false,
+    "required": true,
+    "requiredFromStage": "pre_launch",
     "conditions": [],
     "conditionLogic": "all",
     "guidance": {

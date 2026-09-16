@@ -153,6 +153,10 @@ export default {
     beforeUnload: {
       message: '¿Ha guardado bien su proyecto antes de salir?'
     },
+    finalRound: {
+      requested: 'Confirmación final solicitada: se pide a los expertos que ya se pronunciaron que confirmen su dictamen.',
+      requestedWithoutRecipients: 'Confirmación final abierta. Aún no se ha emitido ningún dictamen sobre este proyecto, así que no hay a quién pedírsela.'
+    },
     submit: {
       syncing: 'Sincronización en curso: espere antes de enviar.',
       missingMandatory: 'No se puede enviar: complete las preguntas obligatorias antes de enviar.',
@@ -355,6 +359,14 @@ export default {
     showcaseFeedbackBadgeSingular: '{{count}} comentario',
     showcaseFeedbackBadgePlural: '{{count}} comentarios',
     showcaseFeedbackTooltip: 'Notas adhesivas dejadas en la vitrina de este proyecto y aún sin tratar.',
+    launchSignalBadge: {
+      awaiting: 'Confirmación en curso',
+      launched_without: 'Lanzado sin confirmación'
+    },
+    launchSignalTooltip: {
+      awaiting: 'Se ha solicitado la confirmación final a los expertos; todavía no han respondido todos.',
+      launched_without: 'La fecha de lanzamiento declarada ha pasado sin obtener la confirmación final.'
+    },
     validationStatusOutdated: 'Validado — modificado después',
     validationTooltipOutdated: 'Los dictámenes eran favorables ({{approved}}/{{total}}), pero una actualización ha cambiado el proyecto desde entonces: al menos un ámbito debe volver a examinar.',
     validationStatusPreliminary: 'Dictamen preliminar',
@@ -633,6 +645,8 @@ export default {
       endDateLabel: 'Fecha de fin',
       activeFiltersLabel: 'Filtros activos',
       activeFiltersSummaryTemplate: '{{count}} · {{team}} · {{range}}',
+      launchedWithoutConfirmationLabel: 'Proyectos lanzados sin confirmación final',
+      launchedWithoutConfirmationHint: 'Su fecha de lanzamiento declarada ha pasado sin que los expertos confirmaran su dictamen. Nada podía impedirlo: aquí es donde se ve.',
       submittedProjectsLabel: 'Número de proyectos enviados',
       submittedProjectsHint: 'De un total de {{total}} proyectos importados.',
       avgDelayLabel: 'Retraso medio entre el envío y el lanzamiento previsto',
@@ -1223,6 +1237,10 @@ export default {
       noRiskDocumented: 'Ningún riesgo documentado.',
       validationCommitteeTitle: 'Comité de validación',
       validationCommitteeSubtitle: 'Defina varios comités con sus contactos y reglas de activación.',
+      launchRemindersTitle: 'Recordatorios antes del lanzamiento',
+      launchRemindersHint: 'Cuando se acerca la fecha de lanzamiento declarada y no se ha solicitado la confirmación final, el responsable recibe un recordatorio. 0 desactiva el recordatorio correspondiente.',
+      launchReminderFirstLabel: 'Primer recordatorio (días antes de la fecha de lanzamiento)',
+      launchReminderSecondLabel: 'Segundo recordatorio (días antes de la fecha de lanzamiento)',
       commentRequestInfoBox: 'Active la solicitud de comentario para cada comité si es necesario. El comentario será obligatorio cuando los criterios del comité y la opción correspondiente estén activos.',
       enableCommitteeTrackingLabel: 'Activar los comités',
       addCommitteeButton: 'Añadir un comité',
@@ -1714,6 +1732,10 @@ export default {
     backToHome: 'Volver al inicio'
   },
   synthesisReport: {
+    confirmationRequestedTitle: '¿Su dictamen sigue siendo válido?',
+    confirmationRequestedHint: 'El responsable está a punto de lanzar. No se le pide releerlo todo: confirme su dictamen o indique que debe volver a examinarlo.',
+    confirmOpinionAction: 'Confirmo mi dictamen',
+    needReviewAction: 'Debo volver a examinar',
     reviewPendingBadge: 'Volver a examinar',
     reviewPendingHint: 'El proyecto ha cambiado desde su dictamen y esos cambios afectan a su ámbito.',
     lastUpdateChangesHeading: 'Modificaciones de la última actualización',
@@ -1721,6 +1743,17 @@ export default {
     exchangeInProgressTitle: 'Intercambio en curso',
     exchangeInProgressHint: 'Todavía no se ha emitido ningún dictamen para este ámbito. Puede plantear sus preguntas en el hilo de abajo sin esperar.',
     readiness: {
+      launch: {
+        dueTitle: 'Última ronda antes del lanzamiento',
+        dueHint: 'Pida a los expertos que se pronunciaron que confirmen su dictamen a la vista de lo que el proyecto es hoy. Para ellos es un clic en el caso normal.',
+        awaitingTitle: 'Confirmación final en curso',
+        awaitingHint: '{{confirmed}} de {{total}} ámbitos han confirmado. La ronda sigue abierta hasta que los demás se pronuncien.',
+        confirmedTitle: 'Confirmación final obtenida',
+        confirmedHint: 'Todos los dictámenes emitidos se han confirmado sobre el estado actual del proyecto.',
+        launched_withoutTitle: 'La fecha de lanzamiento ha pasado sin confirmación final',
+        launched_withoutHint: 'Nada impide técnicamente el lanzamiento, pero este proyecto aparece como lanzado sin confirmación: para usted, para los expertos y en el panel de los administradores.',
+        requestAction: 'Solicitar la confirmación final'
+      },
       pendingChangesHeadingSingular: '{{count}} respuesta modificada desde la v{{version}}, enviada el {{date}}',
       pendingChangesHeadingPlural: '{{count}} respuestas modificadas desde la v{{version}}, enviada el {{date}}',
       pendingChangesHint: 'Envíe la actualización cuando lo considere oportuno: solo se notificará a los equipos cuyo ámbito cambie realmente; los demás conservan su dictamen y no se les molesta.',

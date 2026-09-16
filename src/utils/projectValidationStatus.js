@@ -70,6 +70,10 @@ export const getProjectCompliancePerimeters = (project, options = {}) => {
         type: 'team',
         required: true,
         status: readStatus(entry),
+        // L'entrée *brute* : un périmètre auto-validé a un statut effectif sans que personne ne
+        // l'ait écrit, et il ne faut jamais attendre de lui une confirmation que personne ne
+        // viendra donner.
+        entry: comments.teams?.[team.id] || null,
         reviewPending: isPerimeterReviewPending(comments.teams?.[team.id])
       };
     }),
@@ -80,6 +84,7 @@ export const getProjectCompliancePerimeters = (project, options = {}) => {
       // validation, mais son refus éventuel compte quand même.
       required: committee?.commentRequired !== false,
       status: readStatus(comments.committees?.[committee.id]),
+      entry: comments.committees?.[committee.id] || null,
       reviewPending: isPerimeterReviewPending(comments.committees?.[committee.id])
     }))
   ];

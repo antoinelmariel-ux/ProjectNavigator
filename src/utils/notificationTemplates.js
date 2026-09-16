@@ -13,6 +13,9 @@ export const NOTIFICATION_TYPES = {
   PROJECT_UPDATED_TEAM: 'project-updated-team',
   PROJECT_PERIMETER_DROPPED_TEAM: 'project-perimeter-dropped-team',
   PROJECT_UPDATE_SENT_OWNER: 'project-update-sent-owner',
+  FINAL_CONFIRMATION_REQUESTED: 'final-confirmation-requested',
+  FINAL_CONFIRMATION_REMINDER: 'final-confirmation-reminder',
+  FINAL_CONFIRMATION_REEXAMINING: 'final-confirmation-reexamining',
   PROJECT_SHARED: 'project-shared',
   SHOWCASE_COMMENT: 'showcase-comment',
   SHOWCASE_COMMENT_REPLY: 'showcase-comment-reply',
@@ -130,6 +133,45 @@ export const NOTIFICATION_CATALOG = {
       'You can keep working on your project: send another update whenever it changes again.'
     ],
     reason: () => 'you are the owner or co-owner of this project.'
+  },
+
+  // Ce qu'on demande ici n'est pas de tout relire : c'est de confirmer un avis au vu de ce qui a
+  // changé. Le dire explicitement est ce qui garde le cas nominal à deux minutes — sinon le
+  // dernier tour devient le goulot qui dissuade les porteurs de faire évoluer leur projet.
+  [NOTIFICATION_TYPES.FINAL_CONFIRMATION_REQUESTED]: {
+    actionType: 'Final confirmation requested',
+    intro: (ctx) =>
+      `${ctx.actorName} is about to launch ${quoted(ctx.projectName)} and asks you to confirm the opinion you already gave.`,
+    expected: () => [
+      'Open the synthesis report: your previous opinion and everything that changed since are shown side by side.',
+      'If your opinion still holds, one click on “I confirm my opinion” is enough — you are not asked to review the whole project again.',
+      'If something changed that you need to look at, choose “I need to review again” and update your opinion.'
+    ],
+    reason: () => 'you gave an opinion on this project, and its owner is now asking to launch it.'
+  },
+
+  [NOTIFICATION_TYPES.FINAL_CONFIRMATION_REMINDER]: {
+    actionType: 'Launch approaching',
+    intro: (ctx) =>
+      `The launch date you gave for ${quoted(ctx.projectName)} is approaching, and no final confirmation has been requested yet.`,
+    expected: () => [
+      'Open the project and request the final confirmation from the synthesis report.',
+      'The teams that already gave an opinion are only asked to confirm it, which takes them a couple of minutes.',
+      'Nothing prevents you from launching without it — but the project will be flagged as launched without confirmation.'
+    ],
+    reason: () => 'you are the owner or co-owner of this project, and you declared its launch date.'
+  },
+
+  [NOTIFICATION_TYPES.FINAL_CONFIRMATION_REEXAMINING]: {
+    actionType: 'Final confirmation - review needed',
+    intro: (ctx) =>
+      `${ctx.actorName} cannot confirm their opinion on ${quoted(ctx.projectName)} as it stands and needs to review it again.`,
+    expected: () => [
+      'No action is required from you right now.',
+      'The expert will come back to you through the synthesis report.',
+      'The final confirmation stays open until they have updated their opinion.'
+    ],
+    reason: () => 'you requested the final confirmation for this project.'
   },
 
   [NOTIFICATION_TYPES.PROJECT_SHARED]: {

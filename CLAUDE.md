@@ -261,6 +261,37 @@ declared **later** in the component does not throw a TDZ error — it silently r
 A memo placed above `activeProject` therefore computed an empty submission history on every
 render, with no error anywhere. Keep derived memos below the state they read.
 
+## The final round before launch (and why it cannot block anything)
+
+There is no formal gate in the organisation: nothing can technically stop a launch. The whole
+design follows from that — the round's force is that it is **asked for explicitly**, **costs the
+expert one click** in the nominal case, and makes a project that ships without it **visible**.
+
+- **`src/utils/finalValidationRound.js`** holds the round (in `answers` under
+  `__final_validation_round__`, like every other project-level marker — no new SharePoint column).
+  The owner requests it; the app never opens one on its own, because only the owner knows they are
+  launching. It is **replayable**: a launch pushed back six months opens round 2 and archives
+  round 1, so a stale confirmation never passes for a current one.
+- **Only perimeters that actually gave an opinion enter the round.** The check reads the *raw*
+  compliance entry, which excludes auto-validated perimeters by construction — nobody will ever
+  come and confirm an opinion no human wrote. Teams that never answered stay in the ordinary
+  solicitation flow.
+- **Re-issuing an opinion after the request counts as confirming** (`reviewedAt > requestedAt`).
+  Asking an expert to click "I confirm" right after they rewrote their opinion would be a
+  formality, and formalities are what make a round expensive.
+- **"I need to review again" reuses the update machinery**: it sets `needsReviewSince`, so the
+  perimeter shows the same "to review again" state as after a project update and the home badge
+  goes `outdated`. The round stays open until a new opinion lands.
+- **`src/utils/launchConfirmation.js`** derives the visible signal from the declared `launchDate`
+  and the round: `due` → `awaiting` → `confirmed`, or `launched_without` once the date has passed
+  with no complete round. That last state is the only sanction available, so it shows on the home
+  card, in the synthesis and in the administrators' dashboard. `launchDate` is therefore mandatory
+  from the `pre_launch` stage.
+- **Reminders** (default J-30 then J-10, `0` disables, editable in the back-office's validation
+  committee tab) run the same way as the claim reminders: no server, so the pass runs in the
+  session of whoever opens the app — here the owner, since they are the one who decides to launch
+  — and `remindersSent` keeps it idempotent. The nearest threshold wins.
+
 ## Project validation status (home cards)
 
 `src/utils/projectValidationStatus.js` aggregates the per-perimeter compliance statuses of one

@@ -25,6 +25,7 @@ import { QuestionEditor } from './QuestionEditor.jsx';
 import { RuleEditor } from './RuleEditor.jsx';
 import { RuleDraftBuilder } from './RuleDraftBuilder.jsx';
 import { BackOfficeDashboard } from './BackOfficeDashboard.jsx';
+import { normalizeLaunchReminderDays } from '../utils/launchConfirmation.js';
 import { VirtualizedList } from './VirtualizedList.jsx';
 import { renderTextWithLinks } from '../utils/linkify.js';
 import { normalizeConditionGroups } from '../utils/conditionGroups.js';
@@ -709,6 +710,9 @@ const createEmptyInspirationFormField = () => ({
 });
 
 export const BackOffice = ({
+  launchSignals = {},
+  launchReminderDays,
+  setLaunchReminderDays,
   projects,
   questions,
   setQuestions,
@@ -5026,7 +5030,7 @@ export const BackOffice = ({
               aria-labelledby="backoffice-tab-dashboard"
               className="space-y-6"
             >
-              <BackOfficeDashboard projects={projects} teams={teams} />
+              <BackOfficeDashboard projects={projects} teams={teams} launchSignals={launchSignals} />
             </section>
           )}
 
@@ -7422,6 +7426,54 @@ export const BackOffice = ({
                 <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900">
                   {t('backOffice.main.commentRequestInfoBox')}
                 </div>
+
+                {/* Rappels du dernier tour : une organisation qui prépare ses lancements deux
+                    mois à l'avance n'a pas les mêmes repères qu'une autre qui décide en trois
+                    semaines. `0` désactive le rappel, comme les délais de relance des équipes. */}
+                {typeof setLaunchReminderDays === 'function' && (
+                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
+                    <div>
+                      <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-700">
+                        {t('backOffice.main.launchRemindersTitle')}
+                      </h3>
+                      <p className="mt-1 text-xs text-gray-600">{t('backOffice.main.launchRemindersHint')}</p>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1" htmlFor="launch-reminder-first">
+                          {t('backOffice.main.launchReminderFirstLabel')}
+                        </label>
+                        <input
+                          id="launch-reminder-first"
+                          type="number"
+                          min="0"
+                          value={normalizeLaunchReminderDays(launchReminderDays).first}
+                          onChange={(event) => setLaunchReminderDays(normalizeLaunchReminderDays({
+                            ...normalizeLaunchReminderDays(launchReminderDays),
+                            first: Number.parseInt(event.target.value, 10)
+                          }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1" htmlFor="launch-reminder-second">
+                          {t('backOffice.main.launchReminderSecondLabel')}
+                        </label>
+                        <input
+                          id="launch-reminder-second"
+                          type="number"
+                          min="0"
+                          value={normalizeLaunchReminderDays(launchReminderDays).second}
+                          onChange={(event) => setLaunchReminderDays(normalizeLaunchReminderDays({
+                            ...normalizeLaunchReminderDays(launchReminderDays),
+                            second: Number.parseInt(event.target.value, 10)
+                          }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex flex-wrap items-center gap-3">
                   <label className="inline-flex items-center gap-3 text-sm font-medium text-gray-700">

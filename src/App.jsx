@@ -50,6 +50,20 @@ import {
 } from './utils/submissionHistory.js';
 import { diffAnswers, getNarrativeQuestionIds } from './utils/answersDiff.js';
 import { computePerimeterImpact } from './utils/perimeterImpact.js';
+import {
+  CONFIRMATION_REEXAMINING,
+  getFinalValidationRoundStatus,
+  hasLaunchReminderBeenSent,
+  markLaunchReminderSent,
+  startFinalValidationRound,
+  withPerimeterConfirmation
+} from './utils/finalValidationRound.js';
+import {
+  getDueLaunchReminder,
+  getLaunchConfirmationSignal,
+  normalizeLaunchReminderDays
+} from './utils/launchConfirmation.js';
+import { getProjectCompliancePerimeters } from './utils/projectValidationStatus.js';
 import { stampReviewedVersions, withNeedsReviewSince } from './utils/perimeterReview.js';
 import { getUncertainRuleCoverage } from './utils/uncertainCoverage.js';
 import {
@@ -806,6 +820,14 @@ const buildInitialOnboardingConfig = () => {
   return cloneDeep(initialOnboardingTourConfig);
 };
 
+// Seuils de rappel avant lancement, côté référentiel publié comme les autres réglages globaux :
+// une organisation qui prépare ses lancements deux mois à l'avance n'a pas les mêmes repères
+// qu'une autre qui décide en trois semaines.
+const buildInitialLaunchReminderDays = () => {
+  const savedState = loadPersistedState();
+  return normalizeLaunchReminderDays(savedState?.launchReminderDays);
+};
+
 const buildInitialValidationCommitteeConfig = () => {
   const savedState = loadPersistedState();
   if (savedState && savedState.validationCommitteeConfig) {
@@ -923,6 +945,7 @@ export const App = () => {
   );
   const [persistenceError, setPersistenceError] = useState(false);
   const [validationCommitteeConfig, setValidationCommitteeConfig] = useState(buildInitialValidationCommitteeConfig);
+  const [launchReminderDays, setLaunchReminderDays] = useState(buildInitialLaunchReminderDays);
   const [adminEmails, setAdminEmails] = useState(buildInitialAdminEmailsState);
   const [technicalContactEmails, setTechnicalContactEmails] = useState(buildInitialTechnicalContactEmailsState);
   const [complianceSampleProjects, setComplianceSampleProjects] = useState(buildInitialComplianceSampleProjectsState);
@@ -1373,6 +1396,7 @@ export const App = () => {
       technicalContactEmails,
       onboardingTourConfig,
       validationCommitteeConfig,
+      launchReminderDays,
       inspirationFormFields,
       projectFilters,
       inspirationFilters
@@ -1386,6 +1410,7 @@ export const App = () => {
     technicalContactEmails,
     onboardingTourConfig,
     validationCommitteeConfig,
+    launchReminderDays,
     inspirationFormFields,
     projectFilters,
     inspirationFilters
@@ -1763,6 +1788,9 @@ const updateProjectFilters = useCallback((updater) => {
       if (slices.validationCommitteeConfig) {
         setValidationCommitteeConfig(normalizeValidationCommitteeConfig(slices.validationCommitteeConfig));
       }
+      if (slices.launchReminderDays) {
+        setLaunchReminderDays(normalizeLaunchReminderDays(slices.launchReminderDays));
+      }
     };
 
     const hydrateFromSharePoint = async () => {
@@ -1969,6 +1997,7 @@ const updateProjectFilters = useCallback((updater) => {
       inspirationFormFields,
       onboardingTourConfig,
       validationCommitteeConfig,
+      launchReminderDays,
       adminEmails,
       technicalContactEmails,
       complianceSampleProjects
@@ -2008,6 +2037,7 @@ const updateProjectFilters = useCallback((updater) => {
     inspirationFormFields,
     onboardingTourConfig,
     validationCommitteeConfig,
+    launchReminderDays,
     adminEmails,
     technicalContactEmails,
     complianceSampleProjects,
@@ -3171,6 +3201,19 @@ const updateProjectFilters = useCallback((updater) => {
 
   const showcaseFeedbackCount = activeProjectId ? (showcaseFeedbackCounts[activeProjectId] || 0) : 0;
 
+  // Périmètres concernés par un tour de confirmation : ceux qui se sont réellement prononcés.
+  // L'entrée brute (et non l'entrée effective) exclut d'office les périmètres auto-validés, dont
+  // personne ne viendra jamais confirmer l'avis.
+  const buildRoundPerimeters = useCallback((project) => getProjectCompliancePerimeters(project, {
+    teams,
+    validationCommitteeConfig
+  }).map((perimeter) => ({
+    id: perimeter.id,
+    type: perimeter.type,
+    hasOpinion: Boolean(perimeter.entry?.status),
+    entry: perimeter.entry
+  })), [teams, validationCommitteeConfig]);
+
   const projectReadiness = useMemo(
     () => getProjectReadiness(activeQuestions, answers),
     [activeQuestions, answers]
@@ -3248,6 +3291,24 @@ const updateProjectFilters = useCallback((updater) => {
 
     return diffAnswers(activeProjectSubmissionHistory.snapshot, answers, questions, language);
   }, [activeProject, activeProjectSubmissionHistory, answers, questions, language]);
+
+  const activeProjectRoundStatus = useMemo(
+    () => getFinalValidationRoundStatus(activeProject?.answers, buildRoundPerimeters(activeProject)),
+    [activeProject, buildRoundPerimeters]
+  );
+
+  const launchSignalsByProject = useMemo(() => projects.reduce((acc, project) => {
+    if (!project?.id || project.status !== 'submitted') {
+      return acc;
+    }
+
+    acc[project.id] = getLaunchConfirmationSignal({
+      answers: project.answers,
+      roundStatus: getFinalValidationRoundStatus(project.answers, buildRoundPerimeters(project)),
+      reminderDays: launchReminderDays
+    });
+    return acc;
+  }, {}), [projects, buildRoundPerimeters, launchReminderDays]);
 
 
   const activeProjectName = useMemo(() => {
@@ -4394,6 +4455,75 @@ const updateProjectFilters = useCallback((updater) => {
     notify,
     projects,
     teams
+  ]);
+
+  // Rappel au porteur quand la date de lancement qu'il a déclarée approche et qu'aucune
+  // confirmation finale n'a été demandée. Même mécanique que la relance des prises en charge :
+  // sans serveur, la passe tourne dans la session de celui qui ouvre l'app — ici le porteur
+  // lui-même, puisque c'est lui qui décide de lancer — et `remindersSent` la rend idempotente.
+  const launchRemindersSentRef = useRef(new Set());
+
+  useEffect(() => {
+    if (!isHydrated || !currentUserEmail || isSimulatedSession || projects.length === 0 || isSharePointMode()) {
+      return;
+    }
+
+    projects.forEach((project) => {
+      if (!project?.id || project.status !== 'submitted' || !canManageProject(project)) {
+        return;
+      }
+
+      const roundStatus = getFinalValidationRoundStatus(project.answers, buildRoundPerimeters(project));
+      const dueThreshold = getDueLaunchReminder({
+        answers: project.answers,
+        roundStatus,
+        reminderDays: launchReminderDays
+      });
+
+      if (dueThreshold === null || hasLaunchReminderBeenSent(project.answers, dueThreshold)) {
+        return;
+      }
+
+      const guardKey = `${project.id}:${dueThreshold}`;
+      if (launchRemindersSentRef.current.has(guardKey)) {
+        return;
+      }
+      launchRemindersSentRef.current.add(guardKey);
+
+      const remindedAnswers = markLaunchReminderSent(project.answers || {}, dueThreshold);
+
+      setProjects((prevProjects) => prevProjects.map((entry) => (
+        entry?.id === project.id ? { ...entry, answers: remindedAnswers } : entry
+      )));
+
+      if (project.id === activeProjectId) {
+        setAnswers((prevAnswers) => markLaunchReminderSent(prevAnswers, dueThreshold));
+      }
+
+      const owners = buildOwnerNotificationRecipients(project);
+      notify({
+        type: NOTIFICATION_TYPES.FINAL_CONFIRMATION_REMINDER,
+        project,
+        to: owners.to,
+        cc: owners.cc,
+        excerpt: `Launch in ${dueThreshold} day(s) or less.`,
+        view: 'synthesis',
+        // Le porteur est presque toujours la personne connectée quand elle ouvre l'app : sans
+        // ceci, `notify` retirerait le seul destinataire du rappel.
+        includeActor: true
+      });
+    });
+  }, [
+    activeProjectId,
+    buildOwnerNotificationRecipients,
+    buildRoundPerimeters,
+    canManageProject,
+    currentUserEmail,
+    isHydrated,
+    isSimulatedSession,
+    launchReminderDays,
+    notify,
+    projects
   ]);
 
   const handleUpdateComplianceComments = useCallback((updates) => {
@@ -6062,6 +6192,143 @@ const updateProjectFilters = useCallback((updater) => {
     t
   ]);
 
+  // Le dernier tour est demandé par le porteur, jamais déclenché tout seul : lui seul sait qu'il
+  // lance. L'application se contente de le lui rappeler quand la date qu'il a annoncée approche.
+  const handleRequestFinalValidation = useCallback(() => {
+    const project = projectsRef.current.find((entry) => entry?.id === activeProjectId);
+    if (!project || project.status !== 'submitted' || !canManageProject(project)) {
+      return null;
+    }
+
+    const perimeters = buildRoundPerimeters(project).filter((perimeter) => perimeter.hasOpinion);
+    const nextAnswers = startFinalValidationRound(project.answers || {}, {
+      by: currentUserEmail,
+      version: getSubmissionVersion(project)
+    });
+
+    setAnswers(nextAnswers);
+    setProjects((prevProjects) => prevProjects.map((entry) => (
+      entry?.id === project.id
+        ? { ...entry, answers: nextAnswers, lastUpdated: new Date().toISOString() }
+        : entry
+    )));
+
+    const teamPerimeters = perimeters.filter((perimeter) => perimeter.type === 'team');
+    const committeePerimeters = perimeters.filter((perimeter) => perimeter.type === 'committee');
+
+    const teamRecipients = teamPerimeters.flatMap((perimeter) => {
+      const team = teams.find((entry) => entry?.id === perimeter.id);
+      if (!team) {
+        return [];
+      }
+      // La confirmation est demandée à qui a rendu l'avis : le routage par membre et la prise en
+      // charge s'appliquent, comme pour tout échange qui suit la première sollicitation.
+      return resolveClaimAwareRecipients(
+        team,
+        project.answers || {},
+        getPerimeterClaim(perimeter.entry),
+        { profiles: userProfilesByEmail }
+      );
+    });
+
+    const committeeRecipients = committeePerimeters.flatMap((perimeter) => {
+      const committee = normalizeValidationCommitteeConfig(validationCommitteeConfig).committees
+        .find((entry) => entry?.id === perimeter.id);
+      return Array.isArray(committee?.emails) ? committee.emails : [];
+    });
+
+    const recipients = normalizeRecipientList([...teamRecipients, ...committeeRecipients]);
+
+    if (recipients.length > 0) {
+      notify({
+        type: NOTIFICATION_TYPES.FINAL_CONFIRMATION_REQUESTED,
+        project: { ...project, answers: nextAnswers },
+        to: recipients,
+        teamNames: teamPerimeters
+          .map((perimeter) => resolveLocalizedText(teams.find((entry) => entry?.id === perimeter.id)?.name, DEFAULT_LANGUAGE))
+          .filter(Boolean),
+        view: 'synthesis'
+      });
+    }
+
+    setSaveFeedback({
+      status: 'success',
+      message: recipients.length > 0
+        ? t('app.finalRound.requested')
+        : t('app.finalRound.requestedWithoutRecipients')
+    });
+
+    return nextAnswers;
+  }, [
+    activeProjectId,
+    buildRoundPerimeters,
+    canManageProject,
+    currentUserEmail,
+    notify,
+    t,
+    teams,
+    userProfilesByEmail,
+    validationCommitteeConfig
+  ]);
+
+  // Deux boutons, deux minutes : confirmer, ou dire qu'on doit réexaminer. Un « je dois
+  // réexaminer » remet le périmètre dans le même état qu'une mise à jour qui l'aurait touché —
+  // même signal, même conséquence sur le badge — et prévient le porteur.
+  const handlePerimeterConfirmation = useCallback(({ targetId, targetType, state }) => {
+    const project = projectsRef.current.find((entry) => entry?.id === activeProjectId);
+    if (!project || !targetId) {
+      return;
+    }
+
+    const roundStatus = getFinalValidationRoundStatus(project.answers, buildRoundPerimeters(project));
+    if (!roundStatus.isRequested) {
+      return;
+    }
+
+    const section = targetType === 'committee' ? 'committees' : 'teams';
+    const comments = project.answers?.[COMPLIANCE_COMMENTS_KEY];
+    const sectionEntries = comments?.[section] && typeof comments[section] === 'object' ? comments[section] : {};
+    const currentEntry = sectionEntries[targetId];
+    if (!currentEntry) {
+      return;
+    }
+
+    const isReexamining = state === CONFIRMATION_REEXAMINING;
+    let nextEntry = withPerimeterConfirmation(currentEntry, {
+      round: roundStatus.round,
+      state,
+      by: currentUserEmail
+    });
+
+    if (isReexamining) {
+      nextEntry = withNeedsReviewSince(nextEntry, getSubmissionVersion(project));
+    }
+
+    handleUpdateComplianceComments({
+      [COMPLIANCE_COMMENTS_KEY]: {
+        ...(comments || {}),
+        [section]: { ...sectionEntries, [targetId]: nextEntry }
+      }
+    });
+
+    if (isReexamining) {
+      const owners = buildOwnerNotificationRecipients(project);
+      notify({
+        type: NOTIFICATION_TYPES.FINAL_CONFIRMATION_REEXAMINING,
+        project,
+        to: owners.to,
+        cc: owners.cc
+      });
+    }
+  }, [
+    activeProjectId,
+    buildOwnerNotificationRecipients,
+    buildRoundPerimeters,
+    currentUserEmail,
+    handleUpdateComplianceComments,
+    notify
+  ]);
+
   const handleDismissSaveFeedback = useCallback(() => {
     setSaveFeedback(null);
   }, []);
@@ -7248,6 +7515,9 @@ const updateProjectFilters = useCallback((updater) => {
               )}
             >
               <LazyBackOffice
+                launchSignals={launchSignalsByProject}
+                launchReminderDays={launchReminderDays}
+                setLaunchReminderDays={setLaunchReminderDays}
                 projects={projects}
                 questions={questions}
                 setQuestions={setQuestions}
@@ -7308,6 +7578,7 @@ const updateProjectFilters = useCallback((updater) => {
             <LazyHomeScreen
             projects={projects}
             showcaseFeedbackCounts={showcaseFeedbackCounts}
+            launchSignals={launchSignalsByProject}
             projectFilters={projectFilters}
             teamLeadOptions={teamLeadTeamOptions}
             teams={teams}
@@ -7447,6 +7718,10 @@ const updateProjectFilters = useCallback((updater) => {
               lastSentAt={activeProjectSubmissionHistory.lastSentAt}
               onSendUpdate={activeProjectId ? handleSendProjectUpdate : undefined}
               submissionHistory={activeProjectSubmissionHistory}
+              launchSignal={activeProjectId ? (launchSignalsByProject[activeProjectId] || 'none') : 'none'}
+              roundStatus={activeProjectRoundStatus}
+              onRequestFinalValidation={activeProjectId ? handleRequestFinalValidation : undefined}
+              onPerimeterConfirmation={activeProjectId ? handlePerimeterConfirmation : undefined}
             />
           </Suspense>
         ) : screen === 'showcase' ? (

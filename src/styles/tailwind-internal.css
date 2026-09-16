@@ -142,6 +142,11 @@ a {
   background-color: rgba(16,185,129, var(--tw-bg-opacity));
 }
 
+.bg-emerald-600 {
+  --tw-bg-opacity: 1;
+  background-color: rgba(5,150,105, var(--tw-bg-opacity));
+}
+
 .bg-fuchsia-50\/70 {
   --tw-bg-opacity: 1;
   background-color: rgba(253,244,255, 0.70);
@@ -2504,6 +2509,11 @@ a {
 .hover\:bg-blue-700:hover {
   --tw-bg-opacity: 1;
   background-color: rgba(29,78,216, var(--tw-bg-opacity));
+}
+
+.hover\:bg-emerald-700:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgba(4,120,87, var(--tw-bg-opacity));
 }
 
 .hover\:bg-gray-100:hover {
