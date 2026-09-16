@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoHome, createAndSubmitProject } from './fixtures.js';
+import { gotoHome, createAndSubmitProject, openProjectStakes } from './fixtures.js';
 
 // Lot 2 : un projet soumis continue de vivre. Le porteur peut le modifier, il voit ce qui a
 // bougé depuis ce que les experts ont reçu, et l'envoi de la mise à jour est un acte explicite.
@@ -27,6 +27,8 @@ test.describe('Cycle de mise à jour après soumission', () => {
     await page.getByRole('radio', { name: /Conception/ }).click();
 
     await page.getByRole('button', { name: 'Terminer' }).click();
+    // La sortie du questionnaire est la vitrine : le bandeau de mise à jour vit sur les enjeux.
+    await openProjectStakes(page);
 
     const banner = page.getByText(/réponse[s]? modifiée[s]? depuis la v1/);
     await expect(banner).toBeVisible();
