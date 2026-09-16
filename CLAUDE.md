@@ -221,7 +221,11 @@ gracefully to the old behaviour when its data is absent:
   those teams right under the toggle and the synthesis flags an unrouted one. Routing reuses
   `questionThreads.js` rather than inventing a second solicitation path: only a thread notifies a
   team and makes it a perimeter. It is offered on the question types the rules engine reads
-  (`canAnswerBeUnknown`), not on narrative fields. Beware `QuestionnaireScreen.jsx`'s effect that
+  (`canAnswerBeUnknown`), not on narrative fields. The synthesis's « Rappel de vos réponses »
+  renders such an answer as an open point rather than as a value like any other — a doubt printed
+  as plain text next to the question reads as an answer, not as something still owed to someone —
+  with its recipient team, the offer to route it when it has none, and the reminder that it blocks
+  the final validation. Beware `QuestionnaireScreen.jsx`'s effect that
   prunes a `choice`/`multi_choice` answer no longer among the visible options: the sentinel is not
   an option, so without its explicit guard the doubt is erased the moment it is expressed, with no
   error anywhere (that is exactly what happened, on the two types where it is most useful).

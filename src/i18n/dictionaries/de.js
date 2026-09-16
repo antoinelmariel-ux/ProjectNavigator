@@ -1989,6 +1989,12 @@ export default {
     legacyCommentLabel: 'Historischer Kommentar',
     overviewTitle: 'Zusammenfassung Ihrer Antworten',
     overviewHide: 'Ausblenden',
+    overviewDoubtRoutedTo: 'Zweifel weitergeleitet an: {{teams}}.',
+    overviewDoubtUnrouted: 'Dieser Zweifel richtet sich an kein Team: Niemand wird benachrichtigt.',
+    overviewDoubtHarmless: 'Keine Regel hängt von dieser Antwort ab: Dieser Zweifel ändert die Analyse nicht.',
+    overviewDoubtRouteAction: 'An ein Team weiterleiten',
+    overviewDoubtSettleAction: 'Diese Antwort klären',
+    overviewDoubtBlocksValidation: 'Solange er offen bleibt, ist eine endgültige Validierung nicht möglich.',
     overviewShow: 'Anzeigen',
     editAnswerAriaLabelTemplate: 'Antwort für „{{question}}“ bearbeiten'
   },

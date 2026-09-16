@@ -1978,6 +1978,12 @@ export default {
     legacyCommentLabel: 'Comentario histórico',
     overviewTitle: 'Resumen de sus respuestas',
     overviewHide: 'Ocultar',
+    overviewDoubtRoutedTo: 'Duda enviada a: {{teams}}.',
+    overviewDoubtUnrouted: 'Esta duda no está dirigida a ningún equipo: nadie será notificado.',
+    overviewDoubtHarmless: 'Ninguna regla depende de esta respuesta: esta duda no cambia el análisis.',
+    overviewDoubtRouteAction: 'Enviarla a un equipo',
+    overviewDoubtSettleAction: 'Concretar esta respuesta',
+    overviewDoubtBlocksValidation: 'Mientras siga abierta, la validación definitiva no es posible.',
     overviewShow: 'Mostrar',
     editAnswerAriaLabelTemplate: 'Modificar la respuesta para «{{question}}»'
   },

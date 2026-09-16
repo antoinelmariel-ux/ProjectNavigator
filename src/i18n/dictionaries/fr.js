@@ -1988,6 +1988,12 @@ export default {
     legacyCommentLabel: 'Commentaire historique',
     overviewTitle: 'Rappel de vos réponses',
     overviewHide: 'Masquer',
+    overviewDoubtRoutedTo: 'Doute transmis à : {{teams}}.',
+    overviewDoubtUnrouted: 'Ce doute n’est adressé à aucune équipe : personne ne sera notifié.',
+    overviewDoubtHarmless: 'Aucune règle ne dépend de cette réponse : ce doute ne change pas l’analyse.',
+    overviewDoubtRouteAction: 'Le transmettre à une équipe',
+    overviewDoubtSettleAction: 'Trancher cette réponse',
+    overviewDoubtBlocksValidation: 'Tant qu’il est ouvert, la validation définitive n’est pas possible.',
     overviewShow: 'Afficher',
     editAnswerAriaLabelTemplate: 'Modifier la réponse pour « {{question}} »'
   },

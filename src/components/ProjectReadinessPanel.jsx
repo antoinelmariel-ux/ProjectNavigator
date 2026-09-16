@@ -264,7 +264,7 @@ export const ProjectReadinessPanel = ({
                           <button
                             type="button"
                             onClick={() => onNavigateToQuestion?.(entry.questionId)}
-                            className="font-semibold underline underline-offset-2 hover:text-amber-700"
+                            className="bg-transparent font-semibold underline underline-offset-2 hover:text-amber-700"
                           >
                             {t('synthesisReport.readiness.uncertainRouteAction')}
                           </button>

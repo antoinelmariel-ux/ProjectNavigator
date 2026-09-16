@@ -1978,6 +1978,12 @@ export default {
     legacyCommentLabel: 'Historical comment',
     overviewTitle: 'Summary of your answers',
     overviewHide: 'Hide',
+    overviewDoubtRoutedTo: 'Doubt sent to: {{teams}}.',
+    overviewDoubtUnrouted: 'This doubt is addressed to no team: nobody will be notified.',
+    overviewDoubtHarmless: 'No rule depends on this answer: this doubt does not change the analysis.',
+    overviewDoubtRouteAction: 'Send it to a team',
+    overviewDoubtSettleAction: 'Settle this answer',
+    overviewDoubtBlocksValidation: 'While it stays open, a final validation is not possible.',
     overviewShow: 'Show',
     editAnswerAriaLabelTemplate: 'Edit the answer for “{{question}}”'
   },

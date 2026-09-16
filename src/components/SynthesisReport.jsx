@@ -12,6 +12,7 @@ import {
   UserCircle
 } from './icons.js';
 import { formatAnswer } from '../utils/questions.js';
+import { isUnknownAnswer } from '../utils/unknownAnswer.js';
 import { computeRankingRecommendations, normalizeRankingConfig } from '../utils/ranking.js';
 import { resolveLocalizedText } from '../utils/localizedContent.js';
 import { renderTextWithLinks } from '../utils/linkify.js';
@@ -3231,6 +3232,19 @@ export const SynthesisReport = ({
                     const missingInfoLabel = t('synthesisReport.missingInfoLabel');
                     const displayValue = formatOverviewValue(q, answerValue, missingInfoLabel, language);
                     const questionText = resolveLocalizedText(q.question, language);
+                    // Un doute rendu comme une réponse ordinaire n'est adressé à personne : on
+                    // le marque comme tel et on dit, ici même, à qui il a été transmis — ou
+                    // qu'il ne l'a été à personne.
+                    const isDoubt = isUnknownAnswer(answerValue);
+                    const doubtCoverage = isDoubt
+                      ? uncertainRuleCoverage.find((entry) => entry?.questionId === q.id) || null
+                      : null;
+                    const doubtTeamNames = (doubtCoverage?.askedTeamIds || [])
+                      .map((teamId) => {
+                        const team = (Array.isArray(teams) ? teams : []).find((item) => item?.id === teamId);
+                        return resolveLocalizedText(team?.name, language) || teamId;
+                      })
+                      .filter(Boolean);
 
                     return (
                       <div key={q.id} className="bg-white rounded-lg p-4 border border-gray-200">
@@ -3271,6 +3285,49 @@ export const SynthesisReport = ({
                                   </li>
                                 ))}
                               </ul>
+                            );
+                          }
+
+                          if (isDoubt) {
+                            return (
+                              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                                <p className="flex items-center gap-2 text-sm font-semibold text-amber-900">
+                                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                                  {resolvedValue}
+                                </p>
+                                {doubtTeamNames.length > 0 ? (
+                                  <p className="mt-1 flex items-start gap-1 text-xs text-amber-800">
+                                    <MessageSquare className="mt-0.5 w-3 h-3 shrink-0" />
+                                    {t('synthesisReport.overviewDoubtRoutedTo', { teams: doubtTeamNames.join(', ') })}
+                                  </p>
+                                ) : (
+                                  <p className="mt-1 text-xs text-amber-800">
+                                    {doubtCoverage
+                                      ? t('synthesisReport.overviewDoubtUnrouted')
+                                      : t('synthesisReport.overviewDoubtHarmless')}
+                                    {typeof onNavigateToQuestion === 'function' && isProjectEditable && (
+                                      <>
+                                        {' '}
+                                        <button
+                                          type="button"
+                                          onClick={() => onNavigateToQuestion(q.id)}
+                                          className="bg-transparent font-semibold underline underline-offset-2 hover:text-amber-700"
+                                        >
+                                          {doubtCoverage
+                                            ? t('synthesisReport.overviewDoubtRouteAction')
+                                            : t('synthesisReport.overviewDoubtSettleAction')}
+                                        </button>
+                                      </>
+                                    )}
+                                  </p>
+                                )}
+                                {/* La validation définitive n'accepte aucun doute : le dire ici,
+                                    là où le porteur relit ses réponses, plutôt qu'au moment où
+                                    le bouton est grisé. */}
+                                <p className="mt-1 text-xs text-amber-700">
+                                  {t('synthesisReport.overviewDoubtBlocksValidation')}
+                                </p>
+                              </div>
                             );
                           }
 
