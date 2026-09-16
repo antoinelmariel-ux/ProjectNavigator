@@ -1,5 +1,6 @@
 import { getTriggeredValidationCommittees } from './validationCommittee.js';
 import { resolveEffectiveTeamComplianceEntry } from './complianceAutoValidation.js';
+import { isPreliminarySubmission } from './submissionKind.js';
 
 export const COMPLIANCE_COMMENTS_KEY = '__compliance_team_comments__';
 
@@ -18,6 +19,10 @@ export const PROJECT_VALIDATION_VALIDATED = 'validated';
 export const PROJECT_VALIDATION_REJECTED = 'rejected';
 export const PROJECT_VALIDATION_PENDING = 'pending';
 export const PROJECT_VALIDATION_NONE = 'none';
+// Un avis rendu sur une demande préliminaire est une orientation, pas une validation : même
+// si tous les périmètres se sont prononcés favorablement, le projet n'est pas validé — il n'a
+// jamais demandé à l'être, et sur un projet encore mouvant ce serait un tampon mensonger.
+export const PROJECT_VALIDATION_PRELIMINARY = 'preliminary';
 
 const readStatus = (entry) => (typeof entry?.status === 'string' ? entry.status : '');
 
@@ -90,7 +95,9 @@ export const computeProjectValidationStatus = (project, options = {}) => {
   } else if (requiredPerimeters.length === 0) {
     status = PROJECT_VALIDATION_NONE;
   } else if (approvedCount === requiredPerimeters.length) {
-    status = PROJECT_VALIDATION_VALIDATED;
+    status = isPreliminarySubmission(project)
+      ? PROJECT_VALIDATION_PRELIMINARY
+      : PROJECT_VALIDATION_VALIDATED;
   }
 
   return {

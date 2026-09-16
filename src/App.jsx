@@ -30,6 +30,27 @@ import { initialAdminEmails } from './data/adminEmails.js';
 import { initialTechnicalContactEmails } from './data/technicalContactEmails.js';
 import { loadPersistedState, persistState } from './utils/storage.js';
 import { shouldShowQuestion as shouldShowQuestionBase, withActivityScope } from './utils/questions.js';
+import {
+  computeMandatoryProgress,
+  getMissingMandatoryQuestions,
+  isAnswerProvided,
+  isQuestionMandatoryAtStage
+} from './utils/mandatoryQuestions.js';
+import {
+  DEFAULT_NEW_PROJECT_STAGE,
+  PROJECT_STAGE_ANSWER_KEY,
+  getProjectStage,
+  normalizeProjectStage
+} from './utils/projectStage.js';
+import { getProjectReadiness } from './utils/projectReadiness.js';
+import { getUncertainRuleCoverage } from './utils/uncertainCoverage.js';
+import {
+  SUBMISSION_KIND_PRELIMINARY,
+  getSubmissionKind,
+  isPreliminarySubmission,
+  normalizeSubmissionKind,
+  withSubmissionKind
+} from './utils/submissionKind.js';
 import { analyzeAnswers as analyzeAnswersBase, resolveProjectAnalysis } from './utils/rules.js';
 import { extractProjectName } from './utils/projects.js';
 import { createDemoProject, demoProjectAnswersSnapshot } from './data/demoProject.js';
@@ -467,34 +488,6 @@ const restoreShowcaseQuestions = (currentQuestions, referenceQuestions = initial
   return changed ? nextQuestions : currentQuestions;
 };
 
-
-const isAnswerProvided = (value) => {
-  if (Array.isArray(value)) {
-    return value.length > 0;
-  }
-
-  if (typeof value === 'string') {
-    return value.trim().length > 0;
-  }
-
-  return value !== null && value !== undefined;
-};
-
-const computeMandatoryProgress = (questions = [], answers = {}) => {
-  const mandatoryQuestions = Array.isArray(questions)
-    ? questions.filter(question => question?.required)
-    : [];
-
-  const totalMandatoryQuestions = mandatoryQuestions.length;
-  const answeredMandatoryQuestions = mandatoryQuestions.filter(
-    question => question?.id && isAnswerProvided(answers[question.id])
-  ).length;
-
-  return {
-    totalMandatoryQuestions,
-    answeredMandatoryQuestions
-  };
-};
 
 const areAnswersEqual = (previousValue, nextValue) => {
   if (previousValue === nextValue) {
@@ -3135,10 +3128,29 @@ const updateProjectFilters = useCallback((updater) => {
     [questions, answers, shouldShowQuestion]
   );
 
+  const projectStage = useMemo(() => getProjectStage(answers), [answers]);
+
+  // Deux listes, deux portes : ce qui manque pour aller plus loin *au stade déclaré* (et donc
+  // pour demander un avis préliminaire), et ce qui manque pour une soumission finale, où le
+  // stade ne dispense de rien et où un « je ne sais pas encore » ne passe plus.
   const unansweredMandatoryQuestions = useMemo(
-    () =>
-      activeQuestions.filter(question => question.required && !isAnswerProvided(answers[question.id])),
+    () => getMissingMandatoryQuestions(activeQuestions, answers, { stage: projectStage }),
+    [activeQuestions, answers, projectStage]
+  );
+
+  const unansweredFinalMandatoryQuestions = useMemo(
+    () => getMissingMandatoryQuestions(activeQuestions, answers, { ignoreStage: true, rejectUnknown: true }),
     [activeQuestions, answers]
+  );
+
+  const projectReadiness = useMemo(
+    () => getProjectReadiness(activeQuestions, answers),
+    [activeQuestions, answers]
+  );
+
+  const uncertainRuleCoverage = useMemo(
+    () => getUncertainRuleCoverage(answers, rules, activeQuestions),
+    [answers, rules, activeQuestions]
   );
 
   const pendingMandatoryQuestions = useMemo(
@@ -5620,8 +5632,10 @@ const updateProjectFilters = useCallback((updater) => {
 
   const handleSaveProject = useCallback((payload = {}) => {
     const baseAnswers = payload.answers && typeof payload.answers === 'object' ? payload.answers : answers;
-    const sanitizedAnswers = baseAnswers || {};
     const status = payload.status === 'submitted' ? 'submitted' : 'draft';
+    const sanitizedAnswers = status === 'submitted'
+      ? withSubmissionKind(baseAnswers || {}, payload.submissionKind)
+      : (baseAnswers || {});
     const projectId = activeProjectId || payload.id || `project-${Date.now()}`;
     const relevantQuestions = questions.filter(question => shouldShowQuestion(question, sanitizedAnswers));
     const existingProject = projects.find(project => project?.id === projectId);
@@ -5724,9 +5738,13 @@ const updateProjectFilters = useCallback((updater) => {
       notifiedTeams.flatMap((team) => resolveTeamMailRecipients(team, project?.answers || {}))
     );
 
+    const isPreliminary = isPreliminarySubmission(project);
+
     if (teamRecipients.length > 0) {
       notify({
-        type: NOTIFICATION_TYPES.PROJECT_SUBMITTED_TEAM,
+        type: isPreliminary
+          ? NOTIFICATION_TYPES.PROJECT_PRELIMINARY_TEAM
+          : NOTIFICATION_TYPES.PROJECT_SUBMITTED_TEAM,
         project,
         to: teamRecipients,
         teamNames,
@@ -5738,7 +5756,9 @@ const updateProjectFilters = useCallback((updater) => {
 
     const owners = buildOwnerNotificationRecipients(project);
     notify({
-      type: NOTIFICATION_TYPES.PROJECT_SUBMITTED_OWNER,
+      type: isPreliminary
+        ? NOTIFICATION_TYPES.PROJECT_PRELIMINARY_OWNER
+        : NOTIFICATION_TYPES.PROJECT_SUBMITTED_OWNER,
       project,
       to: owners.to,
       cc: owners.cc,
@@ -5757,23 +5777,42 @@ const updateProjectFilters = useCallback((updater) => {
       return null;
     }
 
-    if (unansweredMandatoryQuestions.length > 0) {
+    const submissionKind = normalizeSubmissionKind(payload.submissionKind);
+    // Un avis préliminaire n'exige que ce qui est obligatoire au stade déclaré ; une demande
+    // de validation exige tout, et une réponse ferme partout.
+    const blockingQuestions = submissionKind === SUBMISSION_KIND_PRELIMINARY
+      ? unansweredMandatoryQuestions
+      : unansweredFinalMandatoryQuestions;
+
+    if (blockingQuestions.length > 0) {
       setSaveFeedback({
         status: 'error',
-        message: t('app.submit.missingMandatory')
+        message: submissionKind === SUBMISSION_KIND_PRELIMINARY
+          ? t('app.submit.missingMandatory')
+          : t('app.submit.missingForValidation')
       });
       setScreen('synthesis');
       return null;
     }
 
-    const entry = handleSaveProject({ ...payload, status: 'submitted' });
+    const entry = handleSaveProject({ ...payload, status: 'submitted', submissionKind });
     if (entry) {
       notifyProjectSubmission(entry);
       setValidationError(null);
-      setSubmittedProjectNotice({ id: entry.id, projectName: entry.projectName });
+      setSubmittedProjectNotice({
+        id: entry.id,
+        projectName: entry.projectName,
+        submissionKind
+      });
       setScreen('home');
     }
-  }, [handleSaveProject, notifyProjectSubmission, t, unansweredMandatoryQuestions]);
+  }, [
+    handleSaveProject,
+    notifyProjectSubmission,
+    t,
+    unansweredFinalMandatoryQuestions,
+    unansweredMandatoryQuestions
+  ]);
 
   const handleDismissSaveFeedback = useCallback(() => {
     setSaveFeedback(null);

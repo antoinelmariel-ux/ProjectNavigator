@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  PROJECT_VALIDATION_PRELIMINARY,
+  PROJECT_VALIDATION_REJECTED,
+  PROJECT_VALIDATION_VALIDATED,
   computeProjectValidationStatus,
   getProjectCompliancePerimeters
 } from '../src/utils/projectValidationStatus.js';
@@ -171,4 +174,34 @@ test('commentaires de conformité absents ou mal formés : en attente', () => {
     ).status,
     'pending'
   );
+});
+
+test('un avis favorable sur une demande préliminaire ne vaut jamais validation', () => {
+  const project = {
+    status: 'submitted',
+    analysis: { teams: ['quality'] },
+    answers: {
+      __submission_kind__: 'preliminary',
+      __compliance_team_comments__: { teams: { quality: { status: 'validated' } } }
+    }
+  };
+  const options = { teams: [{ id: 'quality' }] };
+
+  assert.equal(computeProjectValidationStatus(project, options).status, PROJECT_VALIDATION_PRELIMINARY);
+
+  const finalProject = {
+    ...project,
+    answers: { ...project.answers, __submission_kind__: 'final' }
+  };
+  assert.equal(computeProjectValidationStatus(finalProject, options).status, PROJECT_VALIDATION_VALIDATED);
+
+  // Un refus l'emporte toujours, préliminaire ou non.
+  const rejected = {
+    ...project,
+    answers: {
+      ...project.answers,
+      __compliance_team_comments__: { teams: { quality: { status: 'rejected' } } }
+    }
+  };
+  assert.equal(computeProjectValidationStatus(rejected, options).status, PROJECT_VALIDATION_REJECTED);
 });

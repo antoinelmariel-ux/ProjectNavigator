@@ -8,6 +8,8 @@
 export const NOTIFICATION_TYPES = {
   PROJECT_SUBMITTED_TEAM: 'project-submitted-team',
   PROJECT_SUBMITTED_OWNER: 'project-submitted-owner',
+  PROJECT_PRELIMINARY_TEAM: 'project-preliminary-team',
+  PROJECT_PRELIMINARY_OWNER: 'project-preliminary-owner',
   PROJECT_SHARED: 'project-shared',
   SHOWCASE_COMMENT: 'showcase-comment',
   SHOWCASE_COMMENT_REPLY: 'showcase-comment-reply',
@@ -49,6 +51,39 @@ export const NOTIFICATION_CATALOG = {
         ? `The relevant compliance teams have been notified (${ctx.teamNames.join(', ')}) and will get back to you.`
         : 'The relevant compliance teams have been notified and will get back to you.',
       'You will receive an email as soon as a comment is posted on your synthesis report.'
+    ],
+    reason: () => 'you are the owner or co-owner of this project.'
+  },
+
+  // Une demande d'avis préliminaire n'attend pas le même travail qu'une demande de validation :
+  // le dire explicitement est ce qui évite qu'un expert ouvre un avant-projet en croyant devoir
+  // rendre un avis ferme sur un dossier incomplet — et qu'il conclue que l'outil lui fait perdre
+  // son temps.
+  [NOTIFICATION_TYPES.PROJECT_PRELIMINARY_TEAM]: {
+    actionType: 'Request for preliminary advice',
+    intro: (ctx) =>
+      `${ctx.actorName} is asking for preliminary advice on the project ${quoted(ctx.projectName)}, which is still being shaped.`,
+    expected: () => [
+      'Open the project’s synthesis report in Project Navigator.',
+      'The project is deliberately incomplete: what is expected is guidance, not a formal opinion — the points to watch, the questions to prepare, what would block the project as it stands.',
+      'Post your guidance in the synthesis report: the project owner will be notified automatically.'
+    ],
+    reason: (ctx) =>
+      ctx.teamNames.length > 0
+        ? `the qualification questionnaire identified your team (${ctx.teamNames.join(', ')}) as a stakeholder for this project.`
+        : 'your team was identified as a stakeholder for this project.'
+  },
+
+  [NOTIFICATION_TYPES.PROJECT_PRELIMINARY_OWNER]: {
+    actionType: 'Preliminary advice requested',
+    intro: (ctx) =>
+      `Your request for preliminary advice on ${quoted(ctx.projectName)} has been sent.`,
+    expected: (ctx) => [
+      'You can keep working on your project: editing your answers does not cancel this request.',
+      ctx.teamNames.length > 0
+        ? `The relevant compliance teams have been notified (${ctx.teamNames.join(', ')}) and will get back to you with guidance.`
+        : 'The relevant compliance teams have been notified and will get back to you with guidance.',
+      'Preliminary guidance is not an approval: you will still have to request validation before launching.'
     ],
     reason: () => 'you are the owner or co-owner of this project.'
   },
