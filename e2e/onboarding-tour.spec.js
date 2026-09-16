@@ -28,6 +28,11 @@ async function walk(page, steps) {
 }
 
 test.describe('tour v2', () => {
+  // Plusieurs séquences traversent la vitrine (canvas WebGL, animations de révélation, mode
+  // édition) : comme toutes les specs `showcase-*`, elles dépassent le timeout par défaut de
+  // 30 s — « Présenter son projet » enchaîne onze étapes sur cet écran.
+  test.describe.configure({ timeout: 120000 });
+
   test('le menu d entree propose les 5 parcours', async ({ page }) => {
     const errors = collectConsoleErrors(page);
     await startTour(page);

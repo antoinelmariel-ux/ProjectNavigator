@@ -15,7 +15,7 @@ const OTHER_TABS = [
   'Administrateurs',
   'Niveaux de complexité',
   'Équipes',
-  'Revue Compliance',
+  'Revue des règles',
   'Traductions'
 ];
 

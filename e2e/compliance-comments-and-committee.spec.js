@@ -19,7 +19,7 @@ test.describe('Commentaires experts, réponses et validation par équipe', () =>
     await openTriggeredProjectAndExpandTeam(page, 'Contrôle pub');
 
     await page.getByRole('button', { name: /Modifier le commentaire/ }).first().click();
-    const statusSelect = page.locator('select').first();
+    const statusSelect = page.locator('select[id^="compliance-status-"]').first();
     await statusSelect.selectOption('validated_with_conditions');
 
     // Laisse le temps à un éventuel re-rendu parasite de survenir avant de vérifier.
@@ -35,7 +35,7 @@ test.describe('Commentaires experts, réponses et validation par équipe', () =>
     await openTriggeredProjectAndExpandTeam(page, 'Contrôle pub');
 
     await page.getByRole('button', { name: /Modifier le commentaire/ }).first().click();
-    await page.locator('select').first().selectOption('validated_with_conditions');
+    await page.locator('select[id^="compliance-status-"]').first().selectOption('validated_with_conditions');
     await page.locator('[id^="compliance-comment-"][contenteditable="true"]').first().click();
     await page.keyboard.type('Merci de préciser le budget détaillé avant validation.');
     await page.getByRole('button', { name: 'Enregistrer le commentaire' }).click();
@@ -71,7 +71,7 @@ test.describe('Commentaires experts, réponses et validation par équipe', () =>
 
     await openTriggeredProjectAndExpandTeam(page, 'Contrôle pub');
     await page.getByRole('button', { name: /Modifier le commentaire/ }).first().click();
-    await page.locator('select').first().selectOption('validated');
+    await page.locator('select[id^="compliance-status-"]').first().selectOption('validated');
     await page.locator('[id^="compliance-comment-"][contenteditable="true"]').first().click();
     await page.keyboard.type('RAS, validé.');
     await page.getByRole('button', { name: 'Enregistrer le commentaire' }).click();
