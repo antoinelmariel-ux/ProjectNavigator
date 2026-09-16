@@ -120,6 +120,10 @@ Two things are load-bearing:
   one. Bumping it therefore discards back-office customisations of the tour — only do it for a
   deliberate rework.
 
+The tooltip carries a permanent « Aide » link to `faq.html` (`helpLink` option of the vendored
+`tourguide.js`, passed from `App.jsx`): launching the guide is already asking for help, and it
+used to make the only help button in the app — the one on the onboarding screen — disappear.
+
 A step whose target selector matches nothing degrades to a centred tooltip (vendored
 `tourguide.js`), which is how steps pointing at conditional blocks behave on the demo project:
 `synthesis-vigilance` (no delay alert on the demo) and `home-inspiration-filters` (no inspiration
@@ -212,8 +216,19 @@ gracefully to the old behaviour when its data is absent:
   and `rules.js#matchesCondition`, they are separate code paths; patching one only is the trap).
   Without that, `not_equals` would fire on an absence of information. `getUncertainRuleCoverage`
   (`uncertainCoverage.js`) is the necessary counterpart: it names the rules such an answer leaves
-  in suspense, so the displayed scope is never taken for a settled one. It is offered on the
-  question types the rules engine reads (`canAnswerBeUnknown`), not on narrative fields.
+  in suspense, **the teams those rules would solicit, and the teams the doubt was actually sent
+  to** — a doubt nobody is asked about has no chance of being lifted, so the questionnaire offers
+  those teams right under the toggle and the synthesis flags an unrouted one. Routing reuses
+  `questionThreads.js` rather than inventing a second solicitation path: only a thread notifies a
+  team and makes it a perimeter. It is offered on the question types the rules engine reads
+  (`canAnswerBeUnknown`), not on narrative fields. The synthesis's « Rappel de vos réponses »
+  renders such an answer as an open point rather than as a value like any other — a doubt printed
+  as plain text next to the question reads as an answer, not as something still owed to someone —
+  with its recipient team, the offer to route it when it has none, and the reminder that it blocks
+  the final validation. Beware `QuestionnaireScreen.jsx`'s effect that
+  prunes a `choice`/`multi_choice` answer no longer among the visible options: the sentinel is not
+  an option, so without its explicit guard the doubt is erased the moment it is expressed, with no
+  error anywhere (that is exactly what happened, on the two types where it is most useful).
 - **`src/utils/submissionKind.js` — two doors, one project.** `preliminary` vs `final`, stored in
   answers (same reason as the stage). A preliminary request only requires what is mandatory *at
   the declared stage*; a validation request requires everything, with a firm answer everywhere
@@ -223,9 +238,15 @@ gracefully to the old behaviour when its data is absent:
   notifications are distinct templates saying explicitly that guidance, not approval, is expected.
 
 `src/utils/projectReadiness.js` turns all of this into the three levels the synthesis shows
-(orientation / technical advice / validation) — they are *derived*, nothing extra to configure:
-level N is "every question mandatory up to stage N is answered". `ProjectReadinessPanel.jsx`
-(deferred, only `SynthesisReport.jsx` imports it) renders them, both doors, what the send
+(orientation / technical advice / validation) — they are *derived*, nothing extra to configure.
+Orientation is "the questions mandatory from `framing` are answered"; **technical advice and
+validation share one and the same base** — every mandatory question the project triggers — and
+differ only by `rejectUnknown`: an opinion can be given on assumed "I don't know yet" answers, a
+validation cannot. That is deliberate: an expert does not weigh in on the substance with a
+thinner file than the one who validates; what an opinion buys you is that the project can still
+change, not that fewer answers are needed. `ProjectReadinessPanel.jsx` (deferred, only
+`SynthesisReport.jsx` imports it) renders them as one ladder with a single "what's missing" list
+— one list per level made the two look like different dossiers — plus both doors, what the send
 actually commits to, and the showcase as a thinking tool.
 
 Two UI invariants that are easy to break:

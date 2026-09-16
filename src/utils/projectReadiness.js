@@ -1,9 +1,5 @@
 import { getMissingMandatoryQuestions } from './mandatoryQuestions.js';
-import {
-  PROJECT_STAGE_DESIGN,
-  PROJECT_STAGE_FRAMING,
-  PROJECT_STAGE_PRE_LAUNCH
-} from './projectStage.js';
+import { PROJECT_STAGE_FRAMING, PROJECT_STAGE_PRE_LAUNCH } from './projectStage.js';
 
 // Ce que la compliance peut faire de ce qui est déjà saisi — et non « 14/21 ». Un pourcentage
 // dit au porteur qu'il lui manque du remplissage ; ces trois paliers lui disent ce qu'il peut
@@ -16,11 +12,16 @@ export const READINESS_VALIDATION = 'validation';
 // Chaque palier est exactement « toutes les questions obligatoires jusqu'à ce stade sont
 // renseignées » : aucune donnée supplémentaire à saisir côté back-office, c'est le même
 // `requiredFromStage` qui module l'obligatoire dans le questionnaire.
+//
+// L'avis technique et la validation exigent **le même socle de réponses** : toutes les
+// questions obligatoires déclenchées par le projet. Un expert ne se prononce pas sur le fond
+// avec moins d'informations que celui qui valide — il se prononce sur un projet encore
+// modifiable, ce qui est une différence d'engagement, pas de dossier. Les deux paliers ne
+// diffèrent donc que par `rejectUnknown` : on peut demander un avis avec des « je ne sais pas
+// encore » assumés, jamais une validation.
 export const READINESS_LEVELS = [
   { id: READINESS_ORIENTATION, stage: PROJECT_STAGE_FRAMING, rejectUnknown: false },
-  { id: READINESS_ADVICE, stage: PROJECT_STAGE_DESIGN, rejectUnknown: false },
-  // On ne valide pas sur un « je ne sais pas encore » : le dernier palier est le seul à
-  // exiger une réponse ferme.
+  { id: READINESS_ADVICE, stage: PROJECT_STAGE_PRE_LAUNCH, rejectUnknown: false },
   { id: READINESS_VALIDATION, stage: PROJECT_STAGE_PRE_LAUNCH, rejectUnknown: true }
 ];
 

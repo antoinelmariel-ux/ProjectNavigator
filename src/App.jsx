@@ -2839,7 +2839,14 @@ const updateProjectFilters = useCallback((updater) => {
       steps: resolvedSteps,
       labels: resolvedLabels,
       allowClose,
-      showStepDots
+      showStepDots,
+      // Le même bouton d'aide que sur l'écran d'accueil : lancer la visite guidée, c'est déjà
+      // chercher de l'aide, et la FAQ ne doit pas devenir inaccessible pendant le guide.
+      helpLink: {
+        href: './faq.html',
+        label: t('onboarding.helpButton'),
+        ariaLabel: t('onboarding.helpButtonAriaLabel')
+      }
     });
 
     tour.on('stepChange', ({ step }) => {
@@ -7964,6 +7971,7 @@ const updateProjectFilters = useCallback((updater) => {
             projectStage={projectStage}
             onProjectStageChange={handleProjectStageChange}
             teams={teams}
+            uncertainCoverage={uncertainRuleCoverage}
             currentUserEmail={currentUserEmail}
             onAskQuestion={activeProjectId ? handleAskQuestionToTeam : undefined}
             onReplyToQuestionThread={activeProjectId ? handleReplyToQuestionThread : undefined}

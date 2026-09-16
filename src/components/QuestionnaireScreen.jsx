@@ -3,9 +3,11 @@ import {
   Info,
   Calendar,
   CheckCircle,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   AlertTriangle,
+  MessageSquare,
   Plus,
   Trash2
 } from './icons.js';
@@ -208,6 +210,7 @@ export const QuestionnaireScreen = ({
   projectStage,
   onProjectStageChange,
   teams = [],
+  uncertainCoverage = [],
   currentUserEmail = '',
   onAskQuestion,
   onReplyToQuestionThread,
@@ -228,10 +231,45 @@ export const QuestionnaireScreen = ({
     () => getThreadsForQuestion(answers, currentQuestion.id),
     [answers, currentQuestion.id]
   );
+  const [isOutlineOpen, setIsOutlineOpen] = useState(true);
   const [isAskFormOpen, setIsAskFormOpen] = useState(false);
   const [askTeamId, setAskTeamId] = useState('');
   const [askMessage, setAskMessage] = useState('');
   const [threadReplies, setThreadReplies] = useState({});
+  // Le doute porté par cette question : les équipes que la réponse tient en suspens, et celles
+  // à qui il a déjà été transmis (cf. utils/uncertainCoverage.js).
+  const currentUncertainty = useMemo(
+    () => (Array.isArray(uncertainCoverage) ? uncertainCoverage : [])
+      .find((entry) => entry?.questionId === currentQuestion.id) || null,
+    [uncertainCoverage, currentQuestion.id]
+  );
+  const uncertaintyAskedTeams = useMemo(
+    () => (currentUncertainty?.askedTeamIds || [])
+      .map((teamId) => teams.find((team) => team?.id === teamId))
+      .filter(Boolean),
+    [currentUncertainty, teams]
+  );
+  const uncertaintySuggestedTeams = useMemo(
+    () => (currentUncertainty?.teamIds || [])
+      .filter((teamId) => !(currentUncertainty?.askedTeamIds || []).includes(teamId))
+      .map((teamId) => teams.find((team) => team?.id === teamId))
+      .filter(Boolean),
+    [currentUncertainty, teams]
+  );
+  const askBlockRef = useRef(null);
+
+  // Transmettre le doute, c'est ouvrir le fil déjà prérempli : une seule mécanique de
+  // sollicitation, celle qui notifie l'équipe et la fait exister comme périmètre.
+  const handleRouteUncertainty = (teamId) => {
+    setAskTeamId(teamId);
+    setAskMessage((previous) => (previous.trim().length > 0
+      ? previous
+      : t('questionnaire.uncertaintyAskPrefill', { question: currentQuestionText })));
+    setIsAskFormOpen(true);
+    if (askBlockRef.current && typeof askBlockRef.current.scrollIntoView === 'function') {
+      askBlockRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  };
   const normalizedCurrentUserEmail = normalizeEmail(currentUserEmail);
   const isCurrentQuestionMandatoryNow = isQuestionMandatoryAtStage(currentQuestion, resolvedStage);
   // Une question obligatoire que le stade déclaré ne rend pas encore exigible : on le dit, au
@@ -244,6 +282,11 @@ export const QuestionnaireScreen = ({
   const progress = ((currentIndex + 1) / questions.length) * 100;
   const answeredQuestionsCount = questions.filter(
     (question) => question?.id && isAnswerProvided(answers[question.id])
+  ).length;
+  const missingRequiredCount = questions.filter(
+    (question) => question?.id
+      && isQuestionMandatoryAtStage(question, resolvedStage)
+      && !isAnswerProvided(answers[question.id])
   ).length;
   const remainingQuestions = Math.max(questions.length - (currentIndex + 1), 0);
   const remainingLabel = remainingQuestions === 0
@@ -300,6 +343,8 @@ export const QuestionnaireScreen = ({
   const [isUploadingFileAnswer, setIsUploadingFileAnswer] = useState(false);
   const milestoneQuestionIdRef = useRef(questionType === 'milestone_list' ? currentQuestion.id : null);
   const questionTextId = `question-${currentQuestion.id}`;
+  const stageHintId = 'questionnaire-stage-hint';
+  const outlineId = 'questionnaire-outline';
   const instructionsId = `instructions-${currentQuestion.id}`;
   const guidancePanelId = `guidance-${currentQuestion.id}`;
   const progressLabelId = `progress-label-${currentQuestion.id}`;
@@ -384,6 +429,13 @@ export const QuestionnaireScreen = ({
   }, [currentQuestion.id]);
 
   useEffect(() => {
+    // « Je ne sais pas encore » est une réponse, pas une option : elle ne figure évidemment dans
+    // aucune liste de choix, et l'élagage ci-dessous l'effaçait donc aussitôt sur les deux types
+    // où elle est justement proposée (le doute disparaissait sans trace, et sans erreur).
+    if (isCurrentAnswerUnknown) {
+      return;
+    }
+
     if (questionType === 'choice') {
       if (choiceAnswerState.value && !visibleOptionValues.includes(choiceAnswerState.value)) {
         onAnswer(currentQuestion.id, null);
@@ -412,6 +464,7 @@ export const QuestionnaireScreen = ({
   }, [
     choiceAnswerState.value,
     currentQuestion.id,
+    isCurrentAnswerUnknown,
     multiAnswerState.children,
     multiAnswerState.otherText,
     multiSelection,
@@ -1372,97 +1425,132 @@ export const QuestionnaireScreen = ({
           aria-label={t('questionnaire.summaryAriaLabel')}
           data-tour-id="question-summary-panel"
         >
-          {typeof onProjectStageChange === 'function' && (
-            <div className="bg-white rounded-2xl shadow-xl p-4 mb-4" data-tour-id="question-stage-selector">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-700">
-                {t('questionnaire.stageHeading')}
-              </h2>
-              <p className="mt-1 text-xs text-gray-500">{t('questionnaire.stageHint')}</p>
-              {/* Contrôle segmenté plutôt que des `input[type=radio]` : la barre latérale précède
-                  la question dans le DOM, et des boutons radio y captureraient toute sélection
-                  générique visant la réponse elle-même (c'est ce qui cassait l'autopilote e2e,
-                  mais aussi ce qu'aurait fait n'importe quelle automatisation de saisie). */}
-              <div className="mt-3 space-y-1" role="radiogroup" aria-label={t('questionnaire.stageHeading')}>
-                {PROJECT_STAGE_VALUES.map((stage) => (
-                  <button
-                    key={stage}
-                    type="button"
-                    role="radio"
-                    aria-checked={resolvedStage === stage}
-                    onClick={() => onProjectStageChange(stage)}
-                    className={`flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors ${
-                      resolvedStage === stage
-                        ? 'bg-blue-50 text-blue-800 font-semibold'
-                        : 'text-gray-600 hover:bg-gray-100'
-                    }`}
-                  >
-                    <span className="mt-0.5 shrink-0" aria-hidden="true">
-                      {resolvedStage === stage ? (
-                        <CheckCircle className="w-3.5 h-3.5 text-blue-600" />
-                      ) : (
-                        <span className="block w-2 h-2 mt-1 rounded-full bg-gray-300" />
-                      )}
-                    </span>
-                    <span className="flex-1 min-w-0">
-                      {resolveLocalizedText(PROJECT_STAGE_LABELS[stage], language)}
-                      <span className="block font-normal text-[11px] text-gray-500">
-                        {t(`questionnaire.stageDescription.${stage}`)}
-                      </span>
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          <div className="bg-white rounded-2xl shadow-xl p-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-700">{t('questionnaire.summaryHeading')}</h2>
-            <p className="mt-1 text-xs text-gray-500">
-              {t(questions.length > 1 ? 'questionnaire.summaryProgressPlural' : 'questionnaire.summaryProgressSingular', {
-                answered: answeredQuestionsCount,
-                total: questions.length
-              })}
-            </p>
-            <ol className="mt-3 space-y-1 max-h-96 overflow-y-auto pr-1">
-              {questions.map((question, index) => {
-                const isAnswered = isAnswerProvided(answers[question.id]);
-                const isCurrent = index === currentIndex;
-                const isMissingRequired = isQuestionMandatoryAtStage(question, resolvedStage) && !isAnswered;
-                const stateLabel = isMissingRequired
-                  ? t('questionnaire.stateMissingRequired')
-                  : isAnswered
-                    ? t('questionnaire.stateAnswered')
-                    : t('questionnaire.stateNotAnswered');
-
-                return (
-                  <li key={question.id}>
+          {/* Un seul panneau, pas trois cartes empilées : le stade, l'avancement et le
+              sommaire donnaient au formulaire des allures de tableau de bord alors qu'on y
+              vient pour répondre à une question. Le stade tient sur un segment, l'avancement
+              sur une barre, et le sommaire se replie. */}
+          <div className="bg-white rounded-2xl shadow-xl divide-y divide-gray-100">
+            {typeof onProjectStageChange === 'function' && (
+              <div className="p-4" data-tour-id="question-stage-selector">
+                <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  {t('questionnaire.stageHeading')}
+                </h2>
+                <p id={stageHintId} className="sr-only">{t('questionnaire.stageHint')}</p>
+                {/* Contrôle segmenté plutôt que des `input[type=radio]` : la barre latérale précède
+                    la question dans le DOM, et des boutons radio y captureraient toute sélection
+                    générique visant la réponse elle-même (c'est ce qui cassait l'autopilote e2e,
+                    mais aussi ce qu'aurait fait n'importe quelle automatisation de saisie). */}
+                <div
+                  className="mt-2 flex gap-1 rounded-xl bg-gray-100 p-1"
+                  role="radiogroup"
+                  aria-label={t('questionnaire.stageHeading')}
+                  aria-describedby={stageHintId}
+                >
+                  {PROJECT_STAGE_VALUES.map((stage) => (
                     <button
+                      key={stage}
                       type="button"
-                      onClick={() => onNavigateToQuestion?.(question.id)}
-                      aria-current={isCurrent ? 'step' : undefined}
-                      className={`flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors ${
-                        isCurrent
-                          ? 'bg-blue-50 text-blue-800 font-semibold'
-                          : 'text-gray-600 hover:bg-gray-100'
+                      role="radio"
+                      aria-checked={resolvedStage === stage}
+                      onClick={() => onProjectStageChange(stage)}
+                      className={`flex-1 rounded-lg px-1.5 py-1.5 text-[11px] font-semibold leading-tight transition-colors ${
+                        resolvedStage === stage
+                          ? 'bg-white text-blue-700 shadow-sm'
+                          : 'text-gray-500 hover:text-gray-700'
                       }`}
                     >
-                      <span className="mt-0.5 shrink-0" aria-hidden="true">
-                        {isAnswered ? (
-                          <CheckCircle className="w-4 h-4 text-blue-600" />
-                        ) : isMissingRequired ? (
-                          <AlertTriangle className="w-4 h-4 text-yellow-600" />
-                        ) : (
-                          <span className="block w-2 h-2 mt-1 ml-1 rounded-full bg-gray-300" />
-                        )}
-                      </span>
-                      <span className="flex-1 min-w-0">
-                        {resolveLocalizedText(question.question, language)}
-                        <span className="sr-only"> — {stateLabel}</span>
-                      </span>
+                      {resolveLocalizedText(PROJECT_STAGE_LABELS[stage], language)}
                     </button>
-                  </li>
-                );
-              })}
-            </ol>
+                  ))}
+                </div>
+                <p className="mt-2 text-[11px] text-gray-500">
+                  {t(`questionnaire.stageDescription.${resolvedStage}`)}
+                </p>
+              </div>
+            )}
+            <div className="p-4">
+              <button
+                type="button"
+                onClick={() => setIsOutlineOpen((previous) => !previous)}
+                aria-expanded={isOutlineOpen}
+                aria-controls={outlineId}
+                className="flex w-full items-center justify-between gap-2 text-left"
+              >
+                <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  {t('questionnaire.summaryHeading')}
+                </span>
+                <span className="flex items-center gap-1 text-xs font-semibold text-gray-700">
+                  {t('questionnaire.summaryProgressCompact', {
+                    answered: answeredQuestionsCount,
+                    total: questions.length
+                  })}
+                  <ChevronDown
+                    className="w-4 h-4 text-gray-400 transition-transform"
+                    style={{ transform: isOutlineOpen ? 'rotate(180deg)' : 'none' }}
+                  />
+                </span>
+              </button>
+              <div className="mt-2 h-1 w-full rounded-full bg-gray-100" aria-hidden="true">
+                <span
+                  className="block h-1 rounded-full bg-blue-500 transition-all duration-300"
+                  style={{ width: `${questions.length > 0 ? (answeredQuestionsCount / questions.length) * 100 : 0}%` }}
+                />
+              </div>
+              {missingRequiredCount > 0 && (
+                <p className="mt-2 flex items-center gap-1 text-[11px] font-medium text-amber-700">
+                  <AlertTriangle className="w-3 h-3 shrink-0" />
+                  {t(
+                    missingRequiredCount > 1
+                      ? 'questionnaire.summaryMissingRequiredPlural'
+                      : 'questionnaire.summaryMissingRequiredSingular',
+                    { count: missingRequiredCount }
+                  )}
+                </p>
+              )}
+              {isOutlineOpen && (
+                <ol id={outlineId} className="mt-3 space-y-0.5 max-h-80 overflow-y-auto pr-1">
+                  {questions.map((question, index) => {
+                    const isAnswered = isAnswerProvided(answers[question.id]);
+                    const isCurrent = index === currentIndex;
+                    const isMissingRequired = isQuestionMandatoryAtStage(question, resolvedStage) && !isAnswered;
+                    const stateLabel = isMissingRequired
+                      ? t('questionnaire.stateMissingRequired')
+                      : isAnswered
+                        ? t('questionnaire.stateAnswered')
+                        : t('questionnaire.stateNotAnswered');
+
+                    return (
+                      <li key={question.id}>
+                        <button
+                          type="button"
+                          onClick={() => onNavigateToQuestion?.(question.id)}
+                          aria-current={isCurrent ? 'step' : undefined}
+                          className={`flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors ${
+                            isCurrent
+                              ? 'bg-blue-50 text-blue-800 font-semibold'
+                              : 'text-gray-600 hover:bg-gray-100'
+                          }`}
+                        >
+                          <span className="mt-0.5 shrink-0" aria-hidden="true">
+                            {isAnswered ? (
+                              <CheckCircle className="w-4 h-4 text-blue-600" />
+                            ) : isMissingRequired ? (
+                              <AlertTriangle className="w-4 h-4 text-yellow-600" />
+                            ) : (
+                              <span className="block w-2 h-2 mt-1 ml-1 rounded-full bg-gray-300" />
+                            )}
+                          </span>
+                          <span className="flex-1 min-w-0">
+                            {resolveLocalizedText(question.question, language)}
+                            <span className="sr-only"> — {stateLabel}</span>
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ol>
+              )}
+            </div>
           </div>
         </aside>
         <div className="w-full min-w-0 flex-1">
@@ -1736,13 +1824,73 @@ export const QuestionnaireScreen = ({
                   ? t('questionnaire.unknownAnswerActiveHint')
                   : t('questionnaire.unknownAnswerHint')}
               </p>
+
+              {/* Un doute signalé mais adressé à personne reste un doute : il s'affichait en
+                  synthèse à côté de la réponse sans qu'aucune équipe ne soit prévenue. On
+                  propose donc ici les équipes que cette réponse tient en suspens, et le fait
+                  de choisir l'une d'elles ouvre le fil de questions ci-dessous — qui, lui,
+                  sollicite et notifie réellement l'équipe. */}
+              {isCurrentAnswerUnknown && typeof onAskQuestion === 'function' && (
+                <div
+                  className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-4"
+                  role="status"
+                  data-tour-id="question-uncertainty-routing"
+                >
+                  {currentUncertainty ? (
+                    <>
+                      <p className="text-sm font-semibold text-amber-900">
+                        {t('questionnaire.uncertaintyRoutingHeading')}
+                      </p>
+                      <p className="mt-1 text-xs text-amber-800">
+                        {uncertaintyAskedTeams.length > 0
+                          ? t('questionnaire.uncertaintyRoutedHint', {
+                            teams: uncertaintyAskedTeams
+                              .map((team) => resolveLocalizedText(team.name, language) || team.id)
+                              .join(', ')
+                          })
+                          : t('questionnaire.uncertaintyRoutingHint')}
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {uncertaintySuggestedTeams.map((team) => (
+                          <button
+                            key={team.id}
+                            type="button"
+                            onClick={() => handleRouteUncertainty(team.id)}
+                            className="inline-flex items-center gap-2 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-100 transition-all"
+                          >
+                            <MessageSquare className="w-3 h-3" />
+                            {t('questionnaire.uncertaintyRoutingAction', {
+                              team: resolveLocalizedText(team.name, language) || team.id
+                            })}
+                          </button>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => handleRouteUncertainty('')}
+                          className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold text-amber-900 underline underline-offset-2 hover:text-amber-700"
+                        >
+                          {t('questionnaire.uncertaintyRoutingOtherTeamAction')}
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-xs text-amber-800">
+                      {t('questionnaire.uncertaintyHarmlessHint')}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
           {/* Poser une question à un expert là où le doute naît, sans rien soumettre : le fil reste
               attaché à cette question du formulaire. */}
           {typeof onAskQuestion === 'function' && (
-            <div className="mb-8 rounded-xl border border-gray-200 bg-gray-50 p-4" data-tour-id="question-ask-expert">
+            <div
+              ref={askBlockRef}
+              className="mb-8 rounded-xl border border-gray-200 bg-gray-50 p-4"
+              data-tour-id="question-ask-expert"
+            >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <p className="text-sm font-semibold text-gray-800">{t('questionnaire.askExpertTitle')}</p>
