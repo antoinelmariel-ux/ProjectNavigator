@@ -1,5 +1,5 @@
 import { getProjectStage, getQuestionRequiredFromStage, isStageAtLeast } from './projectStage.js';
-import { isUnknownAnswer } from './unknownAnswer.js';
+import { hasQuestionDoubt } from './questionDoubts.js';
 
 // Une seule définition de « cette réponse est renseignée » pour toute l'application : elle était
 // dupliquée à l'identique dans App.jsx, QuestionnaireScreen.jsx, SynthesisReport.jsx et
@@ -32,8 +32,8 @@ export const isQuestionMandatoryAtStage = (question, stage) => {
 // que décaler le moment où l'on doit répondre.
 export const isQuestionMandatory = (question) => Boolean(question?.required);
 
-// `rejectUnknown` distingue les deux portes d'entrée : un « je ne sais pas encore » est une
-// réponse recevable pour demander un avis préliminaire (c'est même une information utile pour
+// `rejectUnknown` distingue les deux portes d'entrée : un doute signalé sur la réponse est
+// recevable pour demander un avis préliminaire (c'est même une information utile pour
 // l'expert), jamais pour demander une validation.
 const hasUsableAnswer = (answers, questionId, rejectUnknown) => {
   const value = answers?.[questionId];
@@ -41,7 +41,7 @@ const hasUsableAnswer = (answers, questionId, rejectUnknown) => {
     return false;
   }
 
-  return !(rejectUnknown && isUnknownAnswer(value));
+  return !(rejectUnknown && hasQuestionDoubt(answers, questionId));
 };
 
 const filterMandatory = (questions, answers, { stage, ignoreStage = false } = {}) => {

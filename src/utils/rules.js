@@ -1,5 +1,4 @@
 import { normalizeAnswerForComparison, normalizeConditionValueForAnswer } from './questions.js';
-import { isUnknownAnswer } from './unknownAnswer.js';
 import { normalizeConditionGroups } from './conditionGroups.js';
 import { sanitizeRuleCondition } from './ruleConditions.js';
 import { getRiskWeightKey, normalizeRiskWeighting } from './risk.js';
@@ -174,13 +173,6 @@ const matchesCondition = (condition, answers) => {
 
   const rawAnswer = answers[condition.question];
   if (rawAnswer === null || rawAnswer === undefined || rawAnswer === '') {
-    return false;
-  }
-
-  // Même règle que dans questions.js : un « je ne sais pas encore » ne satisfait aucune
-  // condition, y compris négative. Le point d'incertitude est signalé au porteur et à
-  // l'expert (cf. getUncertainRuleCoverage), il ne déclenche jamais une règle tout seul.
-  if (isUnknownAnswer(rawAnswer)) {
     return false;
   }
 

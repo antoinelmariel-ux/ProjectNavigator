@@ -23,8 +23,7 @@ const LEVEL_ORDER = [READINESS_ORIENTATION, READINESS_ADVICE, READINESS_VALIDATI
 // avec ce que j'ai déjà saisi, qu'est-ce que la compliance peut faire pour moi maintenant ?
 export const ProjectReadinessPanel = ({
   readiness,
-  uncertainCoverage = [],
-  teams = [],
+  openQuestionDoubts = [],
   isSubmitted = false,
   submissionKind = SUBMISSION_KIND_FINAL,
   notifiedTeamNames = [],
@@ -222,7 +221,7 @@ export const ProjectReadinessPanel = ({
         </p>
       )}
 
-      {uncertainCoverage.length > 0 && (
+      {openQuestionDoubts.length > 0 && (
         <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4" role="alert">
           <div className="flex items-start gap-2">
             <AlertTriangle className="mt-0.5 w-4 h-4 text-amber-600" />
@@ -233,46 +232,21 @@ export const ProjectReadinessPanel = ({
               <p className="mt-1 text-xs text-amber-700">
                 {t('synthesisReport.readiness.uncertainHint')}
               </p>
-              {/* Un doute qui n'est adressé à personne n'a aucune chance d'être levé : on dit
-                  à qui il a été transmis, et on propose de le faire quand ce n'est pas le cas. */}
               <ul className="mt-2 space-y-2">
-                {uncertainCoverage.map((entry) => {
-                  const askedTeamNames = (entry.askedTeamIds || [])
-                    .map((teamId) => {
-                      const team = teams.find((item) => item?.id === teamId);
-                      return resolveLocalizedText(team?.name, language) || teamId;
-                    })
-                    .filter(Boolean);
-
-                  return (
-                    <li key={entry.questionId}>
-                      <button
-                        type="button"
-                        onClick={() => onNavigateToQuestion?.(entry.questionId)}
-                        className="text-left text-xs font-medium text-amber-900 underline underline-offset-2 hover:text-amber-700"
-                      >
-                        {resolveLocalizedText(entry.question?.question, language) || entry.questionId}
-                      </button>
-                      {askedTeamNames.length > 0 ? (
-                        <p className="mt-0.5 flex items-center gap-1 text-[11px] text-amber-800">
-                          <MessageSquare className="w-3 h-3 shrink-0" />
-                          {t('synthesisReport.readiness.uncertainRoutedTo', { teams: askedTeamNames.join(', ') })}
-                        </p>
-                      ) : (
-                        <p className="mt-0.5 text-[11px] text-amber-800">
-                          {t('synthesisReport.readiness.uncertainUnrouted')}{' '}
-                          <button
-                            type="button"
-                            onClick={() => onNavigateToQuestion?.(entry.questionId)}
-                            className="bg-transparent font-semibold underline underline-offset-2 hover:text-amber-700"
-                          >
-                            {t('synthesisReport.readiness.uncertainRouteAction')}
-                          </button>
-                        </p>
-                      )}
-                    </li>
-                  );
-                })}
+                {openQuestionDoubts.map((entry) => (
+                  <li key={entry.questionId}>
+                    <button
+                      type="button"
+                      onClick={() => onNavigateToQuestion?.(entry.questionId)}
+                      className="text-left text-xs font-medium text-amber-900 underline underline-offset-2 hover:text-amber-700"
+                    >
+                      {resolveLocalizedText(entry.question?.question, language) || entry.questionId}
+                    </button>
+                    {entry.text.trim().length > 0 && (
+                      <p className="mt-0.5 text-[11px] text-amber-800 whitespace-pre-line">{entry.text}</p>
+                    )}
+                  </li>
+                ))}
               </ul>
             </div>
           </div>

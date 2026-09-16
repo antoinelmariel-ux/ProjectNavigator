@@ -66,7 +66,6 @@ import {
 import { isProjectLaunched, withProjectLaunch, withoutProjectLaunch } from './utils/projectLaunch.js';
 import { getProjectCompliancePerimeters } from './utils/projectValidationStatus.js';
 import { stampReviewedVersions, withNeedsReviewSince } from './utils/perimeterReview.js';
-import { getUncertainRuleCoverage } from './utils/uncertainCoverage.js';
 import {
   SUBMISSION_KIND_PRELIMINARY,
   getSubmissionKind,
@@ -127,13 +126,7 @@ import {
 } from './utils/teamMemberProfile.js';
 import { normalizeRulesTeamReferences } from './utils/teamIds.js';
 import { MANUAL_TEAM_REQUESTS_KEY, addManualTeamRequest, normalizeManualTeamRequests } from './utils/manualTeamRequests.js';
-import {
-  addQuestionThread,
-  getQuestionThreads,
-  withQuestionThread,
-  withThreadReply,
-  withThreadResolution
-} from './utils/questionThreads.js';
+import { withQuestionDoubt, withoutQuestionDoubt, getOpenQuestionDoubts } from './utils/questionDoubts.js';
 import { getCurrentUser, getRealUser } from './utils/spContext.js';
 import { isImpersonating } from './utils/impersonation.js';
 import { dataProvider } from './utils/dataProvider.js';
@@ -2555,7 +2548,6 @@ const updateProjectFilters = useCallback((updater) => {
       case 'question-summary':
       case 'question-stage':
       case 'question-answer-types':
-      case 'question-ask-expert':
       case 'quick-questionnaire': {
         setShowcaseProjectContext(null);
         setScreen('questionnaire');
@@ -3237,9 +3229,9 @@ const updateProjectFilters = useCallback((updater) => {
     [activeQuestions, answers]
   );
 
-  const uncertainRuleCoverage = useMemo(
-    () => getUncertainRuleCoverage(answers, rules, activeQuestions),
-    [answers, rules, activeQuestions]
+  const openQuestionDoubts = useMemo(
+    () => getOpenQuestionDoubts(answers, activeQuestions),
+    [answers, activeQuestions]
   );
 
   const pendingMandatoryQuestions = useMemo(
@@ -4750,173 +4742,39 @@ const updateProjectFilters = useCallback((updater) => {
     });
   }, [activeProjectId, notifyThreadLastAuthor]);
 
-  // Écrit les réponses du projet actif à la fois dans l'état d'édition et dans la fiche projet.
-  // Les questions ancrées vivent sur des projets souvent encore en brouillon : passer par
-  // `handleSaveProject` les ferait basculer en soumission, et ne passer que par `setAnswers`
-  // laisserait la fiche projet — donc l'expert — sans rien voir.
-  const patchActiveProjectAnswers = useCallback((updater) => {
-    const project = projectsRef.current.find((entry) => entry?.id === activeProjectId);
-    if (!project) {
-      return null;
-    }
-
-    const nextAnswers = updater(project.answers && typeof project.answers === 'object' ? project.answers : {});
-    if (!nextAnswers) {
-      return null;
-    }
-
+  // Signaler un doute sur une question, sans jamais remplacer la réponse elle-même : le porteur
+  // garde sa vraie réponse et ajoute, en texte libre, ce qui le fait douter. La note reste privée
+  // au porteur (elle n'est plus notifiée ni envoyée à une équipe) et ne bloque que la validation
+  // définitive, jamais un avis technique (cf. mandatoryQuestions.js).
+  const handleSetQuestionDoubt = useCallback((questionId, text) => {
+    const nextAnswers = withQuestionDoubt(answers, questionId, text);
     setAnswers(nextAnswers);
-    setProjects((prevProjects) => prevProjects.map((entry) => (
-      entry?.id === project.id
-        ? { ...entry, answers: nextAnswers, lastUpdated: new Date().toISOString() }
-        : entry
-    )));
-
-    return { project, nextAnswers };
-  }, [activeProjectId]);
-
-  // Poser une question à une équipe depuis le questionnaire, sans rien soumettre. La question
-  // reste attachée à l'item du formulaire d'où vient le doute, et la même sollicitation manuelle
-  // que la synthèse est enregistrée : c'est elle qui fait exister l'équipe comme périmètre et qui
-  // rend le projet visible côté expert, y compris sur un brouillon.
-  const handleAskQuestionToTeam = useCallback(({ questionId, teamId, message } = {}) => {
-    const team = teams.find((entry) => entry?.id === teamId);
-    if (!team) {
-      return;
-    }
-
-    let createdThread = null;
-
-    const result = patchActiveProjectAnswers((currentAnswers) => {
-      const thread = addQuestionThread(currentAnswers, {
-        questionId,
-        teamId,
-        message,
-        authorEmail: currentUserEmail,
-        authorName: currentUserDisplayName
-      });
-
-      if (!thread) {
-        return null;
-      }
-
-      createdThread = thread;
-
-      return {
-        ...withQuestionThread(currentAnswers, thread),
-        [MANUAL_TEAM_REQUESTS_KEY]: addManualTeamRequest(
-          currentAnswers[MANUAL_TEAM_REQUESTS_KEY],
-          { teamId, requestedBy: currentUserEmail }
-        )
-      };
-    });
-
-    if (!result || !createdThread) {
-      return;
-    }
-
     setHasUnsavedChanges(true);
 
-    const recipients = normalizeRecipientList(resolveTeamMailRecipients(team, result.nextAnswers));
-    if (recipients.length === 0) {
-      return;
+    if (activeProjectId && isActiveProjectEditable) {
+      setProjects((prevProjects) => prevProjects.map((project) => (
+        project.id === activeProjectId
+          ? { ...project, answers: nextAnswers, lastUpdated: new Date().toISOString() }
+          : project
+      )));
     }
+  }, [activeProjectId, answers, isActiveProjectEditable, setHasUnsavedChanges]);
 
-    const questionLabel = resolveLocalizedText(
-      questions.find((entry) => entry?.id === questionId)?.question,
-      DEFAULT_LANGUAGE
-    ) || questionId;
-
-    notify({
-      type: NOTIFICATION_TYPES.QUESTION_ASKED,
-      project: { ...result.project, answers: result.nextAnswers },
-      to: recipients,
-      teamNames: [resolveLocalizedText(team.name, DEFAULT_LANGUAGE)].filter(Boolean),
-      excerpt: `${questionLabel}\n\n${createdThread.messages[0].message}`,
-      view: 'synthesis'
-    });
-  }, [
-    currentUserDisplayName,
-    currentUserEmail,
-    notify,
-    patchActiveProjectAnswers,
-    questions,
-    resolveTeamMailRecipients,
-    setHasUnsavedChanges,
-    teams
-  ]);
-
-  const handleReplyToQuestionThread = useCallback(({ threadId, message } = {}) => {
-    let repliedThread = null;
-
-    const result = patchActiveProjectAnswers((currentAnswers) => {
-      const nextAnswers = withThreadReply(currentAnswers, threadId, {
-        message,
-        authorEmail: currentUserEmail,
-        authorName: currentUserDisplayName
-      });
-
-      if (nextAnswers === currentAnswers) {
-        return null;
-      }
-
-      repliedThread = getQuestionThreads(nextAnswers).find((thread) => thread.id === threadId) || null;
-      return nextAnswers;
-    });
-
-    if (!result || !repliedThread) {
-      return;
-    }
-
+  // Décocher « J'ai un doute » efface la note entièrement : ce n'est pas la réponse qui
+  // disparaît, seulement le signalement d'incertitude qui portait sur elle.
+  const handleClearQuestionDoubt = useCallback((questionId) => {
+    const nextAnswers = withoutQuestionDoubt(answers, questionId);
+    setAnswers(nextAnswers);
     setHasUnsavedChanges(true);
 
-    const isOwnerSide = normalizeEmail(repliedThread.createdBy) === currentUserEmail;
-    const team = teams.find((entry) => entry?.id === repliedThread.teamId);
-
-    // Une réponse va à l'autre partie : à l'équipe si c'est le porteur qui écrit, au porteur si
-    // c'est l'expert.
-    const recipients = isOwnerSide
-      ? normalizeRecipientList(team ? resolveTeamMailRecipients(team, result.nextAnswers) : [])
-      : normalizeRecipientList([repliedThread.createdBy]);
-
-    if (recipients.length === 0) {
-      return;
+    if (activeProjectId && isActiveProjectEditable) {
+      setProjects((prevProjects) => prevProjects.map((project) => (
+        project.id === activeProjectId
+          ? { ...project, answers: nextAnswers, lastUpdated: new Date().toISOString() }
+          : project
+      )));
     }
-
-    notify({
-      type: isOwnerSide ? NOTIFICATION_TYPES.QUESTION_ASKED : NOTIFICATION_TYPES.QUESTION_ANSWERED,
-      project: { ...result.project, answers: result.nextAnswers },
-      to: recipients,
-      teamNames: team ? [resolveLocalizedText(team.name, DEFAULT_LANGUAGE)].filter(Boolean) : [],
-      excerpt: repliedThread.messages[repliedThread.messages.length - 1]?.message || '',
-      view: 'synthesis'
-    });
-  }, [
-    currentUserDisplayName,
-    currentUserEmail,
-    notify,
-    patchActiveProjectAnswers,
-    resolveTeamMailRecipients,
-    setHasUnsavedChanges,
-    teams
-  ]);
-
-  // Clore une question est réservé à qui l'a posée : un expert qui répond n'a pas à décider que
-  // sa réponse a suffi.
-  const handleResolveQuestionThread = useCallback(({ threadId, resolved } = {}) => {
-    const result = patchActiveProjectAnswers((currentAnswers) => {
-      const thread = getQuestionThreads(currentAnswers).find((entry) => entry.id === threadId);
-      if (!thread || normalizeEmail(thread.createdBy) !== currentUserEmail) {
-        return null;
-      }
-
-      return withThreadResolution(currentAnswers, threadId, { resolved, by: currentUserEmail });
-    });
-
-    if (result) {
-      setHasUnsavedChanges(true);
-    }
-  }, [currentUserEmail, patchActiveProjectAnswers, setHasUnsavedChanges]);
+  }, [activeProjectId, answers, isActiveProjectEditable, setHasUnsavedChanges]);
 
   // Porteur de projet ou expert Compliance ajoutant à la main une équipe que le moteur de
   // règles n'a pas identifiée (cf. manualTeamRequests.js) : la demande est persistée à part de
@@ -7973,12 +7831,8 @@ const updateProjectFilters = useCallback((updater) => {
             projectId={activeProjectId}
             projectStage={projectStage}
             onProjectStageChange={handleProjectStageChange}
-            teams={teams}
-            uncertainCoverage={uncertainRuleCoverage}
-            currentUserEmail={currentUserEmail}
-            onAskQuestion={activeProjectId ? handleAskQuestionToTeam : undefined}
-            onReplyToQuestionThread={activeProjectId ? handleReplyToQuestionThread : undefined}
-            onResolveQuestionThread={activeProjectId ? handleResolveQuestionThread : undefined}
+            onSetQuestionDoubt={handleSetQuestionDoubt}
+            onClearQuestionDoubt={handleClearQuestionDoubt}
             />
           </Suspense>
         ) : screen === 'mandatory-summary' ? (
@@ -8033,7 +7887,7 @@ const updateProjectFilters = useCallback((updater) => {
               isClaimActionAvailable={!isSimulatedSession}
               onRequestAdditionalTeam={activeProjectId ? handleRequestAdditionalTeam : undefined}
               readiness={projectReadiness}
-              uncertainRuleCoverage={uncertainRuleCoverage}
+              openQuestionDoubts={openQuestionDoubts}
               submissionKind={getSubmissionKind(activeProject)}
               showcaseFeedbackCount={showcaseFeedbackCount}
               pendingChanges={pendingProjectChanges}
@@ -8049,8 +7903,6 @@ const updateProjectFilters = useCallback((updater) => {
               isLaunched={isProjectLaunched(activeProject?.answers)}
               canDeclareLaunch={canDeclareProjectLaunch(activeProject)}
               onDeclareLaunch={activeProjectId ? handleDeclareProjectLaunch : undefined}
-              onReplyToQuestionThread={activeProjectId ? handleReplyToQuestionThread : undefined}
-              onResolveQuestionThread={activeProjectId ? handleResolveQuestionThread : undefined}
             />
           </Suspense>
         ) : screen === 'showcase' ? (

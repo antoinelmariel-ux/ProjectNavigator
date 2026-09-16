@@ -9,7 +9,7 @@
 // settings.json publié) est remplacée par celle-ci au démarrage — voir
 // normalizeOnboardingConfig dans src/utils/onboarding.js. L'incrémenter écrase donc les
 // personnalisations back-office du tour : à ne faire que pour une refonte assumée.
-export const ONBOARDING_TOUR_VERSION = 4;
+export const ONBOARDING_TOUR_VERSION = 5;
 
 const ACTION_LABELS = {
   create: { en: 'Create a project', fr: 'Créer un projet', de: 'Ein Projekt erstellen', es: 'Crear un proyecto' },
@@ -372,27 +372,6 @@ export const initialOnboardingTourConfig = {
       },
       "placement": "top",
       "highlightScope": "target",
-      "showDefaultButtons": true,
-      "actions": []
-    },
-    {
-      "id": "question-ask-expert",
-      "target": "[data-tour-id=\"question-ask-expert\"]",
-      "title": {
-        "en": "Ask an expert without submitting anything",
-        "fr": "Interroger un expert sans rien soumettre",
-        "de": "Einen Experten fragen, ohne etwas einzureichen",
-        "es": "Preguntar a un experto sin enviar nada"
-      },
-      "content": {
-        "en": "A doubt on a specific question? Ask it right here, to the right team: your question stays attached to this question and the team is notified. Marking an answer “I do not know yet” offers the same routing when that answer changes the analysis.",
-        "fr": "Un doute sur une question précise ? Posez-la ici même, à la bonne équipe : votre question reste attachée à cette question et l’équipe est notifiée. Répondre « Je ne sais pas encore » propose le même envoi quand cette réponse influe sur l’analyse.",
-        "de": "Ein Zweifel bei einer bestimmten Frage? Stellen Sie sie genau hier dem richtigen Team: Ihre Frage bleibt an diese Frage geknüpft, und das Team wird benachrichtigt. Die Antwort „Ich weiß es noch nicht“ bietet dieselbe Weiterleitung, wenn diese Antwort die Analyse beeinflusst.",
-        "es": "¿Una duda sobre una pregunta concreta? Plantéela aquí mismo al equipo adecuado: su pregunta queda vinculada a esta pregunta y el equipo recibe una notificación. Responder «Aún no lo sé» ofrece el mismo envío cuando esa respuesta influye en el análisis."
-      },
-      "placement": "top",
-      "highlightScope": "target",
-      "scrollIntoViewOptions": { "behavior": "smooth", "block": "center", "inline": "nearest" },
       "showDefaultButtons": true,
       "actions": []
     },

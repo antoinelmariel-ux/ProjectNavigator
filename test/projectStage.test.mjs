@@ -17,7 +17,7 @@ import {
   getMissingMandatoryQuestions,
   isQuestionMandatoryAtStage
 } from '../src/utils/mandatoryQuestions.js';
-import { UNKNOWN_ANSWER_VALUE, canAnswerBeUnknown, isUnknownAnswer } from '../src/utils/unknownAnswer.js';
+import { canQuestionHaveDoubt, hasQuestionDoubt, withQuestionDoubt } from '../src/utils/questionDoubts.js';
 import {
   READINESS_ADVICE,
   READINESS_INCOMPLETE,
@@ -68,13 +68,13 @@ test('le stade module le caractère obligatoire, jamais la question elle-même',
   assert.deepEqual(ignoringStage.map((question) => question.id), ['name', 'audience', 'countries', 'budget']);
 });
 
-test('« je ne sais pas encore » compte comme réponse sauf quand une réponse ferme est exigée', () => {
-  assert.equal(isUnknownAnswer(UNKNOWN_ANSWER_VALUE), true);
-  assert.equal(isUnknownAnswer([UNKNOWN_ANSWER_VALUE]), true);
-  assert.equal(isUnknownAnswer([UNKNOWN_ANSWER_VALUE, 'autre']), false);
-  assert.equal(isUnknownAnswer('non'), false);
+test('un doute laisse la réponse utilisable sauf quand une réponse ferme est exigée', () => {
+  assert.equal(hasQuestionDoubt(withQuestionDoubt({}, 'audience', 'Pas sûr'), 'audience'), true);
+  assert.equal(hasQuestionDoubt({}, 'audience'), false);
 
-  const answers = { name: 'Projet', audience: UNKNOWN_ANSWER_VALUE };
+  // Le doute ne remplace jamais la réponse : elle reste la vraie valeur donnée.
+  const answers = withQuestionDoubt({ name: 'Projet', audience: 'Grand public' }, 'audience', 'Pas sûr du périmètre');
+  assert.equal(answers.audience, 'Grand public');
   assert.deepEqual(
     getMissingMandatoryQuestions(questions, answers, { stage: PROJECT_STAGE_FRAMING }).map((q) => q.id),
     []
@@ -89,13 +89,13 @@ test('« je ne sais pas encore » compte comme réponse sauf quand une réponse 
   assert.deepEqual(progress, { totalMandatoryQuestions: 2, answeredMandatoryQuestions: 2 });
 });
 
-test('« je ne sais pas encore » n’est proposé que là où l’incertitude est exploitable', () => {
-  assert.equal(canAnswerBeUnknown({ type: 'choice' }), true);
-  assert.equal(canAnswerBeUnknown({ type: 'number' }), true);
-  assert.equal(canAnswerBeUnknown({ type: 'long_text' }), false);
-  assert.equal(canAnswerBeUnknown({ type: 'text' }), false);
-  assert.equal(canAnswerBeUnknown({ type: 'long_text', allowUnknownAnswer: true }), true);
-  assert.equal(canAnswerBeUnknown({ type: 'choice', allowUnknownAnswer: false }), false);
+test('le doute n’est proposé que là où l’incertitude reste exploitable', () => {
+  assert.equal(canQuestionHaveDoubt({ type: 'choice' }), true);
+  assert.equal(canQuestionHaveDoubt({ type: 'number' }), true);
+  assert.equal(canQuestionHaveDoubt({ type: 'long_text' }), false);
+  assert.equal(canQuestionHaveDoubt({ type: 'text' }), false);
+  assert.equal(canQuestionHaveDoubt({ type: 'long_text', allowUnknownAnswer: true }), true);
+  assert.equal(canQuestionHaveDoubt({ type: 'choice', allowUnknownAnswer: false }), false);
 });
 
 test('les paliers de complétude disent ce que la compliance peut faire', () => {
@@ -113,14 +113,16 @@ test('les paliers de complétude disent ce que la compliance peut faire', () => 
     READINESS_VALIDATION
   );
 
-  // Ce qui distingue les deux paliers, c'est la fermeté : un « je ne sais pas encore » assumé
-  // ouvre l'avis technique, jamais la validation.
-  const uncertain = getProjectReadiness(questions, {
-    name: 'P',
-    audience: 'tous',
-    countries: ['fr'],
-    budget: UNKNOWN_ANSWER_VALUE
-  });
+  // Ce qui distingue les deux paliers, c'est la fermeté : un doute assumé sur une réponse déjà
+  // donnée ouvre l'avis technique, jamais la validation.
+  const uncertain = getProjectReadiness(
+    questions,
+    withQuestionDoubt(
+      { name: 'P', audience: 'tous', countries: ['fr'], budget: 120 },
+      'budget',
+      'Montant pas encore confirmé'
+    )
+  );
   assert.equal(uncertain.level, READINESS_ADVICE);
   assert.equal(uncertain.nextLevel, READINESS_VALIDATION);
   assert.deepEqual(uncertain.missingForNextLevel.map((question) => question.id), ['budget']);
@@ -136,7 +138,7 @@ test('un palier intermédiaire manquant n’est pas effacé par un palier ultér
   assert.equal(readiness.nextLevel, READINESS_ORIENTATION);
 });
 
-test('aucune condition n’est satisfaite par « je ne sais pas encore »', async () => {
+test('un doute n’a aucun effet sur les conditions ni sur l’analyse : la vraie réponse seule compte', async () => {
   const { shouldShowQuestion } = await import('../src/utils/questions.js');
   const { analyzeAnswers } = await import('../src/utils/rules.js');
 
@@ -146,11 +148,9 @@ test('aucune condition n’est satisfaite par « je ne sais pas encore »', asyn
     conditionLogic: 'all'
   });
 
-  assert.equal(shouldShowQuestion(buildQuestion('equals', 'oui'), { source: UNKNOWN_ANSWER_VALUE }), false);
-  assert.equal(shouldShowQuestion(buildQuestion('not_equals', 'oui'), { source: UNKNOWN_ANSWER_VALUE }), false);
-  assert.equal(shouldShowQuestion(buildQuestion('contains', 'oui'), { source: UNKNOWN_ANSWER_VALUE }), false);
-  assert.equal(shouldShowQuestion(buildQuestion('gt', 10), { source: UNKNOWN_ANSWER_VALUE }), false);
-  assert.equal(shouldShowQuestion(buildQuestion('not_equals', 'oui'), { source: 'non' }), true);
+  const doubtedAnswers = withQuestionDoubt({ source: 'oui' }, 'source', 'Pas totalement sûr');
+  assert.equal(shouldShowQuestion(buildQuestion('equals', 'oui'), doubtedAnswers), true);
+  assert.equal(shouldShowQuestion(buildQuestion('not_equals', 'oui'), doubtedAnswers), false);
 
   const rules = [
     {
@@ -163,28 +163,6 @@ test('aucune condition n’est satisfaite par « je ne sais pas encore »', asyn
     }
   ];
 
-  assert.deepEqual(analyzeAnswers({ source: UNKNOWN_ANSWER_VALUE }, rules, [], {}).teams, []);
-  assert.deepEqual(analyzeAnswers({ source: 'non' }, rules, [], {}).teams, ['quality']);
-});
-
-test('une réponse incertaine qui conditionne une règle est signalée', async () => {
-  const { getUncertainRuleCoverage } = await import('../src/utils/uncertainCoverage.js');
-
-  const rules = [
-    { id: 'r1', conditions: [{ question: 'hosting', operator: 'equals', value: 'cloud' }] },
-    { id: 'r2', conditions: [{ question: 'countries', operator: 'contains', value: 'fr' }] },
-    { id: 'draft', isDraft: true, conditions: [{ question: 'budget', operator: 'gt', value: 100 }] }
-  ];
-  const questions = [{ id: 'hosting', question: { fr: 'Hébergement ?' } }];
-
-  const coverage = getUncertainRuleCoverage(
-    { hosting: UNKNOWN_ANSWER_VALUE, budget: UNKNOWN_ANSWER_VALUE, countries: ['fr'] },
-    rules,
-    questions
-  );
-
-  assert.deepEqual(coverage.map((entry) => entry.questionId), ['hosting']);
-  assert.deepEqual(coverage[0].ruleIds, ['r1']);
-  assert.equal(coverage[0].question.question.fr, 'Hébergement ?');
-  assert.deepEqual(getUncertainRuleCoverage({ hosting: 'cloud' }, rules, questions), []);
+  const doubtedNonAnswer = withQuestionDoubt({ source: 'non' }, 'source', 'Pas sûr');
+  assert.deepEqual(analyzeAnswers(doubtedNonAnswer, rules, [], {}).teams, ['quality']);
 });
