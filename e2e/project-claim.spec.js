@@ -105,7 +105,7 @@ test.describe('Prise en charge d’un projet par un membre d’équipe', () => {
     await expect(page.getByText('personne ne suit encore ce périmètre.')).toBeVisible();
 
     await page.getByRole('button', { name: /Modifier le commentaire/ }).first().click();
-    await page.locator('select').first().selectOption('pending_information');
+    await page.locator('[id^="compliance-status-"]').first().selectOption('pending_information');
     await page.locator('[id^="compliance-comment-"][contenteditable="true"]').first().click();
     await page.keyboard.type('Merci de préciser le circuit de diffusion.');
     await page.getByRole('button', { name: 'Enregistrer le commentaire' }).click();
