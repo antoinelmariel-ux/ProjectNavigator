@@ -2553,7 +2553,9 @@ const updateProjectFilters = useCallback((updater) => {
       case 'question-overview':
       case 'question-guidance':
       case 'question-summary':
+      case 'question-stage':
       case 'question-answer-types':
+      case 'question-ask-expert':
       case 'quick-questionnaire': {
         setShowcaseProjectContext(null);
         setScreen('questionnaire');
@@ -2595,6 +2597,7 @@ const updateProjectFilters = useCallback((updater) => {
         break;
       }
       case 'compliance-report-top':
+      case 'compliance-readiness':
       case 'compliance-teams':
       case 'compliance-risks':
       case 'compliance-submit':
