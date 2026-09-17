@@ -9,7 +9,7 @@
 // settings.json publié) est remplacée par celle-ci au démarrage — voir
 // normalizeOnboardingConfig dans src/utils/onboarding.js. L'incrémenter écrase donc les
 // personnalisations back-office du tour : à ne faire que pour une refonte assumée.
-export const ONBOARDING_TOUR_VERSION = 4;
+export const ONBOARDING_TOUR_VERSION = 6;
 
 const ACTION_LABELS = {
   create: { en: 'Create a project', fr: 'Créer un projet', de: 'Ein Projekt erstellen', es: 'Crear un proyecto' },
@@ -376,19 +376,19 @@ export const initialOnboardingTourConfig = {
       "actions": []
     },
     {
-      "id": "question-ask-expert",
-      "target": "[data-tour-id=\"question-ask-expert\"]",
+      "id": "question-doubt",
+      "target": "[data-tour-id=\"question-doubt-toggle\"]",
       "title": {
-        "en": "Ask an expert without submitting anything",
-        "fr": "Interroger un expert sans rien soumettre",
-        "de": "Einen Experten fragen, ohne etwas einzureichen",
-        "es": "Preguntar a un experto sin enviar nada"
+        "en": "Flag a doubt",
+        "fr": "Signaler un doute",
+        "de": "Einen Zweifel melden",
+        "es": "Señalar una duda"
       },
       "content": {
-        "en": "A doubt on a specific question? Ask it right here, to the right team: your question stays attached to this question and the team is notified. Marking an answer “I do not know yet” offers the same routing when that answer changes the analysis.",
-        "fr": "Un doute sur une question précise ? Posez-la ici même, à la bonne équipe : votre question reste attachée à cette question et l’équipe est notifiée. Répondre « Je ne sais pas encore » propose le même envoi quand cette réponse influe sur l’analyse.",
-        "de": "Ein Zweifel bei einer bestimmten Frage? Stellen Sie sie genau hier dem richtigen Team: Ihre Frage bleibt an diese Frage geknüpft, und das Team wird benachrichtigt. Die Antwort „Ich weiß es noch nicht“ bietet dieselbe Weiterleitung, wenn diese Antwort die Analyse beeinflusst.",
-        "es": "¿Una duda sobre una pregunta concreta? Plantéela aquí mismo al equipo adecuado: su pregunta queda vinculada a esta pregunta y el equipo recibe una notificación. Responder «Aún no lo sé» ofrece el mismo envío cuando esa respuesta influye en el análisis."
+        "en": "Not sure about an answer? Check “I have a doubt” and explain why in a few words: the point stays visible in your answers recap without stopping you from moving on. You will only need to settle it before a final validation.",
+        "fr": "Pas sûr d’une réponse ? Cochez « J’ai un doute » et expliquez pourquoi en quelques mots : le point reste visible dans le rappel de vos réponses, sans vous empêcher d’avancer. Il faudra simplement le lever avant une validation définitive.",
+        "de": "Nicht sicher bei einer Antwort? Aktivieren Sie „Ich habe Zweifel“ und erklären Sie kurz, warum: Der Punkt bleibt in der Übersicht Ihrer Antworten sichtbar, ohne Sie am Weiterkommen zu hindern. Geklärt werden muss er erst vor einer endgültigen Validierung.",
+        "es": "¿No está seguro de una respuesta? Marque «Tengo una duda» y explique brevemente por qué: el punto queda visible en el resumen de sus respuestas sin impedirle avanzar. Solo deberá resolverlo antes de una validación definitiva."
       },
       "placement": "top",
       "highlightScope": "target",

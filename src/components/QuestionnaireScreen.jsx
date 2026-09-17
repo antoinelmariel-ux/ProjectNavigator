@@ -7,7 +7,6 @@ import {
   ChevronLeft,
   ChevronRight,
   AlertTriangle,
-  MessageSquare,
   Plus,
   Trash2
 } from './icons.js';
@@ -33,9 +32,7 @@ import {
   PROJECT_STAGE_VALUES,
   normalizeProjectStage
 } from '../utils/projectStage.js';
-import { UNKNOWN_ANSWER_VALUE, canAnswerBeUnknown, isUnknownAnswer } from '../utils/unknownAnswer.js';
-import { getThreadsForQuestion, isThreadAwaitingAnswer } from '../utils/questionThreads.js';
-import { normalizeEmail } from '../utils/normalizeEmail.js';
+import { canQuestionHaveDoubt, getQuestionDoubtText, hasQuestionDoubt } from '../utils/questionDoubts.js';
 
 const normalizeFileAnswer = (value) => {
   const rawFiles = Array.isArray(value) ? value : value ? [value] : [];
@@ -209,12 +206,8 @@ export const QuestionnaireScreen = ({
   projectId = null,
   projectStage,
   onProjectStageChange,
-  teams = [],
-  uncertainCoverage = [],
-  currentUserEmail = '',
-  onAskQuestion,
-  onReplyToQuestionThread,
-  onResolveQuestionThread
+  onSetQuestionDoubt,
+  onClearQuestionDoubt
 }) => {
   const { t, language } = useTranslation();
   const activeQuestion = questions[currentIndex];
@@ -227,57 +220,15 @@ export const QuestionnaireScreen = ({
   const currentQuestionNumberUnit = resolveLocalizedText(currentQuestion.numberUnit, language).trim();
 
   const resolvedStage = normalizeProjectStage(projectStage);
-  const questionThreads = useMemo(
-    () => getThreadsForQuestion(answers, currentQuestion.id),
-    [answers, currentQuestion.id]
-  );
   const [isOutlineOpen, setIsOutlineOpen] = useState(true);
-  const [isAskFormOpen, setIsAskFormOpen] = useState(false);
-  const [askTeamId, setAskTeamId] = useState('');
-  const [askMessage, setAskMessage] = useState('');
-  const [threadReplies, setThreadReplies] = useState({});
-  // Le doute porté par cette question : les équipes que la réponse tient en suspens, et celles
-  // à qui il a déjà été transmis (cf. utils/uncertainCoverage.js).
-  const currentUncertainty = useMemo(
-    () => (Array.isArray(uncertainCoverage) ? uncertainCoverage : [])
-      .find((entry) => entry?.questionId === currentQuestion.id) || null,
-    [uncertainCoverage, currentQuestion.id]
-  );
-  const uncertaintyAskedTeams = useMemo(
-    () => (currentUncertainty?.askedTeamIds || [])
-      .map((teamId) => teams.find((team) => team?.id === teamId))
-      .filter(Boolean),
-    [currentUncertainty, teams]
-  );
-  const uncertaintySuggestedTeams = useMemo(
-    () => (currentUncertainty?.teamIds || [])
-      .filter((teamId) => !(currentUncertainty?.askedTeamIds || []).includes(teamId))
-      .map((teamId) => teams.find((team) => team?.id === teamId))
-      .filter(Boolean),
-    [currentUncertainty, teams]
-  );
-  const askBlockRef = useRef(null);
-
-  // Transmettre le doute, c'est ouvrir le fil déjà prérempli : une seule mécanique de
-  // sollicitation, celle qui notifie l'équipe et la fait exister comme périmètre.
-  const handleRouteUncertainty = (teamId) => {
-    setAskTeamId(teamId);
-    setAskMessage((previous) => (previous.trim().length > 0
-      ? previous
-      : t('questionnaire.uncertaintyAskPrefill', { question: currentQuestionText })));
-    setIsAskFormOpen(true);
-    if (askBlockRef.current && typeof askBlockRef.current.scrollIntoView === 'function') {
-      askBlockRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-  };
-  const normalizedCurrentUserEmail = normalizeEmail(currentUserEmail);
   const isCurrentQuestionMandatoryNow = isQuestionMandatoryAtStage(currentQuestion, resolvedStage);
   // Une question obligatoire que le stade déclaré ne rend pas encore exigible : on le dit, au
   // lieu de la laisser passer pour optionnelle (elle ne l'est pas) ou bloquante (elle ne l'est
   // pas encore).
   const isCurrentQuestionDeferred = Boolean(currentQuestion.required) && !isCurrentQuestionMandatoryNow;
-  const canSkipAsUnknown = canAnswerBeUnknown(currentQuestion);
-  const isCurrentAnswerUnknown = isUnknownAnswer(answers[currentQuestion.id]);
+  const canHaveDoubt = canQuestionHaveDoubt(currentQuestion);
+  const hasCurrentDoubt = hasQuestionDoubt(answers, currentQuestion.id);
+  const currentDoubtText = getQuestionDoubtText(answers, currentQuestion.id);
 
   const progress = ((currentIndex + 1) / questions.length) * 100;
   const answeredQuestionsCount = questions.filter(
@@ -429,13 +380,6 @@ export const QuestionnaireScreen = ({
   }, [currentQuestion.id]);
 
   useEffect(() => {
-    // « Je ne sais pas encore » est une réponse, pas une option : elle ne figure évidemment dans
-    // aucune liste de choix, et l'élagage ci-dessous l'effaçait donc aussitôt sur les deux types
-    // où elle est justement proposée (le doute disparaissait sans trace, et sans erreur).
-    if (isCurrentAnswerUnknown) {
-      return;
-    }
-
     if (questionType === 'choice') {
       if (choiceAnswerState.value && !visibleOptionValues.includes(choiceAnswerState.value)) {
         onAnswer(currentQuestion.id, null);
@@ -464,7 +408,6 @@ export const QuestionnaireScreen = ({
   }, [
     choiceAnswerState.value,
     currentQuestion.id,
-    isCurrentAnswerUnknown,
     multiAnswerState.children,
     multiAnswerState.otherText,
     multiSelection,
@@ -1804,240 +1747,46 @@ export const QuestionnaireScreen = ({
 
           {renderQuestionInput()}
 
-          {canSkipAsUnknown && (
-            <div className="mb-8">
+          {canHaveDoubt && (
+            <div className="mb-8" data-tour-id="question-doubt-toggle">
               <button
                 type="button"
-                onClick={() => onAnswer(currentQuestion.id, isCurrentAnswerUnknown ? null : UNKNOWN_ANSWER_VALUE)}
-                aria-pressed={isCurrentAnswerUnknown}
+                onClick={() => {
+                  if (hasCurrentDoubt) {
+                    onClearQuestionDoubt?.(currentQuestion.id);
+                  } else {
+                    onSetQuestionDoubt?.(currentQuestion.id, '');
+                  }
+                }}
+                aria-pressed={hasCurrentDoubt}
                 className={`inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-all ${
-                  isCurrentAnswerUnknown
+                  hasCurrentDoubt
                     ? 'border-amber-300 bg-amber-100 text-amber-800'
                     : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
                 }`}
               >
-                {isCurrentAnswerUnknown ? <CheckCircle className="w-4 h-4" /> : <Info className="w-4 h-4" />}
-                {t('questionnaire.unknownAnswer')}
+                {hasCurrentDoubt ? <CheckCircle className="w-4 h-4" /> : <Info className="w-4 h-4" />}
+                {t('questionnaire.doubtToggle')}
               </button>
               <p className="mt-2 text-xs text-gray-500">
-                {isCurrentAnswerUnknown
-                  ? t('questionnaire.unknownAnswerActiveHint')
-                  : t('questionnaire.unknownAnswerHint')}
+                {hasCurrentDoubt
+                  ? t('questionnaire.doubtActiveHint')
+                  : t('questionnaire.doubtToggleHint')}
               </p>
 
-              {/* Un doute signalé mais adressé à personne reste un doute : il s'affichait en
-                  synthèse à côté de la réponse sans qu'aucune équipe ne soit prévenue. On
-                  propose donc ici les équipes que cette réponse tient en suspens, et le fait
-                  de choisir l'une d'elles ouvre le fil de questions ci-dessous — qui, lui,
-                  sollicite et notifie réellement l'équipe. */}
-              {isCurrentAnswerUnknown && typeof onAskQuestion === 'function' && (
-                <div
-                  className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-4"
-                  role="status"
-                  data-tour-id="question-uncertainty-routing"
-                >
-                  {currentUncertainty ? (
-                    <>
-                      <p className="text-sm font-semibold text-amber-900">
-                        {t('questionnaire.uncertaintyRoutingHeading')}
-                      </p>
-                      <p className="mt-1 text-xs text-amber-800">
-                        {uncertaintyAskedTeams.length > 0
-                          ? t('questionnaire.uncertaintyRoutedHint', {
-                            teams: uncertaintyAskedTeams
-                              .map((team) => resolveLocalizedText(team.name, language) || team.id)
-                              .join(', ')
-                          })
-                          : t('questionnaire.uncertaintyRoutingHint')}
-                      </p>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {uncertaintySuggestedTeams.map((team) => (
-                          <button
-                            key={team.id}
-                            type="button"
-                            onClick={() => handleRouteUncertainty(team.id)}
-                            className="inline-flex items-center gap-2 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-100 transition-all"
-                          >
-                            <MessageSquare className="w-3 h-3" />
-                            {t('questionnaire.uncertaintyRoutingAction', {
-                              team: resolveLocalizedText(team.name, language) || team.id
-                            })}
-                          </button>
-                        ))}
-                        <button
-                          type="button"
-                          onClick={() => handleRouteUncertainty('')}
-                          className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold text-amber-900 underline underline-offset-2 hover:text-amber-700"
-                        >
-                          {t('questionnaire.uncertaintyRoutingOtherTeamAction')}
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <p className="text-xs text-amber-800">
-                      {t('questionnaire.uncertaintyHarmlessHint')}
-                    </p>
-                  )}
+              {hasCurrentDoubt && (
+                <div className="mt-3">
+                  <label className="block text-xs font-medium text-gray-700 mb-1" htmlFor="question-doubt-text">
+                    {t('questionnaire.doubtTextLabel')}
+                  </label>
+                  <textarea
+                    id="question-doubt-text"
+                    rows={3}
+                    value={currentDoubtText}
+                    onChange={(event) => onSetQuestionDoubt?.(currentQuestion.id, event.target.value)}
+                    className="w-full px-3 py-2 border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  />
                 </div>
-              )}
-            </div>
-          )}
-
-          {/* Poser une question à un expert là où le doute naît, sans rien soumettre : le fil reste
-              attaché à cette question du formulaire. */}
-          {typeof onAskQuestion === 'function' && (
-            <div
-              ref={askBlockRef}
-              className="mb-8 rounded-xl border border-gray-200 bg-gray-50 p-4"
-              data-tour-id="question-ask-expert"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <p className="text-sm font-semibold text-gray-800">{t('questionnaire.askExpertTitle')}</p>
-                  <p className="mt-1 text-xs text-gray-600">{t('questionnaire.askExpertHint')}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsAskFormOpen((previous) => !previous)}
-                  className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-semibold text-gray-800 hover:bg-gray-100 transition-all"
-                  aria-expanded={isAskFormOpen}
-                >
-                  {isAskFormOpen ? t('questionnaire.close') : t('questionnaire.askExpertAction')}
-                </button>
-              </div>
-
-              {isAskFormOpen && (
-                <form
-                  className="mt-3 space-y-3"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    if (!askTeamId || askMessage.trim().length === 0) {
-                      return;
-                    }
-                    onAskQuestion({ questionId: currentQuestion.id, teamId: askTeamId, message: askMessage });
-                    setAskMessage('');
-                    setAskTeamId('');
-                    setIsAskFormOpen(false);
-                  }}
-                >
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1" htmlFor="ask-expert-team">
-                      {t('questionnaire.askExpertTeamLabel')}
-                    </label>
-                    <select
-                      id="ask-expert-team"
-                      value={askTeamId}
-                      onChange={(event) => setAskTeamId(event.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">{t('questionnaire.askExpertTeamPlaceholder')}</option>
-                      {teams.map((team) => (
-                        <option key={team.id} value={team.id}>
-                          {resolveLocalizedText(team.name, language) || team.id}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1" htmlFor="ask-expert-message">
-                      {t('questionnaire.askExpertMessageLabel')}
-                    </label>
-                    <textarea
-                      id="ask-expert-message"
-                      rows={3}
-                      value={askMessage}
-                      onChange={(event) => setAskMessage(event.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={!askTeamId || askMessage.trim().length === 0}
-                    className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                  >
-                    {t('questionnaire.askExpertSubmit')}
-                  </button>
-                </form>
-              )}
-
-              {questionThreads.length > 0 && (
-                <ul className="mt-4 space-y-3">
-                  {questionThreads.map((thread) => {
-                    const team = teams.find((entry) => entry?.id === thread.teamId);
-                    const isAsker = normalizeEmail(thread.createdBy) === normalizedCurrentUserEmail;
-
-                    return (
-                      <li key={thread.id} className="rounded-lg border border-gray-200 bg-white p-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-xs font-semibold text-gray-800">
-                            {resolveLocalizedText(team?.name, language) || thread.teamId}
-                          </span>
-                          {thread.resolvedAt ? (
-                            <span className="text-[11px] font-semibold text-emerald-700">
-                              {t('questionnaire.askExpertResolvedBadge')}
-                            </span>
-                          ) : isThreadAwaitingAnswer(thread) ? (
-                            <span className="text-[11px] font-semibold text-amber-700">
-                              {t('questionnaire.askExpertPendingBadge')}
-                            </span>
-                          ) : null}
-                        </div>
-                        <ul className="mt-2 space-y-2">
-                          {thread.messages.map((message) => (
-                            <li key={message.id} className="text-xs text-gray-700">
-                              <span className="font-semibold">{message.authorName || message.authorEmail}</span>
-                              {' : '}
-                              <span className="whitespace-pre-line">{message.message}</span>
-                            </li>
-                          ))}
-                        </ul>
-                        {!thread.resolvedAt && typeof onReplyToQuestionThread === 'function' && (
-                          <form
-                            className="mt-2 flex flex-col gap-2 sm:flex-row"
-                            onSubmit={(event) => {
-                              event.preventDefault();
-                              const draft = (threadReplies[thread.id] || '').trim();
-                              if (draft.length === 0) {
-                                return;
-                              }
-                              onReplyToQuestionThread({ threadId: thread.id, message: draft });
-                              setThreadReplies((previous) => ({ ...previous, [thread.id]: '' }));
-                            }}
-                          >
-                            <input
-                              type="text"
-                              value={threadReplies[thread.id] || ''}
-                              onChange={(event) => setThreadReplies((previous) => ({
-                                ...previous,
-                                [thread.id]: event.target.value
-                              }))}
-                              placeholder={t('questionnaire.askExpertReplyPlaceholder')}
-                              aria-label={t('questionnaire.askExpertReplyPlaceholder')}
-                              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            />
-                            <button
-                              type="submit"
-                              className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-xs font-semibold text-gray-800 hover:bg-gray-100 transition-all"
-                            >
-                              {t('questionnaire.askExpertReplyAction')}
-                            </button>
-                          </form>
-                        )}
-                        {isAsker && typeof onResolveQuestionThread === 'function' && (
-                          <button
-                            type="button"
-                            onClick={() => onResolveQuestionThread({ threadId: thread.id, resolved: !thread.resolvedAt })}
-                            className="mt-2 text-xs font-semibold text-blue-700 underline underline-offset-2 hover:text-blue-800"
-                          >
-                            {thread.resolvedAt
-                              ? t('questionnaire.askExpertReopenAction')
-                              : t('questionnaire.askExpertResolveAction')}
-                          </button>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
               )}
             </div>
           )}

@@ -44,43 +44,32 @@ test.describe('Consultation compliance en amont', () => {
     await page.getByRole('button', { name: /Créer un projet/ }).first().click();
     await answerEverything(page);
 
-    await expect(page.getByText('Où en est votre projet vis-à-vis de la compliance')).toBeVisible();
+    await expect(page.getByText('Où en est votre projet', { exact: true })).toBeVisible();
     await expect(page.getByText('Orientation possible')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Demander un avis préliminaire' })).toBeEnabled();
     await expect(page.getByRole('button', { name: 'Demander la validation' })).toBeEnabled();
   });
 
-  test('un doute est adressé à une équipe, qui est sollicitée', async ({ page }) => {
+  test('un doute reste une note privée, sans équipe ni notification', async ({ page }) => {
     await gotoHome(page);
     await page.getByRole('button', { name: /Créer un projet/ }).first().click();
 
-    // Jusqu'à la première question dont l'incertitude pèse sur une règle.
+    // Jusqu'à la première question dont la réponse peut être signalée comme douteuse.
     await answerCurrentQuestion(page);
     await page.getByRole('button', { name: /^Suivant$/ }).click();
     await answerCurrentQuestion(page);
     await page.getByRole('button', { name: /^Suivant$/ }).click();
 
-    await page.getByRole('button', { name: 'Je ne sais pas encore' }).click();
+    await page.getByRole('button', { name: 'J’ai un doute' }).click();
+    await page.getByLabel('Expliquez votre doute').fill('Pas sûr du périmètre concerné.');
 
-    const routing = page.locator('[data-tour-id="question-uncertainty-routing"]');
-    await expect(routing.getByText('À qui adresser ce doute ?')).toBeVisible();
+    // La case ne rouvre plus aucune mécanique de sollicitation d'équipe.
+    await expect(page.locator('[data-tour-id="question-ask-expert"]')).toHaveCount(0);
 
-    // Choisir l'équipe préremplit le fil : c'est lui qui sollicite et notifie réellement.
-    await routing.getByRole('button', { name: /^Demander à / }).first().click();
-    const askBlock = page.locator('[data-tour-id="question-ask-expert"]');
-    await expect(askBlock.getByLabel('Votre question')).toHaveValue(/Je ne sais pas encore quoi répondre/);
-    await askBlock.getByRole('button', { name: 'Envoyer la question' }).click();
-
-    await expect(askBlock.getByText('En attente de réponse')).toBeVisible();
-    await expect(routing.getByText(/Doute transmis à :/)).toBeVisible();
-
-    // Le doute suit jusqu'à la synthèse : dans le rappel des réponses, il n'est plus une
-    // réponse comme une autre mais un point ouvert, avec son destinataire.
+    // Le doute suit jusqu'à la synthèse : dans le rappel des réponses, il s'affiche comme une
+    // note à côté de la réponse donnée, jamais à sa place.
     await walkToSynthesis(page, {
       async onQuestion(heading, p) {
-        if (heading.includes('quelle équipe est-il rattaché')) {
-          return true;
-        }
         if (heading.includes('jalons')) {
           await p.getByRole('button', { name: /Ajouter un jalon/ }).click();
           await p.locator('input[type="date"]').first().fill('2026-04-01');
@@ -103,7 +92,7 @@ test.describe('Consultation compliance en amont', () => {
 
     await page.getByRole('button', { name: /Rappel de vos réponses/ }).click();
     const overview = page.locator('#overview-panel');
-    await expect(overview.getByText('Doute transmis à : Affaires Publiques.')).toBeVisible();
+    await expect(overview.getByText('Pas sûr du périmètre concerné.')).toBeVisible();
     await expect(
       overview.getByText('Tant qu’il est ouvert, la validation définitive n’est pas possible.')
     ).toBeVisible();

@@ -17,8 +17,6 @@ export const NOTIFICATION_TYPES = {
   FINAL_CONFIRMATION_REMINDER: 'final-confirmation-reminder',
   FINAL_CONFIRMATION_REEXAMINING: 'final-confirmation-reexamining',
   PROJECT_LAUNCHED_WITHOUT_CONFIRMATION: 'project-launched-without-confirmation',
-  QUESTION_ASKED: 'question-asked',
-  QUESTION_ANSWERED: 'question-answered',
   PROJECT_SHARED: 'project-shared',
   SHOWCASE_COMMENT: 'showcase-comment',
   SHOWCASE_COMMENT_REPLY: 'showcase-comment-reply',
@@ -193,32 +191,6 @@ export const NOTIFICATION_CATALOG = {
       'Nothing could have prevented the launch — this notice exists so that it is not discovered later.'
     ],
     reason: () => 'you are involved in the compliance review of this project.'
-  },
-
-  // Une question posée depuis le questionnaire, sur un projet qui n'est pas forcément soumis :
-  // ce qu'on demande ici est une réponse, pas une revue. Le dire évite que l'expert ouvre le
-  // projet en croyant devoir se prononcer sur un dossier qui n'existe pas encore.
-  [NOTIFICATION_TYPES.QUESTION_ASKED]: {
-    actionType: 'Question from a project owner',
-    intro: (ctx) =>
-      `${ctx.actorName} has a question for your team while filling in the project ${quoted(ctx.projectName)}.`,
-    expected: () => [
-      'Open the project: the question is attached to the questionnaire item it came from, with the answer given so far.',
-      'Answer in the thread — you are not asked to review the project, which may still be a draft.',
-      'The project owner is notified as soon as you reply.'
-    ],
-    reason: () => 'the project owner addressed this question to your team.'
-  },
-
-  [NOTIFICATION_TYPES.QUESTION_ANSWERED]: {
-    actionType: 'Answer to your question',
-    intro: (ctx) => `${ctx.actorName} answered your question on the project ${quoted(ctx.projectName)}.`,
-    expected: () => [
-      'Open the project to read the answer, next to the question it was asked about.',
-      'You can carry on the exchange in the same thread.',
-      'Once the point is settled, mark the question as resolved so it stops showing as pending.'
-    ],
-    reason: () => 'you asked this question from the questionnaire.'
   },
 
   [NOTIFICATION_TYPES.PROJECT_SHARED]: {

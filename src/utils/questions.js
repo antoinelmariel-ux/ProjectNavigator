@@ -7,7 +7,6 @@ import {
   ACTIVITY_SCOPE_LABELS,
   ACTIVITY_SCOPE_VALUES
 } from './activityScope.js';
-import { isUnknownAnswer } from './unknownAnswer.js';
 import {
   PROJECT_STAGE_ANSWER_KEY,
   PROJECT_STAGE_LABELS,
@@ -16,15 +15,6 @@ import {
 } from './projectStage.js';
 
 const EXTRA_CHECKBOX_SUFFIX = '__extra_checkbox';
-
-// formatAnswer est appelé depuis des modules sans accès au dictionnaire i18n (exports,
-// notifications, moteur de règles) : le libellé de la sentinelle vit donc ici.
-const UNKNOWN_ANSWER_LABELS = {
-  fr: 'Je ne sais pas encore',
-  en: 'I do not know yet',
-  de: 'Ich weiß es noch nicht',
-  es: 'Todavía no lo sé'
-};
 
 // Pseudo-question technique : le périmètre d'activité choisi dans le profil n'est pas une
 // vraie question du questionnaire, mais doit rester sélectionnable comme condition au même
@@ -184,10 +174,6 @@ const evaluateQuestionCondition = (condition, answers) => {
   const rawAnswer = answers[condition.question];
   if (Array.isArray(rawAnswer) && rawAnswer.length === 0) return false;
   if (rawAnswer === null || rawAnswer === undefined || rawAnswer === '') return false;
-  // Un « je ne sais pas encore » ne satisfait aucune condition, pas même une condition
-  // négative : sans ce garde-fou, `not_equals` se déclencherait sur une absence de réponse
-  // et le moteur créerait un périmètre sur une information que personne n'a donnée.
-  if (isUnknownAnswer(rawAnswer)) return false;
 
   const answer = normalizeAnswerForComparison(rawAnswer);
   const normalizedExpected = normalizeConditionValueForAnswer(
@@ -516,10 +502,6 @@ export const shouldShowOption = (option, answers) => {
 export const formatAnswer = (question, answer, language = DEFAULT_LANGUAGE) => {
   if (answer === null || answer === undefined) {
     return '';
-  }
-
-  if (isUnknownAnswer(answer)) {
-    return UNKNOWN_ANSWER_LABELS[language] || UNKNOWN_ANSWER_LABELS[DEFAULT_LANGUAGE];
   }
 
   const questionType = (question && question.type) || 'choice';

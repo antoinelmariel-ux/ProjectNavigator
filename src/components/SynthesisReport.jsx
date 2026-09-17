@@ -12,7 +12,7 @@ import {
   UserCircle
 } from './icons.js';
 import { formatAnswer } from '../utils/questions.js';
-import { isUnknownAnswer } from '../utils/unknownAnswer.js';
+import { getQuestionDoubtText, hasQuestionDoubt } from '../utils/questionDoubts.js';
 import { computeRankingRecommendations, normalizeRankingConfig } from '../utils/ranking.js';
 import { resolveLocalizedText } from '../utils/localizedContent.js';
 import { renderTextWithLinks } from '../utils/linkify.js';
@@ -47,7 +47,6 @@ import { ProjectReadinessPanel } from './ProjectReadinessPanel.jsx';
 import { SUBMISSION_KIND_FINAL, SUBMISSION_KIND_PRELIMINARY } from '../utils/submissionKind.js';
 import { getReviewedVersion, isPerimeterReviewPending } from '../utils/perimeterReview.js';
 import { CONFIRMATION_CONFIRMED, CONFIRMATION_REEXAMINING } from '../utils/finalValidationRound.js';
-import { getThreadsForTeam, isThreadAwaitingAnswer } from '../utils/questionThreads.js';
 import { normalizeSubmissionHistory } from '../utils/submissionHistory.js';
 import { getLocaleTag, LANGUAGE_LABELS } from '../i18n/languages.js';
 import { isLanguageAcceptedBy, normalizeAcceptedLanguages } from '../utils/translationAudit.js';
@@ -573,7 +572,7 @@ export const SynthesisReport = ({
   isClaimActionAvailable = true,
   onRequestAdditionalTeam,
   readiness = null,
-  uncertainRuleCoverage = [],
+  openQuestionDoubts = [],
   submissionKind = SUBMISSION_KIND_FINAL,
   showcaseFeedbackCount = 0,
   pendingChanges = [],
@@ -588,9 +587,7 @@ export const SynthesisReport = ({
   onPerimeterConfirmation,
   isLaunched = false,
   canDeclareLaunch = false,
-  onDeclareLaunch,
-  onReplyToQuestionThread,
-  onResolveQuestionThread
+  onDeclareLaunch
 }) => {
   const { t, language } = useTranslation();
   const [isShowcaseFallbackOpen, setIsShowcaseFallbackOpen] = useState(false);
@@ -604,7 +601,6 @@ export const SynthesisReport = ({
   const [openTeamReplyBoxes, setOpenTeamReplyBoxes] = useState({});
   const [shareMemberFeedback, setShareMemberFeedback] = useState('');
   const [additionalTeamSelection, setAdditionalTeamSelection] = useState('');
-  const [questionThreadDrafts, setQuestionThreadDrafts] = useState({});
   // `analysis` peut arriver à null (projet créé mais sans réponse : resolveProjectAnalysis ne
   // recalcule rien) ou incomplet (analyse figée d'un projet soumis avec une ancienne version du
   // référentiel). Sans cette normalisation, `analysis.risks` faisait tomber tout l'écran dans
@@ -1806,8 +1802,7 @@ export const SynthesisReport = ({
           {isProjectEditable && (
             <ProjectReadinessPanel
               readiness={readiness}
-              uncertainCoverage={uncertainRuleCoverage}
-              teams={teams}
+              openQuestionDoubts={openQuestionDoubts}
               isSubmitted={normalizedProjectStatus === 'submitted'}
               submissionKind={submissionKind}
               notifiedTeamNames={relevantTeams.map((team) => resolveLocalizedText(team.name, language))}
@@ -1976,10 +1971,6 @@ export const SynthesisReport = ({
                 const isTeamReviewPending = isPerimeterReviewPending(rawTeamEntry);
                 // Un tour de confirmation est ouvert et cet avis n'a pas encore été confirmé :
                 // c'est la seule chose qu'on demande à l'expert à ce stade.
-                // Les questions posées depuis le questionnaire atterrissent ici : l'expert les
-                // trouve là où il travaille déjà, avec la question du formulaire qui les a fait
-                // naître.
-                const teamQuestionThreads = getThreadsForTeam(answers, team.id);
                 const isTeamConfirmationPending = Boolean(roundStatus?.isRequested)
                   && roundStatus.pending.includes(team.id);
                 const narrativeChangesForTeam = normalizedSubmissionHistory.narrativeChanges
@@ -2000,12 +1991,9 @@ export const SynthesisReport = ({
                 const visibleMessages = shouldCollapse ? replyMessages.slice(0, 2) : replyMessages;
                 const isCommentEditorOpen = Boolean(openTeamCommentEditors[team.id]);
                 const isReplyBoxOpen = Boolean(openTeamReplyBoxes[team.id]);
-                // Une question posée depuis le questionnaire et toujours sans réponse ne doit pas
-                // être repliée : elle attend quelqu'un, et une carte fermée la rendrait invisible.
-                const hasPendingQuestionThread = teamQuestionThreads.some((thread) => !thread.resolvedAt);
                 const isTeamCollapsed = teamCollapsedOverrides[team.id] !== undefined
                   ? teamCollapsedOverrides[team.id]
-                  : !hasPendingQuestionThread;
+                  : true;
                 const teamAccentColor = TEAM_STATUS_ACCENT_COLOR[storedEntry.status] ?? TEAM_STATUS_ACCENT_COLOR[''];
 
                 return (
@@ -2208,96 +2196,6 @@ export const SynthesisReport = ({
                                 </span>
                               )}
                             </div>
-
-                            {teamQuestionThreads.length > 0 && (
-                              <div className="rounded-xl border border-gray-200 bg-white p-3">
-                                <p className="text-sm font-semibold text-gray-800">
-                                  {t('synthesisReport.questionThreadsTitle')}
-                                </p>
-                                <ul className="mt-2 space-y-3">
-                                  {teamQuestionThreads.map((thread) => {
-                                    const askedQuestion = questions?.find((entry) => entry?.id === thread.questionId);
-                                    const isAsker = normalizeEmail(thread.createdBy) === currentUserEmail;
-
-                                    return (
-                                      <li key={thread.id} className="rounded-lg border border-gray-100 bg-gray-50 p-3">
-                                        <p className="text-xs font-semibold text-gray-700">
-                                          {resolveLocalizedText(askedQuestion?.question, language) || thread.questionId}
-                                        </p>
-                                        {thread.resolvedAt ? (
-                                          <span className="text-[11px] font-semibold text-emerald-700">
-                                            {t('synthesisReport.questionThreadResolvedBadge')}
-                                          </span>
-                                        ) : isThreadAwaitingAnswer(thread) ? (
-                                          <span className="text-[11px] font-semibold text-amber-700">
-                                            {t('synthesisReport.questionThreadPendingBadge')}
-                                          </span>
-                                        ) : null}
-                                        <ul className="mt-2 space-y-1">
-                                          {thread.messages.map((message) => (
-                                            <li key={message.id} className="text-xs text-gray-700">
-                                              <span className="font-semibold">
-                                                {message.authorName || message.authorEmail}
-                                              </span>
-                                              {' : '}
-                                              <span className="whitespace-pre-line">{message.message}</span>
-                                            </li>
-                                          ))}
-                                        </ul>
-                                        {!thread.resolvedAt
-                                          && (canEditTeamComment || canReplyAsProjectContributor)
-                                          && typeof onReplyToQuestionThread === 'function' && (
-                                          <form
-                                            className="mt-2 flex flex-col gap-2 sm:flex-row"
-                                            onSubmit={(event) => {
-                                              event.preventDefault();
-                                              const draft = (questionThreadDrafts[thread.id] || '').trim();
-                                              if (draft.length === 0) {
-                                                return;
-                                              }
-                                              onReplyToQuestionThread({ threadId: thread.id, message: draft });
-                                              setQuestionThreadDrafts((previous) => ({ ...previous, [thread.id]: '' }));
-                                            }}
-                                          >
-                                            <input
-                                              type="text"
-                                              value={questionThreadDrafts[thread.id] || ''}
-                                              onChange={(event) => setQuestionThreadDrafts((previous) => ({
-                                                ...previous,
-                                                [thread.id]: event.target.value
-                                              }))}
-                                              placeholder={t('synthesisReport.questionThreadReplyPlaceholder')}
-                                              aria-label={t('synthesisReport.questionThreadReplyPlaceholder')}
-                                              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                            />
-                                            <button
-                                              type="submit"
-                                              className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-xs font-semibold text-gray-800 hover:bg-gray-100 transition-all"
-                                            >
-                                              {t('synthesisReport.questionThreadReplyAction')}
-                                            </button>
-                                          </form>
-                                        )}
-                                        {isAsker && typeof onResolveQuestionThread === 'function' && (
-                                          <button
-                                            type="button"
-                                            onClick={() => onResolveQuestionThread({
-                                              threadId: thread.id,
-                                              resolved: !thread.resolvedAt
-                                            })}
-                                            className="mt-2 text-xs font-semibold text-blue-700 underline underline-offset-2 hover:text-blue-800"
-                                          >
-                                            {thread.resolvedAt
-                                              ? t('synthesisReport.questionThreadReopenAction')
-                                              : t('synthesisReport.questionThreadResolveAction')}
-                                          </button>
-                                        )}
-                                      </li>
-                                    );
-                                  })}
-                                </ul>
-                              </div>
-                            )}
 
                             {isTeamConfirmationPending && canEditTeamComment && (
                               <div className="rounded-xl border border-blue-200 bg-blue-50 p-3">
@@ -3223,7 +3121,12 @@ export const SynthesisReport = ({
                     }
 
                     const answerValue = answers[q.id];
-                    const shouldRenderCard = isAnswerProvided(answerValue) || q.required;
+                    // Le doute ne remplace jamais la réponse : c'est une note à part, affichée en
+                    // plus de la valeur donnée, jamais à sa place — y compris quand cette valeur
+                    // est encore vide.
+                    const hasDoubt = hasQuestionDoubt(answers, q.id);
+                    const doubtText = getQuestionDoubtText(answers, q.id);
+                    const shouldRenderCard = isAnswerProvided(answerValue) || q.required || hasDoubt;
 
                     if (!shouldRenderCard) {
                       return null;
@@ -3232,19 +3135,6 @@ export const SynthesisReport = ({
                     const missingInfoLabel = t('synthesisReport.missingInfoLabel');
                     const displayValue = formatOverviewValue(q, answerValue, missingInfoLabel, language);
                     const questionText = resolveLocalizedText(q.question, language);
-                    // Un doute rendu comme une réponse ordinaire n'est adressé à personne : on
-                    // le marque comme tel et on dit, ici même, à qui il a été transmis — ou
-                    // qu'il ne l'a été à personne.
-                    const isDoubt = isUnknownAnswer(answerValue);
-                    const doubtCoverage = isDoubt
-                      ? uncertainRuleCoverage.find((entry) => entry?.questionId === q.id) || null
-                      : null;
-                    const doubtTeamNames = (doubtCoverage?.askedTeamIds || [])
-                      .map((teamId) => {
-                        const team = (Array.isArray(teams) ? teams : []).find((item) => item?.id === teamId);
-                        return resolveLocalizedText(team?.name, language) || teamId;
-                      })
-                      .filter(Boolean);
 
                     return (
                       <div key={q.id} className="bg-white rounded-lg p-4 border border-gray-200">
@@ -3269,76 +3159,52 @@ export const SynthesisReport = ({
                                 .filter((file) => file && typeof file === 'object' && typeof file.url === 'string' && file.url.trim().length > 0)
                             : [];
 
-                          if (answerFiles.length > 0) {
-                            return (
-                              <ul className="space-y-1">
-                                {answerFiles.map((file, index) => (
-                                  <li key={`${file.url}-${index}`} className="font-semibold text-gray-900">
-                                    <a
-                                      href={file.url.trim()}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-blue-600 underline"
-                                    >
-                                      {file.name || resolvedValue}
-                                    </a>
-                                  </li>
-                                ))}
-                              </ul>
-                            );
-                          }
-
-                          if (isDoubt) {
-                            return (
-                              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-                                <p className="flex items-center gap-2 text-sm font-semibold text-amber-900">
-                                  <AlertTriangle className="w-4 h-4 shrink-0" />
-                                  {resolvedValue}
-                                </p>
-                                {doubtTeamNames.length > 0 ? (
-                                  <p className="mt-1 flex items-start gap-1 text-xs text-amber-800">
-                                    <MessageSquare className="mt-0.5 w-3 h-3 shrink-0" />
-                                    {t('synthesisReport.overviewDoubtRoutedTo', { teams: doubtTeamNames.join(', ') })}
-                                  </p>
-                                ) : (
-                                  <p className="mt-1 text-xs text-amber-800">
-                                    {doubtCoverage
-                                      ? t('synthesisReport.overviewDoubtUnrouted')
-                                      : t('synthesisReport.overviewDoubtHarmless')}
-                                    {typeof onNavigateToQuestion === 'function' && isProjectEditable && (
-                                      <>
-                                        {' '}
-                                        <button
-                                          type="button"
-                                          onClick={() => onNavigateToQuestion(q.id)}
-                                          className="bg-transparent font-semibold underline underline-offset-2 hover:text-amber-700"
-                                        >
-                                          {doubtCoverage
-                                            ? t('synthesisReport.overviewDoubtRouteAction')
-                                            : t('synthesisReport.overviewDoubtSettleAction')}
-                                        </button>
-                                      </>
-                                    )}
-                                  </p>
-                                )}
-                                {/* La validation définitive n'accepte aucun doute : le dire ici,
-                                    là où le porteur relit ses réponses, plutôt qu'au moment où
-                                    le bouton est grisé. */}
-                                <p className="mt-1 text-xs text-amber-700">
-                                  {t('synthesisReport.overviewDoubtBlocksValidation')}
-                                </p>
-                              </div>
-                            );
-                          }
-
                           return (
-                            <p
-                              className={`font-semibold whitespace-pre-line ${
-                                isMissingInfo ? 'text-rose-400' : 'text-gray-900'
-                              }`}
-                            >
-                              {renderTextWithLinks(resolvedValue)}
-                            </p>
+                            <>
+                              {answerFiles.length > 0 ? (
+                                <ul className="space-y-1">
+                                  {answerFiles.map((file, index) => (
+                                    <li key={`${file.url}-${index}`} className="font-semibold text-gray-900">
+                                      <a
+                                        href={file.url.trim()}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 underline"
+                                      >
+                                        {file.name || resolvedValue}
+                                      </a>
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <p
+                                  className={`font-semibold whitespace-pre-line ${
+                                    isMissingInfo ? 'text-rose-400' : 'text-gray-900'
+                                  }`}
+                                >
+                                  {renderTextWithLinks(resolvedValue)}
+                                </p>
+                              )}
+                              {hasDoubt && (
+                                <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                                  <p className="flex items-center gap-2 text-sm font-semibold text-amber-900">
+                                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                                    {t('synthesisReport.overviewDoubtHeading')}
+                                  </p>
+                                  {doubtText.trim().length > 0 && (
+                                    <p className="mt-1 text-xs text-amber-800 whitespace-pre-line">
+                                      {doubtText}
+                                    </p>
+                                  )}
+                                  {/* La validation définitive n'accepte aucun doute : le dire ici,
+                                      là où le porteur relit ses réponses, plutôt qu'au moment où
+                                      le bouton est grisé. */}
+                                  <p className="mt-1 text-xs text-amber-700">
+                                    {t('synthesisReport.overviewDoubtBlocksValidation')}
+                                  </p>
+                                </div>
+                              )}
+                            </>
                           );
                         })()}
                       </div>
