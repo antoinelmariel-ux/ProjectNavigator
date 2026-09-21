@@ -90,7 +90,11 @@ test.describe('Consultation compliance en amont', () => {
     // Un doute ouvert interdit la validation définitive, et le dit là où il s'affiche.
     await expect(page.getByRole('button', { name: 'Demander la validation' })).toBeDisabled();
 
-    await page.getByRole('button', { name: /Rappel de vos réponses/ }).click();
+    // Portée à la section : l'intitulé apparaît aussi dans le sommaire du rail latéral, ce qui
+    // ferait deux correspondances en mode strict.
+    await page.locator('#synthesis-section-overview')
+      .getByRole('button', { name: /Rappel de vos réponses/ })
+      .click();
     const overview = page.locator('#overview-panel');
     await expect(overview.getByText('Pas sûr du périmètre concerné.')).toBeVisible();
     await expect(
