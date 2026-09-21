@@ -1507,7 +1507,12 @@ const unrecognized = [...attrClasses].filter(
     !handWrittenClasses.has(cls)
 );
 
-const header = `/* Tailwind-inspired utility subset generated locally */\n:root {\n  --tw-ring-offset-width: 0px;\n  --tw-ring-offset-color: #fff;\n  --tw-ring-color: rgba(59, 130, 246, 0.5);\n  --tw-ring-inset: var(--tw-empty,/*!*/ /*!*/);\n  --tw-shadow: 0 0 #0000;\n  --tw-bg-opacity: 1;\n  --tw-text-opacity: 1;\n  --tw-border-opacity: 1;\n}\n*, ::before, ::after {\n  box-sizing: border-box;\n  border-width: 0;\n  border-style: solid;\n  border-color: #e5e7eb;\n}\nhtml {\n  line-height: 1.5;\n  -webkit-text-size-adjust: 100%;\n  font-family: 'Inter', 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;\n}\nbody {\n  margin: 0;\n  line-height: inherit;\n  font-family: 'Inter', 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;\n}\na {\n  color: inherit;\n  text-decoration: inherit;\n}\n`;
+// Le fond transparent des boutons fait partie du preflight Tailwind, que toutes les classes
+// de ce projet supposent : sans cette règle, un <button> qui n'a qu'un `hover:bg-gray-50`
+// retombe sur le gris par défaut du navigateur (#efefef) et recouvre la carte blanche qui le
+// contient. C'est ce qui faisait apparaître grises les cartes d'équipe de la synthèse, le
+// sommaire du rail et les liens-boutons du panneau de maturité.
+const header = `/* Tailwind-inspired utility subset generated locally */\n:root {\n  --tw-ring-offset-width: 0px;\n  --tw-ring-offset-color: #fff;\n  --tw-ring-color: rgba(59, 130, 246, 0.5);\n  --tw-ring-inset: var(--tw-empty,/*!*/ /*!*/);\n  --tw-shadow: 0 0 #0000;\n  --tw-bg-opacity: 1;\n  --tw-text-opacity: 1;\n  --tw-border-opacity: 1;\n}\n*, ::before, ::after {\n  box-sizing: border-box;\n  border-width: 0;\n  border-style: solid;\n  border-color: #e5e7eb;\n}\nhtml {\n  line-height: 1.5;\n  -webkit-text-size-adjust: 100%;\n  font-family: 'Inter', 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;\n}\nbody {\n  margin: 0;\n  line-height: inherit;\n  font-family: 'Inter', 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;\n}\na {\n  color: inherit;\n  text-decoration: inherit;\n}\nbutton, [type='button'], [type='reset'], [type='submit'] {\n  background-color: transparent;\n  background-image: none;\n}\n`;
 
 const outputPath = path.join(__dirname, '..', 'src', 'styles', 'tailwind-internal.css');
 fs.writeFileSync(outputPath, header + '\n' + generated.join('\n\n'));

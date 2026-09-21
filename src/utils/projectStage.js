@@ -23,9 +23,18 @@ export const PROJECT_STAGE_VALUES = [
 // un simple projet de cadrage.
 export const LEGACY_PROJECT_STAGE = PROJECT_STAGE_PRE_LAUNCH;
 
-// Un projet créé maintenant part au contraire du cadrage : tout l'enjeu est qu'on puisse
-// interroger la compliance avant d'avoir tout tranché.
-export const DEFAULT_NEW_PROJECT_STAGE = PROJECT_STAGE_FRAMING;
+// On ne demande plus au porteur de déclarer son stade : se classer soi-même n'est pas une
+// question sur le projet, et c'était la seule chose que le formulaire lui demandait sans
+// qu'elle décrive son projet. Un projet créé maintenant part donc du même stade qu'un projet
+// enregistré sans stade — le plus avancé — pour que ce que le questionnaire marque obligatoire
+// corresponde exactement à ce que l'avis technique et la validation exigent (les deux paliers
+// lisent déjà PROJECT_STAGE_PRE_LAUNCH en dur, cf. READINESS_LEVELS).
+//
+// Interroger la compliance tôt ne dépend pas de ce stade : c'est le palier « orientation »
+// (PROJECT_STAGE_FRAMING, également en dur) qui ouvre la porte de l'avis préliminaire dès que
+// le socle est renseigné. `requiredFromStage` garde donc tout son sens côté back-office : il
+// dit si une question est due dès l'orientation ou seulement pour l'avis et la validation.
+export const DEFAULT_NEW_PROJECT_STAGE = PROJECT_STAGE_PRE_LAUNCH;
 
 export const normalizeProjectStage = (value, fallback = LEGACY_PROJECT_STAGE) => {
   const candidate = typeof value === 'string' ? value.trim() : '';

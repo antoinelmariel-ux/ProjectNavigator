@@ -28,8 +28,6 @@ import { resolveLocalizedText } from '../utils/localizedContent.js';
 import { createAttachmentFromFile } from '../utils/documentStore.js';
 import { isAnswerProvided, isQuestionMandatoryAtStage } from '../utils/mandatoryQuestions.js';
 import {
-  PROJECT_STAGE_LABELS,
-  PROJECT_STAGE_VALUES,
   normalizeProjectStage
 } from '../utils/projectStage.js';
 import { canQuestionHaveDoubt, getQuestionDoubtText, hasQuestionDoubt } from '../utils/questionDoubts.js';
@@ -205,7 +203,6 @@ export const QuestionnaireScreen = ({
   onFinish,
   projectId = null,
   projectStage,
-  onProjectStageChange,
   onSetQuestionDoubt,
   onClearQuestionDoubt
 }) => {
@@ -294,7 +291,6 @@ export const QuestionnaireScreen = ({
   const [isUploadingFileAnswer, setIsUploadingFileAnswer] = useState(false);
   const milestoneQuestionIdRef = useRef(questionType === 'milestone_list' ? currentQuestion.id : null);
   const questionTextId = `question-${currentQuestion.id}`;
-  const stageHintId = 'questionnaire-stage-hint';
   const outlineId = 'questionnaire-outline';
   const instructionsId = `instructions-${currentQuestion.id}`;
   const guidancePanelId = `guidance-${currentQuestion.id}`;
@@ -1368,49 +1364,13 @@ export const QuestionnaireScreen = ({
           aria-label={t('questionnaire.summaryAriaLabel')}
           data-tour-id="question-summary-panel"
         >
-          {/* Un seul panneau, pas trois cartes empilées : le stade, l'avancement et le
-              sommaire donnaient au formulaire des allures de tableau de bord alors qu'on y
-              vient pour répondre à une question. Le stade tient sur un segment, l'avancement
-              sur une barre, et le sommaire se replie. */}
+          {/* Un seul panneau, pas plusieurs cartes empilées : l'avancement et le sommaire
+              donnaient au formulaire des allures de tableau de bord alors qu'on y vient pour
+              répondre à une question. On ne demande plus au porteur de déclarer le stade de
+              son projet : se classer soi-même n'est pas une question sur le projet, et ce
+              stade ne servait qu'à alléger l'obligatoire — ce que le palier « orientation »
+              fait déjà sans rien demander (cf. READINESS_LEVELS). */}
           <div className="bg-white rounded-2xl shadow-xl divide-y divide-gray-100">
-            {typeof onProjectStageChange === 'function' && (
-              <div className="p-4" data-tour-id="question-stage-selector">
-                <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  {t('questionnaire.stageHeading')}
-                </h2>
-                <p id={stageHintId} className="sr-only">{t('questionnaire.stageHint')}</p>
-                {/* Contrôle segmenté plutôt que des `input[type=radio]` : la barre latérale précède
-                    la question dans le DOM, et des boutons radio y captureraient toute sélection
-                    générique visant la réponse elle-même (c'est ce qui cassait l'autopilote e2e,
-                    mais aussi ce qu'aurait fait n'importe quelle automatisation de saisie). */}
-                <div
-                  className="mt-2 flex gap-1 rounded-xl bg-gray-100 p-1"
-                  role="radiogroup"
-                  aria-label={t('questionnaire.stageHeading')}
-                  aria-describedby={stageHintId}
-                >
-                  {PROJECT_STAGE_VALUES.map((stage) => (
-                    <button
-                      key={stage}
-                      type="button"
-                      role="radio"
-                      aria-checked={resolvedStage === stage}
-                      onClick={() => onProjectStageChange(stage)}
-                      className={`flex-1 rounded-lg px-1.5 py-1.5 text-[11px] font-semibold leading-tight transition-colors ${
-                        resolvedStage === stage
-                          ? 'bg-white text-blue-700 shadow-sm'
-                          : 'text-gray-500 hover:text-gray-700'
-                      }`}
-                    >
-                      {resolveLocalizedText(PROJECT_STAGE_LABELS[stage], language)}
-                    </button>
-                  ))}
-                </div>
-                <p className="mt-2 text-[11px] text-gray-500">
-                  {t(`questionnaire.stageDescription.${resolvedStage}`)}
-                </p>
-              </div>
-            )}
             <div className="p-4">
               <button
                 type="button"

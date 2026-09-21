@@ -38,8 +38,7 @@ import {
 import {
   DEFAULT_NEW_PROJECT_STAGE,
   PROJECT_STAGE_ANSWER_KEY,
-  getProjectStage,
-  normalizeProjectStage
+  getProjectStage
 } from './utils/projectStage.js';
 import { getProjectReadiness } from './utils/projectReadiness.js';
 import {
@@ -2546,7 +2545,6 @@ const updateProjectFilters = useCallback((updater) => {
       case 'question-overview':
       case 'question-guidance':
       case 'question-summary':
-      case 'question-stage':
       case 'question-answer-types':
       case 'quick-questionnaire': {
         setShowcaseProjectContext(null);
@@ -4937,9 +4935,9 @@ const updateProjectFilters = useCallback((updater) => {
     });
   }, [activeProjectId]);
 
-  // Un projet créé maintenant part du cadrage : c'est ce qui autorise à interroger la
-  // compliance avant d'avoir tout tranché. Un projet déjà enregistré sans stade reste, lui,
-  // considéré au stade le plus avancé (cf. getProjectStage).
+  // Le stade n'est plus demandé au porteur : tout projet part du stade le plus avancé, comme
+  // un projet enregistré sans stade (cf. DEFAULT_NEW_PROJECT_STAGE). La consultation précoce
+  // passe par le palier « orientation », pas par une déclaration.
   const buildDefaultAnswers = useCallback(() => {
     const base = { [PROJECT_STAGE_ANSWER_KEY]: DEFAULT_NEW_PROJECT_STAGE };
     if (currentUserDisplayName) {
@@ -6588,12 +6586,6 @@ const updateProjectFilters = useCallback((updater) => {
     setScreen('questionnaire');
   }, [activeQuestions, unansweredMandatoryQuestions]);
 
-  const handleProjectStageChange = useCallback((stage) => {
-    // Le stade passe par le même chemin qu'une réponse ordinaire : il vit dans les réponses,
-    // donc le changer réévalue immédiatement la visibilité conditionnelle des questions.
-    handleAnswer(PROJECT_STAGE_ANSWER_KEY, normalizeProjectStage(stage, DEFAULT_NEW_PROJECT_STAGE));
-  }, [handleAnswer]);
-
   const handleNavigateToQuestion = useCallback((questionId) => {
     const targetIndex = activeQuestions.findIndex(question => question.id === questionId);
     if (targetIndex >= 0) {
@@ -7846,7 +7838,6 @@ const updateProjectFilters = useCallback((updater) => {
             onFinish={leaveQuestionnaireForShowcase}
             projectId={activeProjectId}
             projectStage={projectStage}
-            onProjectStageChange={handleProjectStageChange}
             onSetQuestionDoubt={handleSetQuestionDoubt}
             onClearQuestionDoubt={handleClearQuestionDoubt}
             />

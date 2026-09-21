@@ -9,7 +9,7 @@
 // settings.json publié) est remplacée par celle-ci au démarrage — voir
 // normalizeOnboardingConfig dans src/utils/onboarding.js. L'incrémenter écrase donc les
 // personnalisations back-office du tour : à ne faire que pour une refonte assumée.
-export const ONBOARDING_TOUR_VERSION = 6;
+export const ONBOARDING_TOUR_VERSION = 7;
 
 const ACTION_LABELS = {
   create: { en: 'Create a project', fr: 'Créer un projet', de: 'Ein Projekt erstellen', es: 'Crear un proyecto' },
@@ -316,26 +316,6 @@ export const initialOnboardingTourConfig = {
       "actions": []
     },
     {
-      "id": "question-stage",
-      "target": "[data-tour-id=\"question-stage-selector\"]",
-      "title": {
-        "en": "Where is your project right now?",
-        "fr": "Où en est votre projet ?",
-        "de": "Wo steht Ihr Projekt gerade?",
-        "es": "¿En qué punto está su proyecto?"
-      },
-      "content": {
-        "en": "Framing, design or about to launch: the stage you declare decides which questions are mandatory right now, not what you will eventually have to answer. Set it honestly to consult compliance without waiting for a finished project.",
-        "fr": "Cadrage, conception ou pré-lancement : le stade que vous déclarez décide de ce qui vous est demandé maintenant, pas de ce que vous devrez trancher au final. Déclarez-le honnêtement pour consulter la compliance sans attendre un projet terminé.",
-        "de": "Konzeption, Ausarbeitung oder kurz vor dem Start: Das von Ihnen angegebene Stadium bestimmt, was jetzt von Ihnen verlangt wird — nicht, was Sie am Ende entscheiden müssen. Geben Sie es ehrlich an, um die Compliance zu konsultieren, ohne auf ein fertiges Projekt zu warten.",
-        "es": "Encuadre, diseño o a punto de lanzarse: la etapa que declara decide lo que se le pide ahora, no lo que tendrá que decidir al final. Decláelo con honestidad para consultar a compliance sin esperar a tener un proyecto terminado."
-      },
-      "placement": "right",
-      "highlightScope": "target",
-      "showDefaultButtons": true,
-      "actions": []
-    },
-    {
       "id": "question-guidance",
       "target": "[data-tour-id=\"question-guidance-toggle\"]",
       "title": {
@@ -488,10 +468,10 @@ export const initialOnboardingTourConfig = {
         "es": "Leer los retos del proyecto"
       },
       "content": {
-        "en": "The project stakes gather everything: the calculated risk level, the teams concerned, the points of attention and the recap of your answers — which you can edit straight from here.",
-        "fr": "Les enjeux du projet rassemblent tout : le niveau de risque calculé, les équipes concernées, les points de vigilance et le rappel de vos réponses — que vous pouvez modifier directement depuis ici.",
-        "de": "Die Projektherausforderungen bündeln alles: das berechnete Risikoniveau, die betroffenen Teams, die Aufmerksamkeitspunkte und die Übersicht Ihrer Antworten — die Sie direkt von hier aus ändern können.",
-        "es": "Los retos del proyecto lo reúnen todo: el nivel de riesgo calculado, los equipos implicados, los puntos de atención y el resumen de sus respuestas, que puede modificar directamente desde aquí."
+        "en": "The project stakes gather everything without showing it all at once: the left rail says where your project stands and what you can ask for right now, while the right column files the teams, risks, points of attention and the recap of your answers into folded sections. Each heading carries its own count, and you open what you want to read.",
+        "fr": "Les enjeux rassemblent tout sans tout vous montrer d’un coup : le rail de gauche dit où en est votre projet et ce que vous pouvez demander maintenant, la colonne de droite range les équipes, les risques, les points de vigilance et le rappel de vos réponses en sections repliées. Chaque titre porte son compteur, et vous ouvrez ce que vous voulez lire.",
+        "de": "Die Projektherausforderungen bündeln alles, ohne alles auf einmal zu zeigen: Die linke Leiste zeigt, wo Ihr Projekt steht und was Sie jetzt anfordern können; die rechte Spalte ordnet Teams, Risiken, Aufmerksamkeitspunkte und die Übersicht Ihrer Antworten in eingeklappte Abschnitte. Jede Überschrift trägt ihre Anzahl, und Sie öffnen, was Sie lesen möchten.",
+        "es": "Los retos lo reúnen todo sin mostrarlo todo de golpe: el panel de la izquierda indica en qué punto está su proyecto y qué puede pedir ahora, y la columna de la derecha ordena los equipos, los riesgos, los puntos de atención y el resumen de sus respuestas en secciones plegadas. Cada título lleva su recuento y usted abre lo que quiere leer."
       },
       "placement": "bottom",
       "highlightScope": "target",
@@ -509,10 +489,10 @@ export const initialOnboardingTourConfig = {
         "es": "Consultar a compliance antes de terminar"
       },
       "content": {
-        "en": "Orientation, technical advice or validation: this ladder shows exactly what the experts can already do with what you have filled in, and what is still missing to go further. You don't need a finished project to get a first read.",
-        "fr": "Orientation, avis technique ou validation : ce palier montre exactement ce que les experts peuvent déjà faire avec ce que vous avez renseigné, et ce qu’il manque pour aller plus loin. Pas besoin d’un projet terminé pour obtenir une première lecture.",
-        "de": "Orientierung, fachliche Einschätzung oder Validierung: Diese Stufenleiter zeigt genau, was die Experten mit Ihren bisherigen Angaben bereits tun können und was noch fehlt, um weiterzukommen. Sie brauchen kein fertiges Projekt für eine erste Einschätzung.",
-        "es": "Orientación, dictamen técnico o validación: esta escala muestra exactamente lo que los expertos ya pueden hacer con lo que ha completado y lo que falta para ir más lejos. No necesita un proyecto terminado para obtener una primera lectura."
+        "en": "Orientation, technical advice or validation: this ladder shows exactly what the experts can already do with what you have filled in, and what is still missing to go further. It stays on screen as you scroll, along with the action of the moment: you never have to go back up to act.",
+        "fr": "Orientation, avis technique ou validation : ce palier montre exactement ce que les experts peuvent déjà faire avec ce que vous avez renseigné, et ce qu’il manque pour aller plus loin. Il reste affiché pendant que vous faites défiler la page, avec l’action du moment : vous n’avez jamais à remonter pour agir.",
+        "de": "Orientierung, fachliche Einschätzung oder Validierung: Diese Stufenleiter zeigt genau, was die Experten mit Ihren bisherigen Angaben bereits tun können und was noch fehlt, um weiterzukommen. Sie bleibt beim Scrollen sichtbar, zusammen mit der jeweils anstehenden Aktion: Sie müssen nie nach oben zurückscrollen, um zu handeln.",
+        "es": "Orientación, dictamen técnico o validación: esta escala muestra exactamente lo que los expertos ya pueden hacer con lo que ha completado y lo que falta para ir más lejos. Permanece visible mientras se desplaza, junto con la acción del momento: nunca tiene que volver arriba para actuar."
       },
       "placement": "bottom",
       "highlightScope": "target",
@@ -571,10 +551,10 @@ export const initialOnboardingTourConfig = {
         "es": "Saber a quién se va a solicitar"
       },
       "content": {
-        "en": "Here are the expert teams mobilised by your project, with the points to prepare for each of them, and the validation committees that may be required. You know in advance which questions you will be asked.",
-        "fr": "Voici les équipes expertes mobilisées par votre projet, avec les points à préparer pour chacune, et les comités de validation éventuellement requis. Vous savez à l’avance quelles questions vous seront posées.",
-        "de": "Hier sind die von Ihrem Projekt mobilisierten Expertenteams mit den jeweils vorzubereitenden Punkten sowie die gegebenenfalls erforderlichen Validierungsgremien. Sie wissen im Voraus, welche Fragen Ihnen gestellt werden.",
-        "es": "Estos son los equipos expertos movilizados por su proyecto, con los puntos que debe preparar para cada uno, y los comités de validación que puedan ser necesarios. Sabe de antemano qué preguntas se le plantearán."
+        "en": "Here are the expert teams your project calls on, with the points to prepare for each of them. Folded, a card tells you at a glance who is handling that perimeter and where it stands, through a colour dot: blue while the expert has not answered, amber when something is expected from you, green once it is settled. Unfold it for the points to prepare and the exchanges.",
+        "fr": "Voici les équipes expertes mobilisées par votre projet, avec les points à préparer pour chacune. Repliée, une carte vous dit d’un coup d’œil qui suit ce périmètre et où il en est, grâce à une pastille de couleur : bleu tant que l’expert n’a pas répondu, ambre quand quelque chose vous est demandé, vert quand c’est acquis. Dépliez-la pour les points à préparer et les échanges.",
+        "de": "Hier sind die von Ihrem Projekt einbezogenen Fachteams mit den jeweils vorzubereitenden Punkten. Eingeklappt zeigt eine Karte auf einen Blick, wer diesen Bereich betreut und wie es steht — über einen Farbpunkt: blau, solange der Experte nicht geantwortet hat, bernstein, wenn etwas von Ihnen erwartet wird, grün, wenn es erledigt ist. Klappen Sie sie auf für die vorzubereitenden Punkte und den Austausch.",
+        "es": "Estos son los equipos expertos que moviliza su proyecto, con los puntos que debe preparar para cada uno. Plegada, una tarjeta le dice de un vistazo quién lleva ese perímetro y en qué punto está, mediante un punto de color: azul mientras el experto no ha respondido, ámbar cuando se espera algo de usted, verde cuando está resuelto. Despliéguela para ver los puntos a preparar y los intercambios."
       },
       "placement": "top",
       "highlightScope": "target",
@@ -591,10 +571,10 @@ export const initialOnboardingTourConfig = {
         "es": "Dos vías para solicitar a compliance"
       },
       "content": {
-        "en": "Once the base information is filled in, request a preliminary opinion: the experts orient you without freezing the project. Once every mandatory question has a firm answer, request final validation instead — this time each concerned team and committee is notified to give a formal opinion. You have nobody to notify yourself.",
-        "fr": "Dès que les informations du socle sont renseignées, demandez un avis préliminaire : les experts vous orientent sans figer le projet. Une fois toutes les questions obligatoires renseignées avec des réponses fermes, demandez plutôt la validation — chaque équipe et comité concerné est alors notifié pour rendre un avis formel. Vous n’avez personne à prévenir vous-même.",
-        "de": "Sobald die Basisangaben ausgefüllt sind, fordern Sie eine vorläufige Stellungnahme an: Die Experten geben Ihnen eine Orientierung, ohne das Projekt einzufrieren. Sobald alle Pflichtfragen mit einer endgültigen Antwort versehen sind, fordern Sie stattdessen die Validierung an — dann wird jedes betroffene Team und Gremium benachrichtigt, um eine formelle Stellungnahme abzugeben. Sie müssen niemanden selbst informieren.",
-        "es": "En cuanto la información básica esté completa, solicite un dictamen preliminar: los expertos le orientan sin congelar el proyecto. Una vez que todas las preguntas obligatorias tengan una respuesta firme, solicite en cambio la validación — entonces se notifica a cada equipo y comité implicado para que emita un dictamen formal. No tiene que avisar a nadie usted mismo."
+        "en": "The panel puts forward the door that is actually open to you. Once the base information is filled in, request a preliminary opinion: the experts orient you without freezing the project. Once every mandatory question has a firm answer, request final validation instead, which then takes the front seat while the other door stays visible just below with what is blocking it — this time each concerned team and committee is notified to give a formal opinion. You have nobody to notify yourself.",
+        "fr": "Le panneau met en avant la porte qui vous est ouverte. Dès que les informations du socle sont renseignées, demandez un avis préliminaire : les experts vous orientent sans figer le projet. Une fois toutes les questions obligatoires renseignées avec des réponses fermes, demandez plutôt la validation, qui passe alors au premier plan pendant que l’autre porte reste visible juste en dessous avec ce qui la bloque — chaque équipe et comité concerné est alors notifié pour rendre un avis formel. Vous n’avez personne à prévenir vous-même.",
+        "de": "Das Panel stellt die Tür in den Vordergrund, die Ihnen offensteht. Sobald die Basisangaben ausgefüllt sind, fordern Sie eine vorläufige Stellungnahme an: Die Experten geben Ihnen eine Orientierung, ohne das Projekt einzufrieren. Sobald alle Pflichtfragen mit einer endgültigen Antwort versehen sind, fordern Sie stattdessen die Validierung an, die dann in den Vordergrund rückt, während die andere Tür direkt darunter sichtbar bleibt, mitsamt dem, was sie blockiert — dann wird jedes betroffene Team und Gremium benachrichtigt, um eine formelle Stellungnahme abzugeben. Sie müssen niemanden selbst informieren.",
+        "es": "El panel destaca la puerta que realmente tiene abierta. En cuanto la información básica esté completa, solicite un dictamen preliminar: los expertos le orientan sin congelar el proyecto. Una vez que todas las preguntas obligatorias tengan una respuesta firme, solicite en cambio la validación, que pasa entonces a primer plano mientras la otra puerta sigue visible justo debajo con lo que la bloquea — entonces se notifica a cada equipo y comité implicado para que emita un dictamen formal. No tiene que avisar a nadie usted mismo."
       },
       "placement": "left",
       "highlightScope": "target",

@@ -180,7 +180,7 @@ const COMMENT_STATUS_OPTIONS = [
   {
     value: 'pending_information',
     labelKey: 'statusPendingInformation',
-    badgeClass: 'bg-blue-100 text-blue-800 border-blue-200'
+    badgeClass: 'bg-amber-100 text-amber-800 border-amber-200'
   },
   {
     value: 'not_concerned',
@@ -209,10 +209,15 @@ const TEAM_PRIORITY_RANK = {
   standard: 2
 };
 
+// Le liseré de gauche d'une carte d'équipe, et la pastille qui le rappelle dans le résumé
+// replié. Un périmètre sans avis n'est pas une absence de signal : l'équipe a été sollicitée
+// et n'a pas encore répondu, donc bleu (« en cours côté experts ») plutôt que le gris qui le
+// rendait invisible sur fond blanc. « En attente d'informations » passe en ambre, la couleur
+// de ce qui est attendu du porteur — c'est bien lui que ce statut relance.
 const TEAM_STATUS_ACCENT_COLOR = {
-  pending_information: '#60a5fa',
+  pending_information: '#f59e0b',
   rejected: '#f87171',
-  '': '#d1d5db',
+  '': '#93c5fd',
   validated_with_conditions: '#fbbf24',
   validated: '#34d399',
   not_concerned: '#d1d5db'
@@ -2188,14 +2193,23 @@ export const SynthesisReport = ({
                         <div className="min-w-0">
                           <h3 className="text-lg font-bold text-gray-800">{resolveLocalizedText(team.name, language)}</h3>
                           {isTeamCollapsed && (
-                            <p className="text-xs text-gray-500 mt-0.5">
+                            <p className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                              {/* La pastille reprend la couleur du liseré : le code couleur reste
+                                  lisible sans avoir à décoder une bordure de 4 px. */}
+                              <span
+                                className="h-2 w-2 flex-shrink-0 rounded-full"
+                                style={{ backgroundColor: teamAccentColor }}
+                                aria-hidden="true"
+                              />
                               {/* Replié, ce qu'on cherche c'est « qui, et où ça en est » — pas un
                                   volume. L'interlocuteur nommé passe donc devant les compteurs. */}
-                              {teamClaim && `${teamClaimAssigneeLabel} · `}
-                              {t('synthesisReport.teamCollapsedSummaryTemplate', {
-                                prepCount: formattedTeamQuestions.length,
-                                exchangeCount: threadMessages.length
-                              })}
+                              <span>
+                                {teamClaim && `${teamClaimAssigneeLabel} · `}
+                                {t('synthesisReport.teamCollapsedSummaryTemplate', {
+                                  prepCount: formattedTeamQuestions.length,
+                                  exchangeCount: threadMessages.length
+                                })}
+                              </span>
                             </p>
                           )}
                         </div>

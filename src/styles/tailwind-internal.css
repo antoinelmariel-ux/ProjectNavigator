@@ -29,6 +29,10 @@ a {
   color: inherit;
   text-decoration: inherit;
 }
+button, [type='button'], [type='reset'], [type='submit'] {
+  background-color: transparent;
+  background-image: none;
+}
 
 .-mb-3 {
   margin-bottom: -0.75rem;
