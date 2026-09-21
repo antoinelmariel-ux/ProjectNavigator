@@ -413,6 +413,10 @@ const lineHeights = {
   'leading-tight': '1.25',
   'leading-snug': '1.375',
   'leading-relaxed': '1.625',
+  // Interlignage large (Tailwind : 2), utilisé par les listes de questions du rail de la
+  // synthèse : en `text-xs`, un intitulé qui se replie voyait sinon son soulignement barrer
+  // la ligne suivante.
+  'leading-loose': '2',
   // Interlignage fixe (Tailwind : 1.75rem), utilisé par l'aperçu de règle du banc d'essai où
   // les pastilles de conditions ont besoin d'air entre deux lignes qui se replient.
   'leading-7': '1.75rem',

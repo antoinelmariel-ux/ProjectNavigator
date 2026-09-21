@@ -76,21 +76,43 @@ export const ProjectReadinessPanel = ({
       .format(new Date(lastSentAt))
     : '';
 
+  // Ces intitulés de questions passent souvent sur deux lignes dans une colonne de 288 px, et
+  // trois choses s'y liguaient contre la lisibilité : `text-xs` impose une interligne de 16 px
+  // pour 12 px de texte, si bien que le soulignement d'une ligne — encore poussé vers le bas
+  // par `underline-offset-2` — venait barrer la ligne suivante ; les puces natives du
+  // navigateur ajoutaient un retrait de 40 px dans une boîte qui en fait 232 ; et un <button>
+  // inline-block ne se replie pas comme un bloc. D'où `leading-loose` sans décalage de
+  // soulignement, la puce explicite, et le bouton en élément de flex.
+  // La couleur de la puce passe par un style en ligne, pas par une classe dans une ternaire :
+  // le générateur CSS ne lit que les fragments statiques des template literals, donc une
+  // classe qui n'existe que dans une branche de ternaire ne produit aucune règle et disparaît
+  // sans que les deux garde-fous du build ne s'en aperçoivent.
+  const renderQuestionLink = (id, label, onClick, dotColor = '#60a5fa') => (
+    <li key={id} className="flex items-start gap-2">
+      <span
+        aria-hidden="true"
+        className="mt-2 h-1 w-1 flex-shrink-0 rounded-full"
+        style={{ backgroundColor: dotColor }}
+      />
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex-1 text-left text-xs leading-loose text-blue-700 underline hover:text-blue-900"
+      >
+        {label}
+      </button>
+    </li>
+  );
+
   const renderMissing = (missing) => (
-    <ul className="mt-2 space-y-1">
-      {missing.slice(0, 4).map((question) => (
-        <li key={question.id}>
-          <button
-            type="button"
-            onClick={() => onNavigateToQuestion?.(question.id)}
-            className="text-left text-xs text-blue-700 underline underline-offset-2 hover:text-blue-900"
-          >
-            {resolveLocalizedText(question.question, language) || question.id}
-          </button>
-        </li>
+    <ul className="mt-2 list-none space-y-1.5 p-0">
+      {missing.slice(0, 4).map((question) => renderQuestionLink(
+        question.id,
+        resolveLocalizedText(question.question, language) || question.id,
+        () => onNavigateToQuestion?.(question.id)
       ))}
       {missing.length > 4 && (
-        <li className="text-xs text-gray-500">
+        <li className="text-xs leading-loose text-gray-500">
           {t('synthesisReport.readiness.moreMissing', { count: missing.length - 4 })}
         </li>
       )}
@@ -122,20 +144,15 @@ export const ProjectReadinessPanel = ({
               : t('synthesisReport.readiness.updateWithoutReferenceHint')}
           </p>
           {hasChangesToSend && (
-            <ul className="mt-2 space-y-1">
-              {pendingChanges.slice(0, 3).map((change) => (
-                <li key={change.questionId} className="text-xs text-amber-900">
-                  <button
-                    type="button"
-                    onClick={() => onNavigateToQuestion?.(change.questionId)}
-                    className="text-left underline underline-offset-2 hover:text-amber-700"
-                  >
-                    {resolveLocalizedText(change.question?.question, language) || change.questionId}
-                  </button>
-                </li>
+            <ul className="mt-2 list-none space-y-1.5 p-0">
+              {pendingChanges.slice(0, 3).map((change) => renderQuestionLink(
+                change.questionId,
+                resolveLocalizedText(change.question?.question, language) || change.questionId,
+                () => onNavigateToQuestion?.(change.questionId),
+                '#f59e0b'
               ))}
               {pendingChanges.length > 3 && (
-                <li className="text-xs text-amber-800">
+                <li className="text-xs leading-loose text-amber-800">
                   {t('synthesisReport.readiness.moreChanges', { count: pendingChanges.length - 3 })}
                 </li>
               )}
@@ -232,20 +249,15 @@ export const ProjectReadinessPanel = ({
           <p className="mt-1 text-xs text-amber-700">
             {t('synthesisReport.readiness.uncertainHint')}
           </p>
-          <ul className="mt-2 space-y-1">
-            {openQuestionDoubts.slice(0, 3).map((entry) => (
-              <li key={entry.questionId}>
-                <button
-                  type="button"
-                  onClick={() => onNavigateToQuestion?.(entry.questionId)}
-                  className="text-left text-xs font-medium text-amber-900 underline underline-offset-2 hover:text-amber-700"
-                >
-                  {resolveLocalizedText(entry.question?.question, language) || entry.questionId}
-                </button>
-              </li>
+          <ul className="mt-2 list-none space-y-1.5 p-0">
+            {openQuestionDoubts.slice(0, 3).map((entry) => renderQuestionLink(
+              entry.questionId,
+              resolveLocalizedText(entry.question?.question, language) || entry.questionId,
+              () => onNavigateToQuestion?.(entry.questionId),
+              '#f59e0b'
             ))}
             {openQuestionDoubts.length > 3 && (
-              <li className="text-xs text-amber-800">
+              <li className="text-xs leading-loose text-amber-800">
                 {t('synthesisReport.readiness.moreMissing', { count: openQuestionDoubts.length - 3 })}
               </li>
             )}

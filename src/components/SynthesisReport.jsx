@@ -1933,7 +1933,7 @@ export const SynthesisReport = ({
                 <p className="text-sm font-bold uppercase tracking-wide text-gray-600">
                   {t('synthesisReport.tocTitle')}
                 </p>
-                <ul className="mt-2 space-y-0.5">
+                <ul className="mt-2 list-none space-y-0.5 p-0">
                   {sectionNavItems.map((item) => (
                     <li key={item.key}>
                       <button
