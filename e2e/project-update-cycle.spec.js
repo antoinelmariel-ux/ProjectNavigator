@@ -22,9 +22,14 @@ test.describe('Cycle de mise à jour après soumission', () => {
     await page.getByRole('button', { name: 'Modifier le projet' }).first().click();
     await expect(page.getByRole('button', { name: 'Terminer' })).toBeVisible();
 
-    // Modifier le stade déclaré : une réponse comme une autre du point de vue du suivi, toujours
-    // atteignable quelle que soit la question affichée.
-    await page.getByRole('radio', { name: /Conception/ }).click();
+    // Modifier une réponse : le suivi des modifications porte sur les réponses au questionnaire.
+    // Le sommaire de la barre latérale est ouvert par défaut, et permet d'atteindre n'importe
+    // quelle question quelle que soit celle qui s'affiche à la réouverture.
+    await page.getByRole('button', { name: /Quel est le nom du projet/ }).first().click();
+    const nameEditor = page.locator('[contenteditable="true"]').first();
+    await expect(nameEditor).toBeVisible();
+    await nameEditor.click();
+    await page.keyboard.type(' v2');
 
     await page.getByRole('button', { name: 'Terminer' }).click();
     // La sortie du questionnaire est la vitrine : le bandeau de mise à jour vit sur les enjeux.
