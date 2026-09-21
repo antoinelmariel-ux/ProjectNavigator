@@ -3965,6 +3965,16 @@ export const BackOffice = ({
     }
   }, [activeTab, tabDefinitions]);
 
+  // Les onglets ont des hauteurs très différentes (Tableau de bord vs. Équipes vs.
+  // Questions) : sans ce reset, changer d'onglet depuis le bas d'un onglet long peut ouvrir
+  // le suivant à mi-hauteur, voire sur une zone vide s'il est plus court.
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.scrollTo !== 'function') {
+      return;
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [activeTab]);
+
   const createDefaultQuestion = (existingQuestions) => ({
     id: getNextId(existingQuestions, 'q'),
     type: 'choice',

@@ -3292,6 +3292,18 @@ const updateProjectFilters = useCallback((updater) => {
     }
   }, [screen]);
 
+  // Chaque écran principal démarre en haut de page : sans ce reset, un écran atteint alors
+  // qu'on avait défilé loin dans le précédent (ex. bas d'un long back-office) s'ouvrirait
+  // au milieu de son propre contenu. La questionnaire, la vitrine et le formulaire
+  // d'inspiration gèrent déjà leur propre défilement plus finement (par question, etc.) ;
+  // ce filet ne fait alors que confirmer un état déjà en place.
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.scrollTo !== 'function') {
+      return;
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [screen, mode, adminView]);
+
   const activeProject = useMemo(
     () => projects.find(project => project.id === activeProjectId) || null,
     [projects, activeProjectId]

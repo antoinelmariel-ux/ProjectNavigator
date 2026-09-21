@@ -320,18 +320,34 @@ const VALIDATION_BADGE_META = {
   }
 };
 
-const PaginationControls = ({ page, totalPages, onPrevious, onNext }) => {
+const PaginationControls = ({ page, totalPages, onPrevious, onNext, scrollTargetId }) => {
   const { t } = useTranslation();
 
   if (totalPages <= 1) {
     return null;
   }
 
+  // Les boutons sont en bas de liste : changer de page sans remonter laisse le lecteur
+  // face au même point de défilement, désormais au milieu (ou après la fin) de la page
+  // suivante, sans avoir vu son début.
+  const scrollToSectionTop = () => {
+    if (!scrollTargetId || typeof document === 'undefined') {
+      return;
+    }
+    const element = document.getElementById(scrollTargetId);
+    if (element && typeof element.scrollIntoView === 'function') {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
   return (
     <div className="flex items-center justify-end gap-2 pt-2">
       <button
         type="button"
-        onClick={onPrevious}
+        onClick={() => {
+          onPrevious();
+          scrollToSectionTop();
+        }}
         disabled={page <= 1}
         className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
           page <= 1
@@ -346,7 +362,10 @@ const PaginationControls = ({ page, totalPages, onPrevious, onNext }) => {
       </span>
       <button
         type="button"
-        onClick={onNext}
+        onClick={() => {
+          onNext();
+          scrollToSectionTop();
+        }}
         disabled={page >= totalPages}
         className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
           page >= totalPages
@@ -2697,6 +2716,7 @@ export const HomeScreen = ({
                     totalPages={totalProjectPages}
                     onPrevious={() => setProjectPage((prev) => Math.max(1, prev - 1))}
                     onNext={() => setProjectPage((prev) => Math.min(totalProjectPages, prev + 1))}
+                    scrollTargetId="projects-heading"
                   />
                 </>
               ) : (
@@ -2741,6 +2761,7 @@ export const HomeScreen = ({
                       totalPages={totalSubmittedProjectPages}
                       onPrevious={() => setSubmittedProjectsPage((prev) => Math.max(1, prev - 1))}
                       onNext={() => setSubmittedProjectsPage((prev) => Math.min(totalSubmittedProjectPages, prev + 1))}
+                      scrollTargetId="submitted-projects-heading"
                     />
                   </>
                 ) : (
@@ -2923,6 +2944,7 @@ export const HomeScreen = ({
                     totalPages={totalInspirationPages}
                     onPrevious={() => setInspirationPage((prev) => Math.max(1, prev - 1))}
                     onNext={() => setInspirationPage((prev) => Math.min(totalInspirationPages, prev + 1))}
+                    scrollTargetId="shared-inspirations-heading"
                   />
                 </div>
               ) : (
@@ -2964,6 +2986,7 @@ export const HomeScreen = ({
               totalPages={totalPublicProjectPages}
               onPrevious={() => setPublicProjectsPage((prev) => Math.max(1, prev - 1))}
               onNext={() => setPublicProjectsPage((prev) => Math.min(totalPublicProjectPages, prev + 1))}
+              scrollTargetId="public-projects-heading"
             />
           </section>
         )}
