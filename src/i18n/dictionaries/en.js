@@ -1939,6 +1939,8 @@ export default {
     vigilanceHeadingTemplate: 'Vigilance points ({{count}})',
     vigilanceAriaLabelTemplate: 'Vigilance point {{ruleName}}',
     committeeOpinionsTitle: 'Committee opinions',
+    committeeOpinionsTemplate: 'Committee opinions ({{count}})',
+    tocTitle: 'Contents',
     requiredCommitteesTitle: 'Committee(s) required for this project:',
     committeeRequiredHint: 'Comment required per configuration.',
     committeeOptionalHint: 'Comment optional per configuration.',

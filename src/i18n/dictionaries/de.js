@@ -1950,6 +1950,8 @@ export default {
     vigilanceHeadingTemplate: 'Aufmerksamkeitspunkte ({{count}})',
     vigilanceAriaLabelTemplate: 'Aufmerksamkeitspunkt {{ruleName}}',
     committeeOpinionsTitle: 'Ausschussstellungnahme',
+    committeeOpinionsTemplate: 'Ausschussstellungnahme ({{count}})',
+    tocTitle: 'Inhalt',
     requiredCommitteesTitle: 'Für dieses Projekt erforderliche(s) Komitee(s):',
     committeeRequiredHint: 'Kommentar gemäß Konfiguration erforderlich.',
     committeeOptionalHint: 'Kommentar gemäß Konfiguration optional.',
