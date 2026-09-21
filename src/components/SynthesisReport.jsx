@@ -1750,6 +1750,16 @@ export const SynthesisReport = ({
     return () => clearTimeout(timeoutId);
   }, [openSection]);
 
+  // « 5 sans statut » ne résumait rien : le nombre total est déjà dans le titre de la section,
+  // et cette pastille grise par défaut occupait la place de celles qui, elles, disent quelque
+  // chose. La ligne disparaît donc tant qu'aucun avis n'a été rendu.
+  const teamStatusSummaryEntries = useMemo(
+    () => TEAM_STATUS_SUMMARY_ORDER.filter(
+      (entry) => entry.value !== '' && (teamStatusSummary[entry.value] || 0) > 0
+    ),
+    [teamStatusSummary]
+  );
+
   // Le sommaire ne liste que les sections réellement présentes : un intitulé « (0) » dans le
   // rail ferait exactement ce qu'on cherche à supprimer, du bruit à lire avant d'agir.
   const sectionNavItems = useMemo(() => {
@@ -1991,9 +2001,9 @@ export const SynthesisReport = ({
             isOpen={openSections.teams}
             onToggle={() => toggleSection('teams')}
           >
-            {relevantTeams.length > 0 && (
+            {teamStatusSummaryEntries.length > 0 && (
               <div className="mb-4 flex flex-wrap gap-2">
-                {TEAM_STATUS_SUMMARY_ORDER.filter((entry) => (teamStatusSummary[entry.value] || 0) > 0).map((entry) => (
+                {teamStatusSummaryEntries.map((entry) => (
                   <span
                     key={entry.value}
                     className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-700"
