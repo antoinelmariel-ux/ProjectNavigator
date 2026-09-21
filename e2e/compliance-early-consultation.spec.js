@@ -21,22 +21,26 @@ const answerEverything = (page) => walkToSynthesis(page, {
 });
 
 test.describe('Consultation compliance en amont', () => {
-  test('le stade déclaré est persisté et modifiable depuis le questionnaire', async ({ page }) => {
+  test('le formulaire ne demande plus le stade, et le projet part au stade le plus avancé', async ({ page }) => {
     await gotoHome(page);
     await page.getByRole('button', { name: /Créer un projet/ }).first().click();
+    await expect(page.locator('[id^="question-"]').first()).toBeVisible();
 
-    // Un projet créé maintenant part du cadrage : c'est ce qui autorise à interroger la
-    // compliance avant d'avoir tout tranché.
-    const framing = page.getByRole('radio', { name: /Cadrage/ });
-    await expect(framing).toHaveAttribute('aria-checked', 'true');
+    // Se classer soi-même n'est pas une question sur le projet : le sélecteur de stade a été
+    // retiré du formulaire.
+    await expect(page.locator('[data-tour-id="question-stage-selector"]')).toHaveCount(0);
+    await expect(page.getByRole('radio', { name: /Cadrage/ })).toHaveCount(0);
 
-    await page.getByRole('radio', { name: /Avant déploiement/ }).click();
-    await expect(page.getByRole('radio', { name: /Avant déploiement/ })).toHaveAttribute('aria-checked', 'true');
-
+    // Tout projet part donc du stade le plus avancé : ce que le questionnaire marque
+    // obligatoire correspond exactement à ce que l'avis technique et la validation exigent.
+    // La consultation précoce reste ouverte par le palier « orientation », pas par une
+    // déclaration du porteur.
     await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
-    const stateRaw = await page.evaluate(() => window.localStorage.getItem('complianceNavigatorState'));
-    expect(stateRaw).toContain('__project_stage__');
-    expect(stateRaw).toContain('pre_launch');
+    const stage = await page.evaluate(() => {
+      const state = JSON.parse(window.localStorage.getItem('complianceNavigatorState') || '{}');
+      return (state.projects || [])[0]?.answers?.__project_stage__ ?? null;
+    });
+    expect(stage).toBe('pre_launch');
   });
 
   test('la synthèse propose les deux portes d’entrée et dit ce que chacune permet', async ({ page }) => {
@@ -90,7 +94,11 @@ test.describe('Consultation compliance en amont', () => {
     // Un doute ouvert interdit la validation définitive, et le dit là où il s'affiche.
     await expect(page.getByRole('button', { name: 'Demander la validation' })).toBeDisabled();
 
-    await page.getByRole('button', { name: /Rappel de vos réponses/ }).click();
+    // Portée à la section : l'intitulé apparaît aussi dans le sommaire du rail latéral, ce qui
+    // ferait deux correspondances en mode strict.
+    await page.locator('#synthesis-section-overview')
+      .getByRole('button', { name: /Rappel de vos réponses/ })
+      .click();
     const overview = page.locator('#overview-panel');
     await expect(overview.getByText('Pas sûr du périmètre concerné.')).toBeVisible();
     await expect(

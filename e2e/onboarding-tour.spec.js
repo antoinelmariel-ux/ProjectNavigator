@@ -87,7 +87,6 @@ test.describe('tour v2', () => {
       ['Lancer un nouveau projet', 'home-create-project'],
       ['Répondre à votre rythme', 'question-main-content'],
       ['Suivre votre avancement', 'question-summary-panel'],
-      ['Où en est votre projet ?', 'question-stage-selector'],
       ['Comprendre chaque question', 'question-guidance-toggle'],
       ['Bien plus que du texte', 'question-main-content'],
       ['Signaler un doute', 'question-doubt-toggle'],

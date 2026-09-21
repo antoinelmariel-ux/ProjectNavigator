@@ -101,6 +101,71 @@ const TOUR_STEP_SCROLL_TARGETS = {
   'project-share-member': '[data-tour-id="synthesis-share-member"]'
 };
 const TEAM_EXCHANGE_TOUR_STEPS = new Set(['compliance-exchanges', 'quick-experts']);
+// Une étape du tour qui pointe une section repliée ne montrerait que son en-tête : on ouvre
+// la section concernée avant que le tooltip se place, comme on déplie déjà les équipes pour
+// les étapes « échanges ».
+const SECTION_TOUR_STEPS = {
+  'compliance-teams': 'teams',
+  'compliance-exchanges': 'teams',
+  'quick-experts': 'teams',
+  'compliance-risks': 'risks',
+  'compliance-delays': 'vigilance',
+  'compliance-committees': 'committees'
+};
+
+// Les sections de la synthèse sont des accordéons : seules les équipes sont ouvertes au
+// chargement. Rien n'est caché — le titre porte son compteur et reste dans le sommaire — mais
+// la page ne s'ouvre plus sur six sections dépliées d'affilée, toutes de même poids visuel.
+// Le bouton est enveloppé dans le <h2> (motif ARIA « accordéon ») : le titre reste un titre
+// pour la navigation au lecteur d'écran tout en étant l'élément cliquable.
+const CollapsibleSection = ({
+  sectionId,
+  headingId,
+  tourId,
+  icon,
+  title,
+  isOpen,
+  onToggle,
+  children
+}) => (
+  <section
+    id={sectionId}
+    className="mb-4"
+    aria-labelledby={headingId}
+    data-tour-id={tourId}
+    style={{ scrollMarginTop: '1.5rem' }}
+  >
+    <h2 id={headingId} style={{ margin: 0 }}>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={isOpen}
+        aria-controls={`${sectionId}-panel`}
+        className="flex w-full items-center gap-3 rounded-xl border border-gray-200 bg-white px-5 py-4 text-left transition-colors hover:bg-gray-50"
+      >
+        <svg
+          className={`h-4 w-4 flex-shrink-0 text-gray-400 transition-transform duration-200 ${isOpen ? '' : '-rotate-90'}`}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+        {icon}
+        <span className="text-lg font-bold text-gray-800">{title}</span>
+      </button>
+    </h2>
+    {isOpen && (
+      <div id={`${sectionId}-panel`} className="mt-3">
+        {children}
+      </div>
+    )}
+  </section>
+);
 const COMMENT_STATUS_OPTIONS = [
   {
     value: 'validated',
@@ -115,7 +180,7 @@ const COMMENT_STATUS_OPTIONS = [
   {
     value: 'pending_information',
     labelKey: 'statusPendingInformation',
-    badgeClass: 'bg-blue-100 text-blue-800 border-blue-200'
+    badgeClass: 'bg-amber-100 text-amber-800 border-amber-200'
   },
   {
     value: 'not_concerned',
@@ -144,10 +209,15 @@ const TEAM_PRIORITY_RANK = {
   standard: 2
 };
 
+// Le liseré de gauche d'une carte d'équipe, et la pastille qui le rappelle dans le résumé
+// replié. Un périmètre sans avis n'est pas une absence de signal : l'équipe a été sollicitée
+// et n'a pas encore répondu, donc bleu (« en cours côté experts ») plutôt que le gris qui le
+// rendait invisible sur fond blanc. « En attente d'informations » passe en ambre, la couleur
+// de ce qui est attendu du porteur — c'est bien lui que ce statut relance.
 const TEAM_STATUS_ACCENT_COLOR = {
-  pending_information: '#60a5fa',
+  pending_information: '#f59e0b',
   rejected: '#f87171',
-  '': '#d1d5db',
+  '': '#93c5fd',
   validated_with_conditions: '#fbbf24',
   validated: '#34d399',
   not_concerned: '#d1d5db'
@@ -592,6 +662,18 @@ export const SynthesisReport = ({
   const { t, language } = useTranslation();
   const [isShowcaseFallbackOpen, setIsShowcaseFallbackOpen] = useState(false);
   const [isOverviewOpen, setIsOverviewOpen] = useState(false);
+  const [openSections, setOpenSections] = useState({
+    teams: true,
+    risks: false,
+    vigilance: false,
+    committees: false
+  });
+  const toggleSection = useCallback((key) => {
+    setOpenSections((previous) => ({ ...previous, [key]: !previous[key] }));
+  }, []);
+  const openSection = useCallback((key) => {
+    setOpenSections((previous) => (previous[key] ? previous : { ...previous, [key]: true }));
+  }, []);
   const showcaseFallbackRef = useRef(null);
   const complianceCommentFeedbackTimeoutRef = useRef(null);
   const [expandedThreads, setExpandedThreads] = useState({});
@@ -631,6 +713,16 @@ export const SynthesisReport = ({
     // teamCollapsedOverrides : le fil d'échanges n'entre dans le DOM qu'une fois l'équipe
     // dépliée par l'effet ci-dessous, donc après ce premier passage.
   }, [tourContext, teamCollapsedOverrides]);
+  useEffect(() => {
+    if (!tourContext?.isActive) {
+      return;
+    }
+
+    const sectionKey = SECTION_TOUR_STEPS[tourContext.activeStep];
+    if (sectionKey) {
+      openSection(sectionKey);
+    }
+  }, [tourContext, openSection]);
   // Mémoïsé : une nouvelle référence de tableau à chaque rendu casserait l'effet plus bas qui
   // dépend de relevantTeams pour reconstruire complianceCommentDrafts — sans ça, n'importe quel
   // rendu non lié (ex : déplier une équipe) écrase le statut/commentaire en cours de saisie en
@@ -1447,6 +1539,9 @@ export const SynthesisReport = ({
     if (focusPerimeter.type === 'team') {
       const team = relevantTeams.find((entry) => entry.id === focusPerimeter.id);
       if (team) {
+        // La section est un accordéon : sans ça, le bloc visé n'est pas dans le DOM et le
+        // lien de notification « ouvrir ce périmètre » n'ouvre rien.
+        openSection('teams');
         setTeamCollapsedOverrides((prev) => ({ ...prev, [focusPerimeter.id]: false }));
         setExpandedThreads((prev) => ({ ...prev, [`team-${focusPerimeter.id}`]: true }));
 
@@ -1464,6 +1559,7 @@ export const SynthesisReport = ({
           : `compliance-team-block-${focusPerimeter.id}`;
       }
     } else if (focusPerimeter.type === 'committee') {
+      openSection('committees');
       targetId = `compliance-committee-block-${focusPerimeter.id}`;
     }
 
@@ -1481,7 +1577,7 @@ export const SynthesisReport = ({
     }, 50);
 
     return () => clearTimeout(timeoutId);
-  }, [focusPerimeter, relevantTeams, complianceComments, language, getThreadMessages, onFocusPerimeterHandled]);
+  }, [focusPerimeter, relevantTeams, complianceComments, language, getThreadMessages, onFocusPerimeterHandled, openSection]);
 
   const handleShareMemberAdd = useCallback((emails) => {
     if (typeof onShareProjectMember !== 'function') {
@@ -1636,111 +1732,237 @@ export const SynthesisReport = ({
   const teamsHeadingLabel = t('synthesisReport.teamsHeadingLabel');
   const headingProjectName = stripRichTextToPlainText(effectiveProjectName).trim();
 
+  const handleNavigateToSection = useCallback((key, elementId) => {
+    if (key === 'overview') {
+      setIsOverviewOpen(true);
+    } else {
+      openSection(key);
+    }
+
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    // Le panneau n'entre dans le DOM qu'au rendu suivant : viser l'ancre tout de suite
+    // calerait le défilement sur la hauteur repliée de la section.
+    const timeoutId = setTimeout(() => {
+      const element = document.getElementById(elementId);
+      if (element && typeof element.scrollIntoView === 'function') {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 50);
+
+    return () => clearTimeout(timeoutId);
+  }, [openSection]);
+
+  // « 5 sans statut » ne résumait rien : le nombre total est déjà dans le titre de la section,
+  // et cette pastille grise par défaut occupait la place de celles qui, elles, disent quelque
+  // chose. La ligne disparaît donc tant qu'aucun avis n'a été rendu.
+  const teamStatusSummaryEntries = useMemo(
+    () => TEAM_STATUS_SUMMARY_ORDER.filter(
+      (entry) => entry.value !== '' && (teamStatusSummary[entry.value] || 0) > 0
+    ),
+    [teamStatusSummary]
+  );
+
+  // Le sommaire ne liste que les sections réellement présentes : un intitulé « (0) » dans le
+  // rail ferait exactement ce qu'on cherche à supprimer, du bruit à lire avant d'agir.
+  const sectionNavItems = useMemo(() => {
+    const items = [{
+      key: 'teams',
+      elementId: 'synthesis-section-teams',
+      label: t('synthesisReport.teamsHeadingTemplate', { label: teamsHeadingLabel, count: relevantTeams.length })
+    }];
+
+    if (analysis.risks.length > 0) {
+      items.push({
+        key: 'risks',
+        elementId: 'synthesis-section-risks',
+        label: t('synthesisReport.risksHeadingTemplate', { count: analysis.risks.length })
+      });
+    }
+
+    if (vigilanceAlerts.length > 0) {
+      items.push({
+        key: 'vigilance',
+        elementId: 'synthesis-section-vigilance',
+        label: t('synthesisReport.vigilanceHeadingTemplate', { count: vigilanceAlerts.length })
+      });
+    }
+
+    if (shouldShowCommitteeSection) {
+      items.push({
+        key: 'committees',
+        elementId: 'synthesis-section-committees',
+        label: t('synthesisReport.committeeOpinionsTemplate', { count: committeesToDisplay.length })
+      });
+    }
+
+    items.push({
+      key: 'overview',
+      elementId: 'synthesis-section-overview',
+      label: t('synthesisReport.overviewTitle')
+    });
+
+    return items;
+  }, [
+    analysis.risks.length,
+    committeesToDisplay.length,
+    relevantTeams.length,
+    shouldShowCommitteeSection,
+    teamsHeadingLabel,
+    vigilanceAlerts.length,
+    t
+  ]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 px-4 py-6 sm:px-8 sm:py-10">
-      <div className="max-w-6xl mx-auto">
+      {/* Le titre couvre toute la largeur : sur mobile les deux colonnes s'empilent, et le
+          rail se retrouverait sinon au-dessus du nom de l'écran. */}
+      <div className="max-w-6xl mx-auto mb-4">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col gap-2">
+            <h1 className="text-3xl font-bold text-gray-800 sm:text-4xl">
+              {t('synthesisReport.title')}
+              {headingProjectName.length > 0 && (
+                <React.Fragment>
+                  <span className="text-gray-300 font-normal" aria-hidden="true"> — </span>
+                  <span className="text-blue-700">{headingProjectName}</span>
+                </React.Fragment>
+              )}
+            </h1>
+            {projectStatusLabel && (
+              <span
+                className={`inline-flex items-center self-start rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${projectStatusClasses}`}
+              >
+                {t('synthesisReport.statusLabelTemplate', { status: projectStatusLabel })}
+              </span>
+            )}
+            {!isProjectEditable && (
+              <p className="text-sm text-gray-500">
+                {t('synthesisReport.notEditableNotice')}
+              </p>
+            )}
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center w-full lg:w-auto">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+              {onBack && (
+                <button
+                  type="button"
+                  onClick={onBack}
+                  className="text-sm font-medium text-gray-600 underline underline-offset-4 hover:text-gray-800 transition-all w-full sm:w-auto text-center"
+                >
+                  {t('synthesisReport.backToQuestionnaire')}
+                </button>
+              )}
+              {canOpenProjectShowcase && (
+                <button
+                  type="button"
+                  onClick={handleOpenShowcase}
+                  className="px-4 py-2 bg-white border border-blue-200 text-blue-600 hover:bg-blue-50 rounded-lg font-medium transition-all flex items-center justify-center w-full sm:w-auto text-sm sm:text-base"
+                  data-tour-id="synthesis-showcase"
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  {t('synthesisReport.projectShowcaseButton')}
+                </button>
+              )}
+            </div>
+
+          </div>
+        </div>
+      </div>
+      {/* Deux colonnes, comme le questionnaire : le rail porte ce qu'il faut décider (palier
+          atteint, action, sommaire) et reste visible au défilement, la colonne de droite porte
+          ce qu'il faut lire. Avant, l'action principale disparaissait dès qu'on descendait
+          consulter ses risques. */}
+      <div className="max-w-6xl mx-auto flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
+        <aside className="w-full lg:w-72 lg:shrink-0 lg:sticky lg:top-6">
+          <div className="bg-white rounded-2xl shadow-xl divide-y divide-gray-100">
+            {isProjectEditable && (
+              <ProjectReadinessPanel
+                readiness={readiness}
+                openQuestionDoubts={openQuestionDoubts}
+                isSubmitted={normalizedProjectStatus === 'submitted'}
+                submissionKind={submissionKind}
+                notifiedTeamNames={relevantTeams.map((team) => resolveLocalizedText(team.name, language))}
+                onSubmitPreliminary={handleSubmitPreliminary}
+                onSubmitFinal={handleSubmitFinal}
+                onNavigateToQuestion={onNavigateToQuestion}
+                onOpenShowcase={canOpenProjectShowcase ? handleOpenShowcase : undefined}
+                showcaseFeedbackCount={showcaseFeedbackCount}
+                pendingChanges={pendingChanges}
+                hasSentSnapshot={hasSentSnapshot}
+                submissionVersion={submissionVersion}
+                lastSentAt={lastSentAt}
+                onSendUpdate={onSendUpdate}
+                launchSignal={launchSignal}
+                roundStatus={roundStatus}
+                onRequestFinalValidation={onRequestFinalValidation}
+                isLaunched={isLaunched}
+                canDeclareLaunch={canDeclareLaunch}
+                onDeclareLaunch={onDeclareLaunch}
+              />
+            )}
+
+            {!isProjectEditable && canDeclareLaunch && typeof onDeclareLaunch === 'function' && (
+              <div className="p-4">
+                <p className="text-sm font-semibold text-gray-800">
+                  {isLaunched
+                    ? t('synthesisReport.launchDeclaredTitle')
+                    : t('synthesisReport.launchQuestionTitle')}
+                </p>
+                <p className="mt-1 text-xs text-gray-600">
+                  {isLaunched
+                    ? t('synthesisReport.launchDeclaredHint')
+                    : t('synthesisReport.launchQuestionHint')}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => onDeclareLaunch(!isLaunched)}
+                  className="mt-3 w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-xs font-semibold text-gray-800 hover:bg-gray-100 transition-all"
+                >
+                  {isLaunched
+                    ? t('synthesisReport.readiness.launch.revertLaunchAction')
+                    : t('synthesisReport.readiness.launch.declareLaunchAction')}
+                </button>
+              </div>
+            )}
+
+            {sectionNavItems.length > 0 && (
+              <nav className="p-4" aria-label={t('synthesisReport.tocTitle')}>
+                <p className="text-sm font-bold uppercase tracking-wide text-gray-600">
+                  {t('synthesisReport.tocTitle')}
+                </p>
+                <ul className="mt-2 space-y-0.5">
+                  {sectionNavItems.map((item) => (
+                    <li key={item.key}>
+                      <button
+                        type="button"
+                        onClick={() => handleNavigateToSection(item.key, item.elementId)}
+                        className="w-full rounded-lg px-2 py-1.5 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 hover:text-blue-700"
+                      >
+                        {item.label}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            )}
+          </div>
+        </aside>
         <div
-          className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 mb-6"
+          className="w-full min-w-0 flex-1 bg-white rounded-2xl shadow-xl p-6 sm:p-8 mb-6"
           role="region"
           aria-label={t('synthesisReport.projectSynthesisAriaLabel')}
           data-tour-id="synthesis-summary"
         >
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-6">
-            <div className="flex flex-col gap-2">
-              <h1 className="text-3xl font-bold text-gray-800 sm:text-4xl">
-                {t('synthesisReport.title')}
-                {headingProjectName.length > 0 && (
-                  <React.Fragment>
-                    <span className="text-gray-300 font-normal" aria-hidden="true"> — </span>
-                    <span className="text-blue-700">{headingProjectName}</span>
-                  </React.Fragment>
-                )}
-              </h1>
-              {projectStatusLabel && (
-                <span
-                  className={`inline-flex items-center self-start rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${projectStatusClasses}`}
-                >
-                  {t('synthesisReport.statusLabelTemplate', { status: projectStatusLabel })}
-                </span>
-              )}
-              {!isProjectEditable && (
-                <p className="text-sm text-gray-500">
-                  {t('synthesisReport.notEditableNotice')}
-                </p>
-              )}
-            </div>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center w-full lg:w-auto">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-                {onBack && (
-                  <button
-                    type="button"
-                    onClick={onBack}
-                    className="text-sm font-medium text-gray-600 underline underline-offset-4 hover:text-gray-800 transition-all w-full sm:w-auto text-center"
-                  >
-                    {t('synthesisReport.backToQuestionnaire')}
-                  </button>
-                )}
-                {canOpenProjectShowcase && (
-                  <button
-                    type="button"
-                    onClick={handleOpenShowcase}
-                    className="px-4 py-2 bg-white border border-blue-200 text-blue-600 hover:bg-blue-50 rounded-lg font-medium transition-all flex items-center justify-center w-full sm:w-auto text-sm sm:text-base"
-                    data-tour-id="synthesis-showcase"
-                  >
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    {t('synthesisReport.projectShowcaseButton')}
-                  </button>
-                )}
-              </div>
 
-            </div>
-          </div>
-
-          {(onShareProjectMember || onRemoveProjectMember) && (
-            <div className="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-4" data-tour-id="synthesis-share-member">
-              <div>
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-600">
-                  {t('synthesisReport.shareSectionTitle')}
-                </h2>
-                <p className="text-xs text-gray-500 mt-1">
-                  {t('synthesisReport.shareSectionHint')}
-                </p>
-              </div>
-              <div className="mt-3">
-                <PeoplePicker
-                  multiple={false}
-                  value={[]}
-                  onChange={handleShareMemberAdd}
-                  context={`Partage de projet : ${effectiveProjectName}`}
-                  placeholder="prenom.nom@lfb.fr"
-                  ariaLabel={t('synthesisReport.shareSectionTitle')}
-                />
-              </div>
-              {shareMemberFeedback && (
-                <p className="mt-2 text-xs text-emerald-600">{shareMemberFeedback}</p>
-              )}
-              {normalizedSharedMembers.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {normalizedSharedMembers.map((member) => (
-                    <span
-                      key={member}
-                      className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700"
-                    >
-                      {member}
-                      {typeof onRemoveProjectMember === 'function' && (
-                        <button
-                          type="button"
-                          onClick={() => handleShareMemberRemove(member)}
-                          className="rounded-full p-0.5 text-blue-700 hover:bg-blue-100"
-                          aria-label={t('synthesisReport.removeMemberAriaLabel', { member })}
-                        >
-                          ×
-                        </button>
-                      )}
-                    </span>
-                  ))}
-                </div>
-              )}
+          {/* Un seul endroit pour ce message : il était rendu à l'identique en tête des
+              équipes et en tête des risques. */}
+          {hasIncompleteAnswers && (
+            <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+              <Info className="mt-0.5 h-5 w-5 flex-shrink-0" />
+              <p>{t('synthesisReport.incompleteAnswersMessage')}</p>
             </div>
           )}
 
@@ -1775,70 +1997,18 @@ export const SynthesisReport = ({
           )}
 
 
-          {!isProjectEditable && canDeclareLaunch && typeof onDeclareLaunch === 'function' && (
-            <div className="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
-              <p className="text-sm font-semibold text-gray-800">
-                {isLaunched
-                  ? t('synthesisReport.launchDeclaredTitle')
-                  : t('synthesisReport.launchQuestionTitle')}
-              </p>
-              <p className="mt-1 text-xs text-gray-600">
-                {isLaunched
-                  ? t('synthesisReport.launchDeclaredHint')
-                  : t('synthesisReport.launchQuestionHint')}
-              </p>
-              <button
-                type="button"
-                onClick={() => onDeclareLaunch(!isLaunched)}
-                className="mt-3 px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-semibold text-gray-800 hover:bg-gray-100 transition-all"
-              >
-                {isLaunched
-                  ? t('synthesisReport.readiness.launch.revertLaunchAction')
-                  : t('synthesisReport.readiness.launch.declareLaunchAction')}
-              </button>
-            </div>
-          )}
-
-          {isProjectEditable && (
-            <ProjectReadinessPanel
-              readiness={readiness}
-              openQuestionDoubts={openQuestionDoubts}
-              isSubmitted={normalizedProjectStatus === 'submitted'}
-              submissionKind={submissionKind}
-              notifiedTeamNames={relevantTeams.map((team) => resolveLocalizedText(team.name, language))}
-              onSubmitPreliminary={handleSubmitPreliminary}
-              onSubmitFinal={handleSubmitFinal}
-              onNavigateToQuestion={onNavigateToQuestion}
-              onOpenShowcase={canOpenProjectShowcase ? handleOpenShowcase : undefined}
-              showcaseFeedbackCount={showcaseFeedbackCount}
-              pendingChanges={pendingChanges}
-              hasSentSnapshot={hasSentSnapshot}
-              submissionVersion={submissionVersion}
-              lastSentAt={lastSentAt}
-              onSendUpdate={onSendUpdate}
-              launchSignal={launchSignal}
-              roundStatus={roundStatus}
-              onRequestFinalValidation={onRequestFinalValidation}
-              isLaunched={isLaunched}
-              canDeclareLaunch={canDeclareLaunch}
-              onDeclareLaunch={onDeclareLaunch}
-            />
-          )}
-
-          <section className="mb-8" aria-labelledby="teams-heading" data-tour-id="synthesis-teams">
-            <h2 id="teams-heading" className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
-              <Users className="w-6 h-6 mr-2 text-blue-600" />
-              {t('synthesisReport.teamsHeadingTemplate', { label: teamsHeadingLabel, count: relevantTeams.length })}
-            </h2>
-            {hasIncompleteAnswers && (
-              <div className="mb-4 flex items-start gap-3 rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
-                <Info className="mt-0.5 h-5 w-5" />
-                <p>{t('synthesisReport.incompleteAnswersMessage')}</p>
-              </div>
-            )}
-            {relevantTeams.length > 0 && (
+          <CollapsibleSection
+            sectionId="synthesis-section-teams"
+            headingId="teams-heading"
+            tourId="synthesis-teams"
+            icon={<Users className="w-5 h-5 flex-shrink-0 text-blue-600" aria-hidden="true" />}
+            title={t('synthesisReport.teamsHeadingTemplate', { label: teamsHeadingLabel, count: relevantTeams.length })}
+            isOpen={openSections.teams}
+            onToggle={() => toggleSection('teams')}
+          >
+            {teamStatusSummaryEntries.length > 0 && (
               <div className="mb-4 flex flex-wrap gap-2">
-                {TEAM_STATUS_SUMMARY_ORDER.filter((entry) => (teamStatusSummary[entry.value] || 0) > 0).map((entry) => (
+                {teamStatusSummaryEntries.map((entry) => (
                   <span
                     key={entry.value}
                     className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-700"
@@ -2023,29 +2193,51 @@ export const SynthesisReport = ({
                         <div className="min-w-0">
                           <h3 className="text-lg font-bold text-gray-800">{resolveLocalizedText(team.name, language)}</h3>
                           {isTeamCollapsed && (
-                            <p className="text-xs text-gray-500 mt-0.5">
-                              {t('synthesisReport.teamCollapsedSummaryTemplate', {
-                                prepCount: formattedTeamQuestions.length,
-                                exchangeCount: threadMessages.length
-                              })}
+                            <p className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                              {/* La pastille reprend la couleur du liseré : le code couleur reste
+                                  lisible sans avoir à décoder une bordure de 4 px. */}
+                              <span
+                                className="h-2 w-2 flex-shrink-0 rounded-full"
+                                style={{ backgroundColor: teamAccentColor }}
+                                aria-hidden="true"
+                              />
+                              {/* Replié, ce qu'on cherche c'est « qui, et où ça en est » — pas un
+                                  volume. L'interlocuteur nommé passe donc devant les compteurs. */}
+                              <span>
+                                {teamClaim && `${teamClaimAssigneeLabel} · `}
+                                {t('synthesisReport.teamCollapsedSummaryTemplate', {
+                                  prepCount: formattedTeamQuestions.length,
+                                  exchangeCount: threadMessages.length
+                                })}
+                              </span>
                             </p>
                           )}
                         </div>
                       </div>
+                      {/* Une seule marque de sévérité dans l'en-tête : la bordure de gauche et
+                          le statut suffisent. La priorité ne s'affiche que lorsqu'elle sort de
+                          l'ordinaire, et le détail reste dans la carte dépliée. */}
                       <div className="flex flex-shrink-0 flex-col items-end gap-2 sm:flex-row sm:items-center">
                         {headerStatusMeta && (
                           <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${headerStatusMeta.badgeClass}`}>
                             {headerStatusMeta.label}
                           </span>
                         )}
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${priorityColors[teamPriority]}`}>
-                          {riskPriorityLabels[teamPriority] || teamPriority}
-                        </span>
+                        {teamPriority !== 'standard' && (
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${priorityColors[teamPriority]}`}>
+                            {riskPriorityLabels[teamPriority] || teamPriority}
+                          </span>
+                        )}
                       </div>
                     </button>
 
                     {!isTeamCollapsed && (
                       <div className="border-t border-gray-100 px-6 pb-6 pt-5">
+                        {teamPriority === 'standard' && (
+                          <span className={`mb-3 inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${priorityColors[teamPriority]}`}>
+                            {riskPriorityLabels[teamPriority] || teamPriority}
+                          </span>
+                        )}
                         <p className="text-sm text-gray-600 mb-3">{renderTextWithLinks(resolveLocalizedText(team.expertise, language))}</p>
                         {teamContactLabel && (
                           <div className="mt-2 text-sm text-blue-600 font-medium flex items-center gap-2">
@@ -2588,20 +2780,18 @@ export const SynthesisReport = ({
                 );
               })}
             </div>
-          </section>
+          </CollapsibleSection>
 
-          <div data-tour-id="synthesis-risks" className="space-y-8">
-            <section aria-labelledby="risks-heading">
-              <h2 id="risks-heading" className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
-                <AlertTriangle className="w-6 h-6 mr-2 text-red-500" />
-                {t('synthesisReport.risksHeadingTemplate', { count: analysis.risks.length })}
-              </h2>
-              {hasIncompleteAnswers && (
-                <div className="mb-4 flex items-start gap-3 rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
-                  <Info className="mt-0.5 h-5 w-5" />
-                  <p>{t('synthesisReport.incompleteAnswersMessage')}</p>
-                </div>
-              )}
+          {analysis.risks.length > 0 && (
+            <CollapsibleSection
+              sectionId="synthesis-section-risks"
+              headingId="risks-heading"
+              tourId="synthesis-risks"
+              icon={<AlertTriangle className="w-5 h-5 flex-shrink-0 text-red-500" aria-hidden="true" />}
+              title={t('synthesisReport.risksHeadingTemplate', { count: analysis.risks.length })}
+              isOpen={openSections.risks}
+              onToggle={() => toggleSection('risks')}
+            >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {analysis.risks.map((risk, idx) => {
                   const timingViolationMessage = formatRiskTimingViolation(risk.timingViolation, language, t);
@@ -2640,151 +2830,156 @@ export const SynthesisReport = ({
                   );
                 })}
               </div>
+            </CollapsibleSection>
+          )}
+
+          {rankingResults.map(result => (
+            <section key={result.question.id} aria-labelledby={`ranking-${result.question.id}`} className="mb-4 rounded-xl border border-gray-200 bg-white px-5 py-4">
+              <h2
+                id={`ranking-${result.question.id}`}
+                className="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2"
+              >
+                <Sparkles className="w-5 h-5 flex-shrink-0 text-indigo-600" aria-hidden="true" />
+                {result.config.title}
+              </h2>
+              <p className="text-sm text-gray-600 mb-4">{t('synthesisReport.declaredPrioritiesTemplate', { answer: result.formattedAnswer })}</p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {result.recommendations.map(recommendation => (
+                  <article
+                    key={recommendation.id}
+                    className="p-4 border border-gray-200 rounded-xl bg-white shadow-sm space-y-3"
+                    aria-label={t('synthesisReport.recommendationAriaLabelTemplate', { name: recommendation.name })}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h4 className="text-lg font-semibold text-gray-900">{recommendation.name}</h4>
+                        {recommendation.previousProject && (
+                          <p className="text-xs text-gray-600">{t('synthesisReport.recentProjectTemplate', { value: recommendation.previousProject })}</p>
+                        )}
+                        {recommendation.opinion && (
+                          <p className="text-xs text-gray-600">{t('synthesisReport.globalOpinionTemplate', { value: recommendation.opinion })}</p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xs font-semibold text-gray-500 uppercase">{t('synthesisReport.scoreLabel')}</span>
+                        <p className="text-xl font-bold text-indigo-700">{formatNumber(recommendation.score, { maximumFractionDigits: 1 }, language)}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      {result.orderedCriteria.map(criterion => (
+                        <span
+                          key={`${recommendation.id}-${criterion.id}`}
+                          className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100"
+                        >
+                          {criterion.label}{t('synthesisReport.criterionLabelSeparator')}<span className="text-gray-900">{formatCriterionScore(recommendation.scores?.[criterion.id])}</span>
+                        </span>
+                      ))}
+                      {result.ignoredCriteria.map(criterion => (
+                        <span
+                          key={`${recommendation.id}-${criterion.id}-ignored`}
+                          className="inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-500 border border-gray-200"
+                        >
+                          {t('synthesisReport.criterionIgnoredTemplate', { label: criterion.label })}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="flex flex-col gap-1 text-sm text-gray-700">
+                      {recommendation.contact && (
+                        <div className="flex items-center gap-2 text-blue-700">
+                          <Mail className="w-4 h-4" />
+                          {renderTextWithLinks(recommendation.contact)}
+                        </div>
+                      )}
+                      {recommendation.website && (
+                        <a
+                          href={recommendation.website}
+                          className="text-sm text-blue-600 underline"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {t('synthesisReport.visitWebsiteLink')}
+                        </a>
+                      )}
+                      {recommendation.notes && (
+                        <p className="text-xs text-gray-600 mt-1">{renderTextWithLinks(recommendation.notes)}</p>
+                      )}
+                    </div>
+                  </article>
+                ))}
+              </div>
             </section>
+          ))}
 
-            {rankingResults.map(result => (
-              <section key={result.question.id} aria-labelledby={`ranking-${result.question.id}`} className="mt-8">
-                <h3
-                  id={`ranking-${result.question.id}`}
-                  className="text-2xl font-bold text-gray-800 mb-2 flex items-center gap-2"
-                >
-                  <Sparkles className="w-5 h-5 text-indigo-600" />
-                  {result.config.title}
-                </h3>
-                <p className="text-sm text-gray-600 mb-4">{t('synthesisReport.declaredPrioritiesTemplate', { answer: result.formattedAnswer })}</p>
+          {vigilanceAlerts.length > 0 && (
+            <CollapsibleSection
+              sectionId="synthesis-section-vigilance"
+              headingId="vigilance-heading"
+              tourId="synthesis-vigilance"
+              icon={<CheckCircle className="w-5 h-5 flex-shrink-0 text-emerald-500" aria-hidden="true" />}
+              title={t('synthesisReport.vigilanceHeadingTemplate', { count: vigilanceAlerts.length })}
+              isOpen={openSections.vigilance}
+              onToggle={() => toggleSection('vigilance')}
+            >
+              <div className="space-y-3">
+                {vigilanceAlerts.map(alert => {
+                  const priorityClass = priorityColors[alert.priority] || 'bg-emerald-100 text-emerald-800 border-emerald-300';
+                  const statusClass = vigilanceStatusClasses[alert.status] || vigilanceStatusClasses.unknown;
+                  const alertRuleName = resolveLocalizedText(alert.ruleName, language);
+                  const alertRiskDescription = resolveLocalizedText(alert.riskDescription, language);
+                  const title = alertRiskDescription.trim().length > 0
+                    ? alertRiskDescription
+                    : alertRuleName;
+                  const teamLabel = resolveTeamLabel(alert.teamId);
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {result.recommendations.map(recommendation => (
-                    <article
-                      key={recommendation.id}
-                      className="p-4 border border-gray-200 rounded-xl bg-white shadow-sm space-y-3"
-                      aria-label={t('synthesisReport.recommendationAriaLabelTemplate', { name: recommendation.name })}
+                  return (
+                    <div
+                      key={alert.id || `${alert.ruleId}-${alert.riskId || 'risk'}`}
+                      className={`p-4 rounded-xl border ${statusClass}`}
+                      role="article"
+                      aria-label={t('synthesisReport.vigilanceAriaLabelTemplate', { ruleName: alertRuleName })}
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <h4 className="text-lg font-semibold text-gray-900">{recommendation.name}</h4>
-                          {recommendation.previousProject && (
-                            <p className="text-xs text-gray-600">{t('synthesisReport.recentProjectTemplate', { value: recommendation.previousProject })}</p>
-                          )}
-                          {recommendation.opinion && (
-                            <p className="text-xs text-gray-600">{t('synthesisReport.globalOpinionTemplate', { value: recommendation.opinion })}</p>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          <span className="text-xs font-semibold text-gray-500 uppercase">{t('synthesisReport.scoreLabel')}</span>
-                          <p className="text-xl font-bold text-indigo-700">{formatNumber(recommendation.score, { maximumFractionDigits: 1 }, language)}</p>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap gap-2">
-                        {result.orderedCriteria.map(criterion => (
-                          <span
-                            key={`${recommendation.id}-${criterion.id}`}
-                            className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100"
-                          >
-                            {criterion.label}{t('synthesisReport.criterionLabelSeparator')}<span className="text-gray-900">{formatCriterionScore(recommendation.scores?.[criterion.id])}</span>
+                      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                        <span className="text-sm font-semibold text-gray-700">{alertRuleName}</span>
+                        {alert.priority && (
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${priorityClass}`}>
+                            {riskPriorityLabels[alert.priority] || alert.priority}
                           </span>
-                        ))}
-                        {result.ignoredCriteria.map(criterion => (
-                          <span
-                            key={`${recommendation.id}-${criterion.id}-ignored`}
-                            className="inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-500 border border-gray-200"
-                          >
-                            {t('synthesisReport.criterionIgnoredTemplate', { label: criterion.label })}
-                          </span>
-                        ))}
-                      </div>
-
-                      <div className="flex flex-col gap-1 text-sm text-gray-700">
-                        {recommendation.contact && (
-                          <div className="flex items-center gap-2 text-blue-700">
-                            <Mail className="w-4 h-4" />
-                            {renderTextWithLinks(recommendation.contact)}
-                          </div>
-                        )}
-                        {recommendation.website && (
-                          <a
-                            href={recommendation.website}
-                            className="text-sm text-blue-600 underline"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            {t('synthesisReport.visitWebsiteLink')}
-                          </a>
-                        )}
-                        {recommendation.notes && (
-                          <p className="text-xs text-gray-600 mt-1">{renderTextWithLinks(recommendation.notes)}</p>
                         )}
                       </div>
-                    </article>
-                  ))}
-                </div>
-              </section>
-            ))}
-
-            {vigilanceAlerts.length > 0 && (
-              <section aria-labelledby="vigilance-heading" className="mt-8" data-tour-id="synthesis-vigilance">
-                <h2 id="vigilance-heading" className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
-                  <CheckCircle className="w-6 h-6 mr-2 text-emerald-500" />
-                  {t('synthesisReport.vigilanceHeadingTemplate', { count: vigilanceAlerts.length })}
-                </h2>
-                <div className="space-y-3">
-                  {vigilanceAlerts.map(alert => {
-                    const priorityClass = priorityColors[alert.priority] || 'bg-emerald-100 text-emerald-800 border-emerald-300';
-                    const statusClass = vigilanceStatusClasses[alert.status] || vigilanceStatusClasses.unknown;
-                    const alertRuleName = resolveLocalizedText(alert.ruleName, language);
-                    const alertRiskDescription = resolveLocalizedText(alert.riskDescription, language);
-                    const title = alertRiskDescription.trim().length > 0
-                      ? alertRiskDescription
-                      : alertRuleName;
-                    const teamLabel = resolveTeamLabel(alert.teamId);
-
-                    return (
-                      <div
-                        key={alert.id || `${alert.ruleId}-${alert.riskId || 'risk'}`}
-                        className={`p-4 rounded-xl border ${statusClass}`}
-                        role="article"
-                        aria-label={t('synthesisReport.vigilanceAriaLabelTemplate', { ruleName: alertRuleName })}
-                      >
-                        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                          <span className="text-sm font-semibold text-gray-700">{alertRuleName}</span>
-                          {alert.priority && (
-                            <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${priorityClass}`}>
-                              {riskPriorityLabels[alert.priority] || alert.priority}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-gray-800 font-medium">{renderTextWithLinks(title)}</p>
-                        {alert.requirementSummary && (
-                          <p className="text-xs text-emerald-800 mt-2">{alert.requirementSummary}</p>
-                        )}
-                        {alert.statusMessage && (
-                          <p className="text-xs text-gray-600 mt-2">{alert.statusMessage}</p>
-                        )}
-                        {teamLabel && (
-                          <p className="text-xs text-gray-600 mt-2">
-                            <span className="font-semibold text-gray-700">{t('synthesisReport.referentTeamLabel')}</span>{' '}
-                            {teamLabel}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
-          </div>
+                      <p className="text-gray-800 font-medium">{renderTextWithLinks(title)}</p>
+                      {alert.requirementSummary && (
+                        <p className="text-xs text-emerald-800 mt-2">{alert.requirementSummary}</p>
+                      )}
+                      {alert.statusMessage && (
+                        <p className="text-xs text-gray-600 mt-2">{alert.statusMessage}</p>
+                      )}
+                      {teamLabel && (
+                        <p className="text-xs text-gray-600 mt-2">
+                          <span className="font-semibold text-gray-700">{t('synthesisReport.referentTeamLabel')}</span>{' '}
+                          {teamLabel}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </CollapsibleSection>
+          )}
 
           {shouldShowCommitteeSection && (
-            <section className="mt-8" aria-labelledby="compliance-comments-heading" data-tour-id="synthesis-committees">
-              <div className="bg-white rounded-xl border border-blue-200 p-6 space-y-6">
-                <div className="flex items-center">
-                  <Info className="w-6 h-6 mr-2 text-blue-600" />
-                  <h2 id="compliance-comments-heading" className="text-2xl font-bold text-gray-800">
-                    {t('synthesisReport.committeeOpinionsTitle')}
-                  </h2>
-                </div>
-
+            <CollapsibleSection
+              sectionId="synthesis-section-committees"
+              headingId="compliance-comments-heading"
+              tourId="synthesis-committees"
+              icon={<Info className="w-5 h-5 flex-shrink-0 text-blue-600" aria-hidden="true" />}
+              title={t('synthesisReport.committeeOpinionsTemplate', { count: committeesToDisplay.length })}
+              isOpen={openSections.committees}
+              onToggle={() => toggleSection('committees')}
+            >
+              <div className="rounded-xl border border-blue-200 bg-white p-6 space-y-6">
                 <div className="space-y-4">
                   {requiredValidationCommittees.length > 0 && (
                     <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
@@ -3088,27 +3283,94 @@ export const SynthesisReport = ({
                   </div>
                 )}
               </div>
-            </section>
+            </CollapsibleSection>
           )}
 
-          <section className="mt-8" aria-labelledby="overview-heading">
-            <button
-              type="button"
-              onClick={() => setIsOverviewOpen((previous) => !previous)}
-              className="flex w-full items-center justify-between gap-3 rounded-xl border border-gray-200 bg-gray-50 px-5 py-4 text-left transition-colors hover:bg-gray-100"
-              aria-expanded={isOverviewOpen}
-              aria-controls="overview-panel"
-            >
-              <span className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-blue-600" aria-hidden="true" />
-                <span id="overview-heading" className="text-lg font-bold text-gray-800">
+          {/* Le partage est de la logistique de projet, pas un enjeu : il descend sous les
+              sections plutôt que de s'intercaler entre le titre et ce qu'il faut décider. */}
+          {(onShareProjectMember || onRemoveProjectMember) && (
+            <div className="mb-4 rounded-xl border border-gray-200 bg-gray-50 p-4" data-tour-id="synthesis-share-member">
+              <div>
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-600">
+                  {t('synthesisReport.shareSectionTitle')}
+                </h2>
+                <p className="text-xs text-gray-500 mt-1">
+                  {t('synthesisReport.shareSectionHint')}
+                </p>
+              </div>
+              <div className="mt-3">
+                <PeoplePicker
+                  multiple={false}
+                  value={[]}
+                  onChange={handleShareMemberAdd}
+                  context={`Partage de projet : ${effectiveProjectName}`}
+                  placeholder="prenom.nom@lfb.fr"
+                  ariaLabel={t('synthesisReport.shareSectionTitle')}
+                />
+              </div>
+              {shareMemberFeedback && (
+                <p className="mt-2 text-xs text-emerald-600">{shareMemberFeedback}</p>
+              )}
+              {normalizedSharedMembers.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {normalizedSharedMembers.map((member) => (
+                    <span
+                      key={member}
+                      className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700"
+                    >
+                      {member}
+                      {typeof onRemoveProjectMember === 'function' && (
+                        <button
+                          type="button"
+                          onClick={() => handleShareMemberRemove(member)}
+                          className="rounded-full p-0.5 text-blue-700 hover:bg-blue-100"
+                          aria-label={t('synthesisReport.removeMemberAriaLabel', { member })}
+                        >
+                          ×
+                        </button>
+                      )}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          <section
+            id="synthesis-section-overview"
+            className="mb-4"
+            aria-labelledby="overview-heading"
+            style={{ scrollMarginTop: '1.5rem' }}
+          >
+            <h2 id="overview-heading" style={{ margin: 0 }}>
+              <button
+                type="button"
+                onClick={() => setIsOverviewOpen((previous) => !previous)}
+                className="flex w-full items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-5 py-4 text-left transition-colors hover:bg-gray-100"
+                aria-expanded={isOverviewOpen}
+                aria-controls="overview-panel"
+              >
+                <svg
+                  className={`h-4 w-4 flex-shrink-0 text-gray-400 transition-transform duration-200 ${isOverviewOpen ? '' : '-rotate-90'}`}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+                <FileText className="w-5 h-5 flex-shrink-0 text-blue-600" aria-hidden="true" />
+                <span className="text-lg font-bold text-gray-800">
                   {t('synthesisReport.overviewTitle')}
                 </span>
-              </span>
-              <span className="text-sm font-medium text-blue-600">
-                {isOverviewOpen ? t('synthesisReport.overviewHide') : t('synthesisReport.overviewShow')}
-              </span>
-            </button>
+                <span className="ml-auto text-sm font-medium text-blue-600">
+                  {isOverviewOpen ? t('synthesisReport.overviewHide') : t('synthesisReport.overviewShow')}
+                </span>
+              </button>
+            </h2>
             {isOverviewOpen && (
               <div
                 id="overview-panel"

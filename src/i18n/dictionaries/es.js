@@ -1939,6 +1939,8 @@ export default {
     vigilanceHeadingTemplate: 'Puntos de vigilancia ({{count}})',
     vigilanceAriaLabelTemplate: 'Punto de vigilancia {{ruleName}}',
     committeeOpinionsTitle: 'Opinión del comité',
+    committeeOpinionsTemplate: 'Opinión del comité ({{count}})',
+    tocTitle: 'Índice',
     requiredCommitteesTitle: 'Comité(s) requerido(s) para este proyecto:',
     committeeRequiredHint: 'Comentario requerido según la configuración.',
     committeeOptionalHint: 'Comentario opcional según la configuración.',

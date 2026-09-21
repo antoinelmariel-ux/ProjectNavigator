@@ -39,7 +39,9 @@ test.describe('Questionnaire adaptatif -> Vitrine -> Enjeux du projet', () => {
     // La visibilité adaptative a fait grandir le nombre de questions (12 -> 25 sur le
     // parcours par défaut) : si le rapport s'affiche avec une équipe à consulter, le
     // moteur de règles a bien été piloté par les réponses saisies dans l'UI.
-    await expect(page.getByText(/Équipes à solliciter/)).toBeVisible();
+    // getByRole plutôt que getByText : l'intitulé de la section apparaît aussi dans le
+    // sommaire du rail latéral, ce qui ferait deux correspondances en mode strict.
+    await expect(page.getByRole('heading', { name: /Équipes à solliciter/ })).toBeVisible();
     expect(errors).toEqual([]);
   });
 
@@ -231,6 +233,10 @@ test.describe('Enjeux du projet tolérants à une analyse absente', () => {
 
     await expect(page.getByRole('heading', { name: 'Enjeux du projet' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Affichage interrompu' })).toHaveCount(0);
-    await expect(page.getByRole('heading', { name: /Risques identifiés \(0\)/ })).toBeVisible();
+    // Les sections vides ne s'affichent plus : un titre « Risques identifiés (0) » suivi d'une
+    // grille vide était du bruit. La section des équipes, elle, reste rendue même à zéro parce
+    // qu'elle porte le bouton « solliciter une autre équipe ».
+    await expect(page.getByRole('heading', { name: /Risques identifiés/ })).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: /Équipes à solliciter \(0\)/ })).toBeVisible();
   });
 });
