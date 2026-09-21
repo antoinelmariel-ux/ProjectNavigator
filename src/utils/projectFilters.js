@@ -1,15 +1,21 @@
+import { SUPPORTED_LANGUAGES } from '../i18n/languages.js';
+
+export const DEFAULT_ALL_VALUES_LABEL = { fr: 'Toutes les valeurs', en: 'All values', de: 'Alle Werte', es: 'Todos los valores' };
+export const DEFAULT_ALL_TEAMS_LABEL = { fr: 'Toutes les équipes', en: 'All teams', de: 'Alle Teams', es: 'Todos los equipos' };
+const CUSTOM_FILTER_FALLBACK_LABEL = { fr: 'Filtre personnalisé', en: 'Custom filter', de: 'Benutzerdefinierter Filter', es: 'Filtro personalizado' };
+
 const DEFAULT_FIELDS = [
   {
     id: 'teamLeadTeam',
-    label: 'Équipe du lead projet',
+    label: { fr: 'Équipe du lead projet', en: 'Project lead team', de: 'Team der Projektleitung', es: 'Equipo del líder del proyecto' },
     type: 'select',
     enabled: true,
     sourceQuestionId: 'teamLeadTeam',
-    emptyOptionLabel: 'Toutes les équipes'
+    emptyOptionLabel: DEFAULT_ALL_TEAMS_LABEL
   },
   {
     id: 'dateOrder',
-    label: 'Ordre des projets',
+    label: { fr: 'Ordre des projets', en: 'Project order', de: 'Reihenfolge der Projekte', es: 'Orden de los proyectos' },
     type: 'sort',
     enabled: true,
     defaultValue: 'desc'
@@ -50,13 +56,55 @@ export const createDefaultProjectFiltersConfig = () => ({
   sortOrder: DEFAULT_SORT_VALUE
 });
 
-const sanitizeLabel = (label, fallback) => {
-  if (typeof label !== 'string') {
-    return fallback;
+// Comme pour les questions du questionnaire projet (src/data/questions.js) et les filtres
+// d'inspiration (inspirationConfig.js), un libellé peut être soit une simple chaîne héritée
+// (contenu historique, toujours en français), soit un objet {en, fr, de, es} — résolu à
+// l'affichage via resolveLocalizedText / édité via getLocalizedRaw + setLocalizedText.
+const sanitizeLocalizedValue = (value, fallback) => {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : fallback;
   }
 
-  const trimmed = label.trim();
-  return trimmed.length > 0 ? trimmed : fallback;
+  if (value && typeof value === 'object') {
+    const sanitized = {};
+    SUPPORTED_LANGUAGES.forEach((code) => {
+      const entry = value[code];
+      if (typeof entry === 'string' && entry.trim().length > 0) {
+        sanitized[code] = entry.trim();
+      }
+    });
+
+    if (Object.keys(sanitized).length > 0) {
+      return sanitized;
+    }
+  }
+
+  return fallback;
+};
+
+// Avant la traduction de ces filtres, les libellés étaient de simples chaînes françaises
+// persistées telles quelles (référentiel delta-only, voir referentialStore.js). Une config déjà
+// enregistrée les garde inchangées : resolveLocalizedText afficherait alors ce texte quelle que
+// soit la langue choisie. Si la chaîne persistée correspond au texte français par défaut, on la
+// remplace par l'objet {en, fr, de, es} à jour ; sinon (texte réellement personnalisé par un
+// administrateur) on la convertit en {fr: ...} pour rester cohérent avec resolveLocalizedText
+// plutôt que de l'afficher indéfiniment en français.
+const upgradeLegacyLocalizedValue = (rawValue, fallbackValue) => {
+  if (typeof rawValue !== 'string') {
+    return rawValue;
+  }
+
+  const trimmed = rawValue.trim();
+  if (trimmed.length === 0) {
+    return rawValue;
+  }
+
+  if (fallbackValue && typeof fallbackValue === 'object' && fallbackValue.fr === trimmed) {
+    return fallbackValue;
+  }
+
+  return { fr: trimmed };
 };
 
 const sanitizeBoolean = (value, fallback = true) => {
@@ -70,14 +118,8 @@ const sanitizeSortValue = (value, fallback = DEFAULT_SORT_VALUE) => {
   return value === 'asc' || value === 'desc' ? value : fallback;
 };
 
-const sanitizeEmptyOptionLabel = (value, fallback) => {
-  if (typeof value !== 'string') {
-    return fallback;
-  }
-
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : fallback;
-};
+const sanitizeEmptyOptionLabel = (value, fallback) =>
+  sanitizeLocalizedValue(upgradeLegacyLocalizedValue(value, fallback), fallback);
 
 const sanitizeOptionsList = (options) => {
   if (!Array.isArray(options)) {
@@ -121,7 +163,7 @@ export const normalizeProjectFilterConfig = (config) => {
       if (defaultField) {
         const normalizedField = {
           ...defaultField,
-          label: sanitizeLabel(field.label, defaultField.label),
+          label: sanitizeLocalizedValue(upgradeLegacyLocalizedValue(field.label, defaultField.label), defaultField.label),
           enabled: sanitizeBoolean(field.enabled, defaultField.enabled)
         };
 
@@ -139,7 +181,7 @@ export const normalizeProjectFilterConfig = (config) => {
         if (defaultField.type === 'select') {
           normalizedField.emptyOptionLabel = sanitizeEmptyOptionLabel(
             field.emptyOptionLabel,
-            defaultField.emptyOptionLabel || 'Toutes les valeurs'
+            defaultField.emptyOptionLabel || DEFAULT_ALL_VALUES_LABEL
           );
           const presetOptions = sanitizeOptionsList(field.options);
           if (presetOptions) {
@@ -156,7 +198,7 @@ export const normalizeProjectFilterConfig = (config) => {
       const sourceQuestionId = sanitizeIdentifier(field.sourceQuestionId) || rawId;
       const normalizedField = {
         id: rawId,
-        label: sanitizeLabel(field.label, 'Filtre personnalisé'),
+        label: sanitizeLocalizedValue(upgradeLegacyLocalizedValue(field.label, CUSTOM_FILTER_FALLBACK_LABEL), CUSTOM_FILTER_FALLBACK_LABEL),
         type: normalizedType,
         enabled: sanitizeBoolean(field.enabled, true)
       };
@@ -164,7 +206,7 @@ export const normalizeProjectFilterConfig = (config) => {
       if (normalizedType === 'select') {
         normalizedField.emptyOptionLabel = sanitizeEmptyOptionLabel(
           field.emptyOptionLabel,
-          'Toutes les valeurs'
+          DEFAULT_ALL_VALUES_LABEL
         );
         const presetOptions = sanitizeOptionsList(field.options);
         if (presetOptions) {
@@ -214,7 +256,7 @@ export const updateProjectFilterField = (config, fieldId, updates = {}) => {
     const patch = { ...field };
 
     if (Object.prototype.hasOwnProperty.call(updates, 'label')) {
-      patch.label = sanitizeLabel(updates.label, field.label);
+      patch.label = sanitizeLocalizedValue(updates.label, field.label);
     }
 
     if (Object.prototype.hasOwnProperty.call(updates, 'enabled')) {
@@ -228,9 +270,9 @@ export const updateProjectFilterField = (config, fieldId, updates = {}) => {
       if (normalizedType === 'sort') {
         patch.defaultValue = sanitizeSortValue(updates.defaultValue, field.defaultValue || DEFAULT_SORT_VALUE);
       } else if (normalizedType === 'select') {
-        patch.emptyOptionLabel = sanitizeEmptyOptionLabel(
+        patch.emptyOptionLabel = sanitizeLocalizedValue(
           updates.emptyOptionLabel,
-          field.emptyOptionLabel || 'Toutes les valeurs'
+          field.emptyOptionLabel || DEFAULT_ALL_VALUES_LABEL
         );
         const presetOptions = sanitizeOptionsList(updates.options);
         if (presetOptions) {
@@ -249,9 +291,9 @@ export const updateProjectFilterField = (config, fieldId, updates = {}) => {
     }
 
     if (Object.prototype.hasOwnProperty.call(updates, 'emptyOptionLabel') && field.type === 'select') {
-      patch.emptyOptionLabel = sanitizeEmptyOptionLabel(
+      patch.emptyOptionLabel = sanitizeLocalizedValue(
         updates.emptyOptionLabel,
-        field.emptyOptionLabel || 'Toutes les valeurs'
+        field.emptyOptionLabel || DEFAULT_ALL_VALUES_LABEL
       );
     }
 
