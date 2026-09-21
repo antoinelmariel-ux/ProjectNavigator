@@ -1048,6 +1048,8 @@ export default {
       backOfficeNavAriaLabel: 'Navegación del back-office',
       projectFiltersTitle: 'Filtros de la página de inicio',
       projectFiltersSubtitle: 'Active, añada o personalice los filtros disponibles para los líderes en la pantalla de inicio.',
+      projectFiltersEditingLanguageLabel: 'Idioma de edición',
+      projectFiltersEditingLanguageHint: 'Si una etiqueta aún no está traducida en este idioma, se mostrará el texto guardado tal cual de forma predeterminada.',
       resetFiltersButton: 'Restablecer los filtros',
       addFilterFromQuestionLabel: 'Añadir un filtro basado en una pregunta',
       selectQuestionPlaceholder: 'Seleccione una pregunta…',

@@ -1058,6 +1058,8 @@ export default {
       backOfficeNavAriaLabel: 'Back-Office-Navigation',
       projectFiltersTitle: 'Filter der Startseite',
       projectFiltersSubtitle: 'Aktivieren, hinzufügen oder passen Sie die den Leads auf der Startseite zur Verfügung stehenden Filter an.',
+      projectFiltersEditingLanguageLabel: 'Bearbeitungssprache',
+      projectFiltersEditingLanguageHint: 'Wenn ein Label in dieser Sprache noch nicht übersetzt ist, wird standardmäßig der gespeicherte Text unverändert angezeigt.',
       resetFiltersButton: 'Filter zurücksetzen',
       addFilterFromQuestionLabel: 'Filter basierend auf einer Frage hinzufügen',
       selectQuestionPlaceholder: 'Wählen Sie eine Frage aus…',

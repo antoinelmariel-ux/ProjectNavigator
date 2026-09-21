@@ -1680,11 +1680,13 @@ export const HomeScreen = ({
 
     enabledFilterFields.forEach((field) => {
       const rawValue = filtersState[field.id];
+      const fieldLabel = resolveLocalizedText(field.label, language) || t('home.filterFallback');
+
       if (field.type === 'select') {
         if (rawValue && rawValue !== DEFAULT_SELECT_FILTER_VALUE) {
           chips.push({
             id: field.id,
-            label: field.label || t('home.filterFallback'),
+            label: fieldLabel,
             value: String(rawValue),
             onClear: () => handleClearProjectFilter({ id: field.id, type: 'select' })
           });
@@ -1696,7 +1698,7 @@ export const HomeScreen = ({
       if (trimmed.length > 0) {
         chips.push({
           id: field.id,
-          label: field.label || t('home.filterFallback'),
+          label: fieldLabel,
           value: trimmed,
           onClear: () => handleClearProjectFilter({ id: field.id, type: 'text' })
         });
@@ -1706,7 +1708,7 @@ export const HomeScreen = ({
     if (sortFilterConfig?.enabled && filtersState.sortOrder !== filtersState.sortOrderDefault) {
       chips.push({
         id: 'sortOrder',
-        label: sortFilterConfig.label || t('home.sortFallback'),
+        label: resolveLocalizedText(sortFilterConfig.label, language) || t('home.sortFallback'),
         value: filtersState.sortOrder === 'asc' ? t('home.sortAsc') : t('home.sortDesc'),
         onClear: () => handleClearProjectFilter({ id: 'sortOrder', type: 'sort' })
       });
@@ -1718,6 +1720,7 @@ export const HomeScreen = ({
     filtersState,
     sortFilterConfig,
     handleClearProjectFilter,
+    language,
     t
   ]);
 
@@ -2638,12 +2641,12 @@ export const HomeScreen = ({
 
                       if (field.type === 'select') {
                         const value = filtersState[field.id] || DEFAULT_SELECT_FILTER_VALUE;
-                        const optionLabel = field.emptyOptionLabel || t('home.allValues');
+                        const optionLabel = resolveLocalizedText(field.emptyOptionLabel, language) || t('home.allValues');
                         const options = selectFilterOptions.get(field.id) || [];
                         return (
                           <div key={field.id} className="flex w-full flex-col gap-2 text-sm text-gray-700 sm:w-60">
                             <label htmlFor={fieldId} className="font-semibold text-gray-700">
-                              {field.label}
+                              {resolveLocalizedText(field.label, language) || field.id}
                             </label>
                             <select
                               id={fieldId}
@@ -2667,7 +2670,7 @@ export const HomeScreen = ({
                       const value = typeof filtersState[field.id] === 'string' ? filtersState[field.id] : '';
                       return (
                         <label key={field.id} htmlFor={fieldId} className="flex w-full flex-col gap-2 text-sm text-gray-700 sm:w-60">
-                          <span className="font-semibold text-gray-700">{field.label}</span>
+                          <span className="font-semibold text-gray-700">{resolveLocalizedText(field.label, language) || field.id}</span>
                           <input
                             id={fieldId}
                             type="text"
@@ -2684,7 +2687,7 @@ export const HomeScreen = ({
                     {sortFilterConfig && sortFilterConfig.enabled && (
                       <div className="flex w-full flex-col gap-2 text-sm text-gray-700 sm:w-60">
                         <label htmlFor="project-sort-order" className="font-semibold text-gray-700">
-                          {sortFilterConfig.label}
+                          {resolveLocalizedText(sortFilterConfig.label, language) || sortFilterConfig.id}
                         </label>
                         <select
                           id="project-sort-order"

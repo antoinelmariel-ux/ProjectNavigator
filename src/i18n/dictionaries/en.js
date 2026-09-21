@@ -1047,6 +1047,8 @@ export default {
       backOfficeNavAriaLabel: 'Back-office navigation',
       projectFiltersTitle: 'Home page filters',
       projectFiltersSubtitle: 'Enable, add, or customize the filters available to leads on the home screen.',
+      projectFiltersEditingLanguageLabel: 'Editing language',
+      projectFiltersEditingLanguageHint: 'If a label isn’t translated yet in this language, the saved text will be shown as-is by default.',
       resetFiltersButton: 'Reset filters',
       addFilterFromQuestionLabel: 'Add a filter based on a question',
       selectQuestionPlaceholder: 'Select a question…',

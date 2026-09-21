@@ -96,6 +96,8 @@ import {
   normalizeOnboardingConfig
 } from '../utils/onboarding.js';
 import {
+  DEFAULT_ALL_TEAMS_LABEL,
+  DEFAULT_ALL_VALUES_LABEL,
   normalizeProjectFilterConfig,
   resetProjectFiltersConfig,
   updateProjectFilterField
@@ -876,6 +878,7 @@ export const BackOffice = ({
   // de décider du sort de ses projets (réattribution ou retour dans « À traiter »).
   const [contactRemovalDialog, setContactRemovalDialog] = useState(null);
   const [inspirationEditingLanguage, setInspirationEditingLanguage] = useState(language);
+  const [projectFiltersEditingLanguage, setProjectFiltersEditingLanguage] = useState(language);
   // Périmètre d'activité du banc d'essai : celui du profil par défaut, ou celui que l'expert
   // simule pour vérifier ce que verrait quelqu'un d'un autre périmètre. `null` = pas de
   // simulation, on suit le profil réel (et on continue de le suivre s'il change).
@@ -2432,13 +2435,18 @@ export const BackOffice = ({
     setProjectFilters(prev => updateProjectFilterField(prev, fieldId, { enabled }));
   }, [setProjectFilters]);
 
-  const handleProjectFilterLabelChange = useCallback((fieldId, label) => {
+  const handleProjectFilterLabelChange = useCallback((fieldId, text) => {
     if (typeof setProjectFilters !== 'function') {
       return;
     }
 
-    setProjectFilters(prev => updateProjectFilterField(prev, fieldId, { label }));
-  }, [setProjectFilters]);
+    setProjectFilters((prev) => {
+      const normalized = normalizeProjectFilterConfig(prev);
+      const current = normalized.fields.find((field) => field && field.id === fieldId);
+      const label = setLocalizedText(current?.label, projectFiltersEditingLanguage, text);
+      return updateProjectFilterField(normalized, fieldId, { label });
+    });
+  }, [setProjectFilters, projectFiltersEditingLanguage]);
 
   const handleAddProjectFilter = useCallback(() => {
     if (typeof setProjectFilters !== 'function') {
@@ -2491,7 +2499,7 @@ export const BackOffice = ({
       };
 
       if (type === 'select') {
-        newField.emptyOptionLabel = question.id === 'teamLeadTeam' ? t('backOffice.main.allTeamsFilterOption') : t('backOffice.main.allValuesDefault');
+        newField.emptyOptionLabel = question.id === 'teamLeadTeam' ? DEFAULT_ALL_TEAMS_LABEL : DEFAULT_ALL_VALUES_LABEL;
       }
 
       const fields = Array.isArray(normalized.fields) ? [...normalized.fields, newField] : [newField];
@@ -2503,7 +2511,7 @@ export const BackOffice = ({
     });
 
     setSelectedFilterQuestionId('');
-  }, [questions, selectedFilterQuestionId, setProjectFilters, t]);
+  }, [questions, selectedFilterQuestionId, setProjectFilters]);
 
   const handleAddInspirationFilter = useCallback(() => {
     if (typeof setInspirationFilters !== 'function') {
@@ -2587,7 +2595,7 @@ export const BackOffice = ({
       return;
     }
 
-    const label = field.label || field.id || t('backOffice.main.filterWordFallback');
+    const label = resolveLocalizedText(field.label, language) || field.id || t('backOffice.main.filterWordFallback');
     const confirmationMessage = t('backOffice.main.confirmDeleteFilterTemplate', { label });
     const shouldDelete = confirmDeletion(confirmationMessage);
 
@@ -2609,7 +2617,9 @@ export const BackOffice = ({
       type: 'projectFilter',
       item: removedField,
       index,
-      message: t('backOffice.main.filterDeletedUndoTemplate', { label: removedField.label || removedField.id || t('backOffice.main.filterWordFallback') })
+      message: t('backOffice.main.filterDeletedUndoTemplate', {
+        label: resolveLocalizedText(removedField.label, language) || removedField.id || t('backOffice.main.filterWordFallback')
+      })
     });
 
     setProjectFilters((prev) => {
@@ -2623,7 +2633,7 @@ export const BackOffice = ({
         fields
       };
     });
-  }, [confirmDeletion, normalizedProjectFilters, pushUndoEntry, setProjectFilters, t]);
+  }, [confirmDeletion, language, normalizedProjectFilters, pushUndoEntry, setProjectFilters, t]);
 
   const handleRemoveInspirationFilter = useCallback((field) => {
     if (!field || typeof setInspirationFilters !== 'function') {
@@ -5051,6 +5061,13 @@ export const BackOffice = ({
               aria-labelledby="backoffice-tab-filters"
               className="space-y-6"
             >
+              <LanguageEditSwitcher
+                editingLanguage={projectFiltersEditingLanguage}
+                onChange={setProjectFiltersEditingLanguage}
+                label={t('backOffice.main.projectFiltersEditingLanguageLabel')}
+                hint={t('backOffice.main.projectFiltersEditingLanguageHint')}
+              />
+
               <article className="space-y-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
                 <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="space-y-2">
@@ -5151,7 +5168,7 @@ export const BackOffice = ({
                                     {field.enabled ? t('backOffice.main.enabledLabel') : t('backOffice.main.disabledLabel')}
                                   </span>
                                 </div>
-                                <h3 className="text-lg font-semibold text-gray-800">{field.label}</h3>
+                                <h3 className="text-lg font-semibold text-gray-800">{resolveLocalizedText(field.label, language) || field.id}</h3>
                                 {description && <p className="text-sm text-gray-600">{description}</p>}
                                 {sourceQuestionId && (
                                   <p className="text-xs text-gray-500">
@@ -5190,7 +5207,7 @@ export const BackOffice = ({
                                 <input
                                   id={labelInputId}
                                   type="text"
-                                  value={field.label}
+                                  value={getLocalizedRaw(field.label, projectFiltersEditingLanguage)}
                                   onChange={(event) => handleProjectFilterLabelChange(field.id, event.target.value)}
                                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                                 />
@@ -5236,13 +5253,19 @@ export const BackOffice = ({
                                   <input
                                     id={`project-filter-empty-option-${field.id}`}
                                     type="text"
-                                    value={field.emptyOptionLabel || t('backOffice.main.allValuesDefault')}
+                                    value={getLocalizedRaw(field.emptyOptionLabel, projectFiltersEditingLanguage) || t('backOffice.main.allValuesDefault')}
                                     onChange={(event) =>
-                                      setProjectFilters((prev) =>
-                                        updateProjectFilterField(prev, field.id, {
-                                          emptyOptionLabel: event.target.value
-                                        })
-                                      )
+                                      setProjectFilters((prev) => {
+                                        const normalized = normalizeProjectFilterConfig(prev);
+                                        const current = normalized.fields.find((item) => item && item.id === field.id);
+                                        return updateProjectFilterField(normalized, field.id, {
+                                          emptyOptionLabel: setLocalizedText(
+                                            current?.emptyOptionLabel,
+                                            projectFiltersEditingLanguage,
+                                            event.target.value
+                                          )
+                                        });
+                                      })
                                     }
                                     className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                                   />

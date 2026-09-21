@@ -1056,6 +1056,8 @@ export default {
       backOfficeNavAriaLabel: 'Navigation back-office',
       projectFiltersTitle: 'Filtres de la page d’accueil',
       projectFiltersSubtitle: 'Activez, ajoutez ou personnalisez les filtres mis à disposition des leads sur l’écran d’accueil.',
+      projectFiltersEditingLanguageLabel: 'Langue d’édition',
+      projectFiltersEditingLanguageHint: 'Si un libellé n’est pas encore traduit dans cette langue, le texte enregistré s’affichera tel quel par défaut.',
       resetFiltersButton: 'Réinitialiser les filtres',
       addFilterFromQuestionLabel: 'Ajouter un filtre basé sur une question',
       selectQuestionPlaceholder: 'Sélectionnez une question…',
