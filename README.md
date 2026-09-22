@@ -23,8 +23,10 @@ un envoi direct depuis le code. Détails : [`docs/architecture-sharepoint.md`](d
 | Document | Public | Contenu |
 |---|---|---|
 | [`docs/architecture-technique.md`](docs/architecture-technique.md) | Développeurs | Architecture du code, structure des modules, dépendances, build et tests. |
-| [`docs/guide-non-expert.md`](docs/guide-non-expert.md) | Non-experts (métier, compliance, direction) | Le même fonctionnement, en langage courant. |
-| [`docs/securite-donnees.md`](docs/securite-donnees.md) | Les deux | Ce que garantit (et ne garantit pas) l'absence de flux de données hors SharePoint/Power Automate/M365. |
+| [`docs/architecture-technique-non-expert.md`](docs/architecture-technique-non-expert.md) | Non-experts | La même architecture technique, en langage courant et avec des analogies. |
+| [`docs/guide-non-expert.md`](docs/guide-non-expert.md) | Non-experts (métier, compliance, direction) | Comment utiliser l'outil au quotidien, en langage courant. |
+| [`docs/securite-donnees.md`](docs/securite-donnees.md) | Développeurs | Ce que garantit (et ne garantit pas) l'absence de flux de données hors SharePoint/Power Automate/M365. |
+| [`docs/securite-donnees-non-expert.md`](docs/securite-donnees-non-expert.md) | Non-experts | La même analyse de sécurité, en langage courant. |
 | [`docs/architecture-sharepoint.md`](docs/architecture-sharepoint.md) | Les deux | Listes SharePoint, bibliothèques et flux Power Automate, avec schéma. |
 | [`docs/migration-v2/`](docs/migration-v2/README.md) | Développeurs / administrateurs SharePoint | Référentiel opérationnel détaillé : colonnes exactes des listes, configuration pas à pas des flux Power Automate, environnements, procédure de déploiement. |
 | [`CLAUDE.md`](CLAUDE.md) | Développeurs (agents IA inclus) | Référence exhaustive des conventions de code, pièges connus et logique métier module par module. |

@@ -6,6 +6,8 @@
 > [`migration-v2/`](migration-v2/README.md). Pour les conventions de code au quotidien (règles
 > de hooks, pièges connus, patrons à respecter module par module), la référence exhaustive reste
 > [`/CLAUDE.md`](../CLAUDE.md) — ce document en donne la vue d'ensemble, pas le détail complet.
+> Version accessible aux non-développeurs, même contenu de fond :
+> [`architecture-technique-non-expert.md`](architecture-technique-non-expert.md).
 
 ## 1. Ce que fait l'application
 

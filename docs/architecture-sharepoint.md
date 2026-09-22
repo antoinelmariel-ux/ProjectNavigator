@@ -2,9 +2,11 @@
 
 > Public : développeurs **et** non-experts. Ce document explique où vivent les données de
 > Project Navigator et comment elles circulent entre l'application, SharePoint Online et
-> Power Automate. Il complète [`architecture-technique.md`](architecture-technique.md) (comment le
-> code est fait) et [`securite-donnees.md`](securite-donnees.md) (ce que cette architecture garantit
-> en matière de sécurité).
+> Power Automate. Il complète [`architecture-technique.md`](architecture-technique.md) /
+> [`architecture-technique-non-expert.md`](architecture-technique-non-expert.md) (comment le code
+> est fait) et [`securite-donnees.md`](securite-donnees.md) /
+> [`securite-donnees-non-expert.md`](securite-donnees-non-expert.md) (ce que cette architecture
+> garantit en matière de sécurité).
 >
 > Détail opérationnel complet (colonnes exactes, étapes de configuration, mode opératoire
 > Power Automate pas à pas) : dossier [`migration-v2/`](migration-v2/README.md).
