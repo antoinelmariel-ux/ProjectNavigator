@@ -1,17 +1,38 @@
-# Project Navigator — Principales fonctionnalités
+# Project Navigator
 
-Project Navigator aide les équipes projets et compliance à qualifier rapidement les enjeux réglementaires. Voici les fonctionnalités clés offertes par l'outil :
+Project Navigator aide les équipes projets et compliance à qualifier rapidement les enjeux
+réglementaires d'un projet : questionnaire adaptatif → score de risque en temps réel → synthèse
+partageable → back-office compliance → vitrine de présentation du projet. L'interface est en
+français ; les identifiants du code sont en anglais.
 
 - **Questionnaire adaptatif** : les questions affichées s'ajustent automatiquement selon les réponses pour ne couvrir que les exigences pertinentes (données personnelles, zone géographique, partenaires, etc.).
-- **Évaluation de risque en temps réel** : chaque réponse alimente un scoring global qui met en évidence la criticité du projet et recommande des actions prioritaires.
-- **Synthèse projet prête à partager** : un rapport récapitulatif est généré automatiquement avec les risques identifiés, les actions à engager et les équipes concernées.
-- **Espace Back-Office Compliance** : les experts peuvent administrer le référentiel (questions, règles, pondérations) et consulter l'historique des projets déposés.
-- **Export et suivi des dossiers** : les projets validés sont conservés dans SharePoint (liste `CN_Projects`) pour faciliter le partage, les audits et les analyses ultérieures.
+- **Évaluation de risque en temps réel** : chaque réponse alimente un scoring global qui met en évidence la criticité du projet et oriente vers les équipes de conformité concernées.
+- **Consultation possible dès la conception** : un projet peut demander un avis préliminaire avant d'être finalisé, avec des réponses « je ne sais pas encore » routées vers les bonnes équipes, et rester modifiable après soumission.
+- **Vitrine de projet partageable** : une page de présentation éditable directement dans l'application, avec post-its collaboratifs.
+- **Back-office compliance** : administration des questions, règles, pondérations de risque et équipes, avec un accès restreint au périmètre propre des contacts d'équipe et membres de comité.
 
- Pour démarrer, ouvrez `index.html` dans votre navigateur : l'application est entièrement autonome, ne nécessite aucune installation supplémentaire et peut désormais fonctionner en local sans serveur HTTP.
+**Sans serveur, sans installation.** L'application est un ensemble de fichiers statiques : elle
+s'ouvre soit directement (double-clic sur `index.html`, sans réseau ni `npm`), soit déposée dans
+une bibliothèque d'un site SharePoint Online et servie en HTTPS. Les données vivent dans des
+listes/bibliothèques SharePoint (mode réel) ou dans des fichiers JSON simulés + le stockage du
+navigateur (mode local/développement) ; les notifications passent par Power Automate, jamais par
+un envoi direct depuis le code. Détails : [`docs/architecture-sharepoint.md`](docs/architecture-sharepoint.md).
 
-- **Source de vérité mocks SharePoint** : les données `mock-sharepoint-lists/*.json` sont la référence migration; les modules `src/data/mockSharePoint*.js` sont auto-générés pour le runtime local (mode fichier). Utiliser `node scripts/sync-mock-sharepoint-data.js` après modification des JSON.
-- **Stockage flexible des inspirations** : comme les projets (`AnswersJson`), les inspirations sont désormais portées par une colonne JSON (`InspirationJson`) afin de limiter le nombre de colonnes SharePoint et de faciliter l’évolution du schéma.
+## Documentation
+
+| Document | Public | Contenu |
+|---|---|---|
+| [`docs/architecture-technique.md`](docs/architecture-technique.md) | Développeurs | Architecture du code, structure des modules, dépendances, build et tests. |
+| [`docs/guide-non-expert.md`](docs/guide-non-expert.md) | Non-experts (métier, compliance, direction) | Le même fonctionnement, en langage courant. |
+| [`docs/securite-donnees.md`](docs/securite-donnees.md) | Les deux | Ce que garantit (et ne garantit pas) l'absence de flux de données hors SharePoint/Power Automate/M365. |
+| [`docs/architecture-sharepoint.md`](docs/architecture-sharepoint.md) | Les deux | Listes SharePoint, bibliothèques et flux Power Automate, avec schéma. |
+| [`docs/migration-v2/`](docs/migration-v2/README.md) | Développeurs / administrateurs SharePoint | Référentiel opérationnel détaillé : colonnes exactes des listes, configuration pas à pas des flux Power Automate, environnements, procédure de déploiement. |
+| [`CLAUDE.md`](CLAUDE.md) | Développeurs (agents IA inclus) | Référence exhaustive des conventions de code, pièges connus et logique métier module par module. |
+
+## Démarrage
+
+Utilisateur final : ouvrez `index.html` dans un navigateur, ou l'URL de l'application sur le site
+SharePoint de votre organisation — aucune installation requise.
 
 ## Développement
 
