@@ -72,10 +72,10 @@ export const initialOnboardingTourConfig = {
         "es": "Bienvenido a Project Navigator"
       },
       "content": {
-        "en": "Project Navigator helps you frame your project, identify the experts to involve and secure your regulatory deadlines. Where would you like to start? You can relaunch the other tours at any time from the “Interactive guide” button.",
-        "fr": "Project Navigator vous aide à cadrer votre projet, à identifier les experts à mobiliser et à sécuriser vos délais réglementaires. Par où souhaitez-vous commencer ? Vous pourrez relancer les autres visites à tout moment via le bouton « Guide interactif ».",
-        "de": "Project Navigator hilft Ihnen, Ihr Projekt zu strukturieren, die einzubindenden Experten zu ermitteln und Ihre regulatorischen Fristen abzusichern. Womit möchten Sie beginnen? Sie können die anderen Rundgänge jederzeit über die Schaltfläche „Interaktiver Leitfaden“ erneut starten.",
-        "es": "Project Navigator le ayuda a encuadrar su proyecto, identificar los expertos que debe movilizar y asegurar sus plazos reglamentarios. ¿Por dónde quiere empezar? Puede volver a lanzar las demás visitas en cualquier momento desde el botón «Guía interactiva»."
+        "en": "Project Navigator helps you frame your project, get feedback and identify the internal experts to involve. Where would you like to start? You can relaunch the other tours at any time from the “Interactive guide” button.",
+        "fr": "Project Navigator vous aide à cadrer votre projet, obtenir du feedback et identifier les experts internes à mobiliser. Par où souhaitez-vous commencer ? Vous pourrez relancer les autres visites à tout moment via le bouton « Guide interactif ».",
+        "de": "Project Navigator hilft Ihnen, Ihr Projekt zu strukturieren, Feedback einzuholen und die einzubindenden internen Experten zu ermitteln. Womit möchten Sie beginnen? Sie können die anderen Rundgänge jederzeit über die Schaltfläche „Interaktiver Leitfaden“ erneut starten.",
+        "es": "Project Navigator le ayuda a encuadrar su proyecto, obtener feedback e identificar a los expertos internos que debe movilizar. ¿Por dónde quiere empezar? Puede volver a lanzar las demás visitas en cualquier momento desde el botón «Guía interactiva»."
       },
       "placement": "bottom",
       "highlightScope": "target",
@@ -99,10 +99,10 @@ export const initialOnboardingTourConfig = {
         "es": "Su copiloto de cumplimiento"
       },
       "content": {
-        "en": "Project Navigator supports you from the idea to the approval: you describe your project, and the tool identifies the regulatory risks, the experts to involve and the deadlines to meet. Follow the guide — we'll show you everything on a sample project.",
-        "fr": "Project Navigator vous accompagne de l’idée à la validation : vous décrivez votre projet, l’outil identifie les risques réglementaires, les experts à mobiliser et les délais à tenir. Suivez le guide, on vous montre tout sur un projet d’exemple.",
-        "de": "Project Navigator begleitet Sie von der Idee bis zur Freigabe: Sie beschreiben Ihr Projekt, das Tool ermittelt die regulatorischen Risiken, die einzubindenden Experten und die einzuhaltenden Fristen. Folgen Sie dem Leitfaden — wir zeigen Ihnen alles an einem Beispielprojekt.",
-        "es": "Project Navigator le acompaña de la idea a la validación: usted describe su proyecto y la herramienta identifica los riesgos reglamentarios, los expertos que debe movilizar y los plazos que debe cumplir. Siga la guía: se lo mostramos todo con un proyecto de ejemplo."
+        "en": "Project Navigator supports you from the idea to the approval: you describe your project and get feedback from your teams. The tool identifies the regulatory risks, the internal experts to involve and the deadlines to meet. Follow the guide — we'll show you everything on a sample project.",
+        "fr": "Project Navigator vous accompagne de l’idée à la validation : vous décrivez votre projet, obtenez des retours de vos équipes. L’outil identifie les risques réglementaires, les experts internes à mobiliser et les délais à tenir. Suivez le guide, on vous montre tout sur un projet d’exemple.",
+        "de": "Project Navigator begleitet Sie von der Idee bis zur Freigabe: Sie beschreiben Ihr Projekt und erhalten Feedback von Ihren Teams. Das Tool ermittelt die regulatorischen Risiken, die einzubindenden internen Experten und die einzuhaltenden Fristen. Folgen Sie dem Leitfaden — wir zeigen Ihnen alles an einem Beispielprojekt.",
+        "es": "Project Navigator le acompaña de la idea a la validación: usted describe su proyecto y obtiene feedback de sus equipos. La herramienta identifica los riesgos reglamentarios, los expertos internos que debe movilizar y los plazos que debe cumplir. Siga la guía: se lo mostramos todo con un proyecto de ejemplo."
       },
       "placement": "bottom",
       "highlightScope": "target",
@@ -119,10 +119,10 @@ export const initialOnboardingTourConfig = {
         "es": "Un cuestionario que se adapta"
       },
       "content": {
-        "en": "Everything starts here: questions appear according to your answers and your activity scope, each one is explained, and everything is saved continuously. You never fill in a useless field.",
-        "fr": "Tout commence ici : les questions apparaissent selon vos réponses et votre périmètre d’activité, chacune est expliquée, et tout est sauvegardé en continu. Vous ne remplissez jamais un champ inutile.",
-        "de": "Hier beginnt alles: Die Fragen erscheinen je nach Ihren Antworten und Ihrem Tätigkeitsbereich, jede wird erläutert, und alles wird laufend gespeichert. Sie füllen nie ein unnötiges Feld aus.",
-        "es": "Todo empieza aquí: las preguntas aparecen según sus respuestas y su ámbito de actividad, cada una se explica y todo se guarda de forma continua. Nunca rellena un campo inútil."
+        "en": "Everything starts here: questions appear according to your answers and your activity scope, each one is explained, and everything is saved continuously.",
+        "fr": "Tout commence ici : les questions apparaissent selon vos réponses et votre périmètre d’activité, chacune est expliquée, et tout est sauvegardé en continu.",
+        "de": "Hier beginnt alles: Die Fragen erscheinen je nach Ihren Antworten und Ihrem Tätigkeitsbereich, jede wird erläutert, und alles wird laufend gespeichert.",
+        "es": "Todo empieza aquí: las preguntas aparecen según sus respuestas y su ámbito de actividad, cada una se explica y todo se guarda de forma continua."
       },
       "placement": "top",
       "highlightScope": "target",
@@ -139,10 +139,10 @@ export const initialOnboardingTourConfig = {
         "es": "Un análisis automático"
       },
       "content": {
-        "en": "As soon as your answers are in: risk level, points of attention, expert teams concerned and a check of your regulatory deadlines. You have nothing to calculate, and no regulation to know by heart.",
-        "fr": "Dès vos réponses saisies : niveau de risque, points de vigilance, équipes expertes concernées et vérification de vos délais réglementaires. Vous n’avez rien à calculer, ni à connaître de la réglementation.",
-        "de": "Sobald Ihre Antworten vorliegen: Risikoniveau, Aufmerksamkeitspunkte, betroffene Expertenteams und Prüfung Ihrer regulatorischen Fristen. Sie müssen nichts berechnen und keine Vorschriften kennen.",
-        "es": "En cuanto introduce sus respuestas: nivel de riesgo, puntos de atención, equipos expertos implicados y verificación de sus plazos reglamentarios. No tiene nada que calcular ni que conocer de la normativa."
+        "en": "As soon as your answers are in: points of attention and expert teams concerned are identified.",
+        "fr": "Dès vos réponses saisies : points de vigilance, équipes expertes concernées sont identifiés.",
+        "de": "Sobald Ihre Antworten vorliegen: Aufmerksamkeitspunkte und betroffene Expertenteams werden identifiziert.",
+        "es": "En cuanto introduce sus respuestas: se identifican los puntos de atención y los equipos expertos implicados."
       },
       "placement": "bottom",
       "highlightScope": "target",
@@ -181,10 +181,10 @@ export const initialOnboardingTourConfig = {
         "es": "Y aquí está su vitrina"
       },
       "content": {
-        "en": "Your project becomes a visual showcase generated from your answers, with no layout work on your side. Ready to present to your manager, your management or a committee.",
-        "fr": "Votre projet devient une vitrine visuelle générée à partir de vos réponses, sans aucune mise en page de votre part. Prête à présenter à votre manager, votre direction ou un comité.",
-        "de": "Ihr Projekt wird zu einer visuellen Vitrine, die aus Ihren Antworten erzeugt wird — ganz ohne Layoutarbeit Ihrerseits. Bereit für die Präsentation vor Ihrer Führungskraft, der Leitung oder einem Gremium.",
-        "es": "Su proyecto se convierte en una vitrina visual generada a partir de sus respuestas, sin ningún trabajo de maquetación por su parte. Lista para presentar a su responsable, su dirección o un comité."
+        "en": "Your project becomes a visual showcase generated from your answers, with no layout work on your side. Ready to present to your manager, your management or a committee to get feedback.",
+        "fr": "Votre projet devient une vitrine visuelle générée à partir de vos réponses, sans aucune mise en page de votre part. Prête à présenter à votre manager, votre direction ou un comité pour obtenir du feedback.",
+        "de": "Ihr Projekt wird zu einer visuellen Vitrine, die aus Ihren Antworten erzeugt wird — ganz ohne Layoutarbeit Ihrerseits. Bereit für die Präsentation vor Ihrer Führungskraft, der Leitung oder einem Gremium, um Feedback einzuholen.",
+        "es": "Su proyecto se convierte en una vitrina visual generada a partir de sus respuestas, sin ningún trabajo de maquetación por su parte. Lista para presentar a su responsable, su dirección o un comité y obtener feedback."
       },
       "placement": "bottom",
       "highlightScope": "target",
@@ -203,10 +203,10 @@ export const initialOnboardingTourConfig = {
         "es": "Personalizable de principio a fin"
       },
       "content": {
-        "en": "Texts, colours, custom sections, embedded documents: you edit everything directly on the final rendering, never in a separate form.",
-        "fr": "Textes, couleurs, sections sur mesure, documents intégrés : vous modifiez tout directement sur le rendu final, jamais dans un formulaire séparé.",
-        "de": "Texte, Farben, maßgeschneiderte Abschnitte, eingebettete Dokumente: Sie bearbeiten alles direkt in der endgültigen Darstellung, nie in einem separaten Formular.",
-        "es": "Textos, colores, secciones a medida, documentos integrados: lo modifica todo directamente sobre el resultado final, nunca en un formulario aparte."
+        "en": "Texts, colours, custom sections, embedded documents: you edit everything directly on the final rendering.",
+        "fr": "Textes, couleurs, sections sur mesure, documents intégrés : vous modifiez tout directement sur le rendu final.",
+        "de": "Texte, Farben, maßgeschneiderte Abschnitte, eingebettete Dokumente: Sie bearbeiten alles direkt in der endgültigen Darstellung.",
+        "es": "Textos, colores, secciones a medida, documentos integrados: lo modifica todo directamente sobre el resultado final."
       },
       "placement": "bottom",
       "highlightScope": "target",
@@ -224,10 +224,10 @@ export const initialOnboardingTourConfig = {
         "es": "El feedback en el lugar adecuado"
       },
       "content": {
-        "en": "You share the showcase with a link and collect feedback as sticky notes placed directly on the page. Centralised and in context, instead of scattered across ten separate emails.",
-        "fr": "Vous partagez la vitrine d’un lien et récoltez les retours sous forme de post-its déposés directement sur la page. Centralisés et contextualisés, plus dans dix mails séparés.",
-        "de": "Sie teilen die Vitrine per Link und sammeln Rückmeldungen als Haftnotizen, die direkt auf der Seite platziert werden. Zentral und im Kontext statt verstreut über zehn einzelne E-Mails.",
-        "es": "Comparte la vitrina con un enlace y recoge los comentarios en forma de notas adhesivas colocadas directamente en la página. Centralizados y en contexto, en lugar de dispersos en diez correos distintos."
+        "en": "You share the showcase via a link and collect feedback as sticky notes placed directly on the page. Centralised and in context, instead of scattered across ten separate emails.",
+        "fr": "Vous partagez la vitrine via un lien et récoltez les retours sous forme de post-its déposés directement sur la page. Centralisés et contextualisés, plus dans dix mails séparés.",
+        "de": "Sie teilen die Vitrine über einen Link und sammeln Rückmeldungen als Haftnotizen, die direkt auf der Seite platziert werden. Zentral und im Kontext statt verstreut über zehn einzelne E-Mails.",
+        "es": "Comparte la vitrina mediante un enlace y recoge los comentarios en forma de notas adhesivas colocadas directamente en la página. Centralizados y en contexto, en lugar de dispersos en diez correos distintos."
       },
       "placement": "right",
       "highlightScope": "target",
@@ -285,10 +285,10 @@ export const initialOnboardingTourConfig = {
         "es": "Responder a su ritmo"
       },
       "content": {
-        "en": "Fill in the requested information step by step. Everything is saved automatically with each answer: you can close the tab and come back later, even after losing your connection.",
-        "fr": "Renseignez les informations demandées étape par étape. Tout est enregistré automatiquement à chaque réponse : vous pouvez fermer l’onglet et reprendre plus tard, même après une coupure de réseau.",
-        "de": "Geben Sie die angeforderten Informationen Schritt für Schritt ein. Alles wird bei jeder Antwort automatisch gespeichert: Sie können den Tab schließen und später fortfahren, selbst nach einem Verbindungsabbruch.",
-        "es": "Complete la información solicitada paso a paso. Todo se guarda automáticamente con cada respuesta: puede cerrar la pestaña y continuar más tarde, incluso tras un corte de red."
+        "en": "Fill in the requested information step by step. Everything is saved automatically with each answer: you can close the tab and come back later.",
+        "fr": "Renseignez les informations demandées étape par étape. Tout est enregistré automatiquement à chaque réponse : vous pouvez fermer l’onglet et reprendre plus tard.",
+        "de": "Geben Sie die angeforderten Informationen Schritt für Schritt ein. Alles wird bei jeder Antwort automatisch gespeichert: Sie können den Tab schließen und später fortfahren.",
+        "es": "Complete la información solicitada paso a paso. Todo se guarda automáticamente con cada respuesta: puede cerrar la pestaña y continuar más tarde."
       },
       "placement": "top",
       "highlightScope": "target",
@@ -365,10 +365,10 @@ export const initialOnboardingTourConfig = {
         "es": "Señalar una duda"
       },
       "content": {
-        "en": "Not sure about an answer? Check “I have a doubt” and explain why in a few words: the point stays visible in your answers recap without stopping you from moving on. You will only need to settle it before a final validation.",
-        "fr": "Pas sûr d’une réponse ? Cochez « J’ai un doute » et expliquez pourquoi en quelques mots : le point reste visible dans le rappel de vos réponses, sans vous empêcher d’avancer. Il faudra simplement le lever avant une validation définitive.",
-        "de": "Nicht sicher bei einer Antwort? Aktivieren Sie „Ich habe Zweifel“ und erklären Sie kurz, warum: Der Punkt bleibt in der Übersicht Ihrer Antworten sichtbar, ohne Sie am Weiterkommen zu hindern. Geklärt werden muss er erst vor einer endgültigen Validierung.",
-        "es": "¿No está seguro de una respuesta? Marque «Tengo una duda» y explique brevemente por qué: el punto queda visible en el resumen de sus respuestas sin impedirle avanzar. Solo deberá resolverlo antes de una validación definitiva."
+        "en": "Not sure about an answer? Check “I have a doubt” and explain why in a few words: the point stays visible in your answers recap without stopping you from moving on. You will only need to settle this doubt before a final validation.",
+        "fr": "Pas sûr d’une réponse ? Cochez « J’ai un doute » et expliquez pourquoi en quelques mots : le point reste visible dans le rappel de vos réponses, sans vous empêcher d’avancer. Il faudra simplement lever ce doute avant une validation définitive.",
+        "de": "Nicht sicher bei einer Antwort? Aktivieren Sie „Ich habe Zweifel“ und erklären Sie kurz, warum: Der Punkt bleibt in der Übersicht Ihrer Antworten sichtbar, ohne Sie am Weiterkommen zu hindern. Dieser Zweifel muss lediglich vor einer endgültigen Validierung geklärt werden.",
+        "es": "¿No está seguro de una respuesta? Marque «Tengo una duda» y explique brevemente por qué: el punto queda visible en el resumen de sus respuestas sin impedirle avanzar. Solo deberá resolver esta duda antes de una validación definitiva."
       },
       "placement": "top",
       "highlightScope": "target",
@@ -468,10 +468,10 @@ export const initialOnboardingTourConfig = {
         "es": "Leer los retos del proyecto"
       },
       "content": {
-        "en": "The project stakes gather everything without showing it all at once: the left rail says where your project stands and what you can ask for right now, while the right column files the teams, risks, points of attention and the recap of your answers into folded sections. Each heading carries its own count, and you open what you want to read.",
-        "fr": "Les enjeux rassemblent tout sans tout vous montrer d’un coup : le rail de gauche dit où en est votre projet et ce que vous pouvez demander maintenant, la colonne de droite range les équipes, les risques, les points de vigilance et le rappel de vos réponses en sections repliées. Chaque titre porte son compteur, et vous ouvrez ce que vous voulez lire.",
-        "de": "Die Projektherausforderungen bündeln alles, ohne alles auf einmal zu zeigen: Die linke Leiste zeigt, wo Ihr Projekt steht und was Sie jetzt anfordern können; die rechte Spalte ordnet Teams, Risiken, Aufmerksamkeitspunkte und die Übersicht Ihrer Antworten in eingeklappte Abschnitte. Jede Überschrift trägt ihre Anzahl, und Sie öffnen, was Sie lesen möchten.",
-        "es": "Los retos lo reúnen todo sin mostrarlo todo de golpe: el panel de la izquierda indica en qué punto está su proyecto y qué puede pedir ahora, y la columna de la derecha ordena los equipos, los riesgos, los puntos de atención y el resumen de sus respuestas en secciones plegadas. Cada título lleva su recuento y usted abre lo que quiere leer."
+        "en": "The project stakes gather everything without showing it all at once: the left rail says where your project stands and what you can ask for right now, while the right column files the teams, risks, points of attention and the recap of your answers.",
+        "fr": "Les enjeux rassemblent tout sans tout vous montrer d’un coup : le rail de gauche dit où en est votre projet et ce que vous pouvez demander maintenant, la colonne de droite range les équipes, les risques, les points de vigilance et le rappel de vos réponses.",
+        "de": "Die Projektherausforderungen bündeln alles, ohne alles auf einmal zu zeigen: Die linke Leiste zeigt, wo Ihr Projekt steht und was Sie jetzt anfordern können; die rechte Spalte ordnet Teams, Risiken, Aufmerksamkeitspunkte und die Übersicht Ihrer Antworten.",
+        "es": "Los retos lo reúnen todo sin mostrarlo todo de golpe: el panel de la izquierda indica en qué punto está su proyecto y qué puede pedir ahora, y la columna de la derecha ordena los equipos, los riesgos, los puntos de atención y el resumen de sus respuestas."
       },
       "placement": "bottom",
       "highlightScope": "target",
@@ -489,10 +489,10 @@ export const initialOnboardingTourConfig = {
         "es": "Consultar a compliance antes de terminar"
       },
       "content": {
-        "en": "Orientation, technical advice or validation: this ladder shows exactly what the experts can already do with what you have filled in, and what is still missing to go further. It stays on screen as you scroll, along with the action of the moment: you never have to go back up to act.",
-        "fr": "Orientation, avis technique ou validation : ce palier montre exactement ce que les experts peuvent déjà faire avec ce que vous avez renseigné, et ce qu’il manque pour aller plus loin. Il reste affiché pendant que vous faites défiler la page, avec l’action du moment : vous n’avez jamais à remonter pour agir.",
-        "de": "Orientierung, fachliche Einschätzung oder Validierung: Diese Stufenleiter zeigt genau, was die Experten mit Ihren bisherigen Angaben bereits tun können und was noch fehlt, um weiterzukommen. Sie bleibt beim Scrollen sichtbar, zusammen mit der jeweils anstehenden Aktion: Sie müssen nie nach oben zurückscrollen, um zu handeln.",
-        "es": "Orientación, dictamen técnico o validación: esta escala muestra exactamente lo que los expertos ya pueden hacer con lo que ha completado y lo que falta para ir más lejos. Permanece visible mientras se desplaza, junto con la acción del momento: nunca tiene que volver arriba para actuar."
+        "en": "Orientation, technical advice or validation: this ladder shows exactly what the experts can already do with what you have filled in, and what is still missing to go further.",
+        "fr": "Orientation, avis technique ou validation : ce palier montre exactement ce que les experts peuvent déjà faire avec ce que vous avez renseigné, et ce qu’il manque pour aller plus loin.",
+        "de": "Orientierung, fachliche Einschätzung oder Validierung: Diese Stufenleiter zeigt genau, was die Experten mit Ihren bisherigen Angaben bereits tun können und was noch fehlt, um weiterzukommen.",
+        "es": "Orientación, dictamen técnico o validación: esta escala muestra exactamente lo que los expertos ya pueden hacer con lo que ha completado y lo que falta para ir más lejos."
       },
       "placement": "bottom",
       "highlightScope": "target",
@@ -571,10 +571,10 @@ export const initialOnboardingTourConfig = {
         "es": "Dos vías para solicitar a compliance"
       },
       "content": {
-        "en": "The panel puts forward the door that is actually open to you. Once the base information is filled in, request a preliminary opinion: the experts orient you without freezing the project. Once every mandatory question has a firm answer, request final validation instead, which then takes the front seat while the other door stays visible just below with what is blocking it — this time each concerned team and committee is notified to give a formal opinion. You have nobody to notify yourself.",
-        "fr": "Le panneau met en avant la porte qui vous est ouverte. Dès que les informations du socle sont renseignées, demandez un avis préliminaire : les experts vous orientent sans figer le projet. Une fois toutes les questions obligatoires renseignées avec des réponses fermes, demandez plutôt la validation, qui passe alors au premier plan pendant que l’autre porte reste visible juste en dessous avec ce qui la bloque — chaque équipe et comité concerné est alors notifié pour rendre un avis formel. Vous n’avez personne à prévenir vous-même.",
-        "de": "Das Panel stellt die Tür in den Vordergrund, die Ihnen offensteht. Sobald die Basisangaben ausgefüllt sind, fordern Sie eine vorläufige Stellungnahme an: Die Experten geben Ihnen eine Orientierung, ohne das Projekt einzufrieren. Sobald alle Pflichtfragen mit einer endgültigen Antwort versehen sind, fordern Sie stattdessen die Validierung an, die dann in den Vordergrund rückt, während die andere Tür direkt darunter sichtbar bleibt, mitsamt dem, was sie blockiert — dann wird jedes betroffene Team und Gremium benachrichtigt, um eine formelle Stellungnahme abzugeben. Sie müssen niemanden selbst informieren.",
-        "es": "El panel destaca la puerta que realmente tiene abierta. En cuanto la información básica esté completa, solicite un dictamen preliminar: los expertos le orientan sin congelar el proyecto. Una vez que todas las preguntas obligatorias tengan una respuesta firme, solicite en cambio la validación, que pasa entonces a primer plano mientras la otra puerta sigue visible justo debajo con lo que la bloquea — entonces se notifica a cada equipo y comité implicado para que emita un dictamen formal. No tiene que avisar a nadie usted mismo."
+        "en": "The panel puts forward the door that is actually open to you. Once the base information is filled in, you can request a preliminary opinion: the experts are notified and orient you without freezing the project. Once every mandatory question has a firm answer, request the final validation of the project instead. Again, each concerned team and committee is then notified to give a formal opinion. You have nobody to notify yourself.",
+        "fr": "Le panneau met en avant la porte qui vous est ouverte. Dès que les informations du socle sont renseignées, vous pouvez demander un avis préliminaire : les experts sont notifiés et vous orientent sans figer le projet. Une fois toutes les questions obligatoires renseignées avec des réponses fermes, demandez la validation définitive du projet. À nouveau, chaque équipe et comité concerné est alors notifié pour rendre un avis formel. Vous n’avez personne à prévenir vous-même.",
+        "de": "Das Panel stellt die Tür in den Vordergrund, die Ihnen offensteht. Sobald die Basisangaben ausgefüllt sind, können Sie eine vorläufige Stellungnahme anfordern: Die Experten werden benachrichtigt und geben Ihnen eine Orientierung, ohne das Projekt einzufrieren. Sobald alle Pflichtfragen mit einer endgültigen Antwort versehen sind, fordern Sie stattdessen die endgültige Validierung des Projekts an. Auch dann wird jedes betroffene Team und Gremium benachrichtigt, um eine formelle Stellungnahme abzugeben. Sie müssen niemanden selbst informieren.",
+        "es": "El panel destaca la puerta que realmente tiene abierta. En cuanto la información básica esté completa, puede solicitar un dictamen preliminar: se notifica a los expertos, que le orientan sin congelar el proyecto. Una vez que todas las preguntas obligatorias tengan una respuesta firme, solicite en cambio la validación definitiva del proyecto. De nuevo, se notifica a cada equipo y comité implicado para que emita un dictamen formal. No tiene que avisar a nadie usted mismo."
       },
       "placement": "left",
       "highlightScope": "target",
@@ -591,10 +591,10 @@ export const initialOnboardingTourConfig = {
         "es": "Usted mantiene el control"
       },
       "content": {
-        "en": "A submitted project already stays editable: small corrections don't require anything special, and only the teams actually impacted by a change get re-notified. Cancelling the submission goes further — it pulls the project entirely out of review, from your project list, so you can rework it before submitting again.",
-        "fr": "Un projet soumis reste déjà modifiable : les petites corrections ne demandent rien de particulier, et seules les équipes réellement concernées par un changement sont re-notifiées. Annuler la soumission va plus loin — cela retire complètement le projet de la revue, depuis votre liste de projets, pour le retravailler avant de le soumettre à nouveau.",
-        "de": "Ein eingereichtes Projekt bleibt bereits bearbeitbar: kleine Korrekturen erfordern nichts Besonderes, und nur die tatsächlich betroffenen Teams werden bei einer Änderung erneut benachrichtigt. Die Einreichung zurückzuziehen geht weiter — das Projekt wird aus Ihrer Projektliste komplett aus der Prüfung genommen, damit Sie es überarbeiten können, bevor Sie es erneut einreichen.",
-        "es": "Un proyecto enviado ya permanece modificable: las pequeñas correcciones no requieren nada especial, y solo los equipos realmente afectados por un cambio vuelven a ser notificados. Anular el envío va más allá — retira por completo el proyecto de la revisión, desde su lista de proyectos, para poder retrabajarlo antes de enviarlo de nuevo."
+        "en": "A project submitted for review stays editable: when you make changes, only the experts actually impacted are re-notified. Cancelling the submission goes further — it pulls the project entirely out of review, from your project list, so you can rework it before submitting again.",
+        "fr": "Un projet soumis pour avis reste modifiable : en cas de modifications, seuls les experts concernés par un changement sont re-notifiés. Annuler la soumission va plus loin — cela retire complètement le projet de la revue, depuis votre liste de projets, pour le retravailler avant de le soumettre à nouveau.",
+        "de": "Ein zur Prüfung eingereichtes Projekt bleibt bearbeitbar: Bei Änderungen werden nur die tatsächlich betroffenen Experten erneut benachrichtigt. Die Einreichung zurückzuziehen geht weiter — das Projekt wird aus Ihrer Projektliste komplett aus der Prüfung genommen, damit Sie es überarbeiten können, bevor Sie es erneut einreichen.",
+        "es": "Un proyecto enviado para dictamen permanece modificable: al hacer cambios, solo se vuelve a notificar a los expertos realmente afectados. Anular el envío va más allá — retira por completo el proyecto de la revisión, desde su lista de proyectos, para poder retrabajarlo antes de enviarlo de nuevo."
       },
       "placement": "left",
       "highlightScope": "target",
@@ -611,10 +611,10 @@ export const initialOnboardingTourConfig = {
         "es": "Dialogar con los expertos"
       },
       "content": {
-        "en": "This is where it all happens. Each team issues an opinion — Approved, Approved with conditions, Awaiting information, Not concerned or Rejected — along with its recommendations. You reply in the thread, attach a document if needed, and you can see who has taken charge of your file. Everything is traced in one place.",
-        "fr": "C’est ici que tout se joue. Chaque équipe rend un avis — Validé, Validé sous conditions, En attente d’informations, Non concerné ou Refusé — avec ses recommandations. Vous répondez dans le fil, vous joignez un document si besoin, et vous voyez qui a pris votre dossier en charge. Tout est tracé au même endroit.",
-        "de": "Hier entscheidet sich alles. Jedes Team gibt eine Stellungnahme ab — Freigegeben, Freigegeben unter Auflagen, Warten auf Informationen, Nicht betroffen oder Abgelehnt — mit seinen Empfehlungen. Sie antworten im Verlauf, hängen bei Bedarf ein Dokument an und sehen, wer Ihre Akte übernommen hat. Alles ist an einem Ort nachvollziehbar.",
-        "es": "Aquí es donde se juega todo. Cada equipo emite un dictamen — Validado, Validado con condiciones, A la espera de información, No afectado o Rechazado — con sus recomendaciones. Usted responde en el hilo, adjunta un documento si es necesario y ve quién se ha hecho cargo de su expediente. Todo queda trazado en un mismo lugar."
+        "en": "This is where it all happens. Each team issues an opinion — Approved, Approved with conditions, Awaiting information, Not concerned or Rejected — along with its recommendations. You reply in the thread, attach a document if needed, and you can see who has taken charge of your file. Everything is traced in one place. For complex questions, don't hesitate to set up a meeting.",
+        "fr": "C’est ici que tout se joue. Chaque équipe rend un avis — Validé, Validé sous conditions, En attente d’informations, Non concerné ou Refusé — avec ses recommandations. Vous répondez dans le fil, vous joignez un document si besoin, et vous voyez qui a pris votre dossier en charge. Tout est tracé au même endroit. En cas de questions complexes, n’hésitez pas à organiser une réunion.",
+        "de": "Hier entscheidet sich alles. Jedes Team gibt eine Stellungnahme ab — Freigegeben, Freigegeben unter Auflagen, Warten auf Informationen, Nicht betroffen oder Abgelehnt — mit seinen Empfehlungen. Sie antworten im Verlauf, hängen bei Bedarf ein Dokument an und sehen, wer Ihre Akte übernommen hat. Alles ist an einem Ort nachvollziehbar. Bei komplexen Fragen zögern Sie nicht, ein Treffen zu organisieren.",
+        "es": "Aquí es donde se juega todo. Cada equipo emite un dictamen — Validado, Validado con condiciones, A la espera de información, No afectado o Rechazado — con sus recomendaciones. Usted responde en el hilo, adjunta un documento si es necesario y ve quién se ha hecho cargo de su expediente. Todo queda trazado en un mismo lugar. Ante preguntas complejas, no dude en organizar una reunión."
       },
       "placement": "top",
       "highlightScope": "target",
@@ -653,10 +653,10 @@ export const initialOnboardingTourConfig = {
         "es": "Ya sabe cómo validar su proyecto"
       },
       "content": {
-        "en": "All that is left is to present it well — or to explore the other possibilities of the tool.",
-        "fr": "Il ne reste plus qu’à bien le présenter — ou à explorer les autres possibilités de l’outil.",
-        "de": "Jetzt muss es nur noch gut präsentiert werden — oder Sie erkunden die weiteren Möglichkeiten des Tools.",
-        "es": "Solo queda presentarlo bien, o explorar las demás posibilidades de la herramienta."
+        "en": "Is your project validated? All that is left is to present it well — or to explore the other possibilities of the tool.",
+        "fr": "Votre projet est validé ? Il ne reste plus qu’à bien le présenter — ou à explorer les autres possibilités de l’outil.",
+        "de": "Ist Ihr Projekt freigegeben? Jetzt muss es nur noch gut präsentiert werden — oder Sie erkunden die weiteren Möglichkeiten des Tools.",
+        "es": "¿Su proyecto está validado? Solo queda presentarlo bien, o explorar las demás posibilidades de la herramienta."
       },
       "placement": "bottom",
       "highlightScope": "target",
@@ -760,10 +760,10 @@ export const initialOnboardingTourConfig = {
         "es": "Cada sección se ajusta"
       },
       "content": {
-        "en": "Click a section in the showcase to select it: its texts become editable in place, and the panel shows its own settings — template, milestones, colour from the theme palette, visibility. You can hide a section without losing its content.",
-        "fr": "Cliquez une section dans la vitrine pour la sélectionner : ses textes deviennent modifiables sur place, et le panneau affiche ses réglages propres — gabarit, jalons, couleur parmi la palette du thème, visibilité. Vous pouvez masquer une section sans perdre son contenu.",
-        "de": "Klicken Sie in der Vitrine auf einen Abschnitt, um ihn auszuwählen: Seine Texte werden an Ort und Stelle bearbeitbar, und das Panel zeigt seine eigenen Einstellungen — Vorlage, Meilensteine, Farbe aus der Themenpalette, Sichtbarkeit. Sie können einen Abschnitt ausblenden, ohne seinen Inhalt zu verlieren.",
-        "es": "Haga clic en una sección de la vitrina para seleccionarla: sus textos se vuelven editables in situ y el panel muestra sus ajustes propios: plantilla, hitos, color de la paleta del tema, visibilidad. Puede ocultar una sección sin perder su contenido."
+        "en": "Click a section in the showcase to select it: its texts become editable in place, and the panel shows its own settings — template, milestones, colour from the theme palette, visibility. You can hide a section from the “Light” display without losing its content.",
+        "fr": "Cliquez une section dans la vitrine pour la sélectionner : ses textes deviennent modifiables sur place, et le panneau affiche ses réglages propres — gabarit, jalons, couleur parmi la palette du thème, visibilité. Vous pouvez masquer une section de l’affichage « Light » sans perdre son contenu.",
+        "de": "Klicken Sie in der Vitrine auf einen Abschnitt, um ihn auszuwählen: Seine Texte werden an Ort und Stelle bearbeitbar, und das Panel zeigt seine eigenen Einstellungen — Vorlage, Meilensteine, Farbe aus der Themenpalette, Sichtbarkeit. Sie können einen Abschnitt aus der „Light“-Ansicht ausblenden, ohne seinen Inhalt zu verlieren.",
+        "es": "Haga clic en una sección de la vitrina para seleccionarla: sus textos se vuelven editables in situ y el panel muestra sus ajustes propios: plantilla, hitos, color de la paleta del tema, visibilidad. Puede ocultar una sección de la visualización «Light» sin perder su contenido."
       },
       "placement": "left",
       "highlightScope": "target",
@@ -820,10 +820,10 @@ export const initialOnboardingTourConfig = {
         "es": "Light o completo, según el público"
       },
       "content": {
-        "en": "Light mode only shows the sections you pre-selected: ideal to present to an external team or in a meeting without exposing internal elements. Full mode keeps everything.",
-        "fr": "Le mode Light ne montre que les sections que vous avez pré-sélectionnées : idéal pour présenter à une équipe externe ou en séance sans exposer les éléments internes. Le mode complet garde tout.",
-        "de": "Der Light-Modus zeigt nur die von Ihnen vorausgewählten Abschnitte: ideal für die Präsentation vor einem externen Team oder in einer Sitzung, ohne interne Elemente offenzulegen. Der Vollmodus behält alles.",
-        "es": "El modo Light solo muestra las secciones que ha preseleccionado: ideal para presentar a un equipo externo o en una reunión sin exponer elementos internos. El modo completo lo mantiene todo."
+        "en": "Light mode only shows the sections you pre-selected: ideal to present to a team or in a meeting without exposing “sensitive” or irrelevant elements. Full mode keeps everything.",
+        "fr": "Le mode Light ne montre que les sections que vous avez pré-sélectionnées : idéal pour présenter à une équipe ou en séance sans exposer les éléments « sensibles » ou non-pertinents. Le mode complet garde tout.",
+        "de": "Der Light-Modus zeigt nur die von Ihnen vorausgewählten Abschnitte: ideal für die Präsentation vor einem Team oder in einer Sitzung, ohne „sensible“ oder nicht relevante Elemente offenzulegen. Der Vollmodus behält alles.",
+        "es": "El modo Light solo muestra las secciones que ha preseleccionado: ideal para presentar a un equipo o en una reunión sin exponer elementos «sensibles» o no pertinentes. El modo completo lo mantiene todo."
       },
       "placement": "bottom",
       "highlightScope": "target",
@@ -942,10 +942,10 @@ export const initialOnboardingTourConfig = {
         "es": "Buscar en otros lugares"
       },
       "content": {
-        "en": "If inspiration has to come from elsewhere, click the “Inspiration” toggle to discover projects from other laboratories, patient associations and more.",
-        "fr": "Si l’inspiration doit venir d’ailleurs, cliquez sur le toggle « Inspiration » pour découvrir des projets d’autres laboratoires, d’associations de patients…",
-        "de": "Wenn die Inspiration von anderswo kommen soll, klicken Sie auf den Umschalter „Inspiration“, um Projekte anderer Labore, von Patientenverbänden und mehr zu entdecken.",
-        "es": "Si la inspiración debe venir de otro lugar, haga clic en el conmutador «Inspiración» para descubrir proyectos de otros laboratorios, de asociaciones de pacientes…"
+        "en": "If inspiration has to come from elsewhere, click “Inspiration” to discover projects from other laboratories, patient associations and more.",
+        "fr": "Si l’inspiration doit venir d’ailleurs, cliquez sur « Inspiration » pour découvrir des projets d’autres laboratoires, d’associations de patients…",
+        "de": "Wenn die Inspiration von anderswo kommen soll, klicken Sie auf „Inspiration“, um Projekte anderer Labore, von Patientenverbänden und mehr zu entdecken.",
+        "es": "Si la inspiración debe venir de otro lugar, haga clic en «Inspiración» para descubrir proyectos de otros laboratorios, de asociaciones de pacientes…"
       },
       "placement": "bottom",
       "highlightScope": "target",
