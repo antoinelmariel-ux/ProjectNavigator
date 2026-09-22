@@ -1,4 +1,9 @@
-# Migration vers SharePoint — dossier de référence
+# Exploitation SharePoint & Power Automate — dossier de référence
+
+> Ce dossier documente la configuration **actuelle** de l'intégration SharePoint / Power
+> Automate (listes, bibliothèques, flux de notification) et sert de référentiel opérationnel
+> pour la maintenir. Pour une vue d'ensemble de l'application, voir
+> [`/README.md`](../../README.md) et [`/docs/architecture-technique.md`](../architecture-technique.md).
 
 Stratégie retenue : **API REST SharePoint (`/_api/…`) + Power Automate**.
 L'application étant servie depuis l'origine SharePoint (`https://lfb1.sharepoint.com/…`), le
@@ -28,8 +33,3 @@ consentement administrateur**.
 - **La configuration se publie depuis le back-office** (panneau « Synchronisation SharePoint ») :
   aucun fichier de paramètres à téléverser à la main.
 
-## Documents obsolètes — à ne pas suivre
-
-- `_obsolete/OBSOLETE-guide-migration-graph-msal.md` — stratégie Microsoft Graph + MSAL,
-  abandonnée faute de droits Azure AD.
-- Tous les fichiers de migration présents à la racine de `docs/` (antérieurs à ce dossier).
