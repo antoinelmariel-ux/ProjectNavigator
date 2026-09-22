@@ -103,5 +103,6 @@ tout aussi large à l'application, par exemple).
 | Comment le code est construit, en langage courant | [`architecture-technique-non-expert.md`](architecture-technique-non-expert.md) |
 | Comment le code est construit, version développeurs | [`architecture-technique.md`](architecture-technique.md) |
 | Les listes SharePoint et les automates Power Automate, en détail | [`architecture-sharepoint.md`](architecture-sharepoint.md) |
-| Ce que garantit (et ne garantit pas) l'absence de flux externes | [`securite-donnees.md`](securite-donnees.md) |
+| Ce que garantit (et ne garantit pas) l'absence de flux externes, en langage courant | [`securite-donnees-non-expert.md`](securite-donnees-non-expert.md) |
+| Ce que garantit (et ne garantit pas) l'absence de flux externes, version développeurs | [`securite-donnees.md`](securite-donnees.md) |
 | Mentions légales et données personnelles | [`/mentions-legales.html`](../mentions-legales.html) (ouvert depuis l'application) |

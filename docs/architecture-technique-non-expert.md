@@ -5,7 +5,7 @@
 > [`architecture-technique.md`](architecture-technique.md) : même contenu de fond, mêmes sections,
 > mais en langage courant et avec des analogies. Pour « comment j'utilise l'outil au quotidien »,
 > voir plutôt [`guide-non-expert.md`](guide-non-expert.md). Pour « où vont mes données », voir
-> [`securite-donnees.md`](securite-donnees.md).
+> [`securite-donnees-non-expert.md`](securite-donnees-non-expert.md).
 
 ## 1. Ce que fait l'application
 

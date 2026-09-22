@@ -1,13 +1,13 @@
 # Sécurité des données
 
-> Public : développeurs **et** non-experts (métier, compliance, direction). Ce document explique
-> factuellement, à partir de l'architecture réellement observée dans le code, pourquoi l'absence
-> de flux de données sortant du périmètre SharePoint / Power Automate / Microsoft 365 constitue
-> une garantie de sécurité, et où s'arrête cette garantie.
+> Public : développeurs. Ce document explique factuellement, à partir de l'architecture réellement
+> observée dans le code, pourquoi l'absence de flux de données sortant du périmètre SharePoint /
+> Power Automate / Microsoft 365 constitue une garantie de sécurité, et où s'arrête cette garantie.
 >
 > Toute affirmation ci-dessous est vérifiable dans le code (chemins de fichiers indiqués) ou dans
 > les documents cités. Un point qui n'a pas pu être vérifié dans le code est signalé comme tel,
-> jamais deviné.
+> jamais deviné. Version accessible aux non-développeurs, même raisonnement, même plan :
+> [`securite-donnees-non-expert.md`](securite-donnees-non-expert.md).
 
 ## Contexte
 
