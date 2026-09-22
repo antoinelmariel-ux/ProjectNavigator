@@ -25,83 +25,133 @@ Un second mode, **local/simulé**, reproduit cette même architecture avec des f
 stockage du navigateur, pour le développement et l'ouverture directe du fichier `index.html`
 (`file://`, sans SharePoint) — voir la légende.
 
-## Diagramme
+## Diagrammes
+
+Le schéma est découpé en trois vues, de la plus simple à la plus détaillée : la première suffit
+pour comprendre le principe, les deux suivantes zooment sur les données puis sur les automates.
+
+### 1. Le principe en un coup d'œil
+
+Trois acteurs seulement, et aucun serveur à nous : le navigateur parle directement à SharePoint,
+et SharePoint confie à Power Automate tout ce qui sort du site (e-mails, ajout de membres).
 
 ```mermaid
-flowchart TB
-    User(["Utilisateur du site SharePoint"])
-    App["Project Navigator<br/>fichiers statiques (CN-App/index.aspx)"]
+flowchart LR
+    User(["👤 Utilisateur<br/>(connecté à SharePoint)"])
+    App["🖥️ Project Navigator<br/>s'exécute dans le navigateur"]
+    SP[("🗄️ SharePoint Online<br/>bibliothèques + listes CN_*")]
+    PA["⚙️ Power Automate<br/>flux automatiques"]
+    Out(["✉️ E-mails, Teams,<br/>ajout au site"])
 
-    User -->|"ouvre la page<br/>cookies de session SPO"| App
+    User -->|"1. ouvre la page"| App
+    App <-->|"2. lit et écrit les données<br/>(API REST, cookies de session)"| SP
+    SP -->|"3. une ligne créée dans une<br/>liste « file d'attente » déclenche"| PA
+    PA -->|"4. agit à la place<br/>de l'application"| Out
+```
 
-    subgraph SP["SharePoint Online — site de l'application"]
+### 2. Où vivent les données
+
+Les listes sont regroupées par usage. L'application lit et écrit dans toutes, sauf les deux
+listes grisées, créées mais jamais utilisées à ce jour. Les deux listes « files d'attente » sont
+le seul point de contact avec Power Automate : l'application y dépose une demande, un flux la
+traite.
+
+```mermaid
+flowchart LR
+    App["🖥️ Project Navigator<br/>(navigateur)"]
+
+    subgraph Libs["📁 Bibliothèques de documents"]
         direction TB
+        LibApp["CN-App<br/>le code de l'application"]
+        LibConfig["CN-Config<br/>référentiels JSON<br/>(questions, risques, thèmes, réglages)"]
+        LibDocs["CN-Documents<br/>pièces jointes"]
+    end
 
-        subgraph Libs["Bibliothèques de documents"]
-            LibApp["CN-App<br/>code de l'application"]
-            LibConfig["CN-Config<br/>référentiels JSON (questions,<br/>niveaux de risque, pondération,<br/>thèmes vitrine, réglages)"]
-            LibDocs["CN-Documents<br/>pièces jointes utilisateurs"]
+    subgraph Lists["📋 Listes de données CN_*"]
+        direction TB
+        subgraph GUnused["Créées, non utilisées"]
+            LDiscussions["CN_ProjectDiscussions"]
+            LChanges["CN_BackofficeChanges"]
         end
-
-        subgraph Lists["Listes de données (CN_*)"]
-            direction TB
-            LProjects["CN_Projects"]
-            LInspirations["CN_Inspirations"]
-            LComments["CN_ComplianceComments"]
-            LMembers["CN_ProjectMembers"]
-            LSticky["CN_ShowcaseStickyNotes"]
-            LFiles["CN_FilesIndex"]
-            LProfiles["CN_UserProfiles"]
-            LRules["CN_Rules"]
-            LTeams["CN_Teams"]
-            LSamples["CN_SampleProjects"]
-            LDiscussions["CN_ProjectDiscussions *"]
-            LChanges["CN_BackofficeChanges *"]
+        subgraph GQueues["Files d'attente vers Power Automate"]
             LNotif["CN_NotificationsQueue"]
             LAccess["CN_SiteAccessRequests"]
         end
+        subgraph GUsers["Personnes"]
+            LProfiles["CN_UserProfiles"]
+        end
+        subgraph GComp["Conformité"]
+            LRules["CN_Rules"]
+            LTeams["CN_Teams"]
+            LComments["CN_ComplianceComments"]
+            LSamples["CN_SampleProjects"]
+        end
+        subgraph GProj["Projets et vitrines"]
+            LProjects["CN_Projects"]
+            LMembers["CN_ProjectMembers"]
+            LSticky["CN_ShowcaseStickyNotes"]
+            LInspirations["CN_Inspirations"]
+            LFiles["CN_FilesIndex"]
+        end
     end
 
-    App -->|"API REST /_api/web/lists/…<br/>lecture / écriture (CRUD)"| Lists
-    App -->|"API REST GetFileByServerRelativeUrl<br/>lecture / publication des référentiels"| LibConfig
-    App -->|"API REST Files/add<br/>dépôt de pièces jointes"| LibDocs
-    App -.->|"servi tel quel par SharePoint"| LibApp
+    LibApp -.->|"servi tel quel<br/>par SharePoint"| App
+    App -->|"lit / publie"| LibConfig
+    App -->|"dépose"| LibDocs
+    App -->|"dépose une demande"| GQueues
+    App -->|"lit / écrit"| GUsers
+    App -->|"lit / écrit"| GComp
+    App -->|"lit / écrit"| GProj
 
-    subgraph PA["Power Automate"]
-        direction TB
-        PA1["Flux 1 — Envoi des notifications<br/>(obligatoire)"]
-        PA5["Flux 5 — Ajout comme membre du site<br/>(selon décision de l'administrateur)"]
-        PA6["Flux 6 — Relance des dossiers pris en charge<br/>(recommandé)"]
-        PA2["Flux 2 — Récapitulatif hebdomadaire<br/>(optionnel)"]
-        PA3["Flux 3 — Relance des commentaires ouverts<br/>(optionnel)"]
-        PA4["Flux 4 — Purge du journal<br/>(optionnel, entretien)"]
-    end
-
-    LNotif -->|"déclencheur : élément créé,<br/>Status = Pending"| PA1
-    PA1 -->|"Envoyer un e-mail (V2)"| Mail(["Boîte mail du destinataire"])
-    PA1 -.->|"variante possible"| TeamsChan(["Canal Microsoft Teams"])
-    PA1 -->|"Status = Sent / Error"| LNotif
-
-    LAccess -->|"déclencheur : élément créé,<br/>Status = Pending"| PA5
-    PA5 -->|"POST _api/web/sitegroups(id)/users"| SPGroup[("Groupe « Membres »<br/>du site SharePoint")]
-    PA5 -->|"Status = Done / Error"| LAccess
-
-    LComments -.->|"lu quotidiennement<br/>(dossiers pris en charge)"| PA6
-    LTeams -.->|"seuil ClaimReminderDays"| PA6
-    PA6 -->|"crée une ligne Pending"| LNotif
-    PA6 -->|"met à jour ClaimJson.reminderSentAt"| LComments
-
-    LProjects -.->|"filtré Status = Submitted<br/>(chaque lundi)"| PA2
-    PA2 --> Mail
-
-    LComments -.->|"filtré Resolved = 0<br/>(chaque jour)"| PA3
-    PA3 --> Mail
-
-    LNotif -.->|"purge des lignes Sent<br/>de plus de 180 jours"| PA4
-
-    classDef unused stroke-dasharray: 4 3,opacity:0.75;
-    classDef optional stroke-dasharray: 4 3;
+    classDef unused fill:#eeeeee,stroke:#999999,stroke-dasharray: 4 3,color:#666666;
+    classDef queue stroke-width:2px;
     class LDiscussions,LChanges unused;
+    class LNotif,LAccess queue;
+```
+
+### 3. Les automates Power Automate
+
+Deux familles de flux. Les flux **événementiels** partent dès qu'une ligne « Pending » apparaît
+dans une file d'attente, puis y inscrivent le résultat. Les flux **planifiés** tournent à heure
+fixe, lisent les listes et, au besoin, déposent eux-mêmes une notification dans la file.
+Trait plein : obligatoire ou recommandé ; pointillés : optionnel.
+
+```mermaid
+flowchart LR
+    subgraph Event["⚡ Déclenchés par une nouvelle ligne"]
+        direction TB
+        LNotif["CN_NotificationsQueue"]
+        PA1["Flux 1 — Envoi des notifications<br/><b>obligatoire</b>"]
+        LAccess["CN_SiteAccessRequests"]
+        PA5["Flux 5 — Ajout comme membre du site<br/>selon décision de l'administrateur"]
+        LNotif -->|"ligne Pending"| PA1
+        PA1 -->|"Status = Sent / Error"| LNotif
+        LAccess -->|"ligne Pending"| PA5
+        PA5 -->|"Status = Done / Error"| LAccess
+    end
+
+    subgraph Sched["🕒 Planifiés"]
+        direction TB
+        PA6["Flux 6 — Relance des dossiers pris en charge<br/>quotidien, <b>recommandé</b><br/>(note la relance dans CN_ComplianceComments)"]
+        PA2["Flux 2 — Récapitulatif hebdomadaire<br/>chaque lundi, optionnel"]
+        PA3["Flux 3 — Relance des commentaires ouverts<br/>quotidien, optionnel"]
+        PA4["Flux 4 — Purge du journal<br/>mensuel, optionnel"]
+    end
+
+    Mail(["✉️ Boîte mail<br/>du destinataire"])
+    TeamsChan(["💬 Canal Teams<br/>(variante possible)"])
+    SPGroup[("👥 Groupe « Membres »<br/>du site")]
+
+    PA1 --> Mail
+    PA1 -.-> TeamsChan
+    PA5 -->|"ajoute la personne"| SPGroup
+
+    PA6 -->|"lit CN_ComplianceComments + CN_Teams,<br/>dépose une notification"| LNotif
+    PA2 -.->|"projets soumis"| Mail
+    PA3 -.->|"commentaires non résolus"| Mail
+    PA4 -.->|"supprime les lignes Sent<br/>de plus de 180 jours"| LNotif
+
+    classDef optional stroke-dasharray: 4 3;
     class PA2,PA3,PA4 optional;
 ```
 
@@ -123,7 +173,7 @@ géré par le code (`src/utils/spContext.js`, `src/config/sharepointConfig.js`).
 [`migration-v2/PREPARATION-SHAREPOINT-POWERAUTOMATE.md`](migration-v2/PREPARATION-SHAREPOINT-POWERAUTOMATE.md)
 et vérifiables via le script de
 [`migration-v2/VERIFICATION-CONFIGURATION-SHAREPOINT.md`](migration-v2/VERIFICATION-CONFIGURATION-SHAREPOINT.md).
-Deux d'entre elles (marquées `*` et en pointillés sur le diagramme), `CN_ProjectDiscussions` et
+Deux d'entre elles (grisées sur le diagramme 2), `CN_ProjectDiscussions` et
 `CN_BackofficeChanges`, ont leur schéma de colonnes déclaré et la liste créée côté SharePoint,
 mais **aucune fonctionnalité de l'application ne les lit ou n'y écrit à ce jour** — décision
 documentée dans `src/utils/listSchemas.js`. Les données volumineuses ou imbriquées (réponses au
@@ -148,7 +198,7 @@ Microsoft). Chaque flux est déclenché par la création d'une ligne dans une li
 Mode opératoire complet de chaque flux (déclencheur, actions, expressions, recette de test) :
 [`migration-v2/MODE-OPERATOIRE-POWER-AUTOMATE.md`](migration-v2/MODE-OPERATOIRE-POWER-AUTOMATE.md).
 
-**Mode local/simulé (non représenté sur le diagramme ci-dessus).** Hors origine SharePoint
+**Mode local/simulé (non représenté sur les diagrammes ci-dessus).** Hors origine SharePoint
 (ouverture directe de `index.html` en `file://`, développement, tests), l'aiguillage
 `isSharePointMode()` (`src/config/sharepointConfig.js`) bascule l'application sur des fournisseurs
 de données simulés : fichiers `mock-sharepoint-lists/*.json`/`src/data/mockSharePoint*.js` en
