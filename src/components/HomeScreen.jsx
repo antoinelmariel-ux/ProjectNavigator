@@ -1833,6 +1833,13 @@ export const HomeScreen = ({
     const canCancelSubmission = project.status === 'submitted'
       && typeof onCancelProjectSubmission === 'function'
       && (isAdminMode || isOwnedOrSharedProject(project));
+    // Supprimer un projet non-brouillon est réservé au porteur (ou co-porteur) et aux
+    // administrateurs, comme l'annulation de soumission ci-dessus — la suppression d'un brouillon,
+    // elle, ne porte pas cette vérification : `accessibleProjects` ne montre déjà que les brouillons
+    // du visiteur courant.
+    const canDeleteNonDraftProject = (isCancelled || project.status === 'submitted')
+      && (isAdminMode || isOwnedOrSharedProject(project));
+    const canDeleteProject = typeof onDeleteProject === 'function' && (isDraft || canDeleteNonDraftProject);
 
     return (
       <article
@@ -1942,7 +1949,7 @@ export const HomeScreen = ({
                 <Copy className="w-4 h-4" aria-hidden="true" />
               </button>
             )}
-            {isDraft && typeof onDeleteProject === 'function' && (
+            {canDeleteProject && (
               <button
                 type="button"
                 onClick={() => handleRequestProjectDeletion(project)}
@@ -3120,9 +3127,12 @@ export const HomeScreen = ({
                   {t('home.deleteProjectDialogTitle')}
                 </h2>
                 <p id="delete-project-dialog-description" className="mt-2 text-sm text-gray-600">
-                  {t('home.deleteProjectDescription', {
-                    name: pendingDeletionProjectName || t('home.projectNameFallback')
-                  })}
+                  {t(
+                    deleteDialogState.project?.status === 'submitted'
+                      ? 'home.deleteSubmittedProjectDescription'
+                      : 'home.deleteProjectDescription',
+                    { name: pendingDeletionProjectName || t('home.projectNameFallback') }
+                  )}
                 </p>
               </div>
             </div>

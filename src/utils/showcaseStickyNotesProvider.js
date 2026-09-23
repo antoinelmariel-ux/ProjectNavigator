@@ -71,6 +71,13 @@ class MockShowcaseStickyNotesProvider {
     savePersistedMockMap(MOCK_STICKY_NOTES_STORAGE_KEY, this.notes);
     return toNote(record);
   }
+
+  async removeAllForProject(projectId) {
+    Array.from(this.notes.entries())
+      .filter(([, record]) => record.ProjectId === projectId)
+      .forEach(([stickyId]) => this.notes.delete(stickyId));
+    savePersistedMockMap(MOCK_STICKY_NOTES_STORAGE_KEY, this.notes);
+  }
 }
 
 export class SharePointShowcaseStickyNotesProvider {
@@ -86,6 +93,15 @@ export class SharePointShowcaseStickyNotesProvider {
   async upsertNote(note, { userEmail } = {}) {
     const saved = await this.repository.upsertByKey(toListItem(note, userEmail));
     return toNote(saved);
+  }
+
+  async removeAllForProject(projectId) {
+    const records = await this.repository.findBy('ProjectId', projectId);
+    await Promise.all(
+      records
+        .filter((record) => record.spItemId != null)
+        .map((record) => this.repository.remove(record.spItemId))
+    );
   }
 }
 

@@ -117,6 +117,14 @@ class MockSharePointProvider {
       updatedBy: savedProject.lastModifiedBy
     };
   }
+
+  async deleteProject(projectId) {
+    if (!projectId) {
+      throw new Error('Projet invalide: id manquant');
+    }
+    this.projects.delete(projectId);
+    return { id: projectId };
+  }
 }
 
 // Pas de listProjectsSync ici : l’accès réseau est asynchrone par nature. Les appelants
@@ -157,6 +165,18 @@ export class SharePointRestProvider {
       updatedAt: savedProject.lastUpdated,
       updatedBy: savedProject.lastModifiedBy
     };
+  }
+
+  async deleteProject(projectId) {
+    if (!projectId) {
+      throw new Error('Projet invalide: id manquant');
+    }
+    const found = await this.repository.findRawByKey(projectId);
+    if (!found) {
+      return { id: projectId };
+    }
+    await this.repository.remove(found.row.Id, found.etag);
+    return { id: projectId };
   }
 }
 

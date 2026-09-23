@@ -134,6 +134,7 @@ import { projectMembersProvider } from './utils/projectMembersProvider.js';
 import { userProfileProvider } from './utils/userProfileProvider.js';
 import { showcaseStickyNotesProvider } from './utils/showcaseStickyNotesProvider.js';
 import { complianceCommentsProvider } from './utils/complianceCommentsProvider.js';
+import { filesIndexProvider } from './utils/filesIndexProvider.js';
 import { rulesProvider } from './utils/rulesProvider.js';
 import { sampleProjectsProvider } from './utils/sampleProjectsProvider.js';
 import { teamsProvider } from './utils/teamsProvider.js';
@@ -1128,6 +1129,7 @@ export const App = () => {
   const projectMembersQueueRef = useRef(null);
   const stickyNotesQueueRef = useRef(null);
   const complianceCommentsQueueRef = useRef(null);
+  const filesIndexQueueRef = useRef(null);
   const userProfileQueueRef = useRef(null);
   const rulesQueueRef = useRef(null);
   const sampleProjectsQueueRef = useRef(null);
@@ -2946,6 +2948,11 @@ const updateProjectFilters = useCallback((updater) => {
   useEffect(() => {
     autosaveQueueRef.current = createAutosaveQueue({
       processItem: async (item) => {
+        if (item?.action === 'delete') {
+          await dataProvider.deleteProject(item.project.id);
+          return { updatedAt: null, updatedBy: '' };
+        }
+
         const expectedRowVersion = item?.expectedRowVersion;
         return dataProvider.upsertProject(item.project, {
           expectedRowVersion,
@@ -2983,28 +2990,54 @@ const updateProjectFilters = useCallback((updater) => {
 
   useEffect(() => {
     projectMembersQueueRef.current = createRetryQueue({
-      processItem: (payload) => (
-        payload.action === 'remove'
+      processItem: (payload) => {
+        if (payload.action === 'removeAllForProject') {
+          return projectMembersProvider.removeAllForProject(payload.projectId);
+        }
+        return payload.action === 'remove'
           ? projectMembersProvider.removeMember(payload.projectId, payload.email)
-          : projectMembersProvider.addMember(payload.projectId, payload.email)
-      ),
-      getItemKey: (payload) => `${payload.projectId}::${payload.email}`
+          : projectMembersProvider.addMember(payload.projectId, payload.email);
+      },
+      getItemKey: (payload) => (
+        payload.action === 'removeAllForProject'
+          ? `${payload.projectId}::__all__`
+          : `${payload.projectId}::${payload.email}`
+      )
     });
 
     stickyNotesQueueRef.current = createRetryQueue({
-      processItem: (note) => showcaseStickyNotesProvider.upsertNote(note, { userEmail: currentUserEmail }),
-      getItemKey: (note) => note.id
+      processItem: (payload) => (
+        payload.action === 'removeAllForProject'
+          ? showcaseStickyNotesProvider.removeAllForProject(payload.projectId)
+          : showcaseStickyNotesProvider.upsertNote(payload, { userEmail: currentUserEmail })
+      ),
+      getItemKey: (payload) => (
+        payload.action === 'removeAllForProject' ? `${payload.projectId}::__all__` : payload.id
+      )
     });
 
     complianceCommentsQueueRef.current = createRetryQueue({
-      processItem: (payload) => complianceCommentsProvider.upsertComment(
-        payload.projectId,
-        payload.targetType,
-        payload.targetId,
-        payload.entry,
-        { userEmail: payload.userEmail }
+      processItem: (payload) => (
+        payload.action === 'removeAllForProject'
+          ? complianceCommentsProvider.removeAllForProject(payload.projectId)
+          : complianceCommentsProvider.upsertComment(
+            payload.projectId,
+            payload.targetType,
+            payload.targetId,
+            payload.entry,
+            { userEmail: payload.userEmail }
+          )
       ),
-      getItemKey: (payload) => `${payload.projectId}::${payload.targetType}:${payload.targetId}`
+      getItemKey: (payload) => (
+        payload.action === 'removeAllForProject'
+          ? `${payload.projectId}::__all__`
+          : `${payload.projectId}::${payload.targetType}:${payload.targetId}`
+      )
+    });
+
+    filesIndexQueueRef.current = createRetryQueue({
+      processItem: (payload) => filesIndexProvider.removeAllForProject(payload.projectId),
+      getItemKey: (payload) => `${payload.projectId}::__all__`
     });
 
     userProfileQueueRef.current = createRetryQueue({
@@ -3170,6 +3203,7 @@ const updateProjectFilters = useCallback((updater) => {
       projectMembersQueueRef.current?.flush();
       stickyNotesQueueRef.current?.flush();
       complianceCommentsQueueRef.current?.flush();
+      filesIndexQueueRef.current?.flush();
       userProfileQueueRef.current?.flush();
       rulesQueueRef.current?.flush();
       teamsQueueRef.current?.flush();
@@ -5389,14 +5423,40 @@ const updateProjectFilters = useCallback((updater) => {
     }));
   }, [currentUserDisplayName, notifyOwnerAndCoOwners]);
 
+  // Supprimer un projet soumis (ou dont la soumission a été annulée) est une suppression réelle
+  // et persistée, pas un simple masquage local : sans appel serveur, le projet réapparaîtrait au
+  // prochain rechargement en mode SharePoint (le serveur fait autorité à l'hydratation, voir
+  // `mergeServerAndLocalProjects`). Supprimer un projet encore `submitted` vaut annulation de sa
+  // soumission — il sort donc de toutes les files compliance — mais, contrairement à
+  // `handleCancelProjectSubmission`, ne laisse plus aucune trace : c'est délibérément plus fort
+  // qu'une annulation, pas une variante silencieuse de celle-ci.
   const handleDeleteProject = useCallback((projectId) => {
     if (!projectId) {
       return;
     }
 
+    const targetProject = projectsRef.current.find((project) => project?.id === projectId);
+    if (!targetProject) {
+      return;
+    }
+
+    if (targetProject.status !== 'draft' && !canManageProject(targetProject)) {
+      return;
+    }
+
     setProjects(prevProjects => prevProjects.filter(project => project.id !== projectId));
     setActiveProjectId(prev => (prev === projectId ? null : prev));
-  }, []);
+
+    autosaveQueueRef.current?.enqueue({ project: targetProject, action: 'delete' });
+    // Données satellites (membres, commentaires compliance, post-its de la vitrine) : des lignes
+    // séparées, indexées par ProjectId dans des listes à part — supprimer le projet ne les
+    // efface pas automatiquement côté serveur, elles resteraient orphelines sans ce nettoyage
+    // explicite.
+    projectMembersQueueRef.current?.enqueue({ action: 'removeAllForProject', projectId });
+    complianceCommentsQueueRef.current?.enqueue({ action: 'removeAllForProject', projectId });
+    stickyNotesQueueRef.current?.enqueue({ action: 'removeAllForProject', projectId });
+    filesIndexQueueRef.current?.enqueue({ projectId });
+  }, [canManageProject]);
 
   const handleToggleProjectVisibility = useCallback((projectId) => {
     if (!projectId) {

@@ -477,6 +477,8 @@ export default {
     deleteProjectDialogTitle: 'Projekt löschen?',
     deleteProjectDescription:
       'Sie sind dabei, „{{name}}“ zu löschen. Diese Aktion ist endgültig und das Projekt kann nicht wiederhergestellt werden.',
+    deleteSubmittedProjectDescription:
+      'Sie sind dabei, „{{name}}“ zu löschen. Damit wird die Einreichung storniert: Die Compliance-Teams sehen das Projekt nicht mehr, es wird keine Benachrichtigung gesendet, und diese Aktion ist endgültig — das Projekt kann nicht wiederhergestellt werden.',
     deletePermanently: 'Endgültig löschen',
     projectAriaLabel: 'Projekt {{name}}',
     demoProjectBadge: 'Demo-Projekt',

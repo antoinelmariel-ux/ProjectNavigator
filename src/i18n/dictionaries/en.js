@@ -469,6 +469,8 @@ export default {
     deleteProjectDialogTitle: 'Delete the project?',
     deleteProjectDescription:
       'You are about to delete “{{name}}”. This action is permanent and the project cannot be restored.',
+    deleteSubmittedProjectDescription:
+      'You are about to delete “{{name}}”. This cancels its submission: compliance teams will no longer see it, no notification will be sent, and this action is permanent — the project cannot be restored.',
     deletePermanently: 'Delete permanently',
     projectAriaLabel: 'Project {{name}}',
     demoProjectBadge: 'Demo project',
