@@ -70,7 +70,7 @@ Dans le site : **Contenu du site → Nouveau → Bibliothèque de documents**. N
 | `CN-Config` | Les fichiers de paramètres JSON (règles et équipes n'en font plus partie, voir `CN_Rules`/`CN_Teams` étape 4) — **créée vide, l'app la remplira toute seule** |
 | `CN-Documents` | Les pièces jointes ajoutées par les utilisateurs |
 
-## Étape 4 — Créer les 14 listes
+## Étape 4 — Créer les 12 listes
 
 > **Mise à jour du 29/08/2026** : les tableaux `CN_ComplianceComments` et `CN_ShowcaseStickyNotes`
 > ci-dessous avaient chacun deux colonnes manquantes (`Status`/`AttachmentsJson` pour le premier,
@@ -153,20 +153,6 @@ est volontairement une colonne à part, plate, pour rester lisible dans une vue 
 dont l'historique des reprises. Les deux colonnes vides = personne ne suit ce périmètre, ce qui
 est l'état d'avant cette fonctionnalité : aucune reprise de données n'est nécessaire.
 
-### `CN_ProjectDiscussions` — fils de discussion des projets
-| Colonne | Type |
-|---|---|
-| MessageId 📌 | Une ligne de texte |
-| ProjectId 📌 | Une ligne de texte |
-| ThreadId | Une ligne de texte |
-| SenderEmail | Une ligne de texte |
-| RecipientRole | Une ligne de texte |
-| Message | Texte long |
-| AttachmentsJson | Texte long |
-| RowVersion | Nombre |
-| CreatedAt | Date et heure |
-| UpdatedAt | Date et heure |
-
 ### `CN_ProjectMembers` — qui est co-porteur de quel projet
 | Colonne | Type |
 |---|---|
@@ -175,20 +161,6 @@ est l'état d'avant cette fonctionnalité : aucune reprise de données n'est né
 | MemberEmail 📌 | Une ligne de texte |
 | Role | Une ligne de texte |
 | CanSubmit | Oui/Non |
-
-### `CN_BackofficeChanges` — historique des modifications d'administration
-| Colonne | Type |
-|---|---|
-| ChangeId | Une ligne de texte |
-| EntityType 📌 | Une ligne de texte |
-| EntityId | Une ligne de texte |
-| PayloadJson | Texte long |
-| ChangeType | Une ligne de texte |
-| RequiresValidation | Oui/Non |
-| RowVersion | Nombre |
-| CreatedByEmail | Une ligne de texte |
-| UpdatedByEmail | Une ligne de texte |
-| UpdatedAt | Date et heure |
 
 ### `CN_ShowcaseStickyNotes` — post-its de la vitrine projets
 | Colonne | Type |
@@ -537,7 +509,7 @@ C'est très court maintenant. Copie-colle ceci complété dans la conversation a
 ```
 URL du site SharePoint  : https://lfb1.sharepoint.com/sites/........
 URL exacte de la page   : https://lfb1.sharepoint.com/sites/......../CN-App/index.aspx
-Les 14 listes CN_... sont créées avec les noms de colonnes exacts : oui / non
+Les 12 listes CN_... sont créées avec les noms de colonnes exacts : oui / non
 Bibliothèques CN-App / CN-Config / CN-Documents créées          : oui / non
 Flux Power Automate de notifications créé et activé              : oui / non
 Flux Power Automate d'ajout comme membre du site créé et activé : oui / non

@@ -1,7 +1,7 @@
 # Vérification de la configuration SharePoint
 
 Ce document sert à **vérifier que le site SharePoint est correctement configuré** (les 3
-bibliothèques et les 14 listes attendues par l'application, avec toutes leurs colonnes), et à
+bibliothèques et les 12 listes attendues par l'application, avec toutes leurs colonnes), et à
 **créer automatiquement ce qui manque**, sans avoir à cliquer liste par liste, colonne par colonne.
 
 La configuration de référence ci-dessous est extraite de
@@ -81,7 +81,7 @@ colonnes utilisées par le code — c'est la source de vérité. Le document jum
 | `CN-Config` | Fichiers de paramètres JSON (remplie par l'app) |
 | `CN-Documents` | Pièces jointes ajoutées par les utilisateurs |
 
-### 14 listes
+### 12 listes
 
 `Title` existe par défaut sur toute liste et n'est jamais recréée. 📌 = colonne indexée par le
 script (nécessaire au-delà de 5 000 éléments).
@@ -91,9 +91,7 @@ script (nécessaire au-delà de 5 000 éléments).
 | `CN_Projects` | ProjectId📌, Status📌 (Choix : Draft/Submitted/Cancelled), OwnerEmail, CurrentEditorEmail, AnswersJson (texte long), AnalysisJson (texte long), ProgressAnswered (nombre), ProgressTotal (nombre), SubmissionDate (date), **CancelledDate (date)**, LastAutosaveAt (date), RowVersion (nombre), CreatedByEmail, UpdatedByEmail |
 | `CN_Inspirations` | InspirationId📌, Visibility (Choix : Personal/Shared), InspirationJson (texte long), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
 | `CN_ComplianceComments` | CommentId📌, ProjectId📌, SectionKey, Message (texte long), CommentType, ThreadId, **Status**, **AttachmentsJson (texte long)**, Resolved (oui/non), AssigneeEmail, ClaimJson (texte long), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
-| `CN_ProjectDiscussions` | MessageId📌, ProjectId📌, ThreadId, SenderEmail, RecipientRole, Message (texte long), AttachmentsJson (texte long), RowVersion (nombre), CreatedAt (date), UpdatedAt (date) |
 | `CN_ProjectMembers` | EntryId, ProjectId📌, MemberEmail📌, Role, CanSubmit (oui/non) |
-| `CN_BackofficeChanges` | ChangeId, EntityType📌, EntityId, PayloadJson (texte long), ChangeType, RequiresValidation (oui/non), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
 | `CN_ShowcaseStickyNotes` | StickyId, ProjectId📌, ShowcaseSection, AnchorJson (texte long), Content (texte long), Color, **RepliesJson (texte long)**, **AttachmentsJson (texte long)**, Resolved (oui/non), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
 | `CN_FilesIndex` | FileId, EntityType📌, EntityId📌, Path, UploadedBy, UploadedAt (date), Checksum |
 | `CN_NotificationsQueue` | NotificationType, ToEmails (texte long), CcEmails (texte long), Body (texte long), ProjectId, Status📌 (Choix : Pending/Sent/Error, défaut Pending), SentAt (date), ErrorMessage (texte long) |
@@ -275,21 +273,6 @@ existaient auparavant dans `CN-Config` — une ligne par règle/équipe plutôt 
       ]
     },
     {
-      title: 'CN_ProjectDiscussions',
-      fields: [
-        { name: 'MessageId', type: 'Text', indexed: true },
-        { name: 'ProjectId', type: 'Text', indexed: true },
-        { name: 'ThreadId', type: 'Text' },
-        { name: 'SenderEmail', type: 'Text' },
-        { name: 'RecipientRole', type: 'Text' },
-        { name: 'Message', type: 'Note' },
-        { name: 'AttachmentsJson', type: 'Note' },
-        { name: 'RowVersion', type: 'Number' },
-        { name: 'CreatedAt', type: 'DateTime' },
-        { name: 'UpdatedAt', type: 'DateTime' }
-      ]
-    },
-    {
       title: 'CN_ProjectMembers',
       fields: [
         { name: 'EntryId', type: 'Text' },
@@ -297,21 +280,6 @@ existaient auparavant dans `CN-Config` — une ligne par règle/équipe plutôt 
         { name: 'MemberEmail', type: 'Text', indexed: true },
         { name: 'Role', type: 'Text' },
         { name: 'CanSubmit', type: 'Boolean' }
-      ]
-    },
-    {
-      title: 'CN_BackofficeChanges',
-      fields: [
-        { name: 'ChangeId', type: 'Text' },
-        { name: 'EntityType', type: 'Text', indexed: true },
-        { name: 'EntityId', type: 'Text' },
-        { name: 'PayloadJson', type: 'Note' },
-        { name: 'ChangeType', type: 'Text' },
-        { name: 'RequiresValidation', type: 'Boolean' },
-        { name: 'RowVersion', type: 'Number' },
-        { name: 'CreatedByEmail', type: 'Text' },
-        { name: 'UpdatedByEmail', type: 'Text' },
-        { name: 'UpdatedAt', type: 'DateTime' }
       ]
     },
     {
