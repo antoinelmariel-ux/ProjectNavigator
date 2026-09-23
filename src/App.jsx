@@ -2940,6 +2940,11 @@ const updateProjectFilters = useCallback((updater) => {
   useEffect(() => {
     autosaveQueueRef.current = createAutosaveQueue({
       processItem: async (item) => {
+        if (item?.action === 'delete') {
+          await dataProvider.deleteProject(item.project.id);
+          return { updatedAt: null, updatedBy: '' };
+        }
+
         const expectedRowVersion = item?.expectedRowVersion;
         return dataProvider.upsertProject(item.project, {
           expectedRowVersion,
@@ -5377,14 +5382,32 @@ const updateProjectFilters = useCallback((updater) => {
     }));
   }, [currentUserDisplayName, notifyOwnerAndCoOwners]);
 
+  // Supprimer un projet soumis (ou dont la soumission a été annulée) est une suppression réelle
+  // et persistée, pas un simple masquage local : sans appel serveur, le projet réapparaîtrait au
+  // prochain rechargement en mode SharePoint (le serveur fait autorité à l'hydratation, voir
+  // `mergeServerAndLocalProjects`). Supprimer un projet encore `submitted` vaut annulation de sa
+  // soumission — il sort donc de toutes les files compliance — mais, contrairement à
+  // `handleCancelProjectSubmission`, ne laisse plus aucune trace : c'est délibérément plus fort
+  // qu'une annulation, pas une variante silencieuse de celle-ci.
   const handleDeleteProject = useCallback((projectId) => {
     if (!projectId) {
       return;
     }
 
+    const targetProject = projectsRef.current.find((project) => project?.id === projectId);
+    if (!targetProject) {
+      return;
+    }
+
+    if (targetProject.status !== 'draft' && !canManageProject(targetProject)) {
+      return;
+    }
+
     setProjects(prevProjects => prevProjects.filter(project => project.id !== projectId));
     setActiveProjectId(prev => (prev === projectId ? null : prev));
-  }, []);
+
+    autosaveQueueRef.current?.enqueue({ project: targetProject, action: 'delete' });
+  }, [canManageProject]);
 
   const handleToggleProjectVisibility = useCallback((projectId) => {
     if (!projectId) {

@@ -469,6 +469,8 @@ export default {
     deleteProjectDialogTitle: '¿Eliminar el proyecto?',
     deleteProjectDescription:
       'Está a punto de eliminar «{{name}}». Esta acción es definitiva y el proyecto no podrá restaurarse.',
+    deleteSubmittedProjectDescription:
+      'Está a punto de eliminar «{{name}}». Esto anula su envío: los equipos de cumplimiento ya no lo verán, no se enviará ninguna notificación, y esta acción es definitiva — el proyecto no podrá restaurarse.',
     deletePermanently: 'Eliminar definitivamente',
     projectAriaLabel: 'Proyecto {{name}}',
     demoProjectBadge: 'Proyecto de demostración',
