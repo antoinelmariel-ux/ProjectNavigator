@@ -2,7 +2,7 @@ import { getOrigin, isSharePointMode } from '../config/sharepointConfig.js';
 import { getRepository } from './listRepository.js';
 import { resolveLibraryServerRelativeUrl } from './spLibraryUrl.js';
 import { getCurrentUser } from './spContext.js';
-import { odataQuote, spGet, spPost } from './spRestClient.js';
+import { odataQuote, spDelete, spGet, spPost } from './spRestClient.js';
 
 // Files/add convient largement en deçà de cette taille ; au-delà il faudrait le découpage
 // StartUpload/ContinueUpload/FinishUpload. On préfère un refus explicite à un échec obscur.
@@ -202,6 +202,25 @@ export const uploadDocument = async (file, { entityType, entityId } = {}) => {
     storage: 'sharepoint',
     createdAt: uploadedAt
   };
+};
+
+// Chemin inverse d’`uploadDocument` : retire le fichier déposé dans la bibliothèque
+// CN-Documents. Un DELETE REST standard l’envoie dans la corbeille du site (récupérable),
+// symétrique au DELETE déjà utilisé pour un élément de liste (`listRepository.js#remove`).
+// Un fichier déjà absent (supprimé à la main, ou upload jamais confirmé) n’est pas une erreur :
+// il n’y a rien à recycler deux fois.
+export const deleteDocument = async (serverRelativePath) => {
+  if (!serverRelativePath) {
+    return;
+  }
+  try {
+    await spDelete(`/_api/web/GetFileByServerRelativeUrl('${odataQuote(serverRelativePath)}')`);
+  } catch (error) {
+    if (error?.status === 404) {
+      return;
+    }
+    throw error;
+  }
 };
 
 // Point d’entrée unique des pièces jointes. Hors SharePoint on conserve le comportement

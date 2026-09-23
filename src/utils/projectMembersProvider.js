@@ -45,6 +45,13 @@ class MockProjectMembersProvider {
     this.members.delete(buildEntryId(projectId, email));
     savePersistedMockMap(MOCK_MEMBERS_STORAGE_KEY, this.members);
   }
+
+  async removeAllForProject(projectId) {
+    Array.from(this.members.entries())
+      .filter(([, record]) => record.ProjectId === projectId)
+      .forEach(([entryId]) => this.members.delete(entryId));
+    savePersistedMockMap(MOCK_MEMBERS_STORAGE_KEY, this.members);
+  }
 }
 
 export class SharePointProjectMembersProvider {
@@ -74,6 +81,15 @@ export class SharePointProjectMembersProvider {
       return;
     }
     await this.repository.remove(found.row.Id, found.etag);
+  }
+
+  async removeAllForProject(projectId) {
+    const records = await this.repository.findBy('ProjectId', projectId);
+    await Promise.all(
+      records
+        .filter((record) => record.spItemId != null)
+        .map((record) => this.repository.remove(record.spItemId))
+    );
   }
 }
 
