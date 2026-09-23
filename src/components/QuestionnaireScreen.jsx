@@ -1705,7 +1705,9 @@ export const QuestionnaireScreen = ({
             </div>
           )}
 
-          {renderQuestionInput()}
+          <div data-tour-id="question-answer-input">
+            {renderQuestionInput()}
+          </div>
 
           {canHaveDoubt && (
             <div className="mb-8" data-tour-id="question-doubt-toggle">

@@ -203,6 +203,7 @@ export default {
     title: 'Bienvenido a Project Navigator',
     helpButton: 'Ayuda',
     helpButtonAriaLabel: 'Abrir las preguntas frecuentes (nueva pestaña)',
+    demoPostItAuthor: 'Comentario de ejemplo',
     scopeStep: {
       description: 'Para adaptar el cuestionario a su situación, seleccione su ámbito de actividad (puede elegir varios).',
       continueButton: 'Continuar'

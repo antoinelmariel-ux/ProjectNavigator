@@ -315,7 +315,7 @@ export const AnnotationLayer = ({
       <div className="annotation-sticky-layer" data-annotation-ui="true">
         {visibleNotes.map((note, index) => {
           const position = computeNotePosition(note);
-          const label = note.sourceId && note.sourceId !== 'session' ? note.sourceId : `#${index + 1}`;
+          const label = note.sourceLabel || (note.sourceId && note.sourceId !== 'session' ? note.sourceId : `#${index + 1}`);
           const paletteKey = getFeedbackPaletteKey(note, sourcePalette);
           const isClosed = note?.status === 'closed';
           const replies = Array.isArray(note?.replies) ? note.replies : [];

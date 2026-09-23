@@ -265,15 +265,15 @@ export const ProjectReadinessPanel = ({
         </div>
       )}
 
+      {/* Les deux portes forment une seule cible pour le tour guidé, qui les présente ensemble. */}
       {!isSubmitted && (
-        <div className="mt-4">
+        <div className="mt-4" data-tour-id="synthesis-submit">
           {isValidationPrimary ? (
             <React.Fragment>
               <button
                 type="button"
                 onClick={onSubmitFinal}
                 className="w-full px-4 py-2.5 rounded-lg font-semibold text-sm transition-all flex items-center justify-center bg-blue-600 text-white hover:bg-blue-700 shadow-md"
-                data-tour-id="synthesis-submit"
               >
                 <Send className="w-4 h-4 mr-2" />
                 {t('synthesisReport.readiness.validationAction')}
@@ -294,7 +294,6 @@ export const ProjectReadinessPanel = ({
                 onClick={onSubmitPreliminary}
                 disabled={!canRequestPreliminary}
                 className="w-full px-4 py-2.5 rounded-lg font-semibold text-sm transition-all flex items-center justify-center bg-blue-600 text-white hover:bg-blue-700 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-                data-tour-id="synthesis-submit"
               >
                 <MessageSquare className="w-4 h-4 mr-2" />
                 {t('synthesisReport.readiness.preliminaryAction')}

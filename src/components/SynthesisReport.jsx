@@ -708,7 +708,14 @@ export const SynthesisReport = ({
 
     const element = document.querySelector(selector);
     if (element && typeof element.scrollIntoView === 'function') {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Centré quand il tient à l'écran : aligné en haut, il y restait collé, coupé de l'en-tête
+      // de l'équipe qui lui donne son sens.
+      const rect = element.getBoundingClientRect();
+      if (rect.height < window.innerHeight * 0.8) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        window.scrollTo({ top: Math.max(0, window.scrollY + rect.top - 32), behavior: 'smooth' });
+      }
     }
     // teamCollapsedOverrides : le fil d'échanges n'entre dans le DOM qu'une fois l'équipe
     // dépliée par l'effet ci-dessous, donc après ce premier passage.
@@ -1817,6 +1824,9 @@ export const SynthesisReport = ({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 px-4 py-6 sm:px-8 sm:py-10">
+      {/* Titre, rail et colonne forment une seule cible pour le tour guidé : l'étape qui
+          présente les enjeux décrit les trois ensemble. */}
+      <div className="max-w-6xl mx-auto" data-tour-id="synthesis-summary">
       {/* Le titre couvre toute la largeur : sur mobile les deux colonnes s'empilent, et le
           rail se retrouverait sinon au-dessus du nom de l'écran. */}
       <div className="max-w-6xl mx-auto mb-4">
@@ -1954,7 +1964,6 @@ export const SynthesisReport = ({
           className="w-full min-w-0 flex-1 bg-white rounded-2xl shadow-xl p-6 sm:p-8 mb-6"
           role="region"
           aria-label={t('synthesisReport.projectSynthesisAriaLabel')}
-          data-tour-id="synthesis-summary"
         >
 
           {/* Un seul endroit pour ce message : il était rendu à l'identique en tête des
@@ -3477,6 +3486,7 @@ export const SynthesisReport = ({
             )}
           </section>
         </div>
+      </div>
       </div>
       {isShowcaseFallbackOpen && (
         <div ref={showcaseFallbackRef}>

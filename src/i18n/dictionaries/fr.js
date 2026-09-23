@@ -203,6 +203,7 @@ export default {
     title: 'Bienvenue sur Project Navigator',
     helpButton: 'Aide',
     helpButtonAriaLabel: 'Consulter la FAQ (nouvel onglet)',
+    demoPostItAuthor: 'Exemple de retour',
     scopeStep: {
       description: 'Pour adapter le questionnaire à votre situation, sélectionnez votre périmètre d’activité (plusieurs choix possibles).',
       continueButton: 'Continuer'

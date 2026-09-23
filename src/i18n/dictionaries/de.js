@@ -203,6 +203,7 @@ export default {
     title: 'Willkommen bei Project Navigator',
     helpButton: 'Hilfe',
     helpButtonAriaLabel: 'FAQ öffnen (neuer Tab)',
+    demoPostItAuthor: 'Beispiel-Feedback',
     scopeStep: {
       description: 'Damit der Fragebogen zu Ihnen passt, wählen Sie Ihren Tätigkeitsbereich aus (Mehrfachauswahl möglich).',
       continueButton: 'Weiter'

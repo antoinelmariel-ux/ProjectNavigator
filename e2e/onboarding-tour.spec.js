@@ -7,11 +7,35 @@ const tourNext = (page) => page.locator('.tgjs-controls .tgjs-button--primary');
 const tourAction = (page, label) => page.locator('.tgjs-actions .tgjs-button', { hasText: label });
 const tourTitle = (page) => page.locator('.tgjs-title');
 
+// Présent dans le DOM ne suffit pas : l'élément doit être à l'écran, sous le halo, et la bulle
+// ne doit pas le recouvrir quand la place existe autour. Une étape sans cible (menus, bloc
+// conditionnel absent du projet démo) assombrit tout l'écran et centre sa bulle, sans halo.
 async function expectStep(page, title, anchor) {
   await expect(tourTitle(page)).toHaveText(title);
-  if (anchor) {
-    await expect(page.locator(`[data-tour-id="${anchor}"]`).first()).toBeVisible();
+  const highlight = page.locator('.tgjs-highlight');
+  if (!anchor) {
+    await expect(highlight).toHaveClass(/tgjs-highlight--empty/);
+    return;
   }
+  const target = page.locator(`[data-tour-id="${anchor}"]`).first();
+  await expect(target).toBeVisible();
+  await expect(highlight).not.toHaveClass(/tgjs-highlight--empty/);
+  await expect
+    .poll(async () => {
+      const [targetBox, highlightBox, viewport] = await Promise.all([
+        target.boundingBox(),
+        highlight.boundingBox(),
+        page.evaluate(() => ({ width: window.innerWidth, height: window.innerHeight }))
+      ]);
+      if (!targetBox || !highlightBox) return 'missing box';
+      if (targetBox.y > viewport.height || targetBox.y + targetBox.height < 0) return 'target off screen';
+      const centerX = targetBox.x + targetBox.width / 2;
+      const top = Math.max(targetBox.y, 0);
+      const inside = centerX >= highlightBox.x && centerX <= highlightBox.x + highlightBox.width
+        && top >= highlightBox.y - 1 && top <= highlightBox.y + highlightBox.height;
+      return inside ? 'ok' : 'highlight away from target';
+    }, { timeout: 5000 })
+    .toBe('ok');
 }
 
 async function startTour(page) {
@@ -88,7 +112,7 @@ test.describe('tour v2', () => {
       ['Répondre à votre rythme', 'question-main-content'],
       ['Suivre votre avancement', 'question-summary-panel'],
       ['Comprendre chaque question', 'question-guidance-toggle'],
-      ['Bien plus que du texte', 'question-main-content'],
+      ['Bien plus que du texte', 'question-answer-input'],
       ['Signaler un doute', 'question-doubt-toggle'],
       ['Terminer quand vous voulez', 'questionnaire-finish-button'],
       ['Travailler à plusieurs', 'synthesis-share-member'],
@@ -140,12 +164,12 @@ test.describe('tour v2', () => {
       ['Votre vitrine existe déjà', 'showcase-hero'],
       ['Elle reste vivante', 'showcase-roadmap'],
       ['Vous éditez le rendu réel', 'showcase-edit-trigger'],
-      ['La barre d’édition', null],
-      ['Chaque section se règle', null],
-      ['Ajoutez vos propres blocs', null],
-      ['Publier vos modifications', null],
-      ['Light ou complet, selon l’audience', null],
-      ['Partager et choisir ce qui est visible', null],
+      ['La barre d’édition', 'showcase-edit-topbar'],
+      ['Chaque section se règle', 'showcase-edit-panel'],
+      ['Ajoutez vos propres blocs', 'showcase-add-section-panel'],
+      ['Publier vos modifications', 'showcase-save-edits'],
+      ['Light ou complet, selon l’audience', 'showcase-display-mode-buttons'],
+      ['Partager et choisir ce qui est visible', 'showcase-share-dialog'],
       ['Activer les commentaires', 'showcase-comment-toggle'],
       ['Le feedback arrive en contexte', 'showcase-annotation-note']
     ]);
@@ -163,9 +187,9 @@ test.describe('tour v2', () => {
     await walk(page, [
       ['Trouver l’inspiration', 'home-inspiration-block'],
       ['Chercher ailleurs', 'home-inspiration-toggle'],
-      // La carte de filtres Inspiration n'existe que s'il y a déjà des inspirations : sur une
-      // session vierge, le tour retombe sur une bulle centrée, sans ancrage.
-      ['Filtrer pour trouver', null],
+      // La carte de filtres n'existe qu'avec des inspirations : sur une base vide, le tour
+      // affiche des exemples le temps de la visite pour qu'elle ait quelque chose à désigner.
+      ['Filtrer pour trouver', 'home-inspiration-filters'],
       ['Contribuer à votre tour', 'home-add-inspiration'],
       ['Enrichir votre fiche', 'home-add-inspiration'],
       ['La rendre visible de tous', 'home-inspiration-block']
@@ -173,6 +197,13 @@ test.describe('tour v2', () => {
 
     await expectStep(page, 'Vous avez de quoi nourrir vos idées');
     await expect(tourAction(page, 'Tour rapide')).toHaveCount(0);
+
+    // Les inspirations d'exemple ne servent qu'à la visite : elles ne doivent jamais rejoindre
+    // la base de la personne.
+    await tourAction(page, 'Terminer la visite').click();
+    await expect(page.locator('.tgjs-tooltip')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Inspiration', exact: true }).click();
+    await expect(page.getByText('Aucun projet inspirant enregistré.')).toBeVisible();
     expect(errors).toEqual([]);
   });
 });
