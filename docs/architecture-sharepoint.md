@@ -206,9 +206,3 @@ lieu et place des listes, et stockage du navigateur (`localStorage`, clé
 `complianceNavigatorState`) en lieu et place de SharePoint. Les notifications qui partiraient vers
 `CN_NotificationsQueue` sont alors simplement journalisées dans la console du navigateur
 (`console.info`), sans aucun envoi réel.
-
-**Non vérifié dans le code / à valider par l'organisation** : l'activation effective de chacun des
-flux Power Automate ci-dessus sur l'environnement de production, l'adresse d'envoi retenue (boîte
-personnelle ou boîte partagée) et l'existence d'un environnement de production distinct de
-l'environnement de développement — voir [`migration-v2/ENVIRONNEMENTS.md`](migration-v2/ENVIRONNEMENTS.md),
-qui indique un site de production « à créer » au moment de la rédaction de ce document.
