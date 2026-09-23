@@ -70,8 +70,6 @@ tronqué, versions incohérentes) fait retomber silencieusement sur les `.js` em
 `file://`, ce mécanisme de téléchargement est entièrement ignoré. Procédure de publication
 détaillée : [`migration-v2/DEPLOIEMENT-MISE-A-JOUR-SANS-CUSTOM-SCRIPT.md`](migration-v2/DEPLOIEMENT-MISE-A-JOUR-SANS-CUSTOM-SCRIPT.md).
 
-`src/vendor/babel.min.js` est présent dans le dépôt mais **n'est chargé par aucune balise
-`<script>` de `index.html`** : c'est un résidu, sans effet sur le fonctionnement actuel.
 
 ## 4. Structure du code (`src/`)
 
