@@ -91,16 +91,6 @@ l'application :
   décourager qu'on le modifie afin d'en voir plus que prévu, mais ce n'est pas un coffre-fort :
   toute personne qui obtient ce lien — et qui a par ailleurs les droits nécessaires sur le site
   SharePoint pour ouvrir l'application — peut consulter ce que ce lien donne à voir.
-- **D'anciennes versions de certains fichiers restent présentes dans l'historique technique du
-  projet**, sans être utilisées par l'application aujourd'hui. Leur contenu n'a pas fait l'objet
-  d'une vérification de sécurité spécifique dans le cadre de ce document.
 - **La sauvegarde et la conservation dans le temps des données dépendent de réglages SharePoint**
   (activer ou non l'historique des versions, par exemple), pas d'un mécanisme propre à
   l'application — à vérifier auprès de l'administration SharePoint plutôt que supposé ici.
-- **Non vérifiable en lisant seulement l'application** : la durée exacte de conservation des
-  données (un document de mentions légales de l'application évoque 5 ans pour certaines données,
-  mais c'est une question de politique de gouvernance des données, pas de code), l'activation
-  réelle du chiffrement sur l'environnement Microsoft 365 de l'organisation, et la liste exacte des
-  personnes ayant accès au site SharePoint à un instant donné — ces points relèvent de
-  l'administration de votre environnement, pas de l'application elle-même, et doivent être
-  confirmés auprès des équipes qui gèrent ce site.
