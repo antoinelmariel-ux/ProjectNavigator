@@ -120,24 +120,12 @@ Ce qui suit est vérifié directement dans le code du dépôt, pas supposé :
   mêmes garanties que tout e-mail interne au tenant — mais un e-mail envoyé peut être transféré ou
   imprimé par son destinataire, hors du contrôle de l'application une fois émis. C'est une limite
   inhérente à tout système de notification par e-mail, pas spécifique à ce projet.
-- **Un lien de vitrine de projet partagé (`?sv=…`) reste un lien.** `docs/`/`CLAUDE.md` documente
-  qu'un token de partage est obfusqué et scellé par une somme de contrôle (pas de bascule en clair
+- **Un lien de vitrine de projet partagé (`?sv=…`) reste un lien.** Un token de partage est obfusqué et scellé par une somme de contrôle (pas de bascule en clair
   vers le mode complet en modifiant l'URL), mais ce mécanisme est une **dissuasion**, pas un
   chiffrement de bout en bout : quiconque obtient un lien valide et le rôle nécessaire côté
   SharePoint pour ouvrir l'application peut consulter ce qu'il donne à voir. Ce n'est pas un
   problème de flux sortant, mais une limite à connaître du modèle de partage.
-- **`.backup-avant-signature/` reste présent dans l'historique du dépôt** (fichiers `.jsx`/`.css`
-  antérieurs à une réécriture des thèmes de vitrine). Le code applicatif exécuté ne provient jamais
-  de ce dossier (il n'est référencé nulle part dans `index.html` ni le manifeste), mais son contenu
-  n'a pas fait l'objet d'un audit de sécurité dans le cadre de ce document.
 - **Le versionnement et la sauvegarde des données dépendent de la configuration SharePoint**
   (historique des versions activé sur les listes et sur `CN-Config`), pas d'un mécanisme propre à
   l'application. `docs/migration-v2/PREPARATION-SHAREPOINT-POWERAUTOMATE.md` recommande de vérifier
   ce réglage ; ce n'est pas garanti par le code.
-- **Non vérifié dans le code — à faire valider par l'organisation** : la durée de conservation
-  effective des données (`mentions-legales.html` mentionne 5 ans à compter de la soumission aux
-  équipes Compliance pour les données couvertes par cette section, mais ce point relève d'une
-  politique de gouvernance des données, pas du code), l'activation réelle du chiffrement au repos
-  et en transit sur le tenant (paramètre de configuration Microsoft 365, hors du périmètre du code
-  applicatif), et la liste exacte des personnes ayant accès au site SharePoint de production à un
-  instant donné (donnée d'exploitation, pas de code).
