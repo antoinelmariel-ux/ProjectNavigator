@@ -198,14 +198,3 @@ Aucune dépendance d'exécution (`package.json` ne déclare aucune section `depe
 ReactDOM sont vendorés en fichiers statiques (`src/vendor/`), pas installés via `npm` côté
 utilisateur final. Les seules dépendances sont des `devDependencies` (Babel pour la transpilation
 hors-ligne, ESLint, Prettier, Playwright) utilisées uniquement pendant le développement.
-
-## 12. Ce qui n'a pas pu être vérifié dans le code
-
-- L'état d'avancement réel de la recette sur l'environnement SharePoint (phase « Build &
-  vérification » de `migration-v2/GUIDE-CLAUDE-MIGRATION-SHAREPOINT-REST.md`, marquée « à faire »
-  au moment de la rédaction) — à confirmer auprès de l'équipe projet.
-- L'existence d'un environnement SharePoint de production distinct de l'environnement de
-  développement : `migration-v2/ENVIRONNEMENTS.md` liste un site de production « à créer ».
-- L'activation effective (et non simplement documentée) de chacun des flux Power Automate sur
-  l'environnement réel — le code ne peut attester que du mécanisme (dépôt d'une ligne dans une
-  liste), pas de la configuration Power Automate elle-même, qui vit hors du dépôt de code.
