@@ -134,6 +134,7 @@ import { projectMembersProvider } from './utils/projectMembersProvider.js';
 import { userProfileProvider } from './utils/userProfileProvider.js';
 import { showcaseStickyNotesProvider } from './utils/showcaseStickyNotesProvider.js';
 import { complianceCommentsProvider } from './utils/complianceCommentsProvider.js';
+import { filesIndexProvider } from './utils/filesIndexProvider.js';
 import { rulesProvider } from './utils/rulesProvider.js';
 import { sampleProjectsProvider } from './utils/sampleProjectsProvider.js';
 import { teamsProvider } from './utils/teamsProvider.js';
@@ -1128,6 +1129,7 @@ export const App = () => {
   const projectMembersQueueRef = useRef(null);
   const stickyNotesQueueRef = useRef(null);
   const complianceCommentsQueueRef = useRef(null);
+  const filesIndexQueueRef = useRef(null);
   const userProfileQueueRef = useRef(null);
   const rulesQueueRef = useRef(null);
   const sampleProjectsQueueRef = useRef(null);
@@ -3027,6 +3029,11 @@ const updateProjectFilters = useCallback((updater) => {
       )
     });
 
+    filesIndexQueueRef.current = createRetryQueue({
+      processItem: (payload) => filesIndexProvider.removeAllForProject(payload.projectId),
+      getItemKey: (payload) => `${payload.projectId}::__all__`
+    });
+
     userProfileQueueRef.current = createRetryQueue({
       processItem: (payload) => userProfileProvider.saveProfile(payload.email, payload.patch),
       getItemKey: (payload) => payload.email
@@ -3190,6 +3197,7 @@ const updateProjectFilters = useCallback((updater) => {
       projectMembersQueueRef.current?.flush();
       stickyNotesQueueRef.current?.flush();
       complianceCommentsQueueRef.current?.flush();
+      filesIndexQueueRef.current?.flush();
       userProfileQueueRef.current?.flush();
       rulesQueueRef.current?.flush();
       teamsQueueRef.current?.flush();
@@ -5435,6 +5443,7 @@ const updateProjectFilters = useCallback((updater) => {
     projectMembersQueueRef.current?.enqueue({ action: 'removeAllForProject', projectId });
     complianceCommentsQueueRef.current?.enqueue({ action: 'removeAllForProject', projectId });
     stickyNotesQueueRef.current?.enqueue({ action: 'removeAllForProject', projectId });
+    filesIndexQueueRef.current?.enqueue({ projectId });
   }, [canManageProject]);
 
   const handleToggleProjectVisibility = useCallback((projectId) => {
