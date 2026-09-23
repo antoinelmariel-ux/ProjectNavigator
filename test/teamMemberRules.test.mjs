@@ -1,8 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { normalizeTeamContacts } from '../src/utils/teamContacts.js';
 import {
   MEMBER_TRIGGER_MODE_EXCLUDE,
   MEMBER_TRIGGER_MODE_INCLUDE,
+  MEMBER_TRIGGER_MODE_NEVER,
   TEAM_MEMBER_COVERAGE_ALL_CONDITIONAL,
   TEAM_MEMBER_COVERAGE_NO_MEMBER,
   TEAM_MEMBER_COVERAGE_OK,
@@ -268,4 +270,73 @@ test('la réattribution ignore la casse des adresses', () => {
 
   assert.equal(getTeamMemberRule(next, 'alice@lfb.fr'), null);
   assert.equal(getTeamMemberRule(next, 'bob@lfb.fr').mode, MEMBER_TRIGGER_MODE_EXCLUDE);
+});
+
+test('mode never : le membre n’est jamais sollicité, même sans condition', () => {
+  const team = buildTeam([
+    { email: 'alice@lfb.fr', mode: MEMBER_TRIGGER_MODE_NEVER, conditionGroups: [] }
+  ]);
+
+  assert.equal(normalizeTeamMemberRules(team).length, 1);
+  assert.deepEqual(resolveTeamRecipients(team, { country: 'FR' }), ['bob@lfb.fr', 'carole@lfb.fr']);
+  assert.deepEqual(resolveTeamRecipients(team, {}), ['bob@lfb.fr', 'carole@lfb.fr']);
+});
+
+test('mode never : ignore d’éventuelles conditions, le blocage reste inconditionnel', () => {
+  const team = buildTeam([
+    {
+      email: 'alice@lfb.fr',
+      mode: MEMBER_TRIGGER_MODE_NEVER,
+      conditionGroups: [group([condition('country', 'FR')])]
+    }
+  ]);
+
+  assert.deepEqual(resolveTeamRecipients(team, { country: 'FR' }), ['bob@lfb.fr', 'carole@lfb.fr']);
+  assert.deepEqual(resolveTeamRecipients(team, { country: 'DE' }), ['bob@lfb.fr', 'carole@lfb.fr']);
+});
+
+test('mode never : ne compte pas comme membre systématiquement sollicité', () => {
+  const team = buildTeam([
+    { email: 'alice@lfb.fr', mode: MEMBER_TRIGGER_MODE_NEVER, conditionGroups: [] },
+    { email: 'bob@lfb.fr', mode: MEMBER_TRIGGER_MODE_NEVER, conditionGroups: [] },
+    { email: 'carole@lfb.fr', mode: MEMBER_TRIGGER_MODE_NEVER, conditionGroups: [] }
+  ]);
+
+  assert.ok(!hasUnconditionalTeamMember(team));
+  assert.equal(getTeamMemberCoverageWarning(team), TEAM_MEMBER_COVERAGE_ALL_CONDITIONAL);
+  assert.deepEqual(resolveTeamRecipients(team, {}), []);
+});
+
+test('mode never : accès aux contacts complets inchangé (routage seulement)', () => {
+  const team = buildTeam([
+    { email: 'alice@lfb.fr', mode: MEMBER_TRIGGER_MODE_NEVER, conditionGroups: [] }
+  ]);
+
+  assert.deepEqual(normalizeTeamContacts(team), ['alice@lfb.fr', 'bob@lfb.fr', 'carole@lfb.fr']);
+});
+
+test('réattribuer les critères d’un membre en mode never le libère bien', () => {
+  const team = buildTeam([
+    { email: 'alice@lfb.fr', mode: MEMBER_TRIGGER_MODE_NEVER, conditionGroups: [] }
+  ]);
+
+  const next = reassignTeamMemberRule(team, 'alice@lfb.fr', 'bob@lfb.fr');
+
+  assert.equal(getTeamMemberRule(next, 'alice@lfb.fr'), null);
+  assert.equal(getTeamMemberRule(next, 'bob@lfb.fr').mode, MEMBER_TRIGGER_MODE_NEVER);
+  assert.deepEqual(resolveTeamRecipients(next, {}), ['alice@lfb.fr', 'carole@lfb.fr']);
+});
+
+test('applyTeamMemberRule : passer un membre never en include sans condition efface la règle', () => {
+  const team = buildTeam([
+    { email: 'alice@lfb.fr', mode: MEMBER_TRIGGER_MODE_NEVER, conditionGroups: [] }
+  ]);
+
+  const cleared = applyTeamMemberRule(team, 'alice@lfb.fr', (current) => ({
+    ...current,
+    mode: MEMBER_TRIGGER_MODE_INCLUDE
+  }));
+
+  assert.equal(getTeamMemberRule(cleared, 'alice@lfb.fr'), null);
+  assert.deepEqual(resolveTeamRecipients(cleared, {}), ['alice@lfb.fr', 'bob@lfb.fr', 'carole@lfb.fr']);
 });

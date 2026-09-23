@@ -395,11 +395,22 @@ missing; the counts stay in the `title` tooltip). Don't add a second badge here.
 
 A team with several contacts can route each solicitation: `src/utils/teamMemberRules.js` holds one
 optional entry per member (`team.memberRules`, persisted as `MemberRulesJson` on `CN_Teams`) made of
-a `mode` (`include` = contacted only if the criteria match, `exclude` = contacted unless they match)
-and the very same `conditionGroups` shape the rules use — `evaluateRule` from `src/utils/rules.js`
-is what evaluates them, so both grammars can never drift apart. A contact with no entry is always
-contacted, which is what makes the whole feature backward-compatible: with no entry anywhere,
-`resolveTeamRecipients(team, answers)` returns exactly `normalizeTeamContacts(team)`.
+a `mode` (`include` = contacted only if the criteria match, `exclude` = contacted unless they match,
+`never` = never contacted, unconditionally) and the very same `conditionGroups` shape the rules use —
+`evaluateRule` from `src/utils/rules.js` is what evaluates them, so both grammars can never drift
+apart. A contact with no entry is always contacted, which is what makes the whole feature
+backward-compatible: with no entry anywhere, `resolveTeamRecipients(team, answers)` returns exactly
+`normalizeTeamContacts(team)`.
+
+`never` needs no `conditionGroups` to be a real entry — `isMemberRuleMeaningful` in
+`teamMemberRules.js` keeps it in `normalizeTeamMemberRules` on the mode alone, unlike `include`/
+`exclude` (see below). It exists for someone who should keep ordinary access to the team's settings
+and projects (routing narrows recipients, never access — same invariant as the other two modes) but
+must stop receiving notifications altogether, e.g. someone on long-term leave with no single backup.
+Because it's unconditional it also never counts towards `hasUnconditionalTeamMember`, so an
+all-`never` team still raises the `allConditional` coverage warning. Reassigning *away from* a
+`never` member (`reassignTeamMemberRule`) resets both its mode and its conditions on the source, not
+just the conditions — otherwise the freed member would stay silently blocked.
 
 Three things are deliberate here:
 
@@ -409,12 +420,12 @@ Three things are deliberate here:
   thread authorship, `hasScopedBackOfficeAccess`) stay on the full contact list. A member who isn't
   solicited for one project must still be able to open it, or removing yourself from a mail routing
   would lock you out of your own team's back-office.
-- **An entry without conditions is not an entry.** `normalizeTeamMemberRules` drops rules with no
-  condition and rules whose email is no longer a team contact, so an address removed and later
-  re-added never silently inherits invisible old criteria. Note that `conditionGroups` present but
-  empty is authoritative in this module (`resolveMemberConditionGroups`) — the legacy flat
-  `conditions` fallback in `normalizeRuleConditionGroups` would otherwise resurrect the criteria the
-  admin just cleared.
+- **An entry without conditions is not an entry — except `never`.** `normalizeTeamMemberRules` drops
+  `include`/`exclude` rules with no condition and rules whose email is no longer a team contact, so
+  an address removed and later re-added never silently inherits invisible old criteria. Note that
+  `conditionGroups` present but empty is authoritative in this module (`resolveMemberConditionGroups`)
+  — the legacy flat `conditions` fallback in `normalizeRuleConditionGroups` would otherwise resurrect
+  the criteria the admin just cleared. `never` is the one mode kept with zero conditions, by design.
 - **The back-office warns when nobody is unconditional, and offers the way out.**
   `getTeamMemberCoverageWarning` returns `allConditional` as soon as every remaining contact carries
   criteria: there is then a set of answers for which the team solicits nobody. The teams tab renders
