@@ -78,6 +78,7 @@ import {
   MEMBER_TRIGGER_MODES,
   MEMBER_TRIGGER_MODE_EXCLUDE,
   MEMBER_TRIGGER_MODE_INCLUDE,
+  MEMBER_TRIGGER_MODE_NEVER,
   TEAM_MEMBER_COVERAGE_ALL_CONDITIONAL,
   TEAM_MEMBER_COVERAGE_NO_MEMBER,
   applyTeamMemberRule,
@@ -4696,8 +4697,8 @@ export const BackOffice = ({
     setTeamMemberRuleModal({
       teamId,
       email,
-      mode: storedRule?.mode === MEMBER_TRIGGER_MODE_EXCLUDE
-        ? MEMBER_TRIGGER_MODE_EXCLUDE
+      mode: storedRule?.mode === MEMBER_TRIGGER_MODE_EXCLUDE || storedRule?.mode === MEMBER_TRIGGER_MODE_NEVER
+        ? storedRule.mode
         : MEMBER_TRIGGER_MODE_INCLUDE
     });
   };
@@ -4711,7 +4712,12 @@ export const BackOffice = ({
   };
 
   const clearTeamMemberRule = (teamId, email) => {
-    updateTeamMemberRule(teamId, email, (current) => ({ ...current, conditionGroups: [] }));
+    updateTeamMemberRule(teamId, email, (current) => ({
+      ...current,
+      mode: MEMBER_TRIGGER_MODE_INCLUDE,
+      conditionGroups: []
+    }));
+    setTeamMemberRuleModal((prev) => (prev ? { ...prev, mode: MEMBER_TRIGGER_MODE_INCLUDE } : prev));
   };
 
   const openMemberAbsenceEditor = (teamId, email, absence) => {
@@ -8889,14 +8895,18 @@ export const BackOffice = ({
                                 : 0;
                               const badgeLabel = !memberRule
                                 ? t('backOffice.main.teamMemberAlwaysTriggeredBadge')
-                                : memberRule.mode === MEMBER_TRIGGER_MODE_EXCLUDE
-                                  ? t('backOffice.main.teamMemberExcludeBadge')
-                                  : t('backOffice.main.teamMemberIncludeBadge');
+                                : memberRule.mode === MEMBER_TRIGGER_MODE_NEVER
+                                  ? t('backOffice.main.teamMemberNeverBadge')
+                                  : memberRule.mode === MEMBER_TRIGGER_MODE_EXCLUDE
+                                    ? t('backOffice.main.teamMemberExcludeBadge')
+                                    : t('backOffice.main.teamMemberIncludeBadge');
                               const badgeClassName = !memberRule
                                 ? 'bg-emerald-100 text-emerald-800'
-                                : memberRule.mode === MEMBER_TRIGGER_MODE_EXCLUDE
-                                  ? 'bg-rose-100 text-rose-800'
-                                  : 'bg-blue-100 text-blue-800';
+                                : memberRule.mode === MEMBER_TRIGGER_MODE_NEVER
+                                  ? 'bg-gray-200 text-gray-700'
+                                  : memberRule.mode === MEMBER_TRIGGER_MODE_EXCLUDE
+                                    ? 'bg-rose-100 text-rose-800'
+                                    : 'bg-blue-100 text-blue-800';
 
                               return (
                                 <li
@@ -10292,11 +10302,19 @@ export const BackOffice = ({
           const memberEmail = teamMemberRuleModal.email;
           const memberRule = getTeamMemberRule(modalTeam, memberEmail);
           const memberMode = teamMemberRuleModal.mode === MEMBER_TRIGGER_MODE_EXCLUDE
-            ? MEMBER_TRIGGER_MODE_EXCLUDE
+            || teamMemberRuleModal.mode === MEMBER_TRIGGER_MODE_NEVER
+            ? teamMemberRuleModal.mode
             : MEMBER_TRIGGER_MODE_INCLUDE;
           const memberGroups = memberRule ? normalizeRuleConditionGroups(memberRule) : [];
           const isExcludeMode = memberMode === MEMBER_TRIGGER_MODE_EXCLUDE;
-          const summary = memberGroups.length === 0 ? null : memberGroups.length === 1 ? (
+          const isNeverMode = memberMode === MEMBER_TRIGGER_MODE_NEVER;
+          const summary = isNeverMode ? (
+            <p>
+              {interpolateNodes(t('backOffice.main.teamMemberNeverTemplate'), {
+                member: <strong className="text-blue-700">{memberEmail}</strong>
+              })}
+            </p>
+          ) : memberGroups.length === 0 ? null : memberGroups.length === 1 ? (
             (() => {
               const logic = memberGroups[0].logic === 'any' ? 'any' : 'all';
               const logicLabel = logic === 'any'
@@ -10404,33 +10422,42 @@ export const BackOffice = ({
                             }}
                           />
                           <span>
-                            {mode === MEMBER_TRIGGER_MODE_EXCLUDE
-                              ? t('backOffice.main.teamMemberModeExcludeOption')
-                              : t('backOffice.main.teamMemberModeIncludeOption')}
+                            {mode === MEMBER_TRIGGER_MODE_NEVER
+                              ? t('backOffice.main.teamMemberModeNeverOption')
+                              : mode === MEMBER_TRIGGER_MODE_EXCLUDE
+                                ? t('backOffice.main.teamMemberModeExcludeOption')
+                                : t('backOffice.main.teamMemberModeIncludeOption')}
                           </span>
                         </label>
                       ))}
                     </div>
                   </fieldset>
 
-                  <ConditionGroupsEditor
-                    idPrefix={`team-member-${modalTeam.id}`}
-                    groups={memberGroups}
-                    onChange={(nextGroups) =>
-                      updateTeamMemberRule(modalTeam.id, memberEmail, (current) => ({
-                        ...current,
-                        mode: memberMode,
-                        conditionGroups: nextGroups
-                      }))}
-                    questions={questions}
-                    language={language}
-                    emptyStateText={t('backOffice.main.teamMemberNoConditionYet')}
-                    summary={summary}
-                  />
+                  {isNeverMode ? (
+                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+                      {summary}
+                      <p className="mt-2 text-xs text-gray-500">{t('backOffice.main.teamMemberNeverHint')}</p>
+                    </div>
+                  ) : (
+                    <ConditionGroupsEditor
+                      idPrefix={`team-member-${modalTeam.id}`}
+                      groups={memberGroups}
+                      onChange={(nextGroups) =>
+                        updateTeamMemberRule(modalTeam.id, memberEmail, (current) => ({
+                          ...current,
+                          mode: memberMode,
+                          conditionGroups: nextGroups
+                        }))}
+                      questions={questions}
+                      language={language}
+                      emptyStateText={t('backOffice.main.teamMemberNoConditionYet')}
+                      summary={summary}
+                    />
+                  )}
                 </div>
 
                 <div className="mt-6 flex flex-wrap justify-end gap-3">
-                  {memberGroups.length > 0 && (
+                  {(memberGroups.length > 0 || isNeverMode) && (
                     <button
                       type="button"
                       onClick={() => clearTeamMemberRule(modalTeam.id, memberEmail)}
