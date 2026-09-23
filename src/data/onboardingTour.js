@@ -11,6 +11,18 @@
 // personnalisations back-office du tour : à ne faire que pour une refonte assumée.
 export const ONBOARDING_TOUR_VERSION = 7;
 
+// Valeurs par défaut remplacées sans changer de version : une config persistée qui porte encore
+// l'ancienne valeur (donc jamais retouchée sur ce champ) reçoit la nouvelle, une valeur
+// personnalisée est conservée. De quoi corriger le placement d'une étape sans écraser tout le
+// reste du tour personnalisé en back-office.
+export const SUPERSEDED_ONBOARDING_STEP_DEFAULTS = {
+  // Le titre de la question était mis en avant alors que l'étape décrit la zone de réponse.
+  'question-answer-types': { target: ['[data-tour-id="question-main-content"]'] },
+  // Le seul titre de la fenêtre de partage était mis en avant, et la bulle, posée dessous,
+  // masquait précisément les réglages que l'étape décrit.
+  'showcase-share-settings': { target: ['#showcase-share-title'], placement: ['bottom'] }
+};
+
 const ACTION_LABELS = {
   create: { en: 'Create a project', fr: 'Créer un projet', de: 'Ein Projekt erstellen', es: 'Crear un proyecto' },
   validate: { en: 'Get your project approved', fr: 'Valider son projet', de: 'Projekt validieren lassen', es: 'Validar su proyecto' },
@@ -337,7 +349,7 @@ export const initialOnboardingTourConfig = {
     },
     {
       "id": "question-answer-types",
-      "target": "[data-tour-id=\"question-main-content\"]",
+      "target": "[data-tour-id=\"question-answer-input\"]",
       "title": {
         "en": "Much more than text",
         "fr": "Bien plus que du texte",
@@ -832,7 +844,7 @@ export const initialOnboardingTourConfig = {
     },
     {
       "id": "showcase-share-settings",
-      "target": "#showcase-share-title",
+      "target": "[data-tour-id=\"showcase-share-dialog\"]",
       "title": {
         "en": "Share and choose what is visible",
         "fr": "Partager et choisir ce qui est visible",
@@ -845,7 +857,7 @@ export const initialOnboardingTourConfig = {
         "de": "Kopieren Sie den Freigabelink (oder laden Sie eine Verknüpfung herunter) und legen Sie fest, was Ihre Empfänger sehen: Light- oder Vollansicht, Kommentare erlaubt oder nicht, Haftnotizen aller oder nur ihre eigenen.",
         "es": "Copie el enlace de uso compartido (o descargue un acceso directo) y elija lo que verán sus destinatarios: visualización Light o completa, comentarios permitidos o no, notas adhesivas de todos o solo las suyas."
       },
-      "placement": "bottom",
+      "placement": "right",
       "highlightScope": "target",
       "showDefaultButtons": true,
       "actions": []

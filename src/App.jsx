@@ -129,7 +129,7 @@ import { canQuestionHaveDoubt, withQuestionDoubt, withoutQuestionDoubt, getOpenQ
 import { getCurrentUser, getRealUser } from './utils/spContext.js';
 import { isImpersonating } from './utils/impersonation.js';
 import { dataProvider } from './utils/dataProvider.js';
-import { inspirationDataProvider } from './utils/inspirationDataProvider.js';
+import { inspirationDataProvider, buildOnboardingDemoInspirations } from './utils/inspirationDataProvider.js';
 import { projectMembersProvider } from './utils/projectMembersProvider.js';
 import { userProfileProvider } from './utils/userProfileProvider.js';
 import { showcaseStickyNotesProvider } from './utils/showcaseStickyNotesProvider.js';
@@ -2183,6 +2183,9 @@ const updateProjectFilters = useCallback((updater) => {
     });
     const sourceId = 'onboarding-demo';
     const color = registerAnnotationSource(sourceId, ANNOTATION_COLORS[3]);
+    // Identifiant technique qui sert à retrouver ces notes ; il s'affichait tel quel en tête
+    // des post-its d'exemple.
+    const sourceLabel = t('onboarding.demoPostItAuthor');
 
     return [
       {
@@ -2200,7 +2203,8 @@ const updateProjectFilters = useCallback((updater) => {
         contextId,
         projectId,
         projectName: projectContext.projectName || '',
-        sourceId
+        sourceId,
+        sourceLabel
       },
       {
         id: createAnnotationId(),
@@ -2217,7 +2221,8 @@ const updateProjectFilters = useCallback((updater) => {
         contextId,
         projectId,
         projectName: projectContext.projectName || '',
-        sourceId
+        sourceId,
+        sourceLabel
       },
       {
         id: createAnnotationId(),
@@ -2234,7 +2239,8 @@ const updateProjectFilters = useCallback((updater) => {
         contextId,
         projectId,
         projectName: projectContext.projectName || '',
-        sourceId
+        sourceId,
+        sourceLabel
       }
     ];
   }, [registerAnnotationSource, showcaseAnnotationScope, t]);
@@ -3311,6 +3317,12 @@ const updateProjectFilters = useCallback((updater) => {
   const activeInspirationProject = useMemo(
     () => inspirationProjects.find(project => project.id === activeInspirationId) || null,
     [inspirationProjects, activeInspirationId]
+  );
+  const displayedInspirationProjects = useMemo(
+    () => (isOnboardingActive && inspirationProjects.length === 0
+      ? buildOnboardingDemoInspirations()
+      : inspirationProjects),
+    [isOnboardingActive, inspirationProjects]
   );
 
   // Ce qui a bougé depuis ce que les experts ont reçu. Calculé sur `answers` (le tampon d'édition
@@ -7501,7 +7513,10 @@ const updateProjectFilters = useCallback((updater) => {
           aria-modal="true"
           aria-labelledby="showcase-share-title"
         >
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 sm:p-8 space-y-4 hv-modal-panel">
+          <div
+            className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 sm:p-8 space-y-4 hv-modal-panel"
+            data-tour-id="showcase-share-dialog"
+          >
             <div className="text-center">
               <h2 id="showcase-share-title" className="text-xl font-semibold text-gray-800">
                 {t('app.showcaseShare.title')}
@@ -7779,7 +7794,7 @@ const updateProjectFilters = useCallback((updater) => {
             teamLeadOptions={teamLeadTeamOptions}
             teams={teams}
             questions={questions}
-            inspirationProjects={inspirationProjects}
+            inspirationProjects={displayedInspirationProjects}
             inspirationFilters={inspirationFilters}
             validationCommitteeConfig={validationCommitteeConfig}
             currentUser={currentUser}

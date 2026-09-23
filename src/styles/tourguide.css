@@ -25,6 +25,10 @@
   box-shadow: none;
 }
 
+.tgjs-highlight--empty {
+  border-color: transparent;
+}
+
 .tgjs-tooltip {
   position: absolute;
   min-width: 260px;

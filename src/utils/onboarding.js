@@ -1,4 +1,4 @@
-import { initialOnboardingTourConfig } from '../data/onboardingTour.js';
+import { initialOnboardingTourConfig, SUPERSEDED_ONBOARDING_STEP_DEFAULTS } from '../data/onboardingTour.js';
 import { trimLocalizedValue, isLocalizedValueEmpty } from './localizedContent.js';
 
 const DEFAULT_ACTION_VARIANT = 'ghost';
@@ -84,6 +84,14 @@ export const createOnboardingAction = () => ({
   variant: 'ghost'
 });
 
+const upgradeSupersededField = (stepId, field, rawValue, fallbackValue) => {
+  const supersededValues = SUPERSEDED_ONBOARDING_STEP_DEFAULTS[stepId]?.[field];
+  if (Array.isArray(supersededValues) && typeof rawValue === 'string' && supersededValues.includes(rawValue.trim())) {
+    return fallbackValue;
+  }
+  return rawValue;
+};
+
 const resolveConfigVersion = (config) => {
   const value = config && typeof config === 'object' ? config.version : undefined;
   return typeof value === 'number' && Number.isFinite(value) ? value : 0;
@@ -115,12 +123,21 @@ export const normalizeOnboardingConfig = (config, fallback = initialOnboardingTo
       const fallbackStep = fallback?.steps?.find((entry) => entry?.id === rawStep?.id) || fallback?.steps?.[index] || {};
       const actions = Array.isArray(rawStep?.actions) ? rawStep.actions : [];
 
+      const stepId = normalizeStepId(rawStep?.id, index);
+      const hasDefaultStep = fallbackStep?.id === stepId;
+      const rawTarget = hasDefaultStep
+        ? upgradeSupersededField(stepId, 'target', rawStep?.target, fallbackStep.target)
+        : rawStep?.target;
+      const rawPlacement = hasDefaultStep
+        ? upgradeSupersededField(stepId, 'placement', rawStep?.placement, fallbackStep.placement)
+        : rawStep?.placement;
+
       return {
-        id: normalizeStepId(rawStep?.id, index),
-        target: sanitizeString(rawStep?.target, sanitizeString(fallbackStep?.target)),
+        id: stepId,
+        target: sanitizeString(rawTarget, sanitizeString(fallbackStep?.target)),
         title: sanitizeLocalizedText(upgradeLegacyLocalizedField(rawStep?.title, fallbackStep?.title), sanitizeLocalizedText(fallbackStep?.title)),
         content: sanitizeLocalizedText(upgradeLegacyLocalizedField(rawStep?.content, fallbackStep?.content), sanitizeLocalizedText(fallbackStep?.content)),
-        placement: sanitizeString(rawStep?.placement, sanitizeString(fallbackStep?.placement)),
+        placement: sanitizeString(rawPlacement, sanitizeString(fallbackStep?.placement)),
         highlightScope: ALLOWED_HIGHLIGHT_SCOPES.has(rawStep?.highlightScope)
           ? rawStep.highlightScope
           : ALLOWED_HIGHLIGHT_SCOPES.has(fallbackStep?.highlightScope)

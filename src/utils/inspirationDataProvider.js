@@ -99,6 +99,12 @@ class MockInspirationProvider {
   }
 }
 
+// Exemples montrés par le tour guidé tant que la base d'inspirations est vide : sans eux,
+// l'étape des filtres n'avait rien à désigner (la carte de filtres n'existe qu'avec des
+// inspirations) et la séquence présentait un espace vide. Affichage seulement, jamais persistés.
+export const buildOnboardingDemoInspirations = () =>
+  initialMockSharePointInspirations.map((item) => toInspirationEntry(cloneDeep(item)));
+
 export class SharePointInspirationProvider {
   constructor() {
     this.repository = getRepository('inspirations');

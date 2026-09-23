@@ -203,6 +203,7 @@ export default {
     title: 'Welcome to Project Navigator',
     helpButton: 'Help',
     helpButtonAriaLabel: 'Open the FAQ (new tab)',
+    demoPostItAuthor: 'Sample feedback',
     scopeStep: {
       description: 'To tailor the questionnaire to you, select your activity scope (you can pick several).',
       continueButton: 'Continue'

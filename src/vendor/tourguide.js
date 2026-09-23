@@ -181,6 +181,37 @@
   };
 
   const FRAME_DELAY = 2;
+  // Une cible absente ou réduite à un point (l'ancre `sr-only` des étapes « menu ») n'a rien
+  // à montrer : sans ce seuil, le halo dessinait un carré vide au centre de l'écran, par-dessus
+  // un contenu sans rapport, ou un anneau dans le coin supérieur gauche.
+  const MIN_TARGET_SIZE = 4;
+  // Une cible qui apparaît un peu après l'entrée dans l'étape (écran monté en différé, section
+  // dépliée par un effet) est encore cherchée pendant ce nombre d'images avant d'abandonner.
+  const TARGET_RETRY_FRAMES = 45;
+  const VIEWPORT_MARGIN = 16;
+  const TALL_TARGET_RATIO = 0.8;
+
+  const getViewportSize = () => ({
+    width: typeof window !== 'undefined' ? window.innerWidth : 0,
+    height: typeof window !== 'undefined' ? window.innerHeight : 0
+  });
+
+  const getUsableTargetRect = (target) => {
+    if (!target || typeof target.getBoundingClientRect !== 'function') {
+      return null;
+    }
+    const rect = target.getBoundingClientRect();
+    if (rect.width < MIN_TARGET_SIZE || rect.height < MIN_TARGET_SIZE) {
+      return null;
+    }
+    return rect;
+  };
+
+  const intersectionArea = (a, b) => {
+    const width = Math.min(a.left + a.width, b.left + b.width) - Math.max(a.left, b.left);
+    const height = Math.min(a.top + a.height, b.top + b.height) - Math.max(a.top, b.top);
+    return width > 0 && height > 0 ? width * height : 0;
+  };
 
   const cloneLabels = (labels) => {
     if (!labels || typeof labels !== 'object') {
@@ -339,6 +370,7 @@
       this.currentTarget = null;
       this.pendingFrame = null;
       this.pendingPositionFrame = null;
+      this.pendingTargetRetryFrame = null;
       this.listeners = new Map();
       this.boundHandleWindowChange = this.handleWindowChange.bind(this);
       this.boundHandleKeydown = this.handleKeydown.bind(this);
@@ -417,6 +449,8 @@
         }
         this.pendingPositionFrame = null;
       }
+
+      this.cancelTargetRetry();
 
       if (this.container && this.container.parentNode) {
         this.container.parentNode.removeChild(this.container);
@@ -781,6 +815,8 @@
         return;
       }
 
+      this.cancelTargetRetry();
+
       if (this.pendingFrame) {
         if (typeof cancelAnimationFrame === 'function') {
           cancelAnimationFrame(this.pendingFrame);
@@ -907,6 +943,46 @@
 
       this.updateHighlightPosition(step, target);
       this.updateTooltipPosition(step, target);
+
+      if (!getUsableTargetRect(target) && typeof step.target === 'string' && step.target.trim()) {
+        this.scheduleTargetRetry(step);
+      }
+    }
+
+    cancelTargetRetry() {
+      if (this.pendingTargetRetryFrame) {
+        if (typeof cancelAnimationFrame === 'function') {
+          cancelAnimationFrame(this.pendingTargetRetryFrame);
+        }
+        this.pendingTargetRetryFrame = null;
+      }
+    }
+
+    scheduleTargetRetry(step) {
+      if (typeof requestAnimationFrame !== 'function') {
+        return;
+      }
+
+      let remaining = TARGET_RETRY_FRAMES;
+      const tick = () => {
+        this.pendingTargetRetryFrame = null;
+        if (!this.isActive || this.steps[this.currentStepIndex] !== step) {
+          return;
+        }
+        const target = this.resolveTarget(step);
+        if (getUsableTargetRect(target)) {
+          this.currentTarget = target;
+          this.updateHighlightPosition(step, target);
+          this.updateTooltipPosition(step, target);
+          return;
+        }
+        remaining -= 1;
+        if (remaining > 0) {
+          this.pendingTargetRetryFrame = requestAnimationFrame(tick);
+        }
+      };
+
+      this.pendingTargetRetryFrame = requestAnimationFrame(tick);
     }
 
     renderDots() {
@@ -925,105 +1001,113 @@
       }
     }
 
+    resolvePadding(step) {
+      if (step && step.highlightScope === 'page') {
+        return 0;
+      }
+      return typeof step?.highlightPadding === 'number'
+        ? step.highlightPadding
+        : this.options.highlightPadding;
+    }
+
     updateHighlightPosition(step, target, triggerScroll = true) {
       if (!this.highlightElement) {
         return;
       }
 
-      let rect;
       const highlightScope = step && step.highlightScope === 'page' ? 'page' : 'target';
-      if (highlightScope === 'page') {
-        const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 0;
-        const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 0;
-        rect = {
-          top: 0,
-          left: 0,
-          width: viewportWidth,
-          height: viewportHeight
-        };
-      } else if (target && typeof target.getBoundingClientRect === 'function') {
-        rect = target.getBoundingClientRect();
-      } else {
-        const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 0;
-        const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 0;
-        const centerX = viewportWidth / 2;
-        const centerY = viewportHeight / 2;
-        rect = {
-          top: centerY - 40,
-          left: centerX - 40,
-          width: 80,
-          height: 80
-        };
-      }
-
-      const padding = highlightScope === 'page'
-        ? 0
-        : typeof step.highlightPadding === 'number'
-          ? step.highlightPadding
-          : this.options.highlightPadding;
-
-      const top = rect.top - padding;
-      const left = rect.left - padding;
-      const width = rect.width + padding * 2;
-      const height = rect.height + padding * 2;
-
-      this.highlightElement.style.top = `${Math.max(0, top)}px`;
-      this.highlightElement.style.left = `${Math.max(0, left)}px`;
-      this.highlightElement.style.width = `${Math.max(0, width)}px`;
-      this.highlightElement.style.height = `${Math.max(0, height)}px`;
+      const viewport = getViewportSize();
+      const targetRect = highlightScope === 'page' ? null : getUsableTargetRect(target);
+      const isEmpty = highlightScope !== 'page' && !targetRect;
 
       this.highlightElement.classList.toggle('tgjs-highlight--page', highlightScope === 'page');
+      this.highlightElement.classList.toggle('tgjs-highlight--empty', isEmpty);
 
-      if (highlightScope === 'page' || !triggerScroll) {
+      if (highlightScope === 'page') {
+        this.setHighlightBox(0, 0, viewport.width, viewport.height);
         return;
       }
 
-      if (target && typeof target.scrollIntoView === 'function') {
-        const hasStepScrollOption = step && hasOwn.call(step, 'scrollIntoViewOptions');
-        const scrollOptions = resolveScrollIntoViewOptions(
-          hasStepScrollOption ? step.scrollIntoViewOptions : undefined,
-          this.options.scrollIntoViewOptions
-        );
-
-        if (scrollOptions !== false) {
-          const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 0;
-          const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 0;
-          const rectBottom = rect.top + rect.height;
-          const rectRight = rect.left + rect.width;
-          const isInViewport =
-            rect.top >= 0 &&
-            rectBottom <= viewportHeight &&
-            rect.left >= 0 &&
-            rectRight <= viewportWidth;
-
-          if (!isInViewport) {
-            const scrollDuration = typeof step.scrollDuration === 'number' ? step.scrollDuration : undefined;
-            let didCustomScroll = false;
-
-            if (scrollDuration) {
-              const targetY = computeScrollTargetTop(target, scrollOptions);
-              if (typeof targetY === 'number') {
-                animateWindowScrollTo(targetY, scrollDuration);
-                didCustomScroll = true;
-              }
-            }
-
-            if (!didCustomScroll) {
-              try {
-                target.scrollIntoView(scrollOptions);
-              } catch (error) {
-                try {
-                  target.scrollIntoView(true);
-                } catch (fallbackError) {
-                  target.scrollIntoView();
-                }
-              }
-            }
-          }
-        }
-      } else if (typeof window !== 'undefined') {
-        window.scrollTo({ top: Math.max(0, top - 120), behavior: 'smooth' });
+      if (isEmpty) {
+        // Sans cible, tout l'écran reste assombri et la bulle se centre : un halo de 80 px
+        // posé au hasard désignait un élément qui n'avait rien à voir avec l'étape.
+        this.setHighlightBox(viewport.width / 2, viewport.height / 2, 0, 0);
+        return;
       }
+
+      const padding = this.resolvePadding(step);
+      // Bornée horizontalement à l'écran : un bouton collé au bord droit (« Modifier » de la
+      // vitrine, barre d'édition pleine largeur) perdait sinon le côté droit de son contour.
+      const left = Math.max(2, targetRect.left - padding);
+      const right = Math.min(viewport.width - 2, targetRect.right + padding);
+      const top = Math.max(0, targetRect.top - padding);
+      const height = targetRect.bottom + padding - top;
+      this.setHighlightBox(left, top, right - left, height);
+
+      if (!triggerScroll || typeof target.scrollIntoView !== 'function') {
+        return;
+      }
+
+      const hasStepScrollOption = step && hasOwn.call(step, 'scrollIntoViewOptions');
+      const scrollOptions = resolveScrollIntoViewOptions(
+        hasStepScrollOption ? step.scrollIntoViewOptions : undefined,
+        this.options.scrollIntoViewOptions
+      );
+
+      if (scrollOptions === false) {
+        return;
+      }
+
+      const isTall = targetRect.height > viewport.height * TALL_TARGET_RATIO;
+      const isInViewport =
+        targetRect.top >= 0 &&
+        targetRect.bottom <= viewport.height &&
+        targetRect.left >= 0 &&
+        targetRect.right <= viewport.width;
+      // Une cible plus haute que l'écran n'y tient jamais entière : on en montre le début
+      // plutôt que de la centrer, ce qui coupait son titre, et on ne la fait défiler que si ce
+      // début n'est pas déjà affiché.
+      const isStartVisible = targetRect.top >= 0 && targetRect.top <= viewport.height * 0.25;
+
+      if (isInViewport || (isTall && isStartVisible)) {
+        return;
+      }
+
+      const effectiveOptions = isTall ? { ...scrollOptions, block: 'start' } : scrollOptions;
+      const scrollDuration = typeof step.scrollDuration === 'number' ? step.scrollDuration : undefined;
+      const targetY = computeScrollTargetTop(target, effectiveOptions);
+
+      if (isTall && typeof targetY === 'number' && typeof window !== 'undefined') {
+        const offsetY = Math.max(0, targetY - VIEWPORT_MARGIN - padding);
+        if (scrollDuration) {
+          animateWindowScrollTo(offsetY, scrollDuration);
+        } else {
+          window.scrollTo({ top: offsetY, behavior: effectiveOptions.behavior || 'smooth' });
+        }
+        return;
+      }
+
+      if (scrollDuration && typeof targetY === 'number') {
+        animateWindowScrollTo(targetY, scrollDuration);
+        return;
+      }
+
+      try {
+        target.scrollIntoView(effectiveOptions);
+      } catch (error) {
+        try {
+          target.scrollIntoView(true);
+        } catch (fallbackError) {
+          target.scrollIntoView();
+        }
+      }
+    }
+
+    setHighlightBox(left, top, width, height) {
+      this.highlightElement.style.top = `${top}px`;
+      this.highlightElement.style.left = `${left}px`;
+      this.highlightElement.style.width = `${Math.max(0, width)}px`;
+      this.highlightElement.style.height = `${Math.max(0, height)}px`;
     }
 
     updateTooltipPosition(step, target) {
@@ -1032,92 +1116,107 @@
       }
 
       const tooltip = this.tooltipElement;
-
       tooltip.style.top = '0px';
       tooltip.style.left = '0px';
 
-      let rect;
-      const highlightScope = step && step.highlightScope === 'page' ? 'page' : 'target';
-      const padding = highlightScope === 'page'
-        ? 0
-        : typeof step.highlightPadding === 'number'
-          ? step.highlightPadding
-          : this.options.highlightPadding;
-      if (target && typeof target.getBoundingClientRect === 'function') {
-        rect = target.getBoundingClientRect();
-      } else {
-        const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 0;
-        const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 0;
-        rect = {
-          top: viewportHeight / 2 - 40,
-          left: viewportWidth / 2 - 40,
-          width: 80,
-          height: 80
-        };
-      }
-
       const tooltipRect = tooltip.getBoundingClientRect();
+      const viewport = getViewportSize();
+      const tooltipWidth = tooltipRect.width;
+      const tooltipHeight = tooltipRect.height;
+      const margin = VIEWPORT_MARGIN;
+      const maxLeft = Math.max(margin, viewport.width - tooltipWidth - margin);
+      const maxTop = Math.max(margin, viewport.height - tooltipHeight - margin);
+      const clampLeft = (value) => Math.min(Math.max(value, margin), maxLeft);
+      const clampTop = (value) => Math.min(Math.max(value, margin), maxTop);
 
-      const availableWidth = typeof window !== 'undefined' ? window.innerWidth : tooltipRect.width;
-      const availableHeight = typeof window !== 'undefined' ? window.innerHeight : tooltipRect.height;
+      const highlightScope = step && step.highlightScope === 'page' ? 'page' : 'target';
+      const rect = highlightScope === 'page' ? null : getUsableTargetRect(target);
+      const requested = (step && step.placement ? String(step.placement) : 'auto').toLowerCase();
 
-      let top = rect.bottom + padding + 16;
-      let left = rect.left;
+      let position = null;
 
-      const placement =
-        highlightScope === 'page' && (!step.placement || step.placement === 'auto')
-          ? 'center'
-          : (step.placement || 'auto').toLowerCase();
-
-      if (placement === 'top') {
-        top = rect.top - tooltipRect.height - padding - 16;
-        if (top < 16) {
-          // Pas assez de place au-dessus : basculer sous la cible plutôt que de laisser
-          // le clamp de fin de fonction coller l'infobulle en haut de l'écran, par-dessus
-          // l'élément qu'elle est censée décrire.
-          top = rect.bottom + padding + 16;
-        }
-      } else if (placement === 'left') {
-        top = rect.top + rect.height / 2 - tooltipRect.height / 2;
-        left = rect.left - tooltipRect.width - padding - 16;
-        if (left < 16) {
-          left = rect.right + padding + 16;
-        }
-      } else if (placement === 'right') {
-        top = rect.top + rect.height / 2 - tooltipRect.height / 2;
-        left = rect.right + padding + 16;
-        if (left + tooltipRect.width > availableWidth - 16) {
-          left = rect.left - tooltipRect.width - padding - 16;
-        }
-      } else if (placement === 'center') {
-        top = (availableHeight - tooltipRect.height) / 2;
-        left = (availableWidth - tooltipRect.width) / 2;
+      if (!rect || requested === 'center') {
+        position = {
+          top: (viewport.height - tooltipHeight) / 2,
+          left: (viewport.width - tooltipWidth) / 2
+        };
       } else {
-        if (top + tooltipRect.height > availableHeight - 16) {
-          top = rect.top - tooltipRect.height - padding - 16;
+        const gap = this.resolvePadding(step) + 16;
+        const candidates = {
+          bottom: {
+            fits: rect.bottom + gap + tooltipHeight <= viewport.height - margin,
+            top: rect.bottom + gap,
+            left: clampLeft(rect.left)
+          },
+          top: {
+            fits: rect.top - gap - tooltipHeight >= margin,
+            top: rect.top - gap - tooltipHeight,
+            left: clampLeft(rect.left)
+          },
+          right: {
+            fits: rect.right + gap + tooltipWidth <= viewport.width - margin,
+            top: clampTop(rect.top + rect.height / 2 - tooltipHeight / 2),
+            left: rect.right + gap
+          },
+          left: {
+            fits: rect.left - gap - tooltipWidth >= margin,
+            top: clampTop(rect.top + rect.height / 2 - tooltipHeight / 2),
+            left: rect.left - gap - tooltipWidth
+          }
+        };
+        const order = {
+          top: ['top', 'bottom', 'right', 'left'],
+          left: ['left', 'right', 'bottom', 'top'],
+          right: ['right', 'left', 'bottom', 'top']
+        }[requested] || ['bottom', 'top', 'right', 'left'];
+
+        const fitting = order.find((side) => candidates[side].fits);
+        if (fitting) {
+          position = candidates[fitting];
+        } else {
+          // Aucun côté libre (cible plus grande que l'écran, fenêtre modale…) : la bulle se
+          // pose dans le coin qui masque le moins la partie visible de la cible, au lieu d'être
+          // plaquée en haut de l'écran sur son titre.
+          const visibleTarget = {
+            left: Math.max(0, rect.left),
+            top: Math.max(0, rect.top),
+            width: Math.min(viewport.width, rect.right) - Math.max(0, rect.left),
+            height: Math.min(viewport.height, rect.bottom) - Math.max(0, rect.top)
+          };
+          const centerLeft = (viewport.width - tooltipWidth) / 2;
+          const corners = [
+            { top: maxTop, left: maxLeft },
+            { top: maxTop, left: centerLeft },
+            { top: maxTop, left: margin },
+            { top: margin, left: maxLeft },
+            { top: margin, left: centerLeft },
+            { top: margin, left: margin }
+          ].map((corner) => ({ ...corner, width: tooltipWidth, height: tooltipHeight }));
+          const overlaps = corners.map((corner) => intersectionArea(visibleTarget, corner));
+          const minOverlap = Math.min(...overlaps);
+          // À recouvrement quasi égal, on évite d'abord de masquer (plus qu'à moitié) un bouton
+          // ou un champ de la cible, puis le bas de l'écran l'emporte : le haut d'une cible
+          // porte son titre.
+          const tolerance = tooltipWidth * tooltipHeight * 0.15;
+          const controlRects = typeof target.querySelectorAll === 'function'
+            ? Array.from(target.querySelectorAll('button, a[href], input, select, textarea, [role="button"]'))
+              .map((element) => element.getBoundingClientRect())
+              .filter((controlRect) => controlRect.width > 0 && controlRect.height > 0)
+            : [];
+          position = corners
+            .map((corner, index) => ({
+              corner,
+              index,
+              hiddenControls: controlRects.filter((controlRect) =>
+                intersectionArea(controlRect, corner) > controlRect.width * controlRect.height * 0.5).length
+            }))
+            .filter(({ index }) => overlaps[index] <= minOverlap + tolerance)
+            .sort((a, b) => a.hiddenControls - b.hiddenControls || a.index - b.index)[0].corner;
         }
       }
 
-      if (left + tooltipRect.width > availableWidth - 16) {
-        left = availableWidth - tooltipRect.width - 16;
-      }
-      if (left < 16) {
-        left = 16;
-      }
-
-      // Filet de sécurité final : si la cible est proche du bas d'une page qui ne peut pas
-      // défiler plus loin (ex. un panneau inséré tout en bas), le calcul par placement peut
-      // renvoyer une position sous le viewport et rendre l'infobulle invisible. On la garde
-      // toujours entièrement visible plutôt que de la laisser passer sous le pli.
-      if (top + tooltipRect.height > availableHeight - 16) {
-        top = availableHeight - tooltipRect.height - 16;
-      }
-      if (top < 16) {
-        top = 16;
-      }
-
-      tooltip.style.top = `${Math.round(top)}px`;
-      tooltip.style.left = `${Math.round(left)}px`;
+      tooltip.style.top = `${Math.round(clampTop(position.top))}px`;
+      tooltip.style.left = `${Math.round(clampLeft(position.left))}px`;
     }
   }
 

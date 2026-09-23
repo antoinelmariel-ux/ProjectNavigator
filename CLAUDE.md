@@ -118,16 +118,23 @@ Two things are load-bearing:
   published `settings.json`, so a config already stored would otherwise outlive any rework:
   `normalizeOnboardingConfig` replaces a stored config whose `version` is lower than the built-in
   one. Bumping it therefore discards back-office customisations of the tour — only do it for a
-  deliberate rework.
+  deliberate rework. To fix one step's `target`/`placement` without a bump, list its old value
+  in `SUPERSEDED_ONBOARDING_STEP_DEFAULTS` (same file): a stored step still carrying that exact
+  value gets the new default, a customised one is left alone (`test/onboardingConfig.test.mjs`).
 
 The tooltip carries a permanent « Aide » link to `faq.html` (`helpLink` option of the vendored
 `tourguide.js`, passed from `App.jsx`): launching the guide is already asking for help, and it
 used to make the only help button in the app — the one on the onboarding screen — disappear.
 
-A step whose target selector matches nothing degrades to a centred tooltip (vendored
-`tourguide.js`), which is how steps pointing at conditional blocks behave on the demo project:
-`synthesis-vigilance` (no delay alert on the demo) and `home-inspiration-filters` (no inspiration
-yet). Expert teams are collapsed by default in `SynthesisReport.jsx`, so the steps showing the
+A step whose target selector matches nothing (or only the 1px `#tour-onboarding-anchor` of the
+menu steps) dims the whole screen with no halo and centres its tooltip (vendored `tourguide.js`,
+`tgjs-highlight--empty`); that is how `synthesis-vigilance` behaves, since the demo project has
+no delay alert. The tooltip tries the requested side, then the opposite one, then the other two;
+when none fits (a target taller than the screen, a modal) it takes the screen corner hiding the
+least of the target and none of its buttons — keep that in mind before targeting a huge block.
+While the tour runs on an empty inspiration base, `HomeScreen` is fed display-only examples
+(`buildOnboardingDemoInspirations`), so `home-inspiration-filters` has something to show; they
+are never written to state. Expert teams are collapsed by default in `SynthesisReport.jsx`, so the steps showing the
 exchange thread expand them explicitly (`TEAM_EXCHANGE_TOUR_STEPS`). `e2e/onboarding-tour.spec.js`
 walks all five sequences.
 
