@@ -68,52 +68,12 @@ export const LIST_SCHEMAS = {
     numbers: ['RowVersion'],
     booleans: ['Resolved']
   },
-  // Schéma prêt et liste SharePoint créée, mais aucune fonctionnalité ne l'utilise : pas
-  // d'écran de messagerie de projet construit à ce jour (décision volontaire, cf. CLAUDE.md).
-  projectDiscussions: {
-    keyField: 'MessageId',
-    columns: [
-      'MessageId',
-      'ProjectId',
-      'ThreadId',
-      'SenderEmail',
-      'RecipientRole',
-      'Message',
-      'AttachmentsJson',
-      'RowVersion',
-      'CreatedAt',
-      'UpdatedAt'
-    ],
-    json: { AttachmentsJson: ARRAY },
-    numbers: ['RowVersion'],
-    booleans: []
-  },
   projectMembers: {
     keyField: 'EntryId',
     columns: ['EntryId', 'ProjectId', 'MemberEmail', 'Role', 'CanSubmit'],
     json: {},
     numbers: [],
     booleans: ['CanSubmit']
-  },
-  // Même situation que projectDiscussions ci-dessus : pas de journal des modifications
-  // back-office construit à ce jour (décision volontaire, cf. CLAUDE.md).
-  backofficeChanges: {
-    keyField: 'ChangeId',
-    columns: [
-      'ChangeId',
-      'EntityType',
-      'EntityId',
-      'PayloadJson',
-      'ChangeType',
-      'RequiresValidation',
-      'RowVersion',
-      'CreatedByEmail',
-      'UpdatedByEmail',
-      'UpdatedAt'
-    ],
-    json: { PayloadJson: OBJECT },
-    numbers: ['RowVersion'],
-    booleans: ['RequiresValidation']
   },
   showcaseStickyNotes: {
     keyField: 'StickyId',

@@ -14,9 +14,7 @@
 | CN_Projects | Liste | `562ea90f-7ce9-45ca-8e48-cb69a1fd4491` |
 | CN_Inspirations | Liste | `7e9656f0-f7a7-4635-a65d-6a0c9c9ef5cb` |
 | CN_ComplianceComments | Liste | `de8cf747-9a21-42bf-8c7d-31bdaeeca145` |
-| CN_ProjectDiscussions | Liste | `99562c1e-f44e-42d9-8f4c-756ff3e7390a` |
 | CN_ProjectMembers | Liste | `68edcb69-94b7-41f3-ad54-fd79980ecca6` |
-| CN_BackofficeChanges | Liste | `13ee1004-ad1a-477b-ae3a-8471da8104ca` |
 | CN_ShowcaseStickyNotes | Liste | `ec4d7823-a28f-4bcc-97f4-ba6b282ccc31` |
 | CN_FilesIndex | Liste | `a0854267-45c9-43a2-8707-bc67fe4d1a19` |
 | CN_NotificationsQueue | Liste | `2c197090-6347-44a8-a51b-a31503cff842` |

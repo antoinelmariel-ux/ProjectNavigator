@@ -56,11 +56,11 @@ test('rowToRecord : JSON invalide ou vide retombe sur la valeur par défaut', ()
   assert.deepEqual(record.AnswersJson, {});
   assert.deepEqual(record.AnalysisJson, {});
 
-  const discussion = rowToRecord(LIST_SCHEMAS.projectDiscussions, {
+  const comment = rowToRecord(LIST_SCHEMAS.complianceComments, {
     Id: 2,
     AttachmentsJson: '{"pasUnTableau":true}'
   });
-  assert.deepEqual(discussion.AttachmentsJson, []);
+  assert.deepEqual(comment.AttachmentsJson, []);
 });
 
 test('rowToRecord : booléens et nombres nuls préservés', () => {

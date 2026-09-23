@@ -118,7 +118,7 @@ sémantique de concurrence optimiste par `RowVersion` (`ConflictError` en cas d'
 détectée). Le même patron (« provider mock » / « provider SharePoint », choisi par
 `isSharePointMode()`) est répété pour les autres entités : inspirations, membres de projet,
 commentaires de conformité, post-its de vitrine, profils utilisateurs, règles et équipes. Le détail
-des 14 listes SharePoint et de leurs colonnes est dans
+des 12 listes SharePoint et de leurs colonnes est dans
 [`architecture-sharepoint.md`](architecture-sharepoint.md) et
 [`src/utils/listSchemas.js`](../src/utils/listSchemas.js) (source de vérité).
 

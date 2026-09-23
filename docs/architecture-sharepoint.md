@@ -51,10 +51,9 @@ flowchart LR
 
 ### 2. Où vivent les données
 
-Les listes sont regroupées par usage. L'application lit et écrit dans toutes, sauf les deux
-listes grisées, créées mais jamais utilisées à ce jour. Les deux listes « files d'attente » sont
-le seul point de contact avec Power Automate : l'application y dépose une demande, un flux la
-traite.
+Les listes sont regroupées par usage. L'application lit et écrit dans toutes. Les deux listes
+« files d'attente » sont le seul point de contact avec Power Automate : l'application y dépose
+une demande, un flux la traite.
 
 ```mermaid
 flowchart LR
@@ -69,10 +68,6 @@ flowchart LR
 
     subgraph Lists["📋 Listes de données CN_*"]
         direction TB
-        subgraph GUnused["Créées, non utilisées"]
-            LDiscussions["CN_ProjectDiscussions"]
-            LChanges["CN_BackofficeChanges"]
-        end
         subgraph GQueues["Files d'attente vers Power Automate"]
             LNotif["CN_NotificationsQueue"]
             LAccess["CN_SiteAccessRequests"]
@@ -103,9 +98,7 @@ flowchart LR
     App -->|"lit / écrit"| GComp
     App -->|"lit / écrit"| GProj
 
-    classDef unused fill:#eeeeee,stroke:#999999,stroke-dasharray: 4 3,color:#666666;
     classDef queue stroke-width:2px;
-    class LDiscussions,LChanges unused;
     class LNotif,LAccess queue;
 ```
 
@@ -169,14 +162,11 @@ géré par le code (`src/utils/spContext.js`, `src/config/sharepointConfig.js`).
 | `CN-Config` | Les référentiels administrables du back-office, sous forme de fichiers JSON (`questions.json`, `risk-level-rules.json`, `risk-weighting.json`, `showcase-themes.json`, `settings.json`). |
 | `CN-Documents` | Les pièces jointes déposées par les utilisateurs (annotations, commentaires de conformité), rangées par entité (`{EntityType}/{EntityId}`). |
 
-**Listes de données (`CN_*`)** — 14 listes, décrites colonne par colonne dans
+**Listes de données (`CN_*`)** — 12 listes, décrites colonne par colonne dans
 [`migration-v2/PREPARATION-SHAREPOINT-POWERAUTOMATE.md`](migration-v2/PREPARATION-SHAREPOINT-POWERAUTOMATE.md)
 et vérifiables via le script de
 [`migration-v2/VERIFICATION-CONFIGURATION-SHAREPOINT.md`](migration-v2/VERIFICATION-CONFIGURATION-SHAREPOINT.md).
-Deux d'entre elles (grisées sur le diagramme 2), `CN_ProjectDiscussions` et
-`CN_BackofficeChanges`, ont leur schéma de colonnes déclaré et la liste créée côté SharePoint,
-mais **aucune fonctionnalité de l'application ne les lit ou n'y écrit à ce jour** — décision
-documentée dans `src/utils/listSchemas.js`. Les données volumineuses ou imbriquées (réponses au
+Les données volumineuses ou imbriquées (réponses au
 questionnaire, règle de conformité entière, etc.) voyagent en colonnes « texte long » contenant du
 JSON sérialisé (`AnswersJson`, `PayloadJson`, `AnchorJson`…), pas en colonnes structurées — c'est
 la seule vraie divergence entre le mode SharePoint et le mode local/simulé.

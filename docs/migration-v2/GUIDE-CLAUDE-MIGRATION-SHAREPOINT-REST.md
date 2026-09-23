@@ -26,7 +26,7 @@
 | 1 — Configuration | ✅ Fait | `src/config/sharepointConfig.js`, `src/utils/errors.js` |
 | 2 — Contexte SharePoint | ✅ Fait | `src/utils/spContext.js` ; `main.jsx` résout l'identité avant le premier rendu ; `App.jsx` lit `getCurrentUser()` |
 | 3 — Client REST | ✅ Fait | `src/utils/spRestClient.js` (digest, réessais 429/503, 403→renouvellement, HTML→`SessionExpiredError`, 412→`ConflictError`, pagination) |
-| 4 — Dépôts de listes | ✅ Fait | `src/utils/listSchemas.js` (14 listes déclaratives), `src/utils/listRepository.js` (CRUD + `upsertByKey` RowVersion + IF-MATCH) |
+| 4 — Dépôts de listes | ✅ Fait | `src/utils/listSchemas.js` (12 listes déclaratives), `src/utils/listRepository.js` (CRUD + `upsertByKey` RowVersion + IF-MATCH) |
 | 5 — Fournisseurs de données | ✅ Fait | `SharePointRestProvider` (projets) et `SharePointInspirationProvider` ; aiguillage `isSharePointMode()` à l'export ; appels synchrones neutralisés par garde. Complété depuis par cinq fournisseurs supplémentaires, même patron : `src/utils/projectMembersProvider.js` (partage de projet), `src/utils/showcaseStickyNotesProvider.js` (post-its, avec réponses et pièces jointes), `src/utils/complianceCommentsProvider.js` (commentaires de conformité, une ligne par commentaire/réponse), `src/utils/rulesProvider.js`/`teamsProvider.js` (règles/équipes, une ligne par élément — voir §6 bis) |
 | 6 — Référentiels `CN-Config` | ✅ Fait | `src/utils/referentialStore.js` (5 fichiers — `rules`/`teams` en sont sortis, migrés vers `CN_Rules`/`CN_Teams` en §6 bis) ; `sharePointSetup.js` recâblé (Graph supprimé) ; diagnostic + confirmation avant écrasement dans le handler `App.jsx` |
 | 7 — Notifications | ✅ Fait | `src/utils/notificationQueue.js`, `src/utils/notificationTemplates.js` (9 types) ; `notify()` unique dans `App.jsx` ; 2 notifications manquantes ajoutées (soumission, ajout de co-porteur). Configuration du flux : [`MODE-OPERATOIRE-POWER-AUTOMATE.md`](MODE-OPERATOIRE-POWER-AUTOMATE.md) |
@@ -117,9 +117,7 @@ Correspondance données actuelles → cible :
 | `mock-sharepoint-lists/projects.json` (`MockSharePointProvider`) | Liste `CN_Projects` |
 | `inspirations.json` | Liste `CN_Inspirations` |
 | `compliance-comments.json` | Liste `CN_ComplianceComments` |
-| `project-discussions.json` | Liste `CN_ProjectDiscussions` |
 | `project-members.json` | Liste `CN_ProjectMembers` |
-| `backoffice-changes.json` | Liste `CN_BackofficeChanges` |
 | `showcase-sticky-notes.json` | Liste `CN_ShowcaseStickyNotes` |
 | `files-index.json` | Liste `CN_FilesIndex` + fichiers réels dans `CN-Documents` |
 | `rules`/`teams` (persistés en delta dans localStorage) | Listes `CN_Rules`/`CN_Teams`, une ligne par élément (§6 bis) |
@@ -162,9 +160,7 @@ export const sharepointConfig = {
     projects: 'CN_Projects',
     inspirations: 'CN_Inspirations',
     complianceComments: 'CN_ComplianceComments',
-    projectDiscussions: 'CN_ProjectDiscussions',
     projectMembers: 'CN_ProjectMembers',
-    backofficeChanges: 'CN_BackofficeChanges',
     showcaseStickyNotes: 'CN_ShowcaseStickyNotes',
     filesIndex: 'CN_FilesIndex',
     notificationsQueue: 'CN_NotificationsQueue',
@@ -387,10 +383,6 @@ liste, en particulier la sérialisation des colonnes JSON et le cas « chaîne J
    mutée dans le state local** (commentaires, post-its, membres…). Chaque mutation
    identifiée reçoit son appel repository : mise à jour optimiste du state, puis écriture, puis
    rollback + message en cas d'échec réseau.
-   `CN_ProjectDiscussions` et `CN_BackofficeChanges` sont hors périmètre : leur schéma de colonnes
-   existe et la liste SharePoint est créée, mais aucune fonctionnalité de l'application ne les
-   utilise (pas d'état local à migrer). Décision volontaire au 29/08/2026 — ne pas créer ces deux
-   repositories tant que ces fonctionnalités ne sont pas explicitement demandées.
 
 **Fait quand** : en mode SharePoint, créer / sauvegarder / soumettre un projet écrit réellement
 dans `CN_Projects` (vérifiable dans l'interface SharePoint), et une modification croisée depuis
