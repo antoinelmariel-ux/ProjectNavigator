@@ -144,15 +144,3 @@ l'interface, notamment) sont livrées avec l'application elle-même, une fois po
 récupérées à chaque usage. Les seuls outils informatiques externes utilisés sont ceux des
 développeurs, pendant qu'ils écrivent le code — jamais sur le poste ou dans le navigateur de la
 personne qui utilise l'outil au final.
-
-## 12. Ce qui n'a pas pu être vérifié en lisant le code
-
-- L'avancement réel des vérifications finales sur l'environnement SharePoint de test.
-- L'existence, à ce jour, d'un site SharePoint de **production** distinct de celui utilisé pour le
-  développement (les notes techniques mentionnent un site de production encore « à créer »).
-- La mise en route effective, sur l'environnement réel, de chacun des automates de notification
-  décrits en [`architecture-sharepoint.md`](architecture-sharepoint.md) — le code ne peut attester
-  que du mécanisme utilisé, pas de la configuration réellement activée côté Microsoft 365.
-
-Ces trois points relèvent de l'exploitation de l'outil, pas du code : à faire confirmer auprès de
-l'équipe projet plutôt que déduits ici.
