@@ -172,6 +172,13 @@ class MockComplianceCommentsProvider {
     });
     savePersistedMockMap(MOCK_COMMENTS_STORAGE_KEY, this.rows);
   }
+
+  async removeAllForProject(projectId) {
+    Array.from(this.rows.entries())
+      .filter(([, row]) => row.ProjectId === projectId)
+      .forEach(([commentId]) => this.rows.delete(commentId));
+    savePersistedMockMap(MOCK_COMMENTS_STORAGE_KEY, this.rows);
+  }
 }
 
 export class SharePointComplianceCommentsProvider {
@@ -201,6 +208,15 @@ export class SharePointComplianceCommentsProvider {
     for (const reply of replies) {
       await this.repository.upsertByKey(toReplyFields(projectId, sectionKey, rootId, reply, userEmail));
     }
+  }
+
+  async removeAllForProject(projectId) {
+    const records = await this.repository.findBy('ProjectId', projectId);
+    await Promise.all(
+      records
+        .filter((record) => record.spItemId != null)
+        .map((record) => this.repository.remove(record.spItemId))
+    );
   }
 }
 

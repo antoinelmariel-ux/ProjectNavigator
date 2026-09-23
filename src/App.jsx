@@ -2982,28 +2982,49 @@ const updateProjectFilters = useCallback((updater) => {
 
   useEffect(() => {
     projectMembersQueueRef.current = createRetryQueue({
-      processItem: (payload) => (
-        payload.action === 'remove'
+      processItem: (payload) => {
+        if (payload.action === 'removeAllForProject') {
+          return projectMembersProvider.removeAllForProject(payload.projectId);
+        }
+        return payload.action === 'remove'
           ? projectMembersProvider.removeMember(payload.projectId, payload.email)
-          : projectMembersProvider.addMember(payload.projectId, payload.email)
-      ),
-      getItemKey: (payload) => `${payload.projectId}::${payload.email}`
+          : projectMembersProvider.addMember(payload.projectId, payload.email);
+      },
+      getItemKey: (payload) => (
+        payload.action === 'removeAllForProject'
+          ? `${payload.projectId}::__all__`
+          : `${payload.projectId}::${payload.email}`
+      )
     });
 
     stickyNotesQueueRef.current = createRetryQueue({
-      processItem: (note) => showcaseStickyNotesProvider.upsertNote(note, { userEmail: currentUserEmail }),
-      getItemKey: (note) => note.id
+      processItem: (payload) => (
+        payload.action === 'removeAllForProject'
+          ? showcaseStickyNotesProvider.removeAllForProject(payload.projectId)
+          : showcaseStickyNotesProvider.upsertNote(payload, { userEmail: currentUserEmail })
+      ),
+      getItemKey: (payload) => (
+        payload.action === 'removeAllForProject' ? `${payload.projectId}::__all__` : payload.id
+      )
     });
 
     complianceCommentsQueueRef.current = createRetryQueue({
-      processItem: (payload) => complianceCommentsProvider.upsertComment(
-        payload.projectId,
-        payload.targetType,
-        payload.targetId,
-        payload.entry,
-        { userEmail: payload.userEmail }
+      processItem: (payload) => (
+        payload.action === 'removeAllForProject'
+          ? complianceCommentsProvider.removeAllForProject(payload.projectId)
+          : complianceCommentsProvider.upsertComment(
+            payload.projectId,
+            payload.targetType,
+            payload.targetId,
+            payload.entry,
+            { userEmail: payload.userEmail }
+          )
       ),
-      getItemKey: (payload) => `${payload.projectId}::${payload.targetType}:${payload.targetId}`
+      getItemKey: (payload) => (
+        payload.action === 'removeAllForProject'
+          ? `${payload.projectId}::__all__`
+          : `${payload.projectId}::${payload.targetType}:${payload.targetId}`
+      )
     });
 
     userProfileQueueRef.current = createRetryQueue({
@@ -5407,6 +5428,13 @@ const updateProjectFilters = useCallback((updater) => {
     setActiveProjectId(prev => (prev === projectId ? null : prev));
 
     autosaveQueueRef.current?.enqueue({ project: targetProject, action: 'delete' });
+    // Données satellites (membres, commentaires compliance, post-its de la vitrine) : des lignes
+    // séparées, indexées par ProjectId dans des listes à part — supprimer le projet ne les
+    // efface pas automatiquement côté serveur, elles resteraient orphelines sans ce nettoyage
+    // explicite.
+    projectMembersQueueRef.current?.enqueue({ action: 'removeAllForProject', projectId });
+    complianceCommentsQueueRef.current?.enqueue({ action: 'removeAllForProject', projectId });
+    stickyNotesQueueRef.current?.enqueue({ action: 'removeAllForProject', projectId });
   }, [canManageProject]);
 
   const handleToggleProjectVisibility = useCallback((projectId) => {
