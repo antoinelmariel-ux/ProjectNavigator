@@ -2464,7 +2464,7 @@ export const HomeScreen = ({
                       : 'text-blue-700 hover:bg-blue-100'
                   }`}
                 >
-                  {t('home.lfbProjectsTab')}
+                  {t('home.companyProjectsTab')}
                 </button>
                 <button
                   type="button"

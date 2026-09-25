@@ -83,7 +83,7 @@ test.describe('ProjectShowcase', () => {
     await page.goto(shareUrl);
 
     await expect(page.getByRole('heading', { name: 'Bienvenue sur Project Navigator' })).toHaveCount(0);
-    await expect(page.getByText('LFB, L’ENGAGEMENT ÉTHIQUE')).toBeVisible();
+    await expect(page.getByText('Entreprise Demo, L’ENGAGEMENT ÉTHIQUE')).toBeVisible();
   });
 
   test('un lien partagé masque la navigation et ne révèle pas le mode d\'affichage', async ({ page }) => {

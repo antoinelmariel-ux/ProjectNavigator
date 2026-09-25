@@ -92,7 +92,7 @@ Deux réflexes utiles :
 
 | Champ | Valeur |
 |---|---|
-| Adresse du site | `https://lfb1.sharepoint.com/sites/ProjectNavigator_DEV` |
+| Adresse du site | `https://entreprisedemo1.sharepoint.com/sites/ProjectNavigator_DEV` |
 | Nom de la liste | `CN_NotificationsQueue` |
 
 ### 3.3 Ajouter un filtre de sécurité (recommandé)
@@ -173,7 +173,7 @@ Par défaut, **de ta boîte personnelle** (propriétaire du flux). Les destinata
 
 **Recommandation : une boîte aux lettres partagée.** Plus neutre, et le flux survit à ton départ.
 
-1. Demande à l'IT une boîte partagée, par exemple `project-navigator@lfb.fr`, avec le droit
+1. Demande à l'IT une boîte partagée, par exemple `project-navigator@entreprise-demo.example`, avec le droit
    **« Envoyer en tant que »** pour toi.
 2. Remplace l'action par **« Envoyer un e-mail à partir d'une boîte aux lettres partagée (V2) »**
    et renseigne l'adresse dans **Boîte aux lettres d'origine**. Les autres champs sont identiques
@@ -337,7 +337,7 @@ Le flux doit ajouter la personne à un groupe SharePoint précis. Plutôt que de
 par une requête de navigateur (pendant que tu es connecté au site) :
 
 ```
-https://lfb1.sharepoint.com/sites/ProjectNavigator_DEV/_api/web/associatedmembergroup?$select=Id,Title
+https://entreprisedemo1.sharepoint.com/sites/ProjectNavigator_DEV/_api/web/associatedmembergroup?$select=Id,Title
 ```
 
 Note l'`Id` retourné (un nombre) — c'est celui du groupe « Membres » par défaut du site, quel que
@@ -351,7 +351,7 @@ relire à chaque exécution du flux).
 
    | Champ | Valeur |
    |---|---|
-   | Adresse du site | `https://lfb1.sharepoint.com/sites/ProjectNavigator_DEV` |
+   | Adresse du site | `https://entreprisedemo1.sharepoint.com/sites/ProjectNavigator_DEV` |
    | Nom de la liste | `CN_SiteAccessRequests` |
 
 3. **Condition** : contenu dynamique **`Status Value`** est égal à `Pending` → suite dans
@@ -420,7 +420,7 @@ Sans étape dédiée, cet échec disparaît silencieusement — même patron qu'
    - [ ] La ligne passe à **`Done`**, avec une date dans `ProcessedAt`.
    - [ ] La personne apparaît désormais dans **Paramètres du site → Permissions du site** (ou
      dans le groupe « Membres »).
-5. Refais le test avec une adresse invalide (ex. `personne-inexistante@lfb.fr`) : la ligne doit
+5. Refais le test avec une adresse invalide (ex. `personne-inexistante@entreprise-demo.example`) : la ligne doit
    passer à `Error` avec un message explicite, pas rester bloquée en `Pending`.
 
 ### 7 bis.9 Sécurité et gouvernance — à lire avant d'activer

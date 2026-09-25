@@ -7,18 +7,18 @@ import { analyzeAnswers } from '../utils/rules.js';
 const COMPLIANCE_COMMENTS_KEY = '__compliance_team_comments__';
 
 const demoProjectAnswers = {
-  projectName: 'Plasma 360',
+  projectName: 'Impact 360',
   showcaseTheme: 'Universel',
-  projectSlogan: 'Du don à la vie : découvrez comment chaque goutte de plasma devient un traitement vital',
+  projectSlogan: 'De l’idée à l’usage : découvrez comment chaque innovation devient un service utile au quotidien',
   targetAudience: ['grand_public', 'Patients', 'professionnels_de_sante'],
   problemPainPoints:
-    'Les professionnels de santé manquent souvent de supports pédagogiques simples et fiables pour expliquer à leurs patients comment les médicaments dérivés du plasma sont fabriqués.\nLe grand public a une perception floue du lien entre le don de plasma et la production de traitements : le processus industriel leur semble abstrait.',
+    'Les professionnels manquent souvent de supports pédagogiques simples et fiables pour expliquer à leurs interlocuteurs comment nos produits sont conçus.\nLe grand public a une perception floue du lien entre la matière première et la production de nos solutions : le processus industriel leur semble abstrait.',
   solutionDescription:
-    'Plasma 360 est une plateforme web immersive et éducative qui raconte le parcours du plasma, depuis le don jusqu’au médicament final.\nLe site propose :\n- Une expérience interactive et visuelle retraçant étape par étape le processus de fractionnement.\n- Deux parcours de navigation : un mode grand public, simple et narratif, et un mode professionnel, plus technique et structuré.\n- Des vidéos immersives tournées sur les sites du LFB.\n- Une bibliothèque de contenus avec infographies, fiches explicatives et ressources téléchargeables.',
+    'Impact 360 est une plateforme web immersive et éducative qui raconte le parcours d’un produit, depuis la matière première jusqu’à sa mise à disposition finale.\nLe site propose :\n- Une expérience interactive et visuelle retraçant étape par étape le processus de fabrication.\n- Deux parcours de navigation : un mode grand public, simple et narratif, et un mode professionnel, plus technique et structuré.\n- Des vidéos immersives tournées sur nos sites de production.\n- Une bibliothèque de contenus avec infographies, fiches explicatives et ressources téléchargeables.',
   solutionBenefits:
-    'Une meilleure compréhension du rôle du LFB et de la valeur du plasma comme matière première vitale.\nUn format interactif et immersif qui se distingue des ressources actuelles souvent statiques.\nUne double lecture adaptée à chaque public, avec des contenus validés scientifiquement.\nUn outil de communication réutilisable pour la formation, la sensibilisation et les relations institutionnelles.',
+    'Une meilleure compréhension du rôle d’Entreprise Demo et de la valeur de la matière première utilisée.\nUn format interactif et immersif qui se distingue des ressources actuelles souvent statiques.\nUne double lecture adaptée à chaque public, avec des contenus validés scientifiquement.\nUn outil de communication réutilisable pour la formation, la sensibilisation et les relations institutionnelles.',
   innovationProcess:
-    'Renforcer la compréhension et la confiance envers les médicaments dérivés du plasma.\nValoriser la mission sociétale et le rôle industriel du LFB.\nAccroître la notoriété du LFB auprès des professionnels et du grand public.\nCréer un actif digital durable, réutilisable pour la formation et la communication.',
+    'Renforcer la compréhension et la confiance envers nos produits.\nValoriser la mission sociétale et le rôle industriel d’Entreprise Demo.\nAccroître la notoriété d’Entreprise Demo auprès des professionnels et du grand public.\nCréer un actif digital durable, réutilisable pour la formation et la communication.',
   visionStatement:
     'Nombre de visiteurs uniques mensuels.\nTemps moyen passé sur les pages.\nTaux de complétion du parcours interactif.\nNombre de téléchargements de ressources et de quiz complétés.\nMentions ou citations du site sur les réseaux sociaux et dans la presse spécialisée.',
   campaignKickoffDate: '2025-11-03',
@@ -44,12 +44,12 @@ const demoProjectAnswers = {
   teamLead: 'Bertrand Darieux',
   teamLeadTeam: 'marketing_doi',
   teamCoreMembers:
-    'Julien Morel - Directeur du site de production de Lille\nClaire Martin - Responsable Médicale\nSophie Leclerc - Responsable Communication Digitale\nStudio Nova - Agence de communication scientifique et design interactif',
-  ProjectType: 'projet_du_lfb',
+    'Julien Morel - Directeur d’un site de production\nClaire Martin - Responsable Médicale\nSophie Leclerc - Responsable Communication Digitale\nStudio Nova - Agence de communication scientifique et design interactif',
+  ProjectType: 'projet_du_entreprise_demo',
   q11: ['visuels_crees_specifiquement_pour_le_projet', 'contenu_genere_via_l_ia'],
   q3: ['oui_donnees_de_sante', 'oui_donnees_personnelles_standard_ex_email_satisfaction'],
   q10: ['professionnel_de_sante_francais_ou_association_de_pds_societe_savante', 'agence'],
-  q14: ['via_les_canaux_digitaux_du_lfb', 'communique_de_presse'],
+  q14: ['via_les_canaux_digitaux_du_entreprise_demo', 'communique_de_presse'],
   q17: ['possibilite_de_renouveler_facilement_ce_type_de_projets_dans_le_temps'],
   q19: ['digital', 'redaction_d_abstract_de_poster_articles_scientifiques'],
   q24: ['partager_des_informations_sur_des_sujets_sensibles_ex_defaillance_industrielle_tension_d_approvisionnement_augmentation_de_capital'],
@@ -61,7 +61,7 @@ const demoProjectAnswers = {
   q15:
     'Le projet prévoit un point d’étape trimestriel avec les équipes Médical, Communication et Compliance pour ajuster les contenus selon les retours terrain.',
   q15_copy: {
-    name: 'plasma360-note-cadrage.pdf',
+    name: 'impact360-note-cadrage.pdf',
     size: 248000,
     type: 'application/pdf'
   },

@@ -93,9 +93,9 @@ test('projets types enregistres : la portee et le pouvoir discriminant des condi
     .getAttribute('value');
   await sampleSelect.selectOption(projectValue);
   await page.getByRole('button', { name: 'Enregistrer comme projet type' }).click();
-  await page.getByLabel('Nom du projet type').fill('Cas A — projet LFB');
+  await page.getByLabel('Nom du projet type').fill('Cas A — projet Entreprise Demo');
   await page.getByRole('button', { name: 'Enregistrer', exact: true }).click();
-  await expect(page.getByText('Chargé : Cas A — projet LFB')).toBeVisible();
+  await expect(page.getByText('Chargé : Cas A — projet Entreprise Demo')).toBeVisible();
 
   // 2e projet type : meme base, une reponse changee, enregistre sous un autre nom.
   expect(await pickFirstSelectableAnswer(page)).toBe(true);
@@ -148,7 +148,7 @@ test('le module de revue montre le perimetre d activite issu de l onboarding', a
   await expect(page.getByRole('heading', { name: 'Votre profil (onboarding)' })).toBeVisible();
   await expect(page.getByText(/Les conditions portant sur le périmètre d’activité/)).toBeVisible();
   // gotoHome a coché le premier périmètre de l'onboarding : il doit apparaître ici.
-  await expect(page.getByText('bertrand.darieux@lfb.fr')).toBeVisible();
+  await expect(page.getByText('bertrand.darieux@entreprise-demo.example')).toBeVisible();
   await page.screenshot({ path: `${SHOT}/12-profile-scope.png`, fullPage: true });
 });
 

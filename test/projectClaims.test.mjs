@@ -22,7 +22,7 @@ import {
 } from '../src/utils/projectClaims.js';
 import { countBusinessDaysBetween, isBusinessDay } from '../src/utils/businessDays.js';
 
-const TEAM = { id: 'quality', contacts: ['Alice@lfb.fr', 'bob@lfb.fr', 'carla@lfb.fr'] };
+const TEAM = { id: 'quality', contacts: ['Alice@entreprise-demo.example', 'bob@entreprise-demo.example', 'carla@entreprise-demo.example'] };
 
 const projectWithClaim = (claim, extra = {}) => ({
   id: 'p1',
@@ -62,34 +62,34 @@ test('les délais par équipe ont des valeurs par défaut, et 0 désactive', () 
 
 test('revendiquer, reprendre, libérer : historique et normalisation', () => {
   const claimed = applyClaimAction({ status: 'pending_information' }, {
-    assigneeEmail: 'Alice@LFB.fr',
+    assigneeEmail: 'Alice@entreprise-demo.example',
     assigneeName: 'Alice Martin',
-    actorEmail: 'Alice@LFB.fr',
+    actorEmail: 'Alice@entreprise-demo.example',
     now: '2026-09-01T08:00:00Z'
   });
 
-  assert.equal(claimed.claim.assigneeEmail, 'alice@lfb.fr');
+  assert.equal(claimed.claim.assigneeEmail, 'alice@entreprise-demo.example');
   assert.equal(claimed.claim.assignedAt, '2026-09-01T08:00:00Z');
   assert.equal(claimed.status, 'pending_information');
   assert.equal(claimed.claimHistory.length, 1);
 
   const takenOver = applyClaimAction(claimed, {
     action: CLAIM_ACTION_TAKEOVER,
-    assigneeEmail: 'bob@lfb.fr',
-    actorEmail: 'bob@lfb.fr',
+    assigneeEmail: 'bob@entreprise-demo.example',
+    actorEmail: 'bob@entreprise-demo.example',
     reason: 'absence',
     reasonNote: 'Alice en congés',
     now: '2026-09-03T08:00:00Z'
   });
 
-  assert.equal(takenOver.claim.assigneeEmail, 'bob@lfb.fr');
+  assert.equal(takenOver.claim.assigneeEmail, 'bob@entreprise-demo.example');
   assert.equal(takenOver.claimHistory.length, 2);
-  assert.equal(takenOver.claimHistory[1].previousAssigneeEmail, 'alice@lfb.fr');
+  assert.equal(takenOver.claimHistory[1].previousAssigneeEmail, 'alice@entreprise-demo.example');
   assert.equal(takenOver.claimHistory[1].reason, 'absence');
 
   const released = applyClaimAction(takenOver, {
     action: CLAIM_ACTION_RELEASE,
-    actorEmail: 'bob@lfb.fr',
+    actorEmail: 'bob@entreprise-demo.example',
     now: '2026-09-04T08:00:00Z'
   });
 
@@ -101,14 +101,14 @@ test('revendiquer, reprendre, libérer : historique et normalisation', () => {
 
 test('la revendication implicite ne réinitialise pas une prise en charge déjà à soi', () => {
   const first = applyClaimAction({}, {
-    assigneeEmail: 'alice@lfb.fr',
-    actorEmail: 'alice@lfb.fr',
+    assigneeEmail: 'alice@entreprise-demo.example',
+    actorEmail: 'alice@entreprise-demo.example',
     now: '2026-09-01T08:00:00Z'
   });
   const again = applyClaimAction(first, {
     action: CLAIM_ACTION_IMPLICIT,
-    assigneeEmail: 'ALICE@lfb.fr',
-    actorEmail: 'alice@lfb.fr',
+    assigneeEmail: 'ALICE@entreprise-demo.example',
+    actorEmail: 'alice@entreprise-demo.example',
     now: '2026-09-08T08:00:00Z'
   });
 
@@ -117,12 +117,12 @@ test('la revendication implicite ne réinitialise pas une prise en charge déjà
 });
 
 test('un périmètre revendiqué se lit depuis le projet', () => {
-  const project = projectWithClaim({ assigneeEmail: 'alice@lfb.fr', assignedAt: '2026-09-01T08:00:00Z' });
-  assert.equal(getTeamClaim(project, 'quality').assigneeEmail, 'alice@lfb.fr');
+  const project = projectWithClaim({ assigneeEmail: 'alice@entreprise-demo.example', assignedAt: '2026-09-01T08:00:00Z' });
+  assert.equal(getTeamClaim(project, 'quality').assigneeEmail, 'alice@entreprise-demo.example');
   assert.equal(getTeamClaim(project, 'regulatory'), null);
-  assert.equal(isClaimedBy(getTeamClaim(project, 'quality'), 'Alice@lfb.fr'), true);
-  assert.equal(isClaimedByOther(getTeamClaim(project, 'quality'), 'bob@lfb.fr'), true);
-  assert.equal(isClaimedByOther(null, 'bob@lfb.fr'), false);
+  assert.equal(isClaimedBy(getTeamClaim(project, 'quality'), 'Alice@entreprise-demo.example'), true);
+  assert.equal(isClaimedByOther(getTeamClaim(project, 'quality'), 'bob@entreprise-demo.example'), true);
+  assert.equal(isClaimedByOther(null, 'bob@entreprise-demo.example'), false);
 });
 
 // Avec les valeurs par défaut (3 pour la relance, 6 pour le signalement), la relance par
@@ -130,7 +130,7 @@ test('un périmètre revendiqué se lit depuis le projet', () => {
 // sont indépendants, l'un ne suppose pas l'autre.
 test('péremption : 3 jours ouvrés relancent, 6 signalent, et une activité réarme la relance', () => {
   const entry = {
-    claim: { assigneeEmail: 'alice@lfb.fr', assignedAt: '2026-09-01T08:00:00Z' },
+    claim: { assigneeEmail: 'alice@entreprise-demo.example', assignedAt: '2026-09-01T08:00:00Z' },
     statusUpdatedAt: '2026-09-01T08:00:00Z',
     replies: []
   };
@@ -155,7 +155,7 @@ test('péremption : 3 jours ouvrés relancent, 6 signalent, et une activité ré
 
   const answered = {
     ...reminded,
-    replies: [{ createdAt: '2026-09-14T08:00:00Z', authorEmail: 'owner@lfb.fr' }]
+    replies: [{ createdAt: '2026-09-14T08:00:00Z', authorEmail: 'owner@entreprise-demo.example' }]
   };
   assert.equal(getPerimeterLastActivityAt(answered), '2026-09-14T08:00:00Z');
   assert.equal(getClaimStaleness(answered, { team: TEAM, now: '2026-09-17T08:00:00Z' }).isReminderDue, true);
@@ -167,14 +167,14 @@ test('péremption : 3 jours ouvrés relancent, 6 signalent, et une activité ré
 });
 
 test('après prise en charge, les échanges ne partent qu’au référent', () => {
-  assert.deepEqual(resolveClaimAwareRecipients(TEAM, {}, null), ['Alice@lfb.fr', 'bob@lfb.fr', 'carla@lfb.fr']);
-  assert.deepEqual(resolveClaimAwareRecipients(TEAM, {}, { assigneeEmail: 'BOB@lfb.fr' }), ['bob@lfb.fr']);
+  assert.deepEqual(resolveClaimAwareRecipients(TEAM, {}, null), ['Alice@entreprise-demo.example', 'bob@entreprise-demo.example', 'carla@entreprise-demo.example']);
+  assert.deepEqual(resolveClaimAwareRecipients(TEAM, {}, { assigneeEmail: 'BOB@entreprise-demo.example' }), ['bob@entreprise-demo.example']);
 });
 
 test('un référent qui n’est plus contact de l’équipe ne crée pas de trou noir', () => {
-  const claim = { assigneeEmail: 'gone@lfb.fr' };
+  const claim = { assigneeEmail: 'gone@entreprise-demo.example' };
   assert.equal(isOrphanClaim(TEAM, claim), true);
-  assert.deepEqual(resolveClaimAwareRecipients(TEAM, {}, claim), ['Alice@lfb.fr', 'bob@lfb.fr', 'carla@lfb.fr']);
+  assert.deepEqual(resolveClaimAwareRecipients(TEAM, {}, claim), ['Alice@entreprise-demo.example', 'bob@entreprise-demo.example', 'carla@entreprise-demo.example']);
 });
 
 test('le routage par membre reste prioritaire sur la prise en charge', () => {
@@ -182,55 +182,55 @@ test('le routage par membre reste prioritaire sur la prise en charge', () => {
     ...TEAM,
     memberRules: [
       {
-        email: 'carla@lfb.fr',
+        email: 'carla@entreprise-demo.example',
         mode: 'include',
         conditionGroups: [{ logic: 'all', conditions: [{ type: 'question', question: 'q1', operator: 'equals', value: 'oui' }] }]
       }
     ]
   };
 
-  assert.deepEqual(resolveClaimAwareRecipients(routedTeam, { q1: 'non' }, null), ['Alice@lfb.fr', 'bob@lfb.fr']);
+  assert.deepEqual(resolveClaimAwareRecipients(routedTeam, { q1: 'non' }, null), ['Alice@entreprise-demo.example', 'bob@entreprise-demo.example']);
   assert.deepEqual(
-    resolveClaimAwareRecipients(routedTeam, { q1: 'non' }, { assigneeEmail: 'alice@lfb.fr' }),
-    ['Alice@lfb.fr']
+    resolveClaimAwareRecipients(routedTeam, { q1: 'non' }, { assigneeEmail: 'alice@entreprise-demo.example' }),
+    ['Alice@entreprise-demo.example']
   );
 });
 
 test('un référent absent voit ses e-mails partir à son suppléant', () => {
   const profiles = new Map([
-    ['alice@lfb.fr', { absence: { from: '2026-09-10', to: '2026-09-20', backupEmail: 'bob@lfb.fr' } }]
+    ['alice@entreprise-demo.example', { absence: { from: '2026-09-10', to: '2026-09-20', backupEmail: 'bob@entreprise-demo.example' } }]
   ]);
 
   assert.deepEqual(
-    resolveClaimAwareRecipients(TEAM, {}, { assigneeEmail: 'alice@lfb.fr' }, { profiles, now: '2026-09-14T08:00:00Z' }),
-    ['bob@lfb.fr']
+    resolveClaimAwareRecipients(TEAM, {}, { assigneeEmail: 'alice@entreprise-demo.example' }, { profiles, now: '2026-09-14T08:00:00Z' }),
+    ['bob@entreprise-demo.example']
   );
   assert.deepEqual(
-    resolveClaimAwareRecipients(TEAM, {}, { assigneeEmail: 'alice@lfb.fr' }, { profiles, now: '2026-09-30T08:00:00Z' }),
-    ['Alice@lfb.fr']
+    resolveClaimAwareRecipients(TEAM, {}, { assigneeEmail: 'alice@entreprise-demo.example' }, { profiles, now: '2026-09-30T08:00:00Z' }),
+    ['Alice@entreprise-demo.example']
   );
 });
 
 test('les copies sont opt-in, excluent le référent et n’élargissent jamais le routage', () => {
   const profiles = new Map([
-    ['alice@lfb.fr', { teamPreferences: { quality: { claimCopy: true } } }],
-    ['bob@lfb.fr', { teamPreferences: { quality: { claimCopy: true } } }],
-    ['carla@lfb.fr', { teamPreferences: { quality: { claimCopy: true } } }]
+    ['alice@entreprise-demo.example', { teamPreferences: { quality: { claimCopy: true } } }],
+    ['bob@entreprise-demo.example', { teamPreferences: { quality: { claimCopy: true } } }],
+    ['carla@entreprise-demo.example', { teamPreferences: { quality: { claimCopy: true } } }]
   ]);
 
   assert.deepEqual(
-    resolveClaimCopyRecipients(TEAM, {}, { assigneeEmail: 'alice@lfb.fr', profiles }),
-    ['bob@lfb.fr', 'carla@lfb.fr']
+    resolveClaimCopyRecipients(TEAM, {}, { assigneeEmail: 'alice@entreprise-demo.example', profiles }),
+    ['bob@entreprise-demo.example', 'carla@entreprise-demo.example']
   );
 
-  assert.deepEqual(resolveClaimCopyRecipients(TEAM, {}, { assigneeEmail: 'alice@lfb.fr', profiles: new Map() }), []);
-  assert.deepEqual(resolveClaimCopyRecipients(TEAM, {}, { assigneeEmail: 'alice@lfb.fr' }), []);
+  assert.deepEqual(resolveClaimCopyRecipients(TEAM, {}, { assigneeEmail: 'alice@entreprise-demo.example', profiles: new Map() }), []);
+  assert.deepEqual(resolveClaimCopyRecipients(TEAM, {}, { assigneeEmail: 'alice@entreprise-demo.example' }), []);
 
   const routedTeam = {
     ...TEAM,
     memberRules: [
       {
-        email: 'carla@lfb.fr',
+        email: 'carla@entreprise-demo.example',
         mode: 'include',
         conditionGroups: [{ logic: 'all', conditions: [{ type: 'question', question: 'q1', operator: 'equals', value: 'oui' }] }]
       }
@@ -238,25 +238,25 @@ test('les copies sont opt-in, excluent le référent et n’élargissent jamais 
   };
 
   assert.deepEqual(
-    resolveClaimCopyRecipients(routedTeam, { q1: 'non' }, { assigneeEmail: 'alice@lfb.fr', profiles }),
-    ['bob@lfb.fr']
+    resolveClaimCopyRecipients(routedTeam, { q1: 'non' }, { assigneeEmail: 'alice@entreprise-demo.example', profiles }),
+    ['bob@entreprise-demo.example']
   );
 });
 
 test('la vue charge agrège les prises en charge, les retards et les orphelines', () => {
   const projects = [
     projectWithClaim(
-      { assigneeEmail: 'alice@lfb.fr', assignedAt: '2026-09-01T08:00:00Z' },
+      { assigneeEmail: 'alice@entreprise-demo.example', assignedAt: '2026-09-01T08:00:00Z' },
       { statusUpdatedAt: '2026-09-01T08:00:00Z' }
     ),
     {
-      ...projectWithClaim({ assigneeEmail: 'gone@lfb.fr', assignedAt: '2026-09-14T08:00:00Z' }),
+      ...projectWithClaim({ assigneeEmail: 'gone@entreprise-demo.example', assignedAt: '2026-09-14T08:00:00Z' }),
       id: 'p2',
       projectName: 'Projet B'
     },
     { id: 'p3', projectName: 'Projet C', answers: {} },
     {
-      ...projectWithClaim({ assigneeEmail: 'alice@lfb.fr', assignedAt: '2026-09-01T08:00:00Z' }),
+      ...projectWithClaim({ assigneeEmail: 'alice@entreprise-demo.example', assignedAt: '2026-09-01T08:00:00Z' }),
       id: 'p4',
       projectName: 'Projet annulé',
       status: 'cancelled'

@@ -6,7 +6,7 @@
 > [`/README.md`](../../README.md) et [`/docs/architecture-technique.md`](../architecture-technique.md).
 
 Stratégie retenue : **API REST SharePoint (`/_api/…`) + Power Automate**.
-L'application étant servie depuis l'origine SharePoint (`https://lfb1.sharepoint.com/…`), le
+L'application étant servie depuis l'origine SharePoint (`https://entreprisedemo1.sharepoint.com/…`), le
 navigateur transmet automatiquement les cookies de session : aucune authentification à
 implémenter, **pas de Microsoft Graph, pas de MSAL, pas d'enregistrement Azure AD, pas de
 consentement administrateur**.

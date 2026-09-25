@@ -20,27 +20,27 @@ const withLocation = (location, extra, fn) => {
 };
 
 const spo = (pathname) => ({
-  origin: 'https://lfb1.sharepoint.com',
+  origin: 'https://entreprisedemo1.sharepoint.com',
   pathname,
   protocol: 'https:',
-  hostname: 'lfb1.sharepoint.com'
+  hostname: 'entreprisedemo1.sharepoint.com'
 });
 
 test('getWebUrl : remonte du dossier de l’app jusqu’au web SharePoint', () => {
   withLocation(spo('/sites/ProjectNavigator_DEV/CN-App/index.aspx'), {}, () => {
-    assert.equal(getWebUrl(), 'https://lfb1.sharepoint.com/sites/ProjectNavigator_DEV');
+    assert.equal(getWebUrl(), 'https://entreprisedemo1.sharepoint.com/sites/ProjectNavigator_DEV');
   });
 });
 
 test('getWebUrl : déduit le site depuis n’importe quelle page du site', () => {
   withLocation(spo('/sites/ProjectNavigator_DEV/SitePages/Accueil.aspx'), {}, () => {
-    assert.equal(getWebUrl(), 'https://lfb1.sharepoint.com/sites/ProjectNavigator_DEV');
+    assert.equal(getWebUrl(), 'https://entreprisedemo1.sharepoint.com/sites/ProjectNavigator_DEV');
   });
 });
 
 test('getWebUrl : la surcharge __CN_WEB_URL__ gagne et perd son slash final', () => {
-  withLocation(spo('/sites/Autre/CN-App/index.aspx'), { __CN_WEB_URL__: 'https://lfb1.sharepoint.com/sites/Force/' }, () => {
-    assert.equal(getWebUrl(), 'https://lfb1.sharepoint.com/sites/Force');
+  withLocation(spo('/sites/Autre/CN-App/index.aspx'), { __CN_WEB_URL__: 'https://entreprisedemo1.sharepoint.com/sites/Force/' }, () => {
+    assert.equal(getWebUrl(), 'https://entreprisedemo1.sharepoint.com/sites/Force');
   });
 });
 
@@ -62,7 +62,7 @@ test('getSiteRelativeUrl : chemin relatif au serveur', () => {
 
 test('getOrigin : protocole + hôte, sans le chemin du site', () => {
   withLocation(spo('/sites/ProjectNavigator_DEV/CN-App/index.aspx'), {}, () => {
-    assert.equal(getOrigin(), 'https://lfb1.sharepoint.com');
+    assert.equal(getOrigin(), 'https://entreprisedemo1.sharepoint.com');
   });
 });
 

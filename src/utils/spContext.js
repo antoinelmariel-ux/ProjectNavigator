@@ -11,7 +11,7 @@ export const resetSharePointContext = () => {
 };
 
 // SP.User.Email est vide sur certaines configurations de tenant ; le LoginName a la forme
-// « i:0#.f|membership|prenom.nom@lfb.fr ».
+// « i:0#.f|membership|prenom.nom@entreprise-demo.example ».
 export const emailFromLoginName = (loginName) => {
   if (typeof loginName !== 'string' || !loginName) {
     return '';

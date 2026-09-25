@@ -219,7 +219,7 @@ export async function createAndSubmitProject(page) {
 // le compte de test avant même que l'app ne démarre (page.addInitScript, pas evaluate() après coup
 // : App.jsx re-persiste son état sur pagehide, ce qui écraserait un patch écrit avant une navigation
 // à venir — voir la note équivalente pour les statuts de conformité plus haut dans ce fichier).
-export async function grantAdminAccess(page, email = 'bertrand.darieux@lfb.fr') {
+export async function grantAdminAccess(page, email = 'bertrand.darieux@entreprise-demo.example') {
   await page.addInitScript((adminEmail) => {
     const KEY = 'complianceNavigatorState';
     let state = {};
@@ -237,7 +237,7 @@ export async function grantAdminAccess(page, email = 'bertrand.darieux@lfb.fr') 
   await expect(page.getByRole('heading', { name: 'Back-office' })).toBeVisible();
 }
 
-// Rend l'utilisateur courant (mock local, bertrand.darieux@lfb.fr) expert compliance de la
+// Rend l'utilisateur courant (mock local, bertrand.darieux@entreprise-demo.example) expert compliance de la
 // première équipe ET membre du comité de validation par défaut, tout en gardant l'accès admin
 // complet au back-office (sinon s'ajouter soi-même comme contact d'équipe/comité bascule
 // silencieusement la session en vue "responsable compliance" restreinte — voir allowedTabIds
@@ -252,12 +252,12 @@ export async function grantSelfComplianceExpertAndCommitteeAccess(page) {
   // Administrateurs : grantAdminAccess a déjà rendu les droits admin persistants dès le boot.
   await page.getByRole('tab', { name: /Équipes/ }).click();
   const contactsField = page.locator('input[id$="-contact"]').first();
-  await contactsField.fill('bertrand.darieux@lfb.fr');
+  await contactsField.fill('bertrand.darieux@entreprise-demo.example');
   await contactsField.press('Enter');
 
   await page.getByRole('tab', { name: /Comités de validation/ }).click();
   const committeeEmailsField = page.getByPlaceholder('Rechercher un membre du comité…').first();
-  await committeeEmailsField.fill('bertrand.darieux@lfb.fr');
+  await committeeEmailsField.fill('bertrand.darieux@entreprise-demo.example');
   await committeeEmailsField.press('Enter');
 
   await page.getByRole('button', { name: 'Mode Chef de Projet' }).click();

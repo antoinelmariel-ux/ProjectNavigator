@@ -51,13 +51,13 @@ export const initialRules = [
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_lfb"
+            "value": "projet_du_entreprise_demo"
           },
           {
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
           }
         ]
       }
@@ -155,13 +155,13 @@ export const initialRules = [
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_lfb"
+            "value": "projet_du_entreprise_demo"
           },
           {
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
           }
         ]
       },
@@ -241,13 +241,13 @@ export const initialRules = [
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_lfb"
+            "value": "projet_du_entreprise_demo"
           },
           {
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
           }
         ]
       },
@@ -322,13 +322,13 @@ export const initialRules = [
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_lfb"
+            "value": "projet_du_entreprise_demo"
           },
           {
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
           }
         ]
       },
@@ -384,13 +384,13 @@ export const initialRules = [
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_lfb"
+            "value": "projet_du_entreprise_demo"
           },
           {
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
           }
         ]
       },
@@ -535,13 +535,13 @@ export const initialRules = [
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_lfb"
+            "value": "projet_du_entreprise_demo"
           },
           {
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
           }
         ]
       },
@@ -621,13 +621,13 @@ export const initialRules = [
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_lfb"
+            "value": "projet_du_entreprise_demo"
           },
           {
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
           }
         ]
       },
@@ -707,13 +707,13 @@ export const initialRules = [
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_lfb"
+            "value": "projet_du_entreprise_demo"
           },
           {
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
           }
         ]
       },
@@ -836,7 +836,7 @@ export const initialRules = [
         "type": "question",
         "question": "q14",
         "operator": "equals",
-        "value": "reseaux_sociaux_du_lfb"
+        "value": "reseaux_sociaux_du_entreprise_demo"
       }
     ],
     "conditionGroups": [
@@ -853,7 +853,7 @@ export const initialRules = [
             "type": "question",
             "question": "q14",
             "operator": "equals",
-            "value": "reseaux_sociaux_du_lfb"
+            "value": "reseaux_sociaux_du_entreprise_demo"
           }
         ]
       }
@@ -866,10 +866,10 @@ export const initialRules = [
       "communication_externe": [
         {
           "text": {
-            "en": "For the use of LFB's social media, please follow&nbsp;<a href=\"https://lfb1.sharepoint.com/sites/lfb-daily-life/fr-FR/toolbox/LFB%20-%20Documents%20Process/Forms/Ordre%20alpha.aspx?id=%2Fsites%2Flfb%2Ddaily%2Dlife%2Ffr%2DFR%2Ftoolbox%2FLFB%20%2D%20Documents%20Process%2FCommunication%20Aff%5FPubliques%2FCO07%5FFR%20Charte%20utilisation%20reseaux%20sociaux%2Epdf&amp;parent=%2Fsites%2Flfb%2Ddaily%2Dlife%2Ffr%2DFR%2Ftoolbox%2FLFB%20%2D%20Documents%20Process%2FCommunication%20Aff%5FPubliques\" target=\"_blank\" rel=\"noopener noreferrer\">our social media usage policy</a>",
-            "fr": "Pour l’utilisation des réseaux sociaux du LFB, merci de suivre&nbsp;<a href=\"https://lfb1.sharepoint.com/sites/lfb-daily-life/fr-FR/toolbox/LFB%20-%20Documents%20Process/Forms/Ordre%20alpha.aspx?id=%2Fsites%2Flfb%2Ddaily%2Dlife%2Ffr%2DFR%2Ftoolbox%2FLFB%20%2D%20Documents%20Process%2FCommunication%20Aff%5FPubliques%2FCO07%5FFR%20Charte%20utilisation%20reseaux%20sociaux%2Epdf&amp;parent=%2Fsites%2Flfb%2Ddaily%2Dlife%2Ffr%2DFR%2Ftoolbox%2FLFB%20%2D%20Documents%20Process%2FCommunication%20Aff%5FPubliques\" target=\"_blank\" rel=\"noopener noreferrer\">notre charte d’utilisation des réseaux sociaux</a>",
-            "de": "Für die Nutzung der sozialen Medien des LFB folgen Sie bitte&nbsp;<a href=\"https://lfb1.sharepoint.com/sites/lfb-daily-life/fr-FR/toolbox/LFB%20-%20Documents%20Process/Forms/Ordre%20alpha.aspx?id=%2Fsites%2Flfb%2Ddaily%2Dlife%2Ffr%2DFR%2Ftoolbox%2FLFB%20%2D%20Documents%20Process%2FCommunication%20Aff%5FPubliques%2FCO07%5FFR%20Charte%20utilisation%20reseaux%20sociaux%2Epdf&amp;parent=%2Fsites%2Flfb%2Ddaily%2Dlife%2Ffr%2DFR%2Ftoolbox%2FLFB%20%2D%20Documents%20Process%2FCommunication%20Aff%5FPubliques\" target=\"_blank\" rel=\"noopener noreferrer\">unserer Richtlinie zur Nutzung sozialer Medien</a>",
-            "es": "Para el uso de las redes sociales del LFB, siga&nbsp;<a href=\"https://lfb1.sharepoint.com/sites/lfb-daily-life/fr-FR/toolbox/LFB%20-%20Documents%20Process/Forms/Ordre%20alpha.aspx?id=%2Fsites%2Flfb%2Ddaily%2Dlife%2Ffr%2DFR%2Ftoolbox%2FLFB%20%2D%20Documents%20Process%2FCommunication%20Aff%5FPubliques%2FCO07%5FFR%20Charte%20utilisation%20reseaux%20sociaux%2Epdf&amp;parent=%2Fsites%2Flfb%2Ddaily%2Dlife%2Ffr%2DFR%2Ftoolbox%2FLFB%20%2D%20Documents%20Process%2FCommunication%20Aff%5FPubliques\" target=\"_blank\" rel=\"noopener noreferrer\">nuestra carta de uso de las redes sociales</a>"
+            "en": "For the use of Entreprise Demo's social media, please follow&nbsp;our social media usage policy",
+            "fr": "Pour l’utilisation des réseaux sociaux Entreprise Demo, merci de suivre&nbsp;notre charte d’utilisation des réseaux sociaux",
+            "de": "Für die Nutzung der sozialen Medien Entreprise Demo folgen Sie bitte&nbsp;unserer Richtlinie zur Nutzung sozialer Medien",
+            "es": "Para el uso de las redes sociales de Entreprise Demo, siga&nbsp;nuestra carta de uso de las redes sociales"
           },
           "timingConstraint": {
             "enabled": false,
@@ -895,7 +895,7 @@ export const initialRules = [
         "type": "question",
         "question": "q14",
         "operator": "equals",
-        "value": "site_internet_corporate_du_lfb"
+        "value": "site_internet_corporate_du_entreprise_demo"
       }
     ],
     "conditionGroups": [
@@ -906,7 +906,7 @@ export const initialRules = [
             "type": "question",
             "question": "q14",
             "operator": "equals",
-            "value": "site_internet_corporate_du_lfb"
+            "value": "site_internet_corporate_du_entreprise_demo"
           }
         ]
       }
@@ -948,7 +948,7 @@ export const initialRules = [
         "type": "question",
         "question": "q14",
         "operator": "equals",
-        "value": "site_internet_des_filiales_du_lfb"
+        "value": "site_internet_des_filiales_du_entreprise_demo"
       }
     ],
     "conditionGroups": [
@@ -959,7 +959,7 @@ export const initialRules = [
             "type": "question",
             "question": "q14",
             "operator": "equals",
-            "value": "site_internet_des_filiales_du_lfb"
+            "value": "site_internet_des_filiales_du_entreprise_demo"
           }
         ]
       }
@@ -1025,10 +1025,10 @@ export const initialRules = [
       "communication_externe": [
         {
           "text": {
-            "en": "As a reminder, we have an image library available for free use:&nbsp;<a href=\"https://lfb1.sharepoint.com/sites/lfb-daily-life/fr-FR/toolbox/sitepages/Medias-and-Communication-ressources.aspx#Default=%7B%22r%22%3A%5B%7B%22k%22%3Afalse%2C%22m%22%3Anull%2C%22n%22%3A%22RefinableString104%22%2C%22o%22%3A%22or%22%2C%22t%22%3A%5B%22%C7%82%C7%8250617469656e7473%22%5D%7D%5D%7D\" target=\"_blank\" rel=\"noopener noreferrer\">Media library</a>",
-            "fr": "Nous vous rappelons que nous disposons d’une banque d’images pouvant être utilisée librement :&nbsp;<a href=\"https://lfb1.sharepoint.com/sites/lfb-daily-life/fr-FR/toolbox/sitepages/Medias-and-Communication-ressources.aspx#Default=%7B%22r%22%3A%5B%7B%22k%22%3Afalse%2C%22m%22%3Anull%2C%22n%22%3A%22RefinableString104%22%2C%22o%22%3A%22or%22%2C%22t%22%3A%5B%22%C7%82%C7%8250617469656e7473%22%5D%7D%5D%7D\" target=\"_blank\" rel=\"noopener noreferrer\">Médiathèque</a>",
-            "de": "Wir erinnern Sie daran, dass wir über eine Bilddatenbank verfügen, die frei genutzt werden kann:&nbsp;<a href=\"https://lfb1.sharepoint.com/sites/lfb-daily-life/fr-FR/toolbox/sitepages/Medias-and-Communication-ressources.aspx#Default=%7B%22r%22%3A%5B%7B%22k%22%3Afalse%2C%22m%22%3Anull%2C%22n%22%3A%22RefinableString104%22%2C%22o%22%3A%22or%22%2C%22t%22%3A%5B%22%C7%82%C7%8250617469656e7473%22%5D%7D%5D%7D\" target=\"_blank\" rel=\"noopener noreferrer\">Mediathek</a>",
-            "es": "Le recordamos que disponemos de un banco de imágenes de uso libre:&nbsp;<a href=\"https://lfb1.sharepoint.com/sites/lfb-daily-life/fr-FR/toolbox/sitepages/Medias-and-Communication-ressources.aspx#Default=%7B%22r%22%3A%5B%7B%22k%22%3Afalse%2C%22m%22%3Anull%2C%22n%22%3A%22RefinableString104%22%2C%22o%22%3A%22or%22%2C%22t%22%3A%5B%22%C7%82%C7%8250617469656e7473%22%5D%7D%5D%7D\" target=\"_blank\" rel=\"noopener noreferrer\">Mediateca</a>"
+            "en": "As a reminder, we have an image library available for free use:&nbsp;Media library",
+            "fr": "Nous vous rappelons que nous disposons d’une banque d’images pouvant être utilisée librement :&nbsp;Médiathèque",
+            "de": "Wir erinnern Sie daran, dass wir über eine Bilddatenbank verfügen, die frei genutzt werden kann:&nbsp;Mediathek",
+            "es": "Le recordamos que disponemos de un banco de imágenes de uso libre:&nbsp;Mediateca"
           },
           "timingConstraint": {
             "enabled": false,
@@ -1054,7 +1054,7 @@ export const initialRules = [
         "type": "question",
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_du_lfb"
+        "value": "projet_du_entreprise_demo"
       }
     ],
     "conditionGroups": [
@@ -1065,7 +1065,7 @@ export const initialRules = [
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_lfb"
+            "value": "projet_du_entreprise_demo"
           }
         ]
       }
@@ -1078,10 +1078,10 @@ export const initialRules = [
       "communication_externe": [
         {
           "text": {
-            "en": "Make sure to follow and share our graphic charter and logos with any external providers. These materials are available here:&nbsp;<a href=\"https://lfb1.sharepoint.com/sites/lfb-daily-life/fr-FR/toolbox/SitePages/Communication-tools.aspx#environnement-graphique%E2%80%8B%E2%80%8B%E2%80%8B%E2%80%8B\" target=\"_blank\" rel=\"noopener noreferrer\">Corporate graphic charter</a>",
-            "fr": "Pensez à bien respecter et partager aux éventuels prestataires notre charte graphique et nos logos. Ces éléments sont disponibles ici :&nbsp;<a href=\"https://lfb1.sharepoint.com/sites/lfb-daily-life/fr-FR/toolbox/SitePages/Communication-tools.aspx#environnement-graphique%E2%80%8B%E2%80%8B%E2%80%8B%E2%80%8B\" target=\"_blank\" rel=\"noopener noreferrer\">Charte graphique corporate</a>",
-            "de": "Achten Sie darauf, unsere Grafik-Richtlinie und unsere Logos einzuhalten und sie gegebenenfalls an Dienstleister weiterzugeben. Diese Elemente finden Sie hier:&nbsp;<a href=\"https://lfb1.sharepoint.com/sites/lfb-daily-life/fr-FR/toolbox/SitePages/Communication-tools.aspx#environnement-graphique%E2%80%8B%E2%80%8B%E2%80%8B%E2%80%8B\" target=\"_blank\" rel=\"noopener noreferrer\">Unternehmensweite Grafik-Richtlinie</a>",
-            "es": "Recuerde respetar y compartir con los posibles proveedores externos nuestra carta gráfica y nuestros logotipos. Estos elementos están disponibles aquí:&nbsp;<a href=\"https://lfb1.sharepoint.com/sites/lfb-daily-life/fr-FR/toolbox/SitePages/Communication-tools.aspx#environnement-graphique%E2%80%8B%E2%80%8B%E2%80%8B%E2%80%8B\" target=\"_blank\" rel=\"noopener noreferrer\">Carta gráfica corporativa</a>"
+            "en": "Make sure to follow and share our graphic charter and logos with any external providers. These materials are available here:&nbsp;Corporate graphic charter",
+            "fr": "Pensez à bien respecter et partager aux éventuels prestataires notre charte graphique et nos logos. Ces éléments sont disponibles ici :&nbsp;Charte graphique corporate",
+            "de": "Achten Sie darauf, unsere Grafik-Richtlinie und unsere Logos einzuhalten und sie gegebenenfalls an Dienstleister weiterzugeben. Diese Elemente finden Sie hier:&nbsp;Unternehmensweite Grafik-Richtlinie",
+            "es": "Recuerde respetar y compartir con los posibles proveedores externos nuestra carta gráfica y nuestros logotipos. Estos elementos están disponibles aquí:&nbsp;Carta gráfica corporativa"
           },
           "timingConstraint": {
             "enabled": false,
@@ -1107,7 +1107,7 @@ export const initialRules = [
         "type": "question",
         "question": "q24",
         "operator": "equals",
-        "value": "partager_des_informations_liees_a_l_historique_du_lfb_avant_1994"
+        "value": "partager_des_informations_liees_a_l_historique_de_l_entreprise_avant_sa_creation"
       },
       {
         "type": "question",
@@ -1124,7 +1124,7 @@ export const initialRules = [
             "type": "question",
             "question": "q24",
             "operator": "equals",
-            "value": "partager_des_informations_liees_a_l_historique_du_lfb_avant_1994"
+            "value": "partager_des_informations_liees_a_l_historique_de_l_entreprise_avant_sa_creation"
           },
           {
             "type": "question",
@@ -1143,10 +1143,10 @@ export const initialRules = [
       "communication_externe": [
         {
           "text": {
-            "en": "What is the objective of communicating on sensitive topics concerning LFB?",
-            "fr": "Quel est l’objectif de la communication sur des sujets sensibles concernant le LFB ?",
-            "de": "Was ist das Ziel der Kommunikation zu sensiblen Themen im Zusammenhang mit dem LFB?",
-            "es": "¿Cuál es el objetivo de la comunicación sobre temas sensibles relativos al LFB?"
+            "en": "What is the objective of communicating on sensitive topics concerning Entreprise Demo?",
+            "fr": "Quel est l’objectif de la communication sur des sujets sensibles concernant Entreprise Demo ?",
+            "de": "Was ist das Ziel der Kommunikation zu sensiblen Themen im Zusammenhang mit Entreprise Demo?",
+            "es": "¿Cuál es el objetivo de la comunicación sobre temas sensibles relativos a Entreprise Demo?"
           },
           "timingConstraint": {
             "enabled": false,
@@ -1179,10 +1179,10 @@ export const initialRules = [
         },
         "level": "medium",
         "mitigation": {
-          "en": "Some topics concerning LFB can carry communication risks: a poor choice of wording can lead to misinterpretation. A review for approval by External Communications is therefore required",
-          "fr": "Certains sujets concernant le LFB peuvent être à risque en termes de communication : Un mauvais choix de terme peut amener à des interprétations erronées. Une relecture pour validation par la communication externe est donc requise",
-          "de": "Bestimmte Themen im Zusammenhang mit dem LFB können kommunikativ risikobehaftet sein: Eine unglückliche Wortwahl kann zu Fehlinterpretationen führen. Eine Prüfung durch die externe Kommunikation zur Validierung ist daher erforderlich",
-          "es": "Algunos temas relativos al LFB pueden entrañar riesgo en términos de comunicación: una elección inadecuada de los términos puede dar lugar a interpretaciones erróneas. Por ello, es necesaria una revisión de validación por parte de Comunicación Externa"
+          "en": "Some topics concerning Entreprise Demo can carry communication risks: a poor choice of wording can lead to misinterpretation. A review for approval by External Communications is therefore required",
+          "fr": "Certains sujets concernant Entreprise Demo peuvent être à risque en termes de communication : Un mauvais choix de terme peut amener à des interprétations erronées. Une relecture pour validation par la communication externe est donc requise",
+          "de": "Bestimmte Themen im Zusammenhang mit Entreprise Demo können kommunikativ risikobehaftet sein: Eine unglückliche Wortwahl kann zu Fehlinterpretationen führen. Eine Prüfung durch die externe Kommunikation zur Validierung ist daher erforderlich",
+          "es": "Algunos temas relativos a Entreprise Demo pueden entrañar riesgo en términos de comunicación: una elección inadecuada de los términos puede dar lugar a interpretaciones erróneas. Por ello, es necesaria una revisión de validación por parte de Comunicación Externa"
         },
         "priority": "elevated",
         "teamId": "communication_externe",
@@ -1338,10 +1338,10 @@ export const initialRules = [
       "pi": [
         {
           "text": {
-            "en": "Contact us to carry out a freedom-to-operate review of the visuals created for the project.&nbsp;<br>If this visual was created by someone outside LFB, they should sign a copyright assignment agreement: XXXXXX (French version); XXXX (English version)",
-            "fr": "Contactez-nous pour établir une étude de liberté d’exploitation des visuels créés pour le projet.&nbsp;<br>Si ce visuel a été créé par une personne externe au LFB, il conviendra de lui faire signer un contrat de cession de droit d’auteur : XXXXXX (version française) ; XXXX (version anglaise)",
-            "de": "Kontaktieren Sie uns, um eine Prüfung der Nutzungsfreiheit der für das Projekt erstellten Bildmaterialien durchzuführen.&nbsp;<br>Wurde dieses Bildmaterial von einer projektexternen Person außerhalb des LFB erstellt, muss diese einen Urheberrechtsübertragungsvertrag unterzeichnen: XXXXXX (französische Fassung); XXXX (englische Fassung)",
-            "es": "Contáctenos para realizar un estudio de libertad de explotación de los elementos visuales creados para el proyecto.&nbsp;<br>Si este elemento visual ha sido creado por una persona externa al LFB, será necesario hacerle firmar un contrato de cesión de derechos de autor: XXXXXX (versión francesa); XXXX (versión inglesa)"
+            "en": "Contact us to carry out a freedom-to-operate review of the visuals created for the project.&nbsp;<br>If this visual was created by someone outside Entreprise Demo, they should sign a copyright assignment agreement: XXXXXX (French version); XXXX (English version)",
+            "fr": "Contactez-nous pour établir une étude de liberté d’exploitation des visuels créés pour le projet.&nbsp;<br>Si ce visuel a été créé par une personne externe Entreprise Demo, il conviendra de lui faire signer un contrat de cession de droit d’auteur : XXXXXX (version française) ; XXXX (version anglaise)",
+            "de": "Kontaktieren Sie uns, um eine Prüfung der Nutzungsfreiheit der für das Projekt erstellten Bildmaterialien durchzuführen.&nbsp;<br>Wurde dieses Bildmaterial von einer projektexternen Person außerhalb Entreprise Demo erstellt, muss diese einen Urheberrechtsübertragungsvertrag unterzeichnen: XXXXXX (französische Fassung); XXXX (englische Fassung)",
+            "es": "Contáctenos para realizar un estudio de libertad de explotación de los elementos visuales creados para el proyecto.&nbsp;<br>Si este elemento visual ha sido creado por una persona externa a Entreprise Demo, será necesario hacerle firmar un contrato de cesión de derechos de autor: XXXXXX (versión francesa); XXXX (versión inglesa)"
           },
           "timingConstraint": {
             "enabled": false,
@@ -1777,13 +1777,13 @@ export const initialRules = [
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_lfb"
+            "value": "projet_du_entreprise_demo"
           },
           {
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
           }
         ]
       },
@@ -2426,10 +2426,10 @@ export const initialRules = [
   {
     "id": "rule15_copy_copy2_copy",
     "name": {
-      "en": "LFB event - E&C",
-      "fr": "Événement LFB - E&C",
-      "de": "LFB-Veranstaltung – E&C",
-      "es": "Evento LFB - E&C"
+      "en": "Entreprise Demo event - E&C",
+      "fr": "Événement Entreprise Demo - E&C",
+      "de": "Entreprise Demo-Veranstaltung – E&C",
+      "es": "Evento Entreprise Demo - E&C"
     },
     "conditions": [
       {
@@ -2528,7 +2528,7 @@ export const initialRules = [
         "type": "question",
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_d_un_tiers_soutenu_par_le_lfb"
+        "value": "projet_d_un_tiers_soutenu_par_le_entreprise_demo"
       }
     ],
     "conditionGroups": [
@@ -2539,7 +2539,7 @@ export const initialRules = [
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_d_un_tiers_soutenu_par_le_lfb"
+            "value": "projet_d_un_tiers_soutenu_par_le_entreprise_demo"
           }
         ]
       }
@@ -2591,10 +2591,10 @@ export const initialRules = [
         },
         {
           "text": {
-            "en": "What are the benefits in return for LFB? How is this valuable for LFB?",
-            "fr": "Quelles sont les contreparties pour le LFB ? En quoi cela a-t-il de la valeur pour le LFB ?",
-            "de": "Welche Gegenleistungen erhält der LFB? Worin besteht der Mehrwert für den LFB?",
-            "es": "¿Cuáles son las contrapartidas para el LFB? ¿Qué valor aporta esto al LFB?"
+            "en": "What are the benefits in return for Entreprise Demo? How is this valuable for Entreprise Demo?",
+            "fr": "Quelles sont les contreparties pour Entreprise Demo ? En quoi cela a-t-il de la valeur pour Entreprise Demo ?",
+            "de": "Welche Gegenleistungen erhält Entreprise Demo? Worin besteht der Mehrwert für Entreprise Demo?",
+            "es": "¿Cuáles son las contrapartidas para Entreprise Demo? ¿Qué valor aporta esto a Entreprise Demo?"
           },
           "timingConstraint": {
             "enabled": false,
@@ -2633,7 +2633,7 @@ export const initialRules = [
         "type": "question",
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_d_un_tiers_soutenu_par_le_lfb"
+        "value": "projet_d_un_tiers_soutenu_par_le_entreprise_demo"
       },
       {
         "type": "question",
@@ -2650,7 +2650,7 @@ export const initialRules = [
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_d_un_tiers_soutenu_par_le_lfb"
+            "value": "projet_d_un_tiers_soutenu_par_le_entreprise_demo"
           },
           {
             "type": "question",
@@ -2787,10 +2787,10 @@ export const initialRules = [
         },
         {
           "text": {
-            "en": "What is the rationale for the donation for LFB? (general interest, scientific, institutional?)",
-            "fr": "Quel est le rationnel du don pour le LFB ? (intérêt général, scientifique, institutionnel ?)",
-            "de": "Was ist die Begründung der Spende für den LFB? (allgemeines Interesse, wissenschaftlich, institutionell?)",
-            "es": "¿Cuál es la justificación de la donación para el LFB? (¿interés general, científico, institucional?)"
+            "en": "What is the rationale for the donation for Entreprise Demo? (general interest, scientific, institutional?)",
+            "fr": "Quel est le rationnel du don pour Entreprise Demo ? (intérêt général, scientifique, institutionnel ?)",
+            "de": "Was ist die Begründung der Spende für Entreprise Demo? (allgemeines Interesse, wissenschaftlich, institutionell?)",
+            "es": "¿Cuál es la justificación de la donación para Entreprise Demo? (¿interés general, científico, institucional?)"
           },
           "timingConstraint": {
             "enabled": false,
@@ -3114,10 +3114,10 @@ export const initialRules = [
       "ethique_compliance": [
         {
           "text": {
-            "en": "What type of AI is used for the project: An online tool? AI installed on LFB's information system? Custom development?<br>",
-            "fr": "Quel type d’IA est utilisé pour le projet : Outil en ligne ? IA installée sur le système d’information du LFB ? Développement sur mesure ?<br>",
-            "de": "Welche Art von KI wird für das Projekt verwendet: Online-Tool? Im Informationssystem des LFB installierte KI? Individualentwicklung?<br>",
-            "es": "¿Qué tipo de IA se utiliza en el proyecto: una herramienta en línea? ¿IA instalada en el sistema de información del LFB? ¿Un desarrollo a medida?<br>"
+            "en": "What type of AI is used for the project: An online tool? AI installed on Entreprise Demo's information system? Custom development?<br>",
+            "fr": "Quel type d’IA est utilisé pour le projet : Outil en ligne ? IA installée sur le système d’information Entreprise Demo ? Développement sur mesure ?<br>",
+            "de": "Welche Art von KI wird für das Projekt verwendet: Online-Tool? Im Informationssystem Entreprise Demo installierte KI? Individualentwicklung?<br>",
+            "es": "¿Qué tipo de IA se utiliza en el proyecto: una herramienta en línea? ¿IA instalada en el sistema de información de Entreprise Demo? ¿Un desarrollo a medida?<br>"
           },
           "timingConstraint": {
             "enabled": false,
@@ -3429,7 +3429,7 @@ export const initialRules = [
         "type": "question",
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_d_un_tiers_soutenu_par_le_lfb"
+        "value": "projet_d_un_tiers_soutenu_par_le_entreprise_demo"
       }
     ],
     "conditionGroups": [
@@ -3440,7 +3440,7 @@ export const initialRules = [
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_d_un_tiers_soutenu_par_le_lfb"
+            "value": "projet_d_un_tiers_soutenu_par_le_entreprise_demo"
           }
         ]
       }
@@ -3479,10 +3479,10 @@ export const initialRules = [
         },
         {
           "text": {
-            "en": "To what extent does LFB contribute to the project?",
-            "fr": "À quelle hauteur le LFB contribue au projet ?",
-            "de": "In welcher Höhe trägt der LFB zum Projekt bei?",
-            "es": "¿En qué medida contribuye el LFB al proyecto?"
+            "en": "To what extent does Entreprise Demo contribute to the project?",
+            "fr": "À quelle hauteur Entreprise Demo contribue au projet ?",
+            "de": "In welcher Höhe trägt Entreprise Demo zum Projekt bei?",
+            "es": "¿En qué medida contribuye Entreprise Demo al proyecto?"
           },
           "timingConstraint": {
             "enabled": false,
@@ -3492,10 +3492,10 @@ export const initialRules = [
         },
         {
           "text": {
-            "en": "What benefits in return are planned for LFB?",
-            "fr": "Quelles sont les contreparties prévues pour le LFB ?",
-            "de": "Welche Gegenleistungen sind für den LFB vorgesehen?",
-            "es": "¿Cuáles son las contrapartidas previstas para el LFB?"
+            "en": "What benefits in return are planned for Entreprise Demo?",
+            "fr": "Quelles sont les contreparties prévues pour Entreprise Demo ?",
+            "de": "Welche Gegenleistungen sind für Entreprise Demo vorgesehen?",
+            "es": "¿Cuáles son las contrapartidas previstas para Entreprise Demo?"
           },
           "timingConstraint": {
             "enabled": false,
@@ -3559,10 +3559,10 @@ export const initialRules = [
         },
         {
           "text": {
-            "en": "To what extent does LFB contribute to the project?",
-            "fr": "À quelle hauteur le LFB contribue au projet ?",
-            "de": "In welcher Höhe trägt der LFB zum Projekt bei?",
-            "es": "¿En qué medida contribuye el LFB al proyecto?"
+            "en": "To what extent does Entreprise Demo contribute to the project?",
+            "fr": "À quelle hauteur Entreprise Demo contribue au projet ?",
+            "de": "In welcher Höhe trägt Entreprise Demo zum Projekt bei?",
+            "es": "¿En qué medida contribuye Entreprise Demo al proyecto?"
           },
           "timingConstraint": {
             "enabled": false,
@@ -3572,10 +3572,10 @@ export const initialRules = [
         },
         {
           "text": {
-            "en": "What benefits in return are planned for LFB?&nbsp;",
-            "fr": "Quelles sont les contreparties prévues pour le LFB ?&nbsp;",
-            "de": "Welche Gegenleistungen sind für den LFB vorgesehen?&nbsp;",
-            "es": "¿Cuáles son las contrapartidas previstas para el LFB?&nbsp;"
+            "en": "What benefits in return are planned for Entreprise Demo?&nbsp;",
+            "fr": "Quelles sont les contreparties prévues pour Entreprise Demo ?&nbsp;",
+            "de": "Welche Gegenleistungen sind für Entreprise Demo vorgesehen?&nbsp;",
+            "es": "¿Cuáles son las contrapartidas previstas para Entreprise Demo?&nbsp;"
           },
           "timingConstraint": {
             "enabled": false,
@@ -4023,10 +4023,10 @@ export const initialRules = [
         },
         {
           "text": {
-            "en": "Would the website / app be hosted on LFB's existing servers?&nbsp;",
-            "fr": "Le site / app serait-il hébergé sur les serveurs existants du LFB ?&nbsp;",
-            "de": "Würde die Website/App auf den bestehenden Servern des LFB gehostet?&nbsp;",
-            "es": "¿Se alojaría el sitio / la app en los servidores existentes del LFB?&nbsp;"
+            "en": "Would the website / app be hosted on Entreprise Demo's existing servers?&nbsp;",
+            "fr": "Le site / app serait-il hébergé sur les serveurs existants Entreprise Demo ?&nbsp;",
+            "de": "Würde die Website/App auf den bestehenden Servern Entreprise Demo gehostet?&nbsp;",
+            "es": "¿Se alojaría el sitio / la app en los servidores existentes de Entreprise Demo?&nbsp;"
           },
           "timingConstraint": {
             "enabled": false,
@@ -4036,10 +4036,10 @@ export const initialRules = [
         },
         {
           "text": {
-            "en": "What rights are desired / what autonomy will LFB have over the developed tool?",
-            "fr": "Quels droits sont les droits souhaités / autonomie du LFB par rapport à l’outil développé ?",
-            "de": "Welche Rechte werden gewünscht / welche Eigenständigkeit soll der LFB gegenüber dem entwickelten Tool haben?",
-            "es": "¿Cuáles son los derechos deseados / el grado de autonomía del LFB respecto a la herramienta desarrollada?"
+            "en": "What rights are desired / what autonomy will Entreprise Demo have over the developed tool?",
+            "fr": "Quels droits sont les droits souhaités / autonomie Entreprise Demo par rapport à l’outil développé ?",
+            "de": "Welche Rechte werden gewünscht / welche Eigenständigkeit soll Entreprise Demo gegenüber dem entwickelten Tool haben?",
+            "es": "¿Cuáles son los derechos deseados / el grado de autonomía de Entreprise Demo respecto a la herramienta desarrollada?"
           },
           "timingConstraint": {
             "enabled": false,
@@ -4694,10 +4694,10 @@ export const initialRules = [
         },
         {
           "text": {
-            "en": "What does LFB's support represent compared to other funders? (in %)",
-            "fr": "Que représente le soutien du LFB vs les autres financeurs ? (en %)",
-            "de": "Wie hoch ist der Anteil der Unterstützung des LFB im Vergleich zu den anderen Geldgebern? (in %)",
-            "es": "¿Qué representa el apoyo del LFB frente a los demás financiadores? (en %)"
+            "en": "What does Entreprise Demo's support represent compared to other funders? (in %)",
+            "fr": "Que représente le soutien Entreprise Demo vs les autres financeurs ? (en %)",
+            "de": "Wie hoch ist der Anteil der Unterstützung Entreprise Demo im Vergleich zu den anderen Geldgebern? (in %)",
+            "es": "¿Qué representa el apoyo de Entreprise Demo frente a los demás financiadores? (en %)"
           },
           "timingConstraint": {
             "enabled": false,

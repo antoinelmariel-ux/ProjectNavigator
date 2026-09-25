@@ -18,7 +18,7 @@ const questions = [
     type: 'choice',
     question: 'Type de projet',
     options: [
-      { value: 'lfb', label: 'Projet du LFB' },
+      { value: 'entreprise_demo', label: 'Projet Entreprise Demo' },
       { value: 'partenaire', label: 'Projet co-construit' }
     ]
   },
@@ -38,7 +38,7 @@ const questions = [
 ];
 
 const answers = {
-  ProjectType: 'lfb',
+  ProjectType: 'entreprise_demo',
   components: { values: ['site', 'ia'], children: {}, otherText: '' },
   budget: 120,
   pitch: 'Un texte libre qui ne doit produire aucune condition',
@@ -50,7 +50,7 @@ test('buildConditionCandidates derives one candidate per selected value', () => 
   const ids = candidates.map((candidate) => candidate.id);
 
   assert.deepEqual(ids, [
-    'ProjectType::lfb',
+    'ProjectType::entreprise_demo',
     'components::site',
     'components::ia',
     'components__extra_checkbox::true',
@@ -121,15 +121,15 @@ test('no condition matches everything, which is the empty-rule trap', () => {
 });
 
 const samples = [
-  { id: 's1', name: 'Site LFB', answers: { ProjectType: 'lfb', components: { values: ['site'] } } },
-  { id: 's2', name: 'IA LFB', answers: { ProjectType: 'lfb', components: { values: ['ia'] } } },
+  { id: 's1', name: 'Site Entreprise Demo', answers: { ProjectType: 'entreprise_demo', components: { values: ['site'] } } },
+  { id: 's2', name: 'IA Entreprise Demo', answers: { ProjectType: 'entreprise_demo', components: { values: ['ia'] } } },
   { id: 's3', name: 'Site partenaire', answers: { ProjectType: 'partenaire', components: { values: ['site'] } } },
   { id: 's4', name: 'Mobile partenaire', answers: { ProjectType: 'partenaire', components: { values: ['mobile'] } } }
 ];
 
 test('countMatchingSamples returns the matching sample projects', () => {
   const groups = buildDraftConditionGroups(
-    [{ questionId: 'ProjectType', operator: 'equals', value: 'lfb' }],
+    [{ questionId: 'ProjectType', operator: 'equals', value: 'entreprise_demo' }],
     { mode: 'all' }
   );
   const result = countMatchingSamples(groups, samples);
@@ -140,14 +140,14 @@ test('countMatchingSamples returns the matching sample projects', () => {
 });
 
 test('classifyCandidate separates discriminating, specific and universal conditions', () => {
-  const universalSamples = samples.map((sample) => ({ ...sample, answers: { ...sample.answers, ProjectType: 'lfb' } }));
+  const universalSamples = samples.map((sample) => ({ ...sample, answers: { ...sample.answers, ProjectType: 'entreprise_demo' } }));
 
   assert.equal(
-    classifyCandidate({ questionId: 'ProjectType', operator: 'equals', value: 'lfb' }, samples).tier,
+    classifyCandidate({ questionId: 'ProjectType', operator: 'equals', value: 'entreprise_demo' }, samples).tier,
     CANDIDATE_TIERS.DISCRIMINANT
   );
   assert.equal(
-    classifyCandidate({ questionId: 'ProjectType', operator: 'equals', value: 'lfb' }, universalSamples).tier,
+    classifyCandidate({ questionId: 'ProjectType', operator: 'equals', value: 'entreprise_demo' }, universalSamples).tier,
     CANDIDATE_TIERS.UNIVERSAL
   );
   assert.equal(
@@ -160,7 +160,7 @@ test('sortCandidates by relevance puts discriminating conditions first', () => {
   const candidates = annotateCandidates(
     [
       { id: 'a', questionId: 'components', questionIndex: 1, operator: 'equals', value: 'mobile' },
-      { id: 'b', questionId: 'ProjectType', questionIndex: 0, operator: 'equals', value: 'lfb' }
+      { id: 'b', questionId: 'ProjectType', questionIndex: 0, operator: 'equals', value: 'entreprise_demo' }
     ],
     samples
   );
@@ -223,9 +223,9 @@ test('une condition de périmètre est évaluée avec le périmètre du banc, pa
   );
 
   // Le projet type ne porte aucun périmètre : c'est celui du banc qui décide.
-  assert.equal(matchesConditionGroups(groups, { ProjectType: 'lfb' }, ['france']), true);
-  assert.equal(matchesConditionGroups(groups, { ProjectType: 'lfb' }, ['uk']), false);
-  assert.equal(matchesConditionGroups(groups, { ProjectType: 'lfb' }, []), false);
+  assert.equal(matchesConditionGroups(groups, { ProjectType: 'entreprise_demo' }, ['france']), true);
+  assert.equal(matchesConditionGroups(groups, { ProjectType: 'entreprise_demo' }, ['uk']), false);
+  assert.equal(matchesConditionGroups(groups, { ProjectType: 'entreprise_demo' }, []), false);
 });
 
 test('countMatchingSamples applique le périmètre simulé à tout le corpus', () => {

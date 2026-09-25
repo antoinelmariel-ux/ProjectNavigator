@@ -27,10 +27,10 @@ const withFetch = async (handler, fn) => {
   const calls = [];
   globalThis.window = {
     location: {
-      origin: 'https://lfb1.sharepoint.com',
+      origin: 'https://entreprisedemo1.sharepoint.com',
       pathname: '/sites/ProjectNavigator_DEV/CN-App/index.aspx',
       protocol: 'https:',
-      hostname: 'lfb1.sharepoint.com'
+      hostname: 'entreprisedemo1.sharepoint.com'
     },
     fetch: async (url, init = {}) => {
       calls.push({ url, init });
@@ -64,7 +64,7 @@ test('SharePointRestProvider : listProjects convertit les lignes en projets', as
             ProjectId: 'p-1',
             Title: 'Étude clinique',
             Status: 'Submitted',
-            OwnerEmail: 'a@lfb.fr',
+            OwnerEmail: 'a@entreprise-demo.example',
             AnswersJson: '{"q1":"oui"}',
             AnalysisJson: '{"riskScore":6}',
             ProgressAnswered: 4,
@@ -72,7 +72,7 @@ test('SharePointRestProvider : listProjects convertit les lignes en projets', as
             SubmissionDate: '2026-08-01T09:00:00Z',
             LastAutosaveAt: '2026-08-02T09:00:00Z',
             RowVersion: 2,
-            UpdatedByEmail: 'b@lfb.fr'
+            UpdatedByEmail: 'b@entreprise-demo.example'
           }
         ]
       }),
@@ -90,9 +90,9 @@ test('SharePointRestProvider : listProjects convertit les lignes en projets', as
         lastUpdated: '2026-08-02T09:00:00Z',
         submittedAt: '2026-08-01T09:00:00Z',
         cancelledAt: null,
-        ownerEmail: 'a@lfb.fr',
+        ownerEmail: 'a@entreprise-demo.example',
         rowVersion: 2,
-        lastModifiedBy: 'b@lfb.fr'
+        lastModifiedBy: 'b@entreprise-demo.example'
       });
     }
   );
@@ -117,19 +117,19 @@ test('SharePointRestProvider : upsertProject sérialise les réponses et renvoie
           answeredQuestions: 1,
           totalQuestions: 8
         },
-        { userEmail: 'moi@lfb.fr' }
+        { userEmail: 'moi@entreprise-demo.example' }
       );
 
       const write = calls.find((call) => call.init.method === 'POST' && call.url.includes('/items'));
       const body = JSON.parse(write.init.body);
       assert.equal(body.AnswersJson, '{"q1":"non"}');
       assert.equal(body.Status, 'Draft');
-      assert.equal(body.OwnerEmail, 'moi@lfb.fr');
+      assert.equal(body.OwnerEmail, 'moi@entreprise-demo.example');
       assert.equal(body.RowVersion, 1);
 
       assert.equal(result.project.id, 'p-new');
       assert.deepEqual(result.project.answers, { q1: 'non' });
-      assert.equal(result.updatedBy, 'moi@lfb.fr');
+      assert.equal(result.updatedBy, 'moi@entreprise-demo.example');
       assert.equal(result.etag, 'W/"p-new-1"');
     }
   );
@@ -154,7 +154,7 @@ test('SharePointRestProvider : une soumission annulée envoie Status Cancelled e
           answers: { q1: 'oui' },
           analysis: { riskScore: 2 }
         },
-        { userEmail: 'moi@lfb.fr' }
+        { userEmail: 'moi@entreprise-demo.example' }
       );
 
       const write = calls.find((call) => call.init.method === 'POST' && call.url.includes('/items'));
@@ -176,7 +176,7 @@ test('SharePointRestProvider : listProjects restitue le statut annulé', async (
             ProjectId: 'p-cancelled',
             Title: 'Projet annulé',
             Status: 'Cancelled',
-            OwnerEmail: 'a@lfb.fr',
+            OwnerEmail: 'a@entreprise-demo.example',
             AnswersJson: '{"q1":"oui"}',
             AnalysisJson: '{"riskScore":2}',
             SubmissionDate: '2026-08-01T09:00:00Z',
@@ -256,7 +256,7 @@ test('SharePointInspirationProvider : listInspirations lit CN_Inspirations', asy
             Visibility: 'Shared',
             InspirationJson: '{"labName":"Labo X","documents":[]}',
             RowVersion: 1,
-            CreatedByEmail: 'a@lfb.fr',
+            CreatedByEmail: 'a@entreprise-demo.example',
             UpdatedAt: '2026-08-02T09:00:00Z'
           }
         ]

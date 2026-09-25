@@ -34,7 +34,7 @@ import {
 const REQUESTED_AT = '2026-05-01T09:00:00.000Z';
 
 const requested = (answers = {}) =>
-  startFinalValidationRound(answers, { by: 'porteur@lfb.fr', version: 2, at: REQUESTED_AT });
+  startFinalValidationRound(answers, { by: 'porteur@entreprise-demo.example', version: 2, at: REQUESTED_AT });
 
 const perimeter = (entry, id = 'quality') => [{ id, hasOpinion: true, entry }];
 
@@ -46,7 +46,7 @@ test('un round n’existe que s’il a été demandé, et la demande est explici
   const answers = requested();
   const round = getFinalValidationRound(answers);
   assert.equal(round.round, 1);
-  assert.equal(round.requestedBy, 'porteur@lfb.fr');
+  assert.equal(round.requestedBy, 'porteur@entreprise-demo.example');
   assert.equal(round.version, 2);
 });
 
@@ -66,7 +66,7 @@ test('seuls les périmètres qui se sont prononcés entrent en confirmation', ()
 test('confirmer en un clic suffit, et reprendre son avis vaut confirmation', () => {
   const answers = requested();
 
-  const clicked = withPerimeterConfirmation({ status: 'validated' }, { round: 1, by: 'expert@lfb.fr' });
+  const clicked = withPerimeterConfirmation({ status: 'validated' }, { round: 1, by: 'expert@entreprise-demo.example' });
   assert.equal(getPerimeterConfirmationState(clicked, 1, REQUESTED_AT), CONFIRMATION_CONFIRMED);
   assert.equal(getFinalValidationRoundStatus(answers, perimeter(clicked)).isComplete, true);
 
@@ -100,7 +100,7 @@ test('une confirmation ne vaut que pour son round : un lancement repoussé en re
   const confirmed = withPerimeterConfirmation({ status: 'validated' }, { round: 1 });
   assert.equal(getFinalValidationRoundStatus(first, perimeter(confirmed)).isComplete, true);
 
-  const second = startFinalValidationRound(first, { by: 'porteur@lfb.fr', version: 3, at: '2026-11-01T09:00:00.000Z' });
+  const second = startFinalValidationRound(first, { by: 'porteur@entreprise-demo.example', version: 3, at: '2026-11-01T09:00:00.000Z' });
   assert.equal(getFinalValidationRound(second).round, 2);
   assert.deepEqual(getFinalValidationRound(second).history.map((entry) => entry.round), [1]);
   // La confirmation du round 1 ne referme pas le round 2.
@@ -204,9 +204,9 @@ test('un lancement se déclare, il ne se déduit jamais d’une date', () => {
   );
 
   // Déclaré lancé avec un tour incomplet : là, et seulement là, l'application peut l'affirmer.
-  const launched = withProjectLaunch(overdue, { by: 'expert@lfb.fr', at: '2026-04-15T08:00:00.000Z' });
+  const launched = withProjectLaunch(overdue, { by: 'expert@entreprise-demo.example', at: '2026-04-15T08:00:00.000Z' });
   assert.equal(isProjectLaunched(launched), true);
-  assert.equal(getProjectLaunch(launched).declaredBy, 'expert@lfb.fr');
+  assert.equal(getProjectLaunch(launched).declaredBy, 'expert@entreprise-demo.example');
   assert.equal(
     getLaunchConfirmationSignal({ answers: launched, roundStatus: openRound, now: NOW }),
     LAUNCH_CONFIRMATION_LAUNCHED_WITHOUT
@@ -225,7 +225,7 @@ test('un lancement se déclare, il ne se déduit jamais d’une date', () => {
   );
 
   // Un clic malheureux se corrige, et l'historique garde trace des deux gestes.
-  const reverted = withoutProjectLaunch(launched, { by: 'admin@lfb.fr', at: '2026-04-16T08:00:00.000Z' });
+  const reverted = withoutProjectLaunch(launched, { by: 'admin@entreprise-demo.example', at: '2026-04-16T08:00:00.000Z' });
   assert.equal(isProjectLaunched(reverted), false);
   assert.deepEqual(getProjectLaunch(reverted).history.map((entry) => entry.action), ['declare', 'revert']);
   assert.equal(

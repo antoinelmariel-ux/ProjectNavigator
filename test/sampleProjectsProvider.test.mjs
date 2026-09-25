@@ -30,10 +30,10 @@ const withFetch = async (handler, fn) => {
   const calls = [];
   globalThis.window = {
     location: {
-      origin: 'https://lfb1.sharepoint.com',
+      origin: 'https://entreprisedemo1.sharepoint.com',
       pathname: '/sites/ProjectNavigator_DEV/CN-App/index.aspx',
       protocol: 'https:',
-      hostname: 'lfb1.sharepoint.com'
+      hostname: 'entreprisedemo1.sharepoint.com'
     },
     fetch: async (url, init = {}) => {
       calls.push({ url, init });
@@ -59,10 +59,10 @@ test('listAllSampleProjects : convertit les lignes CN_SampleProjects et trie par
             Id: 1,
             SampleId: 'sample_b',
             Title: 'Cas B',
-            AnswersJson: '{"ProjectType":"lfb"}',
+            AnswersJson: '{"ProjectType":"entreprise_demo"}',
             SortOrder: 2000,
             RowVersion: 1,
-            CreatedByEmail: 'b@lfb.fr',
+            CreatedByEmail: 'b@entreprise-demo.example',
             UpdatedAt: '2026-09-01T10:00:00.000Z'
           },
           {
@@ -72,7 +72,7 @@ test('listAllSampleProjects : convertit les lignes CN_SampleProjects et trie par
             AnswersJson: '{"ProjectType":"partenaire"}',
             SortOrder: 1000,
             RowVersion: 3,
-            CreatedByEmail: 'a@lfb.fr',
+            CreatedByEmail: 'a@entreprise-demo.example',
             UpdatedAt: '2026-09-02T10:00:00.000Z'
           }
         ]
@@ -85,7 +85,7 @@ test('listAllSampleProjects : convertit les lignes CN_SampleProjects et trie par
       assert.deepEqual(entries.map((entry) => entry.sample.id), ['sample_a', 'sample_b']);
       assert.equal(entries[0].sample.name, 'Cas A');
       assert.deepEqual(entries[0].sample.answers, { ProjectType: 'partenaire' });
-      assert.equal(entries[0].sample.createdBy, 'a@lfb.fr');
+      assert.equal(entries[0].sample.createdBy, 'a@entreprise-demo.example');
       assert.equal(entries[0].meta.rowVersion, 3);
       assert.equal(entries[0].meta.sortOrder, 1000);
     }
@@ -115,7 +115,7 @@ test('saveSampleProject : projet type absent crée une ligne avec RowVersion=1',
     },
     async (calls) => {
       const provider = new SharePointSampleProjectsProvider();
-      const sample = { id: 'sample_x', name: 'Étude clinique', answers: { ProjectType: 'lfb', q19: ['site'] } };
+      const sample = { id: 'sample_x', name: 'Étude clinique', answers: { ProjectType: 'entreprise_demo', q19: ['site'] } };
       const { sample: saved, meta } = await provider.saveSampleProject(sample, {
         sortOrder: 3000,
         userEmail: 'a@b.fr'

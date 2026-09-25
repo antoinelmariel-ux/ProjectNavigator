@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { gotoHome } from './fixtures.js';
 
-const MOCK_USER = 'bertrand.darieux@lfb.fr';
-const SIMULATED_USER = 'marie.durand@lfb.fr';
+const MOCK_USER = 'bertrand.darieux@entreprise-demo.example';
+const SIMULATED_USER = 'marie.durand@entreprise-demo.example';
 
 // Le paramètre ?viewAs n'est honoré que si la session réelle est administratrice : en local,
 // l'utilisateur mock n'est pas dans initialAdminEmails, on l'y ajoute via l'état persisté.

@@ -933,10 +933,10 @@ export const initialOnboardingTourConfig = {
         "es": "Encontrar inspiración"
       },
       "content": {
-        "en": "To imagine your future project, discover the interesting projects already imagined and shared by other LFB colleagues.",
-        "fr": "Pour imaginer votre futur projet, découvrez les projets intéressants déjà imaginés et partagés par d’autres collaborateurs du LFB.",
-        "de": "Um Ihr künftiges Projekt zu entwerfen, entdecken Sie die interessanten Projekte, die andere LFB-Kolleginnen und -Kollegen bereits entwickelt und geteilt haben.",
-        "es": "Para imaginar su futuro proyecto, descubra los proyectos interesantes ya ideados y compartidos por otros colaboradores del LFB."
+        "en": "To imagine your future project, discover the interesting projects already imagined and shared by other Entreprise Demo colleagues.",
+        "fr": "Pour imaginer votre futur projet, découvrez les projets intéressants déjà imaginés et partagés par d’autres collaborateurs d'Entreprise Demo.",
+        "de": "Um Ihr künftiges Projekt zu entwerfen, entdecken Sie die interessanten Projekte, die andere Entreprise Demo-Kolleginnen und -Kollegen bereits entwickelt und geteilt haben.",
+        "es": "Para imaginar su futuro proyecto, descubra los proyectos interesantes ya ideados y compartidos por otros colaboradores de Entreprise Demo."
       },
       "placement": "bottom",
       "highlightScope": "target",
@@ -994,10 +994,10 @@ export const initialOnboardingTourConfig = {
         "es": "Contribuir a su vez"
       },
       "content": {
-        "en": "This space is collaborative: add your own inspirations. They can be real projects or ideas from a brainstorming session within LFB!",
-        "fr": "Cet espace est collaboratif : ajoutez vos propres inspirations. Il peut s’agir de réels projets ou d’idées issues d’un brainstorming au sein du LFB !",
-        "de": "Dieser Bereich ist kollaborativ: Fügen Sie Ihre eigenen Inspirationen hinzu. Das können echte Projekte oder Ideen aus einem Brainstorming innerhalb der LFB sein!",
-        "es": "Este espacio es colaborativo: añada sus propias inspiraciones. ¡Pueden ser proyectos reales o ideas surgidas de una lluvia de ideas dentro del LFB!"
+        "en": "This space is collaborative: add your own inspirations. They can be real projects or ideas from a brainstorming session within Entreprise Demo!",
+        "fr": "Cet espace est collaboratif : ajoutez vos propres inspirations. Il peut s’agir de réels projets ou d’idées issues d’un brainstorming au sein d'Entreprise Demo !",
+        "de": "Dieser Bereich ist kollaborativ: Fügen Sie Ihre eigenen Inspirationen hinzu. Das können echte Projekte oder Ideen aus einem Brainstorming innerhalb von Entreprise Demo sein!",
+        "es": "Este espacio es colaborativo: añada sus propias inspiraciones. ¡Pueden ser proyectos reales o ideas surgidas de una lluvia de ideas dentro de Entreprise Demo!"
       },
       "placement": "bottom",
       "highlightScope": "target",

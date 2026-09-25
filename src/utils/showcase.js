@@ -3,7 +3,7 @@ import { buildExtraCheckboxQuestionId } from './questions.js';
 const PROJECT_TYPE_QUESTION_ID = 'ProjectType';
 
 const BLOCKED_PROJECT_TYPES = new Set([
-  'projet_d_un_tiers_soutenu_par_le_lfb',
+  'projet_d_un_tiers_soutenu_par_le_entreprise_demo',
   'don_bourse_appel_a_projets',
   'advisory_board_non_relie_a_un_projet'
 ]);
