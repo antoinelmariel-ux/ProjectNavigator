@@ -1100,7 +1100,7 @@ export default {
       leaveEmptyToGenerateId: 'Leer lassen, um automatisch aus der Bezeichnung zu generieren.',
       fieldTypeLabel: 'Feldtyp',
       optionsCommaSeparatedLabel: 'Optionen (durch Kommas getrennt)',
-      optionsPlaceholderExample: 'Z. B.: Patient, Fachpersonal, Allgemeine Öffentlichkeit',
+      optionsPlaceholderExample: 'Z. B.: Option A, Option B, Option C',
       defaultSelectLabelLabel: 'Standard-Auswahlbezeichnung',
       defaultSelectPlaceholderExample: 'Z. B.: Auswählen...',
       placeholderFieldLabel: 'Platzhalter / Hinweistext',
@@ -2077,7 +2077,7 @@ export default {
     },
     fieldPlaceholders: {
       showcaseImpactFigure: 'z. B. 40',
-      showcaseImpactFigureUnit: 'z. B. %, Std./Woche, Patienten',
+      showcaseImpactFigureUnit: 'z. B. %, Std./Woche, Nutzer',
       showcaseImpactFigureCaption: 'z. B. eingesparte Verwaltungszeit pro Team'
     },
     impactFigureHelper: 'Optional und standardmäßig leer. Ein erwartetes oder gemessenes Ergebnis — nie ein Kostenbetrag, der in den Fahrplan gehört.',

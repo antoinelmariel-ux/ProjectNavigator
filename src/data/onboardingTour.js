@@ -954,10 +954,10 @@ export const initialOnboardingTourConfig = {
         "es": "Buscar en otros lugares"
       },
       "content": {
-        "en": "If inspiration has to come from elsewhere, click “Inspiration” to discover projects from other laboratories, patient associations and more.",
-        "fr": "Si l’inspiration doit venir d’ailleurs, cliquez sur « Inspiration » pour découvrir des projets d’autres laboratoires, d’associations de patients…",
-        "de": "Wenn die Inspiration von anderswo kommen soll, klicken Sie auf „Inspiration“, um Projekte anderer Labore, von Patientenverbänden und mehr zu entdecken.",
-        "es": "Si la inspiración debe venir de otro lugar, haga clic en «Inspiración» para descubrir proyectos de otros laboratorios, de asociaciones de pacientes…"
+        "en": "If inspiration has to come from elsewhere, click “Inspiration” to discover projects from other organizations and more.",
+        "fr": "Si l’inspiration doit venir d’ailleurs, cliquez sur « Inspiration » pour découvrir des projets d’autres organisations…",
+        "de": "Wenn die Inspiration von anderswo kommen soll, klicken Sie auf „Inspiration“, um Projekte anderer Organisationen und mehr zu entdecken.",
+        "es": "Si la inspiración debe venir de otro lugar, haga clic en «Inspiración» para descubrir proyectos de otras organizaciones…"
       },
       "placement": "bottom",
       "highlightScope": "target",

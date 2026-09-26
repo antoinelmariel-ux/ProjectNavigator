@@ -101,8 +101,8 @@ export const initialMockSharePointProjects = [
       "solutionBenefits": "Renforcer la visibilité scientifique d’Entreprise Demo dans un cadre conforme.\nAméliorer l’accès à des contenus pédagogiques fiables pour les professionnels et les patients.\nCréer un continuum d’information avant, pendant et après l’événement.\nDévelopper des collaborations durables avec les centres experts et les associations.",
       "q10": [
         "Prestataire de service",
-        "Professionnel de santé (via contrat à mettre en place)",
-        "Société savante / association de PDS"
+        "Expert ou consultant indépendant (France)",
+        "Association ou organisme à but non lucratif"
       ],
       "BUDGET": "28",
       "innovationProcess": "Structurer une approche omnicanale de la communication scientifique.\nMettre en cohérence la prise de parole institutionnelle, médicale et terrain d’Entreprise Demo.\nCapitaliser sur les contenus produits pendant l’événement pour prolonger leur impact.",
@@ -178,8 +178,8 @@ export const initialMockSharePointProjects = [
       "solutionBenefits": "Créer une dynamique territoriale durable.\nAccroître la compréhension du rôle d’Entreprise Demo auprès des citoyens et des soignants.\nFavoriser la mobilisation locale via des formats concrets et participatifs.\nProduire un modèle réplicable dans d’autres régions.",
       "q10": [
         "Prestataire de service",
-        "Professionnel de santé (via contrat à mettre en place)",
-        "Société savante / association de PDS"
+        "Expert ou consultant indépendant (France)",
+        "Association ou organisme à but non lucratif"
       ],
       "BUDGET": "35",
       "innovationProcess": "Tester un modèle de partenariat public-santé-industrie à l’échelle locale.\nArticuler sensibilisation citoyenne et formation professionnelle dans un même programme.\nMesurer l’impact territorial pour préparer un déploiement national.",
@@ -256,7 +256,7 @@ export const initialMockSharePointProjects = [
       "solutionBenefits": "Une meilleure compréhension du rôle d’Entreprise Demo et de la valeur de la matière première utilisée.\nUn format interactif et immersif qui se distingue des ressources actuelles souvent statiques.\nUne double lecture adaptée à chaque public, avec des contenus validés scientifiquement.\nUn outil de communication réutilisable pour la formation, la sensibilisation et les relations institutionnelles.",
       "q10": [
         "Prestataire de service",
-        "Professionnel de santé (via contrat à mettre en place)"
+        "Expert ou consultant indépendant (France)"
       ],
       "BUDGET": "30",
       "innovationProcess": "Renforcer la compréhension et la confiance envers nos solutions.\nValoriser la mission sociétale et le rôle industriel d’Entreprise Demo.\nAccroître la notoriété d’Entreprise Demo auprès des professionnels et du grand public.\nCréer un actif digital durable, réutilisable pour la formation et la communication.",

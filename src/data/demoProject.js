@@ -10,7 +10,7 @@ const demoProjectAnswers = {
   projectName: 'Impact 360',
   showcaseTheme: 'Universel',
   projectSlogan: 'De l’idée à l’usage : découvrez comment chaque innovation devient un service utile au quotidien',
-  targetAudience: ['grand_public', 'Patients', 'professionnels_de_sante'],
+  targetAudience: ['grand_public', 'clients_ou_usagers_finaux', 'professionnels_du_secteur'],
   problemPainPoints:
     'Les professionnels manquent souvent de supports pédagogiques simples et fiables pour expliquer à leurs interlocuteurs comment nos produits sont conçus.\nLe grand public a une perception floue du lien entre la matière première et la production de nos solutions : le processus industriel leur semble abstrait.',
   solutionDescription:
@@ -48,10 +48,10 @@ const demoProjectAnswers = {
   ProjectType: 'projet_du_entreprise_demo',
   q11: ['visuels_crees_specifiquement_pour_le_projet', 'contenu_genere_via_l_ia'],
   q3: ['oui_donnees_de_sante', 'oui_donnees_personnelles_standard_ex_email_satisfaction'],
-  q10: ['professionnel_de_sante_francais_ou_association_de_pds_societe_savante', 'agence'],
+  q10: ['expert_ou_consultant_independant_france', 'agence'],
   q14: ['via_les_canaux_digitaux_du_entreprise_demo', 'communique_de_presse'],
   q17: ['possibilite_de_renouveler_facilement_ce_type_de_projets_dans_le_temps'],
-  q19: ['digital', 'redaction_d_abstract_de_poster_articles_scientifiques'],
+  q19: ['digital', 'publication_ou_contenu_editorial'],
   q24: ['partager_des_informations_sur_des_sujets_sensibles_ex_defaillance_industrielle_tension_d_approvisionnement_augmentation_de_capital'],
   q27: ['france', 'pays_lies_a_des_filiales_hors_france'],
   agencyRanking: {

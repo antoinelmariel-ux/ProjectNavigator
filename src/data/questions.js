@@ -687,10 +687,10 @@ export const initialQuestions = [
       },
       {
         "label": {
-          "en": "Donation of products",
-          "fr": "Don de produits",
-          "de": "Sachspende",
-          "es": "Donación de productos"
+          "en": "Donation of products or services",
+          "fr": "Don de produits ou de services",
+          "de": "Sach- oder Dienstleistungsspende",
+          "es": "Donación de productos o servicios"
         },
         "visibility": "always",
         "subType": null,
@@ -698,7 +698,7 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "don_de_produits"
+        "value": "don_de_produits_ou_services"
       }
     ],
     "required": true,
@@ -872,56 +872,25 @@ export const initialQuestions = [
       },
       {
         "label": {
-          "en": "Interventional study (IIS)",
-          "fr": "Étude interventionnelle (IIS)",
-          "de": "Interventionelle Studie (IIS)",
-          "es": "Estudio intervencionista (IIS)"
+          "en": "Skills-based sponsorship",
+          "fr": "Mécénat de compétences",
+          "de": "Kompetenz-Sponsoring",
+          "es": "Mecenazgo de competencias"
         },
         "visibility": "always",
         "subType": null,
-        "subOptions": [
-          {
-            "label": {
-              "en": "With product administration",
-              "fr": "Avec administration de produit",
-              "de": "Mit Produktverabreichung",
-              "es": "Con administración de producto"
-            },
-            "visibility": "always",
-            "subType": null,
-            "subOptions": [],
-            "conditionGroups": [],
-            "conditions": [],
-            "conditionLogic": "all",
-            "value": "avec_administration_de_produit"
-          },
-          {
-            "label": {
-              "en": "Without product administration",
-              "fr": "Sans administration de produit",
-              "de": "Ohne Produktverabreichung",
-              "es": "Sin administración de producto"
-            },
-            "visibility": "always",
-            "subType": null,
-            "subOptions": [],
-            "conditionGroups": [],
-            "conditions": [],
-            "conditionLogic": "all",
-            "value": "sans_administration_de_produit"
-          }
-        ],
+        "subOptions": [],
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "etude_interventionnelle_iis"
+        "value": "mecenat_de_competences"
       },
       {
         "label": {
-          "en": "Non-interventional study (NIS)",
-          "fr": "Étude non-interventionnelle (NIS)",
-          "de": "Nicht-interventionelle Studie (NIS)",
-          "es": "Estudio no intervencionista (NIS)"
+          "en": "Academic research partnership",
+          "fr": "Partenariat de recherche académique",
+          "de": "Akademische Forschungspartnerschaft",
+          "es": "Colaboración de investigación académica"
         },
         "visibility": "always",
         "conditionGroups": [],
@@ -929,7 +898,7 @@ export const initialQuestions = [
         "conditionLogic": "all",
         "subType": null,
         "subOptions": [],
-        "value": "etude_non_interventionnelle_nis"
+        "value": "partenariat_de_recherche_academique"
       }
     ],
     "required": true,
@@ -1063,10 +1032,10 @@ export const initialQuestions = [
       },
       {
         "label": {
-          "en": "Patients / Patient associations",
-          "fr": "Patients / Association de patients",
-          "de": "Patienten / Patientenverbände",
-          "es": "Pacientes / Asociación de pacientes"
+          "en": "End customers / final users",
+          "fr": "Clients / usagers finaux",
+          "de": "Endkunden / Endnutzer",
+          "es": "Clientes / usuarios finales"
         },
         "visibility": "always",
         "subType": null,
@@ -1074,14 +1043,14 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "patients_association_de_patients"
+        "value": "clients_ou_usagers_finaux"
       },
       {
         "label": {
-          "en": "Healthcare professionals",
-          "fr": "Professionnels de santé",
-          "de": "Angehörige der Gesundheitsberufe",
-          "es": "Profesionales de la salud"
+          "en": "Industry professionals",
+          "fr": "Professionnels du secteur",
+          "de": "Branchenfachleute",
+          "es": "Profesionales del sector"
         },
         "visibility": "always",
         "subType": null,
@@ -1089,7 +1058,7 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "professionnels_de_sante"
+        "value": "professionnels_du_secteur"
       },
       {
         "label": {
@@ -2163,10 +2132,10 @@ export const initialQuestions = [
         "subOptions": [
           {
             "label": {
-              "en": "Related to medical practices",
-              "fr": "Liée aux pratiques médicales",
-              "de": "Bezogen auf medizinische Praktiken",
-              "es": "Relacionada con las prácticas médicas"
+              "en": "Related to usage habits",
+              "fr": "Liée aux habitudes d’usage",
+              "de": "Bezogen auf Nutzungsgewohnheiten",
+              "es": "Relacionada con los hábitos de uso"
             },
             "visibility": "always",
             "subType": null,
@@ -2174,14 +2143,14 @@ export const initialQuestions = [
             "conditionGroups": [],
             "conditions": [],
             "conditionLogic": "all",
-            "value": "liee_aux_pratiques_medicales"
+            "value": "liee_aux_habitudes_d_usage"
           },
           {
             "label": {
-              "en": "Related to living with the disease",
-              "fr": "Liée à la vie avec la maladie",
-              "de": "Bezogen auf das Leben mit der Krankheit",
-              "es": "Relacionada con la vida con la enfermedad"
+              "en": "Related to customer satisfaction",
+              "fr": "Liée à la satisfaction client",
+              "de": "Bezogen auf die Kundenzufriedenheit",
+              "es": "Relacionada con la satisfacción del cliente"
             },
             "visibility": "always",
             "subType": null,
@@ -2189,7 +2158,7 @@ export const initialQuestions = [
             "conditionGroups": [],
             "conditions": [],
             "conditionLogic": "all",
-            "value": "liee_a_la_vie_avec_la_maladie"
+            "value": "liee_a_la_satisfaction_client"
           }
         ],
         "conditionGroups": [],
@@ -2380,10 +2349,10 @@ export const initialQuestions = [
       },
       {
         "label": {
-          "en": "Presentation of clinical cases",
-          "fr": "Présentation de cas cliniques",
-          "de": "Präsentation klinischer Fälle",
-          "es": "Presentación de casos clínicos"
+          "en": "Testimonials or case studies",
+          "fr": "Témoignages ou études de cas",
+          "de": "Erfahrungsberichte oder Fallstudien",
+          "es": "Testimonios o estudios de caso"
         },
         "visibility": "always",
         "conditionGroups": [],
@@ -2391,14 +2360,14 @@ export const initialQuestions = [
         "conditionLogic": "all",
         "subType": null,
         "subOptions": [],
-        "value": "presentation_de_cas_cliniques"
+        "value": "temoignages_ou_etudes_de_cas"
       },
       {
         "label": {
-          "en": "Writing of abstracts / posters / scientific articles",
-          "fr": "Rédaction d’abstract / de poster / articles scientifiques",
-          "de": "Verfassen von Abstracts / Postern / wissenschaftlichen Artikeln",
-          "es": "Redacción de resúmenes (abstracts) / pósteres / artículos científicos"
+          "en": "Editorial publication or content",
+          "fr": "Publication ou contenu éditorial",
+          "de": "Redaktionelle Veröffentlichung oder Inhalte",
+          "es": "Publicación o contenido editorial"
         },
         "visibility": "always",
         "conditionGroups": [],
@@ -2406,7 +2375,7 @@ export const initialQuestions = [
         "conditionLogic": "all",
         "subType": null,
         "subOptions": [],
-        "value": "redaction_d_abstract_de_poster_articles_scientifiques"
+        "value": "publication_ou_contenu_editorial"
       }
     ],
     "required": true,
@@ -2912,18 +2881,18 @@ export const initialQuestions = [
     "id": "q22",
     "type": "multi_choice",
     "question": {
-      "en": "Does your project match one of these situations?",
-      "fr": "Votre projet correspond-il à une de ces situations ?",
-      "de": "Entspricht Ihr Projekt einer dieser Situationen?",
-      "es": "¿Corresponde su proyecto a alguna de estas situaciones?"
+      "en": "Does this project rely on a digital tool or application?",
+      "fr": "Ce projet repose-t-il sur un outil ou une application numérique ?",
+      "de": "Beruht dieses Projekt auf einem digitalen Tool oder einer Anwendung?",
+      "es": "¿Este proyecto se basa en una herramienta o aplicación digital?"
     },
     "options": [
       {
         "label": {
-          "en": "A structured support program for the patient or those around them (e.g. a caregiver) to help them understand their condition and use their treatment (initiation, adherence, management of side effects, understanding of the disease, practical or financial support)",
-          "fr": "Un dispositif structuré d’accompagnement du patient ou de son entourage (par ex. aidant) pour l’accompagner notamment dans la compréhension de sa pathologie, l’usage de son traitement (initiation, observance, gestion des effets indésirables, compréhension de la maladie, soutien pratique ou financier)",
-          "de": "Ein strukturiertes Programm zur Begleitung des Patienten oder seines Umfelds (z. B. pflegende Angehörige), das ihn insbesondere beim Verständnis seiner Erkrankung und der Anwendung seiner Behandlung unterstützt (Einleitung, Therapietreue, Umgang mit Nebenwirkungen, Krankheitsverständnis, praktische oder finanzielle Unterstützung)",
-          "es": "Un dispositivo estructurado de acompañamiento del paciente o de su entorno (por ejemplo, un cuidador) para ayudarle, en particular, a comprender su enfermedad, a usar su tratamiento (inicio, cumplimiento, gestión de los efectos adversos, comprensión de la enfermedad, apoyo práctico o financiero)"
+          "en": "Internal use only",
+          "fr": "Outil à usage interne uniquement",
+          "de": "Nur für den internen Gebrauch",
+          "es": "Herramienta de uso interno únicamente"
         },
         "visibility": "always",
         "subType": null,
@@ -2931,14 +2900,14 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "un_dispositif_structure_d_accompagnement_du_patient_ou_de_son_entourage_par_ex_aidant_pour_l_accompagner_notamment_dans_la_comprehension_de_sa_pathologie_l_usage_de_son_traitement_initiation_observance_gestion_des_effets_indesirables_comprehension_de_la_maladie_soutien_pratique_ou_financier"
+        "value": "outil_interne_uniquement"
       },
       {
         "label": {
-          "en": "Enables remote medical acts (consultation, opinion, follow-up, monitoring, prescription, or care coordination)",
-          "fr": "Permet de réaliser des actes médicaux à distance (consultation, avis, suivi, surveillance, prescription ou coordination des soins)",
-          "de": "Ermöglicht die Durchführung medizinischer Leistungen aus der Ferne (Beratung, Gutachten, Nachsorge, Überwachung, Verschreibung oder Koordination der Versorgung)",
-          "es": "Permite realizar actos médicos a distancia (consulta, opinión médica, seguimiento, supervisión, prescripción o coordinación de la atención)"
+          "en": "Open to external users",
+          "fr": "Ouvert à des utilisateurs externes",
+          "de": "Für externe Nutzer zugänglich",
+          "es": "Abierta a usuarios externos"
         },
         "visibility": "always",
         "subType": null,
@@ -2946,22 +2915,37 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "permet_de_realiser_des_actes_medicaux_a_distance_consultation_avis_suivi_surveillance_prescription_ou_coordination_des_soins"
+        "value": "outil_ouvert_aux_utilisateurs_externes"
       },
       {
         "label": {
-          "en": "An application / instrument / tool intended for medical purposes (prevention, diagnosis, treatment, disease monitoring).",
-          "fr": "Une application / instrument / outil destiné à être utilisé à des fins médicales (prévention, diagnostic, traitement, suivi de la maladie).",
-          "de": "Eine Anwendung / ein Instrument / ein Werkzeug, das für medizinische Zwecke bestimmt ist (Prävention, Diagnose, Behandlung, Krankheitsverlaufskontrolle).",
-          "es": "Una aplicación / instrumento / herramienta destinada a utilizarse con fines médicos (prevención, diagnóstico, tratamiento, seguimiento de la enfermedad)."
+          "en": "Involves automated decision-making",
+          "fr": "Comporte une prise de décision automatisée",
+          "de": "Beinhaltet automatisierte Entscheidungsfindung",
+          "es": "Implica una toma de decisiones automatizada"
         },
         "visibility": "always",
+        "subType": null,
+        "subOptions": [],
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
+        "value": "outil_de_decision_automatisee"
+      },
+      {
+        "label": {
+          "en": "No specific tool",
+          "fr": "Aucun outil spécifique",
+          "de": "Kein spezifisches Tool",
+          "es": "Ninguna herramienta específica"
+        },
+        "visibility": "always",
         "subType": null,
         "subOptions": [],
-        "value": "une_application_instrument_outil_destine_a_etre_utilise_a_des_fins_medicales_prevention_diagnostic_traitement_suivi_de_la_maladie"
+        "conditionGroups": [],
+        "conditions": [],
+        "conditionLogic": "all",
+        "value": "aucun_outil_specifique"
       }
     ],
     "required": true,
@@ -2975,12 +2959,12 @@ export const initialQuestions = [
           {
             "question": "targetAudience",
             "operator": "equals",
-            "value": "patients_association_de_patients"
+            "value": "clients_ou_usagers_finaux"
           },
           {
             "question": "targetAudience",
             "operator": "equals",
-            "value": "professionnels_de_sante"
+            "value": "professionnels_du_secteur"
           }
         ]
       },
@@ -3326,21 +3310,6 @@ export const initialQuestions = [
           },
           {
             "label": {
-              "en": "Agora website",
-              "fr": "Site internet Agora",
-              "de": "Website Agora",
-              "es": "Sitio web Agora"
-            },
-            "visibility": "always",
-            "subType": null,
-            "subOptions": [],
-            "conditionGroups": [],
-            "conditions": [],
-            "conditionLogic": "all",
-            "value": "site_internet_agora"
-          },
-          {
-            "label": {
               "en": "Entreprise Demo subsidiaries' websites",
               "fr": "Site internet des filiales de Entreprise Demo",
               "de": "Websites Entreprise Demo-Tochtergesellschaften",
@@ -3432,10 +3401,10 @@ export const initialQuestions = [
           },
           {
             "label": {
-              "en": "Medical team",
-              "fr": "Équipe médicale",
-              "de": "Medizinisches Team",
-              "es": "Equipo médico"
+              "en": "Field team",
+              "fr": "Équipe terrain",
+              "de": "Außendienstteam",
+              "es": "Equipo de campo"
             },
             "visibility": "always",
             "subType": null,
@@ -3443,7 +3412,7 @@ export const initialQuestions = [
             "conditionGroups": [],
             "conditions": [],
             "conditionLogic": "all",
-            "value": "equipe_medicale"
+            "value": "equipe_terrain"
           },
           {
             "label": {
@@ -3655,23 +3624,23 @@ export const initialQuestions = [
         "label": {
           "en": "No external collaboration planned",
           "fr": "Aucune collaboration prévue avec l’externe",
-          "de": "Keine Zusammenarbeit mit Externen vorgesehen",
+          "de": "Keine externe Zusammenarbeit geplant",
           "es": "No se prevé ninguna colaboración externa"
         },
         "visibility": "always",
+        "subType": null,
+        "subOptions": [],
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "subType": null,
-        "subOptions": [],
         "value": "aucune_collaboration_prevue_avec_l_externe"
       },
       {
         "label": {
-          "en": "Patient associations / Patients",
-          "fr": "Association de patients / Patients",
-          "de": "Patientenverbände / Patienten",
-          "es": "Asociación de pacientes / Pacientes"
+          "en": "Non-profit organization or association",
+          "fr": "Association ou organisme à but non lucratif",
+          "de": "Verein oder gemeinnützige Organisation",
+          "es": "Asociación u organismo sin ánimo de lucro"
         },
         "visibility": "always",
         "subType": null,
@@ -3679,14 +3648,14 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "association_de_patients_patients"
+        "value": "association_ou_organisme_a_but_non_lucratif"
       },
       {
         "label": {
-          "en": "Healthcare professional (outside France) (or HCP association / learned society)",
-          "fr": "Professionnel de santé (hors France) (ou association de PdS / Société savante)",
-          "de": "Angehöriger eines Gesundheitsberufs (außerhalb Frankreichs) (oder Fachverband / wissenschaftliche Gesellschaft)",
-          "es": "Profesional de la salud (fuera de Francia) (o asociación de PdS / sociedad científica)"
+          "en": "Independent expert or consultant (outside France)",
+          "fr": "Expert ou consultant indépendant (hors France)",
+          "de": "Unabhängiger Experte oder Berater (außerhalb Frankreichs)",
+          "es": "Experto o consultor independiente (fuera de Francia)"
         },
         "visibility": "always",
         "subType": null,
@@ -3694,14 +3663,14 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "professionnel_de_sante_hors_france_ou_association_de_pds_societe_savante"
+        "value": "expert_ou_consultant_independant_hors_france"
       },
       {
         "label": {
-          "en": "French healthcare professional (or HCP association / learned society)",
-          "fr": "Professionnel de santé français (ou association de PdS / Société savante)",
-          "de": "Französischer Angehöriger eines Gesundheitsberufs (oder Fachverband / wissenschaftliche Gesellschaft)",
-          "es": "Profesional de la salud francés (o asociación de PdS / sociedad científica)"
+          "en": "Independent expert or consultant (France)",
+          "fr": "Expert ou consultant indépendant (France)",
+          "de": "Unabhängiger Experte oder Berater (Frankreich)",
+          "es": "Experto o consultor independiente (Francia)"
         },
         "visibility": "always",
         "subType": null,
@@ -3709,29 +3678,14 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "professionnel_de_sante_francais_ou_association_de_pds_societe_savante"
+        "value": "expert_ou_consultant_independant_france"
       },
       {
         "label": {
-          "en": "French expert who is not a healthcare professional",
-          "fr": "Expert français non professionnel de santé",
-          "de": "Französischer Experte, der kein Angehöriger eines Gesundheitsberufs ist",
-          "es": "Experto francés que no es profesional de la salud"
-        },
-        "visibility": "always",
-        "conditionGroups": [],
-        "conditions": [],
-        "conditionLogic": "all",
-        "subType": null,
-        "subOptions": [],
-        "value": "expert_francais_non_professionnel_de_sante"
-      },
-      {
-        "label": {
-          "en": "Hospital institutions",
-          "fr": "Etablissements hospitaliers",
-          "de": "Krankenhauseinrichtungen",
-          "es": "Centros hospitalarios"
+          "en": "French expert outside a consulting engagement",
+          "fr": "Expert français hors mission de conseil",
+          "de": "Französischer Experte außerhalb eines Beratungsauftrags",
+          "es": "Experto francés fuera de una misión de consultoría"
         },
         "visibility": "always",
         "subType": null,
@@ -3739,11 +3693,26 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "etablissements_hospitaliers"
+        "value": "expert_francais_hors_mission_de_conseil"
       },
       {
         "label": {
-          "en": "Institutional stakeholder",
+          "en": "Public institutions or local authorities",
+          "fr": "Établissements publics ou collectivités",
+          "de": "Öffentliche Einrichtungen oder Gebietskörperschaften",
+          "es": "Instituciones públicas o entidades locales"
+        },
+        "visibility": "always",
+        "subType": null,
+        "subOptions": [],
+        "conditionGroups": [],
+        "conditions": [],
+        "conditionLogic": "all",
+        "value": "etablissements_publics_ou_collectivites"
+      },
+      {
+        "label": {
+          "en": "Institutional body",
           "fr": "Institutionnel",
           "de": "Institutionell",
           "es": "Institucional"
@@ -3764,27 +3733,27 @@ export const initialQuestions = [
           "es": "Agencia"
         },
         "visibility": "always",
+        "subType": null,
+        "subOptions": [],
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "subType": null,
-        "subOptions": [],
         "value": "agence"
       },
       {
         "label": {
-          "en": "Another industry player",
-          "fr": "Un autre industriel",
-          "de": "Ein anderes Industrieunternehmen",
-          "es": "Otra empresa del sector"
+          "en": "Another partner in the sector",
+          "fr": "Un autre partenaire du secteur",
+          "de": "Ein weiterer Partner der Branche",
+          "es": "Otro socio del sector"
         },
         "visibility": "always",
+        "subType": null,
+        "subOptions": [],
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "subType": null,
-        "subOptions": [],
-        "value": "un_autre_industriel"
+        "value": "un_autre_partenaire_du_secteur"
       }
     ],
     "required": false,
@@ -3911,10 +3880,10 @@ export const initialQuestions = [
     "options": [
       {
         "label": {
-          "en": "Patient association",
-          "fr": "Association de patients",
-          "de": "Patientenverband",
-          "es": "Asociación de pacientes"
+          "en": "Non-profit organization or association",
+          "fr": "Association ou organisme à but non lucratif",
+          "de": "Verein oder gemeinnützige Organisation",
+          "es": "Asociación u organismo sin ánimo de lucro"
         },
         "visibility": "always",
         "subType": null,
@@ -3922,14 +3891,14 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "association_de_patients"
+        "value": "association_ou_organisme_a_but_non_lucratif"
       },
       {
         "label": {
-          "en": "HCP association / learned society",
-          "fr": "Association de PdS / Société savante",
-          "de": "Fachverband / wissenschaftliche Gesellschaft",
-          "es": "Asociación de PdS / sociedad científica"
+          "en": "Expert or professional network",
+          "fr": "Expert ou réseau professionnel",
+          "de": "Experte oder Fachnetzwerk",
+          "es": "Experto o red profesional"
         },
         "visibility": "always",
         "subType": null,
@@ -3937,14 +3906,14 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "association_de_pds_societe_savante"
+        "value": "expert_ou_reseau_professionnel"
       },
       {
         "label": {
-          "en": "Hospital institutions",
-          "fr": "Etablissements hospitaliers",
-          "de": "Krankenhauseinrichtungen",
-          "es": "Centros hospitalarios"
+          "en": "Public institutions or local authorities",
+          "fr": "Établissements publics ou collectivités",
+          "de": "Öffentliche Einrichtungen oder Gebietskörperschaften",
+          "es": "Instituciones públicas o entidades locales"
         },
         "visibility": "always",
         "subType": null,
@@ -3952,7 +3921,7 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "etablissements_hospitaliers"
+        "value": "etablissements_publics_ou_collectivites"
       }
     ],
     "required": false,
@@ -4000,144 +3969,6 @@ export const initialQuestions = [
         "de": "Finanzielle Unterstützungen erfordern mitunter zusätzliche Fristen aufgrund von Melde- oder Genehmigungspflichten gegenüber den Behörden",
         "es": "Los apoyos financieros a veces conllevan plazos adicionales derivados de obligaciones de declaración / solicitud de autorización a las autoridades"
       },
-      "tips": []
-    },
-    "extraCheckbox": {
-      "enabled": false,
-      "label": ""
-    },
-    "otherOption": {
-      "enabled": true,
-      "label": {
-        "en": "Other",
-        "fr": "Autre",
-        "de": "Andere",
-        "es": "Otro"
-      },
-      "placeholder": "",
-      "value": "other"
-    },
-    "numberUnit": "",
-    "rankingConfig": {
-      "title": {
-        "en": "Database",
-        "fr": "Base de données",
-        "de": "Datenbank",
-        "es": "Base de datos"
-      },
-      "criteria": [
-        {
-          "id": "critere-1",
-          "label": {
-            "en": "Criterion 1",
-            "fr": "Critère 1",
-            "de": "Kriterium 1",
-            "es": "Criterio 1"
-          }
-        },
-        {
-          "id": "critere-2",
-          "label": {
-            "en": "Criterion 2",
-            "fr": "Critère 2",
-            "de": "Kriterium 2",
-            "es": "Criterio 2"
-          }
-        },
-        {
-          "id": "critere-3",
-          "label": {
-            "en": "Criterion 3",
-            "fr": "Critère 3",
-            "de": "Kriterium 3",
-            "es": "Criterio 3"
-          }
-        }
-      ],
-      "entries": []
-    }
-  },
-  {
-    "id": "q10_copy_copy",
-    "type": "multi_choice",
-    "question": {
-      "en": "Who will be present at the event?",
-      "fr": "Qui sera présent à l’événement ?",
-      "de": "Wer wird bei der Veranstaltung anwesend sein?",
-      "es": "¿Quién estará presente en el evento?"
-    },
-    "options": [
-      {
-        "label": {
-          "en": "Patient association",
-          "fr": "Association de patients",
-          "de": "Patientenverband",
-          "es": "Asociación de pacientes"
-        },
-        "visibility": "always",
-        "subType": null,
-        "subOptions": [],
-        "conditionGroups": [],
-        "conditions": [],
-        "conditionLogic": "all",
-        "value": "association_de_patients"
-      },
-      {
-        "label": {
-          "en": "Healthcare professionals",
-          "fr": "Professionnels de santé",
-          "de": "Angehörige der Gesundheitsberufe",
-          "es": "Profesionales de la salud"
-        },
-        "visibility": "always",
-        "subType": null,
-        "subOptions": [],
-        "conditionGroups": [],
-        "conditions": [],
-        "conditionLogic": "all",
-        "value": "professionnels_de_sante"
-      },
-      {
-        "label": {
-          "en": "Institutional stakeholders",
-          "fr": "Institutionnels",
-          "de": "Institutionelle Akteure",
-          "es": "Instituciones"
-        },
-        "visibility": "always",
-        "subType": null,
-        "subOptions": [],
-        "conditionGroups": [],
-        "conditions": [],
-        "conditionLogic": "all",
-        "value": "institutionnels"
-      }
-    ],
-    "required": false,
-    "conditions": [
-      {
-        "question": "q18_copy",
-        "operator": "equals",
-        "value": "parrainage_d_evenement"
-      }
-    ],
-    "conditionLogic": "any",
-    "conditionGroups": [
-      {
-        "logic": "any",
-        "conditions": [
-          {
-            "question": "q18_copy",
-            "operator": "equals",
-            "value": "parrainage_d_evenement"
-          }
-        ]
-      }
-    ],
-    "placeholder": "",
-    "guidance": {
-      "objective": "",
-      "details": "",
       "tips": []
     },
     "extraCheckbox": {
@@ -4545,10 +4376,10 @@ export const initialQuestions = [
       },
       {
         "label": {
-          "en": "Third-party logos (e.g. logos of patient associations, learned societies, ...)",
-          "fr": "Logo de tiers (ex : logos d’associations de patients, de sociétés savantes, ...)",
-          "de": "Logos Dritter (z. B. Logos von Patientenverbänden, wissenschaftlichen Gesellschaften usw.)",
-          "es": "Logotipos de terceros (por ejemplo, logotipos de asociaciones de pacientes, sociedades científicas, etc.)"
+          "en": "Third-party logo (e.g. partner or organization logos)",
+          "fr": "Logo de tiers (ex : logos de partenaires ou d’organismes)",
+          "de": "Logo Dritter (z. B. Logos von Partnern oder Organisationen)",
+          "es": "Logotipo de terceros (por ejemplo, logotipos de socios u organismos)"
         },
         "visibility": "always",
         "subType": null,
@@ -4556,7 +4387,7 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "logo_de_tiers_ex_logos_d_associations_de_patients_de_societes_savantes"
+        "value": "logo_de_tiers_ex_logos_de_partenaires_ou_d_organismes"
       },
       {
         "label": {
@@ -4575,10 +4406,10 @@ export const initialQuestions = [
       },
       {
         "label": {
-          "en": "Excerpts from publications or use of scientific scales",
-          "fr": "Extrait de publications ou utilisation d’échelles scientifiques",
-          "de": "Auszüge aus Publikationen oder Verwendung wissenschaftlicher Skalen",
-          "es": "Extractos de publicaciones o uso de escalas científicas"
+          "en": "Excerpt from existing publications or studies",
+          "fr": "Extrait de publications ou d’études existantes",
+          "de": "Auszug aus bestehenden Veröffentlichungen oder Studien",
+          "es": "Extracto de publicaciones o estudios existentes"
         },
         "visibility": "always",
         "subType": null,
@@ -4586,7 +4417,7 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "extrait_de_publications_ou_utilisation_d_echelles_scientifiques"
+        "value": "extrait_de_publications_ou_d_etudes_existantes"
       },
       {
         "label": {

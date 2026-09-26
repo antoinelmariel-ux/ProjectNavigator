@@ -10,10 +10,10 @@ import {
 } from '../src/utils/notificationTemplates.js';
 
 const baseContext = {
-  projectName: 'Campagne patients 2026',
+  projectName: 'Campagne 2026',
   projectId: 'p-1',
-  actorName: 'Antoine Lassauge',
-  actorEmail: 'antoine@entreprise-demo.example',
+  actorName: 'Nathan Auvray',
+  actorEmail: 'nathan.auvray@entreprise-demo.example',
   ownerEmail: 'porteur@entreprise-demo.example',
   occurredAt: '2026-08-28T14:30:00.000Z'
 };
@@ -45,7 +45,7 @@ test('chaque notification explique ce qui est attendu ET pourquoi elle est reçu
       `section « pourquoi » absente pour ${type}`
     );
     assert.ok(body.includes('do not reply to this email'), `mention automatique absente pour ${type}`);
-    assert.ok(body.includes('Campagne patients 2026'));
+    assert.ok(body.includes('Campagne 2026'));
   });
 });
 

@@ -1089,7 +1089,7 @@ export default {
       leaveEmptyToGenerateId: 'Leave empty to generate automatically from the label.',
       fieldTypeLabel: 'Field type',
       optionsCommaSeparatedLabel: 'Options (comma-separated)',
-      optionsPlaceholderExample: 'E.g.: Patient, Professionals, General public',
+      optionsPlaceholderExample: 'E.g.: Option A, Option B, Option C',
       defaultSelectLabelLabel: 'Default selection label',
       defaultSelectPlaceholderExample: 'E.g.: Select...',
       placeholderFieldLabel: 'Placeholder / hint text',
@@ -2066,7 +2066,7 @@ export default {
     },
     fieldPlaceholders: {
       showcaseImpactFigure: 'e.g. 40',
-      showcaseImpactFigureUnit: 'e.g. %, hrs/week, patients',
+      showcaseImpactFigureUnit: 'e.g. %, hrs/week, users',
       showcaseImpactFigureCaption: 'e.g. of admin time saved per team'
     },
     impactFigureHelper: 'Optional, and empty by default. An expected or measured result — never a cost, which belongs to the roadmap.',

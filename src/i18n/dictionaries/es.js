@@ -1090,7 +1090,7 @@ export default {
       leaveEmptyToGenerateId: 'Déjelo vacío para generarlo automáticamente a partir de la etiqueta.',
       fieldTypeLabel: 'Tipo de campo',
       optionsCommaSeparatedLabel: 'Opciones (separadas por comas)',
-      optionsPlaceholderExample: 'Ej.: Paciente, Profesionales, Público general',
+      optionsPlaceholderExample: 'Ej.: Opción A, Opción B, Opción C',
       defaultSelectLabelLabel: 'Etiqueta de selección predeterminada',
       defaultSelectPlaceholderExample: 'Ej.: Seleccionar...',
       placeholderFieldLabel: 'Marcador de posición / texto indicativo',
@@ -2066,7 +2066,7 @@ export default {
     },
     fieldPlaceholders: {
       showcaseImpactFigure: 'p. ej. 40',
-      showcaseImpactFigureUnit: 'p. ej. %, h/semana, pacientes',
+      showcaseImpactFigureUnit: 'p. ej. %, h/semana, usuarios',
       showcaseImpactFigureCaption: 'p. ej. de tiempo administrativo ahorrado por equipo'
     },
     impactFigureHelper: 'Opcional y vacío por defecto. Un resultado esperado o constatado — nunca un coste, que se presenta en la hoja de ruta.',

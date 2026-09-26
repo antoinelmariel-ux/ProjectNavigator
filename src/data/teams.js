@@ -14,7 +14,7 @@ export const initialTeams = [
       "elise.zabi@entreprise-demo.example",
       "quentin.ares@entreprise-demo.example"
     ],
-    "expertise": "Le pôle Affaires publiques accompagne les projets à destination des patients et des associations de patients afin de garantir des interactions responsables, transparentes et conformes aux codes et référentiels en vigueur, en France comme à l’international."
+    "expertise": "Le pôle Affaires publiques accompagne les projets à destination des institutions et des organismes à but non lucratif afin de garantir des interactions responsables, transparentes et conformes aux codes et référentiels en vigueur, en France comme à l’international."
   },
   {
     "id": "juridique_france",
@@ -66,7 +66,7 @@ export const initialTeams = [
     "contacts": [
       "nathan.auvray@entreprise-demo.example"
     ],
-    "expertise": "Le pôle Éthique & Compliance accompagne les équipes dans la conception et la mise en œuvre de projets conformes aux réglementations applicables aux interactions entre les laboratoires pharmaceutiques, les professionnels de santé, les patients et les autres parties prenantes."
+    "expertise": "Le pôle Éthique & Compliance accompagne les équipes dans la conception et la mise en œuvre de projets conformes aux réglementations applicables aux interactions entre l’entreprise, ses partenaires, ses clients et les autres parties prenantes."
   },
   {
     "id": "pi",

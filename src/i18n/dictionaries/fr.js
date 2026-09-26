@@ -1098,7 +1098,7 @@ export default {
       leaveEmptyToGenerateId: 'Laissez vide pour générer automatiquement à partir du libellé.',
       fieldTypeLabel: 'Type de champ',
       optionsCommaSeparatedLabel: 'Options (séparées par des virgules)',
-      optionsPlaceholderExample: 'Ex : Patient, Professionnels, Grand public',
+      optionsPlaceholderExample: 'Ex : Option A, Option B, Option C',
       defaultSelectLabelLabel: 'Libellé de sélection par défaut',
       defaultSelectPlaceholderExample: 'Ex : Sélectionner...',
       placeholderFieldLabel: 'Placeholder / texte indicatif',
@@ -2076,7 +2076,7 @@ export default {
     },
     fieldPlaceholders: {
       showcaseImpactFigure: 'ex. 40',
-      showcaseImpactFigureUnit: 'ex. %, h/semaine, patients',
+      showcaseImpactFigureUnit: 'ex. %, h/semaine, utilisateurs',
       showcaseImpactFigureCaption: 'ex. de temps administratif économisé par équipe'
     },
     impactFigureHelper: 'Facultatif, et vide par défaut. Un résultat attendu ou constaté — jamais un coût, qui est présenté dans la feuille de route.',
