@@ -38,7 +38,7 @@ test.describe('Back-office : onglet Traductions', () => {
 
     await page.getByRole('tab', { name: /Équipes/ }).click();
     const contactsField = page.locator('input[id$="-contact"]').first();
-    await contactsField.fill('bertrand.darieux@lfb.fr');
+    await contactsField.fill('bertrand.darieux@entreprise-demo.example');
     await contactsField.press('Enter');
     await page.waitForTimeout(300);
 
@@ -54,7 +54,7 @@ test.describe('Back-office : onglet Traductions', () => {
         state = {};
       }
       state.adminEmails = (Array.isArray(state.adminEmails) ? state.adminEmails : [])
-        .filter((email) => email !== 'bertrand.darieux@lfb.fr');
+        .filter((email) => email !== 'bertrand.darieux@entreprise-demo.example');
       window.localStorage.setItem(KEY, JSON.stringify(state));
     });
     await page.reload();
@@ -77,7 +77,7 @@ test.describe('Langues de réponse acceptées', () => {
 
     await page.getByRole('tab', { name: /Équipes/ }).click();
     const contactsField = page.locator('input[id$="-contact"]').first();
-    await contactsField.fill('bertrand.darieux@lfb.fr');
+    await contactsField.fill('bertrand.darieux@entreprise-demo.example');
     await contactsField.press('Enter');
 
     const controlePubCard = page.locator('article', { hasText: 'Contrôle pub' }).first();

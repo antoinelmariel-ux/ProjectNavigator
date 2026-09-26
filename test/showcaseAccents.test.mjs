@@ -158,8 +158,8 @@ test('resolveAccentFamily retombe sur la famille du thème', () => {
   assert.equal(resolveAccentFamily('vert', families).id, 'accent-4');
 
   // un rang que le thème courant ne propose pas (sa palette est plus pauvre) revient au thème
-  const cevenfacta = initialShowcaseThemes.find(theme => theme.id === 'cevenfacta');
-  const narrow = buildAccentFamilies(cevenfacta.palette);
+  const factenova = initialShowcaseThemes.find(theme => theme.id === 'factenova');
+  const narrow = buildAccentFamilies(factenova.palette);
   assert.ok(narrow.length < MAX_ACCENT_FAMILY_COUNT + 1);
   assert.equal(resolveAccentFamily('accent-8', narrow).id, THEME_ACCENT_FAMILY_ID);
 });

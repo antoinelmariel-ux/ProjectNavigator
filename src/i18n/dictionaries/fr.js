@@ -297,7 +297,7 @@ export default {
       'Documentez un projet inspirant issu d’un autre laboratoire afin d’enrichir la base d’exemples.',
     back: 'Retour',
     privacyNotice:
-      'Le LFB traite les données recueillies pour gérer les projets à soumettre aux équipes d’experts internes.',
+      'Le Entreprise Demo traite les données recueillies pour gérer les projets à soumettre aux équipes d’experts internes.',
     privacyLink: 'En savoir plus sur vos données et vos droits',
     selectPlaceholder: 'Sélectionner...',
     visibilityPersonal: 'Personnel',
@@ -442,7 +442,7 @@ export default {
     projectsSectionSubtitle:
       'Accédez aux brouillons et aux projets finalisés pour les reprendre à tout moment.',
     blockSelectionAriaLabel: 'Sélection du bloc projet',
-    lfbProjectsTab: 'Projets LFB',
+    companyProjectsTab: 'Projets Entreprise Demo',
     inspirationTab: 'Inspiration',
     addInspiringProject: 'Ajouter un projet inspirant',
     duplicateNoticePrefix: 'Copie créée :',
@@ -585,7 +585,7 @@ export default {
     questionProgress: 'Question {{current}} sur {{total}}',
     visibilityHint: 'Certaines questions peuvent apparaître en fonction de vos réponses',
     privacyNotice:
-      'Le LFB traite les données recueillies pour gérer les projets à soumettre aux équipes d’experts internes.',
+      'Le Entreprise Demo traite les données recueillies pour gérer les projets à soumettre aux équipes d’experts internes.',
     privacyLink: 'En savoir plus sur vos données et vos droits',
     close: 'Fermer',
     hideHelp: 'Masquer l’aide',
@@ -1098,7 +1098,7 @@ export default {
       leaveEmptyToGenerateId: 'Laissez vide pour générer automatiquement à partir du libellé.',
       fieldTypeLabel: 'Type de champ',
       optionsCommaSeparatedLabel: 'Options (séparées par des virgules)',
-      optionsPlaceholderExample: 'Ex : Patient, Professionnels, Grand public',
+      optionsPlaceholderExample: 'Ex : Option A, Option B, Option C',
       defaultSelectLabelLabel: 'Libellé de sélection par défaut',
       defaultSelectPlaceholderExample: 'Ex : Sélectionner...',
       placeholderFieldLabel: 'Placeholder / texte indicatif',
@@ -2076,7 +2076,7 @@ export default {
     },
     fieldPlaceholders: {
       showcaseImpactFigure: 'ex. 40',
-      showcaseImpactFigureUnit: 'ex. %, h/semaine, patients',
+      showcaseImpactFigureUnit: 'ex. %, h/semaine, utilisateurs',
       showcaseImpactFigureCaption: 'ex. de temps administratif économisé par équipe'
     },
     impactFigureHelper: 'Facultatif, et vide par défaut. Un résultat attendu ou constaté — jamais un coût, qui est présenté dans la feuille de route.',
@@ -2097,7 +2097,7 @@ export default {
     deploymentCountriesLabel: 'Pays de déploiement',
     keyMemberFallback: 'Membre clé',
     upcomingMilestoneFallback: 'Jalon à venir',
-    heroEyebrow: 'LFB, l’engagement éthique',
+    heroEyebrow: 'Entreprise Demo, l’engagement éthique',
     heroCta: 'Découvrir le projet',
     heroScrollCue: 'Faites défiler',
     problemHeadline: 'Pourquoi ce projet doit exister',
@@ -2177,7 +2177,7 @@ export default {
     columnBlockPlaceholderTemplate: 'Contenu du bloc {{index}}',
     addColumnBlockButton: 'Ajouter un bloc',
     documentUrlLabel: 'Document',
-    documentUrlHint: 'Le document est déposé dans la bibliothèque SharePoint dédiée et reste accessible aux collaborateurs du LFB.',
+    documentUrlHint: 'Le document est déposé dans la bibliothèque SharePoint dédiée et reste accessible aux collaborateurs Entreprise Demo.',
     documentUploadedLabel: 'Document déposé — ouvrir',
     chooseDocumentButton: 'Choisir un fichier',
     removeDocumentButton: 'Retirer',

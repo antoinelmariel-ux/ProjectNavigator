@@ -454,10 +454,10 @@ export const initialQuestions = [
     "options": [
       {
         "label": {
-          "en": "LFB project",
-          "fr": "Projet du LFB",
-          "de": "Projekt des LFB",
-          "es": "Proyecto del LFB"
+          "en": "Entreprise Demo project",
+          "fr": "Projet Entreprise Demo",
+          "de": "Projekt Entreprise Demo",
+          "es": "Proyecto de Entreprise Demo"
         },
         "visibility": "always",
         "subType": null,
@@ -465,14 +465,14 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "projet_du_lfb"
+        "value": "projet_du_entreprise_demo"
       },
       {
         "label": {
-          "en": "Project co-developed by LFB and a partner",
-          "fr": "Projet co-construit entre le LFB et un partenaire",
-          "de": "Gemeinsam von LFB und einem Partner entwickeltes Projekt",
-          "es": "Proyecto co-construido entre el LFB y un socio"
+          "en": "Project co-developed by Entreprise Demo and a partner",
+          "fr": "Projet co-construit entre Entreprise Demo et un partenaire",
+          "de": "Gemeinsam von Entreprise Demo und einem Partner entwickeltes Projekt",
+          "es": "Proyecto co-construido entre Entreprise Demo y un socio"
         },
         "visibility": "always",
         "subType": null,
@@ -480,7 +480,7 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
+        "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
       },
       {
         "label": {
@@ -499,10 +499,10 @@ export const initialQuestions = [
       },
       {
         "label": {
-          "en": "Third-party project supported by LFB",
-          "fr": "Projet d’un tiers soutenu par le LFB",
-          "de": "Projekt eines Dritten, das vom LFB unterstützt wird",
-          "es": "Proyecto de un tercero apoyado por el LFB"
+          "en": "Third-party project supported by Entreprise Demo",
+          "fr": "Projet d’un tiers soutenu par Entreprise Demo",
+          "de": "Projekt eines Dritten, das von Entreprise Demo unterstützt wird",
+          "es": "Proyecto de un tercero apoyado por Entreprise Demo"
         },
         "visibility": "always",
         "subType": null,
@@ -510,7 +510,7 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "projet_d_un_tiers_soutenu_par_le_lfb"
+        "value": "projet_d_un_tiers_soutenu_par_le_entreprise_demo"
       },
       {
         "label": {
@@ -687,10 +687,10 @@ export const initialQuestions = [
       },
       {
         "label": {
-          "en": "Donation of products",
-          "fr": "Don de produits",
-          "de": "Sachspende",
-          "es": "Donación de productos"
+          "en": "Donation of products or services",
+          "fr": "Don de produits ou de services",
+          "de": "Sach- oder Dienstleistungsspende",
+          "es": "Donación de productos o servicios"
         },
         "visibility": "always",
         "subType": null,
@@ -698,7 +698,7 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "don_de_produits"
+        "value": "don_de_produits_ou_services"
       }
     ],
     "required": true,
@@ -872,56 +872,25 @@ export const initialQuestions = [
       },
       {
         "label": {
-          "en": "Interventional study (IIS)",
-          "fr": "Étude interventionnelle (IIS)",
-          "de": "Interventionelle Studie (IIS)",
-          "es": "Estudio intervencionista (IIS)"
+          "en": "Skills-based sponsorship",
+          "fr": "Mécénat de compétences",
+          "de": "Kompetenz-Sponsoring",
+          "es": "Mecenazgo de competencias"
         },
         "visibility": "always",
         "subType": null,
-        "subOptions": [
-          {
-            "label": {
-              "en": "With product administration",
-              "fr": "Avec administration de produit",
-              "de": "Mit Produktverabreichung",
-              "es": "Con administración de producto"
-            },
-            "visibility": "always",
-            "subType": null,
-            "subOptions": [],
-            "conditionGroups": [],
-            "conditions": [],
-            "conditionLogic": "all",
-            "value": "avec_administration_de_produit"
-          },
-          {
-            "label": {
-              "en": "Without product administration",
-              "fr": "Sans administration de produit",
-              "de": "Ohne Produktverabreichung",
-              "es": "Sin administración de producto"
-            },
-            "visibility": "always",
-            "subType": null,
-            "subOptions": [],
-            "conditionGroups": [],
-            "conditions": [],
-            "conditionLogic": "all",
-            "value": "sans_administration_de_produit"
-          }
-        ],
+        "subOptions": [],
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "etude_interventionnelle_iis"
+        "value": "mecenat_de_competences"
       },
       {
         "label": {
-          "en": "Non-interventional study (NIS)",
-          "fr": "Étude non-interventionnelle (NIS)",
-          "de": "Nicht-interventionelle Studie (NIS)",
-          "es": "Estudio no intervencionista (NIS)"
+          "en": "Academic research partnership",
+          "fr": "Partenariat de recherche académique",
+          "de": "Akademische Forschungspartnerschaft",
+          "es": "Colaboración de investigación académica"
         },
         "visibility": "always",
         "conditionGroups": [],
@@ -929,7 +898,7 @@ export const initialQuestions = [
         "conditionLogic": "all",
         "subType": null,
         "subOptions": [],
-        "value": "etude_non_interventionnelle_nis"
+        "value": "partenariat_de_recherche_academique"
       }
     ],
     "required": true,
@@ -938,7 +907,7 @@ export const initialQuestions = [
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_d_un_tiers_soutenu_par_le_lfb"
+        "value": "projet_d_un_tiers_soutenu_par_le_entreprise_demo"
       }
     ],
     "conditionLogic": "all",
@@ -949,7 +918,7 @@ export const initialQuestions = [
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_d_un_tiers_soutenu_par_le_lfb"
+            "value": "projet_d_un_tiers_soutenu_par_le_entreprise_demo"
           }
         ]
       }
@@ -1063,10 +1032,10 @@ export const initialQuestions = [
       },
       {
         "label": {
-          "en": "Patients / Patient associations",
-          "fr": "Patients / Association de patients",
-          "de": "Patienten / Patientenverbände",
-          "es": "Pacientes / Asociación de pacientes"
+          "en": "End customers / final users",
+          "fr": "Clients / usagers finaux",
+          "de": "Endkunden / Endnutzer",
+          "es": "Clientes / usuarios finales"
         },
         "visibility": "always",
         "subType": null,
@@ -1074,14 +1043,14 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "patients_association_de_patients"
+        "value": "clients_ou_usagers_finaux"
       },
       {
         "label": {
-          "en": "Healthcare professionals",
-          "fr": "Professionnels de santé",
-          "de": "Angehörige der Gesundheitsberufe",
-          "es": "Profesionales de la salud"
+          "en": "Industry professionals",
+          "fr": "Professionnels du secteur",
+          "de": "Branchenfachleute",
+          "es": "Profesionales del sector"
         },
         "visibility": "always",
         "subType": null,
@@ -1089,7 +1058,7 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "professionnels_de_sante"
+        "value": "professionnels_du_secteur"
       },
       {
         "label": {
@@ -1108,10 +1077,10 @@ export const initialQuestions = [
       },
       {
         "label": {
-          "en": "LFB employees",
-          "fr": "Collaborateurs du LFB",
-          "de": "Mitarbeitende des LFB",
-          "es": "Empleados del LFB"
+          "en": "Entreprise Demo employees",
+          "fr": "Collaborateurs Entreprise Demo",
+          "de": "Mitarbeitende Entreprise Demo",
+          "es": "Empleados de Entreprise Demo"
         },
         "visibility": "conditional",
         "subType": null,
@@ -1136,7 +1105,7 @@ export const initialQuestions = [
           }
         ],
         "conditionLogic": "all",
-        "value": "collaborateurs_du_lfb"
+        "value": "collaborateurs_du_entreprise_demo"
       }
     ],
     "required": true,
@@ -1144,12 +1113,12 @@ export const initialQuestions = [
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_du_lfb"
+        "value": "projet_du_entreprise_demo"
       },
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
+        "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
       }
     ],
     "conditionLogic": "any",
@@ -1174,10 +1143,10 @@ export const initialQuestions = [
           "es": "Seleccione todas las personas a las que se dirige su proyecto"
         },
         {
-          "en": "Only select \"LFB employees\" if the project is aimed at LFB employees (e.g. an intranet site)",
-          "fr": "Ne sélectionnez \"Collaborateurs du LFB\" que si le projet s’adresse aux collaborateurs du LFB (ex : un site intranet)",
-          "de": "Wählen Sie „Mitarbeitende des LFB\" nur aus, wenn sich das Projekt an LFB-Mitarbeitende richtet (z. B. eine Intranetseite)",
-          "es": "Seleccione «Empleados del LFB» únicamente si el proyecto se dirige a los empleados del LFB (por ejemplo, un sitio de intranet)"
+          "en": "Only select \"Entreprise Demo employees\" if the project is aimed at Entreprise Demo employees (e.g. an intranet site)",
+          "fr": "Ne sélectionnez \"Collaborateurs Entreprise Demo\" que si le projet s’adresse aux collaborateurs Entreprise Demo (ex : un site intranet)",
+          "de": "Wählen Sie „Mitarbeitende Entreprise Demo\" nur aus, wenn sich das Projekt an Entreprise Demo-Mitarbeitende richtet (z. B. eine Intranetseite)",
+          "es": "Seleccione «Empleados de Entreprise Demo» únicamente si el proyecto se dirige a los empleados de Entreprise Demo (por ejemplo, un sitio de intranet)"
         }
       ]
     },
@@ -1195,12 +1164,12 @@ export const initialQuestions = [
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_lfb"
+            "value": "projet_du_entreprise_demo"
           },
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
           }
         ]
       }
@@ -1517,10 +1486,10 @@ export const initialQuestions = [
         "subOptions": [
           {
             "label": {
-              "en": "Alfalastin",
-              "fr": "Alfalastin",
-              "de": "Alfalastin",
-              "es": "Alfalastin"
+              "en": "Protexin",
+              "fr": "Protexin",
+              "de": "Protexin",
+              "es": "Protexin"
             },
             "visibility": "always",
             "subType": null,
@@ -1528,14 +1497,14 @@ export const initialQuestions = [
             "conditionGroups": [],
             "conditions": [],
             "conditionLogic": "all",
-            "value": "alfalastin"
+            "value": "protexin"
           },
           {
             "label": {
-              "en": "Iqymune / Clairyg100/Clairyg 5%",
-              "fr": "Iqymune / Clairyg100/Clairyg 5%",
-              "de": "Iqymune / Clairyg100/Clairyg 5%",
-              "es": "Iqymune / Clairyg100/Clairyg 5%"
+              "en": "Qelbris / Clarim100/Clarim 5%",
+              "fr": "Qelbris / Clarim100/Clarim 5%",
+              "de": "Qelbris / Clarim100/Clarim 5%",
+              "es": "Qelbris / Clarim100/Clarim 5%"
             },
             "visibility": "always",
             "subType": null,
@@ -1543,52 +1512,52 @@ export const initialQuestions = [
             "conditionGroups": [],
             "conditions": [],
             "conditionLogic": "all",
-            "value": "iqymune_clairyg100_clairyg_5"
+            "value": "qelbris_clarim100_clarim_5"
           },
           {
             "label": {
-              "en": "Cevenfacta",
-              "fr": "Cevenfacta",
-              "de": "Cevenfacta",
-              "es": "Cevenfacta"
+              "en": "Factenova",
+              "fr": "Factenova",
+              "de": "Factenova",
+              "es": "Factenova"
             },
-            "value": "cevenfacta"
+            "value": "factenova"
           },
           {
             "label": {
-              "en": "Clottafact/Fibclot",
-              "fr": "Clottafact/Fibclot",
-              "de": "Clottafact/Fibclot",
-              "es": "Clottafact/Fibclot"
+              "en": "Clotalys/Fibrinex",
+              "fr": "Clotalys/Fibrinex",
+              "de": "Clotalys/Fibrinex",
+              "es": "Clotalys/Fibrinex"
             },
-            "value": "clottafact_fibclot"
+            "value": "clotalys_fibrinex"
           },
           {
             "label": {
-              "en": "Tegeline",
-              "fr": "Tegeline",
-              "de": "Tegeline",
-              "es": "Tegeline"
+              "en": "Gemuline",
+              "fr": "Gemuline",
+              "de": "Gemuline",
+              "es": "Gemuline"
             },
-            "value": "tegeline"
+            "value": "gemuline"
           },
           {
             "label": {
-              "en": "Vialebex",
-              "fr": "Vialebex",
-              "de": "Vialebex",
-              "es": "Vialebex"
+              "en": "Albuvia",
+              "fr": "Albuvia",
+              "de": "Albuvia",
+              "es": "Albuvia"
             },
-            "value": "vialebex"
+            "value": "albuvia"
           },
           {
             "label": {
-              "en": "Wilfactin/ Willfact",
-              "fr": "Wilfactin/ Willfact",
-              "de": "Wilfactin/ Willfact",
-              "es": "Wilfactin/ Willfact"
+              "en": "Wilfarin/ Factarin",
+              "fr": "Wilfarin/ Factarin",
+              "de": "Wilfarin/ Factarin",
+              "es": "Wilfarin/ Factarin"
             },
-            "value": "wilfactin_willfact"
+            "value": "wilfarin_factarin"
           },
           {
             "label": {
@@ -1676,12 +1645,12 @@ export const initialQuestions = [
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_du_lfb"
+        "value": "projet_du_entreprise_demo"
       },
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
+        "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
       }
     ],
     "conditionLogic": "any",
@@ -1714,12 +1683,12 @@ export const initialQuestions = [
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_lfb"
+            "value": "projet_du_entreprise_demo"
           },
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
           }
         ]
       }
@@ -1793,12 +1762,12 @@ export const initialQuestions = [
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_du_lfb"
+        "value": "projet_du_entreprise_demo"
       },
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
+        "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
       }
     ],
     "conditionLogic": "any",
@@ -1897,12 +1866,12 @@ export const initialQuestions = [
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_lfb"
+            "value": "projet_du_entreprise_demo"
           },
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
           }
         ]
       }
@@ -2026,12 +1995,12 @@ export const initialQuestions = [
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_du_lfb"
+        "value": "projet_du_entreprise_demo"
       },
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
+        "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
       }
     ],
     "conditionLogic": "any",
@@ -2130,12 +2099,12 @@ export const initialQuestions = [
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_lfb"
+            "value": "projet_du_entreprise_demo"
           },
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
           }
         ]
       }
@@ -2163,10 +2132,10 @@ export const initialQuestions = [
         "subOptions": [
           {
             "label": {
-              "en": "Related to medical practices",
-              "fr": "Liée aux pratiques médicales",
-              "de": "Bezogen auf medizinische Praktiken",
-              "es": "Relacionada con las prácticas médicas"
+              "en": "Related to usage habits",
+              "fr": "Liée aux habitudes d’usage",
+              "de": "Bezogen auf Nutzungsgewohnheiten",
+              "es": "Relacionada con los hábitos de uso"
             },
             "visibility": "always",
             "subType": null,
@@ -2174,14 +2143,14 @@ export const initialQuestions = [
             "conditionGroups": [],
             "conditions": [],
             "conditionLogic": "all",
-            "value": "liee_aux_pratiques_medicales"
+            "value": "liee_aux_habitudes_d_usage"
           },
           {
             "label": {
-              "en": "Related to living with the disease",
-              "fr": "Liée à la vie avec la maladie",
-              "de": "Bezogen auf das Leben mit der Krankheit",
-              "es": "Relacionada con la vida con la enfermedad"
+              "en": "Related to customer satisfaction",
+              "fr": "Liée à la satisfaction client",
+              "de": "Bezogen auf die Kundenzufriedenheit",
+              "es": "Relacionada con la satisfacción del cliente"
             },
             "visibility": "always",
             "subType": null,
@@ -2189,7 +2158,7 @@ export const initialQuestions = [
             "conditionGroups": [],
             "conditions": [],
             "conditionLogic": "all",
-            "value": "liee_a_la_vie_avec_la_maladie"
+            "value": "liee_a_la_satisfaction_client"
           }
         ],
         "conditionGroups": [],
@@ -2380,10 +2349,10 @@ export const initialQuestions = [
       },
       {
         "label": {
-          "en": "Presentation of clinical cases",
-          "fr": "Présentation de cas cliniques",
-          "de": "Präsentation klinischer Fälle",
-          "es": "Presentación de casos clínicos"
+          "en": "Testimonials or case studies",
+          "fr": "Témoignages ou études de cas",
+          "de": "Erfahrungsberichte oder Fallstudien",
+          "es": "Testimonios o estudios de caso"
         },
         "visibility": "always",
         "conditionGroups": [],
@@ -2391,14 +2360,14 @@ export const initialQuestions = [
         "conditionLogic": "all",
         "subType": null,
         "subOptions": [],
-        "value": "presentation_de_cas_cliniques"
+        "value": "temoignages_ou_etudes_de_cas"
       },
       {
         "label": {
-          "en": "Writing of abstracts / posters / scientific articles",
-          "fr": "Rédaction d’abstract / de poster / articles scientifiques",
-          "de": "Verfassen von Abstracts / Postern / wissenschaftlichen Artikeln",
-          "es": "Redacción de resúmenes (abstracts) / pósteres / artículos científicos"
+          "en": "Editorial publication or content",
+          "fr": "Publication ou contenu éditorial",
+          "de": "Redaktionelle Veröffentlichung oder Inhalte",
+          "es": "Publicación o contenido editorial"
         },
         "visibility": "always",
         "conditionGroups": [],
@@ -2406,7 +2375,7 @@ export const initialQuestions = [
         "conditionLogic": "all",
         "subType": null,
         "subOptions": [],
-        "value": "redaction_d_abstract_de_poster_articles_scientifiques"
+        "value": "publication_ou_contenu_editorial"
       }
     ],
     "required": true,
@@ -2415,12 +2384,12 @@ export const initialQuestions = [
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_du_lfb"
+        "value": "projet_du_entreprise_demo"
       },
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
+        "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
       }
     ],
     "conditionLogic": "any",
@@ -2431,12 +2400,12 @@ export const initialQuestions = [
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_lfb"
+            "value": "projet_du_entreprise_demo"
           },
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
           }
         ]
       }
@@ -2538,10 +2507,10 @@ export const initialQuestions = [
           },
           {
             "label": {
-              "en": "In the presence of an LFB employee",
-              "fr": "En présence d’un collaborateur du LFB",
-              "de": "In Anwesenheit eines LFB-Mitarbeiters",
-              "es": "En presencia de un empleado del LFB"
+              "en": "In the presence of an Entreprise Demo employee",
+              "fr": "En présence d’un collaborateur Entreprise Demo",
+              "de": "In Anwesenheit eines Entreprise Demo-Mitarbeiters",
+              "es": "En presencia de un empleado de Entreprise Demo"
             },
             "visibility": "always",
             "subType": null,
@@ -2549,7 +2518,7 @@ export const initialQuestions = [
             "conditionGroups": [],
             "conditions": [],
             "conditionLogic": "all",
-            "value": "en_presence_d_un_collaborateur_du_lfb"
+            "value": "en_presence_d_un_collaborateur_du_entreprise_demo"
           }
         ],
         "conditionGroups": [],
@@ -2707,10 +2676,10 @@ export const initialQuestions = [
       },
       {
         "label": {
-          "en": "Share information related to LFB's history before 1994",
-          "fr": "Partager des informations liées à l’historique du LFB avant 1994",
-          "de": "Informationen zur Geschichte des LFB vor 1994 weitergeben",
-          "es": "Compartir información relacionada con la historia del LFB anterior a 1994"
+          "en": "Share information related to the company's history before its creation",
+          "fr": "Partager des informations liées à l’historique de l’entreprise avant sa création",
+          "de": "Informationen zur Geschichte des Unternehmens vor seiner Gründung weitergeben",
+          "es": "Compartir información relacionada con la historia de la empresa anterior a su fundación"
         },
         "visibility": "always",
         "conditionGroups": [],
@@ -2718,7 +2687,7 @@ export const initialQuestions = [
         "conditionLogic": "all",
         "subType": null,
         "subOptions": [],
-        "value": "partager_des_informations_liees_a_l_historique_du_lfb_avant_1994"
+        "value": "partager_des_informations_liees_a_l_historique_de_l_entreprise_avant_sa_creation"
       },
       {
         "label": {
@@ -2802,12 +2771,12 @@ export const initialQuestions = [
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_du_lfb"
+        "value": "projet_du_entreprise_demo"
       },
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
+        "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
       },
       {
         "question": "q18_copy",
@@ -2828,12 +2797,12 @@ export const initialQuestions = [
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_lfb"
+            "value": "projet_du_entreprise_demo"
           },
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
           },
           {
             "question": "q18_copy",
@@ -2912,18 +2881,18 @@ export const initialQuestions = [
     "id": "q22",
     "type": "multi_choice",
     "question": {
-      "en": "Does your project match one of these situations?",
-      "fr": "Votre projet correspond-il à une de ces situations ?",
-      "de": "Entspricht Ihr Projekt einer dieser Situationen?",
-      "es": "¿Corresponde su proyecto a alguna de estas situaciones?"
+      "en": "Does this project rely on a digital tool or application?",
+      "fr": "Ce projet repose-t-il sur un outil ou une application numérique ?",
+      "de": "Beruht dieses Projekt auf einem digitalen Tool oder einer Anwendung?",
+      "es": "¿Este proyecto se basa en una herramienta o aplicación digital?"
     },
     "options": [
       {
         "label": {
-          "en": "A structured support program for the patient or those around them (e.g. a caregiver) to help them understand their condition and use their treatment (initiation, adherence, management of side effects, understanding of the disease, practical or financial support)",
-          "fr": "Un dispositif structuré d’accompagnement du patient ou de son entourage (par ex. aidant) pour l’accompagner notamment dans la compréhension de sa pathologie, l’usage de son traitement (initiation, observance, gestion des effets indésirables, compréhension de la maladie, soutien pratique ou financier)",
-          "de": "Ein strukturiertes Programm zur Begleitung des Patienten oder seines Umfelds (z. B. pflegende Angehörige), das ihn insbesondere beim Verständnis seiner Erkrankung und der Anwendung seiner Behandlung unterstützt (Einleitung, Therapietreue, Umgang mit Nebenwirkungen, Krankheitsverständnis, praktische oder finanzielle Unterstützung)",
-          "es": "Un dispositivo estructurado de acompañamiento del paciente o de su entorno (por ejemplo, un cuidador) para ayudarle, en particular, a comprender su enfermedad, a usar su tratamiento (inicio, cumplimiento, gestión de los efectos adversos, comprensión de la enfermedad, apoyo práctico o financiero)"
+          "en": "Internal use only",
+          "fr": "Outil à usage interne uniquement",
+          "de": "Nur für den internen Gebrauch",
+          "es": "Herramienta de uso interno únicamente"
         },
         "visibility": "always",
         "subType": null,
@@ -2931,14 +2900,14 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "un_dispositif_structure_d_accompagnement_du_patient_ou_de_son_entourage_par_ex_aidant_pour_l_accompagner_notamment_dans_la_comprehension_de_sa_pathologie_l_usage_de_son_traitement_initiation_observance_gestion_des_effets_indesirables_comprehension_de_la_maladie_soutien_pratique_ou_financier"
+        "value": "outil_interne_uniquement"
       },
       {
         "label": {
-          "en": "Enables remote medical acts (consultation, opinion, follow-up, monitoring, prescription, or care coordination)",
-          "fr": "Permet de réaliser des actes médicaux à distance (consultation, avis, suivi, surveillance, prescription ou coordination des soins)",
-          "de": "Ermöglicht die Durchführung medizinischer Leistungen aus der Ferne (Beratung, Gutachten, Nachsorge, Überwachung, Verschreibung oder Koordination der Versorgung)",
-          "es": "Permite realizar actos médicos a distancia (consulta, opinión médica, seguimiento, supervisión, prescripción o coordinación de la atención)"
+          "en": "Open to external users",
+          "fr": "Ouvert à des utilisateurs externes",
+          "de": "Für externe Nutzer zugänglich",
+          "es": "Abierta a usuarios externos"
         },
         "visibility": "always",
         "subType": null,
@@ -2946,22 +2915,37 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "permet_de_realiser_des_actes_medicaux_a_distance_consultation_avis_suivi_surveillance_prescription_ou_coordination_des_soins"
+        "value": "outil_ouvert_aux_utilisateurs_externes"
       },
       {
         "label": {
-          "en": "An application / instrument / tool intended for medical purposes (prevention, diagnosis, treatment, disease monitoring).",
-          "fr": "Une application / instrument / outil destiné à être utilisé à des fins médicales (prévention, diagnostic, traitement, suivi de la maladie).",
-          "de": "Eine Anwendung / ein Instrument / ein Werkzeug, das für medizinische Zwecke bestimmt ist (Prävention, Diagnose, Behandlung, Krankheitsverlaufskontrolle).",
-          "es": "Una aplicación / instrumento / herramienta destinada a utilizarse con fines médicos (prevención, diagnóstico, tratamiento, seguimiento de la enfermedad)."
+          "en": "Involves automated decision-making",
+          "fr": "Comporte une prise de décision automatisée",
+          "de": "Beinhaltet automatisierte Entscheidungsfindung",
+          "es": "Implica una toma de decisiones automatizada"
         },
         "visibility": "always",
+        "subType": null,
+        "subOptions": [],
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
+        "value": "outil_de_decision_automatisee"
+      },
+      {
+        "label": {
+          "en": "No specific tool",
+          "fr": "Aucun outil spécifique",
+          "de": "Kein spezifisches Tool",
+          "es": "Ninguna herramienta específica"
+        },
+        "visibility": "always",
         "subType": null,
         "subOptions": [],
-        "value": "une_application_instrument_outil_destine_a_etre_utilise_a_des_fins_medicales_prevention_diagnostic_traitement_suivi_de_la_maladie"
+        "conditionGroups": [],
+        "conditions": [],
+        "conditionLogic": "all",
+        "value": "aucun_outil_specifique"
       }
     ],
     "required": true,
@@ -2975,12 +2959,12 @@ export const initialQuestions = [
           {
             "question": "targetAudience",
             "operator": "equals",
-            "value": "patients_association_de_patients"
+            "value": "clients_ou_usagers_finaux"
           },
           {
             "question": "targetAudience",
             "operator": "equals",
-            "value": "professionnels_de_sante"
+            "value": "professionnels_du_secteur"
           }
         ]
       },
@@ -3224,12 +3208,12 @@ export const initialQuestions = [
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_lfb"
+            "value": "projet_du_entreprise_demo"
           },
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
           }
         ]
       }
@@ -3301,20 +3285,20 @@ export const initialQuestions = [
     "options": [
       {
         "label": {
-          "en": "Via LFB's digital channels",
-          "fr": "Via les canaux digitaux du LFB",
-          "de": "Über die digitalen Kanäle des LFB",
-          "es": "A través de los canales digitales del LFB"
+          "en": "Via Entreprise Demo's digital channels",
+          "fr": "Via les canaux digitaux Entreprise Demo",
+          "de": "Über die digitalen Kanäle Entreprise Demo",
+          "es": "A través de los canales digitales de Entreprise Demo"
         },
         "visibility": "always",
         "subType": "multi_choice",
         "subOptions": [
           {
             "label": {
-              "en": "LFB corporate website",
-              "fr": "Site internet corporate du LFB",
-              "de": "Unternehmenswebsite des LFB",
-              "es": "Sitio web corporativo del LFB"
+              "en": "Entreprise Demo corporate website",
+              "fr": "Site internet corporate Entreprise Demo",
+              "de": "Unternehmenswebsite Entreprise Demo",
+              "es": "Sitio web corporativo de Entreprise Demo"
             },
             "visibility": "always",
             "subType": null,
@@ -3322,14 +3306,14 @@ export const initialQuestions = [
             "conditionGroups": [],
             "conditions": [],
             "conditionLogic": "all",
-            "value": "site_internet_corporate_du_lfb"
+            "value": "site_internet_corporate_du_entreprise_demo"
           },
           {
             "label": {
-              "en": "Agora website",
-              "fr": "Site internet Agora",
-              "de": "Website Agora",
-              "es": "Sitio web Agora"
+              "en": "Entreprise Demo subsidiaries' websites",
+              "fr": "Site internet des filiales de Entreprise Demo",
+              "de": "Websites Entreprise Demo-Tochtergesellschaften",
+              "es": "Sitios web de las filiales de Entreprise Demo"
             },
             "visibility": "always",
             "subType": null,
@@ -3337,14 +3321,14 @@ export const initialQuestions = [
             "conditionGroups": [],
             "conditions": [],
             "conditionLogic": "all",
-            "value": "site_internet_agora"
+            "value": "site_internet_des_filiales_du_entreprise_demo"
           },
           {
             "label": {
-              "en": "LFB subsidiaries' websites",
-              "fr": "Site internet des filiales du LFB",
-              "de": "Websites der LFB-Tochtergesellschaften",
-              "es": "Sitios web de las filiales del LFB"
+              "en": "Entreprise Demo social media",
+              "fr": "Réseaux sociaux Entreprise Demo",
+              "de": "Soziale Medien Entreprise Demo",
+              "es": "Redes sociales de Entreprise Demo"
             },
             "visibility": "always",
             "subType": null,
@@ -3352,22 +3336,7 @@ export const initialQuestions = [
             "conditionGroups": [],
             "conditions": [],
             "conditionLogic": "all",
-            "value": "site_internet_des_filiales_du_lfb"
-          },
-          {
-            "label": {
-              "en": "LFB social media",
-              "fr": "Réseaux sociaux du LFB",
-              "de": "Soziale Medien des LFB",
-              "es": "Redes sociales del LFB"
-            },
-            "visibility": "always",
-            "subType": null,
-            "subOptions": [],
-            "conditionGroups": [],
-            "conditions": [],
-            "conditionLogic": "all",
-            "value": "reseaux_sociaux_du_lfb"
+            "value": "reseaux_sociaux_du_entreprise_demo"
           },
           {
             "label": {
@@ -3388,14 +3357,14 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "via_les_canaux_digitaux_du_lfb"
+        "value": "via_les_canaux_digitaux_du_entreprise_demo"
       },
       {
         "label": {
-          "en": "Via LFB's physical channels",
-          "fr": "Via les canaux physiques du LFB",
-          "de": "Über die physischen Kanäle des LFB",
-          "es": "A través de los canales físicos del LFB"
+          "en": "Via Entreprise Demo's physical channels",
+          "fr": "Via les canaux physiques Entreprise Demo",
+          "de": "Über die physischen Kanäle Entreprise Demo",
+          "es": "A través de los canales físicos de Entreprise Demo"
         },
         "visibility": "always",
         "subType": "multi_choice",
@@ -3432,10 +3401,10 @@ export const initialQuestions = [
           },
           {
             "label": {
-              "en": "Medical team",
-              "fr": "Équipe médicale",
-              "de": "Medizinisches Team",
-              "es": "Equipo médico"
+              "en": "Field team",
+              "fr": "Équipe terrain",
+              "de": "Außendienstteam",
+              "es": "Equipo de campo"
             },
             "visibility": "always",
             "subType": null,
@@ -3443,7 +3412,7 @@ export const initialQuestions = [
             "conditionGroups": [],
             "conditions": [],
             "conditionLogic": "all",
-            "value": "equipe_medicale"
+            "value": "equipe_terrain"
           },
           {
             "label": {
@@ -3464,7 +3433,7 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "via_les_canaux_physiques_du_lfb"
+        "value": "via_les_canaux_physiques_du_entreprise_demo"
       },
       {
         "label": {
@@ -3655,23 +3624,23 @@ export const initialQuestions = [
         "label": {
           "en": "No external collaboration planned",
           "fr": "Aucune collaboration prévue avec l’externe",
-          "de": "Keine Zusammenarbeit mit Externen vorgesehen",
+          "de": "Keine externe Zusammenarbeit geplant",
           "es": "No se prevé ninguna colaboración externa"
         },
         "visibility": "always",
+        "subType": null,
+        "subOptions": [],
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "subType": null,
-        "subOptions": [],
         "value": "aucune_collaboration_prevue_avec_l_externe"
       },
       {
         "label": {
-          "en": "Patient associations / Patients",
-          "fr": "Association de patients / Patients",
-          "de": "Patientenverbände / Patienten",
-          "es": "Asociación de pacientes / Pacientes"
+          "en": "Non-profit organization or association",
+          "fr": "Association ou organisme à but non lucratif",
+          "de": "Verein oder gemeinnützige Organisation",
+          "es": "Asociación u organismo sin ánimo de lucro"
         },
         "visibility": "always",
         "subType": null,
@@ -3679,14 +3648,14 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "association_de_patients_patients"
+        "value": "association_ou_organisme_a_but_non_lucratif"
       },
       {
         "label": {
-          "en": "Healthcare professional (outside France) (or HCP association / learned society)",
-          "fr": "Professionnel de santé (hors France) (ou association de PdS / Société savante)",
-          "de": "Angehöriger eines Gesundheitsberufs (außerhalb Frankreichs) (oder Fachverband / wissenschaftliche Gesellschaft)",
-          "es": "Profesional de la salud (fuera de Francia) (o asociación de PdS / sociedad científica)"
+          "en": "Independent expert or consultant (outside France)",
+          "fr": "Expert ou consultant indépendant (hors France)",
+          "de": "Unabhängiger Experte oder Berater (außerhalb Frankreichs)",
+          "es": "Experto o consultor independiente (fuera de Francia)"
         },
         "visibility": "always",
         "subType": null,
@@ -3694,14 +3663,14 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "professionnel_de_sante_hors_france_ou_association_de_pds_societe_savante"
+        "value": "expert_ou_consultant_independant_hors_france"
       },
       {
         "label": {
-          "en": "French healthcare professional (or HCP association / learned society)",
-          "fr": "Professionnel de santé français (ou association de PdS / Société savante)",
-          "de": "Französischer Angehöriger eines Gesundheitsberufs (oder Fachverband / wissenschaftliche Gesellschaft)",
-          "es": "Profesional de la salud francés (o asociación de PdS / sociedad científica)"
+          "en": "Independent expert or consultant (France)",
+          "fr": "Expert ou consultant indépendant (France)",
+          "de": "Unabhängiger Experte oder Berater (Frankreich)",
+          "es": "Experto o consultor independiente (Francia)"
         },
         "visibility": "always",
         "subType": null,
@@ -3709,29 +3678,14 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "professionnel_de_sante_francais_ou_association_de_pds_societe_savante"
+        "value": "expert_ou_consultant_independant_france"
       },
       {
         "label": {
-          "en": "French expert who is not a healthcare professional",
-          "fr": "Expert français non professionnel de santé",
-          "de": "Französischer Experte, der kein Angehöriger eines Gesundheitsberufs ist",
-          "es": "Experto francés que no es profesional de la salud"
-        },
-        "visibility": "always",
-        "conditionGroups": [],
-        "conditions": [],
-        "conditionLogic": "all",
-        "subType": null,
-        "subOptions": [],
-        "value": "expert_francais_non_professionnel_de_sante"
-      },
-      {
-        "label": {
-          "en": "Hospital institutions",
-          "fr": "Etablissements hospitaliers",
-          "de": "Krankenhauseinrichtungen",
-          "es": "Centros hospitalarios"
+          "en": "French expert outside a consulting engagement",
+          "fr": "Expert français hors mission de conseil",
+          "de": "Französischer Experte außerhalb eines Beratungsauftrags",
+          "es": "Experto francés fuera de una misión de consultoría"
         },
         "visibility": "always",
         "subType": null,
@@ -3739,11 +3693,26 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "etablissements_hospitaliers"
+        "value": "expert_francais_hors_mission_de_conseil"
       },
       {
         "label": {
-          "en": "Institutional stakeholder",
+          "en": "Public institutions or local authorities",
+          "fr": "Établissements publics ou collectivités",
+          "de": "Öffentliche Einrichtungen oder Gebietskörperschaften",
+          "es": "Instituciones públicas o entidades locales"
+        },
+        "visibility": "always",
+        "subType": null,
+        "subOptions": [],
+        "conditionGroups": [],
+        "conditions": [],
+        "conditionLogic": "all",
+        "value": "etablissements_publics_ou_collectivites"
+      },
+      {
+        "label": {
+          "en": "Institutional body",
           "fr": "Institutionnel",
           "de": "Institutionell",
           "es": "Institucional"
@@ -3764,27 +3733,27 @@ export const initialQuestions = [
           "es": "Agencia"
         },
         "visibility": "always",
+        "subType": null,
+        "subOptions": [],
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "subType": null,
-        "subOptions": [],
         "value": "agence"
       },
       {
         "label": {
-          "en": "Another industry player",
-          "fr": "Un autre industriel",
-          "de": "Ein anderes Industrieunternehmen",
-          "es": "Otra empresa del sector"
+          "en": "Another partner in the sector",
+          "fr": "Un autre partenaire du secteur",
+          "de": "Ein weiterer Partner der Branche",
+          "es": "Otro socio del sector"
         },
         "visibility": "always",
+        "subType": null,
+        "subOptions": [],
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "subType": null,
-        "subOptions": [],
-        "value": "un_autre_industriel"
+        "value": "un_autre_partenaire_du_secteur"
       }
     ],
     "required": false,
@@ -3792,12 +3761,12 @@ export const initialQuestions = [
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_du_lfb"
+        "value": "projet_du_entreprise_demo"
       },
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
+        "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
       },
       {
         "question": "ProjectType",
@@ -3813,12 +3782,12 @@ export const initialQuestions = [
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_lfb"
+            "value": "projet_du_entreprise_demo"
           },
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
           },
           {
             "question": "ProjectType",
@@ -3911,10 +3880,10 @@ export const initialQuestions = [
     "options": [
       {
         "label": {
-          "en": "Patient association",
-          "fr": "Association de patients",
-          "de": "Patientenverband",
-          "es": "Asociación de pacientes"
+          "en": "Non-profit organization or association",
+          "fr": "Association ou organisme à but non lucratif",
+          "de": "Verein oder gemeinnützige Organisation",
+          "es": "Asociación u organismo sin ánimo de lucro"
         },
         "visibility": "always",
         "subType": null,
@@ -3922,14 +3891,14 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "association_de_patients"
+        "value": "association_ou_organisme_a_but_non_lucratif"
       },
       {
         "label": {
-          "en": "HCP association / learned society",
-          "fr": "Association de PdS / Société savante",
-          "de": "Fachverband / wissenschaftliche Gesellschaft",
-          "es": "Asociación de PdS / sociedad científica"
+          "en": "Expert or professional network",
+          "fr": "Expert ou réseau professionnel",
+          "de": "Experte oder Fachnetzwerk",
+          "es": "Experto o red profesional"
         },
         "visibility": "always",
         "subType": null,
@@ -3937,14 +3906,14 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "association_de_pds_societe_savante"
+        "value": "expert_ou_reseau_professionnel"
       },
       {
         "label": {
-          "en": "Hospital institutions",
-          "fr": "Etablissements hospitaliers",
-          "de": "Krankenhauseinrichtungen",
-          "es": "Centros hospitalarios"
+          "en": "Public institutions or local authorities",
+          "fr": "Établissements publics ou collectivités",
+          "de": "Öffentliche Einrichtungen oder Gebietskörperschaften",
+          "es": "Instituciones públicas o entidades locales"
         },
         "visibility": "always",
         "subType": null,
@@ -3952,7 +3921,7 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "etablissements_hospitaliers"
+        "value": "etablissements_publics_ou_collectivites"
       }
     ],
     "required": false,
@@ -3960,7 +3929,7 @@ export const initialQuestions = [
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_d_un_tiers_soutenu_par_le_lfb"
+        "value": "projet_d_un_tiers_soutenu_par_le_entreprise_demo"
       },
       {
         "question": "ProjectType",
@@ -3976,7 +3945,7 @@ export const initialQuestions = [
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_d_un_tiers_soutenu_par_le_lfb"
+            "value": "projet_d_un_tiers_soutenu_par_le_entreprise_demo"
           },
           {
             "question": "ProjectType",
@@ -4000,144 +3969,6 @@ export const initialQuestions = [
         "de": "Finanzielle Unterstützungen erfordern mitunter zusätzliche Fristen aufgrund von Melde- oder Genehmigungspflichten gegenüber den Behörden",
         "es": "Los apoyos financieros a veces conllevan plazos adicionales derivados de obligaciones de declaración / solicitud de autorización a las autoridades"
       },
-      "tips": []
-    },
-    "extraCheckbox": {
-      "enabled": false,
-      "label": ""
-    },
-    "otherOption": {
-      "enabled": true,
-      "label": {
-        "en": "Other",
-        "fr": "Autre",
-        "de": "Andere",
-        "es": "Otro"
-      },
-      "placeholder": "",
-      "value": "other"
-    },
-    "numberUnit": "",
-    "rankingConfig": {
-      "title": {
-        "en": "Database",
-        "fr": "Base de données",
-        "de": "Datenbank",
-        "es": "Base de datos"
-      },
-      "criteria": [
-        {
-          "id": "critere-1",
-          "label": {
-            "en": "Criterion 1",
-            "fr": "Critère 1",
-            "de": "Kriterium 1",
-            "es": "Criterio 1"
-          }
-        },
-        {
-          "id": "critere-2",
-          "label": {
-            "en": "Criterion 2",
-            "fr": "Critère 2",
-            "de": "Kriterium 2",
-            "es": "Criterio 2"
-          }
-        },
-        {
-          "id": "critere-3",
-          "label": {
-            "en": "Criterion 3",
-            "fr": "Critère 3",
-            "de": "Kriterium 3",
-            "es": "Criterio 3"
-          }
-        }
-      ],
-      "entries": []
-    }
-  },
-  {
-    "id": "q10_copy_copy",
-    "type": "multi_choice",
-    "question": {
-      "en": "Who will be present at the event?",
-      "fr": "Qui sera présent à l’événement ?",
-      "de": "Wer wird bei der Veranstaltung anwesend sein?",
-      "es": "¿Quién estará presente en el evento?"
-    },
-    "options": [
-      {
-        "label": {
-          "en": "Patient association",
-          "fr": "Association de patients",
-          "de": "Patientenverband",
-          "es": "Asociación de pacientes"
-        },
-        "visibility": "always",
-        "subType": null,
-        "subOptions": [],
-        "conditionGroups": [],
-        "conditions": [],
-        "conditionLogic": "all",
-        "value": "association_de_patients"
-      },
-      {
-        "label": {
-          "en": "Healthcare professionals",
-          "fr": "Professionnels de santé",
-          "de": "Angehörige der Gesundheitsberufe",
-          "es": "Profesionales de la salud"
-        },
-        "visibility": "always",
-        "subType": null,
-        "subOptions": [],
-        "conditionGroups": [],
-        "conditions": [],
-        "conditionLogic": "all",
-        "value": "professionnels_de_sante"
-      },
-      {
-        "label": {
-          "en": "Institutional stakeholders",
-          "fr": "Institutionnels",
-          "de": "Institutionelle Akteure",
-          "es": "Instituciones"
-        },
-        "visibility": "always",
-        "subType": null,
-        "subOptions": [],
-        "conditionGroups": [],
-        "conditions": [],
-        "conditionLogic": "all",
-        "value": "institutionnels"
-      }
-    ],
-    "required": false,
-    "conditions": [
-      {
-        "question": "q18_copy",
-        "operator": "equals",
-        "value": "parrainage_d_evenement"
-      }
-    ],
-    "conditionLogic": "any",
-    "conditionGroups": [
-      {
-        "logic": "any",
-        "conditions": [
-          {
-            "question": "q18_copy",
-            "operator": "equals",
-            "value": "parrainage_d_evenement"
-          }
-        ]
-      }
-    ],
-    "placeholder": "",
-    "guidance": {
-      "objective": "",
-      "details": "",
       "tips": []
     },
     "extraCheckbox": {
@@ -4298,12 +4129,12 @@ export const initialQuestions = [
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_lfb"
+            "value": "projet_du_entreprise_demo"
           },
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
           }
         ]
       }
@@ -4545,10 +4376,10 @@ export const initialQuestions = [
       },
       {
         "label": {
-          "en": "Third-party logos (e.g. logos of patient associations, learned societies, ...)",
-          "fr": "Logo de tiers (ex : logos d’associations de patients, de sociétés savantes, ...)",
-          "de": "Logos Dritter (z. B. Logos von Patientenverbänden, wissenschaftlichen Gesellschaften usw.)",
-          "es": "Logotipos de terceros (por ejemplo, logotipos de asociaciones de pacientes, sociedades científicas, etc.)"
+          "en": "Third-party logo (e.g. partner or organization logos)",
+          "fr": "Logo de tiers (ex : logos de partenaires ou d’organismes)",
+          "de": "Logo Dritter (z. B. Logos von Partnern oder Organisationen)",
+          "es": "Logotipo de terceros (por ejemplo, logotipos de socios u organismos)"
         },
         "visibility": "always",
         "subType": null,
@@ -4556,7 +4387,7 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "logo_de_tiers_ex_logos_d_associations_de_patients_de_societes_savantes"
+        "value": "logo_de_tiers_ex_logos_de_partenaires_ou_d_organismes"
       },
       {
         "label": {
@@ -4575,10 +4406,10 @@ export const initialQuestions = [
       },
       {
         "label": {
-          "en": "Excerpts from publications or use of scientific scales",
-          "fr": "Extrait de publications ou utilisation d’échelles scientifiques",
-          "de": "Auszüge aus Publikationen oder Verwendung wissenschaftlicher Skalen",
-          "es": "Extractos de publicaciones o uso de escalas científicas"
+          "en": "Excerpt from existing publications or studies",
+          "fr": "Extrait de publications ou d’études existantes",
+          "de": "Auszug aus bestehenden Veröffentlichungen oder Studien",
+          "es": "Extracto de publicaciones o estudios existentes"
         },
         "visibility": "always",
         "subType": null,
@@ -4586,7 +4417,7 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "extrait_de_publications_ou_utilisation_d_echelles_scientifiques"
+        "value": "extrait_de_publications_ou_d_etudes_existantes"
       },
       {
         "label": {
@@ -4624,12 +4455,12 @@ export const initialQuestions = [
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_du_lfb"
+        "value": "projet_du_entreprise_demo"
       },
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
+        "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
       }
     ],
     "conditionLogic": "any",
@@ -4640,12 +4471,12 @@ export const initialQuestions = [
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_lfb"
+            "value": "projet_du_entreprise_demo"
           },
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
           }
         ]
       }
@@ -4726,12 +4557,12 @@ export const initialQuestions = [
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_du_lfb"
+        "value": "projet_du_entreprise_demo"
       },
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
+        "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
       }
     ],
     "conditionLogic": "any",
@@ -4830,12 +4661,12 @@ export const initialQuestions = [
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_lfb"
+            "value": "projet_du_entreprise_demo"
           },
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
           }
         ]
       }
@@ -4949,10 +4780,10 @@ export const initialQuestions = [
     "id": "innovationProcess",
     "type": "long_text",
     "question": {
-      "en": "What are LFB's objectives behind this project?",
-      "fr": "Quels sont les objectifs du LFB derrière ce projet ?",
-      "de": "Welche Ziele verfolgt der LFB mit diesem Projekt?",
-      "es": "¿Cuáles son los objetivos del LFB detrás de este proyecto?"
+      "en": "What are Entreprise Demo's objectives behind this project?",
+      "fr": "Quels sont les objectifs Entreprise Demo derrière ce projet ?",
+      "de": "Welche Ziele verfolgt Entreprise Demo mit diesem Projekt?",
+      "es": "¿Cuáles son los objetivos de Entreprise Demo detrás de este proyecto?"
     },
     "options": [],
     "required": false,
@@ -4966,10 +4797,10 @@ export const initialQuestions = [
         "es": "Identificar el interés de negocio del proyecto"
       },
       "details": {
-        "en": "This answer lets you highlight the value the project generates for LFB",
-        "fr": "Cette réponse vous permet de mettre en avant la valeur générée du projet pour le LFB",
-        "de": "Diese Antwort ermöglicht es Ihnen, den vom Projekt für den LFB generierten Mehrwert hervorzuheben",
-        "es": "Esta respuesta le permite destacar el valor que genera el proyecto para el LFB"
+        "en": "This answer lets you highlight the value the project generates for Entreprise Demo",
+        "fr": "Cette réponse vous permet de mettre en avant la valeur générée du projet pour Entreprise Demo",
+        "de": "Diese Antwort ermöglicht es Ihnen, den vom Projekt für Entreprise Demo generierten Mehrwert hervorzuheben",
+        "es": "Esta respuesta le permite destacar el valor que genera el proyecto para Entreprise Demo"
       },
       "tips": [
         {
@@ -5057,12 +4888,12 @@ export const initialQuestions = [
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_du_lfb"
+        "value": "projet_du_entreprise_demo"
       },
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
+        "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
       },
       {
         "question": "q18_copy",
@@ -5166,12 +4997,12 @@ export const initialQuestions = [
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_lfb"
+            "value": "projet_du_entreprise_demo"
           },
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
           },
           {
             "question": "q18_copy",
@@ -5229,12 +5060,12 @@ export const initialQuestions = [
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_du_lfb"
+        "value": "projet_du_entreprise_demo"
       },
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
+        "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
       }
     ],
     "conditionLogic": "all",
@@ -5245,12 +5076,12 @@ export const initialQuestions = [
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_lfb"
+            "value": "projet_du_entreprise_demo"
           },
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
           }
         ]
       }
@@ -5640,12 +5471,12 @@ export const initialQuestions = [
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_du_lfb"
+        "value": "projet_du_entreprise_demo"
       },
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
+        "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
       }
     ],
     "conditionLogic": "any",
@@ -5744,12 +5575,12 @@ export const initialQuestions = [
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_lfb"
+            "value": "projet_du_entreprise_demo"
           },
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
           }
         ]
       }
@@ -6077,7 +5908,7 @@ export const initialQuestions = [
           },
           "contact": "cherry@cdmparis.com",
           "website": "https://www.cdmparis.com",
-          "previousProject": "FitCLOT / CLOTTAFACT",
+          "previousProject": "CLOTALYS / FIBRINEX",
           "opinionText": "++",
           "notes": "Historique sur des projets clotting, bonne connaissance du secteur."
         }

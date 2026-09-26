@@ -43,7 +43,7 @@ test('le projet de démo local n’est jamais conservé comme « non synchronis�
     [{ id: 'p-1', projectName: 'Sur le serveur' }],
     [
       { id: 'p-1', projectName: 'Copie locale' },
-      { id: 'demo-project', projectName: 'Plasma 360', isDemo: true }
+      { id: 'demo-project', projectName: 'Impact 360', isDemo: true }
     ]
   );
 

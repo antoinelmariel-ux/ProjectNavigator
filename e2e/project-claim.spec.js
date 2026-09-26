@@ -66,7 +66,7 @@ test.describe('Prise en charge d’un projet par un membre d’équipe', () => {
       const project = parsed.projects?.find((entry) => entry?.answers?.__compliance_team_comments__?.teams?.controle_pub?.claim);
       return project?.answers?.__compliance_team_comments__?.teams?.controle_pub?.claim?.assigneeEmail || '';
     });
-    expect(storedAssignee).toBe('bertrand.darieux@lfb.fr');
+    expect(storedAssignee).toBe('bertrand.darieux@entreprise-demo.example');
 
     await page.getByRole('button', { name: 'Libérer' }).first().click();
     await expect(claimRow).toContainText('Personne ne suit encore ce périmètre');
@@ -77,16 +77,16 @@ test.describe('Prise en charge d’un projet par un membre d’équipe', () => {
     await gotoHome(page);
     await grantSelfComplianceExpertAndCommitteeAccess(page);
     await createAndSubmitProject(page);
-    await injectClaim(page, 'marie.dupont@lfb.fr');
+    await injectClaim(page, 'marie.dupont@entreprise-demo.example');
 
     await expect(page.getByRole('button', { name: /À traiter \(0\)/ })).toBeVisible();
     await page.getByRole('button', { name: /Pris en charge par l’équipe \(1\)/ }).click();
-    await expect(page.getByText('Suivi par marie.dupont@lfb.fr')).toBeVisible();
+    await expect(page.getByText('Suivi par marie.dupont@entreprise-demo.example')).toBeVisible();
 
     await page.getByRole('button', { name: 'Reprendre', exact: true }).first().click();
     const dialog = page.getByRole('dialog', { name: 'Reprendre ce projet' });
     await expect(dialog).toBeVisible();
-    await expect(dialog).toContainText('marie.dupont@lfb.fr');
+    await expect(dialog).toContainText('marie.dupont@entreprise-demo.example');
     await dialog.getByRole('button', { name: 'Absence' }).click();
     await dialog.getByRole('button', { name: 'Reprendre', exact: true }).click();
 
@@ -116,7 +116,7 @@ test.describe('Prise en charge d’un projet par un membre d’équipe', () => {
       const project = parsed.projects?.find((entry) => entry?.answers?.__compliance_team_comments__?.teams?.controle_pub?.claim);
       return project?.answers?.__compliance_team_comments__?.teams?.controle_pub?.claim || null;
     });
-    expect(claim?.assigneeEmail).toBe('bertrand.darieux@lfb.fr');
+    expect(claim?.assigneeEmail).toBe('bertrand.darieux@entreprise-demo.example');
 
     await page.getByRole('button', { name: /Contrôle pub/ }).first().click();
     await expect(page.getByText('vous suivez ce projet pour cette équipe.')).toBeVisible();
@@ -135,7 +135,7 @@ test.describe('Prise en charge d’un projet par un membre d’équipe', () => {
       const project = parsed.projects?.find((entry) => entry?.answers?.__compliance_team_comments__?.teams?.controle_pub?.claim);
       return project?.answers?.__compliance_team_comments__?.teams?.controle_pub?.claim || null;
     });
-    expect(claimAfterReply?.assigneeEmail).toBe('bertrand.darieux@lfb.fr');
+    expect(claimAfterReply?.assigneeEmail).toBe('bertrand.darieux@entreprise-demo.example');
     expect(claimAfterReply?.assignedAt).toBe(claim?.assignedAt);
   });
 
@@ -143,7 +143,7 @@ test.describe('Prise en charge d’un projet par un membre d’équipe', () => {
     await gotoHome(page);
     await grantSelfComplianceExpertAndCommitteeAccess(page);
     await createAndSubmitProject(page);
-    await injectClaim(page, 'laure.dabel@lfb.fr');
+    await injectClaim(page, 'laure.dabel@entreprise-demo.example');
 
     await grantAdminAccess(page);
     await page.getByRole('tab', { name: /Équipes/ }).click();
@@ -163,11 +163,11 @@ test.describe('Prise en charge d’un projet par un membre d’équipe', () => {
       }))
       .toBe(3);
 
-    // La charge de l'équipe montre la prise en charge de laure.dabel@lfb.fr…
+    // La charge de l'équipe montre la prise en charge de laure.dabel@entreprise-demo.example…
     await expect(page.getByText('1 projet(s) suivi(s)').first()).toBeVisible();
 
     // …et retirer ce contact demande d'abord ce que deviennent ses projets.
-    await page.getByRole('button', { name: 'Retirer laure.dabel@lfb.fr' }).click();
+    await page.getByRole('button', { name: 'Retirer laure.dabel@entreprise-demo.example' }).click();
     const dialog = page.getByRole('alertdialog', { name: 'Ce contact porte encore des projets' });
     await expect(dialog).toBeVisible();
     await dialog.getByRole('button', { name: 'Les remettre dans « À traiter »' }).click();
@@ -181,7 +181,7 @@ test.describe('Prise en charge d’un projet par un membre d’équipe', () => {
         claim: project?.answers?.__compliance_team_comments__?.teams?.controle_pub?.claim || null
       };
     });
-    expect(afterRemoval.contacts).not.toContain('laure.dabel@lfb.fr');
+    expect(afterRemoval.contacts).not.toContain('laure.dabel@entreprise-demo.example');
     expect(afterRemoval.claim).toBeNull();
   });
 });

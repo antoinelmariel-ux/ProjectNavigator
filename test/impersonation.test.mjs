@@ -14,7 +14,7 @@ import { savePersistedMockMap, loadPersistedMockMap } from '../src/utils/mockPro
 import { spPost } from '../src/utils/spRestClient.js';
 import { createRetryQueue } from '../src/utils/retryQueue.js';
 
-const APP_URL = 'https://lfb1.sharepoint.com/sites/ProjectNavigator_DEV/CN-App/index.aspx';
+const APP_URL = 'https://entreprisedemo1.sharepoint.com/sites/ProjectNavigator_DEV/CN-App/index.aspx';
 
 class FakeStorage {
   constructor() {
@@ -50,16 +50,16 @@ const withStorage = (fn) => {
 };
 
 test('readImpersonationRequest ne retient qu’une adresse e-mail valide', () => {
-  assert.equal(readImpersonationRequest('?viewAs=Marie.Durand@LFB.fr'), 'marie.durand@lfb.fr');
-  assert.equal(readImpersonationRequest('viewAs=marie.durand@lfb.fr'), 'marie.durand@lfb.fr');
+  assert.equal(readImpersonationRequest('?viewAs=Marie.Durand@entreprise-demo.example'), 'marie.durand@entreprise-demo.example');
+  assert.equal(readImpersonationRequest('viewAs=marie.durand@entreprise-demo.example'), 'marie.durand@entreprise-demo.example');
   assert.equal(readImpersonationRequest('?viewAs=pas-un-email'), '');
   assert.equal(readImpersonationRequest('?autre=1'), '');
   assert.equal(readImpersonationRequest(''), '');
 });
 
 test('buildImpersonationUrl et buildExitUrl ajoutent puis retirent le paramètre', () => {
-  const url = buildImpersonationUrl('Marie.Durand@lfb.fr', `${APP_URL}?vue=liste`);
-  assert.equal(readImpersonationRequest(new URL(url).search), 'marie.durand@lfb.fr');
+  const url = buildImpersonationUrl('Marie.Durand@entreprise-demo.example', `${APP_URL}?vue=liste`);
+  assert.equal(readImpersonationRequest(new URL(url).search), 'marie.durand@entreprise-demo.example');
   assert.ok(url.includes('vue=liste'));
 
   const exitUrl = buildExitUrl(url);
@@ -74,9 +74,9 @@ test('buildImpersonationUrl refuse une adresse invalide', () => {
 test('startImpersonation expose une identité simulée et stopImpersonation la retire', () => {
   try {
     assert.equal(isImpersonating(), false);
-    assert.equal(startImpersonation({ email: 'Marie.Durand@lfb.fr' }), true);
+    assert.equal(startImpersonation({ email: 'Marie.Durand@entreprise-demo.example' }), true);
     assert.equal(isImpersonating(), true);
-    assert.equal(getSimulatedUser().mail, 'marie.durand@lfb.fr');
+    assert.equal(getSimulatedUser().mail, 'marie.durand@entreprise-demo.example');
     assert.equal(getSimulatedUser().isSiteAdmin, false);
   } finally {
     stopImpersonation();
@@ -95,7 +95,7 @@ test('une simulation n’écrit jamais dans le localStorage partagé', () => {
     assert.ok(storage.getItem(STORAGE_KEY));
     storage.removeItem(STORAGE_KEY);
 
-    startImpersonation({ email: 'marie.durand@lfb.fr' });
+    startImpersonation({ email: 'marie.durand@entreprise-demo.example' });
     const result = persistState({ projects: [{ id: 'p1' }] });
     assert.equal(result.ok, true);
     assert.equal(result.skipped, 'simulation');
@@ -108,7 +108,7 @@ test('une simulation n’écrit jamais dans le localStorage partagé', () => {
 
 test('une simulation bloque toute écriture SharePoint', async () => {
   try {
-    startImpersonation({ email: 'marie.durand@lfb.fr' });
+    startImpersonation({ email: 'marie.durand@entreprise-demo.example' });
     await assert.rejects(
       () => spPost("/_api/web/lists/getbytitle('CN_Projects')/items", { Title: 'Test' }),
       { name: 'ReadOnlySimulationError' }

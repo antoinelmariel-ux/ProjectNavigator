@@ -17,7 +17,7 @@
 
 - L'application reste **sans serveur** : c'est un dossier de fichiers déposé dans une bibliothèque
   de ton site SharePoint. Les utilisateurs ouvrent simplement une URL.
-- Comme la page est **servie par SharePoint lui-même** (`https://lfb1.sharepoint.com/...`), le
+- Comme la page est **servie par SharePoint lui-même** (`https://entreprisedemo1.sharepoint.com/...`), le
   navigateur envoie automatiquement les cookies de connexion SharePoint de l'utilisateur.
   L'application peut donc lire et écrire dans les listes **avec les droits de la personne
   connectée**, sans aucune configuration d'authentification, sans mot de passe, sans clé.
@@ -32,7 +32,7 @@
 
 ## Étape 1 — Vérifier que la page s'affiche bien (déjà OK chez toi)
 
-Tu m'as confirmé que l'app est déjà servie depuis `https://lfb1.sharepoint.com/...`, donc ce
+Tu m'as confirmé que l'app est déjà servie depuis `https://entreprisedemo1.sharepoint.com/...`, donc ce
 point est acquis. Pour mémoire, deux conditions doivent rester vraies :
 
 - Le point d'entrée est un fichier **`index.aspx`** (et non `index.html`) : SharePoint exécute les
@@ -40,7 +40,7 @@ point est acquis. Pour mémoire, deux conditions doivent rester vraies :
 - Les **scripts personnalisés** doivent être autorisés sur le site. Si un jour la page se met à se
   télécharger au lieu de s'afficher, c'est ce réglage qui a été désactivé ; la commande à donner à
   l'administrateur SharePoint est :
-  `Set-SPOSite -Identity https://lfb1.sharepoint.com/sites/<nom-du-site> -DenyAddAndCustomizePages $false`
+  `Set-SPOSite -Identity https://entreprisedemo1.sharepoint.com/sites/<nom-du-site> -DenyAddAndCustomizePages $false`
 
 **Aucune autre demande à faire à l'IT.** (C'était le point bloquant de la stratégie précédente,
 il n'existe plus.)
@@ -50,7 +50,7 @@ il n'existe plus.)
 ## Étape 2 — Le site SharePoint
 
 1. Utilise (ou crée) un **site d'équipe** dédié, par exemple
-   `https://lfb1.sharepoint.com/sites/compliance-navigator`.
+   `https://entreprisedemo1.sharepoint.com/sites/compliance-navigator`.
 2. **Gère les accès avec soin, c'est ton contrôle de sécurité principal** :
    - **Membres** (lecture + écriture) : tous les utilisateurs de l'app — ils doivent pouvoir
      créer et modifier des éléments dans les listes.
@@ -248,7 +248,7 @@ première connexion, et modifiable ensuite depuis la section « Mon profil » de
 | PreferredLanguage | Une ligne de texte — **valeur par défaut : `en`** |
 | HasCompletedOnboarding | Oui/Non |
 | TeamPreferencesJson | Texte long (copies souhaitées par équipe, ex. `{"controle_pub":{"claimCopy":true}}`) |
-| AbsenceJson | Texte long (absence et suppléant, ex. `{"from":"2026-09-14","to":"2026-09-25","backupEmail":"queres@lfb.fr"}`) |
+| AbsenceJson | Texte long (absence et suppléant, ex. `{"from":"2026-09-14","to":"2026-09-25","backupEmail":"queres@entreprise-demo.example"}`) |
 | UpdatedAt | Date et heure |
 
 `TeamPreferencesJson` est le réglage **par personne** des copies d'annonce de prise en charge :
@@ -300,11 +300,11 @@ les valeurs par défaut.
 |---|---|
 | Title | (existante — nom de l'équipe, langue par défaut, dérivé automatiquement) |
 | TeamId 📌 | Une ligne de texte |
-| ContactsJson | Texte long (liste d'emails, ex. `["dpo@lfb.fr"]`) |
+| ContactsJson | Texte long (liste d'emails, ex. `["dpo@entreprise-demo.example"]`) |
 | NameJson | Texte long (nom traduit, ex. `{"en":"Legal","fr":"Juridique"}`) |
 | Expertise | Texte long (domaine d'expertise traduit, ex. `{"en":"...","fr":"..."}`) |
 | AcceptedLanguagesJson | Texte long (langues de réponse acceptées, ex. `["fr","en"]`) |
-| MemberRulesJson | Texte long (critères de sollicitation par membre, ex. `[{"email":"queres@lfb.fr","mode":"include","conditionGroups":[...]}]`) |
+| MemberRulesJson | Texte long (critères de sollicitation par membre, ex. `[{"email":"queres@entreprise-demo.example","mode":"include","conditionGroups":[...]}]`) |
 | ClaimStaleDays | Nombre — **valeur par défaut : 6** |
 | ClaimReminderDays | Nombre — **valeur par défaut : 3** |
 | SortOrder | Nombre |
@@ -507,8 +507,8 @@ Aucune colonne supplémentaire à créer : tout ce dont ce flux a besoin (`Assig
 C'est très court maintenant. Copie-colle ceci complété dans la conversation avec Claude :
 
 ```
-URL du site SharePoint  : https://lfb1.sharepoint.com/sites/........
-URL exacte de la page   : https://lfb1.sharepoint.com/sites/......../CN-App/index.aspx
+URL du site SharePoint  : https://entreprisedemo1.sharepoint.com/sites/........
+URL exacte de la page   : https://entreprisedemo1.sharepoint.com/sites/......../CN-App/index.aspx
 Les 12 listes CN_... sont créées avec les noms de colonnes exacts : oui / non
 Bibliothèques CN-App / CN-Config / CN-Documents créées          : oui / non
 Flux Power Automate de notifications créé et activé              : oui / non

@@ -59,10 +59,10 @@ const withEnvironment = async ({ sharePoint }, fn) => {
   globalThis.window = {
     location: sharePoint
       ? {
-        origin: 'https://lfb1.sharepoint.com',
+        origin: 'https://entreprisedemo1.sharepoint.com',
         pathname: '/sites/ProjectNavigator_DEV/CN-App/index.aspx',
         protocol: 'https:',
-        hostname: 'lfb1.sharepoint.com'
+        hostname: 'entreprisedemo1.sharepoint.com'
       }
       : { origin: 'http://localhost:8765', pathname: '/index.html', protocol: 'http:', hostname: 'localhost' },
     fetch: async (url, init = {}) => {
@@ -188,7 +188,7 @@ test('uploadDocument : crée les dossiers, dépose le fichier et l’indexe', as
     assert.equal(attachment.storage, 'sharepoint');
     assert.equal(attachment.name, 'Compte rendu.pdf');
     assert.ok(!attachment.url.includes('GetFileByServerRelativeUrl'), 'le lien ne doit pas passer par le point d’API REST');
-    assert.ok(attachment.url.startsWith('https://lfb1.sharepoint.com/sites/ProjectNavigator_DEV/CN-Documents/showcase/p-7/'));
+    assert.ok(attachment.url.startsWith('https://entreprisedemo1.sharepoint.com/sites/ProjectNavigator_DEV/CN-Documents/showcase/p-7/'));
     assert.ok(attachment.url.includes('Compte%20rendu.pdf'));
     assert.ok(attachment.path.includes('/CN-Documents/showcase/p-7/'));
   });
@@ -228,10 +228,10 @@ test('uploadDocument : un échec d’indexation ne perd pas le fichier déposé'
     globalThis.FileReader = FakeFileReader;
     globalThis.window = {
       location: {
-        origin: 'https://lfb1.sharepoint.com',
+        origin: 'https://entreprisedemo1.sharepoint.com',
         pathname: '/sites/ProjectNavigator_DEV/CN-App/index.aspx',
         protocol: 'https:',
-        hostname: 'lfb1.sharepoint.com'
+        hostname: 'entreprisedemo1.sharepoint.com'
       },
       fetch: async (url, init = {}) => {
         if (url.endsWith('/_api/contextinfo')) {

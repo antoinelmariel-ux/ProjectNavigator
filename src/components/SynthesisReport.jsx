@@ -3313,7 +3313,7 @@ export const SynthesisReport = ({
                   value={[]}
                   onChange={handleShareMemberAdd}
                   context={`Partage de projet : ${effectiveProjectName}`}
-                  placeholder="prenom.nom@lfb.fr"
+                  placeholder="prenom.nom@entreprise-demo.example"
                   ariaLabel={t('synthesisReport.shareSectionTitle')}
                 />
               </div>

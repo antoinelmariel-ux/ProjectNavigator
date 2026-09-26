@@ -30,29 +30,29 @@ const withFakeStorage = (fn, initial = {}) => {
 
 test('un provider rechargé retrouve ce qu’un précédent avait écrit', () => {
   withFakeStorage(() => {
-    const first = new Map([['projet-1', ['a@lfb.fr', 'b@lfb.fr']]]);
+    const first = new Map([['projet-1', ['a@entreprise-demo.example', 'b@entreprise-demo.example']]]);
     savePersistedMockMap('cn-test-members', first);
 
     // Deuxième instance : c'est ce que fait le module réévalué après un F5.
     const reloaded = loadPersistedMockMap('cn-test-members');
-    assert.deepEqual(reloaded.get('projet-1'), ['a@lfb.fr', 'b@lfb.fr']);
+    assert.deepEqual(reloaded.get('projet-1'), ['a@entreprise-demo.example', 'b@entreprise-demo.example']);
     assert.equal(reloaded.size, 1);
   });
 });
 
 test('une écriture ultérieure n’écrase pas les entrées déjà persistées', () => {
   withFakeStorage(() => {
-    savePersistedMockMap('cn-test-members', new Map([['projet-1', ['a@lfb.fr']]]));
+    savePersistedMockMap('cn-test-members', new Map([['projet-1', ['a@entreprise-demo.example']]]));
 
     // Le provider recharge, ajoute, puis réécrit : c'est la séquence réelle. Repartir d'une
     // Map vide ici (la régression) ferait disparaître « projet-1 » de la sauvegarde.
     const reloaded = loadPersistedMockMap('cn-test-members');
-    reloaded.set('projet-2', ['c@lfb.fr']);
+    reloaded.set('projet-2', ['c@entreprise-demo.example']);
     savePersistedMockMap('cn-test-members', reloaded);
 
     const final = loadPersistedMockMap('cn-test-members');
-    assert.deepEqual(final.get('projet-1'), ['a@lfb.fr']);
-    assert.deepEqual(final.get('projet-2'), ['c@lfb.fr']);
+    assert.deepEqual(final.get('projet-1'), ['a@entreprise-demo.example']);
+    assert.deepEqual(final.get('projet-2'), ['c@entreprise-demo.example']);
   });
 });
 

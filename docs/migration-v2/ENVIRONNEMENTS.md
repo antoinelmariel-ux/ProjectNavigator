@@ -2,8 +2,8 @@
 
 ## DEV — `ProjectNavigator_DEV`
 
-- **Site** : `https://lfb1.sharepoint.com/sites/ProjectNavigator_DEV`
-- **Page de l'app** : `https://lfb1.sharepoint.com/sites/ProjectNavigator_DEV/CN-App/index.aspx`
+- **Site** : `https://entreprisedemo1.sharepoint.com/sites/ProjectNavigator_DEV`
+- **Page de l'app** : `https://entreprisedemo1.sharepoint.com/sites/ProjectNavigator_DEV/CN-App/index.aspx`
 - **Structure créée le** : 2026-08-28 (script console, sans avertissement)
 
 | Conteneur | Type | GUID |

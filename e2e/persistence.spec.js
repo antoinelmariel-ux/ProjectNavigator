@@ -36,7 +36,7 @@ test.describe('Persistance transverse', () => {
 
   // Adresse volontairement absente de l'annuaire simulé, pour qu'aucune suggestion ne vienne
   // se substituer à la saisie au moment de valider.
-  const MEMBER_EMAIL = 'collegue-e2e@lfb.fr';
+  const MEMBER_EMAIL = 'collegue-e2e@entreprise-demo.example';
 
   test("un membre ajouté au projet persiste dans le stockage local après un rechargement", async ({ page }) => {
     const errors = collectConsoleErrors(page);
@@ -47,7 +47,7 @@ test.describe('Persistance transverse', () => {
     // Le partage passe par un PeoplePicker (src/components/PeoplePicker.jsx) : on tape
     // l'adresse puis Entrée la valide. Plus de <input type="email"> ni de bouton « Ajouter »
     // comme avant son introduction — c'est ce qui avait silencieusement périmé ce test.
-    const picker = page.getByPlaceholder('prenom.nom@lfb.fr');
+    const picker = page.getByPlaceholder('prenom.nom@entreprise-demo.example');
     await picker.fill(MEMBER_EMAIL);
     await picker.press('Enter');
 

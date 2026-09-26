@@ -11,7 +11,7 @@ import {
   spPost
 } from '../src/utils/spRestClient.js';
 
-const WEB = 'https://lfb1.sharepoint.com/sites/ProjectNavigator_DEV';
+const WEB = 'https://entreprisedemo1.sharepoint.com/sites/ProjectNavigator_DEV';
 
 const makeResponse = (status, body, headers = {}) => {
   const normalized = { 'content-type': 'application/json;odata=nometadata' };
@@ -39,10 +39,10 @@ const withFetch = async (handler, fn) => {
   const calls = [];
   globalThis.window = {
     location: {
-      origin: 'https://lfb1.sharepoint.com',
+      origin: 'https://entreprisedemo1.sharepoint.com',
       pathname: '/sites/ProjectNavigator_DEV/CN-App/index.aspx',
       protocol: 'https:',
-      hostname: 'lfb1.sharepoint.com'
+      hostname: 'entreprisedemo1.sharepoint.com'
     },
     fetch: async (url, init = {}) => {
       calls.push({ url, init });

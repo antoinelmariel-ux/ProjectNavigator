@@ -297,7 +297,7 @@ export default {
       'Dokumentieren Sie ein inspirierendes Projekt aus einem anderen Labor, um die Beispieldatenbank zu erweitern.',
     back: 'Zurück',
     privacyNotice:
-      'LFB verarbeitet die erhobenen Daten, um die den internen Expertenteams vorzulegenden Projekte zu verwalten.',
+      'Entreprise Demo verarbeitet die erhobenen Daten, um die den internen Expertenteams vorzulegenden Projekte zu verwalten.',
     privacyLink: 'Erfahren Sie mehr über Ihre Daten und Ihre Rechte',
     selectPlaceholder: 'Auswählen...',
     visibilityPersonal: 'Persönlich',
@@ -444,7 +444,7 @@ export default {
     projectsSectionSubtitle:
       'Greifen Sie jederzeit auf Entwürfe und fertiggestellte Projekte zu, um sie fortzusetzen.',
     blockSelectionAriaLabel: 'Auswahl des Projektbereichs',
-    lfbProjectsTab: 'LFB-Projekte',
+    companyProjectsTab: 'Entreprise Demo-Projekte',
     inspirationTab: 'Inspiration',
     addInspiringProject: 'Inspirierendes Projekt hinzufügen',
     duplicateNoticePrefix: 'Kopie erstellt:',
@@ -588,7 +588,7 @@ export default {
     questionProgress: 'Frage {{current}} von {{total}}',
     visibilityHint: 'Je nach Ihren Antworten können weitere Fragen erscheinen',
     privacyNotice:
-      'LFB verarbeitet die erhobenen Daten, um die den internen Expertenteams vorzulegenden Projekte zu verwalten.',
+      'Entreprise Demo verarbeitet die erhobenen Daten, um die den internen Expertenteams vorzulegenden Projekte zu verwalten.',
     privacyLink: 'Erfahren Sie mehr über Ihre Daten und Ihre Rechte',
     close: 'Schließen',
     hideHelp: 'Hilfe ausblenden',
@@ -1100,7 +1100,7 @@ export default {
       leaveEmptyToGenerateId: 'Leer lassen, um automatisch aus der Bezeichnung zu generieren.',
       fieldTypeLabel: 'Feldtyp',
       optionsCommaSeparatedLabel: 'Optionen (durch Kommas getrennt)',
-      optionsPlaceholderExample: 'Z. B.: Patient, Fachpersonal, Allgemeine Öffentlichkeit',
+      optionsPlaceholderExample: 'Z. B.: Option A, Option B, Option C',
       defaultSelectLabelLabel: 'Standard-Auswahlbezeichnung',
       defaultSelectPlaceholderExample: 'Z. B.: Auswählen...',
       placeholderFieldLabel: 'Platzhalter / Hinweistext',
@@ -2077,7 +2077,7 @@ export default {
     },
     fieldPlaceholders: {
       showcaseImpactFigure: 'z. B. 40',
-      showcaseImpactFigureUnit: 'z. B. %, Std./Woche, Patienten',
+      showcaseImpactFigureUnit: 'z. B. %, Std./Woche, Nutzer',
       showcaseImpactFigureCaption: 'z. B. eingesparte Verwaltungszeit pro Team'
     },
     impactFigureHelper: 'Optional und standardmäßig leer. Ein erwartetes oder gemessenes Ergebnis — nie ein Kostenbetrag, der in den Fahrplan gehört.',
@@ -2098,7 +2098,7 @@ export default {
     deploymentCountriesLabel: 'Einsatzländer',
     keyMemberFallback: 'Schlüsselmitglied',
     upcomingMilestoneFallback: 'Bevorstehender Meilenstein',
-    heroEyebrow: 'LFB, ethisches Engagement',
+    heroEyebrow: 'Entreprise Demo, ethisches Engagement',
     heroCta: 'Projekt entdecken',
     heroScrollCue: 'Nach unten scrollen',
     problemHeadline: 'Warum dieses Projekt existieren muss',
@@ -2178,7 +2178,7 @@ export default {
     columnBlockPlaceholderTemplate: 'Inhalt von Block {{index}}',
     addColumnBlockButton: 'Block hinzufügen',
     documentUrlLabel: 'Dokument',
-    documentUrlHint: 'Das Dokument wird in der dafür vorgesehenen SharePoint-Bibliothek abgelegt und bleibt für LFB-Mitarbeitende zugänglich.',
+    documentUrlHint: 'Das Dokument wird in der dafür vorgesehenen SharePoint-Bibliothek abgelegt und bleibt für Entreprise Demo-Mitarbeitende zugänglich.',
     documentUploadedLabel: 'Dokument hochgeladen — öffnen',
     chooseDocumentButton: 'Datei auswählen',
     removeDocumentButton: 'Entfernen',

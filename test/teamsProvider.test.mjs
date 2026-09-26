@@ -30,10 +30,10 @@ const withFetch = async (handler, fn) => {
   const calls = [];
   globalThis.window = {
     location: {
-      origin: 'https://lfb1.sharepoint.com',
+      origin: 'https://entreprisedemo1.sharepoint.com',
       pathname: '/sites/ProjectNavigator_DEV/CN-App/index.aspx',
       protocol: 'https:',
-      hostname: 'lfb1.sharepoint.com'
+      hostname: 'entreprisedemo1.sharepoint.com'
     },
     fetch: async (url, init = {}) => {
       calls.push({ url, init });
@@ -55,8 +55,8 @@ test('listAllTeams : convertit les lignes CN_Teams et trie par SortOrder', async
       assert.ok(url.includes("getbytitle('CN_Teams')/items"));
       return makeResponse(200, {
         value: [
-          { Id: 1, TeamId: 'pi', Title: 'PI', ContactsJson: '["dpi@lfb.fr"]', Expertise: 'texte', SortOrder: 2000, RowVersion: 1 },
-          { Id: 2, TeamId: 'dpo', Title: 'DPO', ContactsJson: '["dpo@lfb.fr"]', Expertise: 'texte', SortOrder: 1000, RowVersion: 2 }
+          { Id: 1, TeamId: 'pi', Title: 'PI', ContactsJson: '["dpi@entreprise-demo.example"]', Expertise: 'texte', SortOrder: 2000, RowVersion: 1 },
+          { Id: 2, TeamId: 'dpo', Title: 'DPO', ContactsJson: '["dpo@entreprise-demo.example"]', Expertise: 'texte', SortOrder: 1000, RowVersion: 2 }
         ]
       });
     },
@@ -64,7 +64,7 @@ test('listAllTeams : convertit les lignes CN_Teams et trie par SortOrder', async
       const provider = new SharePointTeamsProvider();
       const entries = await provider.listAllTeams();
       assert.deepEqual(entries.map((entry) => entry.team.id), ['dpo', 'pi']);
-      assert.deepEqual(entries[0].team.contacts, ['dpo@lfb.fr']);
+      assert.deepEqual(entries[0].team.contacts, ['dpo@entreprise-demo.example']);
       assert.equal(entries[0].meta.rowVersion, 2);
     }
   );
@@ -91,7 +91,7 @@ test('saveTeam : équipe absente crée une ligne, équipe existante met à jour 
             Id: 3,
             TeamId: 'dpo',
             Title: 'DPO',
-            ContactsJson: '["dpo@lfb.fr"]',
+            ContactsJson: '["dpo@entreprise-demo.example"]',
             Expertise: 'texte',
             SortOrder: 1000,
             RowVersion: 1,
@@ -103,16 +103,16 @@ test('saveTeam : équipe absente crée une ligne, équipe existante met à jour 
     async (calls) => {
       const provider = new SharePointTeamsProvider();
       const first = await provider.saveTeam(
-        { id: 'dpo', name: 'DPO', contacts: ['dpo@lfb.fr'], expertise: 'texte' },
+        { id: 'dpo', name: 'DPO', contacts: ['dpo@entreprise-demo.example'], expertise: 'texte' },
         { sortOrder: 1000, userEmail: 'a@b.fr' }
       );
       const second = await provider.saveTeam(
-        { id: 'dpo', name: 'DPO', contacts: ['dpo@lfb.fr', 'x@y.fr'], expertise: 'texte' },
+        { id: 'dpo', name: 'DPO', contacts: ['dpo@entreprise-demo.example', 'x@y.fr'], expertise: 'texte' },
         { sortOrder: 1000, userEmail: 'a@b.fr' }
       );
 
       assert.equal(first.team.id, 'dpo');
-      assert.deepEqual(second.team.contacts, ['dpo@lfb.fr', 'x@y.fr']);
+      assert.deepEqual(second.team.contacts, ['dpo@entreprise-demo.example', 'x@y.fr']);
 
       const creations = calls.filter(
         (c) => c.init.method === 'POST' && c.url.includes('/items') && !c.url.includes('?')

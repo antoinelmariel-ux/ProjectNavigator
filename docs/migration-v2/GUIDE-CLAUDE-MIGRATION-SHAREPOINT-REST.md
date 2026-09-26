@@ -6,7 +6,7 @@
 >
 > **Stratégie retenue (mise à jour) : PAS de Microsoft Graph, PAS de MSAL, PAS d'app
 > registration Azure AD, PAS de consentement admin.** L'application est servie depuis l'origine
-> SharePoint (`https://lfb1.sharepoint.com/sites/…`) : le navigateur envoie donc automatiquement
+> SharePoint (`https://entreprisedemo1.sharepoint.com/sites/…`) : le navigateur envoie donc automatiquement
 > les cookies de session SharePoint Online, et les appels same-origin vers `/_api/…` sont
 > authentifiés sans aucune brique d'authentification côté application.
 >
@@ -72,7 +72,7 @@ nouvelle UI, vérifier qu'elle existe : `grep -E "^\.ma-classe *[,{]" src/styles
 2. **Aucun envoi d'e-mail depuis l'application — et aucune alternative technique n'existe.**
    - Graph `sendMail` : **interdit** par la politique de sécurité du tenant.
    - `/_api/SP.Utilities.Utility.SendEmail` : **retirée par Microsoft**, l'endpoint ne fonctionne
-     plus. Testé le 2026-08-28 sur `lfb1.sharepoint.com` → `HTTP 400`,
+     plus. Testé le 2026-08-28 sur `entreprisedemo1.sharepoint.com` → `HTTP 400`,
      `System.InvalidOperationException` : « L'API SendEmail a été mise hors service ».
      Ne pas la réessayer, ne pas la proposer.
 
@@ -99,9 +99,9 @@ nouvelle UI, vérifier qu'elle existe : `grep -E "^\.ma-classe *[,{]" src/styles
 ## 1. Vue d'ensemble de la cible
 
 ```
-Navigateur — page https://lfb1.sharepoint.com/sites/<site>/CN-App/index.aspx
+Navigateur — page https://entreprisedemo1.sharepoint.com/sites/<site>/CN-App/index.aspx
  │  (cookies de session SPO envoyés automatiquement — same-origin, aucun jeton à gérer)
- ├─ spRestClient.js ─────► https://lfb1.sharepoint.com/sites/<site>/_api/…
+ ├─ spRestClient.js ─────► https://entreprisedemo1.sharepoint.com/sites/<site>/_api/…
  │    ├─ /web/currentUser                       (identité — remplace graph-current-user.json)
  │    ├─ /web/lists/getbytitle('CN_…')/items    (12 listes de données, cf. §5)
  │    ├─ /web/GetFileByServerRelativeUrl(…)     (CN-Config : référentiels JSON)
@@ -221,7 +221,7 @@ appelé *form digest*.
      });
      ```
    - `emailFromLoginName` : `Email` est parfois vide selon la configuration du tenant ; le
-     `LoginName` a la forme `i:0#.f|membership|prenom.nom@lfb.fr` → extraire la partie après le
+     `LoginName` a la forme `i:0#.f|membership|prenom.nom@entreprise-demo.example` → extraire la partie après le
      dernier `|`. **Ne pas sauter ce repli** : sans e-mail, la détection admin
      (`normalizedAdminEmails.includes(currentUserEmail)`) et les notifications tombent en panne.
 3. `initSharePointContext()` : en mode mock → renvoie l'objet importé de
@@ -659,7 +659,7 @@ la recherche seule.
 **Repli mode mock** : hors mode SharePoint (`file://`, dev local, e2e), `peopleSearch.js` cherche
 dans `src/data/mockOrgDirectory.js` (annuaire fictif, jamais chargé en mode SharePoint réel).
 
-**Non vérifié sur le tenant réel** : si le partage externe est autorisé sur `lfb1.sharepoint.com`,
+**Non vérifié sur le tenant réel** : si le partage externe est autorisé sur `entreprisedemo1.sharepoint.com`,
 ce picker peut aussi remonter des comptes invités/externes selon la configuration du tenant — à
 confirmer sur le site réel, pas supposé ici.
 

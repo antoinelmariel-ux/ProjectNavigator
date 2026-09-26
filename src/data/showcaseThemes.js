@@ -5,7 +5,7 @@ export const initialShowcaseThemes = [
   {
     id: 'universel',
     label: 'Universel',
-    description: 'Palette LFB par défaut, équilibrée entre bleu profond et reflets cyan. Sert de repli quand aucun thème produit ne correspond.',
+    description: 'Palette par défaut, équilibrée entre bleu profond et reflets cyan. Sert de repli quand aucun thème produit ne correspond.',
     aliases: ['Universel', 'cross_produits'],
     activation: { questionId: 'showcaseTheme', optionLabel: 'cross_produits' },
     palette: {
@@ -56,7 +56,7 @@ export const initialShowcaseThemes = [
   {
     id: 'immunologie',
     label: 'Immunologie',
-    description: 'Univers LFB Immunology : bleu pétrole profond, aplats clairs et bleu ciel poudré.',
+    description: 'Univers Immunologie : bleu pétrole profond, aplats clairs et bleu ciel poudré.',
     aliases: ['Immunologie', 'Immunology', 'immunologie'],
     activation: { questionId: 'showcaseTheme', optionLabel: 'immunologie' },
     palette: {
@@ -107,7 +107,7 @@ export const initialShowcaseThemes = [
   {
     id: 'hemostase',
     label: 'Hémostase',
-    description: 'Univers LFB Haemostasis : carmin signature, bordeaux profond et rosés poudrés.',
+    description: 'Univers Hémostase : carmin signature, bordeaux profond et rosés poudrés.',
     aliases: ['Hémostase', 'Hemostase', 'Haemostasis', 'hemostase'],
     activation: { questionId: 'showcaseTheme', optionLabel: 'hemostase' },
     palette: {
@@ -158,7 +158,7 @@ export const initialShowcaseThemes = [
   {
     id: 'soins-intensifs',
     label: 'Soins intensifs',
-    description: 'Univers LFB Intensive Care : vert signature, mousse pâle et profondeurs sapin, ponctués de carmin.',
+    description: 'Univers Soins intensifs : vert signature, mousse pâle et profondeurs sapin, ponctués de carmin.',
     aliases: ['Soins intensifs', 'Intensive Care', 'soins_intensifs'],
     activation: { questionId: 'showcaseTheme', optionLabel: 'soins_intensifs' },
     palette: {
@@ -207,11 +207,11 @@ export const initialShowcaseThemes = [
     }
   },
   {
-    id: 'iqymune',
-    label: 'IqYmune',
-    description: 'Univers IQYMUNE : violet signature, ciels clairs et lumière marine. Palette claire et aérée.',
-    aliases: ['IqYmune', 'IQYMUNE', 'QBD', 'iqymune_clairyg100_clairyg_5'],
-    activation: { questionId: 'showcaseTheme', optionLabel: 'iqymune_clairyg100_clairyg_5' },
+    id: 'qelbris',
+    label: 'Qelbris',
+    description: 'Univers QELBRIS : violet signature, ciels clairs et lumière marine. Palette claire et aérée.',
+    aliases: ['Qelbris', 'QELBRIS', 'QBD', 'qelbris_clarim100_clarim_5'],
+    activation: { questionId: 'showcaseTheme', optionLabel: 'qelbris_clarim100_clarim_5' },
     palette: {
       backgroundStart: '#fdfdff',
       backgroundMid: '#f1f6fc',
@@ -258,11 +258,11 @@ export const initialShowcaseThemes = [
     }
   },
   {
-    id: 'fibclot',
-    label: 'FibClot',
-    description: 'Univers FibCLOT : turquoise dominant, olive de soutien et rouge d’alerte, sur fond clair.',
-    aliases: ['Fibclot', 'FibCLOT', 'Clottafact', 'clottafact_fibclot'],
-    activation: { questionId: 'showcaseTheme', optionLabel: 'clottafact_fibclot' },
+    id: 'clotalys',
+    label: 'Clotalys',
+    description: 'Univers Clotalys : turquoise dominant, olive de soutien et rouge d’alerte, sur fond clair.',
+    aliases: ['Clotalys', 'Clotalys', 'Fibrinex', 'clotalys_fibrinex'],
+    activation: { questionId: 'showcaseTheme', optionLabel: 'clotalys_fibrinex' },
     palette: {
       backgroundStart: '#fdfdfb',
       backgroundMid: '#f4f7f0',
@@ -309,11 +309,11 @@ export const initialShowcaseThemes = [
     }
   },
   {
-    id: 'willfact',
-    label: 'Willfact',
-    description: 'Univers Willfact / Wilfactin : orange signature, bleu acier et gris ardoise sur fond clair.',
-    aliases: ['Willfact', 'Wilfactin', 'wilfactin_willfact'],
-    activation: { questionId: 'showcaseTheme', optionLabel: 'wilfactin_willfact' },
+    id: 'factarin',
+    label: 'Factarin',
+    description: 'Univers Factarin / Wilfarin : orange signature, bleu acier et gris ardoise sur fond clair.',
+    aliases: ['Factarin', 'Wilfarin', 'wilfarin_factarin'],
+    activation: { questionId: 'showcaseTheme', optionLabel: 'wilfarin_factarin' },
     palette: {
       backgroundStart: '#fdfdfe',
       backgroundMid: '#f2f4f7',
@@ -360,11 +360,11 @@ export const initialShowcaseThemes = [
     }
   },
   {
-    id: 'tegeline',
-    label: 'Tegeline',
-    description: 'Univers Tegeline : vert franc du conditionnement, bleu LFB en appui, fond clair clinique.',
-    aliases: ['Tegeline', 'tegeline'],
-    activation: { questionId: 'showcaseTheme', optionLabel: 'tegeline' },
+    id: 'gemuline',
+    label: 'Gemuline',
+    description: 'Univers Gemuline : vert franc du conditionnement, bleu profond en appui, fond clair clinique.',
+    aliases: ['Gemuline', 'gemuline'],
+    activation: { questionId: 'showcaseTheme', optionLabel: 'gemuline' },
     palette: {
       backgroundStart: '#fdfefd',
       backgroundMid: '#f2f8f3',
@@ -411,11 +411,11 @@ export const initialShowcaseThemes = [
     }
   },
   {
-    id: 'vialebex',
-    label: 'Vialebex',
-    description: 'Univers Vialebex : azur du conditionnement et or de l’albumine, sur fond clair lumineux.',
-    aliases: ['Vialebex', 'vialebex'],
-    activation: { questionId: 'showcaseTheme', optionLabel: 'vialebex' },
+    id: 'albuvia',
+    label: 'Albuvia',
+    description: 'Univers Albuvia : azur du conditionnement et or de l’albumine, sur fond clair lumineux.',
+    aliases: ['Albuvia', 'albuvia'],
+    activation: { questionId: 'showcaseTheme', optionLabel: 'albuvia' },
     palette: {
       backgroundStart: '#fcfdff',
       backgroundMid: '#eff8fd',
@@ -462,11 +462,11 @@ export const initialShowcaseThemes = [
     }
   },
   {
-    id: 'alfalastin',
-    label: 'Alfalastin',
-    description: 'Univers Alfalastin : bleus acier dégradés, blanc respiratoire et filet doré en accent.',
-    aliases: ['Alfalastin', 'alfalastin'],
-    activation: { questionId: 'showcaseTheme', optionLabel: 'alfalastin' },
+    id: 'protexin',
+    label: 'Protexin',
+    description: 'Univers Protexin : bleus acier dégradés, blanc respiratoire et filet doré en accent.',
+    aliases: ['Protexin', 'protexin'],
+    activation: { questionId: 'showcaseTheme', optionLabel: 'protexin' },
     palette: {
       backgroundStart: '#fdfeff',
       backgroundMid: '#f2f7fc',
@@ -513,13 +513,13 @@ export const initialShowcaseThemes = [
     }
   },
   {
-    id: 'cevenfacta',
-    label: 'Cevenfacta',
-    // Palette verrouillée sur le brand book CEVENFACTA/SEVENFACT (nov. 2022), qui interdit
+    id: 'factenova',
+    label: 'Factenova',
+    // Palette verrouillée sur le charte de marque FACTENOVA (nov. 2022), qui interdit
     // explicitement toute couleur hors de ces six références Pantone.
-    description: 'Palette officielle Cevenfacta : charbon Pantone Black C, orange 7597 C, ardoise 431 C et secondaires corail, bordeaux et gris chaud.',
-    aliases: ['Cevenfacta', 'SevenFacta', 'Cevens', 'cevenfacta'],
-    activation: { questionId: 'showcaseTheme', optionLabel: 'cevenfacta' },
+    description: 'Palette officielle Factenova : charbon Pantone Black C, orange 7597 C, ardoise 431 C et secondaires corail, bordeaux et gris chaud.',
+    aliases: ['Factenova', 'Facteva', 'Facten', 'factenova'],
+    activation: { questionId: 'showcaseTheme', optionLabel: 'factenova' },
     palette: {
       backgroundStart: '#151310',
       backgroundMid: '#2e2a25',

@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test';
 import { gotoHome, walkQuestionnaireToShowcase, proceedThroughMandatorySummary } from './fixtures.js';
 
-// Ouvre la vitrine d'un projet Tegeline : sa palette (accent #2b8f42) sert de référence
+// Ouvre la vitrine d'un projet Gemuline : sa palette (accent #2b8f42) sert de référence
 // pour vérifier que les sections intégrées suivent le thème par défaut.
-async function openTegelineShowcase(page) {
+async function openGemulineShowcase(page) {
   await gotoHome(page);
   await page.getByRole('button', { name: /Créer un projet/ }).first().click();
   await walkQuestionnaireToShowcase(page, {
@@ -11,7 +11,7 @@ async function openTegelineShowcase(page) {
       if (heading && heading.includes('produit ou environnement')) {
         await p.getByText('Produit', { exact: true }).first().click();
         await p.waitForTimeout(400);
-        await p.getByText('Tegeline', { exact: true }).first().click();
+        await p.getByText('Gemuline', { exact: true }).first().click();
         return true;
       }
       if (heading && heading.includes('jalons')) {
@@ -43,9 +43,9 @@ const teamAccent = (page) =>
 test.describe('Couleur des sections de la vitrine', () => {
   test('les sections suivent la palette du thème, et une couleur alternative reste après rechargement', async ({ page }) => {
     test.setTimeout(240000);
-    await openTegelineShowcase(page);
+    await openGemulineShowcase(page);
 
-    // Défaut : l'accent est le vert Tegeline lui-même (#2b8f42), juste assombri pour rester
+    // Défaut : l'accent est le vert Gemuline lui-même (#2b8f42), juste assombri pour rester
     // lisible en texte sur fond clair — surtout pas le rose figé d'origine.
     expect(await teamAccent(page)).toBe('rgb(29, 96, 44)');
 
@@ -61,7 +61,7 @@ test.describe('Couleur des sections de la vitrine', () => {
     await teamFrame.getByRole('button', { name: 'Réglages de la section' }).click();
     await expect(page.getByText('Couleur de la section')).toBeVisible();
 
-    // Les pastilles sont exactement les couleurs déclarées dans la palette Tegeline, sans
+    // Les pastilles sont exactement les couleurs déclarées dans la palette Gemuline, sans
     // nom de couleur : « Couleur 1 » est son bleu #2e6db4. Aucune teinte n'est inventée, donc
     // un thème monochrome en propose peu et un thème riche beaucoup.
     await expect(page.getByRole('button', { name: /^Couleur 1$/ })).toBeVisible();

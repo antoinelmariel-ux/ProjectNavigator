@@ -26,10 +26,10 @@ const withSharePoint = async (fn) => {
   const calls = [];
   globalThis.window = {
     location: {
-      origin: 'https://lfb1.sharepoint.com',
+      origin: 'https://entreprisedemo1.sharepoint.com',
       pathname: '/sites/ProjectNavigator_DEV/CN-App/index.aspx',
       protocol: 'https:',
-      hostname: 'lfb1.sharepoint.com'
+      hostname: 'entreprisedemo1.sharepoint.com'
     },
     fetch: async (url, init = {}) => {
       calls.push({ url, init });
@@ -76,8 +76,8 @@ test('sur SharePoint : un élément Pending est créé dans CN_NotificationsQueu
     const result = await queueNotification({
       subject: '[Project Navigator] Mon projet - Projet soumis pour analyse',
       body: '<p>Bonjour</p>',
-      to: ['equipe1@lfb.fr', 'equipe2@lfb.fr'],
-      cc: ['porteur@lfb.fr'],
+      to: ['equipe1@entreprise-demo.example', 'equipe2@entreprise-demo.example'],
+      cc: ['porteur@entreprise-demo.example'],
       projectId: 'p-1',
       actionType: 'Projet soumis pour analyse'
     });
@@ -90,8 +90,8 @@ test('sur SharePoint : un élément Pending est créé dans CN_NotificationsQueu
 
     const item = JSON.parse(write.init.body);
     assert.equal(item.Status, 'Pending');
-    assert.equal(item.ToEmails, 'equipe1@lfb.fr;equipe2@lfb.fr');
-    assert.equal(item.CcEmails, 'porteur@lfb.fr');
+    assert.equal(item.ToEmails, 'equipe1@entreprise-demo.example;equipe2@entreprise-demo.example');
+    assert.equal(item.CcEmails, 'porteur@entreprise-demo.example');
     assert.equal(item.ProjectId, 'p-1');
     assert.equal(item.NotificationType, 'Projet soumis pour analyse');
     assert.equal(item.Title, '[Project Navigator] Mon projet - Projet soumis pour analyse');

@@ -29,8 +29,8 @@ test('aucun thème ne partage le même déclencheur', () => {
 });
 
 test('une sous-option produit active le thème de la marque', () => {
-  const answers = { showcaseTheme: { value: 'produit', children: ['tegeline'] } };
-  assert.equal(resolveThemeFromActivation(initialShowcaseThemes, answers)?.id, 'tegeline');
+  const answers = { showcaseTheme: { value: 'produit', children: ['gemuline'] } };
+  assert.equal(resolveThemeFromActivation(initialShowcaseThemes, answers)?.id, 'gemuline');
 });
 
 test('une sous-option environnement active le thème correspondant', () => {
@@ -46,7 +46,7 @@ test('une sous-option environnement active le thème correspondant', () => {
   });
 });
 
-test('seuls des thèmes LFB sont livrés par défaut', () => {
+test('seuls des thèmes Entreprise Demo sont livrés par défaut', () => {
   assert.deepEqual(
     initialShowcaseThemes.map((theme) => theme.id),
     [
@@ -54,25 +54,25 @@ test('seuls des thèmes LFB sont livrés par défaut', () => {
       'immunologie',
       'hemostase',
       'soins-intensifs',
-      'iqymune',
-      'fibclot',
-      'willfact',
-      'tegeline',
-      'vialebex',
-      'alfalastin',
-      'cevenfacta'
+      'qelbris',
+      'clotalys',
+      'factarin',
+      'gemuline',
+      'albuvia',
+      'protexin',
+      'factenova'
     ]
   );
 });
 
 test('chaque produit documenté résout vers sa propre palette', () => {
   const expected = {
-    alfalastin: 'alfalastin',
-    iqymune_clairyg100_clairyg_5: 'iqymune',
-    cevenfacta: 'cevenfacta',
-    clottafact_fibclot: 'fibclot',
-    vialebex: 'vialebex',
-    wilfactin_willfact: 'willfact',
+    protexin: 'protexin',
+    qelbris_clarim100_clarim_5: 'qelbris',
+    factenova: 'factenova',
+    clotalys_fibrinex: 'clotalys',
+    albuvia: 'albuvia',
+    wilfarin_factarin: 'factarin',
     cross_produits: 'universel'
   };
 
@@ -83,8 +83,8 @@ test('chaque produit documenté résout vers sa propre palette', () => {
 });
 
 test('une réponse multi-select expose aussi ses sous-options', () => {
-  const answers = { showcaseTheme: { values: ['produit'], children: { produit: ['vialebex'] } } };
-  assert.equal(resolveThemeFromActivation(initialShowcaseThemes, answers)?.id, 'vialebex');
+  const answers = { showcaseTheme: { values: ['produit'], children: { produit: ['albuvia'] } } };
+  assert.equal(resolveThemeFromActivation(initialShowcaseThemes, answers)?.id, 'albuvia');
 });
 
 test('une option sans thème dédié ne déclenche aucune activation', () => {
@@ -93,7 +93,7 @@ test('une option sans thème dédié ne déclenche aucune activation', () => {
 });
 
 test('les sous-options ne débloquent pas un type de projet exclu de la vitrine', () => {
-  assert.equal(isShowcaseAccessBlockedByProjectType({ ProjectType: 'projet_du_lfb' }), false);
+  assert.equal(isShowcaseAccessBlockedByProjectType({ ProjectType: 'projet_du_entreprise_demo' }), false);
   assert.equal(
     isShowcaseAccessBlockedByProjectType({ ProjectType: { value: 'don_bourse_appel_a_projets' } }),
     true

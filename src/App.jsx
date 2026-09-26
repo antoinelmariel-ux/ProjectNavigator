@@ -2316,7 +2316,7 @@ const updateProjectFilters = useCallback((updater) => {
       }),
       createEntry({
         id: 'tour-draft-demo',
-        projectName: demoData?.projectName || 'Plasma 360',
+        projectName: demoData?.projectName || 'Impact 360',
         status: 'draft',
         offsetMs: 172800000,
         answers: {}
