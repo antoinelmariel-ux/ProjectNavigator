@@ -1938,6 +1938,8 @@ export default {
     teamCommentPlaceholder: 'Ajoutez ici vos recommandations, points d’attention et liens...',
     saveCommentButton: 'Enregistrer le commentaire',
     replyToggle: 'Répondre',
+    reintegrateInCommittee: 'Réintégrer en comité',
+    reintegrateInCommitteeNamed: 'Réintégrer au comité « {{name}} »',
     replyPlaceholder: 'Votre réponse (texte riche et liens)...',
     removeButton: 'Supprimer',
     sendReplyButton: 'Envoyer la réponse',

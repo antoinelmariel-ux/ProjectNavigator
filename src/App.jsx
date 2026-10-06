@@ -5423,6 +5423,34 @@ const updateProjectFilters = useCallback((updater) => {
     }));
   }, [currentUserDisplayName, notifyOwnerAndCoOwners]);
 
+  // Depuis la synthèse, `answers` est la copie de travail du projet ouvert : le handler ci-dessus
+  // ne met à jour que `projects`, il faut donc aussi refléter le comité forcé ici pour que le
+  // bloc comité apparaisse immédiatement.
+  const handleReintegrateActiveProjectInCommittee = useCallback((committeeId) => {
+    if (!activeProjectId || !committeeId) {
+      return;
+    }
+
+    handleReintegrateProjectInCommittee(activeProjectId, committeeId);
+    setAnswers((prevAnswers) => {
+      const rawComments = prevAnswers?.[COMPLIANCE_COMMENTS_KEY];
+      const comments = rawComments && typeof rawComments === 'object' && !Array.isArray(rawComments)
+        ? rawComments
+        : {};
+      const forcedCommitteeIds = Array.isArray(comments.forcedCommitteeIds) ? comments.forcedCommitteeIds : [];
+      if (forcedCommitteeIds.includes(committeeId)) {
+        return prevAnswers;
+      }
+      return {
+        ...prevAnswers,
+        [COMPLIANCE_COMMENTS_KEY]: {
+          ...comments,
+          forcedCommitteeIds: [...forcedCommitteeIds, committeeId]
+        }
+      };
+    });
+  }, [activeProjectId, handleReintegrateProjectInCommittee]);
+
   // Supprimer un projet soumis (ou dont la soumission a été annulée) est une suppression réelle
   // et persistée, pas un simple masquage local : sans appel serveur, le projet réapparaîtrait au
   // prochain rechargement en mode SharePoint (le serveur fait autorité à l'hydratation, voir
@@ -7997,6 +8025,7 @@ const updateProjectFilters = useCallback((updater) => {
               isLaunched={isProjectLaunched(activeProject?.answers)}
               canDeclareLaunch={canDeclareProjectLaunch(activeProject)}
               onDeclareLaunch={activeProjectId ? handleDeclareProjectLaunch : undefined}
+              onReintegrateInCommittee={activeProjectId && !isSimulatedSession ? handleReintegrateActiveProjectInCommittee : undefined}
             />
           </Suspense>
         ) : screen === 'showcase' ? (

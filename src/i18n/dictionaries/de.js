@@ -1939,6 +1939,8 @@ export default {
     teamCommentPlaceholder: 'Fügen Sie hier Ihre Empfehlungen, Hinweise und Links hinzu...',
     saveCommentButton: 'Kommentar speichern',
     replyToggle: 'Antworten',
+    reintegrateInCommittee: 'Wieder in das Komitee aufnehmen',
+    reintegrateInCommitteeNamed: 'Wieder in das Komitee „{{name}}“ aufnehmen',
     replyPlaceholder: 'Ihre Antwort (Rich-Text und Links)...',
     removeButton: 'Entfernen',
     sendReplyButton: 'Antwort senden',

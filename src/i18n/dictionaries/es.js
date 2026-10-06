@@ -1928,6 +1928,8 @@ export default {
     teamCommentPlaceholder: 'Añada aquí sus recomendaciones, puntos de atención y enlaces...',
     saveCommentButton: 'Guardar comentario',
     replyToggle: 'Responder',
+    reintegrateInCommittee: 'Reintegrar en el comité',
+    reintegrateInCommitteeNamed: 'Reintegrar en el comité «{{name}}»',
     replyPlaceholder: 'Su respuesta (texto enriquecido y enlaces)...',
     removeButton: 'Eliminar',
     sendReplyButton: 'Enviar respuesta',

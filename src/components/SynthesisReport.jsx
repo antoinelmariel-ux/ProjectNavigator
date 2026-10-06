@@ -657,7 +657,8 @@ export const SynthesisReport = ({
   onPerimeterConfirmation,
   isLaunched = false,
   canDeclareLaunch = false,
-  onDeclareLaunch
+  onDeclareLaunch,
+  onReintegrateInCommittee
 }) => {
   const { t, language } = useTranslation();
   const [isShowcaseFallbackOpen, setIsShowcaseFallbackOpen] = useState(false);
@@ -952,6 +953,18 @@ export const SynthesisReport = ({
     () => triggeredValidationCommittees.filter((committee) => committee.commentRequired),
     [triggeredValidationCommittees]
   );
+  const reintegrableCommittees = useMemo(() => {
+    if (!currentUserEmail || projectStatus !== 'submitted' || typeof onReintegrateInCommittee !== 'function') {
+      return [];
+    }
+    return validationCommittees.filter(
+      (committee) =>
+        (Array.isArray(committee?.emails) ? committee.emails : []).some(
+          (email) => normalizeEmail(email) === currentUserEmail
+        )
+        && !triggeredValidationCommittees.some((entry) => entry.id === committee.id)
+    );
+  }, [currentUserEmail, onReintegrateInCommittee, projectStatus, triggeredValidationCommittees, validationCommittees]);
 
   const resolveTeamLabel = useCallback(
     (teamId) => {
@@ -2708,6 +2721,7 @@ export const SynthesisReport = ({
 
                             {canReplyTeamThread && (
                               <div className="border-t border-gray-200 pt-3">
+                                <div className="flex flex-wrap items-center gap-2">
                                 <button
                                   type="button"
                                   onClick={() => toggleTeamReplyBox(team.id)}
@@ -2720,6 +2734,19 @@ export const SynthesisReport = ({
                                   {!isReplyBoxOpen && <MessageSquare className="w-3.5 h-3.5" />}
                                   {isReplyBoxOpen ? t('synthesisReport.closeToggle') : t('synthesisReport.replyToggle')}
                                 </button>
+                                {canEditTeamComment && reintegrableCommittees.map((committee) => (
+                                  <button
+                                    key={`reintegrate-${team.id}-${committee.id}`}
+                                    type="button"
+                                    onClick={() => onReintegrateInCommittee(committee.id)}
+                                    className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 shadow-sm transition-colors hover:border-amber-300 hover:bg-amber-100"
+                                  >
+                                    {reintegrableCommittees.length > 1
+                                      ? t('synthesisReport.reintegrateInCommitteeNamed', { name: committee.name || committee.id })
+                                      : t('synthesisReport.reintegrateInCommittee')}
+                                  </button>
+                                ))}
+                                </div>
                                 {isReplyBoxOpen && (
                                   <div className="mt-3">
                                     <RichTextEditor

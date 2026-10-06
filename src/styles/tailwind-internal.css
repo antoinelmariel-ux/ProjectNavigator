@@ -2632,6 +2632,11 @@ button, [type='button'], [type='reset'], [type='submit'] {
   background-color: rgba(217,119,6, var(--tw-bg-opacity));
 }
 
+.hover\:border-amber-300:hover {
+  --tw-border-opacity: 1;
+  border-color: rgba(252,211,77, var(--tw-border-opacity));
+}
+
 .hover\:border-blue-200:hover {
   --tw-border-opacity: 1;
   border-color: rgba(191,219,254, var(--tw-border-opacity));
