@@ -1,13 +1,7 @@
-const ReactGlobal = window.React;
+import React from 'react';
+import ReactDOM from 'react-dom';
 
-if (!ReactGlobal) {
-  throw new Error('React global not found. Assurez-vous que React est chargé avant les modules.');
-}
-
-const ReactDOMGlobal = window.ReactDOM;
-
-export const React = ReactGlobal;
-export const ReactDOM = ReactDOMGlobal;
+export { React, ReactDOM };
 export const {
   useState,
   useEffect,
@@ -19,6 +13,6 @@ export const {
   Suspense,
   createContext,
   useContext
-} = ReactGlobal;
+} = React;
 
-export default ReactGlobal;
+export default React;

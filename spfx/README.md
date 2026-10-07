@@ -5,9 +5,17 @@ Project Navigator dans un web part unique, posé sur une page moderne en mise en
 « Application pleine page ». Elle remplace à terme le dépôt de `index.html` dans la
 bibliothèque `CN-App`, qui dépend de l'autorisation « custom script » du site.
 
-**État : phase 1 (squelette).** Le web part affiche un simple message ; le montage de
-l'application (`../src/main.jsx`) arrive en phase 3. Le plan complet est décrit dans
-`docs/migration-v2/` (à venir : `DEPLOIEMENT-SPFX.md`).
+**État : phase 2.** Le web part monte l'application complète (`../src/main.jsx`, via l'alias
+webpack `project-navigator-app`). Le contexte SharePoint (URL du site, utilisateur, langue) est
+encore déduit de l'URL de la page ; son injection depuis SPFx arrive en phase 3.
+
+## Comment `../src` est compilé
+
+`config/app-webpack-rules.js` décrit la transformation du code applicatif (Babel JSX, CSS importés
+en texte, images en assets). Elle est appliquée au bundle SPFx par `config/spfx-customize-webpack.js`
+et au harnais de dev par `scripts/build-harness.js` (`npm run build:harness`, sortie
+`../harness/dist/`, servi par `../index.html`), pour que les tests e2e exercent le même code que le
+`.sppkg`.
 
 ## Pourquoi un sous-dossier
 

@@ -11,6 +11,12 @@ import { initialAdminEmails } from './data/adminEmails.js';
 import { initialTechnicalContactEmails } from './data/technicalContactEmails.js';
 import { queueNotification } from './utils/notificationQueue.js';
 import { buildErrorReportEmail } from './utils/notificationTemplates.js';
+import { injectStyles } from './styles/injectStyles.js';
+import fontsCss from './styles/fonts.css?raw';
+import tailwindCss from './styles/tailwind-internal.css?raw';
+import appShellCss from './styles/app-shell.css?raw';
+
+const mountedRoots = new Map();
 
 const resolveAdminEmails = () => {
   const persisted = loadPersistedState();
@@ -199,38 +205,25 @@ class AppErrorBoundary extends React.Component {
   }
 }
 
-const renderApplication = () => {
-  const rootElement = document.getElementById('root');
-
-  if (!rootElement || !ReactDOM) {
-    return;
-  }
-
+const renderApplication = (rootElement) => {
   const initialLanguage = typeof window !== 'undefined' ? window.__CN_BOOT_LANGUAGE__ : undefined;
+  const element = (
+    <LanguageProvider initialLanguage={initialLanguage}>
+      <AppErrorBoundary>
+        <App />
+      </AppErrorBoundary>
+    </LanguageProvider>
+  );
 
   if (typeof ReactDOM.createRoot === 'function') {
     const root = ReactDOM.createRoot(rootElement);
-    root.render(
-      <LanguageProvider initialLanguage={initialLanguage}>
-        <AppErrorBoundary>
-          <App />
-        </AppErrorBoundary>
-      </LanguageProvider>
-    );
-    rootElement.dataset.appMounted = 'true';
-  } else if (typeof ReactDOM.render === 'function') {
-    ReactDOM.render(
-      <LanguageProvider initialLanguage={initialLanguage}>
-        <AppErrorBoundary>
-          <App />
-        </AppErrorBoundary>
-      </LanguageProvider>,
-      rootElement
-    );
-    rootElement.dataset.appMounted = 'true';
+    root.render(element);
+    mountedRoots.set(rootElement, () => root.unmount());
   } else {
-    console.error('Aucune méthode de rendu ReactDOM disponible.');
+    ReactDOM.render(element, rootElement);
+    mountedRoots.set(rootElement, () => ReactDOM.unmountComponentAtNode(rootElement));
   }
+  rootElement.dataset.appMounted = 'true';
 };
 
 // « Voir en tant que » : l'identité simulée doit être posée avant le premier rendu, comme
@@ -260,11 +253,33 @@ const applyImpersonationRequest = () => {
 
 // L'identité est résolue avant le premier rendu : App.jsx peut alors la lire de façon
 // synchrone. Hors SharePoint, initSharePointContext retombe immédiatement sur le mock.
-initSharePointContext({ fallbackUser: mockCurrentUser })
-  .catch((error) => {
-    console.error('Initialisation du contexte SharePoint impossible :', error);
-  })
-  .then(() => {
-    applyImpersonationRequest();
-    renderApplication();
-  });
+export const mountApp = (rootElement) => {
+  if (!rootElement || !ReactDOM) {
+    return Promise.resolve();
+  }
+
+  injectStyles('fonts', fontsCss);
+  injectStyles('tailwind-internal', tailwindCss);
+  injectStyles('app-shell', appShellCss);
+
+  return initSharePointContext({ fallbackUser: mockCurrentUser })
+    .catch((error) => {
+      console.error('Initialisation du contexte SharePoint impossible :', error);
+    })
+    .then(() => {
+      if (!rootElement.isConnected) {
+        return;
+      }
+      applyImpersonationRequest();
+      renderApplication(rootElement);
+    });
+};
+
+export const unmountApp = (rootElement) => {
+  const unmount = mountedRoots.get(rootElement);
+  if (unmount) {
+    unmount();
+    mountedRoots.delete(rootElement);
+    delete rootElement.dataset.appMounted;
+  }
+};

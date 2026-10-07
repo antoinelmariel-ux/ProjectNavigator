@@ -12,7 +12,5 @@
     }
   },
   "externals": {},
-  "localizedResources": {
-    "ProjectNavigatorWebPartStrings": "lib/webparts/projectNavigator/loc/{locale}.js"
-  }
+  "localizedResources": {}
 }

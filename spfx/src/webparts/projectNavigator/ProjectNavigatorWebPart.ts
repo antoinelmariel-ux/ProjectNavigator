@@ -1,20 +1,25 @@
 import { Version } from '@microsoft/sp-core-library';
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
-
-import * as strings from 'ProjectNavigatorWebPartStrings';
+import { mountApp, unmountApp } from 'project-navigator-app';
 
 export interface IProjectNavigatorWebPartProps {}
 
-// Coquille de la phase 1 : le montage de l'application (src/main.jsx) arrive en phase 3.
 export default class ProjectNavigatorWebPart extends BaseClientSideWebPart<IProjectNavigatorWebPartProps> {
+  private _mounted: boolean = false;
+
   public render(): void {
-    const placeholder = document.createElement('p');
-    placeholder.textContent = strings.PlaceholderMessage;
-    this.domElement.replaceChildren(placeholder);
+    if (this._mounted) {
+      return;
+    }
+    this._mounted = true;
+    mountApp(this.domElement).catch((error: unknown) => {
+      console.error('Project Navigator : montage impossible.', error);
+    });
   }
 
   protected onDispose(): void {
-    this.domElement.replaceChildren();
+    unmountApp(this.domElement);
+    this._mounted = false;
   }
 
   protected get dataVersion(): Version {

@@ -18,10 +18,7 @@ function walk(dir) {
   return items;
 }
 
-const filesToScan = walk(path.join(repoRoot, 'src')).filter(
-  (filePath) => !path.basename(filePath).startsWith('module-manifest')
-);
-filesToScan.push(path.join(repoRoot, 'index.html'));
+const filesToScan = walk(path.join(repoRoot, 'src'));
 filesToScan.push(path.join(repoRoot, 'mentions-legales.html'));
 
 // Deux niveaux de confiance :
@@ -68,8 +65,8 @@ for (const filePath of filesToScan) {
 
 const rawClasses = new Set([...attrClasses, ...looseClasses]);
 
-// Classes définies à la main ailleurs (feuilles de style du projet, blocs
-// <style> des pages HTML). Leur absence du CSS généré est normale.
+// Classes définies à la main ailleurs (feuilles de style du projet, dont app-shell.css, et
+// blocs <style> des pages HTML). Leur absence du CSS généré est normale.
 const handWrittenClasses = new Set();
 {
   const stylesDir = path.join(repoRoot, 'src', 'styles');
@@ -78,7 +75,7 @@ const handWrittenClasses = new Set();
     .filter((name) => name.endsWith('.css') && name !== 'tailwind-internal.css')
     .map((name) => fs.readFileSync(path.join(stylesDir, name), 'utf8'));
 
-  for (const htmlFile of ['index.html', 'mentions-legales.html']) {
+  for (const htmlFile of ['mentions-legales.html']) {
     const html = fs.readFileSync(path.join(repoRoot, htmlFile), 'utf8');
     sources.push(...(html.match(/<style[\s\S]*?<\/style>/g) || []));
   }

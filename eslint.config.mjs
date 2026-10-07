@@ -7,7 +7,8 @@ export default [
   {
     ignores: [
       'src/vendor/**',
-      'src/module-manifest.js',
+      'harness/dist/**',
+      'spfx/**',
       'src/data/mockSharePoint*.js',
       'node_modules/**'
     ]
@@ -32,7 +33,7 @@ export default [
       'react-hooks': reactHooks
     },
     settings: {
-      react: { version: '18.3' }
+      react: { version: '17.0' }
     },
     rules: {
       ...reactHooks.configs.recommended.rules,

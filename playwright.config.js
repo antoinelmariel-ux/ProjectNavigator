@@ -1,6 +1,6 @@
 // Suite e2e Playwright. Séparée de `npm test` (test/*.test.mjs, node --test) à dessein :
-// voir CLAUDE.md — l'app tourne sans build/serveur, mais Playwright a besoin du manifeste
-// applicatif régénéré (npm run build) et d'un serveur http pour un comportement fiable.
+// voir CLAUDE.md — Playwright pilote le harnais de dev (index.html), qui monte le même bundle
+// que le web part SPFx ; il doit avoir été construit au préalable (npm run build).
 import { defineConfig, devices } from '@playwright/test';
 
 const PORT = process.env.E2E_PORT || 4173;
