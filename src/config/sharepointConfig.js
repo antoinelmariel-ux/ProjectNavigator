@@ -36,7 +36,22 @@ const deriveWebUrl = (origin, pathname) => {
   return sitePath ? origin + sitePath[1] : origin;
 };
 
+// Contexte transmis par le web part SPFx (pageContext.web.absoluteUrl). Il prime sur toute
+// déduction depuis l'URL de la page, qui ne reste qu'un repli (harnais de dev, tests).
+let injectedWebUrl = '';
+
+export const configureSharePointContext = ({ webAbsoluteUrl } = {}) => {
+  injectedWebUrl = typeof webAbsoluteUrl === 'string' ? stripTrailingSlashes(webAbsoluteUrl.trim()) : '';
+};
+
+export const resetSharePointContextConfig = () => {
+  injectedWebUrl = '';
+};
+
 export const getWebUrl = () => {
+  if (injectedWebUrl) {
+    return injectedWebUrl;
+  }
   if (typeof window === 'undefined') {
     return '';
   }
@@ -78,6 +93,9 @@ export const getLibraryServerRelativeUrl = (libraryKey) => {
 };
 
 export const isSharePointMode = () => {
+  if (injectedWebUrl) {
+    return true;
+  }
   if (typeof window === 'undefined' || !window.location) {
     return false;
   }

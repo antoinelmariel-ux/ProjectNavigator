@@ -5,7 +5,9 @@ import {
   getOrigin,
   getSiteRelativeUrl,
   getWebUrl,
+  configureSharePointContext,
   isSharePointMode,
+  resetSharePointContextConfig,
   sharepointConfig
 } from '../src/config/sharepointConfig.js';
 
@@ -126,4 +128,39 @@ test('sharepointConfig : les 12 listes et 3 bibliothèques attendues', () => {
     'CN-Config',
     'CN-Documents'
   ]);
+});
+
+test('contexte SPFx injecté : prime sur l’URL de la page et sur __CN_WEB_URL__', () => {
+  configureSharePointContext({ webAbsoluteUrl: 'https://entreprisedemo1.sharepoint.com/sites/Injecte/' });
+  try {
+    withLocation(spo('/sites/Autre/SitePages/App.aspx'), { __CN_WEB_URL__: 'https://x.sharepoint.com/sites/Force' }, () => {
+      assert.equal(getWebUrl(), 'https://entreprisedemo1.sharepoint.com/sites/Injecte');
+      assert.equal(getSiteRelativeUrl(), '/sites/Injecte');
+      assert.equal(getOrigin(), 'https://entreprisedemo1.sharepoint.com');
+    });
+  } finally {
+    resetSharePointContextConfig();
+  }
+});
+
+test('contexte SPFx injecté : mode SharePoint quel que soit l’hôte, jusqu’au reset', () => {
+  const localhost = { origin: 'http://localhost:4321', pathname: '/', protocol: 'http:', hostname: 'localhost' };
+  configureSharePointContext({ webAbsoluteUrl: 'https://entreprisedemo1.sharepoint.com/sites/Injecte' });
+  try {
+    withLocation(localhost, {}, () => {
+      assert.equal(isSharePointMode(), true);
+    });
+  } finally {
+    resetSharePointContextConfig();
+  }
+  withLocation(localhost, {}, () => {
+    assert.equal(isSharePointMode(), false);
+  });
+});
+
+test('contexte SPFx sans URL : retombe sur la déduction depuis la page', () => {
+  configureSharePointContext({});
+  withLocation(spo('/sites/ProjectNavigator_DEV/SitePages/Accueil.aspx'), {}, () => {
+    assert.equal(getWebUrl(), 'https://entreprisedemo1.sharepoint.com/sites/ProjectNavigator_DEV');
+  });
 });

@@ -17,6 +17,13 @@ export const detectLanguageFromCandidates = (candidates = []) => {
   return DEFAULT_LANGUAGE;
 };
 
+// Culture SharePoint de l'utilisateur (« fr-FR ») : chaîne vide si l'app ne la propose pas, pour
+// laisser la détection du navigateur prendre le relais plutôt que d'imposer la langue par défaut.
+export const languageFromCulture = (cultureName) => {
+  const subtag = extractPrimarySubtag(cultureName);
+  return isSupportedLanguage(subtag) ? subtag : '';
+};
+
 export const detectBrowserLanguage = (navigatorLike) => {
   const nav = navigatorLike || (typeof navigator !== 'undefined' ? navigator : null);
   if (!nav) {

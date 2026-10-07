@@ -26,7 +26,7 @@ There is no hot reload by default; `npm --prefix spfx run watch:harness` rebuild
   `mountApp`/`unmountApp` from the alias `project-navigator-app` → `../src/main.jsx`. TypeScript never
   sees the `.jsx` files: the alias is declared in `spfx/src/app.d.ts` and resolved by webpack only.
 - **`spfx/config/app-webpack-rules.js`** is the single definition of how `src/` is transformed
-  (babel-loader with `@babel/preset-react` only, `?raw` → `asset/source`, `.png` → `asset/resource`,
+  (babel-loader with `@babel/preset-react` + `@babel/plugin-transform-block-scoping`, `?raw` → `asset/source`, `.png` → `asset/resource`,
   `react`/`react-dom` aliased to `spfx/node_modules` so there is one React). It is applied to the
   SPFx config by `spfx/config/spfx-customize-webpack.js` (hook of the SPFx Heft rig) **and** to the dev
   harness by `spfx/scripts/build-harness.js`. Keep it shared: the e2e suite is only meaningful because
@@ -36,8 +36,11 @@ There is no hot reload by default; `npm --prefix spfx run watch:harness` rebuild
   `file://`, zero-install `index.html` product (module-loader, `module-manifest*.js/.txt`, vendored
   React/Babel) is gone and must not come back.
 - `src/react.js` re-exports the npm `react`/`react-dom`; every module imports React through it.
-- **No `preset-env`**: the code is no longer transpiled to ES5, so `const`/`let` keep their TDZ —
-  reading a `const` declared further down now throws instead of silently yielding `undefined`.
+- **`const`/`let` are still turned into `var`** (`@babel/plugin-transform-block-scoping`, the one
+  piece of the old `preset-env` build kept). `App.jsx` relies on it: several `useCallback`/`useMemo`
+  list in their dependencies a `const` declared further down (e.g. `registerAnnotationSource`), which
+  under real ES2015 semantics is a TDZ `ReferenceError` on first render. Don't drop the plugin
+  without fixing those first; nothing else is transpiled down (modern browsers only).
 - **Styles travel as text.** `src/styles/*.css` are imported with `?raw` and injected as
   `<style data-cn-style="…">` by `src/styles/injectStyles.js` (base sheets in `mountApp`, showcase
   and tour-guide sheets on demand). There is no relative URL to a `.css` on a SharePoint page. The
@@ -49,9 +52,15 @@ There is no hot reload by default; `npm --prefix spfx run watch:harness` rebuild
 
 ## SPFx migration (in progress)
 
-Phase 2 done: the web part mounts the whole app. Still to do: inject the SPFx context
-(`pageContext.web.absoluteUrl`, user, culture) instead of deriving it from `window.location`
-(phase 3); links to `faq.html`/`mentions-legales.html`, CSS scoping under SharePoint chrome,
+Phases 1–3 done: the web part mounts the whole app and hands it its `pageContext` through
+`mountApp(domElement, { webAbsoluteUrl, user, cultureName })`. `configureSharePointContext`
+(`src/config/sharepointConfig.js`) makes the injected site URL win over any `window.location`
+derivation and turns `isSharePointMode()` on; the location/hostname derivation is now only a
+fallback (dev harness, unit tests). `initSharePointContext` still asks `/_api/web/currentUser`
+(only source of `Id`/`IsSiteAdmin`) but falls back to the SPFx user, not to an anonymous one. The
+SharePoint culture is only a fallback language: a language chosen in the app (stored) wins.
+`unmountApp` resets the identity, the injected context and any « Voir en tant que » simulation,
+because SharePoint navigates as an SPA and modules outlive a web part. Still to do (phase 4): links to `faq.html`/`mentions-legales.html`, CSS scoping under SharePoint chrome,
 `window.scrollTo` in `tourguide.js` (SharePoint scrolls an inner container), flush on `onDispose`
 (phase 4). Commands: `npm run spfx:install`, `npm run spfx:build`, `npm run spfx:start` (hosted
 workbench on the DEV site, see `spfx/config/serve.json`).
@@ -305,8 +314,9 @@ experts is that an update notifies only the perimeters it actually changes.
   `projectValidationStatus` returns `PROJECT_VALIDATION_OUTDATED` instead of `validated` — a green
   stamp must never describe a state of the project that no longer exists.
 
-Gotcha worth knowing: referencing a `const` declared **later** in the component reads it in its
-TDZ. Under the old Babel build (`const` → `var`) it silently read `undefined`; now it throws.
+Gotcha worth knowing: `src/` is transpiled with `const` → `var` (see the block-scoping note above),
+so referencing a `const` declared **later** in the component does not throw a TDZ error — it silently
+reads `undefined`.
 A memo placed above `activeProject` therefore computed an empty submission history on every
 render, with no error anywhere. Keep derived memos below the state they read.
 

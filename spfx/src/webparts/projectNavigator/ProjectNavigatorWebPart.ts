@@ -12,7 +12,12 @@ export default class ProjectNavigatorWebPart extends BaseClientSideWebPart<IProj
       return;
     }
     this._mounted = true;
-    mountApp(this.domElement).catch((error: unknown) => {
+    const { web, user, cultureInfo } = this.context.pageContext;
+    mountApp(this.domElement, {
+      webAbsoluteUrl: web.absoluteUrl,
+      user: { email: user.email, displayName: user.displayName, loginName: user.loginName },
+      cultureName: cultureInfo.currentUICultureName
+    }).catch((error: unknown) => {
       console.error('Project Navigator : montage impossible.', error);
     });
   }

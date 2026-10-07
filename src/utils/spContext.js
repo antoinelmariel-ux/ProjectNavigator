@@ -1,4 +1,4 @@
-import { isSharePointMode } from '../config/sharepointConfig.js';
+import { isSharePointMode, resetSharePointContextConfig } from '../config/sharepointConfig.js';
 import { spGet } from './spRestClient.js';
 import { getSimulatedUser } from './impersonation.js';
 
@@ -8,6 +8,7 @@ let currentUser = null;
 
 export const resetSharePointContext = () => {
   currentUser = null;
+  resetSharePointContextConfig();
 };
 
 // SP.User.Email est vide sur certaines configurations de tenant ; le LoginName a la forme
@@ -38,7 +39,17 @@ export const fetchCurrentUser = async () => {
   return toAppUser(payload && payload.d ? payload.d : payload);
 };
 
-export const initSharePointContext = async ({ fallbackUser } = {}) => {
+// Identité fournie par le web part (pageContext.user) : pas d'Id ni d'IsSiteAdmin, mais l'e-mail
+// suffit à toutes les dérivations de rôle si l'appel /_api/web/currentUser échoue au démarrage.
+const fromSpfxUser = (spfxUser) => {
+  if (!spfxUser) {
+    return null;
+  }
+  const user = toAppUser({ Title: spfxUser.displayName, Email: spfxUser.email, LoginName: spfxUser.loginName });
+  return user.mail ? user : null;
+};
+
+export const initSharePointContext = async ({ fallbackUser, spfxUser } = {}) => {
   if (!isSharePointMode()) {
     currentUser = fallbackUser || ANONYMOUS_USER;
     return { mode: 'mock', user: currentUser };
@@ -49,7 +60,7 @@ export const initSharePointContext = async ({ fallbackUser } = {}) => {
     return { mode: 'sharepoint', user: currentUser };
   } catch (error) {
     // L’app doit rester affichable : on remonte l’erreur pour la bannière de statut.
-    currentUser = fallbackUser || ANONYMOUS_USER;
+    currentUser = fromSpfxUser(spfxUser) || fallbackUser || ANONYMOUS_USER;
     return { mode: 'sharepoint', user: currentUser, error };
   }
 };

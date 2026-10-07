@@ -2395,7 +2395,7 @@ const updateProjectFilters = useCallback((updater) => {
       const redirect = () => {
         try {
           if (window.location) {
-            const homeUrl = isSharePointMode() ? './index.aspx' : './index.html';
+            const homeUrl = `${window.location.origin}${window.location.pathname}`;
             if (typeof window.location.assign === 'function') {
               window.location.assign(homeUrl);
             } else {
