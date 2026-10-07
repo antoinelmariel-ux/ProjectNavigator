@@ -52,7 +52,7 @@ There is no hot reload by default; `npm --prefix spfx run watch:harness` rebuild
 
 ## SPFx migration (in progress)
 
-Phases 1–3 done: the web part mounts the whole app and hands it its `pageContext` through
+Phases 1–4 done: the web part mounts the whole app and hands it its `pageContext` through
 `mountApp(domElement, { webAbsoluteUrl, user, cultureName })`. `configureSharePointContext`
 (`src/config/sharepointConfig.js`) makes the injected site URL win over any `window.location`
 derivation and turns `isSharePointMode()` on; the location/hostname derivation is now only a
@@ -60,9 +60,29 @@ fallback (dev harness, unit tests). `initSharePointContext` still asks `/_api/we
 (only source of `Id`/`IsSiteAdmin`) but falls back to the SPFx user, not to an anonymous one. The
 SharePoint culture is only a fallback language: a language chosen in the app (stored) wins.
 `unmountApp` resets the identity, the injected context and any « Voir en tant que » simulation,
-because SharePoint navigates as an SPA and modules outlive a web part. Still to do (phase 4): links to `faq.html`/`mentions-legales.html`, CSS scoping under SharePoint chrome,
-`window.scrollTo` in `tourguide.js` (SharePoint scrolls an inner container), flush on `onDispose`
-(phase 4). Commands: `npm run spfx:install`, `npm run spfx:build`, `npm run spfx:start` (hosted
+because SharePoint navigates as an SPA and modules outlive a web part.
+
+Phase 4 (living inside a SharePoint page) — four rules that keep holding:
+
+- **The base CSS reset is scoped to the app container.** `mountApp` puts `.cn-app-root` on the
+  web part's element, and `scripts/generate-tailwind-lite.js` emits the preflight (`*`, `a`, `button`,
+  fonts) under `:where(.cn-app-root, .tgjs-container)` instead of `html`/`body`/`*` — a global reset
+  restyles SharePoint's suite bar and navigation. `:where()` keeps specificity at zero so utilities
+  still win. Never add a bare `html`/`body`/`*`/element selector to `src/styles/*.css`.
+- **Don't scroll `window`.** On a SharePoint page an inner container scrolls, not the window, so
+  `window.scrollTo`/`window.scrollY` silently do nothing there. Use `src/utils/scrollContainer.js`
+  (`scrollAppTo`, `getAppScrollTop`, `getAppScrollTopForElement`: first scrollable ancestor of the app
+  root, window only when there is none, i.e. the dev harness). `scrollIntoView` is fine as is.
+  `window` scroll listeners need `capture: true` to hear an inner container. The vendored
+  `tourguide.js` does the same with the target's own scroll parent.
+- **No sibling `.html` page.** The FAQ and legal notice live in `src/pages/*.html` (bundled `?raw`)
+  and open inside the app, in `StaticPageDialog.jsx` (a sandboxed `iframe`, so their own `body`/
+  `header` styles stay isolated), via `openStaticPage(id)` / `staticPageLinkProps(id)`
+  (`src/utils/staticPages.js`). The tour's « Aide » link uses `helpLink.onClick`.
+- **Unmount flushes.** The `pagehide` flush effect in `App.jsx` also flushes in its cleanup, because
+  SharePoint's SPA navigation disposes the web part without any `pagehide`.
+
+Commands: `npm run spfx:install`, `npm run spfx:build`, `npm run spfx:start` (hosted
 workbench on the DEV site, see `spfx/config/serve.json`).
 
 ## Commands
@@ -135,8 +155,8 @@ Two things are load-bearing:
   in `SUPERSEDED_ONBOARDING_STEP_DEFAULTS` (same file): a stored step still carrying that exact
   value gets the new default, a customised one is left alone (`test/onboardingConfig.test.mjs`).
 
-The tooltip carries a permanent « Aide » link to `faq.html` (`helpLink` option of the vendored
-`tourguide.js`, passed from `App.jsx`): launching the guide is already asking for help, and it
+The tooltip carries a permanent « Aide » link to the FAQ (`helpLink` option of the vendored
+`tourguide.js`, passed from `App.jsx`, opening the in-app `StaticPageDialog`): launching the guide is already asking for help, and it
 used to make the only help button in the app — the one on the onboarding screen — disappear.
 
 A step whose target selector matches nothing (or only the 1px `#tour-onboarding-anchor` of the

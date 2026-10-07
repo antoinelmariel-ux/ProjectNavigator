@@ -10,6 +10,6 @@
     local('Inter-Regular');
 }
 
-:root {
+:where(.cn-app-root) {
   font-family: 'Inter', 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
 }

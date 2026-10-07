@@ -43,14 +43,46 @@
     activeScrollAnimation = null;
   };
 
-  const animateWindowScrollTo = (targetY, duration) => {
+  // Sur une page SharePoint, la fenêtre ne défile pas : c'est un conteneur interne de la page.
+  // On défile donc le premier ancêtre défilable de la cible, la fenêtre seulement à défaut.
+  const SCROLLABLE_OVERFLOW = /(auto|scroll|overlay)/;
+
+  const getScrollParent = (element) => {
+    if (typeof window === 'undefined' || typeof document === 'undefined' || !element) {
+      return null;
+    }
+    for (let node = element.parentElement; node; node = node.parentElement) {
+      if (node === document.body || node === document.documentElement) {
+        return null;
+      }
+      const { overflowY } = window.getComputedStyle(node);
+      if (SCROLLABLE_OVERFLOW.test(overflowY) && node.scrollHeight > node.clientHeight) {
+        return node;
+      }
+    }
+    return null;
+  };
+
+  const getScrollTop = (scroller) =>
+    scroller ? scroller.scrollTop : window.pageYOffset || document.documentElement?.scrollTop || 0;
+
+  const scrollToY = (scroller, y, behavior) => {
+    const target = scroller || window;
+    if (behavior) {
+      target.scrollTo({ top: y, behavior });
+    } else {
+      target.scrollTo(0, y);
+    }
+  };
+
+  const animateWindowScrollTo = (targetY, duration, scroller = null) => {
     if (typeof window === 'undefined') {
       return;
     }
 
     if (typeof duration !== 'number' || duration <= 0) {
       cancelScrollAnimation();
-      window.scrollTo(0, targetY);
+      scrollToY(scroller, targetY);
       return;
     }
 
@@ -59,17 +91,16 @@
 
     if (typeof requestFrame !== 'function') {
       cancelScrollAnimation();
-      window.scrollTo(0, targetY);
+      scrollToY(scroller, targetY);
       return;
     }
 
-    const docElement = typeof document !== 'undefined' ? document.documentElement : null;
-    const startY = window.pageYOffset || docElement?.scrollTop || 0;
+    const startY = getScrollTop(scroller);
     const distance = targetY - startY;
 
     if (Math.abs(distance) < 1) {
       cancelScrollAnimation();
-      window.scrollTo(0, targetY);
+      scrollToY(scroller, targetY);
       return;
     }
 
@@ -107,7 +138,7 @@
       const easedProgress = easeInOutCubic(progress);
       const nextY = startY + distance * easedProgress;
 
-      window.scrollTo(0, nextY);
+      scrollToY(scroller, nextY);
 
       if (progress < 1) {
         animationState.requestId = requestFrame(step);
@@ -131,13 +162,21 @@
       return null;
     }
 
-    const rect = element.getBoundingClientRect();
-    const viewportHeight = window.innerHeight || document.documentElement?.clientHeight || 0;
-    const currentScroll = window.pageYOffset || document.documentElement?.scrollTop || 0;
-    const scrollHeight = Math.max(
-      document.documentElement?.scrollHeight || 0,
-      document.body?.scrollHeight || 0
-    );
+    const scroller = getScrollParent(element);
+    const elementRect = element.getBoundingClientRect();
+    const scrollerTop = scroller ? scroller.getBoundingClientRect().top : 0;
+    const rect = {
+      top: elementRect.top - scrollerTop,
+      bottom: elementRect.bottom - scrollerTop,
+      height: elementRect.height
+    };
+    const viewportHeight = scroller
+      ? scroller.clientHeight
+      : window.innerHeight || document.documentElement?.clientHeight || 0;
+    const currentScroll = getScrollTop(scroller);
+    const scrollHeight = scroller
+      ? scroller.scrollHeight
+      : Math.max(document.documentElement?.scrollHeight || 0, document.body?.scrollHeight || 0);
     const maxScroll = Math.max(0, scrollHeight - viewportHeight);
 
     const block = typeof scrollOptions?.block === 'string' ? scrollOptions.block.toLowerCase() : 'center';
@@ -241,7 +280,8 @@
     return {
       href,
       label,
-      ariaLabel: typeof value.ariaLabel === 'string' && value.ariaLabel.trim() ? value.ariaLabel.trim() : label
+      ariaLabel: typeof value.ariaLabel === 'string' && value.ariaLabel.trim() ? value.ariaLabel.trim() : label,
+      onClick: typeof value.onClick === 'function' ? value.onClick : null
     };
   };
 
@@ -593,6 +633,15 @@
         helpLink.rel = 'noopener noreferrer';
         helpLink.textContent = this.options.helpLink.label;
         helpLink.setAttribute('aria-label', this.options.helpLink.ariaLabel);
+        // Une page d'aide affichée dans l'app plutôt qu'ouverte dans un nouvel onglet.
+        if (this.options.helpLink.onClick) {
+          const { onClick } = this.options.helpLink;
+          helpLink.removeAttribute('target');
+          helpLink.addEventListener('click', (event) => {
+            event.preventDefault();
+            onClick();
+          });
+        }
         headerActions.appendChild(helpLink);
         this.helpLinkElement = helpLink;
       }
@@ -1076,19 +1125,20 @@
       const effectiveOptions = isTall ? { ...scrollOptions, block: 'start' } : scrollOptions;
       const scrollDuration = typeof step.scrollDuration === 'number' ? step.scrollDuration : undefined;
       const targetY = computeScrollTargetTop(target, effectiveOptions);
+      const scroller = getScrollParent(target);
 
       if (isTall && typeof targetY === 'number' && typeof window !== 'undefined') {
         const offsetY = Math.max(0, targetY - VIEWPORT_MARGIN - padding);
         if (scrollDuration) {
-          animateWindowScrollTo(offsetY, scrollDuration);
+          animateWindowScrollTo(offsetY, scrollDuration, scroller);
         } else {
-          window.scrollTo({ top: offsetY, behavior: effectiveOptions.behavior || 'smooth' });
+          scrollToY(scroller, offsetY, effectiveOptions.behavior || 'smooth');
         }
         return;
       }
 
       if (scrollDuration && typeof targetY === 'number') {
-        animateWindowScrollTo(targetY, scrollDuration);
+        animateWindowScrollTo(targetY, scrollDuration, scroller);
         return;
       }
 

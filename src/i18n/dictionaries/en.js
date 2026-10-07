@@ -150,6 +150,11 @@ export default {
       ariaLabel: 'Footer',
       legalNotice: 'Legal notice'
     },
+    staticPages: {
+      faqTitle: 'Frequently asked questions',
+      legalTitle: 'Legal notice',
+      close: 'Close'
+    },
     beforeUnload: {
       message: 'Have you saved your project before leaving?'
     },

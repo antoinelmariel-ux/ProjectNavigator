@@ -73,9 +73,18 @@ test.describe('tour v2', () => {
     const help = page.locator('.tgjs-tooltip .tgjs-help');
     await expect(help).toBeVisible();
     await expect(help).toHaveText('Aide');
-    await expect(help).toHaveAttribute('href', './faq.html');
 
     await tourAction(page, 'Tour rapide').click();
+    await expect(help).toBeVisible();
+
+    // La FAQ s'ouvre dans l'app (une page SharePoint ne sert pas de .html voisin), par-dessus
+    // le guide, et se referme sans l'interrompre.
+    await help.click();
+    const faq = page.locator('[data-static-page="faq"]');
+    await expect(faq).toBeVisible();
+    await expect(faq.frameLocator('iframe').getByRole('heading', { name: 'Questions fréquentes' })).toBeVisible();
+    await faq.getByRole('button', { name: 'Fermer' }).click();
+    await expect(faq).toHaveCount(0);
     await expect(help).toBeVisible();
   });
 

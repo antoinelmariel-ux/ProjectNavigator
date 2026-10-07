@@ -14,11 +14,14 @@ import { initialTechnicalContactEmails } from './data/technicalContactEmails.js'
 import { queueNotification } from './utils/notificationQueue.js';
 import { buildErrorReportEmail } from './utils/notificationTemplates.js';
 import { injectStyles } from './styles/injectStyles.js';
+import { setAppScrollRoot } from './utils/scrollContainer.js';
 import fontsCss from './styles/fonts.css?raw';
 import tailwindCss from './styles/tailwind-internal.css?raw';
 import appShellCss from './styles/app-shell.css?raw';
 
 const mountedRoots = new Map();
+// Classe qui borne le reset CSS de base (voir scripts/generate-tailwind-lite.js) au conteneur.
+const APP_ROOT_CLASS = 'cn-app-root';
 
 const resolveAdminEmails = () => {
   const persisted = loadPersistedState();
@@ -262,6 +265,8 @@ export const mountApp = (rootElement, { webAbsoluteUrl, user, cultureName } = {}
   }
 
   configureSharePointContext({ webAbsoluteUrl });
+  rootElement.classList.add(APP_ROOT_CLASS);
+  setAppScrollRoot(rootElement);
 
   injectStyles('fonts', fontsCss);
   injectStyles('tailwind-internal', tailwindCss);
@@ -287,6 +292,8 @@ export const unmountApp = (rootElement) => {
     mountedRoots.delete(rootElement);
     delete rootElement.dataset.appMounted;
   }
+  rootElement.classList.remove(APP_ROOT_CLASS);
+  setAppScrollRoot(null);
   // La navigation SharePoint ne recharge pas la page : les modules restent en mémoire d'un
   // montage à l'autre, et ni l'identité ni une simulation « Voir en tant que » ne doivent survivre.
   stopImpersonation();

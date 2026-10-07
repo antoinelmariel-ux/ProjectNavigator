@@ -5,7 +5,7 @@ Project Navigator dans un web part unique, posé sur une page moderne en mise en
 « Application pleine page ». Elle remplace à terme le dépôt de `index.html` dans la
 bibliothèque `CN-App`, qui dépend de l'autorisation « custom script » du site.
 
-**État : phase 3.** Le web part monte l'application complète (`../src/main.jsx`, via l'alias
+**État : phase 4.** Le web part monte l'application complète (`../src/main.jsx`, via l'alias
 webpack `project-navigator-app`) et lui transmet son `pageContext` : URL du site (base des appels
 `/_api`), utilisateur (repli si `/_api/web/currentUser` échoue) et culture (langue par défaut tant
 que l'utilisateur n'en a pas choisi une dans l'app).

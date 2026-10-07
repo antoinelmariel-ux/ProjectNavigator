@@ -5,6 +5,7 @@ import { RichTextEditor } from './RichTextEditor.jsx';
 import { renderRichText } from '../utils/richText.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { resolveLocalizedText } from '../utils/localizedContent.js';
+import { scrollAppTo } from '../utils/scrollContainer.js';
 
 const formatValue = (value, notProvidedLabel) => {
   if (Array.isArray(value)) {
@@ -71,9 +72,7 @@ export const InspirationDetail = ({
   }, [project]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
-    }
+    scrollAppTo({ top: 0, left: 0, behavior: 'smooth' });
   }, [project?.id]);
 
   if (!project) {

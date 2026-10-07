@@ -155,6 +155,9 @@ import { resolveLocalizedText } from './utils/localizedContent.js';
 import { DEFAULT_LANGUAGE } from './i18n/languages.js';
 import HEADER_LOGO_PATH from './components/logo.png';
 import { injectStyles } from './styles/injectStyles.js';
+import { scrollAppTo } from './utils/scrollContainer.js';
+import { openStaticPage, staticPageLinkProps } from './utils/staticPages.js';
+import { StaticPageDialog } from './components/StaticPageDialog.jsx';
 
 const APP_VERSION = 'v1.0.385';
 
@@ -2041,6 +2044,8 @@ const updateProjectFilters = useCallback((updater) => {
     return () => {
       window.removeEventListener('pagehide', flushPendingChanges);
       window.removeEventListener('beforeunload', flushPendingChanges);
+      // Démontage du web part : SharePoint change de page sans pagehide (navigation SPA).
+      flushPendingChanges();
     };
   }, []);
 
@@ -2453,13 +2458,9 @@ const updateProjectFilters = useCallback((updater) => {
             }
           }
 
-          if (typeof window.scrollTo === 'function') {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }
+          scrollAppTo({ top: 0, behavior: 'smooth' });
         } catch (error) {
-          if (typeof window.scrollTo === 'function') {
-            window.scrollTo({ top: 0 });
-          }
+          scrollAppTo({ top: 0 });
         }
       };
 
@@ -2812,7 +2813,8 @@ const updateProjectFilters = useCallback((updater) => {
       // Le même bouton d'aide que sur l'écran d'accueil : lancer la visite guidée, c'est déjà
       // chercher de l'aide, et la FAQ ne doit pas devenir inaccessible pendant le guide.
       helpLink: {
-        href: './faq.html',
+        href: '#faq',
+        onClick: () => openStaticPage('faq'),
         label: t('onboarding.helpButton'),
         ariaLabel: t('onboarding.helpButtonAriaLabel')
       }
@@ -3290,10 +3292,7 @@ const updateProjectFilters = useCallback((updater) => {
   // d'inspiration gèrent déjà leur propre défilement plus finement (par question, etc.) ;
   // ce filet ne fait alors que confirmer un état déjà en place.
   useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.scrollTo !== 'function') {
-      return;
-    }
-    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    scrollAppTo({ top: 0, left: 0, behavior: 'auto' });
   }, [screen, mode, adminView]);
 
   const activeProject = useMemo(
@@ -8060,15 +8059,14 @@ const updateProjectFilters = useCallback((updater) => {
       <p className="text-xs text-gray-400 text-center py-4">
         Project Navigator · Version {APP_VERSION} · {syncStatusLabel}{syncStatusMeta ? ` · ${syncStatusMeta}` : ''} ·{' '}
         <a
-          href="./mentions-legales.html"
-          target="_blank"
-          rel="noopener noreferrer"
+          {...staticPageLinkProps('mentions-legales')}
           className="underline hover:text-gray-500"
         >
           {t('app.footer.legalNotice')}
         </a>
       </p>
     </footer>
+    <StaticPageDialog />
     </div>
   );
 };

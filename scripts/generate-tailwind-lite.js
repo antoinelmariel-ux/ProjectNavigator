@@ -19,7 +19,7 @@ function walk(dir) {
 }
 
 const filesToScan = walk(path.join(repoRoot, 'src'));
-filesToScan.push(path.join(repoRoot, 'mentions-legales.html'));
+
 
 // Deux niveaux de confiance :
 // - attrClasses : écrites en dur dans un class="…". Si l'une d'elles ne produit
@@ -75,7 +75,7 @@ const handWrittenClasses = new Set();
     .filter((name) => name.endsWith('.css') && name !== 'tailwind-internal.css')
     .map((name) => fs.readFileSync(path.join(stylesDir, name), 'utf8'));
 
-  for (const htmlFile of ['mentions-legales.html']) {
+  for (const htmlFile of ['src/pages/faq.html', 'src/pages/mentions-legales.html']) {
     const html = fs.readFileSync(path.join(repoRoot, htmlFile), 'utf8');
     sources.push(...(html.match(/<style[\s\S]*?<\/style>/g) || []));
   }
@@ -1513,7 +1513,10 @@ const unrecognized = [...attrClasses].filter(
 // retombe sur le gris par défaut du navigateur (#efefef) et recouvre la carte blanche qui le
 // contient. C'est ce qui faisait apparaître grises les cartes d'équipe de la synthèse, le
 // sommaire du rail et les liens-boutons du panneau de maturité.
-const header = `/* Tailwind-inspired utility subset generated locally */\n:root {\n  --tw-ring-offset-width: 0px;\n  --tw-ring-offset-color: #fff;\n  --tw-ring-color: rgba(59, 130, 246, 0.5);\n  --tw-ring-inset: var(--tw-empty,/*!*/ /*!*/);\n  --tw-shadow: 0 0 #0000;\n  --tw-bg-opacity: 1;\n  --tw-text-opacity: 1;\n  --tw-border-opacity: 1;\n}\n*, ::before, ::after {\n  box-sizing: border-box;\n  border-width: 0;\n  border-style: solid;\n  border-color: #e5e7eb;\n}\nhtml {\n  line-height: 1.5;\n  -webkit-text-size-adjust: 100%;\n  font-family: 'Inter', 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;\n}\nbody {\n  margin: 0;\n  line-height: inherit;\n  font-family: 'Inter', 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;\n}\na {\n  color: inherit;\n  text-decoration: inherit;\n}\nbutton, [type='button'], [type='reset'], [type='submit'] {\n  background-color: transparent;\n  background-image: none;\n}\n`;
+// Le reset de base est confiné au conteneur de l'app (classe posée par mountApp) : sur une page
+// SharePoint, un `*`/`html`/`body`/`a` global restylerait le bandeau et la navigation du site.
+// `:where()` garde une spécificité nulle, pour que les utilitaires l'emportent comme avant.
+const header = `/* Tailwind-inspired utility subset generated locally */\n:root {\n  --tw-ring-offset-width: 0px;\n  --tw-ring-offset-color: #fff;\n  --tw-ring-color: rgba(59, 130, 246, 0.5);\n  --tw-ring-inset: var(--tw-empty,/*!*/ /*!*/);\n  --tw-shadow: 0 0 #0000;\n  --tw-bg-opacity: 1;\n  --tw-text-opacity: 1;\n  --tw-border-opacity: 1;\n}\n:where(.cn-app-root, .tgjs-container), :where(.cn-app-root, .tgjs-container) *, :where(.cn-app-root, .tgjs-container) ::before, :where(.cn-app-root, .tgjs-container) ::after {\n  box-sizing: border-box;\n  border-width: 0;\n  border-style: solid;\n  border-color: #e5e7eb;\n}\n:where(.cn-app-root) {\n  line-height: 1.5;\n  -webkit-text-size-adjust: 100%;\n  font-family: 'Inter', 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;\n}\n:where(.cn-app-root) a {\n  color: inherit;\n  text-decoration: inherit;\n}\n:where(.cn-app-root) :where(button, [type='button'], [type='reset'], [type='submit']) {\n  background-color: transparent;\n  background-image: none;\n}\n`;
 
 const outputPath = path.join(__dirname, '..', 'src', 'styles', 'tailwind-internal.css');
 fs.writeFileSync(outputPath, header + '\n' + generated.join('\n\n'));

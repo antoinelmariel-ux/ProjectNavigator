@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from '../react.js';
+import { getAppScrollTop, getAppScrollTopForElement, scrollAppTo } from '../utils/scrollContainer.js';
 
 const VERT = 'attribute vec2 p;void main(){gl_Position=vec4(p,0.0,1.0);}';
 
@@ -242,7 +243,7 @@ export function ShowcaseSignatureFx({ rootRef, themeId }) {
 
     // la position est relue dans la boucle rAF : insensible au défilement fluide et à l'inertie
     const frame = (now) => {
-      const y = window.scrollY;
+      const y = getAppScrollTop();
       if (y !== lastY) {
         lastY = y;
         readScroll();
@@ -268,9 +269,9 @@ export function ShowcaseSignatureFx({ rootRef, themeId }) {
       readScroll();
     };
 
-    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('scroll', onScroll, { passive: true, capture: true });
     window.addEventListener('resize', onResize, { passive: true });
-    cleanups.push(() => window.removeEventListener('scroll', onScroll));
+    cleanups.push(() => window.removeEventListener('scroll', onScroll, { capture: true }));
     cleanups.push(() => window.removeEventListener('resize', onResize));
 
     readScroll();
@@ -454,12 +455,7 @@ export function ShowcaseSignatureFx({ rootRef, themeId }) {
       if (!btn) return;
       const target = root.querySelector(btn.getAttribute('data-sg-scroll-to'));
       if (!target) return;
-      const y = target.getBoundingClientRect().top + window.scrollY - 8;
-      try {
-        window.scrollTo({ top: y, behavior: reduce ? 'auto' : 'smooth' });
-      } catch {
-        window.scrollTo(0, y);
-      }
+      scrollAppTo({ top: getAppScrollTopForElement(target, 8), behavior: reduce ? 'auto' : 'smooth' });
     };
 
     root.addEventListener('pointerdown', onPointerDown);

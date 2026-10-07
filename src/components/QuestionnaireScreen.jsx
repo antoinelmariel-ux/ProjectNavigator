@@ -31,6 +31,8 @@ import {
   normalizeProjectStage
 } from '../utils/projectStage.js';
 import { canQuestionHaveDoubt, getQuestionDoubtText, hasQuestionDoubt } from '../utils/questionDoubts.js';
+import { scrollAppTo } from '../utils/scrollContainer.js';
+import { staticPageLinkProps } from '../utils/staticPages.js';
 
 const normalizeFileAnswer = (value) => {
   const rawFiles = Array.isArray(value) ? value : value ? [value] : [];
@@ -372,7 +374,7 @@ export const QuestionnaireScreen = ({
     // Défilement instantané : un défilement animé («smooth») laisserait la page en
     // mouvement pendant qu'un clic (utilisateur ou test automatisé) cible déjà la nouvelle
     // question, et le clic peut alors rater sa cible ou tomber au mauvais endroit.
-    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    scrollAppTo({ top: 0, left: 0, behavior: 'auto' });
   }, [currentQuestion.id]);
 
   useEffect(() => {
@@ -1491,9 +1493,7 @@ export const QuestionnaireScreen = ({
               <p className="mt-4 text-xs italic text-gray-400">
                 {t('questionnaire.privacyNotice')}{' '}
                 <a
-                  href="./mentions-legales.html"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  {...staticPageLinkProps('mentions-legales')}
                   className="underline hover:text-gray-500"
                 >
                   {t('questionnaire.privacyLink')}

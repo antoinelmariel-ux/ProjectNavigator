@@ -52,6 +52,7 @@ import { getLocaleTag, LANGUAGE_LABELS } from '../i18n/languages.js';
 import { isLanguageAcceptedBy, normalizeAcceptedLanguages } from '../utils/translationAudit.js';
 import { isTeamAutoValidated, resolveEffectiveTeamComplianceEntry } from '../utils/complianceAutoValidation.js';
 import { MANUAL_TEAM_REQUESTS_KEY, normalizeManualTeamRequests } from '../utils/manualTeamRequests.js';
+import { getAppScrollTopForElement, scrollAppTo } from '../utils/scrollContainer.js';
 
 const formatNumber = (value, options = {}, language) => {
   return Number(value).toLocaleString(getLocaleTag(language), options);
@@ -715,7 +716,7 @@ export const SynthesisReport = ({
       if (rect.height < window.innerHeight * 0.8) {
         element.scrollIntoView({ behavior: 'smooth', block: 'center' });
       } else {
-        window.scrollTo({ top: Math.max(0, window.scrollY + rect.top - 32), behavior: 'smooth' });
+        scrollAppTo({ top: getAppScrollTopForElement(element, 32), behavior: 'smooth' });
       }
     }
     // teamCollapsedOverrides : le fil d'échanges n'entre dans le DOM qu'une fois l'équipe
@@ -1089,9 +1090,7 @@ export const SynthesisReport = ({
       }
     }
 
-    if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    scrollAppTo({ top: 0, behavior: 'smooth' });
   }, [showcaseFallbackRef]);
 
   useEffect(() => {
