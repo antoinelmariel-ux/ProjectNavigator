@@ -52,6 +52,15 @@ long after boot); `test/manifestPayload.test.mjs` fails if the `.js` and `.txt` 
 
 `module-manifest.js` holds most modules ("core"). `module-manifest.deferred.js` holds the heaviest components — `BackOffice.jsx`, `ProjectShowcase.jsx`, `SynthesisReport.jsx` (~40% of the code) plus the five `src/components/showcase/*.jsx` modules that `ProjectShowcase.jsx` imports — loaded after first paint. The deferred set is the `DEFERRED_MODULES` list in `scripts/generate-module-manifest.js`. `src/lazyComponents.jsx` defines the `React.lazy` wrappers; the deferred ones await the `cn:manifest-deferred-ready` event (flag `window.__CN_DEFERRED_READY__`) before resolving, so mounting them can't race the deferred script. If you add another **lazily mounted** component, update both `DEFERRED_MODULES` and `lazyComponents.jsx`; a module that is merely *imported by* a deferred component only needs the `DEFERRED_MODULES` entry — without it, splitting a deferred component just moves its weight back into the critical path.
 
+## SPFx migration (in progress)
+
+The app is being repackaged as a SharePoint Framework web part (full-page app) in `spfx/`
+— a separate npm project (SPFx 1.23.2, React 17, Heft toolchain) because the root is
+`"type": "module"` and the SPFx toolchain is CommonJS. Phase 1 (scaffold) only: the web part
+renders a placeholder and does not mount `src/main.jsx` yet; the manifest/`index.html` pipeline
+described above is still what runs. Commands: `npm run spfx:install`, `npm run spfx:build`
+(produces `spfx/sharepoint/solution/project-navigator.sppkg`), `npm run spfx:start`.
+
 ## Commands
 
 ```bash

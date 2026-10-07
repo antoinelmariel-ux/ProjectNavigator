@@ -14,7 +14,10 @@
     "generate:mocks": "node scripts/sync-mock-sharepoint-data.js",
     "generate:css": "node scripts/generate-tailwind-lite.js",
     "build": "npm run generate:mocks && npm run generate:css && npm run generate:manifest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "spfx:install": "npm --prefix spfx install",
+    "spfx:build": "npm --prefix spfx run build",
+    "spfx:start": "npm --prefix spfx run start"
   },
   "devDependencies": {
     "@babel/core": "^7.26.0",

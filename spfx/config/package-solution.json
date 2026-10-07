@@ -1,0 +1,40 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/package-solution.schema.json",
+  "solution": {
+    "name": "project-navigator",
+    "id": "5784ea4b-ff7b-4081-b51b-416096f1e443",
+    "version": "1.0.0.0",
+    "includeClientSideAssets": true,
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "developer": {
+      "name": "Project Navigator",
+      "websiteUrl": "",
+      "privacyUrl": "",
+      "termsOfUseUrl": "",
+      "mpnId": "Undefined-1.23.2"
+    },
+    "metadata": {
+      "shortDescription": {
+        "default": "Project Navigator"
+      },
+      "longDescription": {
+        "default": "Project Navigator (Compliance Navigator) : qualification des enjeux réglementaires des projets."
+      },
+      "screenshotPaths": [],
+      "videoUrl": "",
+      "categories": []
+    },
+    "features": [
+      {
+        "title": "Project Navigator",
+        "description": "Web part pleine page de Project Navigator.",
+        "id": "cd2c5906-9715-4dcf-8b24-f13ec8b27e7d",
+        "version": "1.0.0.0"
+      }
+    ]
+  },
+  "paths": {
+    "zippedPackage": "solution/project-navigator.sppkg"
+  }
+}
