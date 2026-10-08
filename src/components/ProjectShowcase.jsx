@@ -50,6 +50,7 @@ import { getOrigin, getWebUrl, isSharePointMode } from '../config/sharepointConf
 import { RichTextEditor } from './RichTextEditor.jsx';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { getLocaleTag } from '../i18n/languages.js';
+import { scrollAppTo } from '../utils/scrollContainer.js';
 
 const SHOWCASE_SECTION_OPTIONS = SHOWCASE_SECTION_IDS.map(id => ({ id }));
 
@@ -3096,9 +3097,7 @@ export const ProjectShowcase = ({
       return;
     }
 
-    if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    scrollAppTo({ top: 0, behavior: 'smooth' });
   }, [renderInStandalone]);
 
 

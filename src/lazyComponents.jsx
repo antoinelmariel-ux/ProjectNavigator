@@ -1,74 +1,37 @@
 import React, { lazy } from './react.js';
 
-const loadModule = (modulePath) => {
-  if (typeof window === 'undefined') {
-    throw new Error('ModuleLoader indisponible.');
-  }
-
-  if (!window.ModuleLoader || typeof window.ModuleLoader.import !== 'function') {
-    throw new Error('ModuleLoader indisponible.');
-  }
-
-  return window.ModuleLoader.import(modulePath);
-};
-
-// Le manifest différé (gros composants) est chargé après le premier rendu.
-// On attend sa disponibilité avant de résoudre les composants concernés (sans course).
-const whenDeferredManifestReady = () =>
-  new Promise((resolve) => {
-    if (typeof window === 'undefined' || window.__CN_DEFERRED_READY__) {
-      resolve();
-      return;
-    }
-    window.addEventListener('cn:manifest-deferred-ready', () => resolve(), { once: true });
-  });
-
+// Les trois écrans les plus lourds (≈ 40 % du code) partent dans des chunks chargés à la
+// demande ; les autres restent dans le bundle principal, comme avant la migration SPFx.
 export const LazyBackOffice = lazy(() =>
-  whenDeferredManifestReady().then(() => ({
-    default: loadModule('./src/components/BackOffice.jsx').BackOffice
-  }))
+  import(/* webpackChunkName: "back-office" */ './components/BackOffice.jsx').then((module) => ({ default: module.BackOffice }))
 );
 
 export const LazyProjectShowcase = lazy(() =>
-  whenDeferredManifestReady().then(() => ({
-    default: loadModule('./src/components/ProjectShowcase.jsx').ProjectShowcase
-  }))
+  import(/* webpackChunkName: "project-showcase" */ './components/ProjectShowcase.jsx').then((module) => ({ default: module.ProjectShowcase }))
 );
 
 export const LazyHomeScreen = lazy(() =>
-  Promise.resolve().then(() => ({
-    default: loadModule('./src/components/HomeScreen.jsx').HomeScreen
-  }))
+  import(/* webpackMode: "eager" */ './components/HomeScreen.jsx').then((module) => ({ default: module.HomeScreen }))
 );
 
 export const LazyInspirationForm = lazy(() =>
-  Promise.resolve().then(() => ({
-    default: loadModule('./src/components/InspirationForm.jsx').InspirationForm
-  }))
+  import(/* webpackMode: "eager" */ './components/InspirationForm.jsx').then((module) => ({ default: module.InspirationForm }))
 );
 
 export const LazyInspirationDetail = lazy(() =>
-  Promise.resolve().then(() => ({
-    default: loadModule('./src/components/InspirationDetail.jsx').InspirationDetail
-  }))
+  import(/* webpackMode: "eager" */ './components/InspirationDetail.jsx').then((module) => ({ default: module.InspirationDetail }))
 );
 
 export const LazyQuestionnaireScreen = lazy(() =>
-  Promise.resolve().then(() => ({
-    default: loadModule('./src/components/QuestionnaireScreen.jsx').QuestionnaireScreen
-  }))
+  import(/* webpackMode: "eager" */ './components/QuestionnaireScreen.jsx').then((module) => ({ default: module.QuestionnaireScreen }))
 );
 
 export const LazyOnboardingScreen = lazy(() =>
-  Promise.resolve().then(() => ({
-    default: loadModule('./src/components/OnboardingScreen.jsx').OnboardingScreen
-  }))
+  import(/* webpackMode: "eager" */ './components/OnboardingScreen.jsx').then((module) => ({ default: module.OnboardingScreen }))
 );
 
 export const LazySynthesisReport = lazy(() =>
-  whenDeferredManifestReady().then(() => ({
-    default: loadModule('./src/components/SynthesisReport.jsx').SynthesisReport
-  }))
+  import(/* webpackChunkName: "synthesis-report" */ './components/SynthesisReport.jsx').then((module) => ({ default: module.SynthesisReport }))
 );
 
 export const LoadingFallback = ({ label, hint }) => (

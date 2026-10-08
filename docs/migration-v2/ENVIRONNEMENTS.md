@@ -3,7 +3,8 @@
 ## DEV — `ProjectNavigator_DEV`
 
 - **Site** : `https://entreprisedemo1.sharepoint.com/sites/ProjectNavigator_DEV`
-- **Page de l'app** : `https://entreprisedemo1.sharepoint.com/sites/ProjectNavigator_DEV/CN-App/index.aspx`
+- **Page de l'app (web part SPFx)** : *à créer — voir [DEPLOIEMENT-SPFX.md](DEPLOIEMENT-SPFX.md), puis noter l'URL ici*
+- **Ancienne page (avant SPFx)** : `https://entreprisedemo1.sharepoint.com/sites/ProjectNavigator_DEV/CN-App/index.aspx`
 - **Structure créée le** : 2026-08-28 (script console, sans avertissement)
 
 | Conteneur | Type | GUID |
@@ -31,6 +32,6 @@ Rejouer le script de création de structure sur le site de production, puis comp
 
 Ils sont consignés ici **uniquement** pour la traçabilité et pour la configuration des flux
 Power Automate. Le code adresse les listes par leur nom
-(`/_api/web/lists/getbytitle('CN_Projects')`) et déduit l'URL du site depuis
-`window.location` : c'est ce qui permet au **même build de fonctionner sur DEV et sur PROD**
+(`/_api/web/lists/getbytitle('CN_Projects')`) et reçoit l'URL du site du web part SPFx
+(`pageContext.web.absoluteUrl`) : c'est ce qui permet au **même build de fonctionner sur DEV et sur PROD**
 sans modification. Coder un GUID en dur romprait cette portabilité.

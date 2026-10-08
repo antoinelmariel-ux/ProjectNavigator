@@ -1,0 +1,133 @@
+.hv-modal-panel {
+  max-height: calc(100vh - 2rem);
+}
+
+@media (min-width: 640px) {
+  .hv-modal-panel {
+    max-height: calc(100vh - 4rem);
+  }
+}
+
+.hv-button-draft {
+  background-color: #f59e0b;
+  border: 1px solid #d97706;
+  color: #ffffff;
+}
+
+.hv-button-draft:hover {
+  background-color: #d97706;
+}
+
+.hv-button-draft:focus-visible {
+  outline: 2px solid #f59e0b;
+  outline-offset: 2px;
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 1.15rem;
+  height: 1.15rem;
+  border: 2px solid #cbd5e1;
+  border-top-color: #2563eb;
+  border-radius: 9999px;
+  animation: cn-spin 0.6s linear infinite;
+}
+
+@keyframes cn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Squelette du premier écran : affiché tant que le manifeste applicatif n'est pas
+   exécuté, pour que l'attente montre la page qui arrive plutôt qu'un vide. */
+.cn-boot {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 45%, #dbeafe 100%);
+  padding: 0 1rem 3rem;
+}
+
+.cn-boot__nav {
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  margin: 0 -1rem 2rem;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.cn-boot__inner {
+  max-width: 72rem;
+  margin: 0 auto;
+}
+
+.cn-boot__panel {
+  background: #ffffff;
+  border: 1px solid #dbeafe;
+  border-radius: 1.5rem;
+  padding: 1.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.cn-boot__cards {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .cn-boot__cards {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.cn-boot__card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 1rem;
+  padding: 1.5rem;
+}
+
+.cn-line {
+  display: block;
+  height: 0.75rem;
+  border-radius: 9999px;
+  background: #e5e7eb;
+  background-image: linear-gradient(90deg, #e5e7eb 0%, #f3f4f6 40%, #e5e7eb 80%);
+  background-size: 300% 100%;
+  animation: cn-shimmer 1.4s ease-in-out infinite;
+  margin-bottom: 0.75rem;
+}
+
+.cn-line--title { height: 1.5rem; width: 60%; }
+.cn-line--text { width: 85%; }
+.cn-line--short { width: 40%; }
+.cn-line--button { height: 2.75rem; width: 12rem; border-radius: 0.75rem; margin-top: 1.25rem; }
+.cn-line--logo { height: 3rem; width: 4.5rem; border-radius: 0.5rem; margin: 0; }
+.cn-line:last-child { margin-bottom: 0; }
+
+@keyframes cn-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
+}
+
+.cn-boot__status {
+  max-width: 72rem;
+  margin: 0 auto 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.875rem;
+  color: #4b5563;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-spinner {
+    animation-duration: 1.6s;
+  }
+
+  .cn-line {
+    animation: none;
+  }
+}

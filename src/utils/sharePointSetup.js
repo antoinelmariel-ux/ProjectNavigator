@@ -4,8 +4,8 @@ import { rulesProvider } from './rulesProvider.js';
 import { teamsProvider } from './teamsProvider.js';
 
 const NOT_SHAREPOINT_MESSAGE =
-  'Action impossible : ouvrez l’application depuis SharePoint ' +
-  '(https://…sharepoint.com/sites/…/CN-App/index.aspx) pour accéder aux listes.';
+  'Action impossible : ouvrez la page Project Navigator du site SharePoint ' +
+  'pour accéder aux listes.';
 
 // Le contrôle de mode vit ici plutôt que chez l’appelant : le diagnostic est le premier
 // appel réseau, et hors SharePoint il retomberait sinon sur une erreur HTTP incompréhensible.

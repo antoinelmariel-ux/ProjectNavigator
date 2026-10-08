@@ -33,20 +33,27 @@ un envoi direct depuis le code. Détails : [`docs/architecture-sharepoint.md`](d
 
 ## Démarrage
 
-Utilisateur final : ouvrez `index.html` dans un navigateur, ou l'URL de l'application sur le site
-SharePoint de votre organisation — aucune installation requise.
+Utilisateur final : ouvrez la page de l'application sur le site SharePoint de votre organisation.
+L'application est livrée sous forme de **web part SharePoint Framework (SPFx)**, posé sur une page
+en mise en page « Application pleine page » ; elle est installée une fois par l'IT via le catalogue
+d'applications du tenant (voir [`spfx/README.md`](spfx/README.md)).
 
 ## Développement
 
-Le code est écrit en JSX dans `src/`, mais **le navigateur exécute une version pré-transpilée** (plus de Babel chargé à l'exécution, plus de 2,9 Mo). Cette version pré-transpilée vit dans `src/module-manifest.js`, généré hors-ligne.
+Le code est écrit en JSX dans `src/` et assemblé par webpack, avec une seule configuration partagée
+(`spfx/config/app-webpack-rules.js`) pour deux sorties :
 
-> ⚠️ **Après toute modification d'un fichier de `src/`, régénérez le manifest**, sinon le navigateur continuera d'exécuter l'ancien code :
+- le **package SPFx** (`spfx/sharepoint/solution/project-navigator.sppkg`), seul livrable ;
+- le **harnais de dev** (`index.html` + `harness/dist/`), qui monte la même application hors
+  SharePoint avec des données fictives, pour les tests de bout en bout.
+
+> ⚠️ Après toute modification de `src/`, reconstruisez, sinon le navigateur continue d'exécuter
+> l'ancien code :
 >
 > ```bash
-> npm install          # une seule fois (outils de développement)
-> npm run build        # régénère mocks + CSS + manifest
-> # ou, plus ciblé :
-> npm run generate:manifest
+> npm install && npm run spfx:install   # une seule fois (Node >=22.14 <23)
+> npm run build                         # mocks + CSS + harnais de dev
+> npm run spfx:build                    # package SPFx
 > ```
 
 Autres commandes utiles :
@@ -54,16 +61,16 @@ Autres commandes utiles :
 | Commande | Rôle |
 | --- | --- |
 | `npm test` | Tests unitaires de la logique métier (questions, règles, risque…). Aucune dépendance. |
-| `npm run test:e2e` | Tests de bout en bout Playwright (`e2e/*.spec.js`) : construit l'app, la sert en local, puis parcourt les écrans dans un vrai navigateur. Séparé de `npm test`. |
+| `npm run test:e2e` | Tests de bout en bout Playwright (`e2e/*.spec.js`) sur le harnais de dev (à construire avant avec `npm run build`). Séparé de `npm test`. |
 | `npm run lint` | Analyse statique (ESLint) du code. |
 | `npm run format` | Mise en forme (Prettier). |
-| `npm run build` | Régénère les mocks, le CSS « lite » et le manifest transpilé. |
-
-L'ouverture de `index.html` reste **zéro-install** pour l'utilisateur final (aucun serveur ni npm requis côté utilisateur) : `npm` ne sert qu'au développement.
+| `npm run build` | Régénère les mocks, le CSS « lite » et le harnais de dev. |
+| `npm run spfx:build` | Construit le package SPFx (`.sppkg`). |
+| `npm run spfx:start` | Sert le web part pour le workbench hébergé du site DEV. |
 
 ### Tests de bout en bout (Playwright)
 
-`npm run test:e2e` lance la suite `e2e/*.spec.js` avec Playwright : elle reconstruit l'application, la sert via un petit serveur statique jetable (`scripts/serve-e2e.js`), puis pilote un vrai navigateur pour vérifier les parcours utilisateurs (questionnaire, synthèse, vitrine, back-office, commentaires compliance…). C'est une suite distincte de `npm test`.
+`npm run test:e2e` lance la suite `e2e/*.spec.js` avec Playwright : elle sert le harnais de dev (construit au préalable par `npm run build`) via un petit serveur statique jetable (`scripts/serve-e2e.js`), puis pilote un vrai navigateur pour vérifier les parcours utilisateurs (questionnaire, synthèse, vitrine, back-office, commentaires compliance…). C'est une suite distincte de `npm test`.
 
 Le bouton cadenas qui ouvre le back-office n'étant visible que pour une personne déjà désignée (administrateur, contact d'équipe ou membre de comité), les tests qui touchent le back-office désignent le compte de test directement dans le stockage local avant le premier rendu plutôt que de saisir le mot de passe partagé — aucune variable d'environnement n'est requise pour ces tests.
 

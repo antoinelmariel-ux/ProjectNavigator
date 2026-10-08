@@ -150,6 +150,11 @@ export default {
       ariaLabel: 'Fußzeile',
       legalNotice: 'Impressum'
     },
+    staticPages: {
+      faqTitle: 'Häufig gestellte Fragen',
+      legalTitle: 'Impressum',
+      close: 'Schließen'
+    },
     beforeUnload: {
       message: 'Haben Sie Ihr Projekt vor dem Verlassen gespeichert?'
     },

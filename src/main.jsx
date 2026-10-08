@@ -1,8 +1,10 @@
 import React from './react.js';
 import { ReactDOM } from './react.js';
 import { App } from './App.jsx';
-import { initSharePointContext, getRealUser } from './utils/spContext.js';
-import { readImpersonationRequest, startImpersonation } from './utils/impersonation.js';
+import { initSharePointContext, getRealUser, resetSharePointContext } from './utils/spContext.js';
+import { readImpersonationRequest, startImpersonation, stopImpersonation } from './utils/impersonation.js';
+import { configureSharePointContext } from './config/sharepointConfig.js';
+import { languageFromCulture } from './i18n/detectLanguage.js';
 import { normalizeEmail } from './utils/normalizeEmail.js';
 import mockCurrentUser from './data/graph-current-user.json';
 import { LanguageProvider, LanguageContext } from './i18n/LanguageContext.jsx';
@@ -11,6 +13,15 @@ import { initialAdminEmails } from './data/adminEmails.js';
 import { initialTechnicalContactEmails } from './data/technicalContactEmails.js';
 import { queueNotification } from './utils/notificationQueue.js';
 import { buildErrorReportEmail } from './utils/notificationTemplates.js';
+import { injectStyles } from './styles/injectStyles.js';
+import { setAppScrollRoot } from './utils/scrollContainer.js';
+import fontsCss from './styles/fonts.css?raw';
+import tailwindCss from './styles/tailwind-internal.css?raw';
+import appShellCss from './styles/app-shell.css?raw';
+
+const mountedRoots = new Map();
+// Classe qui borne le reset CSS de base (voir scripts/generate-tailwind-lite.js) au conteneur.
+const APP_ROOT_CLASS = 'cn-app-root';
 
 const resolveAdminEmails = () => {
   const persisted = loadPersistedState();
@@ -199,38 +210,24 @@ class AppErrorBoundary extends React.Component {
   }
 }
 
-const renderApplication = () => {
-  const rootElement = document.getElementById('root');
-
-  if (!rootElement || !ReactDOM) {
-    return;
-  }
-
-  const initialLanguage = typeof window !== 'undefined' ? window.__CN_BOOT_LANGUAGE__ : undefined;
+const renderApplication = (rootElement, fallbackLanguage) => {
+  const element = (
+    <LanguageProvider fallbackLanguage={fallbackLanguage}>
+      <AppErrorBoundary>
+        <App />
+      </AppErrorBoundary>
+    </LanguageProvider>
+  );
 
   if (typeof ReactDOM.createRoot === 'function') {
     const root = ReactDOM.createRoot(rootElement);
-    root.render(
-      <LanguageProvider initialLanguage={initialLanguage}>
-        <AppErrorBoundary>
-          <App />
-        </AppErrorBoundary>
-      </LanguageProvider>
-    );
-    rootElement.dataset.appMounted = 'true';
-  } else if (typeof ReactDOM.render === 'function') {
-    ReactDOM.render(
-      <LanguageProvider initialLanguage={initialLanguage}>
-        <AppErrorBoundary>
-          <App />
-        </AppErrorBoundary>
-      </LanguageProvider>,
-      rootElement
-    );
-    rootElement.dataset.appMounted = 'true';
+    root.render(element);
+    mountedRoots.set(rootElement, () => root.unmount());
   } else {
-    console.error('Aucune méthode de rendu ReactDOM disponible.');
+    ReactDOM.render(element, rootElement);
+    mountedRoots.set(rootElement, () => ReactDOM.unmountComponentAtNode(rootElement));
   }
+  rootElement.dataset.appMounted = 'true';
 };
 
 // « Voir en tant que » : l'identité simulée doit être posée avant le premier rendu, comme
@@ -260,11 +257,45 @@ const applyImpersonationRequest = () => {
 
 // L'identité est résolue avant le premier rendu : App.jsx peut alors la lire de façon
 // synchrone. Hors SharePoint, initSharePointContext retombe immédiatement sur le mock.
-initSharePointContext({ fallbackUser: mockCurrentUser })
-  .catch((error) => {
-    console.error('Initialisation du contexte SharePoint impossible :', error);
-  })
-  .then(() => {
-    applyImpersonationRequest();
-    renderApplication();
-  });
+// Le web part SPFx transmet son pageContext (URL du site, utilisateur, culture) ; le harnais de
+// dev n'en transmet aucun et l'app retombe alors sur les fournisseurs mock.
+export const mountApp = (rootElement, { webAbsoluteUrl, user, cultureName } = {}) => {
+  if (!rootElement || !ReactDOM) {
+    return Promise.resolve();
+  }
+
+  configureSharePointContext({ webAbsoluteUrl });
+  rootElement.classList.add(APP_ROOT_CLASS);
+  setAppScrollRoot(rootElement);
+
+  injectStyles('fonts', fontsCss);
+  injectStyles('tailwind-internal', tailwindCss);
+  injectStyles('app-shell', appShellCss);
+
+  return initSharePointContext({ fallbackUser: mockCurrentUser, spfxUser: user })
+    .catch((error) => {
+      console.error('Initialisation du contexte SharePoint impossible :', error);
+    })
+    .then(() => {
+      if (!rootElement.isConnected) {
+        return;
+      }
+      applyImpersonationRequest();
+      renderApplication(rootElement, languageFromCulture(cultureName));
+    });
+};
+
+export const unmountApp = (rootElement) => {
+  const unmount = mountedRoots.get(rootElement);
+  if (unmount) {
+    unmount();
+    mountedRoots.delete(rootElement);
+    delete rootElement.dataset.appMounted;
+  }
+  rootElement.classList.remove(APP_ROOT_CLASS);
+  setAppScrollRoot(null);
+  // La navigation SharePoint ne recharge pas la page : les modules restent en mémoire d'un
+  // montage à l'autre, et ni l'identité ni une simulation « Voir en tant que » ne doivent survivre.
+  stopImpersonation();
+  resetSharePointContext();
+};

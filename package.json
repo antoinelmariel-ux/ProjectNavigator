@@ -1,7 +1,7 @@
 {
   "name": "compliance-navigator",
   "version": "1.0.0",
-  "description": "Project Navigator — qualification des enjeux réglementaires (React sans build, zéro-install).",
+  "description": "Project Navigator — qualification des enjeux réglementaires (web part SharePoint Framework).",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,11 +10,14 @@
     "lint:fix": "eslint --fix \"src/**/*.{js,jsx}\" \"scripts/**/*.js\" \"e2e/**/*.js\" \"playwright.config.js\"",
     "format": "prettier --write \"src/**/*.{js,jsx,css}\" \"*.html\"",
     "format:check": "prettier --check \"src/**/*.{js,jsx,css}\" \"*.html\"",
-    "generate:manifest": "node scripts/generate-module-manifest.js",
     "generate:mocks": "node scripts/sync-mock-sharepoint-data.js",
     "generate:css": "node scripts/generate-tailwind-lite.js",
-    "build": "npm run generate:mocks && npm run generate:css && npm run generate:manifest",
-    "test:e2e": "playwright test"
+    "build": "npm run generate:mocks && npm run generate:css && npm run build:harness",
+    "test:e2e": "playwright test",
+    "spfx:install": "npm --prefix spfx install",
+    "spfx:build": "npm --prefix spfx run build",
+    "spfx:start": "npm --prefix spfx run start",
+    "build:harness": "npm --prefix spfx run build:harness"
   },
   "devDependencies": {
     "@babel/core": "^7.26.0",

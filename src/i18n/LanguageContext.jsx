@@ -7,17 +7,20 @@ import { translate } from './translate.js';
 
 export const LanguageContext = createContext(null);
 
-const resolveInitialLanguage = () => {
+const resolveInitialLanguage = (fallbackLanguage) => {
   const stored = loadStoredLanguage();
   if (isSupportedLanguage(stored)) {
     return stored;
   }
+  if (isSupportedLanguage(fallbackLanguage)) {
+    return fallbackLanguage;
+  }
   return detectBrowserLanguage();
 };
 
-export const LanguageProvider = ({ children, initialLanguage }) => {
+export const LanguageProvider = ({ children, initialLanguage, fallbackLanguage }) => {
   const [language, setLanguageState] = useState(() =>
-    isSupportedLanguage(initialLanguage) ? initialLanguage : resolveInitialLanguage()
+    isSupportedLanguage(initialLanguage) ? initialLanguage : resolveInitialLanguage(fallbackLanguage)
   );
 
   useEffect(() => {

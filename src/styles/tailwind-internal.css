@@ -9,27 +9,22 @@
   --tw-text-opacity: 1;
   --tw-border-opacity: 1;
 }
-*, ::before, ::after {
+:where(.cn-app-root, .tgjs-container), :where(.cn-app-root, .tgjs-container) *, :where(.cn-app-root, .tgjs-container) ::before, :where(.cn-app-root, .tgjs-container) ::after {
   box-sizing: border-box;
   border-width: 0;
   border-style: solid;
   border-color: #e5e7eb;
 }
-html {
+:where(.cn-app-root) {
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
   font-family: 'Inter', 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
 }
-body {
-  margin: 0;
-  line-height: inherit;
-  font-family: 'Inter', 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
-}
-a {
+:where(.cn-app-root) a {
   color: inherit;
   text-decoration: inherit;
 }
-button, [type='button'], [type='reset'], [type='submit'] {
+:where(.cn-app-root) :where(button, [type='button'], [type='reset'], [type='submit']) {
   background-color: transparent;
   background-image: none;
 }

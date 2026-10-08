@@ -153,7 +153,11 @@ import { queueNotification } from './utils/notificationQueue.js';
 import { NOTIFICATION_TYPES, buildNotification } from './utils/notificationTemplates.js';
 import { resolveLocalizedText } from './utils/localizedContent.js';
 import { DEFAULT_LANGUAGE } from './i18n/languages.js';
-const HEADER_LOGO_PATH = './src/components/logo.png';
+import HEADER_LOGO_PATH from './components/logo.png';
+import { injectStyles } from './styles/injectStyles.js';
+import { scrollAppTo } from './utils/scrollContainer.js';
+import { openStaticPage, staticPageLinkProps } from './utils/staticPages.js';
+import { StaticPageDialog } from './components/StaticPageDialog.jsx';
 
 const APP_VERSION = 'v1.0.385';
 
@@ -214,45 +218,6 @@ const resolveShowcaseDisplayMode = (value) => {
   return null;
 };
 
-const loadScript = (src) => {
-  if (typeof document === 'undefined') {
-    return Promise.reject(new Error('Document indisponible.'));
-  }
-
-  const existingScript = document.querySelector(`script[data-lazy-src="${src}"]`);
-  if (existingScript) {
-    if (existingScript.dataset.loaded === 'true') {
-      return Promise.resolve();
-    }
-
-    if (existingScript.dataset.failed === 'true') {
-      existingScript.remove();
-      return loadScript(src);
-    }
-
-    return new Promise((resolve, reject) => {
-      existingScript.addEventListener('load', () => resolve(), { once: true });
-      existingScript.addEventListener('error', () => reject(new Error(`Impossible de charger ${src}.`)), { once: true });
-    });
-  }
-
-  return new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = src;
-    script.async = true;
-    script.dataset.lazySrc = src;
-    script.addEventListener('load', () => {
-      script.dataset.loaded = 'true';
-      resolve();
-    }, { once: true });
-    script.addEventListener('error', () => {
-      script.dataset.failed = 'true';
-      reject(new Error(`Impossible de charger ${src}.`));
-    }, { once: true });
-    document.head.appendChild(script);
-  });
-};
-
 const ensureTourGuideAssets = async () => {
   if (typeof window === 'undefined') {
     return false;
@@ -262,17 +227,24 @@ const ensureTourGuideAssets = async () => {
     return true;
   }
 
-  if (typeof document !== 'undefined' && !document.querySelector('link[data-tourguide-css="true"]')) {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = './src/styles/tourguide.css';
-    link.dataset.tourguideCss = 'true';
-    document.head.appendChild(link);
-  }
-
-  await loadScript('./src/vendor/tourguide.js');
+  const [, { default: tourGuideCss }] = await Promise.all([
+    import(/* webpackChunkName: "tourguide" */ './vendor/tourguide.js'),
+    import(/* webpackChunkName: "tourguide" */ './styles/tourguide.css?raw')
+  ]);
+  injectStyles('tourguide', tourGuideCss);
   return typeof window.TourGuideClient === 'function';
 };
+
+const loadShowcaseStyles = () =>
+  Promise.all([
+    import(/* webpackChunkName: "showcase-styles" */ './styles/project-showcase.css?raw'),
+    import(/* webpackChunkName: "showcase-styles" */ './styles/project-showcase-theme-signature.css?raw'),
+    import(/* webpackChunkName: "showcase-styles" */ './styles/showcase-editor.css?raw')
+  ]).then(([showcase, themeSignature, editor]) => {
+    injectStyles('project-showcase', showcase.default);
+    injectStyles('project-showcase-theme-signature', themeSignature.default);
+    injectStyles('showcase-editor', editor.default);
+  });
 
 const ANNOTATION_COLORS = [
   '#2563eb',
@@ -1117,7 +1089,6 @@ export const App = () => {
     teams: true
   }));
   const annotationNotesRef = useRef(annotationNotes);
-  const loadedStylesRef = useRef(new Set());
   const pendingShowcaseProjectIdRef = useRef(null);
   const pendingProjectViewRef = useRef(null);
   const pendingShowcaseSharedRef = useRef(false);
@@ -1322,22 +1293,6 @@ export const App = () => {
   }, [currentUserEmail, notify]);
 
 
-  const ensureStylesheetLoaded = useCallback((href) => {
-    if (typeof document === 'undefined' || !href) {
-      return;
-    }
-
-    if (loadedStylesRef.current.has(href)) {
-      return;
-    }
-
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = href;
-    link.dataset.dynamic = 'true';
-    document.head.appendChild(link);
-    loadedStylesRef.current.add(href);
-  }, []);
 
   const isAnnotationUiInteraction = useCallback((event) => {
     const path = typeof event?.composedPath === 'function' ? event.composedPath() : [];
@@ -1537,10 +1492,10 @@ export const App = () => {
       return;
     }
 
-    ensureStylesheetLoaded('./src/styles/project-showcase.css');
-    ensureStylesheetLoaded('./src/styles/project-showcase-theme-signature.css');
-    ensureStylesheetLoaded('./src/styles/showcase-editor.css');
-  }, [ensureStylesheetLoaded, showcaseProjectContext]);
+    loadShowcaseStyles().catch((error) => {
+      console.error('Feuilles de style de la vitrine indisponibles :', error);
+    });
+  }, [showcaseProjectContext]);
 
   useEffect(() => {
     annotationNotesRef.current = annotationNotes;
@@ -2089,6 +2044,8 @@ const updateProjectFilters = useCallback((updater) => {
     return () => {
       window.removeEventListener('pagehide', flushPendingChanges);
       window.removeEventListener('beforeunload', flushPendingChanges);
+      // Démontage du web part : SharePoint change de page sans pagehide (navigation SPA).
+      flushPendingChanges();
     };
   }, []);
 
@@ -2443,7 +2400,7 @@ const updateProjectFilters = useCallback((updater) => {
       const redirect = () => {
         try {
           if (window.location) {
-            const homeUrl = isSharePointMode() ? './index.aspx' : './index.html';
+            const homeUrl = `${window.location.origin}${window.location.pathname}`;
             if (typeof window.location.assign === 'function') {
               window.location.assign(homeUrl);
             } else {
@@ -2501,13 +2458,9 @@ const updateProjectFilters = useCallback((updater) => {
             }
           }
 
-          if (typeof window.scrollTo === 'function') {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }
+          scrollAppTo({ top: 0, behavior: 'smooth' });
         } catch (error) {
-          if (typeof window.scrollTo === 'function') {
-            window.scrollTo({ top: 0 });
-          }
+          scrollAppTo({ top: 0 });
         }
       };
 
@@ -2860,7 +2813,8 @@ const updateProjectFilters = useCallback((updater) => {
       // Le même bouton d'aide que sur l'écran d'accueil : lancer la visite guidée, c'est déjà
       // chercher de l'aide, et la FAQ ne doit pas devenir inaccessible pendant le guide.
       helpLink: {
-        href: './faq.html',
+        href: '#faq',
+        onClick: () => openStaticPage('faq'),
         label: t('onboarding.helpButton'),
         ariaLabel: t('onboarding.helpButtonAriaLabel')
       }
@@ -3338,10 +3292,7 @@ const updateProjectFilters = useCallback((updater) => {
   // d'inspiration gèrent déjà leur propre défilement plus finement (par question, etc.) ;
   // ce filet ne fait alors que confirmer un état déjà en place.
   useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.scrollTo !== 'function') {
-      return;
-    }
-    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    scrollAppTo({ top: 0, left: 0, behavior: 'auto' });
   }, [screen, mode, adminView]);
 
   const activeProject = useMemo(
@@ -8108,15 +8059,14 @@ const updateProjectFilters = useCallback((updater) => {
       <p className="text-xs text-gray-400 text-center py-4">
         Project Navigator · Version {APP_VERSION} · {syncStatusLabel}{syncStatusMeta ? ` · ${syncStatusMeta}` : ''} ·{' '}
         <a
-          href="./mentions-legales.html"
-          target="_blank"
-          rel="noopener noreferrer"
+          {...staticPageLinkProps('mentions-legales')}
           className="underline hover:text-gray-500"
         >
           {t('app.footer.legalNotice')}
         </a>
       </p>
     </footer>
+    <StaticPageDialog />
     </div>
   );
 };

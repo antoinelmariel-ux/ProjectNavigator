@@ -1,0 +1,23 @@
+{
+  "@microsoft/generator-sharepoint": {
+    "whichFolder": "subdir",
+    "solutionName": "project-navigator",
+    "solutionShortDescription": "Project Navigator (Compliance Navigator)",
+    "environment": "spo",
+    "packageManager": "npm",
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "useGulp": false,
+    "componentType": "webpart",
+    "template": "react",
+    "componentName": "ProjectNavigator",
+    "componentDescription": "Project Navigator - qualification des enjeux reglementaires",
+    "plusBeta": false,
+    "isCreatingSolution": true,
+    "nodeVersion": "22.22.0",
+    "sdksVersions": {},
+    "version": "1.23.2",
+    "libraryName": "project-navigator",
+    "libraryId": "5784ea4b-ff7b-4081-b51b-416096f1e443"
+  }
+}

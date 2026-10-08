@@ -150,6 +150,11 @@ export default {
       ariaLabel: 'Pie de página',
       legalNotice: 'Aviso legal'
     },
+    staticPages: {
+      faqTitle: 'Preguntas frecuentes',
+      legalTitle: 'Aviso legal',
+      close: 'Cerrar'
+    },
     beforeUnload: {
       message: '¿Ha guardado bien su proyecto antes de salir?'
     },

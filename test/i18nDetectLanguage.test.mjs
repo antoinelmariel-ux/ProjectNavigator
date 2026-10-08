@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { detectLanguageFromCandidates, detectBrowserLanguage } from '../src/i18n/detectLanguage.js';
+import { detectLanguageFromCandidates, detectBrowserLanguage, languageFromCulture } from '../src/i18n/detectLanguage.js';
 
 test('detects a supported language from browser candidates', () => {
   assert.equal(detectLanguageFromCandidates(['fr-FR', 'en-US']), 'fr');
@@ -24,4 +24,14 @@ test('detectBrowserLanguage falls back to navigator.language when languages is e
 
 test('detectBrowserLanguage falls back to English without a navigator-like object', () => {
   assert.equal(detectBrowserLanguage(null), 'en');
+});
+
+test('languageFromCulture maps a SharePoint culture to a supported language', () => {
+  assert.equal(languageFromCulture('fr-FR'), 'fr');
+  assert.equal(languageFromCulture('de-CH'), 'de');
+});
+
+test('languageFromCulture returns an empty string when the culture is not offered', () => {
+  assert.equal(languageFromCulture('it-IT'), '');
+  assert.equal(languageFromCulture(undefined), '');
 });

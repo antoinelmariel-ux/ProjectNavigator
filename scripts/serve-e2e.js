@@ -1,6 +1,5 @@
-// Petit serveur statique jetable pour les tests e2e Playwright (voir e2e/playwright.config.js).
-// L'app est zéro-install (conçue pour file://), mais Playwright a un comportement plus
-// prévisible (localStorage, navigation) servie en http:// qu'en file://.
+// Petit serveur statique jetable pour les tests e2e Playwright (voir playwright.config.js) :
+// sert le harnais de dev (index.html + harness/dist/, construit par « npm run build »).
 'use strict';
 
 const http = require('http');
@@ -17,8 +16,6 @@ const MIME_TYPES = {
   '.mjs': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
-  // Payloads de mise à jour (module-manifest.*.txt) : servis comme du texte, comme le ferait
-  // une bibliothèque SharePoint.
   '.txt': 'text/plain; charset=utf-8',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',

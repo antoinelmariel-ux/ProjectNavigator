@@ -6,6 +6,8 @@ import { createAttachmentFromFile } from '../utils/documentStore.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { getLocaleTag } from '../i18n/languages.js';
 import { resolveLocalizedText } from '../utils/localizedContent.js';
+import { scrollAppTo } from '../utils/scrollContainer.js';
+import { staticPageLinkProps } from '../utils/staticPages.js';
 
 const buildInitialFormState = (config) => {
   const fields = Array.isArray(config?.fields) ? config.fields : [];
@@ -192,8 +194,8 @@ export const InspirationForm = ({
 
       if (typeof focusTarget.scrollIntoView === 'function') {
         focusTarget.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
-      } else if (typeof window.scrollTo === 'function') {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        scrollAppTo({ top: 0, behavior: 'smooth' });
       }
 
       if (typeof focusTarget.focus === 'function') {
@@ -301,9 +303,7 @@ export const InspirationForm = ({
           <p className="text-xs italic text-gray-400">
             {t('inspirationForm.privacyNotice')}{' '}
             <a
-              href="./mentions-legales.html"
-              target="_blank"
-              rel="noopener noreferrer"
+              {...staticPageLinkProps('mentions-legales')}
               className="underline hover:text-gray-500"
             >
               {t('inspirationForm.privacyLink')}

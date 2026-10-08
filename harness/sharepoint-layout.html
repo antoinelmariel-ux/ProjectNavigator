@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Project Navigator — harnais « page SharePoint »</title>
+  </head>
+  <!-- Fixture e2e (e2e/sharepoint-layout.spec.js) : reproduit les deux traits d'une page
+       SharePoint qui comptent pour l'app — un bandeau qui n'est pas à elle, et un conteneur
+       interne qui défile à la place de la fenêtre. -->
+  <body>
+    <header id="host-chrome" style="height: 48px">
+      <a id="host-link" href="#">Lien du site</a>
+      <button id="host-button" type="button">Bouton du site</button>
+    </header>
+    <div id="host-scroller" style="height: calc(100vh - 48px); overflow-y: auto">
+      <div id="root"></div>
+    </div>
+    <script src="./dist/main.js"></script>
+  </body>
+</html>
