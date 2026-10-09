@@ -50,9 +50,14 @@ const appAliases = {
   'react-dom$': require.resolve('react-dom')
 };
 
+// Webpack applique toutes les règles qui correspondent, pas la première : sans cette exclusion, les
+// règles .css/.html de SPFx (sp-css-loader, html-loader) traitent aussi les imports `?raw`, et
+// l'application injecte alors dans ses <style> un module JS aux classes suffixées au lieu du CSS.
+const skipRawImports = (rule) => ({ resourceQuery: { not: [/raw/] }, rules: [rule] });
+
 const applyAppWebpackRules = (config) => {
   config.module = config.module || {};
-  config.module.rules = [...appRules, ...(config.module.rules || [])];
+  config.module.rules = [...appRules, ...(config.module.rules || []).map(skipRawImports)];
   config.resolve = config.resolve || {};
   config.resolve.alias = { ...(config.resolve.alias || {}), ...appAliases };
   return config;

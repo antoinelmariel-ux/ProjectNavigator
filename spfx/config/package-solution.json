@@ -3,7 +3,7 @@
   "solution": {
     "name": "project-navigator",
     "id": "5784ea4b-ff7b-4081-b51b-416096f1e443",
-    "version": "1.0.0.0",
+    "version": "1.0.1.0",
     "includeClientSideAssets": true,
     "skipFeatureDeployment": true,
     "isDomainIsolated": false,
