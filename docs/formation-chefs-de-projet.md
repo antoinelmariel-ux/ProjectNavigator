@@ -24,17 +24,18 @@
 | 00:18 | [5. Obtenir du feedback avec les post-its](#5-obtenir-du-feedback-avec-les-post-its--5-min) | 5 min |
 | 00:23 | [6. Créer son propre projet](#6-créer-son-propre-projet--4-min) | 4 min |
 | 00:27 | [7. Soumettre son projet](#7-soumettre-son-projet--4-min) | 4 min |
-| 00:31 | [8. Ajouter une inspiration et la partager](#8-ajouter-une-inspiration-et-la-partager--4-min) (pendant ce temps, l'expert commente) | 4 min |
-| 00:35 | [9. Répondre à la compliance](#9-répondre-à-la-compliance--4-min) | 4 min |
-| 00:39 | [10. Modifier son projet depuis les enjeux](#10-modifier-son-projet-depuis-les-enjeux--3-min) | 3 min |
-| 00:42 | [11. Renvoyer après modification des risques](#11-renvoyer-après-modification-des-risques--3-min) | 3 min |
+| 00:31 | [8. Répondre à la compliance](#8-répondre-à-la-compliance--4-min) | 4 min |
+| 00:35 | [9. Modifier son projet depuis les enjeux](#9-modifier-son-projet-depuis-les-enjeux--3-min) | 3 min |
+| 00:38 | [10. Renvoyer après modification des risques](#10-renvoyer-après-modification-des-risques--3-min) | 3 min |
+| 00:41 | [11. Ajouter une inspiration et la partager](#11-ajouter-une-inspiration-et-la-partager--4-min) | 4 min |
 | 00:45 | [12. Trouver de l'aide : le guide interactif](#12-trouver-de-laide--le-guide-interactif--2-min) | 2 min |
 | 00:47 | [Conclusion et questions](#conclusion--3-min) | 3 min |
 
-### Deux choix faits pour tenir en 50 minutes
+### Trois choix faits pour tenir en 50 minutes
 
-1. **On soumet la copie du projet modèle, pas un projet créé de zéro.** Remplir un questionnaire complet prend bien plus de 4 minutes. À l'étape 6, on crée un vrai projet pour **découvrir** le questionnaire : quelques questions, puis on le laisse en brouillon. La suite (soumission, échanges, modification) se fait sur la copie de l'étape 3, déjà entièrement remplie. Avantage : vous connaissez ses réponses à l'avance, donc vous savez exactement quelle réponse modifier à l'étape 11.
-2. **L'inspiration passe avant les échanges avec la compliance.** Pour que les participants aient un commentaire d'expert auquel répondre, quelqu'un doit commenter chacun de leurs projets juste après la soumission. L'étape « Inspiration » (8) occupe les participants pendant ce temps.
+1. **On soumet la copie du projet modèle, pas un projet créé de zéro.** Remplir un questionnaire complet prend bien plus de 4 minutes. À l'étape 6, on crée un vrai projet pour **découvrir** le questionnaire : quelques questions, puis on le laisse en brouillon. La suite (soumission, échanges, modification) se fait sur la copie de l'étape 3, déjà entièrement remplie. Avantage : vous connaissez ses réponses à l'avance, donc vous savez exactement quelle réponse modifier à l'étape 10.
+2. **Pas d'expert en direct.** Pour « Répondre à la compliance », les participants répondent aux **« Points à préparer »** : les questions que les règles font apparaître automatiquement dans la carte de chaque équipe sollicitée. Aucun expert n'a besoin d'écrire pendant la séance.
+3. **Les flux Power Automate sont désactivés pendant la démo.** Les soumissions, réponses et mises à jour ne partent donc pas en e-mail aux équipes expertes.
 
 ---
 
@@ -45,13 +46,14 @@ Sans ces préparatifs, la séance ne peut pas être fluide.
 | # | À préparer | Pourquoi |
 |---|---|---|
 | 1 | **Un projet modèle complet, soumis et rendu visible à tous.** Toutes les questions répondues, sans « J'ai un doute ». Vitrine soignée. Après la soumission, cliquez sur « Rendre visible à tous » sur sa carte d'accueil. Ce bouton n'apparaît que pour son porteur, un administrateur ou un membre d'un comité de validation. | Étapes 2 et 3 : il doit apparaître chez tous les participants dans « Projets partagés par d'autres équipes ». Étape 7 : sa copie doit pouvoir être soumise en validation sans rien compléter. |
-| 2 | **Un compte « expert »**, contact d'une équipe experte que le projet modèle sollicite (back-office, onglet « Équipes »). Si c'est votre propre compte, ajoutez-le **d'abord** aux administrateurs (onglet « Administrateurs »). Sinon le back-office se réduit aux seuls onglets de votre équipe. | Étape 8 : il faut commenter le projet de chaque participant. |
-| 3 | **Une réponse du projet modèle qui change les risques.** Dans le back-office, onglet « Revue des règles », chargez le projet modèle et trouvez une réponse dont la modification déclenche une nouvelle règle, et donc une nouvelle équipe. Notez la question et la nouvelle réponse : `______________________` | Étape 11 : montrer qu'une modification ne notifie que les équipes réellement concernées. |
-| 4 | **Un commentaire d'expert prêt à copier-coller**, par exemple : « Merci pour ce projet. Pouvez-vous préciser comment les données des participants seront collectées ? » | Étape 8 : commenter 10 projets en 4 minutes n'est faisable qu'en copiant-collant. |
-| 5 | **Deux navigateurs ouverts** sur votre poste : un « chef de projet » (projeté) et un « expert » (non projeté). | Vous passez de l'un à l'autre sans vous déconnecter. |
-| 6 | **Les binômes**, notés à l'avance. | Étape 5 : chacun commente la vitrine de son voisin. |
+| 2 | **Des « Points à préparer » dans le projet modèle.** Ouvrez ses « Enjeux du projet », dépliez les cartes des équipes et vérifiez qu'au moins une équipe affiche des « Points à préparer ». Notez laquelle et préparez une réponse d'exemple. | Étape 8 : c'est à ces questions que les participants répondent. Si aucune équipe n'en affiche, ajoutez des questions dans la règle concernée (back-office, onglet « Règles », section « Questions à préparer par équipe »). |
+| 3 | **Une réponse du projet modèle qui change les risques.** Dans le back-office, onglet « Revue des règles », chargez le projet modèle et trouvez une réponse dont la modification déclenche une nouvelle règle, et donc une nouvelle équipe. Notez la question et la nouvelle réponse : `______________________` | Étape 10 : montrer qu'une modification ne notifie que les équipes réellement concernées. |
+| 4 | **Les flux Power Automate désactivés** juste avant la séance. | Aucune notification inutile ne part vers les équipes expertes. |
+| 5 | **Les binômes**, notés à l'avance. | Étape 5 : chacun commente la vitrine de son voisin. |
 
-> 💡 **Au-delà de 8 participants environ**, prévoyez un co-animateur qui tient le compte expert pendant l'étape 8 : seul, vous n'aurez pas le temps de commenter tous les projets en 4 minutes.
+> ⚠️ **À vérifier : les notifications en attente.** L'application ne désactive rien de son côté : elle continue d'écrire chaque notification dans la liste SharePoint `CN_NotificationsQueue`, et ce sont les flux qui envoient les e-mails. Je ne sais pas si vos flux traiteront ces éléments une fois réactivés. Cela dépend de la configuration de leur déclencheur. Par précaution, après la séance et **avant** de réactiver les flux, consultez cette liste et supprimez les éléments créés pendant la démo.
+
+> 💡 **Parlez-en aussi aux équipes expertes.** Même sans e-mail, les projets soumis pendant la séance apparaîtront dans leur « Projets déclenchés pour vous ». Prévenez-les, ou faites supprimer les projets de formation après la séance (icône corbeille sur la carte, réservée au porteur et aux administrateurs).
 
 > ⚠️ **À vérifier** : l'adresse de la page SharePoint qui héberge Project Navigator. Elle n'est pas indiquée dans le code de l'application : `______________________`. Envoyez-la aux participants avant la séance.
 
@@ -109,12 +111,12 @@ Sans ces préparatifs, la séance ne peut pas être fluide.
 
 ✅ **Point de contrôle :** l'indicateur affiche « Tout est publié ».
 
-💬 **À dire** (pendant l'étape 4) : « On ne remplit pas un formulaire : on modifie directement la vitrine, et chaque texte modifié met à jour la réponse du questionnaire. »
-💬 **À dire** (à l'étape 8) : « Sans "Publier", tout reste un brouillon personnel. »
+💬 **À dire** (pendant le point 4) : « On ne remplit pas un formulaire : on modifie directement la vitrine, et chaque texte modifié met à jour la réponse du questionnaire. »
+💬 **À dire** (au point 8) : « Sans "Publier", tout reste un brouillon personnel. »
 
 > 💡 Ce qui est copié : toutes les réponses, et vous devenez lead du projet. Ce qui n'est **pas** copié : les avis des experts, les post-its, la visibilité « Visible par tous ».
 
-> 🆘 **Si quelqu'un est en retard :** il saute l'étape 5. Le nom du projet (étape 4) et « Publier » (étape 8) suffisent pour la suite.
+> 🆘 **Si quelqu'un est en retard :** il saute le point 5. Le nom du projet (point 4) et « Publier » (point 8) suffisent pour la suite.
 
 ---
 
@@ -190,48 +192,28 @@ On revient sur la **copie du projet modèle** (étape 3), qui est complète.
 
 ---
 
-## 8. Ajouter une inspiration et la partager — 4 min
-
-> 🎬 **Formateur, pendant cette étape** (ou co-animateur), dans le navigateur « expert », non projeté :
-> 1. Accueil → « **Projets déclenchés pour vous** », onglet « À traiter ».
-> 2. Pour chaque projet de participant : ouvrez-le, dépliez la carte de votre équipe, cliquez sur « ✎ Modifier le commentaire / statut ».
-> 3. Choisissez le statut « **En attente d'informations** », collez le commentaire préparé, puis « **Enregistrer le commentaire** ».
-
-🖱 **Tout le monde** (en autonomie, consignes projetées) :
-1. Sur l'accueil, cliquez sur l'onglet « **Inspiration** ».
-2. Cliquez sur « **Ajouter un projet inspirant** » (ou « Créer un projet inspirant »).
-3. Remplissez au moins le titre et une description : un projet vu ailleurs qui vous a plu.
-4. Pour la visibilité, choisissez « **Partagé** » plutôt que « Personnel ».
-5. Cliquez sur « **Valider** ».
-
-✅ **Point de contrôle :** l'inspiration apparaît dans « Inspirations partagées ».
-
-💬 **À dire :** « En "Partagé", tout le monde la voit : une bonne idée repérée ailleurs profite à tous. »
-
-> ⚠️ **À vérifier** : les champs du formulaire d'inspiration sont paramétrables dans le back-office. Vérifiez lesquels sont obligatoires chez vous.
-
----
-
-## 9. Répondre à la compliance — 4 min
+## 8. Répondre à la compliance — 4 min
 
 🖱 **Tout le monde :**
-1. Revenez sur l'onglet des projets de l'accueil. Sur la carte de votre projet soumis, cliquez sur « **Consulter les enjeux** ».
-2. Dans « Équipes à solliciter », dépliez la carte de l'équipe experte : vous voyez son « Avis » et les « Points à préparer ».
-3. Cliquez sur « **Répondre** », écrivez votre réponse, puis « **Envoyer la réponse** ».
+1. Après la soumission, vous êtes revenu sur l'accueil. Sur la carte de votre copie, cliquez sur « **Consulter les enjeux** ».
+2. Faites défiler jusqu'à « **Équipes à solliciter** ». Chaque carte d'équipe est repliée et résume son contenu : « N point(s) à préparer · N échange(s) ».
+3. Dépliez la carte de l'équipe repérée la veille (annoncez son nom). Lisez les « **Points à préparer** » : ce sont les questions que cette équipe pose systématiquement quand la règle se déclenche.
+4. Juste en dessous, l'encadré « **Échange en cours** » indique qu'aucun avis n'a encore été rendu et qu'on peut déjà poser ses questions.
+5. Cliquez sur « **Répondre** » et répondez aux points à préparer dans le texte (une ligne par point, par exemple). Puis cliquez sur « **Envoyer la réponse** ».
 
-✅ **Point de contrôle :** la réponse apparaît dans les « Échanges » de l'équipe.
+✅ **Point de contrôle :** la réponse apparaît dans les « Échanges » de la carte de l'équipe.
 
-🎬 **Formateur :** sur l'écran projeté, basculez sur le navigateur « expert ». Montrez qu'une réponse est bien arrivée, puis passez un projet en « **Validé** ».
+💬 **À dire :** « N'attendez pas l'expert : les points à préparer vous disent déjà ce qu'il va vous demander. En y répondant tout de suite, vous gagnez un aller-retour. Et l'échange reste attaché au projet et à l'équipe, pas perdu dans un fil de mails. »
 
-💬 **À dire :** « L'échange avec l'expert se fait dans l'outil, attaché au projet et à l'équipe. Fini les fils de mails qui se perdent. »
+💬 **À dire aussi :** « En temps normal, votre réponse part par e-mail à l'équipe. Aujourd'hui, les envois sont coupés pour ne pas déranger les experts. »
 
-> 💡 Une carte d'expert sans aucun avis écrit reste masquée pour le chef de projet : c'est normal.
+> 💡 Quand l'expert aura rendu son avis, il apparaîtra à la place de l'encadré « Échange en cours », avec son statut (« Validé », « Validé sous conditions », « En attente d'informations »…). On répond de la même façon, avec « Répondre ».
 
-> ⚠️ **À vérifier** : en environnement SharePoint réel, les e-mails de notification passent par Power Automate. Vérifiez que les flux sont actifs si vous voulez parler des mails reçus.
+> 💡 Un participant dont la carte n'affiche aucun point à préparer peut quand même cliquer sur « Répondre » pour poser une question à l'équipe.
 
 ---
 
-## 10. Modifier son projet depuis les enjeux — 3 min
+## 9. Modifier son projet depuis les enjeux — 3 min
 
 🖱 **Tout le monde** (toujours sur « Enjeux du projet ») :
 1. Dans le « Sommaire » de gauche, cliquez sur « **Rappel de vos réponses** ».
@@ -245,7 +227,7 @@ On revient sur la **copie du projet modèle** (étape 3), qui est complète.
 
 ---
 
-## 11. Renvoyer après modification des risques — 3 min
+## 10. Renvoyer après modification des risques — 3 min
 
 🖱 **Tout le monde :**
 1. En haut du panneau de gauche, lisez « **1 réponse modifiée depuis la v1 envoyée le …** ».
@@ -253,11 +235,28 @@ On revient sur la **copie du projet modèle** (étape 3), qui est complète.
 
 ✅ **Point de contrôle :** le message « Mise à jour envoyée : seules les équipes réellement concernées par vos modifications ont été notifiées. » s'affiche.
 
-💬 **À dire :** « On fait évoluer son projet sans tout relancer : seules les équipes touchées sont prévenues. En contrepartie, un "Validé" ne couvre que la version validée. Si le projet change, l'expert concerné doit revoir son avis. »
+💬 **À dire :** « On fait évoluer son projet sans tout relancer : seules les équipes touchées sont prévenues (en temps normal par e-mail ; aujourd'hui les envois sont coupés). En contrepartie, un "Validé" ne couvre que la version validée. Si le projet change, l'expert concerné doit revoir son avis. »
 
 > 💡 Si le message est « Mise à jour enregistrée : aucune de vos modifications ne change le périmètre d'une équipe… », la réponse choisie ne déclenche aucune nouvelle règle. Ce n'est pas une erreur : profitez-en pour expliquer que les équipes non concernées ne sont jamais dérangées.
 
 > 💡 Les champs de texte libre (descriptions, jalons, fichiers) ne déclenchent jamais de notification.
+
+---
+
+## 11. Ajouter une inspiration et la partager — 4 min
+
+🖱 **Tout le monde :**
+1. Revenez à l'accueil et cliquez sur l'onglet « **Inspiration** ».
+2. Cliquez sur « **Ajouter un projet inspirant** » (ou « Créer un projet inspirant »).
+3. Remplissez au moins le titre et une description : un projet vu ailleurs qui vous a plu.
+4. Pour la visibilité, choisissez « **Partagé** » plutôt que « Personnel ».
+5. Cliquez sur « **Valider** ».
+
+✅ **Point de contrôle :** l'inspiration apparaît dans « Inspirations partagées ».
+
+💬 **À dire :** « En "Partagé", tout le monde la voit : une bonne idée repérée ailleurs profite à tous. »
+
+> ⚠️ **À vérifier** : les champs du formulaire d'inspiration sont paramétrables dans le back-office. Vérifiez lesquels sont obligatoires chez vous.
 
 ---
 
