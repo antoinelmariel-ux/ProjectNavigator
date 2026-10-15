@@ -714,6 +714,9 @@ const createEmptyInspirationFormField = () => ({
   enabled: true
 });
 
+const TEAM_VISIBILITY_OPTION_SELECTED = 'border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200';
+const TEAM_VISIBILITY_OPTION_IDLE = 'border-gray-200 bg-white hover:bg-gray-50';
+
 export const BackOffice = ({
   launchSignals = {},
   launchReminderDays,
@@ -745,6 +748,8 @@ export const BackOffice = ({
   setAdminEmails,
   technicalContactEmails,
   setTechnicalContactEmails,
+  teamVisibility,
+  setTeamVisibility,
   complianceSampleProjects = [],
   setComplianceSampleProjects,
   sampleProjectsQueueRef,
@@ -8353,6 +8358,43 @@ export const BackOffice = ({
                   </div>
                 </div>
               </div>
+
+              {typeof setTeamVisibility === 'function' && (
+                <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm space-y-4">
+                  <div>
+                    <h3 id="team-visibility-heading" className="text-lg font-semibold text-gray-800">
+                      {t('backOffice.main.teamVisibilityHeading')}
+                    </h3>
+                    <p className="text-sm text-gray-600 mt-1">{t('backOffice.main.teamVisibilitySubtitle')}</p>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2" role="group" aria-labelledby="team-visibility-heading">
+                    {[
+                      { includeDrafts: false, key: 'submittedOnly' },
+                      { includeDrafts: true, key: 'withDrafts' }
+                    ].map((option) => {
+                      const isSelected = Boolean(teamVisibility?.includeDrafts) === option.includeDrafts;
+                      return (
+                        <button
+                          key={`team-visibility-${option.key}`}
+                          type="button"
+                          aria-pressed={isSelected}
+                          onClick={() => setTeamVisibility({ ...(teamVisibility || {}), includeDrafts: option.includeDrafts })}
+                          className={`rounded-xl border p-4 text-left transition-colors ${
+                            isSelected ? TEAM_VISIBILITY_OPTION_SELECTED : TEAM_VISIBILITY_OPTION_IDLE
+                          }`}
+                        >
+                          <span className="block text-sm font-semibold text-gray-900">
+                            {t(`backOffice.main.teamVisibility.${option.key}Title`)}
+                          </span>
+                          <span className="mt-1 block text-xs text-gray-600">
+                            {t(`backOffice.main.teamVisibility.${option.key}Body`)}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {isCurrentUserAdmin && !isSimulatedSession && (
                 <div className="bg-white border border-purple-200 rounded-xl p-6 shadow-sm space-y-4">

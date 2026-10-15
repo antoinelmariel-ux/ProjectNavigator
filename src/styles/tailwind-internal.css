@@ -367,6 +367,11 @@
   border-color: rgba(251,191,36, var(--tw-border-opacity));
 }
 
+.border-amber-600 {
+  --tw-border-opacity: 1;
+  border-color: rgba(217,119,6, var(--tw-border-opacity));
+}
+
 .border-b {
   border-bottom-width: 1px;
 }
@@ -448,6 +453,11 @@
 .border-indigo-300 {
   --tw-border-opacity: 1;
   border-color: rgba(165,180,252, var(--tw-border-opacity));
+}
+
+.border-indigo-600 {
+  --tw-border-opacity: 1;
+  border-color: rgba(79,70,229, var(--tw-border-opacity));
 }
 
 .border-orange-200 {
@@ -1290,6 +1300,16 @@
 
 .right-6 {
   right: 1.5rem;
+}
+
+.ring-2:focus {
+  --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+  --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+  box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+}
+
+.ring-indigo-200 {
+  --tw-ring-color: rgba(199,210,254, 0.45);
 }
 
 .rounded {

@@ -159,6 +159,7 @@ import HEADER_LOGO_PATH from './components/logo.png';
 import { injectStyles } from './styles/injectStyles.js';
 import { scrollAppTo } from './utils/scrollContainer.js';
 import { openStaticPage, staticPageLinkProps } from './utils/staticPages.js';
+import { loadReportingHierarchy, normalizeTeamVisibility } from './utils/reportingHierarchy.js';
 import { StaticPageDialog } from './components/StaticPageDialog.jsx';
 
 const APP_VERSION = 'v1.0.385';
@@ -821,6 +822,8 @@ const buildInitialAdminEmailsState = () => {
   return cloneDeep(initialAdminEmails);
 };
 
+const buildInitialTeamVisibility = () => normalizeTeamVisibility(loadPersistedState()?.teamVisibility);
+
 const buildInitialTechnicalContactEmailsState = () => {
   const savedState = loadPersistedState();
   if (savedState && Array.isArray(savedState.technicalContactEmails)) {
@@ -930,6 +933,7 @@ export const App = () => {
   const [launchReminderDays, setLaunchReminderDays] = useState(buildInitialLaunchReminderDays);
   const [adminEmails, setAdminEmails] = useState(buildInitialAdminEmailsState);
   const [technicalContactEmails, setTechnicalContactEmails] = useState(buildInitialTechnicalContactEmailsState);
+  const [teamVisibility, setTeamVisibility] = useState(buildInitialTeamVisibility);
   const [complianceSampleProjects, setComplianceSampleProjects] = useState(buildInitialComplianceSampleProjectsState);
   const [faqEntries, setFaqEntries] = useState(buildInitialFaqEntriesState);
   const [isBackOfficeUnlocked, setIsBackOfficeUnlocked] = useState(false);
@@ -970,6 +974,35 @@ export const App = () => {
     () => normalizeEmail(currentUser?.mail || currentUser?.userPrincipalName || ''),
     [currentUser]
   );
+  const [reportingHierarchy, setReportingHierarchy] = useState(() => ({ status: 'idle', people: [], isPartial: false }));
+  const reportingHierarchyRequestRef = useRef(0);
+  const loadTeamHierarchy = useCallback((force = false) => {
+    const requestId = reportingHierarchyRequestRef.current + 1;
+    reportingHierarchyRequestRef.current = requestId;
+    if (!currentUserEmail) {
+      setReportingHierarchy({ status: 'ready', people: [], isPartial: false });
+      return;
+    }
+    setReportingHierarchy((prev) => ({ ...prev, status: 'loading' }));
+    loadReportingHierarchy(currentUserEmail, { force })
+      .then((result) => {
+        if (reportingHierarchyRequestRef.current === requestId) {
+          setReportingHierarchy({ status: 'ready', people: result.people, isPartial: result.isPartial });
+        }
+      })
+      .catch((error) => {
+        console.warn('Organigramme indisponible :', error);
+        if (reportingHierarchyRequestRef.current === requestId) {
+          setReportingHierarchy((prev) => ({ ...prev, status: 'error' }));
+        }
+      });
+  }, [currentUserEmail]);
+  useEffect(() => {
+    loadTeamHierarchy(false);
+    return () => {
+      reportingHierarchyRequestRef.current += 1;
+    };
+  }, [loadTeamHierarchy]);
   const currentUserDisplayName = useMemo(() => {
     const firstName = typeof currentUser?.givenName === 'string' ? currentUser.givenName.trim() : '';
     const lastName = typeof currentUser?.surname === 'string' ? currentUser.surname.trim() : '';
@@ -1368,7 +1401,8 @@ export const App = () => {
       launchReminderDays,
       inspirationFormFields,
       projectFilters,
-      inspirationFilters
+      inspirationFilters,
+      teamVisibility
     })
   }), [
     questions,
@@ -1382,7 +1416,8 @@ export const App = () => {
     launchReminderDays,
     inspirationFormFields,
     projectFilters,
-    inspirationFilters
+    inspirationFilters,
+    teamVisibility
   ]);
 
   useEffect(() => {
@@ -1689,7 +1724,9 @@ const updateProjectFilters = useCallback((updater) => {
       }
       if (typeof savedState.activeProjectId === 'string') setActiveProjectId(savedState.activeProjectId);
       if (typeof savedState.activeInspirationId === 'string') setActiveInspirationId(savedState.activeInspirationId);
-      if (typeof savedState.homeView === 'string') setHomeView(savedState.homeView);
+      // « Mon équipe » ne se rouvre jamais tout seul : on revient sur l'accueil par ses propres
+      // projets, et la vue équipe reste un choix explicite de la session en cours.
+      if (typeof savedState.homeView === 'string') setHomeView(savedState.homeView === 'team' ? 'platform' : savedState.homeView);
       if (Array.isArray(savedState.questions)) {
         setQuestions(restoreShowcaseQuestions(savedState.questions));
       }
@@ -1741,6 +1778,9 @@ const updateProjectFilters = useCallback((updater) => {
       if (Array.isArray(slices.showcaseThemes)) setShowcaseThemes(slices.showcaseThemes);
       if (Array.isArray(slices.adminEmails)) setAdminEmails(slices.adminEmails);
       if (Array.isArray(slices.technicalContactEmails)) setTechnicalContactEmails(slices.technicalContactEmails);
+      if (slices.teamVisibility && typeof slices.teamVisibility === 'object') {
+        setTeamVisibility(normalizeTeamVisibility(slices.teamVisibility));
+      }
       if (Array.isArray(slices.complianceSampleProjects)) setComplianceSampleProjects(slices.complianceSampleProjects);
       if (slices.projectFilters && typeof slices.projectFilters === 'object') {
         setProjectFiltersState(normalizeProjectFilterConfig(stripRetiredProjectFilterFields(slices.projectFilters)));
@@ -1977,6 +2017,7 @@ const updateProjectFilters = useCallback((updater) => {
       launchReminderDays,
       adminEmails,
       technicalContactEmails,
+      teamVisibility,
       complianceSampleProjects,
       faqEntries
     };
@@ -2018,6 +2059,7 @@ const updateProjectFilters = useCallback((updater) => {
     launchReminderDays,
     adminEmails,
     technicalContactEmails,
+    teamVisibility,
     complianceSampleProjects,
     faqEntries,
     persistDefaults
@@ -3539,6 +3581,17 @@ const updateProjectFilters = useCallback((updater) => {
       return committeeEmails.some((email) => normalizeEmail(email) === currentUserEmail);
     });
   }, [currentUserEmail, isAdminMode, validationCommitteeConfig]);
+  // Ouvrir une vitrine n'est pas la posséder : un manager (onglet « Mon équipe ») ou le lecteur
+  // d'un projet rendu visible à tous la consultent, seuls le porteur et ses co-porteurs l'éditent.
+  // Une vitrine sans projet enregistré est celle qu'on est en train de créer.
+  const canEditShowcaseProject = useMemo(() => {
+    const projectId = showcaseProjectContext?.projectId;
+    if (!projectId) {
+      return true;
+    }
+    const project = projects.find((entry) => entry?.id === projectId);
+    return !project || canManageProject(project);
+  }, [showcaseProjectContext?.projectId, projects, canManageProject]);
   const canCloseAnnotationNotes = useMemo(
     () => canManageProject(activeShowcaseProject),
     [activeShowcaseProject, canManageProject]
@@ -6918,9 +6971,11 @@ const updateProjectFilters = useCallback((updater) => {
           inspirationFormFields,
           onboardingTourConfig,
           validationCommitteeConfig,
+          launchReminderDays,
           showcaseThemes,
           adminEmails,
           technicalContactEmails,
+          teamVisibility,
           userEmail: currentUserEmail
         },
         { files: selectedFileKeys, rules: includeRules, teams: includeTeams }
@@ -6952,6 +7007,8 @@ const updateProjectFilters = useCallback((updater) => {
   }, [
     adminEmails,
     technicalContactEmails,
+    teamVisibility,
+    launchReminderDays,
     currentUserEmail,
     inspirationFilters,
     inspirationFormFields,
@@ -7035,9 +7092,11 @@ const updateProjectFilters = useCallback((updater) => {
           inspirationFormFields,
           onboardingTourConfig,
           validationCommitteeConfig,
+          launchReminderDays,
           showcaseThemes,
           adminEmails,
-          technicalContactEmails
+          technicalContactEmails,
+          teamVisibility
         },
         selectedKeys
       );
@@ -7068,6 +7127,8 @@ const updateProjectFilters = useCallback((updater) => {
   }, [
     adminEmails,
     technicalContactEmails,
+    teamVisibility,
+    launchReminderDays,
     inspirationFilters,
     inspirationFormFields,
     onboardingTourConfig,
@@ -7109,9 +7170,11 @@ const updateProjectFilters = useCallback((updater) => {
           inspirationFormFields,
           onboardingTourConfig,
           validationCommitteeConfig,
+          launchReminderDays,
           showcaseThemes,
           adminEmails,
-          technicalContactEmails
+          technicalContactEmails,
+          teamVisibility
         },
         new Set([key])
       );
@@ -7137,6 +7200,8 @@ const updateProjectFilters = useCallback((updater) => {
   }, [
     adminEmails,
     technicalContactEmails,
+    teamVisibility,
+    launchReminderDays,
     inspirationFilters,
     inspirationFormFields,
     onboardingTourConfig,
@@ -7834,6 +7899,8 @@ const updateProjectFilters = useCallback((updater) => {
                 setAdminEmails={setAdminEmails}
                 technicalContactEmails={technicalContactEmails}
                 setTechnicalContactEmails={setTechnicalContactEmails}
+                teamVisibility={teamVisibility}
+                setTeamVisibility={(next) => setTeamVisibility(normalizeTeamVisibility(next))}
                 complianceSampleProjects={complianceSampleProjects}
                 setComplianceSampleProjects={setComplianceSampleProjects}
                 currentUserEmail={currentUserEmail}
@@ -7882,6 +7949,9 @@ const updateProjectFilters = useCallback((updater) => {
             currentUser={currentUser}
             homeView={homeView}
             onHomeViewChange={handleHomeViewChange}
+            reportingHierarchy={reportingHierarchy}
+            teamVisibility={teamVisibility}
+            onRetryReportingHierarchy={() => loadTeamHierarchy(true)}
             onStartInspirationProject={handleStartInspirationProject}
             onOpenInspirationProject={handleOpenInspirationProject}
             onStartNewProject={handleCreateNewProject}
@@ -8061,10 +8131,10 @@ const updateProjectFilters = useCallback((updater) => {
                       ? undefined
                       : isOnboardingActive
                         ? noop
-                        : isProjectOpenForEditing({
+                        : (isProjectOpenForEditing({
                           status: showcaseProjectContext.status,
                           answers: showcaseProjectContext.answers
-                        }) || isAdminMode
+                        }) && canEditShowcaseProject) || isAdminMode
                           ? handleUpdateProjectShowcaseAnswers
                           : undefined
                   }
