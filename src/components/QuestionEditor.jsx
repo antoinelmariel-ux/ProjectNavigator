@@ -24,9 +24,9 @@ import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { getLocalizedRaw, setLocalizedText, trimLocalizedValue, isLocalizedValueEmpty, resolveLocalizedText } from '../utils/localizedContent.js';
 import { SUPPORTED_LANGUAGES } from '../i18n/languages.js';
 import {
-  PROJECT_STAGE_LABELS,
-  PROJECT_STAGE_VALUES,
-  getQuestionRequiredFromStage
+  REQUIRED_FOR_ADVICE,
+  REQUIRED_FOR_ORIENTATION,
+  getQuestionRequirementLevel
 } from '../utils/projectStage.js';
 import { LanguageEditSwitcher } from './LocalizedFieldEditor.jsx';
 
@@ -1109,8 +1109,8 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
               </div>
 
               {/* C'est ce réglage qui décide de ce qu'un porteur doit avoir tranché pour
-                  interroger la compliance : déplacer une question vers un stade plus tardif
-                  l'enlève du socle d'entrée sans la rendre facultative à l'arrivée. */}
+                  demander une orientation : sortir une question du socle ne la rend pas
+                  facultative pour l'avis technique ni pour la validation. */}
               {editedQuestion.required && (
                 <div>
                   <label
@@ -1121,15 +1121,16 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
                   </label>
                   <select
                     id="question-required-from-stage"
-                    value={getQuestionRequiredFromStage(editedQuestion)}
+                    value={getQuestionRequirementLevel(editedQuestion)}
                     onChange={(e) => setEditedQuestion({ ...editedQuestion, requiredFromStage: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    {PROJECT_STAGE_VALUES.map((stage) => (
-                      <option key={stage} value={stage}>
-                        {resolveLocalizedText(PROJECT_STAGE_LABELS[stage], language)}
-                      </option>
-                    ))}
+                    <option value={REQUIRED_FOR_ORIENTATION}>
+                      {t('backOffice.questionEditor.requiredForOrientation')}
+                    </option>
+                    <option value={REQUIRED_FOR_ADVICE}>
+                      {t('backOffice.questionEditor.requiredForAdvice')}
+                    </option>
                   </select>
                   <p className="text-xs text-gray-500 mt-1">
                     {t('backOffice.questionEditor.requiredFromStageHint')}

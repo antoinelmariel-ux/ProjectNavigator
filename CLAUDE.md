@@ -203,8 +203,8 @@ exits go through `navigateToProjectShowcase` in `App.jsx` — the last question'
 (« Voir la vitrine du projet »), the mid-questionnaire « Terminer et voir la vitrine », and the
 mandatory-questions interstitial's button, which is the same journey interrupted. That
 interstitial only appears while a **core** question is missing (`unansweredPreliminaryQuestions`,
-the same list that gates the preliminary request) — a question that only becomes mandatory at a
-later declared stage does not stand between the author and their showcase. A project type
+the same list that gates the preliminary request) — a question only required for technical
+advice and validation does not stand between the author and their showcase. A project type
 that `isShowcaseAccessBlockedByProjectType` denies the showcase falls back to the report, which
 is the only way that screen is reached directly from the form.
 
@@ -233,27 +233,29 @@ Section colours are **the theme's own colours**, nothing else. `buildAccentFamil
 
 Sharing a showcase produces a single opaque query parameter (`?sv=<token>`, `src/utils/showcaseShareLink.js`) that carries project id, display mode (`full`/`light`), comments toggle and post-it visibility — obfuscated and sealed with a checksum, so a recipient can no longer drop `showcaseMode=light` from the URL to reach the full view. It is deterrence, not security: everything still runs client-side. A tampered token decodes to `null` and opens nothing rather than falling back to full mode; the older plain-text params (`showcaseShared`/`showcaseMode`/…) are still *read* so links already shared keep working, but are never written again. A shared link also hides the app's `<nav>` (`shouldHideMainNav` in `App.jsx`, driven by `isShowcaseSharedView`, which is now seeded from the URL at first render so the bar doesn't flash during hydration); it comes back as soon as the visitor closes the showcase.
 
-## Consulting compliance early (stage, uncertainty, two doors)
+## Consulting compliance early (levels, uncertainty, two doors)
 
 The whole point is that a project owner can consult compliance **before** the project is
 finished, and keep changing it afterwards. Four pieces carry that, and each one degrades
 gracefully to the old behaviour when its data is absent:
 
-- **`src/utils/projectStage.js` — the declared stage** (`framing` / `design` / `pre_launch`),
-  stored in the project's *answers* under `__project_stage__`. In answers rather than as a
-  project column because that makes it selectable as a question/rule condition through the same
-  `getConditionQuestionEntries(...)` both back-office editors already call, and it rides along in
-  `AnswersJson` with **no new SharePoint column**. A project with no stage reads as
-  `pre_launch` (`LEGACY_PROJECT_STAGE`) — never as `framing`, or questions that were mandatory
-  for an already-submitted project would retroactively stop being so. A brand-new project starts
-  at `framing` (`buildDefaultAnswers` in `App.jsx`).
-- **`question.requiredFromStage` — when a mandatory question actually becomes mandatory.**
-  Absent means "mandatory from `framing`", i.e. exactly today's behaviour, so a question nobody
-  requalified never changes regime. Editable per question in `QuestionEditor.jsx`.
-  `src/utils/mandatoryQuestions.js` is now the **only** definition of "this answer is filled in"
+- **There is no project stage — only levels derived from the answers.** A declared stage
+  (`framing`/`design`/`pre_launch`, once a selector in the questionnaire, stored under
+  `__project_stage__`) was removed: classifying yourself is not a question about the project. No
+  project writes that key any more, nothing reads it (older projects may still carry it, it is
+  ignored, and it is no longer a selectable condition nor a diff entry). Don't bring a stage back
+  as a second axis next to the levels: the two disagreed, which is how the preliminary door ended
+  up enabled by the panel and refused at send time.
+- **`question.requiredFromStage` — which level a mandatory question belongs to.** Absent or
+  `framing` = the core, required from orientation on; anything else = required for technical
+  advice and validation only (`getQuestionRequirementLevel` in `src/utils/projectStage.js`; the
+  back-office offers exactly these two choices, and the legacy `design` value reads as the second).
+  The stored values keep their old names so published referentials need no rewrite. Outside the
+  readiness levels, "mandatory" means every `required` question: that is what the questionnaire
+  flags. `src/utils/mandatoryQuestions.js` is the **only** definition of "this answer is filled in"
   and of "this question is mandatory" — it was copy-pasted identically into `App.jsx`,
-  `QuestionnaireScreen.jsx`, `SynthesisReport.jsx` and `projectNormalization.js`, and four copies
-  that disagree about the stage would produce four different progress counts for one project.
+  `QuestionnaireScreen.jsx`, `SynthesisReport.jsx` and `projectNormalization.js`, and copies that
+  disagree would produce different progress counts for one project.
 - **`src/utils/unknownAnswer.js` — "I do not know yet" as a real answer.** Sentinel value stored
   like any other answer, but **no condition is ever satisfied by it**, negative conditions
   included — the guard lives in *both* condition engines (`questions.js#evaluateQuestionCondition`
@@ -274,11 +276,9 @@ gracefully to the old behaviour when its data is absent:
   an option, so without its explicit guard the doubt is erased the moment it is expressed, with no
   error anywhere (that is exactly what happened, on the two types where it is most useful).
 - **`src/utils/submissionKind.js` — two doors, one project.** `preliminary` vs `final`, stored in
-  answers (same reason as the stage). A preliminary request only requires the orientation level —
-  the questions mandatory from `framing`, whatever the declared stage
-  (`getMissingForPreliminaryRequest`, the same list that enables the button in
-  `ProjectReadinessPanel.jsx`; checking the declared stage at send time refused a request the
-  panel showed as reachable); a validation request requires everything, with a firm answer everywhere
+  answers (so it needs no SharePoint column). A preliminary request only requires the orientation
+  level — the core questions (`getMissingForPreliminaryRequest`, the same list that enables the
+  button in `ProjectReadinessPanel.jsx`); a validation request requires everything, with a firm answer everywhere
   (`rejectUnknown`). Never split this into two project objects — answers, threads, rights and the
   showcase would all be duplicated. A favourable opinion on a preliminary request yields
   `PROJECT_VALIDATION_PRELIMINARY`, never `PROJECT_VALIDATION_VALIDATED`, and the team/owner
@@ -303,10 +303,9 @@ Two UI invariants that are easy to break:
   only (`canEditTeamComment` still sees the editor), and **auto-validated perimeters keep their
   current display unconditionally** (`isTeamAutoValidated`): nobody will ever write there, that
   card is the only compliance message those perimeters will ever have.
-- **The stage selector is a segmented control, not `input[type=radio]`.** The questionnaire's
-  sidebar precedes the question in the DOM, so radio inputs there capture any generic "select the
-  first radio" automation aimed at the answer itself (this is what silently broke the e2e
-  autopilot, and it would break any form-filling automation the same way).
+- **No `input[type=radio]` in the questionnaire's sidebar.** It precedes the question in the DOM,
+  so radio inputs there capture any generic "select the first radio" automation aimed at the
+  answer itself (a former stage selector did exactly that and silently broke the e2e autopilot).
 
 ## After submission: the project keeps living (versions, diff, targeted notifications)
 
@@ -380,7 +379,8 @@ expert one click** in the nominal case, and makes a project that ships without i
   and `launched_without` **only** once someone has recorded the launch with an incomplete round —
   true by construction. The dashboard keeps the two apart in two sections, because mixing a
   reproach to the owner with a reproach to the experts makes both unreadable. `launchDate` is
-  mandatory from the `pre_launch` stage, since nothing else can drive the reminders.
+  mandatory for technical advice and validation (`requiredFromStage: 'pre_launch'`), since
+  nothing else can drive the reminders.
 - **Reminders** (default J-30 then J-10, `0` disables, editable in the back-office's validation
   committee tab) run the same way as the claim reminders: no server, so the pass runs in the
   session of whoever opens the app — here the owner, since they are the one who decides to launch

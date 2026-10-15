@@ -633,14 +633,6 @@ export default {
     summaryProgressCompact: '{{answered}}/{{total}}',
     summaryMissingRequiredSingular: '{{count}} question obligatoire sans réponse',
     summaryMissingRequiredPlural: '{{count}} questions obligatoires sans réponse',
-    stageHeading: 'Stade du projet',
-    stageHint: 'Il décide de ce qui vous est demandé maintenant, pas de ce que vous devrez trancher au final.',
-    stageDescription: {
-      framing: 'L’idée est posée, rien n’est arrêté.',
-      design: 'Les grandes options sont prises, les détails s’écrivent.',
-      pre_launch: 'Le projet part bientôt : tout doit être tranché.'
-    },
-    deferredAnswer: 'À trancher plus tard',
     doubtToggle: 'J’ai un doute',
     doubtToggleHint: 'Cochez si vous n’êtes pas sûr de cette réponse : vous pourrez expliquer pourquoi.',
     doubtActiveHint: 'Ce point reste signalé comme ouvert. Une validation définitive demandera qu’il soit levé.',
@@ -895,8 +887,10 @@ export default {
       numberUnitOptionsLabel: 'Autres devises proposées',
       numberUnitOptionsHint:
         'Sélectionnez des devises additionnelles : dès que 2 devises sont disponibles pour cette question, la personne qui répond peut choisir la sienne.',
-      requiredFromStageLabel: 'Obligatoire à partir du stade',
-      requiredFromStageHint: 'Avant ce stade, la question reste visible et répondable, mais n’empêche pas d’interroger la compliance.',
+      requiredFromStageLabel: 'Exigée à partir du palier',
+      requiredFromStageHint: 'Une question du socle doit être renseignée pour demander une orientation (avis préliminaire). Toute question obligatoire reste exigée pour l’avis technique et la validation.',
+      requiredForOrientation: 'Dès l’orientation (socle)',
+      requiredForAdvice: 'Pour l’avis technique et la validation',
       requiredLabel: 'Question obligatoire',
       draftLabel: 'Question en brouillon',
       draftHint: 'Une question en brouillon n’apparaît plus dans le formulaire de création de projet.',

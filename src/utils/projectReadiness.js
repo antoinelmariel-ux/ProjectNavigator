@@ -9,9 +9,9 @@ export const READINESS_ORIENTATION = 'orientation';
 export const READINESS_ADVICE = 'advice';
 export const READINESS_VALIDATION = 'validation';
 
-// Chaque palier est exactement « toutes les questions obligatoires jusqu'à ce stade sont
-// renseignées » : aucune donnée supplémentaire à saisir côté back-office, c'est le même
-// `requiredFromStage` qui module l'obligatoire dans le questionnaire.
+// Chaque palier est exactement « toutes les questions exigibles à ce palier sont renseignées » :
+// aucune donnée supplémentaire à saisir côté back-office, c'est le `requiredFromStage` de chaque
+// question qui la range dans le socle (orientation) ou non.
 //
 // L'avis technique et la validation exigent **le même socle de réponses** : toutes les
 // questions obligatoires déclenchées par le projet. Un expert ne se prononce pas sur le fond

@@ -35,11 +35,6 @@ import {
   getMissingMandatoryQuestions,
   isAnswerProvided
 } from './utils/mandatoryQuestions.js';
-import {
-  DEFAULT_NEW_PROJECT_STAGE,
-  PROJECT_STAGE_ANSWER_KEY,
-  getProjectStage
-} from './utils/projectStage.js';
 import { getMissingForPreliminaryRequest, getProjectReadiness } from './utils/projectReadiness.js';
 import {
   getLastSentSnapshot,
@@ -3281,15 +3276,12 @@ const updateProjectFilters = useCallback((updater) => {
     [questions, answers, shouldShowQuestion]
   );
 
-  const projectStage = useMemo(() => getProjectStage(answers), [answers]);
-
-  // Trois listes : ce qui manque pour aller plus loin *au stade déclaré* (parcours du
-  // questionnaire), ce qui manque pour demander un avis préliminaire (le socle, quel que soit
-  // le stade), et ce qui manque pour une soumission finale, où le stade ne dispense de rien et
-  // où un « je ne sais pas encore » ne passe plus.
+  // Trois listes : toutes les questions obligatoires (ce que le questionnaire signale), le socle
+  // (ce qui bloque une demande d'avis préliminaire), et ce qui manque pour une demande de
+  // validation, où un « je ne sais pas encore » ne passe plus.
   const unansweredMandatoryQuestions = useMemo(
-    () => getMissingMandatoryQuestions(activeQuestions, answers, { stage: projectStage }),
-    [activeQuestions, answers, projectStage]
+    () => getMissingMandatoryQuestions(activeQuestions, answers),
+    [activeQuestions, answers]
   );
 
   const unansweredPreliminaryQuestions = useMemo(
@@ -3298,7 +3290,7 @@ const updateProjectFilters = useCallback((updater) => {
   );
 
   const unansweredFinalMandatoryQuestions = useMemo(
-    () => getMissingMandatoryQuestions(activeQuestions, answers, { ignoreStage: true, rejectUnknown: true }),
+    () => getMissingMandatoryQuestions(activeQuestions, answers, { rejectUnknown: true }),
     [activeQuestions, answers]
   );
 
@@ -5059,15 +5051,11 @@ const updateProjectFilters = useCallback((updater) => {
     });
   }, [activeProjectId]);
 
-  // Le stade n'est plus demandé au porteur : tout projet part du stade le plus avancé, comme
-  // un projet enregistré sans stade (cf. DEFAULT_NEW_PROJECT_STAGE). La consultation précoce
-  // passe par le palier « orientation », pas par une déclaration.
   const buildDefaultAnswers = useCallback(() => {
-    const base = { [PROJECT_STAGE_ANSWER_KEY]: DEFAULT_NEW_PROJECT_STAGE };
     if (currentUserDisplayName) {
-      return { ...base, teamLead: currentUserDisplayName };
+      return { teamLead: currentUserDisplayName };
     }
-    return base;
+    return {};
   }, [currentUserDisplayName]);
 
   const resetProjectState = useCallback(() => {
@@ -8130,7 +8118,6 @@ const updateProjectFilters = useCallback((updater) => {
             tourContext={tourContext}
             onFinish={leaveQuestionnaireForShowcase}
             projectId={activeProjectId}
-            projectStage={projectStage}
             onSetQuestionDoubt={handleSetQuestionDoubt}
             onClearQuestionDoubt={handleClearQuestionDoubt}
             />

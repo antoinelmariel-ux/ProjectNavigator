@@ -25,10 +25,7 @@ import { normalizeRankingConfig } from '../utils/ranking.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { resolveLocalizedText } from '../utils/localizedContent.js';
 import { createAttachmentFromFile } from '../utils/documentStore.js';
-import { isAnswerProvided, isQuestionMandatoryAtStage } from '../utils/mandatoryQuestions.js';
-import {
-  normalizeProjectStage
-} from '../utils/projectStage.js';
+import { isAnswerProvided, isQuestionMandatory } from '../utils/mandatoryQuestions.js';
 import { canQuestionHaveDoubt, getQuestionDoubtText, hasQuestionDoubt } from '../utils/questionDoubts.js';
 import { scrollAppTo } from '../utils/scrollContainer.js';
 import { staticPageLinkProps } from '../utils/staticPages.js';
@@ -202,7 +199,6 @@ export const QuestionnaireScreen = ({
   isReturnToSynthesisRequested = false,
   onFinish,
   projectId = null,
-  projectStage,
   onSetQuestionDoubt,
   onClearQuestionDoubt
 }) => {
@@ -215,13 +211,7 @@ export const QuestionnaireScreen = ({
   const currentQuestionPlaceholder = resolveLocalizedText(currentQuestion.placeholder, language).trim();
   const currentQuestionNumberUnit = resolveLocalizedText(currentQuestion.numberUnit, language).trim();
 
-  const resolvedStage = normalizeProjectStage(projectStage);
   const [isOutlineOpen, setIsOutlineOpen] = useState(true);
-  const isCurrentQuestionMandatoryNow = isQuestionMandatoryAtStage(currentQuestion, resolvedStage);
-  // Une question obligatoire que le stade déclaré ne rend pas encore exigible : on le dit, au
-  // lieu de la laisser passer pour optionnelle (elle ne l'est pas) ou bloquante (elle ne l'est
-  // pas encore).
-  const isCurrentQuestionDeferred = Boolean(currentQuestion.required) && !isCurrentQuestionMandatoryNow;
   const canHaveDoubt = canQuestionHaveDoubt(currentQuestion);
   const hasCurrentDoubt = hasQuestionDoubt(answers, currentQuestion.id);
   const currentDoubtText = getQuestionDoubtText(answers, currentQuestion.id);
@@ -232,7 +222,7 @@ export const QuestionnaireScreen = ({
   ).length;
   const missingRequiredCount = questions.filter(
     (question) => question?.id
-      && isQuestionMandatoryAtStage(question, resolvedStage)
+      && isQuestionMandatory(question)
       && !isAnswerProvided(answers[question.id])
   ).length;
   const remainingQuestions = Math.max(questions.length - (currentIndex + 1), 0);
@@ -1384,7 +1374,7 @@ export const QuestionnaireScreen = ({
                   {questions.map((question, index) => {
                     const isAnswered = isAnswerProvided(answers[question.id]);
                     const isCurrent = index === currentIndex;
-                    const isMissingRequired = isQuestionMandatoryAtStage(question, resolvedStage) && !isAnswered;
+                    const isMissingRequired = isQuestionMandatory(question) && !isAnswered;
                     const stateLabel = isMissingRequired
                       ? t('questionnaire.stateMissingRequired')
                       : isAnswered
@@ -1525,11 +1515,6 @@ export const QuestionnaireScreen = ({
                 {!currentQuestion.required && !showGuidance && (
                   <span className="inline-flex items-center px-3 py-1 text-xs font-semibold uppercase tracking-wide bg-gray-100 text-gray-600 rounded-full border border-gray-200 self-start">
                     {t('questionnaire.optionalAnswer')}
-                  </span>
-                )}
-                {isCurrentQuestionDeferred && !showGuidance && (
-                  <span className="inline-flex items-center px-3 py-1 text-xs font-semibold uppercase tracking-wide bg-amber-50 text-amber-700 rounded-full border border-amber-200 self-start">
-                    {t('questionnaire.deferredAnswer')}
                   </span>
                 )}
               </div>

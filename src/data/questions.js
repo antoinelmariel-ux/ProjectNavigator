@@ -702,7 +702,7 @@ export const initialQuestions = [
       }
     ],
     "required": true,
-    "requiredFromStage": "design",
+    "requiredFromStage": "pre_launch",
     "conditions": [
       {
         "question": "ProjectType",
@@ -902,7 +902,7 @@ export const initialQuestions = [
       }
     ],
     "required": true,
-    "requiredFromStage": "design",
+    "requiredFromStage": "pre_launch",
     "conditions": [
       {
         "question": "ProjectType",
@@ -1347,7 +1347,7 @@ export const initialQuestions = [
       }
     ],
     "required": true,
-    "requiredFromStage": "design",
+    "requiredFromStage": "pre_launch",
     "conditions": [
       {
         "question": "teamLeadTeam",
@@ -1640,7 +1640,7 @@ export const initialQuestions = [
       }
     ],
     "required": true,
-    "requiredFromStage": "design",
+    "requiredFromStage": "pre_launch",
     "conditions": [
       {
         "question": "ProjectType",
@@ -2379,7 +2379,7 @@ export const initialQuestions = [
       }
     ],
     "required": true,
-    "requiredFromStage": "design",
+    "requiredFromStage": "pre_launch",
     "conditions": [
       {
         "question": "ProjectType",
@@ -2543,7 +2543,7 @@ export const initialQuestions = [
       }
     ],
     "required": true,
-    "requiredFromStage": "design",
+    "requiredFromStage": "pre_launch",
     "conditions": [
       {
         "question": "q19",
@@ -2949,7 +2949,7 @@ export const initialQuestions = [
       }
     ],
     "required": true,
-    "requiredFromStage": "design",
+    "requiredFromStage": "pre_launch",
     "conditions": [],
     "conditionLogic": "all",
     "conditionGroups": [
@@ -3141,7 +3141,7 @@ export const initialQuestions = [
       }
     ],
     "required": true,
-    "requiredFromStage": "design",
+    "requiredFromStage": "pre_launch",
     "conditions": [],
     "guidance": {
       "objective": {
@@ -3499,7 +3499,7 @@ export const initialQuestions = [
       }
     ],
     "required": true,
-    "requiredFromStage": "design",
+    "requiredFromStage": "pre_launch",
     "conditions": [
       {
         "question": "ProjectType",
@@ -4552,7 +4552,7 @@ export const initialQuestions = [
     },
     "options": [],
     "required": true,
-    "requiredFromStage": "design",
+    "requiredFromStage": "pre_launch",
     "conditions": [
       {
         "question": "ProjectType",
@@ -5163,7 +5163,7 @@ export const initialQuestions = [
     },
     "options": [],
     "required": true,
-    "requiredFromStage": "design",
+    "requiredFromStage": "pre_launch",
     "conditions": [
       {
         "question": "ProjectType__extra_checkbox",

@@ -1,16 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  LEGACY_PROJECT_STAGE,
-  PROJECT_STAGE_ANSWER_KEY,
   PROJECT_STAGE_DESIGN,
   PROJECT_STAGE_FRAMING,
   PROJECT_STAGE_PRE_LAUNCH,
-  getProjectStage,
+  REQUIRED_FOR_ADVICE,
+  REQUIRED_FOR_ORIENTATION,
   getQuestionRequiredFromStage,
-  isStageAtLeast,
-  normalizeProjectStage,
-  withProjectStage
+  getQuestionRequirementLevel,
+  isStageAtLeast
 } from '../src/utils/projectStage.js';
 import {
   computeMandatoryProgress,
@@ -34,13 +32,13 @@ const questions = [
   { id: 'notes', required: false }
 ];
 
-test('un projet sans stade est considéré au stade le plus avancé', () => {
-  assert.equal(getProjectStage({}), LEGACY_PROJECT_STAGE);
-  assert.equal(LEGACY_PROJECT_STAGE, PROJECT_STAGE_PRE_LAUNCH);
-  assert.equal(getProjectStage({ [PROJECT_STAGE_ANSWER_KEY]: 'nawak' }), PROJECT_STAGE_PRE_LAUNCH);
-  assert.equal(getProjectStage({ [PROJECT_STAGE_ANSWER_KEY]: PROJECT_STAGE_FRAMING }), PROJECT_STAGE_FRAMING);
-  assert.equal(normalizeProjectStage('', PROJECT_STAGE_DESIGN), PROJECT_STAGE_DESIGN);
-  assert.equal(withProjectStage({ a: 1 }, PROJECT_STAGE_DESIGN)[PROJECT_STAGE_ANSWER_KEY], PROJECT_STAGE_DESIGN);
+test('une question est soit du socle, soit exigée pour l’avis et la validation', () => {
+  assert.equal(getQuestionRequirementLevel({ required: true }), REQUIRED_FOR_ORIENTATION);
+  assert.equal(getQuestionRequirementLevel({ requiredFromStage: PROJECT_STAGE_FRAMING }), REQUIRED_FOR_ORIENTATION);
+  // L'ancienne valeur intermédiaire n'a plus de palier à elle.
+  assert.equal(getQuestionRequirementLevel({ requiredFromStage: PROJECT_STAGE_DESIGN }), REQUIRED_FOR_ADVICE);
+  assert.equal(getQuestionRequirementLevel({ requiredFromStage: PROJECT_STAGE_PRE_LAUNCH }), REQUIRED_FOR_ADVICE);
+  assert.equal(getQuestionRequirementLevel({ requiredFromStage: 'nawak' }), REQUIRED_FOR_ORIENTATION);
 });
 
 test('une question sans requiredFromStage reste obligatoire dès le cadrage', () => {
@@ -49,7 +47,7 @@ test('une question sans requiredFromStage reste obligatoire dès le cadrage', ()
   assert.equal(isQuestionMandatoryAtStage({ required: false }, PROJECT_STAGE_PRE_LAUNCH), false);
 });
 
-test('le stade module le caractère obligatoire, jamais la question elle-même', () => {
+test('le palier module le caractère exigible, jamais la question elle-même', () => {
   assert.equal(isStageAtLeast(PROJECT_STAGE_DESIGN, PROJECT_STAGE_PRE_LAUNCH), false);
   assert.equal(isStageAtLeast(PROJECT_STAGE_DESIGN, PROJECT_STAGE_FRAMING), true);
 
@@ -59,13 +57,10 @@ test('le stade module le caractère obligatoire, jamais la question elle-même',
   const atPreLaunch = getMissingMandatoryQuestions(questions, {}, { stage: PROJECT_STAGE_PRE_LAUNCH });
   assert.deepEqual(atPreLaunch.map((question) => question.id), ['name', 'audience', 'countries', 'budget']);
 
-  // Une soumission finale n'est jamais allégée par le stade déclaré.
-  const ignoringStage = getMissingMandatoryQuestions(
-    questions,
-    { [PROJECT_STAGE_ANSWER_KEY]: PROJECT_STAGE_FRAMING },
-    { ignoreStage: true }
-  );
-  assert.deepEqual(ignoringStage.map((question) => question.id), ['name', 'audience', 'countries', 'budget']);
+  // Sans palier, toutes les questions obligatoires — même pour un projet qui garde l'ancienne
+  // clé de stade dans ses réponses : elle n'est plus lue.
+  const withoutStage = getMissingMandatoryQuestions(questions, { __project_stage__: PROJECT_STAGE_FRAMING });
+  assert.deepEqual(withoutStage.map((question) => question.id), ['name', 'audience', 'countries', 'budget']);
 });
 
 test('un doute laisse la réponse utilisable sauf quand une réponse ferme est exigée', () => {
