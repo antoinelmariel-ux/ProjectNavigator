@@ -628,14 +628,6 @@ export default {
     summaryProgressCompact: '{{answered}}/{{total}}',
     summaryMissingRequiredSingular: '{{count}} pregunta obligatoria sin respuesta',
     summaryMissingRequiredPlural: '{{count}} preguntas obligatorias sin respuesta',
-    stageHeading: 'Fase del proyecto',
-    stageHint: 'Determina lo que se le pide ahora, no lo que deberá decidir al final.',
-    stageDescription: {
-      framing: 'La idea está planteada, nada está decidido.',
-      design: 'Las grandes opciones están tomadas, los detalles se escriben.',
-      pre_launch: 'El proyecto sale pronto: todo debe estar decidido.'
-    },
-    deferredAnswer: 'Por decidir más adelante',
     doubtToggle: 'Tengo una duda',
     doubtToggleHint: 'Marque esta casilla si no está seguro de esta respuesta: podrá explicar por qué.',
     doubtActiveHint: 'Sigue señalado como abierto. Una validación definitiva exigirá que se resuelva.',
@@ -889,8 +881,10 @@ export default {
       numberUnitOptionsLabel: 'Otras divisas disponibles',
       numberUnitOptionsHint:
         'Seleccione divisas adicionales: en cuanto haya 2 divisas disponibles para esta pregunta, la persona que responde podrá elegir la suya.',
-      requiredFromStageLabel: 'Obligatoria a partir de la fase',
-      requiredFromStageHint: 'Antes de esa fase la pregunta sigue visible y se puede responder, pero no impide consultar a compliance.',
+      requiredFromStageLabel: 'Exigida a partir del nivel',
+      requiredFromStageHint: 'Una pregunta básica debe responderse para pedir una orientación (opinión preliminar). Toda pregunta obligatoria sigue siendo exigida para la opinión técnica y la validación.',
+      requiredForOrientation: 'Desde la orientación (básica)',
+      requiredForAdvice: 'Para la opinión técnica y la validación',
       requiredLabel: 'Pregunta obligatoria',
       draftLabel: 'Pregunta en borrador',
       draftHint: 'Una pregunta en borrador ya no aparece en el formulario de creación de proyecto.',
@@ -1802,7 +1796,7 @@ export default {
   mandatoryQuestionsSummary: {
     pendingTitle: 'Preguntas obligatorias por completar',
     doneTitle: 'Se completaron todas las preguntas obligatorias',
-    pendingSubtitle: 'Puede descubrir la vitrina de su proyecto desde ahora: estas respuestas se solicitarán al enviar el proyecto.',
+    pendingSubtitle: 'Puede descubrir la vitrina de su proyecto desde ahora: estas preguntas básicas deberán responderse para pedir una opinión a los expertos.',
     doneSubtitle: 'Ahora puede descubrir la vitrina de su proyecto.',
     ariaLabel: 'Preguntas obligatorias sin responder',
     positionLabel: 'Pregunta {{position}} de {{total}}',

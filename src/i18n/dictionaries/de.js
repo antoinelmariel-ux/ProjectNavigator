@@ -636,14 +636,6 @@ export default {
     summaryProgressCompact: '{{answered}}/{{total}}',
     summaryMissingRequiredSingular: '{{count}} Pflichtfrage ohne Antwort',
     summaryMissingRequiredPlural: '{{count}} Pflichtfragen ohne Antwort',
-    stageHeading: 'Projektphase',
-    stageHint: 'Sie bestimmt, was jetzt von Ihnen verlangt wird, nicht was Sie am Ende klären müssen.',
-    stageDescription: {
-      framing: 'Die Idee steht, nichts ist entschieden.',
-      design: 'Die großen Optionen sind gewählt, die Details entstehen.',
-      pre_launch: 'Der Start steht bevor: alles muss entschieden sein.'
-    },
-    deferredAnswer: 'Später zu klären',
     doubtToggle: 'Ich habe Zweifel',
     doubtToggleHint: 'Aktivieren Sie dies, wenn Sie sich bei dieser Antwort nicht sicher sind: Sie können anschließend erklären, warum.',
     doubtActiveHint: 'Weiterhin als offen markiert. Für eine endgültige Validierung muss dieser Punkt geklärt sein.',
@@ -898,8 +890,10 @@ export default {
       numberUnitOptionsLabel: 'Weitere verfügbare Währungen',
       numberUnitOptionsHint:
         'Wählen Sie zusätzliche Währungen aus: Sobald 2 Währungen für diese Frage verfügbar sind, kann die antwortende Person ihre Währung wählen.',
-      requiredFromStageLabel: 'Pflicht ab Phase',
-      requiredFromStageHint: 'Vor dieser Phase bleibt die Frage sichtbar und beantwortbar, verhindert aber nicht, Compliance zu befragen.',
+      requiredFromStageLabel: 'Erforderlich ab Stufe',
+      requiredFromStageHint: 'Eine Basisfrage muss beantwortet sein, um eine Orientierung (vorläufige Einschätzung) anzufragen. Jede Pflichtfrage bleibt für die fachliche Einschätzung und die Freigabe erforderlich.',
+      requiredForOrientation: 'Ab der Orientierung (Basis)',
+      requiredForAdvice: 'Für die fachliche Einschätzung und die Freigabe',
       requiredLabel: 'Pflichtfrage',
       draftLabel: 'Frage als Entwurf',
       draftHint: 'Eine Frage im Entwurfsstatus erscheint nicht mehr im Formular zur Projekterstellung.',
@@ -1812,7 +1806,7 @@ export default {
     pendingTitle: 'Auszufüllende Pflichtfragen',
     doneTitle: 'Alle Pflichtfragen sind ausgefüllt',
     pendingSubtitle:
-      'Sie können den Projekt-Showcase bereits jetzt entdecken: Diese Antworten werden beim Einreichen des Projekts angefordert.',
+      'Sie können den Projekt-Showcase bereits jetzt entdecken: Diese Basisfragen müssen beantwortet sein, bevor Sie die Experten um eine Einschätzung bitten können.',
     doneSubtitle: 'Sie können jetzt den Projekt-Showcase entdecken.',
     ariaLabel: 'Unbeantwortete Pflichtfragen',
     positionLabel: 'Frage {{position}} von {{total}}',

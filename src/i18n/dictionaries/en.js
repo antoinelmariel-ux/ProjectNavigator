@@ -627,14 +627,6 @@ export default {
     summaryProgressCompact: '{{answered}}/{{total}}',
     summaryMissingRequiredSingular: '{{count}} mandatory question without an answer',
     summaryMissingRequiredPlural: '{{count}} mandatory questions without an answer',
-    stageHeading: 'Project stage',
-    stageHint: 'It sets what is asked of you now, not what you will eventually have to settle.',
-    stageDescription: {
-      framing: 'The idea is there, nothing is settled yet.',
-      design: 'The main options are chosen, the details are being written.',
-      pre_launch: 'The project is about to launch: everything must be settled.'
-    },
-    deferredAnswer: 'To settle later',
     doubtToggle: 'I have a doubt',
     doubtToggleHint: 'Check this if you are not sure about this answer: you will be able to explain why.',
     doubtActiveHint: 'Still flagged as open. A final validation will require it to be settled.',
@@ -888,8 +880,10 @@ export default {
       numberUnitOptionsLabel: 'Other available currencies',
       numberUnitOptionsHint:
         'Select additional currencies: as soon as 2 currencies are available for this question, the respondent can choose theirs.',
-      requiredFromStageLabel: 'Mandatory from stage',
-      requiredFromStageHint: 'Before that stage the question stays visible and answerable, but does not prevent consulting compliance.',
+      requiredFromStageLabel: 'Required from level',
+      requiredFromStageHint: 'A core question must be answered to ask for guidance (preliminary opinion). Every mandatory question is still required for technical advice and validation.',
+      requiredForOrientation: 'From guidance (core)',
+      requiredForAdvice: 'For technical advice and validation',
       requiredLabel: 'Mandatory question',
       draftLabel: 'Draft question',
       draftHint: 'A draft question no longer appears in the project creation form.',
@@ -1802,7 +1796,7 @@ export default {
     pendingTitle: 'Mandatory questions to complete',
     doneTitle: 'All mandatory questions are completed',
     pendingSubtitle:
-      'You can explore your project showcase now: these answers will be requested when you submit the project.',
+      'You can explore your project showcase now: these core questions must be answered before you can ask the experts for an opinion.',
     doneSubtitle: 'You can now explore your project showcase.',
     ariaLabel: 'Unanswered mandatory questions',
     positionLabel: 'Question {{position}} of {{total}}',

@@ -1,4 +1,4 @@
-import { getProjectStage, getQuestionRequiredFromStage, isStageAtLeast } from './projectStage.js';
+import { getQuestionRequiredFromStage, isStageAtLeast } from './projectStage.js';
 import { hasQuestionDoubt } from './questionDoubts.js';
 
 // Une seule définition de « cette réponse est renseignée » pour toute l'application : elle était
@@ -17,9 +17,9 @@ export const isAnswerProvided = (value) => {
   return value !== null && value !== undefined;
 };
 
-// Obligatoire « ici et maintenant » : une question marquée obligatoire ne l'est qu'à partir du
-// stade que l'administrateur lui a donné. C'est ce décalage qui permet d'interroger la
-// compliance au cadrage sans avoir arrêté le budget ou l'hébergeur.
+// Exigible à un palier donné : une question marquée obligatoire ne compte qu'à partir du palier
+// que l'administrateur lui a donné (`requiredFromStage`). C'est ce décalage qui permet de
+// demander une orientation sans avoir arrêté le budget ou l'hébergeur.
 export const isQuestionMandatoryAtStage = (question, stage) => {
   if (!question?.required) {
     return false;
@@ -28,8 +28,8 @@ export const isQuestionMandatoryAtStage = (question, stage) => {
   return isStageAtLeast(stage, getQuestionRequiredFromStage(question));
 };
 
-// Obligatoire pour une soumission finale : le stade ne dispense de rien à l'arrivée, il ne fait
-// que décaler le moment où l'on doit répondre.
+// Obligatoire tout court : ce que le questionnaire signale et ce qu'exigent l'avis technique et
+// la validation.
 export const isQuestionMandatory = (question) => Boolean(question?.required);
 
 // `rejectUnknown` distingue les deux portes d'entrée : un doute signalé sur la réponse est
@@ -44,26 +44,26 @@ const hasUsableAnswer = (answers, questionId, rejectUnknown) => {
   return !(rejectUnknown && hasQuestionDoubt(answers, questionId));
 };
 
-const filterMandatory = (questions, answers, { stage, ignoreStage = false } = {}) => {
+// Sans `stage`, toutes les questions obligatoires ; avec, celles exigibles à ce palier.
+const filterMandatory = (questions, { stage } = {}) => {
   if (!Array.isArray(questions)) {
     return [];
   }
 
-  if (ignoreStage) {
+  if (!stage) {
     return questions.filter(isQuestionMandatory);
   }
 
-  const resolvedStage = stage || getProjectStage(answers);
-  return questions.filter((question) => isQuestionMandatoryAtStage(question, resolvedStage));
+  return questions.filter((question) => isQuestionMandatoryAtStage(question, stage));
 };
 
 export const getMissingMandatoryQuestions = (questions, answers = {}, options = {}) =>
-  filterMandatory(questions, answers, options).filter(
+  filterMandatory(questions, options).filter(
     (question) => !question?.id || !hasUsableAnswer(answers, question.id, options.rejectUnknown)
   );
 
 export const computeMandatoryProgress = (questions = [], answers = {}, options = {}) => {
-  const mandatoryQuestions = filterMandatory(questions, answers, options);
+  const mandatoryQuestions = filterMandatory(questions, options);
 
   return {
     totalMandatoryQuestions: mandatoryQuestions.length,

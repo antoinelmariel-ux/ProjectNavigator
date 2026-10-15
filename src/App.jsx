@@ -35,11 +35,6 @@ import {
   getMissingMandatoryQuestions,
   isAnswerProvided
 } from './utils/mandatoryQuestions.js';
-import {
-  DEFAULT_NEW_PROJECT_STAGE,
-  PROJECT_STAGE_ANSWER_KEY,
-  getProjectStage
-} from './utils/projectStage.js';
 import { getMissingForPreliminaryRequest, getProjectReadiness } from './utils/projectReadiness.js';
 import {
   getLastSentSnapshot,
@@ -3281,15 +3276,12 @@ const updateProjectFilters = useCallback((updater) => {
     [questions, answers, shouldShowQuestion]
   );
 
-  const projectStage = useMemo(() => getProjectStage(answers), [answers]);
-
-  // Trois listes : ce qui manque pour aller plus loin *au stade déclaré* (parcours du
-  // questionnaire), ce qui manque pour demander un avis préliminaire (le socle, quel que soit
-  // le stade), et ce qui manque pour une soumission finale, où le stade ne dispense de rien et
-  // où un « je ne sais pas encore » ne passe plus.
+  // Trois listes : toutes les questions obligatoires (ce que le questionnaire signale), le socle
+  // (ce qui bloque une demande d'avis préliminaire), et ce qui manque pour une demande de
+  // validation, où un « je ne sais pas encore » ne passe plus.
   const unansweredMandatoryQuestions = useMemo(
-    () => getMissingMandatoryQuestions(activeQuestions, answers, { stage: projectStage }),
-    [activeQuestions, answers, projectStage]
+    () => getMissingMandatoryQuestions(activeQuestions, answers),
+    [activeQuestions, answers]
   );
 
   const unansweredPreliminaryQuestions = useMemo(
@@ -3298,7 +3290,7 @@ const updateProjectFilters = useCallback((updater) => {
   );
 
   const unansweredFinalMandatoryQuestions = useMemo(
-    () => getMissingMandatoryQuestions(activeQuestions, answers, { ignoreStage: true, rejectUnknown: true }),
+    () => getMissingMandatoryQuestions(activeQuestions, answers, { rejectUnknown: true }),
     [activeQuestions, answers]
   );
 
@@ -3344,13 +3336,15 @@ const updateProjectFilters = useCallback((updater) => {
     [answers, activeQuestions]
   );
 
+  // L'écran intermédiaire ne retient que ce qui bloque la première porte (le socle) : une
+  // question exigible plus tard au stade déclaré ne doit pas barrer l'accès à la vitrine.
   const pendingMandatoryQuestions = useMemo(
     () =>
-      unansweredMandatoryQuestions.map(question => ({
+      unansweredPreliminaryQuestions.map(question => ({
         question,
         position: activeQuestions.findIndex(item => item.id === question.id) + 1
       })),
-    [unansweredMandatoryQuestions, activeQuestions]
+    [unansweredPreliminaryQuestions, activeQuestions]
   );
 
   const hasIncompleteAnswers = useMemo(
@@ -5057,15 +5051,11 @@ const updateProjectFilters = useCallback((updater) => {
     });
   }, [activeProjectId]);
 
-  // Le stade n'est plus demandé au porteur : tout projet part du stade le plus avancé, comme
-  // un projet enregistré sans stade (cf. DEFAULT_NEW_PROJECT_STAGE). La consultation précoce
-  // passe par le palier « orientation », pas par une déclaration.
   const buildDefaultAnswers = useCallback(() => {
-    const base = { [PROJECT_STAGE_ANSWER_KEY]: DEFAULT_NEW_PROJECT_STAGE };
     if (currentUserDisplayName) {
-      return { ...base, teamLead: currentUserDisplayName };
+      return { teamLead: currentUserDisplayName };
     }
-    return base;
+    return {};
   }, [currentUserDisplayName]);
 
   const resetProjectState = useCallback(() => {
@@ -5979,7 +5969,7 @@ const updateProjectFilters = useCallback((updater) => {
   ]);
 
   const leaveQuestionnaireForShowcase = useCallback(() => {
-    if (unansweredMandatoryQuestions.length > 0) {
+    if (unansweredPreliminaryQuestions.length > 0) {
       setValidationError(null);
       setReturnToSynthesisAfterEdit(false);
       setScreen('mandatory-summary');
@@ -5987,7 +5977,7 @@ const updateProjectFilters = useCallback((updater) => {
     }
 
     navigateToProjectShowcase();
-  }, [navigateToProjectShowcase, unansweredMandatoryQuestions]);
+  }, [navigateToProjectShowcase, unansweredPreliminaryQuestions]);
 
   const handleNext = useCallback(() => {
     if (currentQuestionIndex < activeQuestions.length - 1) {
@@ -6830,8 +6820,9 @@ const updateProjectFilters = useCallback((updater) => {
   }, []);
 
   const handleBackToQuestionnaire = useCallback(() => {
-    if (unansweredMandatoryQuestions.length > 0) {
-      const firstMissingId = unansweredMandatoryQuestions[0].id;
+    const firstMissing = unansweredPreliminaryQuestions[0] || unansweredMandatoryQuestions[0];
+    if (firstMissing) {
+      const firstMissingId = firstMissing.id;
       const targetIndex = activeQuestions.findIndex(question => question.id === firstMissingId);
       if (targetIndex >= 0) {
         setCurrentQuestionIndex(targetIndex);
@@ -6847,7 +6838,7 @@ const updateProjectFilters = useCallback((updater) => {
     }
     setValidationError(null);
     setScreen('questionnaire');
-  }, [activeQuestions, unansweredMandatoryQuestions]);
+  }, [activeQuestions, unansweredMandatoryQuestions, unansweredPreliminaryQuestions]);
 
   const handleNavigateToQuestion = useCallback((questionId) => {
     const targetIndex = activeQuestions.findIndex(question => question.id === questionId);
@@ -8127,7 +8118,6 @@ const updateProjectFilters = useCallback((updater) => {
             tourContext={tourContext}
             onFinish={leaveQuestionnaireForShowcase}
             projectId={activeProjectId}
-            projectStage={projectStage}
             onSetQuestionDoubt={handleSetQuestionDoubt}
             onClearQuestionDoubt={handleClearQuestionDoubt}
             />

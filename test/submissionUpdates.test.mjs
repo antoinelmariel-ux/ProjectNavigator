@@ -91,12 +91,9 @@ test('le diff ne couvre que les vraies questions et distingue le narratif', () =
   assert.equal(isNarrativeQuestion({ type: 'choice' }), false);
 });
 
-test('un changement de stade apparaît dans le diff sous son libellé', () => {
-  const changes = diffAnswers({ __project_stage__: 'framing' }, { __project_stage__: 'pre_launch' }, questions, 'fr');
-  assert.deepEqual(changes.map((change) => change.questionId), ['__project_stage__']);
-  assert.equal(changes[0].previousLabel, 'Cadrage');
-  assert.equal(changes[0].currentLabel, 'Avant déploiement');
-  assert.equal(changes[0].narrative, false);
+test('l’ancienne clé de stade d’un projet n’apparaît plus dans le diff', () => {
+  const changes = diffAnswers({ __project_stage__: 'framing' }, {}, questions, 'fr');
+  assert.deepEqual(changes, []);
 });
 
 const analysis = (teams, triggeredRules, extra = {}) => ({
