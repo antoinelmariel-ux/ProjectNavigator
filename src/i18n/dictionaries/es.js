@@ -653,21 +653,7 @@ export default {
     showHelp: 'Entender esta pregunta',
     optionalAnswer: 'Respuesta opcional',
     contextualHelpAriaLabel: 'Ayuda contextual',
-    contextualGuidance: 'Guía contextual',
-    whyThisQuestionAppears: 'Por qué aparece esta pregunta',
-    showsIfAny: 'Aparece cuando se cumple al menos una de las siguientes condiciones.',
-    showsIfAll: 'Aparece cuando se cumplen todas las siguientes condiciones.',
-    multiGroupIntroPrefix: 'Esta pregunta aparece cuando',
-    multiGroupIntroBold: 'cada grupo de condiciones',
-    multiGroupIntroSuffix: ' que figura a continuación se verifica.',
-    multiGroupHint: 'Dentro de cada grupo, siga la lógica indicada (Y u O) para las condiciones enumeradas.',
-    group: 'Grupo {{number}}',
-    groupLogicBadge: 'Lógica {{logic}}',
-    logicAnd: 'Y',
-    logicOr: 'O',
-    andWithPrevious: 'Y con el anterior',
-    conditionQuote: '«{{value}}»',
-    yourAnswer: 'Su respuesta:',
+    contextualGuidance: 'Explicación',
     practicalTips: 'Consejos prácticos',
     missingRequiredAnswer: 'Falta una respuesta obligatoria',
     returnToSynthesisNotice: 'Modificación desde los retos del proyecto. Valide sus cambios para volver a ellos.',
@@ -676,15 +662,6 @@ export default {
     viewShowcase: 'Ver la vitrina del proyecto',
     next: 'Siguiente',
     finish: 'Terminar y ver la vitrina',
-    operators: {
-      equals: 'es igual a',
-      not_equals: 'es diferente de',
-      contains: 'contiene',
-      lt: 'es menor que',
-      lte: 'es menor o igual que',
-      gt: 'es mayor que',
-      gte: 'es mayor o igual que'
-    }
   },
   backOffice: {
     dashboard: {

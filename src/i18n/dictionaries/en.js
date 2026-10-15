@@ -652,21 +652,7 @@ export default {
     showHelp: 'Understand this question',
     optionalAnswer: 'Optional answer',
     contextualHelpAriaLabel: 'Contextual help',
-    contextualGuidance: 'Contextual guidance',
-    whyThisQuestionAppears: 'Why this question appears',
-    showsIfAny: 'It appears when at least one of the following conditions is met.',
-    showsIfAll: 'It appears when all of the following conditions are met.',
-    multiGroupIntroPrefix: 'This question appears when',
-    multiGroupIntroBold: 'every group of conditions',
-    multiGroupIntroSuffix: ' below is verified.',
-    multiGroupHint: 'Within each group, follow the indicated logic (AND or OR) for the listed conditions.',
-    group: 'Group {{number}}',
-    groupLogicBadge: 'Logic {{logic}}',
-    logicAnd: 'AND',
-    logicOr: 'OR',
-    andWithPrevious: 'AND with previous',
-    conditionQuote: '“{{value}}”',
-    yourAnswer: 'Your answer:',
+    contextualGuidance: 'Explanation',
     practicalTips: 'Practical tips',
     missingRequiredAnswer: 'Missing required answer',
     returnToSynthesisNotice: 'Editing from the project stakes. Validate your changes to return to them.',
@@ -675,15 +661,6 @@ export default {
     viewShowcase: 'View the project showcase',
     next: 'Next',
     finish: 'Finish and view the showcase',
-    operators: {
-      equals: 'equals',
-      not_equals: 'is different from',
-      contains: 'contains',
-      lt: 'is less than',
-      lte: 'is less than or equal to',
-      gt: 'is greater than',
-      gte: 'is greater than or equal to'
-    }
   },
   backOffice: {
     dashboard: {
