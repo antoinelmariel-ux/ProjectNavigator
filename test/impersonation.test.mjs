@@ -14,7 +14,7 @@ import { savePersistedMockMap, loadPersistedMockMap } from '../src/utils/mockPro
 import { spPost } from '../src/utils/spRestClient.js';
 import { createRetryQueue } from '../src/utils/retryQueue.js';
 
-const APP_URL = 'https://entreprisedemo1.sharepoint.com/sites/ProjectNavigator_DEV/CN-App/index.aspx';
+const APP_URL = 'https://lfb1.sharepoint.com/sites/ProjectNavigator_DEV/CN-App/index.aspx';
 
 class FakeStorage {
   constructor() {

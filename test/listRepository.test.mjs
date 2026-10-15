@@ -26,10 +26,10 @@ const withFetch = async (handler, fn) => {
   const calls = [];
   globalThis.window = {
     location: {
-      origin: 'https://entreprisedemo1.sharepoint.com',
+      origin: 'https://lfb1.sharepoint.com',
       pathname: '/sites/ProjectNavigator_DEV/CN-App/index.aspx',
       protocol: 'https:',
-      hostname: 'entreprisedemo1.sharepoint.com'
+      hostname: 'lfb1.sharepoint.com'
     },
     fetch: async (url, init = {}) => {
       calls.push({ url, init });

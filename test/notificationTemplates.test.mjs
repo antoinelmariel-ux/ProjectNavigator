@@ -54,7 +54,7 @@ test('ordre du corps : intro → contenu du message → lien → tableau → att
     ...baseContext,
     type: NOTIFICATION_TYPES.SHOWCASE_COMMENT,
     excerpt: 'Merci de retirer le visuel page 3.',
-    appUrl: 'https://entreprisedemo1.sharepoint.com/sites/PN/CN-App/index.aspx?projectId=p-1'
+    appUrl: 'https://lfb1.sharepoint.com/sites/PN/CN-App/index.aspx?projectId=p-1'
   });
 
   const positions = {
@@ -81,7 +81,7 @@ test('sans contenu de message, le lien reste avant le tableau', () => {
   const { body } = buildNotification({
     ...baseContext,
     type: NOTIFICATION_TYPES.PROJECT_SUBMITTED_TEAM,
-    appUrl: 'https://entreprisedemo1.sharepoint.com/sites/PN/CN-App/index.aspx?projectId=p-1'
+    appUrl: 'https://lfb1.sharepoint.com/sites/PN/CN-App/index.aspx?projectId=p-1'
   });
 
   assert.ok(!body.includes('Message content'));
@@ -135,7 +135,7 @@ test('le lien vers le projet n’apparaît que s’il est fourni', () => {
   const withLink = buildNotification({
     ...baseContext,
     type: NOTIFICATION_TYPES.PROJECT_SHARED,
-    appUrl: 'https://entreprisedemo1.sharepoint.com/sites/PN/CN-App/index.aspx?projectId=p-1'
+    appUrl: 'https://lfb1.sharepoint.com/sites/PN/CN-App/index.aspx?projectId=p-1'
   });
   assert.ok(withLink.body.includes('Open the project in Project Navigator'));
   assert.ok(withLink.body.includes('projectId=p-1'));
@@ -178,7 +178,7 @@ test('buildErrorReportEmail : reprend le message, les piles et l’écran', () =
     message: 'Cannot read properties of undefined',
     stack: 'TypeError: Cannot read properties of undefined\n    at Foo (App.jsx:10:1)',
     componentStack: '\n    in Foo\n    in App',
-    screenUrl: 'https://entreprisedemo1.sharepoint.com/sites/PN/CN-App/index.aspx#/synthesis/p-1',
+    screenUrl: 'https://lfb1.sharepoint.com/sites/PN/CN-App/index.aspx#/synthesis/p-1',
     userEmail: 'bertrand.darieux@lfb.fr',
     occurredAt: '2026-08-28T14:30:00.000Z'
   });
