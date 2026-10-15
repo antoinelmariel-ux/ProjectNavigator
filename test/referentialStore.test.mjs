@@ -306,3 +306,15 @@ test('diagnoseInstallation : signale listes, bibliothèques et fichiers manquant
     }
   );
 });
+
+test('settings.json porte les relances avant lancement et la visibilité des managers', () => {
+  const payload = buildReferentialPayload({
+    launchReminderDays: { first: 45, second: 7 },
+    teamVisibility: { includeDrafts: true }
+  });
+  assert.deepEqual(payload.settings.launchReminderDays, { first: 45, second: 7 });
+  assert.deepEqual(payload.settings.teamVisibility, { includeDrafts: true });
+  const slices = flattenReferentials(payload);
+  assert.deepEqual(slices.launchReminderDays, { first: 45, second: 7 });
+  assert.deepEqual(slices.teamVisibility, { includeDrafts: true });
+});

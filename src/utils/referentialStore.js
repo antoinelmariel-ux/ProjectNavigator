@@ -8,6 +8,7 @@ const SETTINGS_KEYS = [
   'technicalContactEmails',
   'onboardingTourConfig',
   'validationCommitteeConfig',
+  'launchReminderDays',
   'inspirationFormFields',
   'projectFilters',
   'inspirationFilters',
