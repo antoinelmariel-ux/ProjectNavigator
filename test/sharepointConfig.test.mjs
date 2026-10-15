@@ -8,7 +8,8 @@ import {
   configureSharePointContext,
   isSharePointMode,
   resetSharePointContextConfig,
-  sharepointConfig
+  sharepointConfig,
+  withWebViewEnv
 } from '../src/config/sharepointConfig.js';
 
 const withLocation = (location, extra, fn) => {
@@ -162,5 +163,24 @@ test('contexte SPFx sans URL : retombe sur la déduction depuis la page', () => 
   configureSharePointContext({});
   withLocation(spo('/sites/ProjectNavigator_DEV/SitePages/Accueil.aspx'), {}, () => {
     assert.equal(getWebUrl(), 'https://lfb1.sharepoint.com/sites/ProjectNavigator_DEV');
+  });
+});
+
+test('withWebViewEnv force env=WebView en mode SharePoint et préserve le reste', () => {
+  withLocation(spo('/sites/X/SitePages/App.aspx'), {}, () => {
+    assert.equal(
+      withWebViewEnv('https://lfb1.sharepoint.com/sites/X/SitePages/App.aspx?projectId=p1'),
+      'https://lfb1.sharepoint.com/sites/X/SitePages/App.aspx?projectId=p1&env=WebView'
+    );
+    assert.equal(
+      withWebViewEnv('https://lfb1.sharepoint.com/a.aspx?env=Embedded'),
+      'https://lfb1.sharepoint.com/a.aspx?env=WebView'
+    );
+  });
+});
+
+test('withWebViewEnv ne touche pas l’URL hors SharePoint', () => {
+  withLocation({ origin: 'http://localhost', pathname: '/', protocol: 'http:', hostname: 'localhost' }, {}, () => {
+    assert.equal(withWebViewEnv('http://localhost/?a=1'), 'http://localhost/?a=1');
   });
 });

@@ -146,7 +146,7 @@ import {
   publishReferentialSettings,
   reinitializeSharePointConfiguration
 } from './utils/sharePointSetup.js';
-import { isSharePointMode } from './config/sharepointConfig.js';
+import { isSharePointMode, withWebViewEnv } from './config/sharepointConfig.js';
 import { REFERENTIAL_FILES, loadReferentials } from './utils/referentialStore.js';
 import { mergeServerAndLocalProjects } from './utils/syncMerge.js';
 import { queueNotification } from './utils/notificationQueue.js';
@@ -1195,7 +1195,7 @@ export const App = () => {
       if (view) {
         url.searchParams.set('view', view);
       }
-      return url.toString();
+      return withWebViewEnv(url.toString());
     } catch {
       return '';
     }
@@ -2400,7 +2400,7 @@ const updateProjectFilters = useCallback((updater) => {
       const redirect = () => {
         try {
           if (window.location) {
-            const homeUrl = `${window.location.origin}${window.location.pathname}`;
+            const homeUrl = withWebViewEnv(`${window.location.origin}${window.location.pathname}`);
             if (typeof window.location.assign === 'function') {
               window.location.assign(homeUrl);
             } else {
@@ -6706,7 +6706,7 @@ const updateProjectFilters = useCallback((updater) => {
       .forEach((param) => url.searchParams.delete(param));
     url.searchParams.set(SHOWCASE_SHARE_PARAM, token);
     url.hash = '';
-    return url.toString();
+    return withWebViewEnv(url.toString());
   }, [showcaseProjectId, showcaseShareAnnotationVisibility, showcaseShareCommentsEnabled]);
 
   const showcaseShareUrl = useMemo(
