@@ -328,6 +328,7 @@ export default {
       draftsPrivateNotice: 'Drafts stay private until they are sent.',
       myProjectsTab: 'My projects',
       tab: 'My team ({{count}})',
+      tabLabel: 'My team',
       heading: 'Your team’s projects',
       subtitle: 'Projects of the people reporting to you, at every level. They stay separate from your own projects.',
       readOnlyTitle: 'View only.',

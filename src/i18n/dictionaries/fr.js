@@ -330,6 +330,7 @@ export default {
       draftsPrivateNotice: 'Les brouillons restent privés jusqu’à leur envoi.',
       myProjectsTab: 'Mes projets',
       tab: 'Mon équipe ({{count}})',
+      tabLabel: 'Mon équipe',
       heading: 'Projets de votre équipe',
       subtitle: 'Les projets des personnes rattachées à vous, à tous les niveaux. Ils restent distincts de vos propres projets.',
       readOnlyTitle: 'Consultation seule.',

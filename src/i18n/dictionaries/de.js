@@ -330,6 +330,7 @@ export default {
       draftsPrivateNotice: 'Entwürfe bleiben bis zum Versand privat.',
       myProjectsTab: 'Meine Projekte',
       tab: 'Mein Team ({{count}})',
+      tabLabel: 'Mein Team',
       heading: 'Projekte Ihres Teams',
       subtitle: 'Projekte der Ihnen unterstellten Personen, über alle Ebenen. Sie bleiben von Ihren eigenen Projekten getrennt.',
       readOnlyTitle: 'Nur Ansicht.',

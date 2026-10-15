@@ -49,6 +49,7 @@ import { computeProjectValidationStatus } from '../utils/projectValidationStatus
 import { resolveEffectiveTeamComplianceEntry } from '../utils/complianceAutoValidation.js';
 import { selectTeamProjects } from '../utils/reportingHierarchy.js';
 import { TeamProjectsPanel } from './TeamProjectsPanel.jsx';
+import { SegmentedTabs } from './SegmentedTabs.jsx';
 
 const formatDate = (isoDate, language, unknownDateLabel) => {
   if (!isoDate) {
@@ -2292,51 +2293,19 @@ export const HomeScreen = ({
               </h2>
               <p className="mt-1 text-sm text-gray-600">{t('home.triggeredSubtitle')}</p>
             </div>
-            <div
-              className="grid grid-cols-2 gap-1 rounded-2xl border border-blue-100 bg-blue-50 p-1 sm:inline-flex sm:max-w-full sm:flex-wrap"
-              role="group"
-              aria-label={t('home.triggeredFilterAriaLabel')}
-            >
-              {[
-                { id: 'pending', labelKey: 'home.pendingTabLabel', ariaKey: 'home.pendingTab', count: pendingComplianceProjects.length },
-                { id: 'teammate', labelKey: 'home.teammateTabLabel', ariaKey: 'home.teammateTab', count: teammateHandledComplianceProjects.length },
-                { id: 'treated', labelKey: 'home.treatedTabLabel', ariaKey: 'home.treatedTab', count: treatedComplianceProjects.length },
+            <SegmentedTabs
+              ariaLabel={t('home.triggeredFilterAriaLabel')}
+              value={complianceProjectsView}
+              onChange={setComplianceProjectsView}
+              items={[
+                { id: 'pending', label: t('home.pendingTabLabel'), ariaLabel: t('home.pendingTab', { count: pendingComplianceProjects.length }), count: pendingComplianceProjects.length, urgent: true },
+                { id: 'teammate', label: t('home.teammateTabLabel'), ariaLabel: t('home.teammateTab', { count: teammateHandledComplianceProjects.length }), count: teammateHandledComplianceProjects.length },
+                { id: 'treated', label: t('home.treatedTabLabel'), ariaLabel: t('home.treatedTab', { count: treatedComplianceProjects.length }), count: treatedComplianceProjects.length },
                 ...(isValidationCommitteeMember
-                  ? [{ id: 'out_of_scope', labelKey: 'home.outOfScopeTabLabel', ariaKey: 'home.outOfScopeTab', count: outOfScopeCommitteeProjects.length }]
+                  ? [{ id: 'out_of_scope', label: t('home.outOfScopeTabLabel'), ariaLabel: t('home.outOfScopeTab', { count: outOfScopeCommitteeProjects.length }), count: outOfScopeCommitteeProjects.length }]
                   : [])
-              ].map(({ id, labelKey, ariaKey, count }) => {
-                const isActive = complianceProjectsView === id;
-                const isUrgent = id === 'pending' && count > 0;
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => setComplianceProjectsView(id)}
-                    aria-pressed={isActive}
-                    aria-label={t(ariaKey, { count })}
-                    className={`flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left text-sm font-semibold transition-colors sm:justify-start sm:whitespace-nowrap ${
-                      isActive
-                        ? 'border-blue-200 bg-white text-blue-700 shadow-sm'
-                        : 'border-transparent text-gray-600 hover:bg-white hover:text-blue-700'
-                    }`}
-                  >
-                    <span>{t(labelKey)}</span>
-                    <span
-                      aria-hidden="true"
-                      className={`inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5 text-xs font-bold ${
-                        isUrgent
-                          ? 'bg-blue-600 text-white'
-                          : count > 0
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'bg-gray-100 text-gray-500'
-                      }`}
-                    >
-                      {count}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+              ]}
+            />
 
             {displayedComplianceProjects.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-blue-200 bg-blue-50/40 p-5 text-sm text-gray-600">
@@ -2519,52 +2488,18 @@ export const HomeScreen = ({
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div
-                className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 p-1"
-                role="group"
-                aria-label={t('home.blockSelectionAriaLabel')}
-              >
-                <button
-                  type="button"
-                  onClick={() => onHomeViewChange?.('platform')}
-                  aria-pressed={isPlatformView}
-                  className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition-colors ${
-                    isPlatformView
-                      ? 'bg-blue-600 text-white'
-                      : 'text-blue-700 hover:bg-blue-100'
-                  }`}
-                >
-                  {t(isTeamViewAvailable ? 'home.team.myProjectsTab' : 'home.companyProjectsTab')}
-                </button>
-                {isTeamViewAvailable && (
-                  <button
-                    type="button"
-                    onClick={() => onHomeViewChange?.('team')}
-                    aria-pressed={isTeamView}
-                    className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition-colors ${
-                      isTeamView
-                        ? 'bg-indigo-600 text-white'
-                        : 'text-indigo-700 hover:bg-indigo-100'
-                    }`}
-                  >
-                    <Users className="w-3 h-3" aria-hidden="true" />
-                    {t('home.team.tab', { count: teamProjectEntries.length })}
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => onHomeViewChange?.('inspiration')}
-                  aria-pressed={isInspirationView}
-                  className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition-colors ${
-                    isInspirationView
-                      ? 'bg-blue-600 text-white'
-                      : 'text-blue-700 hover:bg-blue-100'
-                  }`}
-                  data-tour-id="home-inspiration-toggle"
-                >
-                  {t('home.inspirationTab')}
-                </button>
-              </div>
+              <SegmentedTabs
+                ariaLabel={t('home.blockSelectionAriaLabel')}
+                value={isInspirationView ? 'inspiration' : isTeamView ? 'team' : 'platform'}
+                onChange={(view) => onHomeViewChange?.(view)}
+                items={[
+                  { id: 'platform', label: t(isTeamViewAvailable ? 'home.team.myProjectsTab' : 'home.companyProjectsTab') },
+                  ...(isTeamViewAvailable
+                    ? [{ id: 'team', label: t('home.team.tabLabel'), ariaLabel: t('home.team.tab', { count: teamProjectEntries.length }), count: teamProjectEntries.length, icon: Users, tone: 'indigo' }]
+                    : []),
+                  { id: 'inspiration', label: t('home.inspirationTab'), tourId: 'home-inspiration-toggle' }
+                ]}
+              />
               {isInspirationView ? (
                 <button
                   type="button"

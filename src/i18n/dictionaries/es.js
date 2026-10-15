@@ -329,6 +329,7 @@ export default {
       draftsPrivateNotice: 'Los borradores siguen siendo privados hasta su envío.',
       myProjectsTab: 'Mis proyectos',
       tab: 'Mi equipo ({{count}})',
+      tabLabel: 'Mi equipo',
       heading: 'Proyectos de su equipo',
       subtitle: 'Proyectos de las personas que dependen de usted, en todos los niveles. Se mantienen separados de sus propios proyectos.',
       readOnlyTitle: 'Solo consulta.',
