@@ -204,6 +204,11 @@
   background-color: rgba(22,163,74, var(--tw-bg-opacity));
 }
 
+.bg-indigo-100 {
+  --tw-bg-opacity: 1;
+  background-color: rgba(224,231,255, var(--tw-bg-opacity));
+}
+
 .bg-indigo-50 {
   --tw-bg-opacity: 1;
   background-color: rgba(238,242,255, var(--tw-bg-opacity));
@@ -577,6 +582,10 @@
 
 .flex-1 {
   flex: 1 1 0%;
+}
+
+.flex-auto {
+  flex: 1 1 auto;
 }
 
 .flex-col {
@@ -2022,6 +2031,12 @@
 }
 
 @media (min-width: 640px) {
+  .sm\:flex-none {
+    flex: none;
+  }
+}
+
+@media (min-width: 640px) {
   .sm\:flex-row {
     flex-direction: row;
   }
@@ -2054,6 +2069,12 @@
 @media (min-width: 640px) {
   .sm\:grid-cols-3 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 640px) {
+  .sm\:inline-flex {
+    display: inline-flex;
   }
 }
 
@@ -2096,6 +2117,12 @@
 @media (min-width: 640px) {
   .sm\:justify-start {
     justify-content: flex-start;
+  }
+}
+
+@media (min-width: 640px) {
+  .sm\:max-w-full {
+    max-width: 100%;
   }
 }
 
@@ -2725,6 +2752,11 @@
 .hover\:text-gray-800:hover {
   --tw-text-opacity: 1;
   color: rgba(31,41,55, var(--tw-text-opacity));
+}
+
+.hover\:text-indigo-700:hover {
+  --tw-text-opacity: 1;
+  color: rgba(67,56,202, var(--tw-text-opacity));
 }
 
 .hover\:text-red-600:hover {

@@ -330,6 +330,7 @@ export default {
       draftsPrivateNotice: 'Entwürfe bleiben bis zum Versand privat.',
       myProjectsTab: 'Meine Projekte',
       tab: 'Mein Team ({{count}})',
+      tabLabel: 'Mein Team',
       heading: 'Projekte Ihres Teams',
       subtitle: 'Projekte der Ihnen unterstellten Personen, über alle Ebenen. Sie bleiben von Ihren eigenen Projekten getrennt.',
       readOnlyTitle: 'Nur Ansicht.',
@@ -356,6 +357,7 @@ export default {
       readOnlyBadge: 'Nur Ansicht'
     },
     teammateTab: 'Vom Team übernommen ({{count}})',
+    teammateTabLabel: 'Vom Team übernommen',
     noTeammateTriggered: 'Derzeit wird kein Projekt von einem anderen Mitglied Ihrer Teams betreut.',
     claim: {
       listAriaLabel: 'Betreuung je Zuständigkeitsbereich',
@@ -460,8 +462,11 @@ export default {
       'Finden Sie die Projekte, bei denen Sie als Experte oder Ausschussmitglied angefragt werden.',
     triggeredFilterAriaLabel: 'Filter für ausgelöste Projekte',
     pendingTab: 'Zu bearbeiten ({{count}})',
+    pendingTabLabel: 'Zu bearbeiten',
     treatedTab: 'Bearbeitet ({{count}})',
+    treatedTabLabel: 'Bearbeitet',
     outOfScopeTab: 'Außerhalb des Ausschussbereichs ({{count}})',
+    outOfScopeTabLabel: 'Außerhalb des Ausschussbereichs',
     noPendingTriggered: 'Derzeit kein zu bearbeitendes Projekt.',
     noTreatedTriggered: 'Noch kein bearbeitetes Projekt.',
     noOutOfScopeTriggered: 'Derzeit kein Projekt außerhalb des Ausschussbereichs.',

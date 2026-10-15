@@ -328,6 +328,7 @@ export default {
       draftsPrivateNotice: 'Drafts stay private until they are sent.',
       myProjectsTab: 'My projects',
       tab: 'My team ({{count}})',
+      tabLabel: 'My team',
       heading: 'Your team’s projects',
       subtitle: 'Projects of the people reporting to you, at every level. They stay separate from your own projects.',
       readOnlyTitle: 'View only.',
@@ -354,6 +355,7 @@ export default {
       readOnlyBadge: 'View only'
     },
     teammateTab: 'Handled by the team ({{count}})',
+    teammateTabLabel: 'Handled by the team',
     noTeammateTriggered: 'No project is currently handled by another member of your teams.',
     claim: {
       listAriaLabel: 'Ownership per perimeter',
@@ -454,8 +456,11 @@ export default {
     triggeredSubtitle: 'Find the projects where you are requested as an expert or committee member.',
     triggeredFilterAriaLabel: 'Triggered projects filter',
     pendingTab: 'To review ({{count}})',
+    pendingTabLabel: 'To review',
     treatedTab: 'Reviewed ({{count}})',
+    treatedTabLabel: 'Reviewed',
     outOfScopeTab: 'Out of committee scope ({{count}})',
+    outOfScopeTabLabel: 'Out of committee scope',
     noPendingTriggered: 'No project to review for now.',
     noTreatedTriggered: 'No reviewed project yet.',
     noOutOfScopeTriggered: 'No project out of committee scope for now.',

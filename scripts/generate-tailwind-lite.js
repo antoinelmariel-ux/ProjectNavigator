@@ -667,6 +667,7 @@ function baseRule(base) {
   if (base === 'flex-col-reverse') return { declarations: { 'flex-direction': 'column-reverse' } };
   if (base === 'flex-wrap') return { declarations: { 'flex-wrap': 'wrap' } };
   if (base === 'flex-1') return { declarations: { flex: '1 1 0%' } };
+  if (base === 'flex-auto') return { declarations: { flex: '1 1 auto' } };
   if (base === 'items-center') return { declarations: { 'align-items': 'center' } };
   if (base === 'items-start') return { declarations: { 'align-items': 'flex-start' } };
   if (base === 'items-end') return { declarations: { 'align-items': 'flex-end' } };
