@@ -100,6 +100,7 @@ script (nécessaire au-delà de 5 000 éléments).
 | `CN_Rules` | RuleId📌, PayloadJson (texte long), SortOrder (nombre), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
 | `CN_Teams` | TeamId📌, ContactsJson (texte long), NameJson (texte long), Expertise (texte long), AcceptedLanguagesJson (texte long), MemberRulesJson (texte long), ClaimStaleDays (nombre), ClaimReminderDays (nombre), SortOrder (nombre), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
 | `CN_SampleProjects` | SampleId📌, AnswersJson (texte long), SortOrder (nombre), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
+| `CN_Faq` | FaqId📌, QuestionJson (texte long), AnswerJson (texte long), IsPublished (oui/non, défaut oui), SortOrder (nombre), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
 
 (Les colonnes en **gras** sont celles corrigées le 29/08/2026, voir l'encart d'avertissement en
 haut de ce document. `AssigneeEmail`/`ClaimJson` sur `CN_ComplianceComments`,
@@ -384,6 +385,20 @@ existaient auparavant dans `CN-Config` — une ligne par règle/équipe plutôt 
       fields: [
         { name: 'SampleId', type: 'Text', indexed: true },
         { name: 'AnswersJson', type: 'Note' },
+        { name: 'SortOrder', type: 'Number' },
+        { name: 'RowVersion', type: 'Number' },
+        { name: 'CreatedByEmail', type: 'Text' },
+        { name: 'UpdatedByEmail', type: 'Text' },
+        { name: 'UpdatedAt', type: 'DateTime' }
+      ]
+    },
+    {
+      title: 'CN_Faq',
+      fields: [
+        { name: 'FaqId', type: 'Text', indexed: true },
+        { name: 'QuestionJson', type: 'Note' },
+        { name: 'AnswerJson', type: 'Note' },
+        { name: 'IsPublished', type: 'Boolean' },
         { name: 'SortOrder', type: 'Number' },
         { name: 'RowVersion', type: 'Number' },
         { name: 'CreatedByEmail', type: 'Text' },

@@ -153,7 +153,9 @@ export default {
     staticPages: {
       faqTitle: 'Questions fréquentes',
       legalTitle: 'Mentions légales',
-      close: 'Fermer'
+      close: 'Fermer',
+      faqHeading: 'Questions fréquentes',
+      faqIntro: 'Retrouvez ici les réponses aux questions les plus courantes sur l\'utilisation de Project Navigator.'
     },
     beforeUnload: {
       message: 'Avez-vous bien sauvegardé votre projet avant de quitter ?'
@@ -995,6 +997,25 @@ export default {
       noConditionsYet: 'Aucune condition définie. Ajoutez un groupe pour limiter l’affichage.',
       addConditionToActivateGroup: 'Ajoutez une condition pour activer ce groupe.'
     },
+    faq: {
+      title: 'FAQ de l\'application',
+      description: 'Questions affichées dans la fenêtre d\'aide. Chaque modification est enregistrée automatiquement dans la liste SharePoint CN_Faq. Tant qu\'aucune question n\'est publiée, la page d\'aide par défaut est affichée.',
+      adminOnly: 'L\'édition de la FAQ est réservée aux administrateurs.',
+      add: 'Ajouter une question',
+      editingLanguage: 'Langue de saisie',
+      editingLanguageHint: 'la question et la réponse sont saisies dans cette langue',
+      empty: 'Aucune question pour l\'instant. Ajoutez-en une pour remplacer la page d\'aide par défaut.',
+      entryNumber: 'Question {{number}}',
+      published: 'Publiée',
+      moveUp: 'Monter la question',
+      moveDown: 'Descendre la question',
+      delete: 'Supprimer',
+      confirmDelete: 'Supprimer définitivement cette question de la FAQ ?',
+      questionLabel: 'Question',
+      answerLabel: 'Réponse',
+      missingTranslations: 'À traduire : {{languages}}. Une langue manquante affiche le français à la place.',
+      fullyTranslated: 'Traduite dans les 4 langues.'
+    },
     main: {
       claimSettingsHeading: 'Prise en charge des projets',
       claimSettingsHint: 'Un membre de cette équipe peut prendre en charge un projet déclenché : il quitte alors la file « À traiter » des autres membres, et les échanges suivants ne partent plus qu’à lui.',
@@ -1643,6 +1664,7 @@ export default {
       tabTeamsTemplate: 'Équipes ({{count}})',
       tabComplianceReview: 'Revue des règles',
       tabTranslationsTemplate: 'Traductions ({{count}})',
+      tabFaqTemplate: 'FAQ ({{count}})',
       acceptedLanguagesLabel: 'Langues de réponse acceptées',
       acceptedLanguagesHint: 'Langues dans lesquelles vous pouvez échanger avec les porteurs de projet. Aucune case cochée = toutes les langues sont acceptées.',
       translations: {

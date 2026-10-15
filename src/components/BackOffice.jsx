@@ -120,6 +120,7 @@ import { resolveLocalizedText, getLocalizedRaw, setLocalizedText } from '../util
 import { collectTranslationItems } from '../utils/translationAudit.js';
 import { LanguageEditSwitcher } from './LocalizedFieldEditor.jsx';
 import { BackOfficeTranslations } from './BackOfficeTranslations.jsx';
+import { BackOfficeFaq } from './BackOfficeFaq.jsx';
 import { isSharePointMode } from '../config/sharepointConfig.js';
 import { scrollAppTo } from '../utils/scrollContainer.js';
 
@@ -748,6 +749,10 @@ export const BackOffice = ({
   setComplianceSampleProjects,
   sampleProjectsQueueRef,
   sampleProjectServerMetaRef,
+  faqEntries,
+  setFaqEntries,
+  faqQueueRef,
+  faqServerMetaRef,
   currentUserEmail = '',
   isCurrentUserAdmin = false,
   activityScope,
@@ -3963,6 +3968,11 @@ export const BackOffice = ({
       id: 'translations',
       label: t('backOffice.main.tabTranslationsTemplate', { count: missingTranslationItems.length }),
       panelId: 'backoffice-tabpanel-translations'
+    },
+    {
+      id: 'faq',
+      label: t('backOffice.main.tabFaqTemplate', { count: Array.isArray(faqEntries) ? faqEntries.length : 0 }),
+      panelId: 'backoffice-tabpanel-faq'
     }
   ].filter((tab) => !allowedTabIds || allowedTabIds.has(tab.id));
 
@@ -10231,6 +10241,20 @@ export const BackOffice = ({
                 teams={teams}
                 isCurrentUserAdmin={isCurrentUserAdmin}
                 onChange={handleTranslationValueChange}
+                t={t}
+              />
+            </section>
+          )}
+
+          {activeTab === 'faq' && (
+            <section id="backoffice-tabpanel-faq" role="tabpanel" aria-labelledby="backoffice-tab-faq">
+              <BackOfficeFaq
+                entries={Array.isArray(faqEntries) ? faqEntries : []}
+                setEntries={setFaqEntries}
+                queueRef={faqQueueRef}
+                serverMetaRef={faqServerMetaRef}
+                currentUserEmail={currentUserEmail}
+                isCurrentUserAdmin={isCurrentUserAdmin}
                 t={t}
               />
             </section>

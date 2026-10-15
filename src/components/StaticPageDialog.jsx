@@ -1,6 +1,8 @@
-import React, { useEffect, useRef, useState } from '../react.js';
+import React, { useEffect, useMemo, useRef, useState } from '../react.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { STATIC_PAGE_EVENT } from '../utils/staticPages.js';
+import { buildFaqPageHtml } from '../utils/faqEntries.js';
+import { sanitizeRichText } from '../utils/richText.js';
 import faqHtml from '../pages/faq.html?raw';
 import legalHtml from '../pages/mentions-legales.html?raw';
 
@@ -11,8 +13,10 @@ const PAGES = {
 
 // Les pages gardent leur propre feuille de style (body, header, main…) : un iframe les isole de
 // l'app et de la page SharePoint. Sans allow-scripts ni allow-same-origin, il ne fait qu'afficher.
-export const StaticPageDialog = () => {
-  const { t } = useTranslation();
+// La FAQ vient de la liste éditée dans le back-office ; tant qu'elle n'a aucune entrée publiée,
+// le faq.html embarqué (page « en construction ») sert de repli.
+export const StaticPageDialog = ({ faqEntries = [] }) => {
+  const { t, language } = useTranslation();
   const [pageId, setPageId] = useState(null);
   const closeButtonRef = useRef(null);
 
@@ -40,6 +44,17 @@ export const StaticPageDialog = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [pageId]);
+
+  const dynamicFaqHtml = useMemo(
+    () =>
+      buildFaqPageHtml(
+        faqEntries,
+        language,
+        { heading: t('app.staticPages.faqHeading'), intro: t('app.staticPages.faqIntro') },
+        sanitizeRichText
+      ),
+    [faqEntries, language, t]
+  );
 
   if (!pageId) {
     return null;
@@ -70,7 +85,7 @@ export const StaticPageDialog = () => {
       </div>
       <iframe
         title={title}
-        srcDoc={page.html}
+        srcDoc={pageId === 'faq' && dynamicFaqHtml ? dynamicFaqHtml : page.html}
         sandbox="allow-popups allow-popups-to-escape-sandbox"
         className="w-full flex-1 border-0"
       />

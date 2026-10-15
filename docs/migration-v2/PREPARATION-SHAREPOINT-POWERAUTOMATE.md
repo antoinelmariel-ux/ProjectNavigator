@@ -347,6 +347,34 @@ Trois points à garder en tête :
 Aucun flux Power Automate n'est associé à cette liste : elle ne déclenche ni mail, ni Teams, ni
 planification.
 
+### `CN_Faq` — la FAQ de la fenêtre d'aide (une ligne par question)
+
+Éditée par les administrateurs dans l'onglet **FAQ** du back-office (aucune modification de code ni
+de déploiement n'est nécessaire pour la mettre à jour). Une ligne par question, le texte est
+traduit dans les 4 langues de l'application ; une langue manquante retombe sur le français.
+
+- **Liste vide ou aucune ligne publiée** : l'application affiche la page d'aide par défaut
+  embarquée (`src/pages/faq.html`). Ce n'est donc pas une erreur.
+- `IsPublished` masque une question sans la supprimer. `SortOrder` fixe l'ordre d'affichage.
+- `AnswerJson` contient du texte riche limité (gras, italique, souligné, listes, liens), nettoyé
+  par l'application à l'affichage.
+- **Droits** : lecture pour tous les membres du site, écriture pour les administrateurs.
+
+| Colonne | Type |
+|---|---|
+| Title | (existante — question en langue par défaut, dérivée automatiquement) |
+| FaqId 📌 | Une ligne de texte |
+| QuestionJson | Texte long (question traduite, ex. `{"fr":"Comment créer un projet ?","en":"How do I create a project?"}`) |
+| AnswerJson | Texte long (réponse traduite en texte riche, ex. `{"fr":"<p>Cliquez sur…</p>"}`) |
+| IsPublished | Oui/Non — **valeur par défaut : Oui** |
+| SortOrder | Nombre |
+| RowVersion | Nombre |
+| CreatedByEmail | Une ligne de texte |
+| UpdatedByEmail | Une ligne de texte |
+| UpdatedAt | Date et heure |
+
+Aucun flux Power Automate n'est associé à cette liste.
+
 💡 **Astuce de vérification** : une fois les listes créées, l'application dispose d'un écran de
 diagnostic (voir étape 6) qui te dira précisément quelle liste ou quelle colonne manque. Inutile
 de tout relire à la main.
