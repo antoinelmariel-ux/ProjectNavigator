@@ -1840,7 +1840,17 @@ export default {
     description: 'El responsable de este proyecto ha cancelado su envío. El proyecto ya no está disponible desde este enlace.',
     descriptionWithName:
       'El responsable del proyecto «{{name}}» ha cancelado su envío. El proyecto ya no está disponible desde este enlace.',
-    backToHome: 'Volver al inicio'
+    backToHome: 'Volver al inicio',
+    trashed: {
+      title: 'Proyecto eliminado',
+      description: 'El responsable de este proyecto lo ha eliminado. Ya no es accesible desde este enlace.',
+      descriptionWithName: 'El responsable del proyecto «{{name}}» lo ha eliminado. Ya no es accesible desde este enlace.'
+    },
+    missing: {
+      title: 'Proyecto no encontrado',
+      description: 'Este proyecto no existe o se ha eliminado definitivamente. Ya no es accesible desde este enlace.',
+      descriptionWithName: 'Este proyecto no existe o se ha eliminado definitivamente. Ya no es accesible desde este enlace.'
+    }
   },
   synthesisReport: {
     launchQuestionTitle: '¿Este proyecto se ha lanzado?',

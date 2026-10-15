@@ -129,6 +129,7 @@ import {
   canPermanentlyDeleteProject,
   isProjectInOwnerTrash,
   isProjectTrashed,
+  isRespondingExpert,
   withProjectPurgedByOwner,
   withProjectRestored,
   withProjectTrashed
@@ -5859,12 +5860,35 @@ const updateProjectFilters = useCallback((updater) => {
 
     const matchingProject = projects.find(project => project?.id === pendingProjectId);
     if (!matchingProject) {
+      // Une fois la liste réellement chargée, un projet introuvable a été supprimé définitivement
+      // (ou n'a jamais existé) : le lien aboutit à une annonce plutôt qu'à un accueil muet. Tant que
+      // le serveur n'a pas répondu, ou s'il a échoué, on ne conclut rien.
+      if (['local-only', 'synced', 'partial'].includes(sharePointSync.state)) {
+        pendingShowcaseProjectIdRef.current = null;
+        pendingProjectViewRef.current = null;
+        setCancelledSubmissionNotice({ projectName: '', reason: 'missing' });
+        previousScreenRef.current = null;
+        setScreen('submission-cancelled');
+      }
       return;
     }
 
     pendingShowcaseProjectIdRef.current = null;
     const pendingView = pendingProjectViewRef.current;
     pendingProjectViewRef.current = null;
+
+    // Un projet à la corbeille ne s'ouvre plus par lien, vitrine partagée comprise : seul un expert
+    // qui y a répondu en garde la synthèse, comme dans son onglet « Abandonnés ».
+    if (isProjectTrashed(matchingProject)) {
+      if (pendingView === 'synthesis' && isRespondingExpert(matchingProject, currentUserEmail, trashResponseOptions)) {
+        handleOpenProject(pendingProjectId, { view: 'synthesis' });
+        return;
+      }
+      setCancelledSubmissionNotice({ projectName: matchingProject.projectName || '', reason: 'trashed' });
+      previousScreenRef.current = null;
+      setScreen('submission-cancelled');
+      return;
+    }
 
     // Un lien de notification envoyé avant l'annulation de la soumission ne doit jamais
     // exposer le projet (synthèse ou vitrine) : la personne qui clique dessus atterrit sur
@@ -5881,7 +5905,7 @@ const updateProjectFilters = useCallback((updater) => {
     } else {
       openProjectShowcase({ projectId: pendingProjectId });
     }
-  }, [handleOpenProject, isHydrated, openProjectShowcase, projects]);
+  }, [currentUserEmail, handleOpenProject, isHydrated, openProjectShowcase, projects, sharePointSync.state, trashResponseOptions]);
 
   const isActiveProjectShowcaseBlocked = useMemo(
     () => isShowcaseAccessBlockedByProjectType(answers),
@@ -8114,6 +8138,7 @@ const updateProjectFilters = useCallback((updater) => {
         ) : screen === 'submission-cancelled' ? (
           <SubmissionCancelledNotice
             projectName={cancelledSubmissionNotice?.projectName || ''}
+            reason={cancelledSubmissionNotice?.reason || 'cancelled'}
             onBackToHome={handleReturnHomeFromCancelledSubmissionNotice}
           />
         ) : screen === 'synthesis' ? (

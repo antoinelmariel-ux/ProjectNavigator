@@ -1851,7 +1851,17 @@ export default {
     description: 'Der Projektverantwortliche hat diese Einreichung storniert. Das Projekt ist über diesen Link nicht mehr zugänglich.',
     descriptionWithName:
       'Der Verantwortliche des Projekts „{{name}}“ hat die Einreichung storniert. Das Projekt ist über diesen Link nicht mehr zugänglich.',
-    backToHome: 'Zurück zur Startseite'
+    backToHome: 'Zurück zur Startseite',
+    trashed: {
+      title: 'Projekt gelöscht',
+      description: 'Der Projektverantwortliche hat dieses Projekt gelöscht. Es ist über diesen Link nicht mehr erreichbar.',
+      descriptionWithName: 'Der Verantwortliche des Projekts „{{name}}“ hat es gelöscht. Es ist über diesen Link nicht mehr erreichbar.'
+    },
+    missing: {
+      title: 'Projekt nicht gefunden',
+      description: 'Dieses Projekt existiert nicht oder wurde endgültig gelöscht. Es ist über diesen Link nicht mehr erreichbar.',
+      descriptionWithName: 'Dieses Projekt existiert nicht oder wurde endgültig gelöscht. Es ist über diesen Link nicht mehr erreichbar.'
+    }
   },
   synthesisReport: {
     launchQuestionTitle: 'Ist dieses Projekt gestartet?',

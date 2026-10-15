@@ -463,6 +463,12 @@ must not reach a queue, a reminder or a dashboard.
 - **« Abandonnés »** is a tab of the experts' triggered-projects section: every trashed project
   (in the owner's trash or purged from it) on which one of *that person's* teams/committees has
   answered. A trashed project nobody answered is invisible to experts.
+- **A link never opens a trashed or deleted project** — shared showcase (`?sv=`), `?showcase=` or a
+  notification's synthesis link alike. The pending-link effect in `App.jsx` routes it to
+  `SubmissionCancelledNotice` with `reason: 'trashed'`, or `'missing'` once the project list has
+  really loaded (`sharePointSync.state` in `local-only`/`synced`/`partial` — never while loading or
+  after a failed load, which would announce a deletion that didn't happen). The one exception is
+  the synthesis link for an expert who answered (`isRespondingExpert`), consistent with « Abandonnés ».
 - Tests: `test/projectTrash.test.mjs`, `e2e/project-trash.spec.js`.
 
 ## Project validation status (home cards)

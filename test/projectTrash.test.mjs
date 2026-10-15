@@ -9,6 +9,7 @@ import {
   isProjectInOwnerTrash,
   isProjectPurgedByOwner,
   isProjectTrashed,
+  isRespondingExpert,
   withProjectPurgedByOwner,
   withProjectRestored,
   withProjectTrashed
@@ -96,4 +97,22 @@ test('getRespondedPerimeters restreint les réponses aux contacts de l’équipe
   assert.deepEqual(getRespondedPerimeters(p, {
     contactsByTeamId: { legal: ['legal@lfb.fr'], quality: ['expert@lfb.fr'], rgpd: [] }
   }), { teamIds: ['quality', 'rgpd'], committeeIds: ['codir'] });
+});
+
+test('isRespondingExpert ne reconnaît que les contacts d’un périmètre qui a répondu', () => {
+  const p = project({
+    __compliance_team_comments__: {
+      teams: { legal: { status: 'validated' }, quality: {} },
+      committees: { codir: { comment: 'ok' } }
+    }
+  });
+  const options = {
+    contactsByTeamId: { legal: ['Legal@lfb.fr'], quality: ['quality@lfb.fr'] },
+    emailsByCommitteeId: { codir: ['codir@lfb.fr'] }
+  };
+  assert.equal(isRespondingExpert(p, 'legal@lfb.fr', options), true);
+  assert.equal(isRespondingExpert(p, 'codir@lfb.fr', options), true);
+  assert.equal(isRespondingExpert(p, 'quality@lfb.fr', options), false);
+  assert.equal(isRespondingExpert(p, 'owner@lfb.fr', options), false);
+  assert.equal(isRespondingExpert(p, '', options), false);
 });

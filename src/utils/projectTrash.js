@@ -121,3 +121,17 @@ export const hasExpertResponse = (project, options) => {
 };
 
 export const canPermanentlyDeleteProject = (project, options) => !hasExpertResponse(project, options);
+
+// Seul un expert dont l'équipe ou le comité a répondu garde l'accès à un projet supprimé : c'est
+// exactement ce que montre son onglet « Abandonnés ».
+export const isRespondingExpert = (project, email, options = {}) => {
+  const normalized = normalizeEmail(email || '');
+  if (!normalized) {
+    return false;
+  }
+
+  const { teamIds, committeeIds } = getRespondedPerimeters(project, options);
+  const includes = (list) => Array.isArray(list) && list.some((entry) => normalizeEmail(entry || '') === normalized);
+  return teamIds.some((id) => includes(options.contactsByTeamId?.[id]))
+    || committeeIds.some((id) => includes(options.emailsByCommitteeId?.[id]));
+};

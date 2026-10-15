@@ -1840,7 +1840,17 @@ export default {
     description: 'The project owner has cancelled this submission. The project is no longer accessible from this link.',
     descriptionWithName:
       'The owner of the project “{{name}}” has cancelled its submission. The project is no longer accessible from this link.',
-    backToHome: 'Back to home'
+    backToHome: 'Back to home',
+    trashed: {
+      title: 'Project deleted',
+      description: 'The owner of this project has deleted it. It can no longer be accessed from this link.',
+      descriptionWithName: 'The owner of the project “{{name}}” has deleted it. It can no longer be accessed from this link.'
+    },
+    missing: {
+      title: 'Project not found',
+      description: 'This project does not exist or has been permanently deleted. It can no longer be accessed from this link.',
+      descriptionWithName: 'This project does not exist or has been permanently deleted. It can no longer be accessed from this link.'
+    }
   },
   synthesisReport: {
     launchQuestionTitle: 'Has this project launched?',

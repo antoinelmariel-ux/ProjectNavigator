@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import {
   gotoHome,
   createAndSubmitProject,
+  createProjectAndOpenShowcase,
   grantSelfComplianceExpertAndCommitteeAccess,
   collectConsoleErrors
 } from './fixtures.js';
@@ -113,5 +114,33 @@ test('un projet ayant reçu un avis quitte la corbeille du porteur mais reste «
   await expect(trashButton(page)).not.toContainText(/\d/);
   await page.getByRole('button', { name: /Abandonnés/ }).click();
   await expect(page.getByRole('list', { name: /projets déclenchés/i }).getByRole('listitem')).toHaveCount(1);
+  expect(errors).toEqual([]);
+});
+
+test('un lien de vitrine partagé ne s’ouvre plus une fois le projet supprimé', async ({ page }) => {
+  const errors = collectConsoleErrors(page);
+  await gotoHome(page);
+  await createProjectAndOpenShowcase(page);
+  await page.getByRole('button', { name: 'Partager' }).click();
+  const shareUrl = await page.locator('input[readonly], input[type="text"]').first().inputValue();
+  expect(shareUrl).toContain('sv=');
+
+  await page.goto('/index.html');
+  await moveFirstProjectToTrash(page);
+
+  await page.goto(shareUrl);
+  await expect(page.getByRole('heading', { name: 'Projet supprimé' })).toBeVisible();
+  await expect(page.locator('.sg-shell')).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Retour à l’accueil' }).click();
+  await trashButton(page).click();
+  const dialog = trashDialog(page);
+  await dialog.getByRole('button', { name: 'Supprimer définitivement' }).click();
+  await dialog.getByRole('button', { name: 'Confirmer la suppression' }).click();
+  await expect(dialog).toContainText('La corbeille est vide.');
+
+  await page.goto(shareUrl);
+  await expect(page.getByRole('heading', { name: 'Projet introuvable' })).toBeVisible();
+  await expect(page.locator('.sg-shell')).toHaveCount(0);
   expect(errors).toEqual([]);
 });

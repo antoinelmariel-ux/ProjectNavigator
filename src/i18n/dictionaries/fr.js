@@ -1850,7 +1850,17 @@ export default {
     description: 'Le porteur de ce projet a annulé sa soumission. Le projet n’est plus accessible depuis ce lien.',
     descriptionWithName:
       'Le porteur du projet « {{name}} » a annulé sa soumission. Le projet n’est plus accessible depuis ce lien.',
-    backToHome: 'Retour à l’accueil'
+    backToHome: 'Retour à l’accueil',
+    trashed: {
+      title: 'Projet supprimé',
+      description: 'Le porteur de ce projet l’a supprimé. Il n’est plus accessible depuis ce lien.',
+      descriptionWithName: 'Le porteur du projet « {{name}} » l’a supprimé. Il n’est plus accessible depuis ce lien.'
+    },
+    missing: {
+      title: 'Projet introuvable',
+      description: 'Ce projet n’existe pas ou a été supprimé définitivement. Il n’est plus accessible depuis ce lien.',
+      descriptionWithName: 'Ce projet n’existe pas ou a été supprimé définitivement. Il n’est plus accessible depuis ce lien.'
+    }
   },
   synthesisReport: {
     launchQuestionTitle: 'Ce projet est-il lancé ?',
