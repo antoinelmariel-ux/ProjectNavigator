@@ -13,7 +13,6 @@ import {
 import {
   buildExtraCheckboxQuestionId,
   buildNumberUnitAnswerId,
-  formatAnswer,
   getNumberUnitOptions,
   normalizeOtherOption,
   normalizeQuestionOptions,
@@ -194,7 +193,6 @@ export const QuestionnaireScreen = ({
   onAnswer,
   onNext,
   onBack,
-  allQuestions,
   onNavigateToQuestion,
   saveFeedback,
   onDismissSaveFeedback,
@@ -213,7 +211,6 @@ export const QuestionnaireScreen = ({
   // Repli sur une sentinelle stable pour que les hooks ci-dessous s’exécutent toujours
   // (le rendu réel est court-circuité plus bas si activeQuestion est absente).
   const currentQuestion = activeQuestion || EMPTY_QUESTION;
-  const questionBank = allQuestions || questions;
   const currentQuestionText = resolveLocalizedText(currentQuestion.question, language);
   const currentQuestionPlaceholder = resolveLocalizedText(currentQuestion.placeholder, language).trim();
   const currentQuestionNumberUnit = resolveLocalizedText(currentQuestion.numberUnit, language).trim();
@@ -505,39 +502,9 @@ export const QuestionnaireScreen = ({
       : []
   ), [guidance, language]);
 
-  const conditionSummaries = useMemo(() => {
-    const conditionGroups = normalizeConditionGroups(currentQuestion);
-    return conditionGroups.map((group, groupIdx) => {
-      const logic = group.logic === 'any' ? 'any' : 'all';
-      const conditions = (group.conditions || []).map(condition => {
-        const referenceQuestion = questionBank.find(q => q.id === condition.question);
-        const label = resolveLocalizedText(referenceQuestion?.question, language) || `Question ${condition.question}`;
-        const formattedAnswer = formatAnswer(referenceQuestion, answers[condition.question], language);
-
-        return {
-          label,
-          operator: t(`questionnaire.operators.${condition.operator}`),
-          value: condition.value,
-          answer: formattedAnswer
-        };
-      });
-
-      return {
-        logic,
-        conditions,
-        groupIdx
-      };
-    });
-  }, [answers, currentQuestion, questionBank, t, language]);
-
-  const hasConditions = useMemo(
-    () => conditionSummaries.some(summary => summary.conditions.length > 0),
-    [conditionSummaries]
-  );
-
   const hasGuidanceContent = useMemo(() => {
-    return guidanceObjective !== '' || guidanceDetails !== '' || guidanceTips.length > 0 || hasConditions;
-  }, [guidanceObjective, guidanceDetails, guidanceTips, hasConditions]);
+    return guidanceObjective !== '' || guidanceDetails !== '' || guidanceTips.length > 0;
+  }, [guidanceObjective, guidanceDetails, guidanceTips]);
 
   const rankingPrioritized = useMemo(() => {
     if (questionType !== 'ranking') {
@@ -1589,81 +1556,6 @@ export const QuestionnaireScreen = ({
 
                     {guidanceDetails && (
                       <p className="text-gray-700 leading-relaxed">{renderTextWithLinks(guidanceDetails)}</p>
-                    )}
-
-                    {hasConditions && (
-                      <div>
-                        <h4 className="text-xs font-semibold uppercase tracking-wide text-blue-700">{t('questionnaire.whyThisQuestionAppears')}</h4>
-                        {conditionSummaries.length === 1 ? (
-                          (() => {
-                            const logic = conditionSummaries[0].logic === 'any' ? 'any' : 'all';
-                            return (
-                              <p className="text-xs text-blue-600 mt-1">
-                                {logic === 'any' ? t('questionnaire.showsIfAny') : t('questionnaire.showsIfAll')}
-                              </p>
-                            );
-                          })()
-                        ) : (
-                          <div className="text-xs text-blue-600 mt-1 space-y-1">
-                            <p>
-                              {t('questionnaire.multiGroupIntroPrefix')}{' '}
-                              <strong className="text-blue-700">{t('questionnaire.multiGroupIntroBold')}</strong>
-                              {t('questionnaire.multiGroupIntroSuffix')}
-                            </p>
-                            <p>{t('questionnaire.multiGroupHint')}</p>
-                          </div>
-                        )}
-                        <div className="mt-3 space-y-3">
-                          {conditionSummaries.map((groupSummary, idx) => {
-                            const logicLabel = groupSummary.logic === 'any' ? t('questionnaire.logicOr') : t('questionnaire.logicAnd');
-                            const connectorLabel = logicLabel;
-
-                            if (groupSummary.conditions.length === 0) {
-                              return null;
-                            }
-
-                            return (
-                              <div key={`condition-group-${idx}`} className="bg-white border border-blue-100 rounded-xl p-3">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <span className="text-xs font-semibold text-blue-700 uppercase tracking-wide">
-                                    {t('questionnaire.group', { number: idx + 1 })}
-                                  </span>
-                                  <span className="text-[11px] text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
-                                    {t('questionnaire.groupLogicBadge', { logic: logicLabel })}
-                                  </span>
-                                  {idx > 0 && (
-                                    <span className="ml-auto text-[11px] font-semibold text-blue-600 uppercase tracking-wide">
-                                      {t('questionnaire.andWithPrevious')}
-                                    </span>
-                                  )}
-                                </div>
-                                <ul className="space-y-2">
-                                  {groupSummary.conditions.map((item, conditionIdx) => (
-                                    <li key={`${item.label}-${conditionIdx}`} className="text-sm text-gray-700">
-                                      <p className="font-medium text-gray-800">
-                                        {conditionIdx > 0 && (
-                                          <span className="inline-flex items-center px-2 py-0.5 mr-2 text-[11px] font-semibold uppercase tracking-wide rounded-full bg-blue-100 text-blue-700">
-                                            {connectorLabel}
-                                          </span>
-                                        )}
-                                        {item.label} {item.operator} {t('questionnaire.conditionQuote', { value: item.value })}
-                                      </p>
-                                      {item.answer && (
-                                        <p className="text-xs text-gray-500 mt-1">
-                                          {t('questionnaire.yourAnswer')}{' '}
-                                          <span className="font-medium text-gray-700">
-                                            {renderTextWithLinks(item.answer)}
-                                          </span>
-                                        </p>
-                                      )}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
                     )}
 
                     {guidanceTips.length > 0 && (

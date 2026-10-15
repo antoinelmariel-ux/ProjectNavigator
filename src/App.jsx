@@ -8116,7 +8116,6 @@ const updateProjectFilters = useCallback((updater) => {
             onAnswer={handleAnswer}
             onNext={handleNext}
             onBack={handleBack}
-            allQuestions={questions}
             onNavigateToQuestion={handleNavigateToQuestion}
             saveFeedback={saveFeedback}
             onDismissSaveFeedback={handleDismissSaveFeedback}
