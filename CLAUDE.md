@@ -201,7 +201,10 @@ Finishing the creation form lands on the **project showcase**, not on the compli
 the tool is meant to make someone think about their project, not just get it stamped. Both
 exits go through `navigateToProjectShowcase` in `App.jsx` — the last question's button
 (« Voir la vitrine du projet »), the mid-questionnaire « Terminer et voir la vitrine », and the
-mandatory-questions interstitial's button, which is the same journey interrupted. A project type
+mandatory-questions interstitial's button, which is the same journey interrupted. That
+interstitial only appears while a **core** question is missing (`unansweredPreliminaryQuestions`,
+the same list that gates the preliminary request) — a question that only becomes mandatory at a
+later declared stage does not stand between the author and their showcase. A project type
 that `isShowcaseAccessBlockedByProjectType` denies the showcase falls back to the report, which
 is the only way that screen is reached directly from the form.
 

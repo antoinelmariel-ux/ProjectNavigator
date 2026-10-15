@@ -1802,7 +1802,7 @@ export default {
     pendingTitle: 'Mandatory questions to complete',
     doneTitle: 'All mandatory questions are completed',
     pendingSubtitle:
-      'You can explore your project showcase now: these answers will be requested when you submit the project.',
+      'You can explore your project showcase now: these core questions must be answered before you can ask the experts for an opinion.',
     doneSubtitle: 'You can now explore your project showcase.',
     ariaLabel: 'Unanswered mandatory questions',
     positionLabel: 'Question {{position}} of {{total}}',

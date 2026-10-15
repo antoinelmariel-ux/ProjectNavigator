@@ -1810,7 +1810,7 @@ export default {
     pendingTitle: 'Questions obligatoires à compléter',
     doneTitle: 'Toutes les questions obligatoires sont complétées',
     pendingSubtitle:
-      'Vous pouvez découvrir la vitrine de votre projet dès maintenant : ces réponses seront demandées au moment de soumettre le projet.',
+      'Vous pouvez découvrir la vitrine de votre projet dès maintenant : ces questions du socle devront être renseignées pour demander un avis aux experts.',
     doneSubtitle: 'Vous pouvez désormais découvrir la vitrine de votre projet.',
     ariaLabel: 'Questions obligatoires non répondues',
     positionLabel: 'Question {{position}} sur {{total}}',

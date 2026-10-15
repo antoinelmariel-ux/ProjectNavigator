@@ -1802,7 +1802,7 @@ export default {
   mandatoryQuestionsSummary: {
     pendingTitle: 'Preguntas obligatorias por completar',
     doneTitle: 'Se completaron todas las preguntas obligatorias',
-    pendingSubtitle: 'Puede descubrir la vitrina de su proyecto desde ahora: estas respuestas se solicitarán al enviar el proyecto.',
+    pendingSubtitle: 'Puede descubrir la vitrina de su proyecto desde ahora: estas preguntas básicas deberán responderse para pedir una opinión a los expertos.',
     doneSubtitle: 'Ahora puede descubrir la vitrina de su proyecto.',
     ariaLabel: 'Preguntas obligatorias sin responder',
     positionLabel: 'Pregunta {{position}} de {{total}}',

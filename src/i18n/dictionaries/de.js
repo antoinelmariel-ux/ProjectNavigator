@@ -1812,7 +1812,7 @@ export default {
     pendingTitle: 'Auszufüllende Pflichtfragen',
     doneTitle: 'Alle Pflichtfragen sind ausgefüllt',
     pendingSubtitle:
-      'Sie können den Projekt-Showcase bereits jetzt entdecken: Diese Antworten werden beim Einreichen des Projekts angefordert.',
+      'Sie können den Projekt-Showcase bereits jetzt entdecken: Diese Basisfragen müssen beantwortet sein, bevor Sie die Experten um eine Einschätzung bitten können.',
     doneSubtitle: 'Sie können jetzt den Projekt-Showcase entdecken.',
     ariaLabel: 'Unbeantwortete Pflichtfragen',
     positionLabel: 'Frage {{position}} von {{total}}',

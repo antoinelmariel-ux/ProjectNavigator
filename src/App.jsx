@@ -3344,13 +3344,15 @@ const updateProjectFilters = useCallback((updater) => {
     [answers, activeQuestions]
   );
 
+  // L'écran intermédiaire ne retient que ce qui bloque la première porte (le socle) : une
+  // question exigible plus tard au stade déclaré ne doit pas barrer l'accès à la vitrine.
   const pendingMandatoryQuestions = useMemo(
     () =>
-      unansweredMandatoryQuestions.map(question => ({
+      unansweredPreliminaryQuestions.map(question => ({
         question,
         position: activeQuestions.findIndex(item => item.id === question.id) + 1
       })),
-    [unansweredMandatoryQuestions, activeQuestions]
+    [unansweredPreliminaryQuestions, activeQuestions]
   );
 
   const hasIncompleteAnswers = useMemo(
@@ -5979,7 +5981,7 @@ const updateProjectFilters = useCallback((updater) => {
   ]);
 
   const leaveQuestionnaireForShowcase = useCallback(() => {
-    if (unansweredMandatoryQuestions.length > 0) {
+    if (unansweredPreliminaryQuestions.length > 0) {
       setValidationError(null);
       setReturnToSynthesisAfterEdit(false);
       setScreen('mandatory-summary');
@@ -5987,7 +5989,7 @@ const updateProjectFilters = useCallback((updater) => {
     }
 
     navigateToProjectShowcase();
-  }, [navigateToProjectShowcase, unansweredMandatoryQuestions]);
+  }, [navigateToProjectShowcase, unansweredPreliminaryQuestions]);
 
   const handleNext = useCallback(() => {
     if (currentQuestionIndex < activeQuestions.length - 1) {
@@ -6830,8 +6832,9 @@ const updateProjectFilters = useCallback((updater) => {
   }, []);
 
   const handleBackToQuestionnaire = useCallback(() => {
-    if (unansweredMandatoryQuestions.length > 0) {
-      const firstMissingId = unansweredMandatoryQuestions[0].id;
+    const firstMissing = unansweredPreliminaryQuestions[0] || unansweredMandatoryQuestions[0];
+    if (firstMissing) {
+      const firstMissingId = firstMissing.id;
       const targetIndex = activeQuestions.findIndex(question => question.id === firstMissingId);
       if (targetIndex >= 0) {
         setCurrentQuestionIndex(targetIndex);
@@ -6847,7 +6850,7 @@ const updateProjectFilters = useCallback((updater) => {
     }
     setValidationError(null);
     setScreen('questionnaire');
-  }, [activeQuestions, unansweredMandatoryQuestions]);
+  }, [activeQuestions, unansweredMandatoryQuestions, unansweredPreliminaryQuestions]);
 
   const handleNavigateToQuestion = useCallback((questionId) => {
     const targetIndex = activeQuestions.findIndex(question => question.id === questionId);
