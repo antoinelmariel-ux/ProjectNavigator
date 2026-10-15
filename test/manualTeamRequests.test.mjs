@@ -12,25 +12,25 @@ test('normalizeManualTeamRequests ignore les entrées invalides et les doublons'
   assert.deepEqual(normalizeManualTeamRequests([{ teamId: '' }, { }, 'nope']), []);
 
   const normalized = normalizeManualTeamRequests([
-    { teamId: 'quality', requestedBy: 'alice@entreprise-demo.example', requestedAt: '2026-09-10T00:00:00Z' },
-    { teamId: 'quality', requestedBy: 'bob@entreprise-demo.example', requestedAt: '2026-09-11T00:00:00Z' }
+    { teamId: 'quality', requestedBy: 'alice@lfb.fr', requestedAt: '2026-09-10T00:00:00Z' },
+    { teamId: 'quality', requestedBy: 'bob@lfb.fr', requestedAt: '2026-09-11T00:00:00Z' }
   ]);
   assert.deepEqual(normalized, [
-    { teamId: 'quality', requestedBy: 'alice@entreprise-demo.example', requestedAt: '2026-09-10T00:00:00Z' }
+    { teamId: 'quality', requestedBy: 'alice@lfb.fr', requestedAt: '2026-09-10T00:00:00Z' }
   ]);
 });
 
 test('addManualTeamRequest ajoute une équipe une seule fois', () => {
-  const first = addManualTeamRequest([], { teamId: 'quality', requestedBy: 'alice@entreprise-demo.example' });
+  const first = addManualTeamRequest([], { teamId: 'quality', requestedBy: 'alice@lfb.fr' });
   assert.equal(first.length, 1);
   assert.equal(first[0].teamId, 'quality');
-  assert.equal(first[0].requestedBy, 'alice@entreprise-demo.example');
+  assert.equal(first[0].requestedBy, 'alice@lfb.fr');
   assert.equal(typeof first[0].requestedAt, 'string');
 
-  const second = addManualTeamRequest(first, { teamId: 'quality', requestedBy: 'bob@entreprise-demo.example' });
+  const second = addManualTeamRequest(first, { teamId: 'quality', requestedBy: 'bob@lfb.fr' });
   assert.deepEqual(second, first);
 
-  const third = addManualTeamRequest(second, { teamId: 'regulatory', requestedBy: 'bob@entreprise-demo.example' });
+  const third = addManualTeamRequest(second, { teamId: 'regulatory', requestedBy: 'bob@lfb.fr' });
   assert.equal(third.length, 2);
   assert.deepEqual(third.map((entry) => entry.teamId), ['quality', 'regulatory']);
 });
