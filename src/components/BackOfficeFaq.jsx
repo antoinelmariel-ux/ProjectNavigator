@@ -126,6 +126,12 @@ export const BackOfficeFaq = ({
     flushEntry(neighbour.id);
   };
 
+  const categorySuggestions = Array.from(new Set(
+    entries
+      .map((entry) => getLocalizedRaw(entry.category, editingLanguage).trim())
+      .filter((label) => label !== '')
+  ));
+
   if (!isCurrentUserAdmin) {
     return (
       <p className="text-sm text-gray-600" role="status">{t('backOffice.faq.adminOnly')}</p>
@@ -160,6 +166,10 @@ export const BackOfficeFaq = ({
           {t('backOffice.faq.empty')}
         </p>
       )}
+
+      <datalist id="faq-category-suggestions">
+        {categorySuggestions.map((label) => <option key={label} value={label} />)}
+      </datalist>
 
       <ol className="space-y-4">
         {entries.map((entry, index) => {
@@ -209,6 +219,23 @@ export const BackOfficeFaq = ({
                     {t('backOffice.faq.delete')}
                   </button>
                 </div>
+              </div>
+
+              <div className="space-y-1">
+                <label htmlFor={`faq-category-${entry.id}`} className="text-sm font-medium text-gray-800">
+                  {t('backOffice.faq.categoryLabel')}
+                </label>
+                <input
+                  id={`faq-category-${entry.id}`}
+                  type="text"
+                  list="faq-category-suggestions"
+                  value={getLocalizedRaw(entry.category, editingLanguage)}
+                  placeholder={t('backOffice.faq.categoryPlaceholder')}
+                  onChange={(event) => updateEntry(entry.id, {
+                    category: setLocalizedText(entry.category, editingLanguage, event.target.value)
+                  })}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
               </div>
 
               <div className="space-y-1">

@@ -1002,6 +1002,8 @@ export default {
       moveDown: 'Move question down',
       delete: 'Delete',
       confirmDelete: 'Permanently delete this FAQ question?',
+      categoryLabel: 'Category (optional)',
+      categoryPlaceholder: 'E.g. The questionnaire — questions with the same category are grouped together',
       questionLabel: 'Question',
       answerLabel: 'Answer',
       missingTranslations: 'To translate: {{languages}}. A missing language falls back to French.',

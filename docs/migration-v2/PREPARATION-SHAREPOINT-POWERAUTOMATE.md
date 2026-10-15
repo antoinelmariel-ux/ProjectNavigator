@@ -355,6 +355,7 @@ traduit dans les 4 langues de l'application ; une langue manquante retombe sur l
 
 - **Liste vide ou aucune ligne publiée** : l'application affiche la page d'aide par défaut
   embarquée (`src/pages/faq.html`). Ce n'est donc pas une erreur.
+- `CategoryJson` regroupe les questions sous un intitulé : deux questions sont dans la même catégorie quand leur libellé est identique (casse ignorée) dans la langue du lecteur. Les groupes suivent l'ordre de première apparition ; sans catégorie, pas d'intitulé.
 - `IsPublished` masque une question sans la supprimer. `SortOrder` fixe l'ordre d'affichage.
 - `AnswerJson` contient du texte riche limité (gras, italique, souligné, listes, liens), nettoyé
   par l'application à l'affichage.
@@ -366,6 +367,7 @@ traduit dans les 4 langues de l'application ; une langue manquante retombe sur l
 | FaqId 📌 | Une ligne de texte |
 | QuestionJson | Texte long (question traduite, ex. `{"fr":"Comment créer un projet ?","en":"How do I create a project?"}`) |
 | AnswerJson | Texte long (réponse traduite en texte riche, ex. `{"fr":"<p>Cliquez sur…</p>"}`) |
+| CategoryJson | Texte long (catégorie facultative, traduite, ex. `{"fr":"Le questionnaire","en":"The questionnaire"}`) |
 | IsPublished | Oui/Non — **valeur par défaut : Oui** |
 | SortOrder | Nombre |
 | RowVersion | Nombre |

@@ -20,6 +20,7 @@ test.describe('Back-office : FAQ', () => {
     await page.getByRole('button', { name: 'Ajouter une question' }).click();
 
     const card = page.locator('[data-faq-id]').first();
+    await card.getByRole('combobox', { name: /Catégorie/ }).fill('Le questionnaire');
     await card.getByRole('textbox', { name: 'Question' }).fill('Comment créer un projet ?');
     const answer = card.locator('[contenteditable="true"]').first();
     await answer.click();
@@ -30,6 +31,7 @@ test.describe('Back-office : FAQ', () => {
     await page.reload();
     await openFaqDialog(page);
     const frame = page.frameLocator('iframe');
+    await expect(frame.getByRole('heading', { name: 'Le questionnaire' })).toBeVisible();
     await expect(frame.getByText('Comment créer un projet ?')).toBeVisible();
     await frame.getByText('Comment créer un projet ?').click();
     await expect(frame.getByText('Cliquez sur « Nouveau projet ».')).toBeVisible();

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   buildFaqPageHtml,
   getFaqTranslationGaps,
+  groupFaqItemsByCategory,
   getPublishedFaqItems,
   normalizeFaqEntries,
   resolveFaqText
@@ -56,4 +57,27 @@ test('getFaqTranslationGaps : liste les langues incomplètes', () => {
     answer: { fr: 'R', en: '' }
   });
   assert.deepEqual(gaps, ['en', 'de', 'es']);
+});
+
+test('catégories : regroupées par libellé dans l’ordre de première apparition, sans catégorie = sans titre', () => {
+  const html = buildFaqPageHtml(
+    [
+      { id: '1', category: { fr: 'Questionnaire' }, question: { fr: 'Q1' }, answer: { fr: 'R' } },
+      { id: '2', question: { fr: 'Q2' }, answer: { fr: 'R' } },
+      { id: '3', category: { fr: ' questionnaire ' }, question: { fr: 'Q3' }, answer: { fr: 'R' } }
+    ],
+    'fr',
+    labels,
+    identity
+  );
+  assert.equal((html.match(/<h2>/g) || []).length, 1);
+  assert.ok(html.indexOf('Q3') < html.indexOf('Q2'));
+  const groups = groupFaqItemsByCategory([{ category: 'A', id: 1 }, { category: '', id: 2 }, { category: 'a', id: 3 }]);
+  assert.deepEqual(groups.map((g) => g.items.length), [2, 1]);
+});
+
+test('getFaqTranslationGaps : la catégorie n’est exigée que si elle est renseignée quelque part', () => {
+  const base = { question: { fr: 'Q', en: 'Q', de: 'Q', es: 'Q' }, answer: { fr: 'R', en: 'R', de: 'R', es: 'R' } };
+  assert.deepEqual(getFaqTranslationGaps({ ...base, category: {} }), []);
+  assert.deepEqual(getFaqTranslationGaps({ ...base, category: { fr: 'C' } }), ['en', 'de', 'es']);
 });

@@ -56,7 +56,7 @@ test('listAllFaqEntries : convertit les lignes CN_Faq, trie par SortOrder, publi
       return makeResponse(200, {
         value: [
           { Id: 1, FaqId: 'faq_b', Title: 'B', QuestionJson: '{"fr":"B ?"}', AnswerJson: '{"fr":"<p>b</p>"}', IsPublished: false, SortOrder: 2000, RowVersion: 1 },
-          { Id: 2, FaqId: 'faq_a', Title: 'A', QuestionJson: '{"fr":"A ?","en":"A?"}', AnswerJson: '{"fr":"a"}', IsPublished: true, SortOrder: 1000, RowVersion: 3 }
+          { Id: 2, FaqId: 'faq_a', Title: 'A', QuestionJson: '{"fr":"A ?","en":"A?"}', AnswerJson: '{"fr":"a"}', CategoryJson: '{"fr":"Général"}', IsPublished: true, SortOrder: 1000, RowVersion: 3 }
         ]
       });
     },
@@ -65,6 +65,8 @@ test('listAllFaqEntries : convertit les lignes CN_Faq, trie par SortOrder, publi
       const entries = await provider.listAllFaqEntries();
       assert.deepEqual(entries.map((e) => e.entry.id), ['faq_a', 'faq_b']);
       assert.deepEqual(entries[0].entry.question, { fr: 'A ?', en: 'A?' });
+      assert.deepEqual(entries[0].entry.category, { fr: 'Général' });
+      assert.deepEqual(entries[1].entry.category, {});
       assert.equal(entries[0].entry.isPublished, true);
       assert.equal(entries[1].entry.isPublished, false);
       assert.equal(entries[0].meta.rowVersion, 3);
@@ -93,7 +95,7 @@ test('saveFaqEntry : crée une ligne avec RowVersion=1 et le texte traduit séri
       return makeResponse(201, { Id: 5 });
     },
     async (calls) => {
-      const entry = { id: 'faq_x', question: { fr: 'Pourquoi ?', en: 'Why?' }, answer: { fr: '<p>Parce que</p>' }, isPublished: true };
+      const entry = { id: 'faq_x', question: { fr: 'Pourquoi ?', en: 'Why?' }, answer: { fr: '<p>Parce que</p>' }, category: { fr: 'Général' }, isPublished: true };
       const { entry: saved, meta } = await new SharePointFaqProvider().saveFaqEntry(entry, { sortOrder: 3000, userEmail: 'a@b.fr' });
       assert.equal(saved.id, 'faq_x');
       assert.equal(meta.sortOrder, 3000);
@@ -103,6 +105,7 @@ test('saveFaqEntry : crée une ligne avec RowVersion=1 et le texte traduit séri
       assert.equal(sent.FaqId, 'faq_x');
       assert.equal(sent.Title, 'Why?');
       assert.deepEqual(JSON.parse(sent.QuestionJson), entry.question);
+      assert.deepEqual(JSON.parse(sent.CategoryJson), { fr: 'Général' });
       assert.equal(sent.IsPublished, true);
       assert.equal(sent.RowVersion, 1);
     }

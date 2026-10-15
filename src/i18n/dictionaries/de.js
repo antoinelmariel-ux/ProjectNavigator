@@ -1013,6 +1013,8 @@ export default {
       moveDown: 'Frage nach unten',
       delete: 'Löschen',
       confirmDelete: 'Diese FAQ-Frage endgültig löschen?',
+      categoryLabel: 'Kategorie (optional)',
+      categoryPlaceholder: 'z. B. Der Fragebogen — Fragen mit derselben Kategorie werden gruppiert',
       questionLabel: 'Frage',
       answerLabel: 'Antwort',
       missingTranslations: 'Zu übersetzen: {{languages}}. Bei fehlender Sprache wird Französisch angezeigt.',

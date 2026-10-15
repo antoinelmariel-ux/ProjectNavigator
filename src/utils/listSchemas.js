@@ -188,7 +188,8 @@ export const LIST_SCHEMAS = {
   // transportent le texte traduit {en, fr, de, es} (la réponse en texte riche limité, nettoyé par
   // richText.js à l'affichage) ; `Title` reste une chaîne simple dérivée (question en langue par
   // défaut) pour que la liste soit lisible telle quelle dans SharePoint. `IsPublished` masque une
-  // entrée sans la supprimer ; `SortOrder` fixe l'ordre d'affichage (aucun glisser-déposer).
+  // entrée sans la supprimer ; `CategoryJson` (facultatif, traduit) regroupe les questions sous un
+  // même intitulé, deux questions étant dans la même catégorie quand leur libellé est identique ; `SortOrder` fixe l'ordre d'affichage (aucun glisser-déposer).
   faq: {
     keyField: 'FaqId',
     columns: [
@@ -196,6 +197,7 @@ export const LIST_SCHEMAS = {
       'FaqId',
       'QuestionJson',
       'AnswerJson',
+      'CategoryJson',
       'IsPublished',
       'SortOrder',
       'RowVersion',
@@ -203,7 +205,7 @@ export const LIST_SCHEMAS = {
       'UpdatedByEmail',
       'UpdatedAt'
     ],
-    json: { QuestionJson: OBJECT, AnswerJson: OBJECT },
+    json: { QuestionJson: OBJECT, AnswerJson: OBJECT, CategoryJson: OBJECT },
     numbers: ['SortOrder', 'RowVersion'],
     booleans: ['IsPublished']
   },

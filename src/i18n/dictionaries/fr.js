@@ -1011,6 +1011,8 @@ export default {
       moveDown: 'Descendre la question',
       delete: 'Supprimer',
       confirmDelete: 'Supprimer définitivement cette question de la FAQ ?',
+      categoryLabel: 'Catégorie (facultatif)',
+      categoryPlaceholder: 'Ex. : Le questionnaire — les questions de même catégorie sont regroupées',
       questionLabel: 'Question',
       answerLabel: 'Réponse',
       missingTranslations: 'À traduire : {{languages}}. Une langue manquante affiche le français à la place.',

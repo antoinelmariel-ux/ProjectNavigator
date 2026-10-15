@@ -1003,6 +1003,8 @@ export default {
       moveDown: 'Bajar la pregunta',
       delete: 'Eliminar',
       confirmDelete: '¿Eliminar definitivamente esta pregunta de la FAQ?',
+      categoryLabel: 'Categoría (opcional)',
+      categoryPlaceholder: 'Ej.: El cuestionario — las preguntas de la misma categoría se agrupan',
       questionLabel: 'Pregunta',
       answerLabel: 'Respuesta',
       missingTranslations: 'Por traducir: {{languages}}. Si falta un idioma se muestra el francés.',

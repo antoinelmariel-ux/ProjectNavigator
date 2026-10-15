@@ -9,6 +9,7 @@ const toEntry = (record) => ({
   id: record.FaqId,
   question: asLocalized(record.QuestionJson),
   answer: asLocalized(record.AnswerJson),
+  category: asLocalized(record.CategoryJson),
   isPublished: record.IsPublished !== false,
   updatedBy: record.UpdatedByEmail || '',
   updatedAt: record.UpdatedAt || ''
@@ -32,6 +33,7 @@ const toRecord = (entry, { sortOrder, userEmail } = {}) => ({
   FaqId: entry.id,
   QuestionJson: asLocalized(entry.question),
   AnswerJson: asLocalized(entry.answer),
+  CategoryJson: asLocalized(entry.category),
   IsPublished: entry.isPublished !== false,
   SortOrder: typeof sortOrder === 'number' ? sortOrder : 0,
   UpdatedByEmail: userEmail || '',
