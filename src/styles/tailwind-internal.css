@@ -679,6 +679,10 @@
   grid-template-columns: repeat(1, minmax(0, 1fr));
 }
 
+.grid-cols-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .h-1 {
   height: 0.25rem;
 }
@@ -2058,6 +2062,12 @@
 }
 
 @media (min-width: 640px) {
+  .sm\:inline-flex {
+    display: inline-flex;
+  }
+}
+
+@media (min-width: 640px) {
   .sm\:items-center {
     align-items: center;
   }
@@ -2096,6 +2106,12 @@
 @media (min-width: 640px) {
   .sm\:justify-start {
     justify-content: flex-start;
+  }
+}
+
+@media (min-width: 640px) {
+  .sm\:max-w-full {
+    max-width: 100%;
   }
 }
 
@@ -2250,6 +2266,12 @@
 @media (min-width: 640px) {
   .sm\:w-auto {
     width: auto;
+  }
+}
+
+@media (min-width: 640px) {
+  .sm\:whitespace-nowrap {
+    white-space: nowrap;
   }
 }
 

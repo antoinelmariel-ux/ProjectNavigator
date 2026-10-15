@@ -355,6 +355,7 @@ export default {
       readOnlyBadge: 'Solo consulta'
     },
     teammateTab: 'Asumidos por el equipo ({{count}})',
+    teammateTabLabel: 'Asumidos por el equipo',
     noTeammateTriggered: 'Actualmente ningún proyecto está asumido por otro miembro de sus equipos.',
     claim: {
       listAriaLabel: 'Responsable por ámbito',
@@ -456,8 +457,11 @@ export default {
       'Encuentre los proyectos en los que se le solicita como experto o miembro de comité.',
     triggeredFilterAriaLabel: 'Filtro de proyectos activados',
     pendingTab: 'Por tratar ({{count}})',
+    pendingTabLabel: 'Por tratar',
     treatedTab: 'Tratados ({{count}})',
+    treatedTabLabel: 'Tratados',
     outOfScopeTab: 'Fuera del alcance del comité ({{count}})',
+    outOfScopeTabLabel: 'Fuera del alcance del comité',
     noPendingTriggered: 'No hay ningún proyecto por tratar por el momento.',
     noTreatedTriggered: 'Ningún proyecto tratado por el momento.',
     noOutOfScopeTriggered: 'Ningún proyecto fuera del alcance del comité por el momento.',

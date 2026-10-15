@@ -356,6 +356,7 @@ export default {
       readOnlyBadge: 'Lecture seule'
     },
     teammateTab: 'Pris en charge par l’équipe ({{count}})',
+    teammateTabLabel: 'Pris en charge par l’équipe',
     noTeammateTriggered: 'Aucun projet n’est actuellement pris en charge par un autre membre de vos équipes.',
     claim: {
       listAriaLabel: 'Prise en charge par périmètre',
@@ -459,8 +460,11 @@ export default {
       'Retrouvez les projets sur lesquels vous êtes sollicité(e) en tant qu’expert ou membre de comité.',
     triggeredFilterAriaLabel: 'Filtre des projets déclenchés',
     pendingTab: 'À traiter ({{count}})',
+    pendingTabLabel: 'À traiter',
     treatedTab: 'Traités ({{count}})',
+    treatedTabLabel: 'Traités',
     outOfScopeTab: 'Hors scope comité ({{count}})',
+    outOfScopeTabLabel: 'Hors scope comité',
     noPendingTriggered: 'Aucun projet à traiter pour l’instant.',
     noTreatedTriggered: 'Aucun projet traité pour le moment.',
     noOutOfScopeTriggered: 'Aucun projet hors scope comité pour le moment.',

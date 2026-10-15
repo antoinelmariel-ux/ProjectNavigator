@@ -2286,61 +2286,56 @@ export const HomeScreen = ({
             aria-labelledby="compliance-projects-heading"
             className="bg-white border border-blue-100 rounded-3xl shadow-xl p-6 sm:p-8 space-y-5"
           >
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h2 id="compliance-projects-heading" className="text-2xl font-bold text-gray-900">
-                  {t('home.triggeredHeading')}
-                </h2>
-                <p className="mt-1 text-sm text-gray-600">{t('home.triggeredSubtitle')}</p>
-              </div>
-              <div className="flex flex-wrap items-center gap-1 rounded-full border border-blue-200 bg-blue-50 p-1" role="group" aria-label={t('home.triggeredFilterAriaLabel')}>
-                <button
-                  type="button"
-                  onClick={() => setComplianceProjectsView('pending')}
-                  className={`rounded-full px-4 py-2 text-xs font-semibold transition-colors ${
-                    complianceProjectsView === 'pending'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-blue-700 hover:bg-blue-100'
-                  }`}
-                >
-                  {t('home.pendingTab', { count: pendingComplianceProjects.length })}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setComplianceProjectsView('teammate')}
-                  className={`rounded-full px-4 py-2 text-xs font-semibold transition-colors ${
-                    complianceProjectsView === 'teammate'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-blue-700 hover:bg-blue-100'
-                  }`}
-                >
-                  {t('home.teammateTab', { count: teammateHandledComplianceProjects.length })}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setComplianceProjectsView('treated')}
-                  className={`rounded-full px-4 py-2 text-xs font-semibold transition-colors ${
-                    complianceProjectsView === 'treated'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-blue-700 hover:bg-blue-100'
-                  }`}
-                >
-                  {t('home.treatedTab', { count: treatedComplianceProjects.length })}
-                </button>
-                {isValidationCommitteeMember && (
+            <div>
+              <h2 id="compliance-projects-heading" className="text-2xl font-bold text-gray-900">
+                {t('home.triggeredHeading')}
+              </h2>
+              <p className="mt-1 text-sm text-gray-600">{t('home.triggeredSubtitle')}</p>
+            </div>
+            <div
+              className="grid grid-cols-2 gap-1 rounded-2xl border border-blue-100 bg-blue-50 p-1 sm:inline-flex sm:max-w-full sm:flex-wrap"
+              role="group"
+              aria-label={t('home.triggeredFilterAriaLabel')}
+            >
+              {[
+                { id: 'pending', labelKey: 'home.pendingTabLabel', ariaKey: 'home.pendingTab', count: pendingComplianceProjects.length },
+                { id: 'teammate', labelKey: 'home.teammateTabLabel', ariaKey: 'home.teammateTab', count: teammateHandledComplianceProjects.length },
+                { id: 'treated', labelKey: 'home.treatedTabLabel', ariaKey: 'home.treatedTab', count: treatedComplianceProjects.length },
+                ...(isValidationCommitteeMember
+                  ? [{ id: 'out_of_scope', labelKey: 'home.outOfScopeTabLabel', ariaKey: 'home.outOfScopeTab', count: outOfScopeCommitteeProjects.length }]
+                  : [])
+              ].map(({ id, labelKey, ariaKey, count }) => {
+                const isActive = complianceProjectsView === id;
+                const isUrgent = id === 'pending' && count > 0;
+                return (
                   <button
+                    key={id}
                     type="button"
-                    onClick={() => setComplianceProjectsView('out_of_scope')}
-                    className={`rounded-full px-4 py-2 text-xs font-semibold transition-colors ${
-                      complianceProjectsView === 'out_of_scope'
-                        ? 'bg-blue-600 text-white'
-                        : 'text-blue-700 hover:bg-blue-100'
+                    onClick={() => setComplianceProjectsView(id)}
+                    aria-pressed={isActive}
+                    aria-label={t(ariaKey, { count })}
+                    className={`flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left text-sm font-semibold transition-colors sm:justify-start sm:whitespace-nowrap ${
+                      isActive
+                        ? 'border-blue-200 bg-white text-blue-700 shadow-sm'
+                        : 'border-transparent text-gray-600 hover:bg-white hover:text-blue-700'
                     }`}
                   >
-                    {t('home.outOfScopeTab', { count: outOfScopeCommitteeProjects.length })}
+                    <span>{t(labelKey)}</span>
+                    <span
+                      aria-hidden="true"
+                      className={`inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5 text-xs font-bold ${
+                        isUrgent
+                          ? 'bg-blue-600 text-white'
+                          : count > 0
+                            ? 'bg-blue-100 text-blue-700'
+                            : 'bg-gray-100 text-gray-500'
+                      }`}
+                    >
+                      {count}
+                    </span>
                   </button>
-                )}
-              </div>
+                );
+              })}
             </div>
 
             {displayedComplianceProjects.length === 0 ? (
