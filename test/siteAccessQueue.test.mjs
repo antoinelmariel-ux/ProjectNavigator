@@ -49,7 +49,7 @@ test('hors SharePoint : la demande n’est pas déposée', async () => {
   const previous = globalThis.window;
   globalThis.window = undefined;
   try {
-    const result = await queueSiteAccessRequest({ email: 'claire.dubreuil@entreprise-demo.example' });
+    const result = await queueSiteAccessRequest({ email: 'claire.dubreuil@lfb.fr' });
     assert.deepEqual(result, { queued: false, reason: 'mock' });
   } finally {
     globalThis.window = previous;
@@ -59,7 +59,7 @@ test('hors SharePoint : la demande n’est pas déposée', async () => {
 test('sur SharePoint : un élément Pending est créé dans CN_SiteAccessRequests', async () => {
   await withSharePoint(async (calls) => {
     const result = await queueSiteAccessRequest({
-      email: 'Claire.Dubreuil@entreprise-demo.example',
+      email: 'Claire.Dubreuil@lfb.fr',
       displayName: 'Claire Dubreuil',
       context: 'Partage de projet : Mon projet'
     });
@@ -72,8 +72,8 @@ test('sur SharePoint : un élément Pending est créé dans CN_SiteAccessRequest
 
     const item = JSON.parse(write.init.body);
     assert.equal(item.Status, 'Pending');
-    assert.equal(item.TargetEmail, 'claire.dubreuil@entreprise-demo.example');
-    assert.equal(item.Title, 'claire.dubreuil@entreprise-demo.example');
+    assert.equal(item.TargetEmail, 'claire.dubreuil@lfb.fr');
+    assert.equal(item.Title, 'claire.dubreuil@lfb.fr');
     assert.equal(item.DisplayName, 'Claire Dubreuil');
     assert.equal(item.Context, 'Partage de projet : Mon projet');
     assert.equal(item.RequestedByEmail, '');
@@ -82,10 +82,10 @@ test('sur SharePoint : un élément Pending est créé dans CN_SiteAccessRequest
 
 test('sans nom affiché : DisplayName retombe sur l’e-mail', async () => {
   await withSharePoint(async (calls) => {
-    await queueSiteAccessRequest({ email: 'marc.lefevre@entreprise-demo.example' });
+    await queueSiteAccessRequest({ email: 'marc.lefevre@lfb.fr' });
     const write = calls.find((call) => call.url.includes('/items'));
     const item = JSON.parse(write.init.body);
-    assert.equal(item.DisplayName, 'marc.lefevre@entreprise-demo.example');
+    assert.equal(item.DisplayName, 'marc.lefevre@lfb.fr');
     assert.equal(item.Context, '');
   });
 });

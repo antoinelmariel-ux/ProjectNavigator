@@ -13,8 +13,8 @@ const baseContext = {
   projectName: 'Campagne 2026',
   projectId: 'p-1',
   actorName: 'Nathan Auvray',
-  actorEmail: 'nathan.auvray@entreprise-demo.example',
-  ownerEmail: 'porteur@entreprise-demo.example',
+  actorEmail: 'nathan.auvray@lfb.fr',
+  ownerEmail: 'porteur@lfb.fr',
   occurredAt: '2026-08-28T14:30:00.000Z'
 };
 
@@ -179,7 +179,7 @@ test('buildErrorReportEmail : reprend le message, les piles et l’écran', () =
     stack: 'TypeError: Cannot read properties of undefined\n    at Foo (App.jsx:10:1)',
     componentStack: '\n    in Foo\n    in App',
     screenUrl: 'https://entreprisedemo1.sharepoint.com/sites/PN/CN-App/index.aspx#/synthesis/p-1',
-    userEmail: 'bertrand.darieux@entreprise-demo.example',
+    userEmail: 'bertrand.darieux@lfb.fr',
     occurredAt: '2026-08-28T14:30:00.000Z'
   });
 
@@ -188,7 +188,7 @@ test('buildErrorReportEmail : reprend le message, les piles et l’écran', () =
   assert.ok(body.includes('Cannot read properties of undefined'));
   assert.ok(body.includes('at Foo (App.jsx:10:1)'));
   assert.ok(body.includes('in App'));
-  assert.ok(body.includes('bertrand.darieux@entreprise-demo.example'));
+  assert.ok(body.includes('bertrand.darieux@lfb.fr'));
   assert.ok(body.includes('synthesis/p-1'));
   assert.ok(/2[89]\/08\/2026/.test(body));
 });

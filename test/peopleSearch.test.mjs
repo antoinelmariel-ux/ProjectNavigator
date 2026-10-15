@@ -34,13 +34,13 @@ const withSharePointFetch = async (handler, fn) => {
 test('parsePeoplePickerResponse : lit le tableau JSON imbriqué dans ClientPeoplePickerSearchUser', () => {
   const entities = [
     {
-      Key: 'i:0#.f|membership|claire.dubreuil@entreprise-demo.example',
+      Key: 'i:0#.f|membership|claire.dubreuil@lfb.fr',
       DisplayText: 'Claire Dubreuil',
-      EntityData: { Email: 'claire.dubreuil@entreprise-demo.example' }
+      EntityData: { Email: 'claire.dubreuil@lfb.fr' }
     },
     {
       // Pas d'EntityData.Email mais une Key exploitable (cas observé pour certains comptes).
-      Key: 'marc.lefevre@entreprise-demo.example',
+      Key: 'marc.lefevre@lfb.fr',
       DisplayText: 'Marc Lefevre',
       EntityData: {}
     },
@@ -55,8 +55,8 @@ test('parsePeoplePickerResponse : lit le tableau JSON imbriqué dans ClientPeopl
   const payload = { d: { ClientPeoplePickerSearchUser: JSON.stringify(entities) } };
 
   assert.deepEqual(parsePeoplePickerResponse(payload), [
-    { displayName: 'Claire Dubreuil', email: 'claire.dubreuil@entreprise-demo.example' },
-    { displayName: 'Marc Lefevre', email: 'marc.lefevre@entreprise-demo.example' }
+    { displayName: 'Claire Dubreuil', email: 'claire.dubreuil@lfb.fr' },
+    { displayName: 'Marc Lefevre', email: 'marc.lefevre@lfb.fr' }
   ]);
 });
 
@@ -71,11 +71,11 @@ test('searchOrgPeople : hors mode SharePoint, cherche dans l’annuaire fictif l
   globalThis.window = undefined;
   try {
     const results = await searchOrgPeople('claire');
-    assert.deepEqual(results, [{ displayName: 'Claire Dubreuil', email: 'claire.dubreuil@entreprise-demo.example' }]);
+    assert.deepEqual(results, [{ displayName: 'Claire Dubreuil', email: 'claire.dubreuil@lfb.fr' }]);
 
-    const byEmail = await searchOrgPeople('marc.lefevre@entreprise-demo.example');
+    const byEmail = await searchOrgPeople('marc.lefevre@lfb.fr');
     assert.equal(byEmail.length, 1);
-    assert.equal(byEmail[0].email, 'marc.lefevre@entreprise-demo.example');
+    assert.equal(byEmail[0].email, 'marc.lefevre@lfb.fr');
 
     assert.deepEqual(await searchOrgPeople('a'.repeat(MIN_QUERY_LENGTH - 1)), []);
     assert.deepEqual(await searchOrgPeople('zzz-inconnu'), []);
@@ -93,7 +93,7 @@ test('searchOrgPeople : couvre bien tout l’annuaire fictif (regression si quel
 
 test('searchOrgPeople : en mode SharePoint, interroge clientPeoplePickerSearchUser', async () => {
   const entities = [
-    { Key: 'i:0#.f|membership|julie.moreau@entreprise-demo.example', DisplayText: 'Julie Moreau', EntityData: { Email: 'julie.moreau@entreprise-demo.example' } }
+    { Key: 'i:0#.f|membership|julie.moreau@lfb.fr', DisplayText: 'Julie Moreau', EntityData: { Email: 'julie.moreau@lfb.fr' } }
   ];
 
   const calls = [];
@@ -105,7 +105,7 @@ test('searchOrgPeople : en mode SharePoint, interroge clientPeoplePickerSearchUs
     return makeResponse(200, { d: { ClientPeoplePickerSearchUser: JSON.stringify(entities) } });
   }, async () => {
     const results = await searchOrgPeople('julie');
-    assert.deepEqual(results, [{ displayName: 'Julie Moreau', email: 'julie.moreau@entreprise-demo.example' }]);
+    assert.deepEqual(results, [{ displayName: 'Julie Moreau', email: 'julie.moreau@lfb.fr' }]);
   });
 
   const searchCall = calls.find((call) => String(call.url).includes('clientPeoplePickerSearchUser'));
@@ -124,7 +124,7 @@ test('isKnownSiteUser : hors mode SharePoint, toujours true (pas de notion de me
   const previous = globalThis.window;
   globalThis.window = undefined;
   try {
-    assert.equal(await isKnownSiteUser('claire.dubreuil@entreprise-demo.example'), true);
+    assert.equal(await isKnownSiteUser('claire.dubreuil@lfb.fr'), true);
   } finally {
     globalThis.window = previous;
   }
@@ -135,15 +135,15 @@ test('isKnownSiteUser : en mode SharePoint, interroge _api/web/siteusers par e-m
 
   const known = await withSharePointFetch((url) => {
     calls.push(url);
-    return makeResponse(200, { value: [{ Id: 12, Email: 'claire.dubreuil@entreprise-demo.example' }] });
-  }, () => isKnownSiteUser('Claire.Dubreuil@entreprise-demo.example'));
+    return makeResponse(200, { value: [{ Id: 12, Email: 'claire.dubreuil@lfb.fr' }] });
+  }, () => isKnownSiteUser('Claire.Dubreuil@lfb.fr'));
   assert.equal(known, true);
   const call = calls.find((url) => String(url).includes('/_api/web/siteusers'));
   assert.ok(call, 'interroge bien /_api/web/siteusers');
-  assert.ok(String(call).includes("Email%20eq%20'claire.dubreuil%40entreprise-demo.example'"));
+  assert.ok(String(call).includes("Email%20eq%20'claire.dubreuil%40lfb.fr'"));
 
   const unknown = await withSharePointFetch(() => makeResponse(200, { value: [] }), () =>
-    isKnownSiteUser('inconnu@entreprise-demo.example')
+    isKnownSiteUser('inconnu@lfb.fr')
   );
   assert.equal(unknown, false);
 });

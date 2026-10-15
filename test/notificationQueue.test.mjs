@@ -76,8 +76,8 @@ test('sur SharePoint : un élément Pending est créé dans CN_NotificationsQueu
     const result = await queueNotification({
       subject: '[Project Navigator] Mon projet - Projet soumis pour analyse',
       body: '<p>Bonjour</p>',
-      to: ['equipe1@entreprise-demo.example', 'equipe2@entreprise-demo.example'],
-      cc: ['porteur@entreprise-demo.example'],
+      to: ['equipe1@lfb.fr', 'equipe2@lfb.fr'],
+      cc: ['porteur@lfb.fr'],
       projectId: 'p-1',
       actionType: 'Projet soumis pour analyse'
     });
@@ -90,8 +90,8 @@ test('sur SharePoint : un élément Pending est créé dans CN_NotificationsQueu
 
     const item = JSON.parse(write.init.body);
     assert.equal(item.Status, 'Pending');
-    assert.equal(item.ToEmails, 'equipe1@entreprise-demo.example;equipe2@entreprise-demo.example');
-    assert.equal(item.CcEmails, 'porteur@entreprise-demo.example');
+    assert.equal(item.ToEmails, 'equipe1@lfb.fr;equipe2@lfb.fr');
+    assert.equal(item.CcEmails, 'porteur@lfb.fr');
     assert.equal(item.ProjectId, 'p-1');
     assert.equal(item.NotificationType, 'Projet soumis pour analyse');
     assert.equal(item.Title, '[Project Navigator] Mon projet - Projet soumis pour analyse');

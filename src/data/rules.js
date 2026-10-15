@@ -16,13 +16,13 @@ export const initialRules = [
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_entreprise_demo"
+            "value": "projet_du_lfb"
           },
           {
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
           }
         ]
       },
@@ -178,13 +178,13 @@ export const initialRules = [
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_entreprise_demo"
+            "value": "projet_du_lfb"
           },
           {
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
           }
         ]
       },
@@ -264,13 +264,13 @@ export const initialRules = [
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_entreprise_demo"
+            "value": "projet_du_lfb"
           },
           {
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
           }
         ]
       },
@@ -350,13 +350,13 @@ export const initialRules = [
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_entreprise_demo"
+            "value": "projet_du_lfb"
           },
           {
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
           }
         ]
       },
@@ -431,13 +431,13 @@ export const initialRules = [
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_entreprise_demo"
+            "value": "projet_du_lfb"
           },
           {
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
           }
         ]
       },
@@ -494,13 +494,13 @@ export const initialRules = [
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_entreprise_demo"
+            "value": "projet_du_lfb"
           },
           {
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
           }
         ]
       },
@@ -511,7 +511,7 @@ export const initialRules = [
             "type": "question",
             "question": "q14",
             "operator": "contains",
-            "value": "reseaux_sociaux_du_entreprise_demo"
+            "value": "reseaux_sociaux_du_lfb"
           }
         ]
       }
@@ -557,13 +557,13 @@ export const initialRules = [
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_entreprise_demo"
+            "value": "projet_du_lfb"
           },
           {
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
           }
         ]
       },
@@ -574,7 +574,7 @@ export const initialRules = [
             "type": "question",
             "question": "q14",
             "operator": "contains",
-            "value": "site_internet_corporate_du_entreprise_demo"
+            "value": "site_internet_corporate_du_lfb"
           }
         ]
       }
@@ -620,13 +620,13 @@ export const initialRules = [
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_entreprise_demo"
+            "value": "projet_du_lfb"
           },
           {
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
           }
         ]
       },
@@ -637,7 +637,7 @@ export const initialRules = [
             "type": "question",
             "question": "q14",
             "operator": "contains",
-            "value": "site_internet_des_filiales_du_entreprise_demo"
+            "value": "site_internet_des_filiales_du_lfb"
           }
         ]
       }
@@ -821,13 +821,13 @@ export const initialRules = [
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_entreprise_demo"
+            "value": "projet_du_lfb"
           },
           {
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
           }
         ]
       },
@@ -913,13 +913,13 @@ export const initialRules = [
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_entreprise_demo"
+            "value": "projet_du_lfb"
           },
           {
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
           }
         ]
       },
@@ -982,13 +982,13 @@ export const initialRules = [
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_entreprise_demo"
+            "value": "projet_du_lfb"
           },
           {
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
           }
         ]
       },
@@ -1068,13 +1068,13 @@ export const initialRules = [
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_entreprise_demo"
+            "value": "projet_du_lfb"
           },
           {
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
           }
         ]
       },
@@ -1137,13 +1137,13 @@ export const initialRules = [
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_entreprise_demo"
+            "value": "projet_du_lfb"
           },
           {
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
           }
         ]
       },
@@ -1235,7 +1235,7 @@ export const initialRules = [
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_d_un_tiers_soutenu_par_le_entreprise_demo"
+            "value": "projet_d_un_tiers_soutenu_par_le_lfb"
           }
         ]
       }
@@ -1431,13 +1431,13 @@ export const initialRules = [
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_entreprise_demo"
+            "value": "projet_du_lfb"
           },
           {
             "type": "question",
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
           }
         ]
       },
