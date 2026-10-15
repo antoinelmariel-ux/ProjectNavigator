@@ -193,18 +193,27 @@ export const loadReportingHierarchy = async (email, { force = false } = {}) => {
   return result;
 };
 
-// Un projet « de l'équipe » est un projet soumis, porté par une personne de l'organigramme, dont
-// le manager n'est ni porteur ni co-porteur : ceux-là sont déjà dans « Mes projets », et un projet
-// ne doit jamais apparaître à deux endroits de l'accueil. Les brouillons restent privés : consulter
-// tôt n'a de sens que si un brouillon n'est pas lu par la hiérarchie avant d'être envoyé.
-export const selectTeamProjects = (projects, people, currentUserEmail) => {
+// Réglage d'administration (settings.json) : par défaut, les brouillons restent privés — consulter
+// tôt n'a de sens que si un brouillon n'est pas lu par la hiérarchie avant d'être envoyé. Une
+// organisation qui préfère le suivi au plus tôt peut l'ouvrir, en connaissance de cause.
+export const DEFAULT_TEAM_VISIBILITY = Object.freeze({ includeDrafts: false });
+
+export const normalizeTeamVisibility = (value) => ({
+  includeDrafts: Boolean(value && typeof value === 'object' && value.includeDrafts === true)
+});
+
+// Un projet « de l'équipe » est porté par une personne de l'organigramme, dont le manager n'est ni
+// porteur ni co-porteur : ceux-là sont déjà dans « Mes projets », et un projet ne doit jamais
+// apparaître à deux endroits de l'accueil. Une soumission annulée n'y figure jamais.
+export const selectTeamProjects = (projects, people, currentUserEmail, visibility = DEFAULT_TEAM_VISIBILITY) => {
   const me = normalizeEmail(currentUserEmail);
   if (!Array.isArray(projects) || !Array.isArray(people) || people.length === 0) {
     return [];
   }
+  const { includeDrafts } = normalizeTeamVisibility(visibility);
   const byEmail = new Map(people.map((person) => [normalizeEmail(person.email), person]));
   return projects
-    .filter((project) => project?.status === 'submitted')
+    .filter((project) => project?.status === 'submitted' || (includeDrafts && project?.status === 'draft'))
     .map((project) => {
       const ownerEmail = normalizeEmail(project?.ownerEmail);
       const owner = byEmail.get(ownerEmail);

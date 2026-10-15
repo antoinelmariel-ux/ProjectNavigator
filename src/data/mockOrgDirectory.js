@@ -18,5 +18,5 @@ export const mockOrgDirectory = [
 export const mockOrgReports = {
   'bertrand.darieux@lfb.fr': ['claire.dubreuil@lfb.fr', 'marc.lefevre@lfb.fr'],
   'claire.dubreuil@lfb.fr': ['sophie.aubert@lfb.fr', 'chef.projet@entreprise.com'],
-  'marc.lefevre@lfb.fr': ['karim.belhadj@lfb.fr', 'julie.moreau@lfb.fr']
+  'marc.lefevre@lfb.fr': ['karim.belhadj@lfb.fr', 'julie.moreau@lfb.fr', 'nathan.auvray@lfb.fr']
 };

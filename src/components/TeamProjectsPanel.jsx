@@ -28,7 +28,8 @@ export const TeamProjectsPanel = ({
   onRetry,
   renderCard,
   getValidationStatus,
-  launchSignals = {}
+  launchSignals = {},
+  includesDrafts = false
 }) => {
   const { t } = useTranslation();
   const [search, setSearch] = useState('');
@@ -96,7 +97,8 @@ export const TeamProjectsPanel = ({
         <Eye className="mt-0.5 h-5 w-5 shrink-0 text-indigo-600" aria-hidden="true" />
         <p>
           <span className="font-semibold">{t('home.team.readOnlyTitle')}</span>{' '}
-          {t(peopleCount > 1 ? 'home.team.readOnlyBodyPlural' : 'home.team.readOnlyBodySingular', { count: peopleCount })}
+          {t(peopleCount > 1 ? 'home.team.readOnlyBodyPlural' : 'home.team.readOnlyBodySingular', { count: peopleCount })}{' '}
+          {t(includesDrafts ? 'home.team.draftsIncludedNotice' : 'home.team.draftsPrivateNotice')}
         </p>
       </div>
 
@@ -125,7 +127,7 @@ export const TeamProjectsPanel = ({
         <div className="rounded-3xl border border-dashed border-indigo-200 bg-white p-8 text-center text-gray-600" role="status">
           <Users className="mx-auto h-8 w-8 text-indigo-500" aria-hidden="true" />
           <p className="mt-3 text-lg font-medium text-gray-800">{t('home.team.emptyTitle')}</p>
-          <p className="mt-2 text-sm">{t('home.team.emptyBody')}</p>
+          <p className="mt-2 text-sm">{t(includesDrafts ? 'home.team.emptyBodyWithDrafts' : 'home.team.emptyBody')}</p>
         </div>
       ) : (
         <>

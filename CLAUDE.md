@@ -421,14 +421,21 @@ mode), cached per tab in `sessionStorage` for 6h and capped at `MAX_REPORTING_PE
 when the result is partial). It always queries the *current* identity, never `GetMyProperties`, so
 « Voir en tant que » shows the simulated person's team.
 
-- **One project, one place.** `selectTeamProjects` keeps submitted projects owned by someone in the
+- **One project, one place.** `selectTeamProjects` keeps projects owned by someone in the
   hierarchy and drops any the manager owns or co-owns (those stay in « Mes projets »); the public
-  block drops team projects too. Drafts are deliberately excluded: consulting compliance early only
-  works if a draft is not read by the hierarchy before it is sent.
+  block drops team projects too. Cancelled submissions never show.
+- **Drafts are an admin setting, private by default.** `teamVisibility: { includeDrafts }` lives in
+  `settings.json` (`SETTINGS_KEYS` in `referentialStore.js`, edited in the back-office
+  `Administrateurs` tab, persisted in `complianceNavigatorState` in local mode), normalized by
+  `normalizeTeamVisibility`. Default `false`: consulting compliance early only works if a draft is
+  not read by the hierarchy before it is sent, so opening drafts is a deliberate organisational
+  choice, and the team panel says which regime applies.
 - **Read-only by construction.** `renderProjectCard(project, { teamEntry })` hides every write action
   (edit, delete, duplicate, cancel, visibility), even for an admin, and carries an owner ribbon
-  (« Porté par X · Équipe de Y »). Opening one goes to the synthesis, already read-only for a
-  non-owner. This grants visibility in the UI only, like every other access rule here.
+  (« Porté par X · Équipe de Y »). Opening one — draft included — goes to the synthesis, read-only
+  for a non-owner, never to the questionnaire. The showcase editor is likewise only handed
+  `onUpdateAnswers` when `canEditShowcaseProject` (owner/co-owner/admin) holds: opening a showcase
+  is not owning it. This grants visibility in the UI only, like every other access rule here.
 - **The tab only exists for someone with reports**, is hidden during the guided tour, and is never
   restored from `complianceNavigatorState` on reload — a manager always lands on their own projects.
   Inside, `TeamProjectsPanel.jsx` adds search, one chip per direct report (sub-team) and a

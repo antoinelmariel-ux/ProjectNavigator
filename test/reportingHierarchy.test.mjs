@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  DEFAULT_TEAM_VISIBILITY,
   collectReportingHierarchy,
+  normalizeTeamVisibility,
   parsePersonProperties,
   selectTeamProjects,
   summarizeTeamBranches
@@ -88,4 +90,25 @@ test('selectTeamProjects : projets soumis de l’équipe, sans brouillon ni proj
     [['claire@lfb.fr', 1], ['marc@lfb.fr', 1]]
   );
   assert.deepEqual(selectTeamProjects(projects, [], 'boss@lfb.fr'), []);
+});
+
+test('selectTeamProjects : les brouillons n’entrent que si le réglage les ouvre', async () => {
+  const { people } = await collectReportingHierarchy('boss@lfb.fr', fetchPerson);
+  const projects = [
+    { id: 'sent', status: 'submitted', ownerEmail: 'leo@lfb.fr' },
+    { id: 'draft', status: 'draft', ownerEmail: 'leo@lfb.fr' },
+    { id: 'cancelled', status: 'cancelled', ownerEmail: 'leo@lfb.fr' }
+  ];
+  const ids = (visibility) => selectTeamProjects(projects, people, 'boss@lfb.fr', visibility).map((entry) => entry.project.id);
+  assert.deepEqual(ids(undefined), ['sent']);
+  assert.deepEqual(ids({ includeDrafts: false }), ['sent']);
+  assert.deepEqual(ids({ includeDrafts: 'yes' }), ['sent']);
+  assert.deepEqual(ids({ includeDrafts: true }), ['sent', 'draft']);
+});
+
+test('normalizeTeamVisibility : brouillons privés par défaut', () => {
+  assert.deepEqual(normalizeTeamVisibility(undefined), { includeDrafts: false });
+  assert.deepEqual(normalizeTeamVisibility(null), { includeDrafts: false });
+  assert.deepEqual(normalizeTeamVisibility({ includeDrafts: true, extra: 1 }), { includeDrafts: true });
+  assert.deepEqual(DEFAULT_TEAM_VISIBILITY, { includeDrafts: false });
 });

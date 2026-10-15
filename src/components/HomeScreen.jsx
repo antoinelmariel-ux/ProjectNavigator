@@ -429,6 +429,7 @@ export const HomeScreen = ({
   validationCommitteeConfig = null,
   isProjectsLoading = false,
   reportingHierarchy = null,
+  teamVisibility = null,
   onRetryReportingHierarchy,
   onPerimeterClaimAction,
   isClaimActionAvailable = true
@@ -521,8 +522,8 @@ export const HomeScreen = ({
   }, [projects, isAdminMode, currentUserEmail, isOwnedOrSharedProject]);
 
   const teamProjectEntries = useMemo(
-    () => selectTeamProjects(projects, reportingHierarchy?.people, currentUserEmail),
-    [projects, reportingHierarchy?.people, currentUserEmail]
+    () => selectTeamProjects(projects, reportingHierarchy?.people, currentUserEmail, teamVisibility),
+    [projects, reportingHierarchy?.people, currentUserEmail, teamVisibility]
   );
   const teamPeopleCount = Array.isArray(reportingHierarchy?.people) ? reportingHierarchy.people.length : 0;
   // L'onglet n'existe que pour qui a réellement une équipe sous lui : personne d'autre ne doit voir
@@ -2094,6 +2095,13 @@ export const HomeScreen = ({
           <button
             type="button"
             onClick={() => {
+              // Le brouillon d'un collaborateur se lit dans sa synthèse, jamais dans le
+              // questionnaire : c'est l'écran qui s'ouvre en lecture seule pour un non-porteur.
+              if (isTeamCard) {
+                onOpenProject(project.id, { view: 'synthesis' });
+                return;
+              }
+
               if (isDraft) {
                 onOpenProject(project.id);
                 return;
@@ -2107,12 +2115,12 @@ export const HomeScreen = ({
               onOpenProject(project.id);
             }}
             className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all ${
-              isDraft || canEditNonDraftProject
+              !isTeamCard && (isDraft || canEditNonDraftProject)
                 ? 'hv-button-draft text-white'
                 : 'bg-blue-600 text-white hover:bg-blue-700'
             }`}
           >
-            {isDraft ? (
+            {isDraft && !isTeamCard ? (
               <>
                 <Edit className="w-4 h-4" aria-hidden="true" />
                 <span>{t('home.continueEditing')}</span>
@@ -2590,6 +2598,7 @@ export const HomeScreen = ({
               isPartial={Boolean(reportingHierarchy?.isPartial)}
               onRetry={onRetryReportingHierarchy}
               renderCard={renderProjectCard}
+              includesDrafts={Boolean(teamVisibility?.includeDrafts)}
               getValidationStatus={getProjectValidationStatus}
               launchSignals={launchSignals}
             />

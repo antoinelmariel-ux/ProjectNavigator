@@ -10,7 +10,8 @@ const SETTINGS_KEYS = [
   'validationCommitteeConfig',
   'inspirationFormFields',
   'projectFilters',
-  'inspirationFilters'
+  'inspirationFilters',
+  'teamVisibility'
 ];
 
 // `rules` et `teams` ne sont plus des référentiels-fichiers : ils vivent dans les listes
