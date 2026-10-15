@@ -40,7 +40,7 @@ import {
   PROJECT_STAGE_ANSWER_KEY,
   getProjectStage
 } from './utils/projectStage.js';
-import { getProjectReadiness } from './utils/projectReadiness.js';
+import { getMissingForPreliminaryRequest, getProjectReadiness } from './utils/projectReadiness.js';
 import {
   getLastSentSnapshot,
   getSubmissionHistory,
@@ -3283,12 +3283,18 @@ const updateProjectFilters = useCallback((updater) => {
 
   const projectStage = useMemo(() => getProjectStage(answers), [answers]);
 
-  // Deux listes, deux portes : ce qui manque pour aller plus loin *au stade déclaré* (et donc
-  // pour demander un avis préliminaire), et ce qui manque pour une soumission finale, où le
-  // stade ne dispense de rien et où un « je ne sais pas encore » ne passe plus.
+  // Trois listes : ce qui manque pour aller plus loin *au stade déclaré* (parcours du
+  // questionnaire), ce qui manque pour demander un avis préliminaire (le socle, quel que soit
+  // le stade), et ce qui manque pour une soumission finale, où le stade ne dispense de rien et
+  // où un « je ne sais pas encore » ne passe plus.
   const unansweredMandatoryQuestions = useMemo(
     () => getMissingMandatoryQuestions(activeQuestions, answers, { stage: projectStage }),
     [activeQuestions, answers, projectStage]
+  );
+
+  const unansweredPreliminaryQuestions = useMemo(
+    () => getMissingForPreliminaryRequest(activeQuestions, answers),
+    [activeQuestions, answers]
   );
 
   const unansweredFinalMandatoryQuestions = useMemo(
@@ -6405,10 +6411,10 @@ const updateProjectFilters = useCallback((updater) => {
     }
 
     const submissionKind = normalizeSubmissionKind(payload.submissionKind);
-    // Un avis préliminaire n'exige que ce qui est obligatoire au stade déclaré ; une demande
-    // de validation exige tout, et une réponse ferme partout.
+    // Un avis préliminaire n'exige que le socle (palier d'orientation), quel que soit le stade
+    // déclaré ; une demande de validation exige tout, et une réponse ferme partout.
     const blockingQuestions = submissionKind === SUBMISSION_KIND_PRELIMINARY
-      ? unansweredMandatoryQuestions
+      ? unansweredPreliminaryQuestions
       : unansweredFinalMandatoryQuestions;
 
     if (blockingQuestions.length > 0) {
@@ -6438,7 +6444,7 @@ const updateProjectFilters = useCallback((updater) => {
     notifyProjectSubmission,
     t,
     unansweredFinalMandatoryQuestions,
-    unansweredMandatoryQuestions
+    unansweredPreliminaryQuestions
   ]);
 
   const handleSendProjectUpdate = useCallback(() => {

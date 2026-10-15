@@ -271,8 +271,11 @@ gracefully to the old behaviour when its data is absent:
   an option, so without its explicit guard the doubt is erased the moment it is expressed, with no
   error anywhere (that is exactly what happened, on the two types where it is most useful).
 - **`src/utils/submissionKind.js` — two doors, one project.** `preliminary` vs `final`, stored in
-  answers (same reason as the stage). A preliminary request only requires what is mandatory *at
-  the declared stage*; a validation request requires everything, with a firm answer everywhere
+  answers (same reason as the stage). A preliminary request only requires the orientation level —
+  the questions mandatory from `framing`, whatever the declared stage
+  (`getMissingForPreliminaryRequest`, the same list that enables the button in
+  `ProjectReadinessPanel.jsx`; checking the declared stage at send time refused a request the
+  panel showed as reachable); a validation request requires everything, with a firm answer everywhere
   (`rejectUnknown`). Never split this into two project objects — answers, threads, rights and the
   showcase would all be duplicated. A favourable opinion on a preliminary request yields
   `PROJECT_VALIDATION_PRELIMINARY`, never `PROJECT_VALIDATION_VALIDATED`, and the team/owner
