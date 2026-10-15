@@ -153,7 +153,9 @@ export default {
     staticPages: {
       faqTitle: 'Preguntas frecuentes',
       legalTitle: 'Aviso legal',
-      close: 'Cerrar'
+      close: 'Cerrar',
+      faqHeading: 'Preguntas frecuentes',
+      faqIntro: 'Encuentre aquí las respuestas a las preguntas más habituales sobre el uso de Project Navigator.'
     },
     beforeUnload: {
       message: '¿Ha guardado bien su proyecto antes de salir?'
@@ -987,6 +989,27 @@ export default {
       noConditionsYet: 'No se ha definido ninguna condición. Añada un grupo para limitar la visualización.',
       addConditionToActivateGroup: 'Añada una condición para activar este grupo.'
     },
+    faq: {
+      title: 'FAQ de la aplicación',
+      description: 'Preguntas que se muestran en la ventana de ayuda. Cada cambio se guarda automáticamente en la lista de SharePoint CN_Faq. Mientras no haya ninguna pregunta publicada, se muestra la página de ayuda predeterminada.',
+      adminOnly: 'Solo los administradores pueden editar la FAQ.',
+      add: 'Añadir una pregunta',
+      editingLanguage: 'Idioma de edición',
+      editingLanguageHint: 'la pregunta y la respuesta se escriben en este idioma',
+      empty: 'Todavía no hay preguntas. Añada una para sustituir la página de ayuda predeterminada.',
+      entryNumber: 'Pregunta {{number}}',
+      published: 'Publicada',
+      moveUp: 'Subir la pregunta',
+      moveDown: 'Bajar la pregunta',
+      delete: 'Eliminar',
+      confirmDelete: '¿Eliminar definitivamente esta pregunta de la FAQ?',
+      categoryLabel: 'Categoría (opcional)',
+      categoryPlaceholder: 'Ej.: El cuestionario — las preguntas de la misma categoría se agrupan',
+      questionLabel: 'Pregunta',
+      answerLabel: 'Respuesta',
+      missingTranslations: 'Por traducir: {{languages}}. Si falta un idioma se muestra el francés.',
+      fullyTranslated: 'Traducida a los 4 idiomas.'
+    },
     main: {
       claimSettingsHeading: 'Toma a cargo de los proyectos',
       claimSettingsHint: 'Un miembro de este equipo puede asumir un proyecto activado: entonces sale de la lista «Por tratar» de los demás miembros y los intercambios posteriores solo le llegan a él.',
@@ -1635,6 +1658,7 @@ export default {
       tabTeamsTemplate: 'Equipos ({{count}})',
       tabComplianceReview: 'Revisión de reglas',
       tabTranslationsTemplate: 'Traducciones ({{count}})',
+      tabFaqTemplate: 'FAQ ({{count}})',
       acceptedLanguagesLabel: 'Idiomas de respuesta aceptados',
       acceptedLanguagesHint: 'Idiomas en los que puede comunicarse con los responsables de proyecto. Ninguna casilla marcada = se aceptan todos los idiomas.',
       translations: {

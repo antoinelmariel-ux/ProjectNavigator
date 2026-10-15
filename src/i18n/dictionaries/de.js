@@ -153,7 +153,9 @@ export default {
     staticPages: {
       faqTitle: 'Häufig gestellte Fragen',
       legalTitle: 'Impressum',
-      close: 'Schließen'
+      close: 'Schließen',
+      faqHeading: 'Häufig gestellte Fragen',
+      faqIntro: 'Hier finden Sie Antworten auf die häufigsten Fragen zur Nutzung von Project Navigator.'
     },
     beforeUnload: {
       message: 'Haben Sie Ihr Projekt vor dem Verlassen gespeichert?'
@@ -997,6 +999,27 @@ export default {
       noConditionsYet: 'Keine Bedingung definiert. Fügen Sie eine Gruppe hinzu, um die Anzeige einzuschränken.',
       addConditionToActivateGroup: 'Fügen Sie eine Bedingung hinzu, um diese Gruppe zu aktivieren.'
     },
+    faq: {
+      title: 'FAQ der Anwendung',
+      description: 'Fragen, die im Hilfefenster angezeigt werden. Jede Änderung wird automatisch in der SharePoint-Liste CN_Faq gespeichert. Solange keine Frage veröffentlicht ist, wird die Standard-Hilfeseite angezeigt.',
+      adminOnly: 'Nur Administratoren können die FAQ bearbeiten.',
+      add: 'Frage hinzufügen',
+      editingLanguage: 'Bearbeitungssprache',
+      editingLanguageHint: 'Frage und Antwort werden in dieser Sprache erfasst',
+      empty: 'Noch keine Fragen. Fügen Sie eine hinzu, um die Standard-Hilfeseite zu ersetzen.',
+      entryNumber: 'Frage {{number}}',
+      published: 'Veröffentlicht',
+      moveUp: 'Frage nach oben',
+      moveDown: 'Frage nach unten',
+      delete: 'Löschen',
+      confirmDelete: 'Diese FAQ-Frage endgültig löschen?',
+      categoryLabel: 'Kategorie (optional)',
+      categoryPlaceholder: 'z. B. Der Fragebogen — Fragen mit derselben Kategorie werden gruppiert',
+      questionLabel: 'Frage',
+      answerLabel: 'Antwort',
+      missingTranslations: 'Zu übersetzen: {{languages}}. Bei fehlender Sprache wird Französisch angezeigt.',
+      fullyTranslated: 'In alle 4 Sprachen übersetzt.'
+    },
     main: {
       claimSettingsHeading: 'Übernahme von Projekten',
       claimSettingsHint: 'Ein Mitglied dieses Teams kann ein ausgelöstes Projekt übernehmen: es verlässt dann die Liste „Zu bearbeiten“ der anderen Mitglieder, und der weitere Austausch geht nur noch an diese Person.',
@@ -1645,6 +1668,7 @@ export default {
       tabTeamsTemplate: 'Teams ({{count}})',
       tabComplianceReview: 'Regelüberprüfung',
       tabTranslationsTemplate: 'Übersetzungen ({{count}})',
+      tabFaqTemplate: 'FAQ ({{count}})',
       acceptedLanguagesLabel: 'Akzeptierte Antwortsprachen',
       acceptedLanguagesHint: 'Sprachen, in denen Sie mit Projektverantwortlichen kommunizieren können. Keine Auswahl = alle Sprachen werden akzeptiert.',
       translations: {

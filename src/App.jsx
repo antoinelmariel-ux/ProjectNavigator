@@ -138,6 +138,8 @@ import { filesIndexProvider } from './utils/filesIndexProvider.js';
 import { rulesProvider } from './utils/rulesProvider.js';
 import { sampleProjectsProvider } from './utils/sampleProjectsProvider.js';
 import { teamsProvider } from './utils/teamsProvider.js';
+import { faqProvider } from './utils/faqProvider.js';
+import { normalizeFaqEntries } from './utils/faqEntries.js';
 import { mergeComplianceComments } from './utils/mergeComplianceComments.js';
 import { createAutosaveQueue } from './utils/autosaveQueue.js';
 import { createRetryQueue } from './utils/retryQueue.js';
@@ -839,6 +841,13 @@ const buildInitialComplianceSampleProjectsState = () => {
   return [];
 };
 
+// FAQ de la fenêtre d'aide, éditée dans le back-office. En mode SharePoint elle vient de la
+// liste CN_Faq (hydratation) ; en local elle vit dans cette tranche de complianceNavigatorState.
+const buildInitialFaqEntriesState = () => {
+  const savedState = loadPersistedState();
+  return savedState ? normalizeFaqEntries(savedState.faqEntries) : [];
+};
+
 const isOnboardingProject = (project) => {
   if (!project || typeof project !== 'object') {
     return false;
@@ -922,6 +931,7 @@ export const App = () => {
   const [adminEmails, setAdminEmails] = useState(buildInitialAdminEmailsState);
   const [technicalContactEmails, setTechnicalContactEmails] = useState(buildInitialTechnicalContactEmailsState);
   const [complianceSampleProjects, setComplianceSampleProjects] = useState(buildInitialComplianceSampleProjectsState);
+  const [faqEntries, setFaqEntries] = useState(buildInitialFaqEntriesState);
   const [isBackOfficeUnlocked, setIsBackOfficeUnlocked] = useState(false);
   const [backOfficeAuthError, setBackOfficeAuthError] = useState(null);
   const [isBackOfficePromptOpen, setIsBackOfficePromptOpen] = useState(false);
@@ -1105,12 +1115,14 @@ export const App = () => {
   const rulesQueueRef = useRef(null);
   const sampleProjectsQueueRef = useRef(null);
   const teamsQueueRef = useRef(null);
+  const faqQueueRef = useRef(null);
   const inspirationsQueueRef = useRef(null);
   // Métadonnées SharePoint (spItemId/RowVersion/SortOrder) par id de règle/équipe — jamais
   // injectées dans l'objet applicatif consommé par le moteur de règles (rules.js).
   const ruleServerMetaRef = useRef(new Map());
   const sampleProjectServerMetaRef = useRef(new Map());
   const teamServerMetaRef = useRef(new Map());
+  const faqServerMetaRef = useRef(new Map());
   const loadedProjectMembersRef = useRef(new Set());
   const loadedStickyNotesRef = useRef(new Set());
 
@@ -1761,7 +1773,8 @@ const updateProjectFilters = useCallback((updater) => {
           complianceCommentsByProject,
           ruleEntries,
           teamEntries,
-          sampleEntries
+          sampleEntries,
+          faqServerEntries
         ] =
           await Promise.all([
             dataProvider.listProjects(),
@@ -1778,7 +1791,9 @@ const updateProjectFilters = useCallback((updater) => {
               teamsFetchFailed = true;
               return [];
             }),
-            sampleProjectsProvider.listAllSampleProjects().catch(() => [])
+            sampleProjectsProvider.listAllSampleProjects().catch(() => []),
+            // Échec de lecture = on garde la FAQ locale ; une liste vide est, elle, une FAQ vide.
+            faqProvider.listAllFaqEntries().catch(() => null)
           ]);
 
         if (cancelled) {
@@ -1804,6 +1819,11 @@ const updateProjectFilters = useCallback((updater) => {
         // règles/équipes dont un tableau vide signifierait « référentiel jamais publié ».
         sampleProjectServerMetaRef.current = new Map(sampleEntries.map(({ sample, meta }) => [sample.id, meta]));
         setComplianceSampleProjects(sampleEntries.map(({ sample }) => sample));
+
+        if (Array.isArray(faqServerEntries)) {
+          faqServerMetaRef.current = new Map(faqServerEntries.map(({ entry, meta }) => [entry.id, meta]));
+          setFaqEntries(faqServerEntries.map(({ entry }) => entry));
+        }
 
         const fallbackQuestionsLength = Array.isArray(referentials.slices.questions)
           ? referentials.slices.questions.length
@@ -1957,7 +1977,8 @@ const updateProjectFilters = useCallback((updater) => {
       launchReminderDays,
       adminEmails,
       technicalContactEmails,
-      complianceSampleProjects
+      complianceSampleProjects,
+      faqEntries
     };
 
     // Référentiels volumineux : persistés seulement s’ils diffèrent du défaut
@@ -1998,6 +2019,7 @@ const updateProjectFilters = useCallback((updater) => {
     adminEmails,
     technicalContactEmails,
     complianceSampleProjects,
+    faqEntries,
     persistDefaults
   ]);
 
@@ -3036,6 +3058,22 @@ const updateProjectFilters = useCallback((updater) => {
       getItemKey: (payload) => (payload.action === 'remove' ? payload.sampleId : payload.sample.id)
     });
 
+    faqQueueRef.current = createRetryQueue({
+      processItem: async (payload) => {
+        if (payload.action === 'remove') {
+          await faqProvider.removeFaqEntry(payload.faqId);
+          faqServerMetaRef.current.delete(payload.faqId);
+          return;
+        }
+        const { entry, meta } = await faqProvider.saveFaqEntry(payload.entry, {
+          sortOrder: payload.sortOrder,
+          userEmail: currentUserEmail
+        });
+        faqServerMetaRef.current.set(entry.id, meta);
+      },
+      getItemKey: (payload) => (payload.action === 'remove' ? payload.faqId : payload.entry.id)
+    });
+
     teamsQueueRef.current = createRetryQueue({
       processItem: async (payload) => {
         if (payload.action === 'remove') {
@@ -3162,6 +3200,7 @@ const updateProjectFilters = useCallback((updater) => {
       rulesQueueRef.current?.flush();
       teamsQueueRef.current?.flush();
       sampleProjectsQueueRef.current?.flush();
+      faqQueueRef.current?.flush();
       inspirationsQueueRef.current?.flush();
     };
     const handleOffline = () => setIsOnline(false);
@@ -7817,6 +7856,10 @@ const updateProjectFilters = useCallback((updater) => {
                 teamsQueueRef={teamsQueueRef}
                 ruleServerMetaRef={ruleServerMetaRef}
                 teamServerMetaRef={teamServerMetaRef}
+                faqEntries={faqEntries}
+                setFaqEntries={setFaqEntries}
+                faqQueueRef={faqQueueRef}
+                faqServerMetaRef={faqServerMetaRef}
                 userProfilesByEmail={userProfilesByEmail}
                 onSaveMemberAbsence={handleSaveMemberAbsence}
                 onPerimeterClaimAction={handlePerimeterClaimAction}
@@ -8066,7 +8109,7 @@ const updateProjectFilters = useCallback((updater) => {
         </a>
       </p>
     </footer>
-    <StaticPageDialog />
+    <StaticPageDialog faqEntries={faqEntries} />
     </div>
   );
 };

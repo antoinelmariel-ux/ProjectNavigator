@@ -153,7 +153,9 @@ export default {
     staticPages: {
       faqTitle: 'Frequently asked questions',
       legalTitle: 'Legal notice',
-      close: 'Close'
+      close: 'Close',
+      faqHeading: 'Frequently asked questions',
+      faqIntro: 'Find answers to the most common questions about using Project Navigator.'
     },
     beforeUnload: {
       message: 'Have you saved your project before leaving?'
@@ -986,6 +988,27 @@ export default {
       noConditionsYet: 'No condition defined. Add a group to restrict the display.',
       addConditionToActivateGroup: 'Add a condition to activate this group.'
     },
+    faq: {
+      title: 'Application FAQ',
+      description: 'Questions shown in the help window. Every change is saved automatically to the CN_Faq SharePoint list. Until a question is published, the default help page is shown.',
+      adminOnly: 'Only administrators can edit the FAQ.',
+      add: 'Add a question',
+      editingLanguage: 'Editing language',
+      editingLanguageHint: 'the question and answer are entered in this language',
+      empty: 'No questions yet. Add one to replace the default help page.',
+      entryNumber: 'Question {{number}}',
+      published: 'Published',
+      moveUp: 'Move question up',
+      moveDown: 'Move question down',
+      delete: 'Delete',
+      confirmDelete: 'Permanently delete this FAQ question?',
+      categoryLabel: 'Category (optional)',
+      categoryPlaceholder: 'E.g. The questionnaire — questions with the same category are grouped together',
+      questionLabel: 'Question',
+      answerLabel: 'Answer',
+      missingTranslations: 'To translate: {{languages}}. A missing language falls back to French.',
+      fullyTranslated: 'Translated into all 4 languages.'
+    },
     main: {
       claimSettingsHeading: 'Taking projects in charge',
       claimSettingsHint: 'A member of this team can take a triggered project in charge: it then leaves the other members’ "To review" list, and further exchanges only go to them.',
@@ -1634,6 +1657,7 @@ export default {
       tabTeamsTemplate: 'Teams ({{count}})',
       tabComplianceReview: 'Rules review',
       tabTranslationsTemplate: 'Translations ({{count}})',
+      tabFaqTemplate: 'FAQ ({{count}})',
       acceptedLanguagesLabel: 'Accepted response languages',
       acceptedLanguagesHint: 'Languages you can use to exchange with project owners. No box checked = all languages accepted.',
       translations: {

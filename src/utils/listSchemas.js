@@ -184,6 +184,31 @@ export const LIST_SCHEMAS = {
     numbers: ['SortOrder', 'RowVersion'],
     booleans: []
   },
+  // Une ligne par question de la FAQ affichée dans la fenêtre d'aide. `QuestionJson`/`AnswerJson`
+  // transportent le texte traduit {en, fr, de, es} (la réponse en texte riche limité, nettoyé par
+  // richText.js à l'affichage) ; `Title` reste une chaîne simple dérivée (question en langue par
+  // défaut) pour que la liste soit lisible telle quelle dans SharePoint. `IsPublished` masque une
+  // entrée sans la supprimer ; `CategoryJson` (facultatif, traduit) regroupe les questions sous un
+  // même intitulé, deux questions étant dans la même catégorie quand leur libellé est identique ; `SortOrder` fixe l'ordre d'affichage (aucun glisser-déposer).
+  faq: {
+    keyField: 'FaqId',
+    columns: [
+      'Title',
+      'FaqId',
+      'QuestionJson',
+      'AnswerJson',
+      'CategoryJson',
+      'IsPublished',
+      'SortOrder',
+      'RowVersion',
+      'CreatedByEmail',
+      'UpdatedByEmail',
+      'UpdatedAt'
+    ],
+    json: { QuestionJson: OBJECT, AnswerJson: OBJECT, CategoryJson: OBJECT },
+    numbers: ['SortOrder', 'RowVersion'],
+    booleans: ['IsPublished']
+  },
   // Une ligne par règle : la structure (conditions imbriquées, questions par équipe, risques
   // i18n) est trop profonde pour un mapping colonne par colonne, donc l'objet entier voyage
   // dans PayloadJson — RuleId/Title n'existent que pour l'indexation et la lecture dans SharePoint.
