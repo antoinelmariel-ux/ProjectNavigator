@@ -47,6 +47,8 @@ import { getLocaleTag } from '../i18n/languages.js';
 import { stripRichTextToPlainText } from '../utils/richText.js';
 import { computeProjectValidationStatus } from '../utils/projectValidationStatus.js';
 import { resolveEffectiveTeamComplianceEntry } from '../utils/complianceAutoValidation.js';
+import { selectTeamProjects } from '../utils/reportingHierarchy.js';
+import { TeamProjectsPanel } from './TeamProjectsPanel.jsx';
 
 const formatDate = (isoDate, language, unknownDateLabel) => {
   if (!isoDate) {
@@ -426,6 +428,8 @@ export const HomeScreen = ({
   questions = [],
   validationCommitteeConfig = null,
   isProjectsLoading = false,
+  reportingHierarchy = null,
+  onRetryReportingHierarchy,
   onPerimeterClaimAction,
   isClaimActionAvailable = true
 }) => {
@@ -516,6 +520,23 @@ export const HomeScreen = ({
     return projects.filter((project) => isOwnedOrSharedProject(project));
   }, [projects, isAdminMode, currentUserEmail, isOwnedOrSharedProject]);
 
+  const teamProjectEntries = useMemo(
+    () => selectTeamProjects(projects, reportingHierarchy?.people, currentUserEmail),
+    [projects, reportingHierarchy?.people, currentUserEmail]
+  );
+  const teamPeopleCount = Array.isArray(reportingHierarchy?.people) ? reportingHierarchy.people.length : 0;
+  // L'onglet n'existe que pour qui a réellement une équipe sous lui : personne d'autre ne doit voir
+  // apparaître une vue vide. Pendant la visite guidée, il disparaît pour que le parcours reste le même.
+  const isTeamViewAvailable = teamPeopleCount > 0 && !tourContext?.isActive;
+  const effectiveHomeView = homeView === 'team' && !isTeamViewAvailable ? 'platform' : homeView;
+  const isPlatformView = effectiveHomeView !== 'inspiration' && effectiveHomeView !== 'team';
+  const isInspirationView = effectiveHomeView === 'inspiration';
+  const isTeamView = effectiveHomeView === 'team';
+  const teamProjectIds = useMemo(
+    () => new Set(teamProjectEntries.map((entry) => entry.project.id)),
+    [teamProjectEntries]
+  );
+
   // Un projet rendu "visible par tous" par un tiers (owner, admin ou comité) n'a rien
   // à faire dans "Vos projets" : ce bloc reste réservé aux projets qu'on possède ou
   // qui nous ont été partagés. Il vit dans son propre bloc, plus bas.
@@ -528,8 +549,10 @@ export const HomeScreen = ({
       project?.status !== 'cancelled'
       && project?.answers?.[PUBLIC_VISIBILITY_KEY] === true
       && !isOwnedOrSharedProject(project)
+      // Déjà rangé sous « Mon équipe » : un projet ne vit qu'à un seul endroit de l'accueil.
+      && !teamProjectIds.has(project.id)
     ));
-  }, [projects, isAdminMode, currentUserEmail, isOwnedOrSharedProject]);
+  }, [projects, isAdminMode, currentUserEmail, isOwnedOrSharedProject, teamProjectIds]);
 
   // Piste 11 : l’argumentaire produit ne s’affiche que tant que l’utilisateur n’a pas
   // de projet en propre. Les projets simplement partagés avec lui ne comptent pas.
@@ -1771,7 +1794,10 @@ export const HomeScreen = ({
     setInspirationFiltersState(buildInitialFiltersState(normalizedInspirationFilters));
   };
 
-  const renderProjectCard = (project) => {
+  const renderProjectCard = (project, { teamEntry = null } = {}) => {
+    // Une carte « Mon équipe » est une carte de consultation : le manager n'est ni porteur ni
+    // co-porteur, aucune action d'écriture n'a donc à y figurer, même pour un administrateur.
+    const isTeamCard = Boolean(teamEntry);
     const risksCount = project.analysis?.risks?.length ?? 0;
     const isDraft = project.status === 'draft';
     const isCancelled = project.status === 'cancelled';
@@ -1798,6 +1824,7 @@ export const HomeScreen = ({
     // « Modifier », pas seulement « Consulter la synthèse ». C'est ce qui rend l'envoi d'une
     // mise à jour atteignable depuis l'accueil.
     const canEditNonDraftProject = !isDraft
+      && !isTeamCard
       && (isAdminMode || isCancelled || (isProjectOpenForEditing(project) && isOwnedOrSharedProject(project)));
     const leadName = getSafeString(project?.answers?.teamLead).trim();
     const leadTeam = resolveChoiceOptionLabel(teamLeadTeamQuestion, project?.answers?.teamLeadTeam);
@@ -1819,6 +1846,7 @@ export const HomeScreen = ({
     const displayProjectName = stripRichTextToPlainText(project.projectName);
     const isPubliclyVisible = project?.answers?.[PUBLIC_VISIBILITY_KEY] === true;
     const canToggleVisibility = !isDraft
+      && !isTeamCard
       && !isCancelled
       && typeof onToggleProjectVisibility === 'function'
       && typeof canSetProjectVisibility === 'function'
@@ -1831,6 +1859,7 @@ export const HomeScreen = ({
     // donc une pastille ici — le tour en cours, et le projet parti sans lui.
     const launchSignal = launchSignals[project.id] || '';
     const canCancelSubmission = project.status === 'submitted'
+      && !isTeamCard
       && typeof onCancelProjectSubmission === 'function'
       && (isAdminMode || isOwnedOrSharedProject(project));
     // Supprimer un projet non-brouillon est réservé au porteur (ou co-porteur) et aux
@@ -1839,20 +1868,57 @@ export const HomeScreen = ({
     // du visiteur courant.
     const canDeleteNonDraftProject = (isCancelled || project.status === 'submitted')
       && (isAdminMode || isOwnedOrSharedProject(project));
-    const canDeleteProject = typeof onDeleteProject === 'function' && (isDraft || canDeleteNonDraftProject);
+    const canDeleteProject = !isTeamCard
+      && typeof onDeleteProject === 'function'
+      && (isDraft || canDeleteNonDraftProject);
+    const teamOwnerName = teamEntry?.owner?.displayName || teamEntry?.owner?.email || '';
+    const teamOwnerInitials = teamOwnerName
+      .split(/[\s.@_-]+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0].toUpperCase())
+      .join('');
 
     return (
       <article
         key={project.id}
         id={`project-card-${project.id}`}
         className={`border rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all ${
-          duplicationNotice?.id === project.id
-            ? 'bg-blue-50 border-blue-200'
-            : 'bg-white border-gray-200'
+          isTeamCard
+            ? 'bg-white border-indigo-200'
+            : duplicationNotice?.id === project.id
+              ? 'bg-blue-50 border-blue-200'
+              : 'bg-white border-gray-200'
         }`}
         role="listitem"
-        aria-label={t('home.projectAriaLabel', { name: displayProjectName || t('home.projectNameFallback') })}
+        aria-label={isTeamCard
+          ? t('home.team.cardAriaLabel', { name: displayProjectName || t('home.projectNameFallback'), owner: teamOwnerName })
+          : t('home.projectAriaLabel', { name: displayProjectName || t('home.projectNameFallback') })}
       >
+        {isTeamCard && (
+          <div className="mb-4 flex items-center gap-3 rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3">
+            <span
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white"
+              aria-hidden="true"
+            >
+              {teamOwnerInitials || '?'}
+            </span>
+            <div className="min-w-0 text-sm">
+              <p className="font-semibold text-indigo-900 truncate">
+                {t('home.team.ownedBy', { name: teamOwnerName })}
+              </p>
+              <p className="text-xs text-indigo-700 truncate">
+                {teamEntry.isDirect || !teamEntry.manager
+                  ? t('home.team.directReport')
+                  : t('home.team.viaManager', { name: teamEntry.manager.displayName || teamEntry.manager.email })}
+              </p>
+            </div>
+            <span className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full border border-indigo-200 bg-white px-2 py-0.5 text-xs font-semibold text-indigo-700">
+              <Eye className="w-3 h-3" aria-hidden="true" />
+              {t('home.team.readOnlyBadge')}
+            </span>
+          </div>
+        )}
         <div className="flex items-start justify-between gap-4">
           <div>
             <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2 flex-wrap">
@@ -1938,7 +2004,7 @@ export const HomeScreen = ({
                 </button>
               )}
             </div>
-            {typeof onDuplicateProject === 'function' && (
+            {!isTeamCard && typeof onDuplicateProject === 'function' && (
               <button
                 type="button"
                 onClick={() => handleDuplicateProjectWithFeedback(project.id)}
@@ -2207,7 +2273,7 @@ export const HomeScreen = ({
           )}
         </header>
 
-        {isComplianceActor && homeView !== 'inspiration' && (
+        {isComplianceActor && isPlatformView && (
           <section
             aria-labelledby="compliance-projects-heading"
             className="bg-white border border-blue-100 rounded-3xl shadow-xl p-6 sm:p-8 space-y-5"
@@ -2443,10 +2509,10 @@ export const HomeScreen = ({
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between" data-tour-id="home-inspiration-block">
             <div>
               <h2 id="projects-heading" className="text-2xl font-bold text-gray-900">
-                {homeView === 'inspiration' ? t('home.inspiringProjectsHeading') : t('home.savedProjectsHeading')}
+                {isInspirationView ? t('home.inspiringProjectsHeading') : isTeamView ? t('home.team.heading') : t('home.savedProjectsHeading')}
               </h2>
               <p className="text-sm text-gray-600">
-                {homeView === 'inspiration' ? t('home.inspirationSectionSubtitle') : t('home.projectsSectionSubtitle')}
+                {isInspirationView ? t('home.inspirationSectionSubtitle') : isTeamView ? t('home.team.subtitle') : t('home.projectsSectionSubtitle')}
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -2458,19 +2524,36 @@ export const HomeScreen = ({
                 <button
                   type="button"
                   onClick={() => onHomeViewChange?.('platform')}
-                  className={`rounded-full px-4 py-2 text-xs font-semibold transition-colors ${
-                    homeView !== 'inspiration'
+                  aria-pressed={isPlatformView}
+                  className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition-colors ${
+                    isPlatformView
                       ? 'bg-blue-600 text-white'
                       : 'text-blue-700 hover:bg-blue-100'
                   }`}
                 >
-                  {t('home.companyProjectsTab')}
+                  {t(isTeamViewAvailable ? 'home.team.myProjectsTab' : 'home.companyProjectsTab')}
                 </button>
+                {isTeamViewAvailable && (
+                  <button
+                    type="button"
+                    onClick={() => onHomeViewChange?.('team')}
+                    aria-pressed={isTeamView}
+                    className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition-colors ${
+                      isTeamView
+                        ? 'bg-indigo-600 text-white'
+                        : 'text-indigo-700 hover:bg-indigo-100'
+                    }`}
+                  >
+                    <Users className="w-3 h-3" aria-hidden="true" />
+                    {t('home.team.tab', { count: teamProjectEntries.length })}
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => onHomeViewChange?.('inspiration')}
-                  className={`rounded-full px-4 py-2 text-xs font-semibold transition-colors ${
-                    homeView === 'inspiration'
+                  aria-pressed={isInspirationView}
+                  className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition-colors ${
+                    isInspirationView
                       ? 'bg-blue-600 text-white'
                       : 'text-blue-700 hover:bg-blue-100'
                   }`}
@@ -2479,7 +2562,7 @@ export const HomeScreen = ({
                   {t('home.inspirationTab')}
                 </button>
               </div>
-              {homeView === 'inspiration' ? (
+              {isInspirationView ? (
                 <button
                   type="button"
                   onClick={onStartInspirationProject}
@@ -2489,7 +2572,7 @@ export const HomeScreen = ({
                   <Plus className="w-4 h-4" aria-hidden="true" />
                   {t('home.addInspiringProject')}
                 </button>
-              ) : (
+              ) : isTeamView ? null : (
                 <span className="inline-flex items-center text-sm font-semibold text-blue-600 bg-blue-50 border border-blue-200 rounded-full px-3 py-1">
                   <CheckCircle className="w-4 h-4 mr-2" />{' '}
                   {t(displayedProjectsCount > 1 ? 'home.projectCountPlural' : 'home.projectCountSingular', { count: displayedProjectsCount })}
@@ -2499,7 +2582,20 @@ export const HomeScreen = ({
             </div>
           </div>
 
-          {homeView !== 'inspiration' && submittedProjectNotice && (
+          {isTeamView && (
+            <TeamProjectsPanel
+              entries={teamProjectEntries}
+              peopleCount={teamPeopleCount}
+              status={reportingHierarchy?.status || 'ready'}
+              isPartial={Boolean(reportingHierarchy?.isPartial)}
+              onRetry={onRetryReportingHierarchy}
+              renderCard={renderProjectCard}
+              getValidationStatus={getProjectValidationStatus}
+              launchSignals={launchSignals}
+            />
+          )}
+
+          {isPlatformView && submittedProjectNotice && (
             <div
               className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
               role="status"
@@ -2522,7 +2618,7 @@ export const HomeScreen = ({
             </div>
           )}
 
-          {homeView !== 'inspiration' && duplicationNotice && (
+          {isPlatformView && duplicationNotice && (
             <div
               className="flex items-start gap-3 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800"
               role="status"
@@ -2536,7 +2632,7 @@ export const HomeScreen = ({
             </div>
           )}
 
-          {homeView !== 'inspiration' && !hasProjects && isProjectsLoading && (
+          {isPlatformView && !hasProjects && isProjectsLoading && (
             <div
               className="bg-white border border-dashed border-blue-200 rounded-3xl p-8"
               role="status"
@@ -2561,7 +2657,7 @@ export const HomeScreen = ({
             </div>
           )}
 
-          {homeView !== 'inspiration' && !hasProjects && !isProjectsLoading && (
+          {isPlatformView && !hasProjects && !isProjectsLoading && (
             <div className="bg-white border border-dashed border-blue-200 rounded-3xl p-8 text-center text-gray-600" role="status" aria-live="polite">
               <p className="text-lg font-medium text-gray-800">{t('home.noProjectsYetTitle')}</p>
               <p className="mt-2">{t('home.noProjectsYetBody')}</p>
@@ -2575,7 +2671,7 @@ export const HomeScreen = ({
             </div>
           )}
 
-          {homeView !== 'inspiration' && hasProjects && (
+          {isPlatformView && hasProjects && (
             <>
               <div className="relative">
                 <label htmlFor="project-search" className="sr-only">
@@ -2783,7 +2879,7 @@ export const HomeScreen = ({
             </>
           )}
 
-          {homeView === 'inspiration' && !hasInspirationProjects && (
+          {isInspirationView && !hasInspirationProjects && (
             <div className="bg-white border border-dashed border-blue-200 rounded-3xl p-8 text-center text-gray-600" role="status" aria-live="polite">
               <p className="text-lg font-medium text-gray-800">{t('home.noInspirationsYetTitle')}</p>
               <p className="mt-2">{t('home.noInspirationsYetBody')}</p>
@@ -2797,7 +2893,7 @@ export const HomeScreen = ({
             </div>
           )}
 
-          {homeView === 'inspiration' && hasInspirationProjects && (
+          {isInspirationView && hasInspirationProjects && (
             <>
               {shouldShowInspirationFiltersCard && (
                 <div
@@ -2980,7 +3076,7 @@ export const HomeScreen = ({
           )}
         </section>
 
-        {homeView !== 'inspiration' && otherPublicProjects.length > 0 && (
+        {isPlatformView && otherPublicProjects.length > 0 && (
           <section aria-labelledby="public-projects-heading" className="space-y-6">
             <div>
               <h2 id="public-projects-heading" className="text-2xl font-bold text-gray-900">

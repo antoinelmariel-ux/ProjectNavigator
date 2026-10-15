@@ -7,5 +7,16 @@ export const mockOrgDirectory = [
   { displayName: 'Sophie Aubert', email: 'sophie.aubert@lfb.fr' },
   { displayName: 'Karim Belhadj', email: 'karim.belhadj@lfb.fr' },
   { displayName: 'Julie Moreau', email: 'julie.moreau@lfb.fr' },
-  { displayName: 'Bertrand Darieux', email: 'bertrand.darieux@lfb.fr' }
+  { displayName: 'Bertrand Darieux', email: 'bertrand.darieux@lfb.fr' },
+  { displayName: 'Chef de projet (démo)', email: 'chef.projet@entreprise.com' }
 ];
+
+// Fictional org chart (manager → direct reports) standing in for the SharePoint user profiles'
+// DirectReports outside SharePoint mode; see src/utils/reportingHierarchy.js. The mock session
+// user (Bertrand Darieux) manages two people, one of whom manages the owner of the mock projects,
+// so the « Mon équipe » view of the home screen has something to show across two levels.
+export const mockOrgReports = {
+  'bertrand.darieux@lfb.fr': ['claire.dubreuil@lfb.fr', 'marc.lefevre@lfb.fr'],
+  'claire.dubreuil@lfb.fr': ['sophie.aubert@lfb.fr', 'chef.projet@entreprise.com'],
+  'marc.lefevre@lfb.fr': ['karim.belhadj@lfb.fr', 'julie.moreau@lfb.fr']
+};

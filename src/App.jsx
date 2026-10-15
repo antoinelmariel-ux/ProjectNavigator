@@ -159,6 +159,7 @@ import HEADER_LOGO_PATH from './components/logo.png';
 import { injectStyles } from './styles/injectStyles.js';
 import { scrollAppTo } from './utils/scrollContainer.js';
 import { openStaticPage, staticPageLinkProps } from './utils/staticPages.js';
+import { loadReportingHierarchy } from './utils/reportingHierarchy.js';
 import { StaticPageDialog } from './components/StaticPageDialog.jsx';
 
 const APP_VERSION = 'v1.0.385';
@@ -970,6 +971,35 @@ export const App = () => {
     () => normalizeEmail(currentUser?.mail || currentUser?.userPrincipalName || ''),
     [currentUser]
   );
+  const [reportingHierarchy, setReportingHierarchy] = useState(() => ({ status: 'idle', people: [], isPartial: false }));
+  const reportingHierarchyRequestRef = useRef(0);
+  const loadTeamHierarchy = useCallback((force = false) => {
+    const requestId = reportingHierarchyRequestRef.current + 1;
+    reportingHierarchyRequestRef.current = requestId;
+    if (!currentUserEmail) {
+      setReportingHierarchy({ status: 'ready', people: [], isPartial: false });
+      return;
+    }
+    setReportingHierarchy((prev) => ({ ...prev, status: 'loading' }));
+    loadReportingHierarchy(currentUserEmail, { force })
+      .then((result) => {
+        if (reportingHierarchyRequestRef.current === requestId) {
+          setReportingHierarchy({ status: 'ready', people: result.people, isPartial: result.isPartial });
+        }
+      })
+      .catch((error) => {
+        console.warn('Organigramme indisponible :', error);
+        if (reportingHierarchyRequestRef.current === requestId) {
+          setReportingHierarchy((prev) => ({ ...prev, status: 'error' }));
+        }
+      });
+  }, [currentUserEmail]);
+  useEffect(() => {
+    loadTeamHierarchy(false);
+    return () => {
+      reportingHierarchyRequestRef.current += 1;
+    };
+  }, [loadTeamHierarchy]);
   const currentUserDisplayName = useMemo(() => {
     const firstName = typeof currentUser?.givenName === 'string' ? currentUser.givenName.trim() : '';
     const lastName = typeof currentUser?.surname === 'string' ? currentUser.surname.trim() : '';
@@ -1689,7 +1719,9 @@ const updateProjectFilters = useCallback((updater) => {
       }
       if (typeof savedState.activeProjectId === 'string') setActiveProjectId(savedState.activeProjectId);
       if (typeof savedState.activeInspirationId === 'string') setActiveInspirationId(savedState.activeInspirationId);
-      if (typeof savedState.homeView === 'string') setHomeView(savedState.homeView);
+      // « Mon équipe » ne se rouvre jamais tout seul : on revient sur l'accueil par ses propres
+      // projets, et la vue équipe reste un choix explicite de la session en cours.
+      if (typeof savedState.homeView === 'string') setHomeView(savedState.homeView === 'team' ? 'platform' : savedState.homeView);
       if (Array.isArray(savedState.questions)) {
         setQuestions(restoreShowcaseQuestions(savedState.questions));
       }
@@ -7882,6 +7914,8 @@ const updateProjectFilters = useCallback((updater) => {
             currentUser={currentUser}
             homeView={homeView}
             onHomeViewChange={handleHomeViewChange}
+            reportingHierarchy={reportingHierarchy}
+            onRetryReportingHierarchy={() => loadTeamHierarchy(true)}
             onStartInspirationProject={handleStartInspirationProject}
             onOpenInspirationProject={handleOpenInspirationProject}
             onStartNewProject={handleCreateNewProject}
