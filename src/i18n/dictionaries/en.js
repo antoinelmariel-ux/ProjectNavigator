@@ -511,10 +511,33 @@ export default {
       'This project can be reintegrated into several committees. Select the target committee.',
     deleteProjectDialogTitle: 'Delete the project?',
     deleteProjectDescription:
-      'You are about to delete “{{name}}”. This action is permanent and the project cannot be restored.',
+      '“{{name}}” will be moved to the trash. You can find it there and restore it, or delete it permanently.',
     deleteSubmittedProjectDescription:
-      'You are about to delete “{{name}}”. This cancels its submission: compliance teams will no longer see it, no notification will be sent, and this action is permanent — the project cannot be restored.',
+      '“{{name}}” will be moved to the trash: compliance teams will no longer see it in their queues and no notification will be sent. You can restore it from the trash.',
     deletePermanently: 'Delete permanently',
+    abandonedTab: 'Abandoned ({{count}})',
+    abandonedTabLabel: 'Abandoned',
+    noAbandonedTriggered: 'No abandoned project on which you gave an answer or an opinion.',
+    abandonedBadge: 'Abandoned',
+    abandonedBadgeTitle: 'Deleted by its owner on {{date}}',
+    moveToTrash: 'Move to trash',
+    trash: {
+      buttonLabel: 'Trash',
+      title: 'Trash',
+      openAriaLabel: 'Open the trash ({{count}} project(s))',
+      subtitle: 'Deleted projects stay here until you restore them or delete them permanently.',
+      close: 'Close the trash',
+      empty: 'The trash is empty.',
+      listAriaLabel: 'Projects in the trash',
+      deletedOn: 'Deleted on {{date}}',
+      statusSubmitted: 'Submitted',
+      statusDraft: 'Draft',
+      restore: 'Restore',
+      expertResponseNote: 'An expert has already answered or given an opinion: this project will remain available to the experts involved.',
+      confirmHardDelete: '“{{name}}” will be permanently deleted. This cannot be undone.',
+      confirmPurgeWithExpertResponse: 'An expert has already answered or given an opinion on “{{name}}”: it will disappear from your trash, but remain visible to the experts involved, in their abandoned projects.',
+      confirmButton: 'Confirm deletion'
+    },
     projectAriaLabel: 'Project {{name}}',
     demoProjectBadge: 'Demo project',
     duplicateProjectAriaLabel: 'Duplicate the project {{name}}',
@@ -1817,7 +1840,17 @@ export default {
     description: 'The project owner has cancelled this submission. The project is no longer accessible from this link.',
     descriptionWithName:
       'The owner of the project “{{name}}” has cancelled its submission. The project is no longer accessible from this link.',
-    backToHome: 'Back to home'
+    backToHome: 'Back to home',
+    trashed: {
+      title: 'Project deleted',
+      description: 'The owner of this project has deleted it. It can no longer be accessed from this link.',
+      descriptionWithName: 'The owner of the project “{{name}}” has deleted it. It can no longer be accessed from this link.'
+    },
+    missing: {
+      title: 'Project not found',
+      description: 'This project does not exist or has been permanently deleted. It can no longer be accessed from this link.',
+      descriptionWithName: 'This project does not exist or has been permanently deleted. It can no longer be accessed from this link.'
+    }
   },
   synthesisReport: {
     launchQuestionTitle: 'Has this project launched?',

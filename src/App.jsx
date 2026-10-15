@@ -125,6 +125,15 @@ import {
 } from './utils/teamMemberProfile.js';
 import { normalizeRulesTeamReferences } from './utils/teamIds.js';
 import { MANUAL_TEAM_REQUESTS_KEY, addManualTeamRequest, normalizeManualTeamRequests } from './utils/manualTeamRequests.js';
+import {
+  canPermanentlyDeleteProject,
+  isProjectInOwnerTrash,
+  isProjectTrashed,
+  isRespondingExpert,
+  withProjectPurgedByOwner,
+  withProjectRestored,
+  withProjectTrashed
+} from './utils/projectTrash.js';
 import { canQuestionHaveDoubt, withQuestionDoubt, withoutQuestionDoubt, getOpenQuestionDoubts } from './utils/questionDoubts.js';
 import { getCurrentUser, getRealUser } from './utils/spContext.js';
 import { isImpersonating } from './utils/impersonation.js';
@@ -1533,6 +1542,12 @@ export const App = () => {
   useEffect(() => {
     projectsRef.current = projects;
   }, [projects]);
+
+  // Les projets à la corbeille restent dans `projects` (ils y sont persistés comme les autres),
+  // mais aucun écran ni aucune passe de relance ne doit les traiter comme vivants : l'accueil les
+  // reçoit à part, pour la corbeille du porteur et « Abandonnés » côté experts.
+  const liveProjects = useMemo(() => projects.filter((project) => !isProjectTrashed(project)), [projects]);
+  const trashedProjects = useMemo(() => projects.filter((project) => isProjectTrashed(project)), [projects]);
 
   useEffect(() => {
     if (!showcaseProjectContext) {
@@ -3411,7 +3426,7 @@ const updateProjectFilters = useCallback((updater) => {
     [activeProject, buildRoundPerimeters]
   );
 
-  const launchSignalsByProject = useMemo(() => projects.reduce((acc, project) => {
+  const launchSignalsByProject = useMemo(() => liveProjects.reduce((acc, project) => {
     if (!project?.id || project.status !== 'submitted') {
       return acc;
     }
@@ -3422,7 +3437,7 @@ const updateProjectFilters = useCallback((updater) => {
       reminderDays: launchReminderDays
     });
     return acc;
-  }, {}), [projects, buildRoundPerimeters, launchReminderDays]);
+  }, {}), [liveProjects, buildRoundPerimeters, launchReminderDays]);
 
 
   const activeProjectName = useMemo(() => {
@@ -4481,7 +4496,7 @@ const updateProjectFilters = useCallback((updater) => {
     const dueReminders = [];
 
     projects.forEach((project) => {
-      if (!project?.id || project.status !== 'submitted') {
+      if (!project?.id || project.status !== 'submitted' || isProjectTrashed(project)) {
         return;
       }
 
@@ -4594,7 +4609,7 @@ const updateProjectFilters = useCallback((updater) => {
     }
 
     projects.forEach((project) => {
-      if (!project?.id || project.status !== 'submitted' || !canManageProject(project)) {
+      if (!project?.id || project.status !== 'submitted' || isProjectTrashed(project) || !canManageProject(project)) {
         return;
       }
 
@@ -5494,24 +5509,88 @@ const updateProjectFilters = useCallback((updater) => {
     });
   }, [activeProjectId, handleReintegrateProjectInCommittee]);
 
-  // Supprimer un projet soumis (ou dont la soumission a été annulée) est une suppression réelle
-  // et persistée, pas un simple masquage local : sans appel serveur, le projet réapparaîtrait au
-  // prochain rechargement en mode SharePoint (le serveur fait autorité à l'hydratation, voir
-  // `mergeServerAndLocalProjects`). Supprimer un projet encore `submitted` vaut annulation de sa
-  // soumission — il sort donc de toutes les files compliance — mais, contrairement à
-  // `handleCancelProjectSubmission`, ne laisse plus aucune trace : c'est délibérément plus fort
-  // qu'une annulation, pas une variante silencieuse de celle-ci.
+  const trashResponseOptions = useMemo(() => ({
+    contactsByTeamId: (Array.isArray(teams) ? teams : []).reduce((acc, team) => {
+      if (team?.id) {
+        acc[team.id] = normalizeTeamContacts(team);
+      }
+      return acc;
+    }, {}),
+    emailsByCommitteeId: normalizeValidationCommitteeConfig(validationCommitteeConfig).committees.reduce((acc, committee) => {
+      if (committee?.id) {
+        acc[committee.id] = Array.isArray(committee.emails) ? committee.emails : [];
+      }
+      return acc;
+    }, {})
+  }), [teams, validationCommitteeConfig]);
+
+  const persistProjectAnswersPatch = useCallback((targetProject, nextAnswers) => {
+    const updatedProject = {
+      ...targetProject,
+      answers: nextAnswers,
+      lastUpdated: new Date().toISOString()
+    };
+
+    setProjects(prevProjects => prevProjects.map(project => (
+      project.id === targetProject.id ? updatedProject : project
+    )));
+
+    const expectedRowVersion = typeof updatedProject.rowVersion === 'number' ? updatedProject.rowVersion : undefined;
+    autosaveQueueRef.current?.enqueue({ project: updatedProject, expectedRowVersion });
+    return updatedProject;
+  }, []);
+
+  // Supprimer un projet le met à la corbeille (voir `projectTrash.js`) : la ligne reste, marquée,
+  // et sort de toutes les listes et files compliance. Un projet encore `submitted` garde son
+  // statut, pour qu'une restauration le remette exactement où il était.
   const handleDeleteProject = useCallback((projectId) => {
     if (!projectId) {
       return;
     }
 
     const targetProject = projectsRef.current.find((project) => project?.id === projectId);
-    if (!targetProject) {
+    if (!targetProject || isProjectTrashed(targetProject)) {
       return;
     }
 
     if (targetProject.status !== 'draft' && !canManageProject(targetProject)) {
+      return;
+    }
+
+    persistProjectAnswersPatch(targetProject, withProjectTrashed(targetProject.answers, { by: currentUserEmail }));
+    setActiveProjectId(prev => (prev === projectId ? null : prev));
+  }, [canManageProject, currentUserEmail, persistProjectAnswersPatch]);
+
+  const handleRestoreProject = useCallback((projectId) => {
+    const targetProject = projectsRef.current.find((project) => project?.id === projectId);
+    if (!targetProject || !isProjectInOwnerTrash(targetProject)) {
+      return;
+    }
+
+    if (targetProject.status !== 'draft' && !canManageProject(targetProject)) {
+      return;
+    }
+
+    persistProjectAnswersPatch(targetProject, withProjectRestored(targetProject.answers));
+  }, [canManageProject, persistProjectAnswersPatch]);
+
+  // Suppression définitive depuis la corbeille. Tant qu'aucun expert n'a répondu, c'est une
+  // suppression réelle et persistée (sans appel serveur, le projet réapparaîtrait au prochain
+  // rechargement en mode SharePoint, le serveur faisant autorité à l'hydratation). Dès qu'un
+  // expert a donné une réponse ou un avis, ce travail n'appartient plus au seul porteur : le
+  // projet quitte sa corbeille mais reste visible des experts, dans « Abandonnés ».
+  const handlePermanentlyDeleteProject = useCallback((projectId) => {
+    const targetProject = projectsRef.current.find((project) => project?.id === projectId);
+    if (!targetProject || !isProjectInOwnerTrash(targetProject)) {
+      return;
+    }
+
+    if (targetProject.status !== 'draft' && !canManageProject(targetProject)) {
+      return;
+    }
+
+    if (!canPermanentlyDeleteProject(targetProject, trashResponseOptions)) {
+      persistProjectAnswersPatch(targetProject, withProjectPurgedByOwner(targetProject.answers, { by: currentUserEmail }));
       return;
     }
 
@@ -5527,7 +5606,7 @@ const updateProjectFilters = useCallback((updater) => {
     complianceCommentsQueueRef.current?.enqueue({ action: 'removeAllForProject', projectId });
     stickyNotesQueueRef.current?.enqueue({ action: 'removeAllForProject', projectId });
     filesIndexQueueRef.current?.enqueue({ projectId });
-  }, [canManageProject]);
+  }, [canManageProject, currentUserEmail, persistProjectAnswersPatch, trashResponseOptions]);
 
   const handleToggleProjectVisibility = useCallback((projectId) => {
     if (!projectId) {
@@ -5781,12 +5860,35 @@ const updateProjectFilters = useCallback((updater) => {
 
     const matchingProject = projects.find(project => project?.id === pendingProjectId);
     if (!matchingProject) {
+      // Une fois la liste réellement chargée, un projet introuvable a été supprimé définitivement
+      // (ou n'a jamais existé) : le lien aboutit à une annonce plutôt qu'à un accueil muet. Tant que
+      // le serveur n'a pas répondu, ou s'il a échoué, on ne conclut rien.
+      if (['local-only', 'synced', 'partial'].includes(sharePointSync.state)) {
+        pendingShowcaseProjectIdRef.current = null;
+        pendingProjectViewRef.current = null;
+        setCancelledSubmissionNotice({ projectName: '', reason: 'missing' });
+        previousScreenRef.current = null;
+        setScreen('submission-cancelled');
+      }
       return;
     }
 
     pendingShowcaseProjectIdRef.current = null;
     const pendingView = pendingProjectViewRef.current;
     pendingProjectViewRef.current = null;
+
+    // Un projet à la corbeille ne s'ouvre plus par lien, vitrine partagée comprise : seul un expert
+    // qui y a répondu en garde la synthèse, comme dans son onglet « Abandonnés ».
+    if (isProjectTrashed(matchingProject)) {
+      if (pendingView === 'synthesis' && isRespondingExpert(matchingProject, currentUserEmail, trashResponseOptions)) {
+        handleOpenProject(pendingProjectId, { view: 'synthesis' });
+        return;
+      }
+      setCancelledSubmissionNotice({ projectName: matchingProject.projectName || '', reason: 'trashed' });
+      previousScreenRef.current = null;
+      setScreen('submission-cancelled');
+      return;
+    }
 
     // Un lien de notification envoyé avant l'annulation de la soumission ne doit jamais
     // exposer le projet (synthèse ou vitrine) : la personne qui clique dessus atterrit sur
@@ -5803,7 +5905,7 @@ const updateProjectFilters = useCallback((updater) => {
     } else {
       openProjectShowcase({ projectId: pendingProjectId });
     }
-  }, [handleOpenProject, isHydrated, openProjectShowcase, projects]);
+  }, [currentUserEmail, handleOpenProject, isHydrated, openProjectShowcase, projects, sharePointSync.state, trashResponseOptions]);
 
   const isActiveProjectShowcaseBlocked = useMemo(
     () => isShowcaseAccessBlockedByProjectType(answers),
@@ -7872,7 +7974,7 @@ const updateProjectFilters = useCallback((updater) => {
                 launchSignals={launchSignalsByProject}
                 launchReminderDays={launchReminderDays}
                 setLaunchReminderDays={setLaunchReminderDays}
-                projects={projects}
+                projects={liveProjects}
                 questions={questions}
                 setQuestions={setQuestions}
                 rules={rules}
@@ -7936,7 +8038,11 @@ const updateProjectFilters = useCallback((updater) => {
         ) : screen === 'home' ? (
           <Suspense fallback={(<LoadingFallback label={t('app.loading.screenLabel')} hint={t('app.loading.screenHint')} />)}>
             <LazyHomeScreen
-            projects={projects}
+            projects={liveProjects}
+            trashedProjects={trashedProjects}
+            onRestoreProject={handleRestoreProject}
+            onPermanentlyDeleteProject={handlePermanentlyDeleteProject}
+            canPermanentlyDeleteProject={(project) => canPermanentlyDeleteProject(project, trashResponseOptions)}
             showcaseFeedbackCounts={showcaseFeedbackCounts}
             launchSignals={launchSignalsByProject}
             projectFilters={projectFilters}
@@ -8032,6 +8138,7 @@ const updateProjectFilters = useCallback((updater) => {
         ) : screen === 'submission-cancelled' ? (
           <SubmissionCancelledNotice
             projectName={cancelledSubmissionNotice?.projectName || ''}
+            reason={cancelledSubmissionNotice?.reason || 'cancelled'}
             onBackToHome={handleReturnHomeFromCancelledSubmissionNotice}
           />
         ) : screen === 'synthesis' ? (

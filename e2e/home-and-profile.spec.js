@@ -22,9 +22,9 @@ test.describe('HomeScreen : CRUD projet', () => {
     await page.getByRole('button', { name: 'Annuler' }).last().click();
     expect(await page.getByText('Projet e2e Home CRUD').count()).toBe(projectCountAfterDuplicate);
 
-    // Confirmer une suppression retire bien le projet.
+    // Confirmer une suppression met le projet à la corbeille : il quitte la liste.
     await page.locator('button[aria-label*="Supprimer le projet"]').first().click();
-    await page.getByRole('button', { name: 'Supprimer définitivement' }).click();
+    await page.getByRole('button', { name: 'Mettre à la corbeille' }).click();
     expect(await page.getByText('Projet e2e Home CRUD').count()).toBe(projectCountAfterDuplicate - 1);
     expect(errors).toEqual([]);
   });

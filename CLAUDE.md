@@ -442,6 +442,35 @@ when the result is partial). It always queries the *current* identity, never `Ge
   « Points d'attention » filter (rejected/outdated opinion, late or unconfirmed launch).
 - Tests: `test/reportingHierarchy.test.mjs`, `e2e/home-team-projects.spec.js`.
 
+## Deleting a project (trash, « Abandonnés »)
+
+Deleting a project from the home screen **never removes it**: it puts a marker in its answers
+(`__project_trash__`, `src/utils/projectTrash.js` — no new SharePoint column, like every other
+project-level marker), the row stays and keeps its status, so restoring puts it back exactly where
+it was. `App.jsx` splits `projects` into `liveProjects` (what the home, the back-office, launch
+signals and the reminder passes get) and `trashedProjects` (handed to `HomeScreen` only). Iterate
+`liveProjects`, or guard with `isProjectTrashed`, in any new pass over projects — a trashed project
+must not reach a queue, a reminder or a dashboard.
+
+- **The owner's trash** (button next to the project count in « Mes projets ») lists trashed projects
+  with *Restaurer* and *Supprimer définitivement*.
+- **Permanent deletion is real only while no expert has answered** (`canPermanentlyDeleteProject`:
+  a status, a comment, or a thread reply from someone other than the owner/co-owners — or, when
+  known, from a contact of that team/committee — on the *raw* compliance entry, so auto-validation
+  and a bare claim never count). It then goes through the old hard-delete path, satellite lists
+  included. Once an expert has answered, the same button only stamps `purgedByOwnerAt`: the project
+  leaves the owner's trash but survives for the experts — their work is not the owner's to erase.
+- **« Abandonnés »** is a tab of the experts' triggered-projects section: every trashed project
+  (in the owner's trash or purged from it) on which one of *that person's* teams/committees has
+  answered. A trashed project nobody answered is invisible to experts.
+- **A link never opens a trashed or deleted project** — shared showcase (`?sv=`), `?showcase=` or a
+  notification's synthesis link alike. The pending-link effect in `App.jsx` routes it to
+  `SubmissionCancelledNotice` with `reason: 'trashed'`, or `'missing'` once the project list has
+  really loaded (`sharePointSync.state` in `local-only`/`synced`/`partial` — never while loading or
+  after a failed load, which would announce a deletion that didn't happen). The one exception is
+  the synthesis link for an expert who answered (`isRespondingExpert`), consistent with « Abandonnés ».
+- Tests: `test/projectTrash.test.mjs`, `e2e/project-trash.spec.js`.
+
 ## Project validation status (home cards)
 
 `src/utils/projectValidationStatus.js` aggregates the per-perimeter compliance statuses of one

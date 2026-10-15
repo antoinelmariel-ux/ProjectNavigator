@@ -3,13 +3,20 @@ import { XCircle } from './icons.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { stripRichTextToPlainText } from '../utils/richText.js';
 
-// Ce que voit quelqu'un qui suit un lien issu d'un e-mail de notification envoyé avant
-// l'annulation de la soumission : une annonce, jamais le projet lui-même (ni synthèse, ni
-// vitrine) — cf. la redirection dans App.jsx quand le projet ciblé est passé au statut
-// `cancelled`.
-export const SubmissionCancelledNotice = ({ projectName = '', onBackToHome }) => {
+// Ce que voit quelqu'un qui suit un lien (e-mail de notification, vitrine partagée) vers un projet
+// qui ne doit plus s'ouvrir : une annonce, jamais le projet lui-même (ni synthèse, ni vitrine) —
+// cf. la redirection dans App.jsx. `reason` : soumission annulée (`cancelled`), projet mis à la
+// corbeille (`trashed`) ou introuvable, c'est-à-dire supprimé définitivement (`missing`).
+const PREFIX_BY_REASON = {
+  cancelled: 'submissionCancelledNotice',
+  trashed: 'submissionCancelledNotice.trashed',
+  missing: 'submissionCancelledNotice.missing'
+};
+
+export const SubmissionCancelledNotice = ({ projectName = '', reason = 'cancelled', onBackToHome }) => {
   const { t } = useTranslation();
   const displayName = stripRichTextToPlainText(projectName).trim();
+  const prefix = PREFIX_BY_REASON[reason] || PREFIX_BY_REASON.cancelled;
 
   const handleBackToHome = () => {
     if (typeof onBackToHome === 'function') {
@@ -28,12 +35,12 @@ export const SubmissionCancelledNotice = ({ projectName = '', onBackToHome }) =>
           </div>
           <div>
             <h2 className="text-xl font-bold text-gray-900">
-              {t('submissionCancelledNotice.title')}
+              {t(`${prefix}.title`)}
             </h2>
             <p className="text-sm text-gray-600 mt-2">
               {displayName.length > 0
-                ? t('submissionCancelledNotice.descriptionWithName', { name: displayName })
-                : t('submissionCancelledNotice.description')}
+                ? t(`${prefix}.descriptionWithName`, { name: displayName })
+                : t(`${prefix}.description`)}
             </p>
           </div>
           <button

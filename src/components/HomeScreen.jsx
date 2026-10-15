@@ -48,6 +48,7 @@ import { stripRichTextToPlainText } from '../utils/richText.js';
 import { computeProjectValidationStatus } from '../utils/projectValidationStatus.js';
 import { resolveEffectiveTeamComplianceEntry } from '../utils/complianceAutoValidation.js';
 import { selectTeamProjects } from '../utils/reportingHierarchy.js';
+import { getProjectTrashEntry, getRespondedPerimeters, isProjectInOwnerTrash } from '../utils/projectTrash.js';
 import { TeamProjectsPanel } from './TeamProjectsPanel.jsx';
 import { SegmentedTabs } from './SegmentedTabs.jsx';
 
@@ -413,6 +414,10 @@ export const HomeScreen = ({
   onStartNewProject,
   onOpenProject,
   onDeleteProject,
+  trashedProjects = [],
+  onRestoreProject,
+  onPermanentlyDeleteProject,
+  canPermanentlyDeleteProject,
   onCancelProjectSubmission,
   submittedProjectNotice = null,
   onDismissSubmittedProjectNotice,
@@ -521,6 +526,23 @@ export const HomeScreen = ({
 
     return projects.filter((project) => isOwnedOrSharedProject(project));
   }, [projects, isAdminMode, currentUserEmail, isOwnedOrSharedProject]);
+
+  const ownerTrashProjects = useMemo(() => {
+    if (!Array.isArray(trashedProjects)) {
+      return [];
+    }
+
+    return trashedProjects
+      .filter((project) => isProjectInOwnerTrash(project))
+      .filter((project) => isAdminMode || !currentUserEmail || isOwnedOrSharedProject(project))
+      .sort((a, b) => String(getProjectTrashEntry(b)?.deletedAt || '').localeCompare(String(getProjectTrashEntry(a)?.deletedAt || '')));
+  }, [trashedProjects, isAdminMode, currentUserEmail, isOwnedOrSharedProject]);
+  const [isTrashOpen, setIsTrashOpen] = useState(false);
+  const [trashPurgeTargetId, setTrashPurgeTargetId] = useState(null);
+  const closeTrash = useCallback(() => {
+    setIsTrashOpen(false);
+    setTrashPurgeTargetId(null);
+  }, []);
 
   const teamProjectEntries = useMemo(
     () => selectTeamProjects(projects, reportingHierarchy?.people, currentUserEmail, teamVisibility),
@@ -790,7 +812,51 @@ export const HomeScreen = ({
     [complianceTriggeredProjects]
   );
 
-  const displayedComplianceProjects = complianceProjectsView === 'treated'
+  // « Abandonnés » : projets mis à la corbeille (ou retirés de la corbeille par leur porteur) sur
+  // lesquels une équipe ou un comité de cette personne a déjà répondu. Les autres projets
+  // supprimés n'y apparaissent pas : personne n'y a travaillé, ils ne regardent que le porteur.
+  const abandonedComplianceProjects = useMemo(() => {
+    if (!currentUserEmail || !isComplianceActor || !Array.isArray(trashedProjects) || trashedProjects.length === 0) {
+      return [];
+    }
+
+    const myTeams = teams.filter((team) => team?.id && normalizeTeamContacts(team)
+      .some((contact) => normalizeEmail(contact) === currentUserEmail));
+    const contactsByTeamId = myTeams.reduce((acc, team) => {
+      acc[team.id] = normalizeTeamContacts(team);
+      return acc;
+    }, {});
+    const emailsByCommitteeId = currentUserCommittees.reduce((acc, committee) => {
+      acc[committee.id] = Array.isArray(committee.emails) ? committee.emails : [];
+      return acc;
+    }, {});
+
+    return trashedProjects
+      .map((project) => {
+        const responded = getRespondedPerimeters(project, { contactsByTeamId, emailsByCommitteeId });
+        const triggeredPerimeters = [
+          ...myTeams
+            .filter((team) => responded.teamIds.includes(team.id))
+            .map((team) => ({ id: team.id, name: resolveLocalizedText(team.name, language) || team.id, type: 'team' })),
+          ...currentUserCommittees
+            .filter((committee) => responded.committeeIds.includes(committee.id))
+            .map((committee) => ({ id: committee.id, name: committee.name || committee.id, type: 'committee' }))
+        ];
+        return {
+          project,
+          triggeredPerimeters,
+          openPerimeters: [],
+          allValidated: false,
+          deletedAt: getProjectTrashEntry(project)?.deletedAt || ''
+        };
+      })
+      .filter((entry) => entry.triggeredPerimeters.length > 0)
+      .sort((a, b) => String(b.deletedAt).localeCompare(String(a.deletedAt)));
+  }, [currentUserCommittees, currentUserEmail, isComplianceActor, language, teams, trashedProjects]);
+
+  const displayedComplianceProjects = complianceProjectsView === 'abandoned'
+    ? abandonedComplianceProjects
+    : complianceProjectsView === 'treated'
     ? treatedComplianceProjects
     : complianceProjectsView === 'out_of_scope'
       ? outOfScopeCommitteeProjects
@@ -2303,7 +2369,8 @@ export const HomeScreen = ({
                 { id: 'treated', label: t('home.treatedTabLabel'), ariaLabel: t('home.treatedTab', { count: treatedComplianceProjects.length }), count: treatedComplianceProjects.length },
                 ...(isValidationCommitteeMember
                   ? [{ id: 'out_of_scope', label: t('home.outOfScopeTabLabel'), ariaLabel: t('home.outOfScopeTab', { count: outOfScopeCommitteeProjects.length }), count: outOfScopeCommitteeProjects.length }]
-                  : [])
+                  : []),
+                { id: 'abandoned', label: t('home.abandonedTabLabel'), ariaLabel: t('home.abandonedTab', { count: abandonedComplianceProjects.length }), count: abandonedComplianceProjects.length, icon: Trash2 }
               ]}
             />
 
@@ -2315,7 +2382,9 @@ export const HomeScreen = ({
                     ? t('home.noTeammateTriggered')
                     : complianceProjectsView === 'treated'
                       ? t('home.noTreatedTriggered')
-                      : t('home.noOutOfScopeTriggered')}
+                      : complianceProjectsView === 'abandoned'
+                        ? t('home.noAbandonedTriggered')
+                        : t('home.noOutOfScopeTriggered')}
               </div>
             ) : (
               <div className="space-y-3" role="list" aria-label={t('home.triggeredListAriaLabel')}>
@@ -2432,13 +2501,23 @@ export const HomeScreen = ({
                           )}
                         </div>
                         <div className="flex items-center gap-3">
-                          <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${
-                            allValidated
-                              ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                              : 'bg-amber-50 border-amber-200 text-amber-700'
-                          }`}>
-                            {allValidated ? t('home.validated') : t('home.toReview')}
-                          </span>
+                          {complianceProjectsView === 'abandoned' ? (
+                            <span
+                              className="inline-flex items-center gap-1 rounded-full border border-gray-300 bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600"
+                              title={t('home.abandonedBadgeTitle', { date: formatDate(projectEntry.deletedAt, language, t('home.dateUnknown')) })}
+                            >
+                              <Trash2 className="w-3 h-3" aria-hidden="true" />
+                              {t('home.abandonedBadge')}
+                            </span>
+                          ) : (
+                            <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${
+                              allValidated
+                                ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                                : 'bg-amber-50 border-amber-200 text-amber-700'
+                            }`}>
+                              {allValidated ? t('home.validated') : t('home.toReview')}
+                            </span>
+                          )}
                           {complianceProjectsView === 'out_of_scope' && (
                             <button
                               type="button"
@@ -2511,11 +2590,31 @@ export const HomeScreen = ({
                   {t('home.addInspiringProject')}
                 </button>
               ) : isTeamView ? null : (
-                <span className="inline-flex items-center text-sm font-semibold text-blue-600 bg-blue-50 border border-blue-200 rounded-full px-3 py-1">
-                  <CheckCircle className="w-4 h-4 mr-2" />{' '}
-                  {t(displayedProjectsCount > 1 ? 'home.projectCountPlural' : 'home.projectCountSingular', { count: displayedProjectsCount })}
-                  {hasActiveFilters ? ` ${t('home.outOfTotal', { total: totalProjectsCount })}` : ''}
-                </span>
+                <>
+                  <span className="inline-flex items-center text-sm font-semibold text-blue-600 bg-blue-50 border border-blue-200 rounded-full px-3 py-1">
+                    <CheckCircle className="w-4 h-4 mr-2" />{' '}
+                    {t(displayedProjectsCount > 1 ? 'home.projectCountPlural' : 'home.projectCountSingular', { count: displayedProjectsCount })}
+                    {hasActiveFilters ? ` ${t('home.outOfTotal', { total: totalProjectsCount })}` : ''}
+                  </span>
+                  {!tourContext?.isActive && (
+                    <button
+                      type="button"
+                      onClick={() => setIsTrashOpen(true)}
+                      className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-3 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-100"
+                      aria-label={t('home.trash.openAriaLabel', { count: ownerTrashProjects.length })}
+                      title={t('home.trash.title')}
+                      data-testid="home-trash-button"
+                    >
+                      <Trash2 className="w-4 h-4" aria-hidden="true" />
+                      {t('home.trash.buttonLabel')}
+                      {ownerTrashProjects.length > 0 && (
+                        <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-gray-700 px-1.5 text-xs font-bold text-white">
+                          {ownerTrashProjects.length}
+                        </span>
+                      )}
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -3139,6 +3238,134 @@ export const HomeScreen = ({
         </div>
       )}
 
+      {isTrashOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
+          <div
+            className="absolute inset-0 bg-gray-900 bg-opacity-60"
+            aria-hidden="true"
+            onClick={closeTrash}
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="project-trash-dialog-title"
+            className="relative z-10 flex max-h-full w-full max-w-2xl flex-col rounded-2xl bg-white p-6 shadow-2xl focus:outline-none"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-700">
+                  <Trash2 className="h-6 w-6" aria-hidden="true" />
+                </div>
+                <div>
+                  <h2 id="project-trash-dialog-title" className="text-xl font-semibold text-gray-900">
+                    {t('home.trash.title')}
+                  </h2>
+                  <p className="mt-1 text-sm text-gray-600">{t('home.trash.subtitle')}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={closeTrash}
+                className="rounded-lg p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                aria-label={t('home.trash.close')}
+              >
+                <Close className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </div>
+
+            {ownerTrashProjects.length === 0 ? (
+              <div className="mt-5 rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-5 text-sm text-gray-600">
+                {t('home.trash.empty')}
+              </div>
+            ) : (
+              <ul className="mt-5 space-y-3 overflow-y-auto" aria-label={t('home.trash.listAriaLabel')}>
+                {ownerTrashProjects.map((project) => {
+                  const projectName = project.projectName || t('home.projectNameFallback');
+                  const deletedAt = getProjectTrashEntry(project)?.deletedAt;
+                  const isPurgeTarget = trashPurgeTargetId === project.id;
+                  const isHardDeletable = typeof canPermanentlyDeleteProject === 'function'
+                    ? canPermanentlyDeleteProject(project)
+                    : true;
+                  return (
+                    <li
+                      key={`trash-${project.id}`}
+                      className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
+                      data-testid="home-trash-item"
+                    >
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="space-y-1">
+                          <p className="text-base font-semibold text-gray-900">{projectName}</p>
+                          <p className="text-xs text-gray-500">
+                            {t('home.trash.deletedOn', { date: formatDate(deletedAt, language, t('home.dateUnknown')) })}
+                            {' · '}
+                            {project.status === 'submitted' ? t('home.trash.statusSubmitted') : t('home.trash.statusDraft')}
+                          </p>
+                          {!isHardDeletable && (
+                            <p className="flex items-start gap-1 text-xs text-amber-700">
+                              <MessageSquare className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                              {t('home.trash.expertResponseNote')}
+                            </p>
+                          )}
+                        </div>
+                        {!isPurgeTarget && (
+                          <div className="flex shrink-0 flex-wrap items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => onRestoreProject?.(project.id)}
+                              className="inline-flex items-center gap-1 rounded-lg border border-blue-200 px-3 py-1.5 text-sm font-semibold text-blue-700 hover:bg-blue-50"
+                            >
+                              <Undo className="h-4 w-4" aria-hidden="true" />
+                              {t('home.trash.restore')}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setTrashPurgeTargetId(project.id)}
+                              className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" aria-hidden="true" />
+                              {t('home.deletePermanently')}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      {isPurgeTarget && (
+                        <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">
+                          <p>
+                            {t(
+                              isHardDeletable ? 'home.trash.confirmHardDelete' : 'home.trash.confirmPurgeWithExpertResponse',
+                              { name: projectName }
+                            )}
+                          </p>
+                          <div className="mt-3 flex flex-wrap justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setTrashPurgeTargetId(null)}
+                              className="inline-flex items-center rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-100"
+                            >
+                              {t('home.cancel')}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onPermanentlyDeleteProject?.(project.id);
+                                setTrashPurgeTargetId(null);
+                              }}
+                              className="inline-flex items-center rounded-lg bg-red-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-red-700"
+                            >
+                              {t('home.trash.confirmButton')}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+
       {deleteDialogState.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
           <div
@@ -3186,7 +3413,7 @@ export const HomeScreen = ({
                 onClick={handleConfirmDeleteProject}
                 className="inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition-colors"
               >
-                {t('home.deletePermanently')}
+                {t('home.moveToTrash')}
               </button>
             </div>
           </div>

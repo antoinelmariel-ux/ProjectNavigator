@@ -512,10 +512,33 @@ export default {
     chooseCommitteeDescription: 'Este proyecto puede reintegrarse en varios comités. Seleccione el comité de destino.',
     deleteProjectDialogTitle: '¿Eliminar el proyecto?',
     deleteProjectDescription:
-      'Está a punto de eliminar «{{name}}». Esta acción es definitiva y el proyecto no podrá restaurarse.',
+      '«{{name}}» se moverá a la papelera. Podrá encontrarlo allí y restaurarlo, o eliminarlo definitivamente.',
     deleteSubmittedProjectDescription:
-      'Está a punto de eliminar «{{name}}». Esto anula su envío: los equipos de cumplimiento ya no lo verán, no se enviará ninguna notificación, y esta acción es definitiva — el proyecto no podrá restaurarse.',
+      '«{{name}}» se moverá a la papelera: los equipos de compliance ya no lo verán en sus colas y no se enviará ninguna notificación. Podrá restaurarlo desde la papelera.',
     deletePermanently: 'Eliminar definitivamente',
+    abandonedTab: 'Abandonados ({{count}})',
+    abandonedTabLabel: 'Abandonados',
+    noAbandonedTriggered: 'Ningún proyecto abandonado sobre el que haya dado una respuesta o una opinión.',
+    abandonedBadge: 'Abandonado',
+    abandonedBadgeTitle: 'Eliminado por su responsable el {{date}}',
+    moveToTrash: 'Mover a la papelera',
+    trash: {
+      buttonLabel: 'Papelera',
+      title: 'Papelera',
+      openAriaLabel: 'Abrir la papelera ({{count}} proyecto(s))',
+      subtitle: 'Los proyectos eliminados permanecen aquí hasta que los restaure o los elimine definitivamente.',
+      close: 'Cerrar la papelera',
+      empty: 'La papelera está vacía.',
+      listAriaLabel: 'Proyectos en la papelera',
+      deletedOn: 'Eliminado el {{date}}',
+      statusSubmitted: 'Enviado',
+      statusDraft: 'Borrador',
+      restore: 'Restaurar',
+      expertResponseNote: 'Un experto ya ha respondido o dado su opinión: este proyecto seguirá disponible para los expertos solicitados.',
+      confirmHardDelete: '«{{name}}» se eliminará definitivamente. Esta acción es irreversible.',
+      confirmPurgeWithExpertResponse: 'Un experto ya ha respondido o dado su opinión sobre «{{name}}»: desaparecerá de su papelera, pero seguirá visible para los expertos solicitados, en sus proyectos abandonados.',
+      confirmButton: 'Confirmar la eliminación'
+    },
     projectAriaLabel: 'Proyecto {{name}}',
     demoProjectBadge: 'Proyecto de demostración',
     duplicateProjectAriaLabel: 'Duplicar el proyecto {{name}}',
@@ -1817,7 +1840,17 @@ export default {
     description: 'El responsable de este proyecto ha cancelado su envío. El proyecto ya no está disponible desde este enlace.',
     descriptionWithName:
       'El responsable del proyecto «{{name}}» ha cancelado su envío. El proyecto ya no está disponible desde este enlace.',
-    backToHome: 'Volver al inicio'
+    backToHome: 'Volver al inicio',
+    trashed: {
+      title: 'Proyecto eliminado',
+      description: 'El responsable de este proyecto lo ha eliminado. Ya no es accesible desde este enlace.',
+      descriptionWithName: 'El responsable del proyecto «{{name}}» lo ha eliminado. Ya no es accesible desde este enlace.'
+    },
+    missing: {
+      title: 'Proyecto no encontrado',
+      description: 'Este proyecto no existe o se ha eliminado definitivamente. Ya no es accesible desde este enlace.',
+      descriptionWithName: 'Este proyecto no existe o se ha eliminado definitivamente. Ya no es accesible desde este enlace.'
+    }
   },
   synthesisReport: {
     launchQuestionTitle: '¿Este proyecto se ha lanzado?',

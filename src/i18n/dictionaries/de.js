@@ -519,10 +519,33 @@ export default {
       'Dieses Projekt kann in mehrere Ausschüsse reintegriert werden. Wählen Sie den Zielausschuss.',
     deleteProjectDialogTitle: 'Projekt löschen?',
     deleteProjectDescription:
-      'Sie sind dabei, „{{name}}“ zu löschen. Diese Aktion ist endgültig und das Projekt kann nicht wiederhergestellt werden.',
+      '„{{name}}“ wird in den Papierkorb verschoben. Sie können es dort wiederherstellen oder endgültig löschen.',
     deleteSubmittedProjectDescription:
-      'Sie sind dabei, „{{name}}“ zu löschen. Damit wird die Einreichung storniert: Die Compliance-Teams sehen das Projekt nicht mehr, es wird keine Benachrichtigung gesendet, und diese Aktion ist endgültig — das Projekt kann nicht wiederhergestellt werden.',
+      '„{{name}}“ wird in den Papierkorb verschoben: Die Compliance-Teams sehen es nicht mehr in ihren Listen, und es werden keine Benachrichtigungen gesendet. Sie können es aus dem Papierkorb wiederherstellen.',
     deletePermanently: 'Endgültig löschen',
+    abandonedTab: 'Aufgegeben ({{count}})',
+    abandonedTabLabel: 'Aufgegeben',
+    noAbandonedTriggered: 'Kein aufgegebenes Projekt, zu dem Sie geantwortet oder eine Stellungnahme abgegeben haben.',
+    abandonedBadge: 'Aufgegeben',
+    abandonedBadgeTitle: 'Am {{date}} vom Projektverantwortlichen gelöscht',
+    moveToTrash: 'In den Papierkorb',
+    trash: {
+      buttonLabel: 'Papierkorb',
+      title: 'Papierkorb',
+      openAriaLabel: 'Papierkorb öffnen ({{count}} Projekt(e))',
+      subtitle: 'Gelöschte Projekte bleiben hier, bis Sie sie wiederherstellen oder endgültig löschen.',
+      close: 'Papierkorb schließen',
+      empty: 'Der Papierkorb ist leer.',
+      listAriaLabel: 'Projekte im Papierkorb',
+      deletedOn: 'Gelöscht am {{date}}',
+      statusSubmitted: 'Eingereicht',
+      statusDraft: 'Entwurf',
+      restore: 'Wiederherstellen',
+      expertResponseNote: 'Ein Experte hat bereits geantwortet oder eine Stellungnahme abgegeben: Dieses Projekt bleibt für die beteiligten Experten einsehbar.',
+      confirmHardDelete: '„{{name}}“ wird endgültig gelöscht. Dies kann nicht rückgängig gemacht werden.',
+      confirmPurgeWithExpertResponse: 'Ein Experte hat bereits zu „{{name}}“ geantwortet oder Stellung genommen: Es verschwindet aus Ihrem Papierkorb, bleibt aber für die beteiligten Experten unter ihren aufgegebenen Projekten sichtbar.',
+      confirmButton: 'Löschen bestätigen'
+    },
     projectAriaLabel: 'Projekt {{name}}',
     demoProjectBadge: 'Demo-Projekt',
     duplicateProjectAriaLabel: 'Projekt {{name}} duplizieren',
@@ -1828,7 +1851,17 @@ export default {
     description: 'Der Projektverantwortliche hat diese Einreichung storniert. Das Projekt ist über diesen Link nicht mehr zugänglich.',
     descriptionWithName:
       'Der Verantwortliche des Projekts „{{name}}“ hat die Einreichung storniert. Das Projekt ist über diesen Link nicht mehr zugänglich.',
-    backToHome: 'Zurück zur Startseite'
+    backToHome: 'Zurück zur Startseite',
+    trashed: {
+      title: 'Projekt gelöscht',
+      description: 'Der Projektverantwortliche hat dieses Projekt gelöscht. Es ist über diesen Link nicht mehr erreichbar.',
+      descriptionWithName: 'Der Verantwortliche des Projekts „{{name}}“ hat es gelöscht. Es ist über diesen Link nicht mehr erreichbar.'
+    },
+    missing: {
+      title: 'Projekt nicht gefunden',
+      description: 'Dieses Projekt existiert nicht oder wurde endgültig gelöscht. Es ist über diesen Link nicht mehr erreichbar.',
+      descriptionWithName: 'Dieses Projekt existiert nicht oder wurde endgültig gelöscht. Es ist über diesen Link nicht mehr erreichbar.'
+    }
   },
   synthesisReport: {
     launchQuestionTitle: 'Ist dieses Projekt gestartet?',

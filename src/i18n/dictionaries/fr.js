@@ -517,10 +517,33 @@ export default {
       'Ce projet peut être réintégré dans plusieurs comités. Sélectionnez le comité cible.',
     deleteProjectDialogTitle: 'Supprimer le projet ?',
     deleteProjectDescription:
-      'Vous êtes sur le point de supprimer « {{name}} ». Cette action est définitive et le projet ne pourra pas être restauré.',
+      '« {{name}} » sera placé dans la corbeille. Vous pourrez l’y retrouver et le restaurer, ou le supprimer définitivement.',
     deleteSubmittedProjectDescription:
-      'Vous êtes sur le point de supprimer « {{name}} ». Cela annule sa soumission : les équipes compliance ne le verront plus, aucune notification ne sera envoyée, et cette action est définitive — le projet ne pourra pas être restauré.',
+      '« {{name}} » sera placé dans la corbeille : les équipes compliance ne le verront plus dans leurs files et aucune notification ne sera envoyée. Vous pourrez le restaurer depuis la corbeille.',
     deletePermanently: 'Supprimer définitivement',
+    abandonedTab: 'Abandonnés ({{count}})',
+    abandonedTabLabel: 'Abandonnés',
+    noAbandonedTriggered: 'Aucun projet abandonné sur lequel vous avez donné une réponse ou un avis.',
+    abandonedBadge: 'Abandonné',
+    abandonedBadgeTitle: 'Supprimé par son porteur le {{date}}',
+    moveToTrash: 'Mettre à la corbeille',
+    trash: {
+      buttonLabel: 'Corbeille',
+      title: 'Corbeille',
+      openAriaLabel: 'Ouvrir la corbeille ({{count}} projet(s))',
+      subtitle: 'Les projets supprimés restent ici jusqu’à ce que vous les restauriez ou les supprimiez définitivement.',
+      close: 'Fermer la corbeille',
+      empty: 'La corbeille est vide.',
+      listAriaLabel: 'Projets dans la corbeille',
+      deletedOn: 'Supprimé le {{date}}',
+      statusSubmitted: 'Soumis',
+      statusDraft: 'Brouillon',
+      restore: 'Restaurer',
+      expertResponseNote: 'Un expert a déjà répondu ou donné un avis : ce projet restera consultable par les experts sollicités.',
+      confirmHardDelete: '« {{name}} » sera supprimé définitivement. Cette action est irréversible.',
+      confirmPurgeWithExpertResponse: 'Un expert a déjà répondu ou donné un avis sur « {{name}} » : il disparaîtra de votre corbeille, mais restera visible des experts sollicités, dans leurs projets abandonnés.',
+      confirmButton: 'Confirmer la suppression'
+    },
     projectAriaLabel: 'Projet {{name}}',
     demoProjectBadge: 'Projet démo',
     duplicateProjectAriaLabel: 'Dupliquer le projet {{name}}',
@@ -1827,7 +1850,17 @@ export default {
     description: 'Le porteur de ce projet a annulé sa soumission. Le projet n’est plus accessible depuis ce lien.',
     descriptionWithName:
       'Le porteur du projet « {{name}} » a annulé sa soumission. Le projet n’est plus accessible depuis ce lien.',
-    backToHome: 'Retour à l’accueil'
+    backToHome: 'Retour à l’accueil',
+    trashed: {
+      title: 'Projet supprimé',
+      description: 'Le porteur de ce projet l’a supprimé. Il n’est plus accessible depuis ce lien.',
+      descriptionWithName: 'Le porteur du projet « {{name}} » l’a supprimé. Il n’est plus accessible depuis ce lien.'
+    },
+    missing: {
+      title: 'Projet introuvable',
+      description: 'Ce projet n’existe pas ou a été supprimé définitivement. Il n’est plus accessible depuis ce lien.',
+      descriptionWithName: 'Ce projet n’existe pas ou a été supprimé définitivement. Il n’est plus accessible depuis ce lien.'
+    }
   },
   synthesisReport: {
     launchQuestionTitle: 'Ce projet est-il lancé ?',
