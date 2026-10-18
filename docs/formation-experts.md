@@ -19,12 +19,12 @@
 | Heure | Étape | Durée |
 |---|---|---|
 | 00:00 | [1. Trouver les projets qui me concernent](#1-trouver-les-projets-qui-me-concernent--2-min) | 2 min |
-| 00:02 | [2. Ouvrir un projet et le prendre en charge](#2-ouvrir-un-projet-et-le-prendre-en-charge--3-min) | 3 min |
-| 00:05 | [3. Donner son avis : statut et commentaire](#3-donner-son-avis--statut-et-commentaire--4-min) | 4 min |
-| 00:09 | [4. Solliciter un autre expert non identifié](#4-solliciter-un-autre-expert-non-identifié--2-min) | 2 min |
-| 00:11 | [5. Faire passer un projet en comité](#5-faire-passer-un-projet-en-comité--2-min) | 2 min |
-| 00:13 | [6. Back-office : régler son équipe](#6-back-office--régler-son-équipe--4-min) | 4 min |
-| 00:17 | [7. Back-office : ses règles et ses questions à préparer](#7-back-office--ses-règles-et-ses-questions-à-préparer--2-min) | 2 min |
+| 00:02 | [2. Ouvrir un projet et le prendre en charge](#2-ouvrir-un-projet-et-le-prendre-en-charge--4-min) | 4 min |
+| 00:06 | [3. Donner son avis : statut et commentaire](#3-donner-son-avis--statut-et-commentaire--4-min) | 4 min |
+| 00:10 | [4. Solliciter un autre expert non identifié](#4-solliciter-un-autre-expert-non-identifié--2-min) | 2 min |
+| 00:12 | [5. Faire passer un projet en comité](#5-faire-passer-un-projet-en-comité--2-min) | 2 min |
+| 00:14 | [6. Back-office : régler son équipe et ses relances](#6-back-office--régler-son-équipe-et-ses-relances--4-min) | 4 min |
+| 00:18 | [7. Back-office : ses règles et ses questions à préparer](#7-back-office--ses-règles-et-ses-questions-à-préparer--1-min) | 1 min |
 | 00:19 | [Conclusion](#conclusion--1-min) | 1 min |
 
 ---
@@ -36,7 +36,7 @@
 | 1 | **Chaque participant est contact de son équipe experte** (back-office, onglet « Équipes », « Contacts e-mail »). | C'est ce qui fait apparaître les projets dans son accueil et lui ouvre le back-office de son équipe, sans mot de passe. |
 | 2 | **Un projet de formation par participant**, soumis, qui déclenche l'équipe de ce participant et affiche des « Points à préparer » dans sa carte. Nommez-les clairement, par exemple « Formation experts – Prénom ». Le plus simple : dupliquez un projet complet, renommez la copie, soumettez-la, et recommencez pour chaque participant. | Un avis est rendu **par équipe et par projet**. Si deux experts de la même équipe travaillent sur le même projet, le premier prend le projet en charge et le second ne peut plus le faire (étape 2) : ils se gêneraient. |
 | 3 | **Une réponse du porteur** dans l'« Échange en cours » d'au moins un projet, par exemple une réponse aux points à préparer. | Étape 3 : l'expert voit qu'un échange existe déjà avant même son avis. |
-| 4 | **Au moins un participant membre d'un comité de validation** (back-office, onglet « Comités de validation », « Adresses mail »), et un projet de formation sur lequel ce comité n'est **pas** déclenché automatiquement. | Étape 5 : c'est la condition pour que le bouton « Réintégrer en comité » apparaisse. |
+| 4 | **Au moins un participant à la fois contact de son équipe et membre d'un comité de validation** (back-office, onglet « Comités de validation », « Adresses mail »), avec un projet de formation soumis sur lequel ce comité n'est **pas** déclenché automatiquement. | Étape 5 : ce sont les trois conditions pour que le bouton « Réintégrer au comité « … » » apparaisse dans la carte d'équipe des enjeux du projet. Si personne ne les remplit, faites l'étape 5 en 🎬 formateur seul. |
 | 5 | **Les flux Power Automate désactivés** juste avant la séance. | Aucune notification ne part vers les porteurs ni vers les équipes. |
 
 > ⚠️ **À vérifier : les notifications en attente.** Même flux coupés, l'application écrit chaque notification dans la liste SharePoint `CN_NotificationsQueue`. Je ne sais pas si vos flux traiteront ces éléments une fois réactivés : cela dépend de la configuration de leur déclencheur. Par précaution, après la séance et **avant** de réactiver les flux, supprimez les éléments créés pendant la démo.
@@ -64,15 +64,19 @@
 
 ---
 
-## 2. Ouvrir un projet et le prendre en charge — 3 min
+## 2. Ouvrir un projet et le prendre en charge — 4 min
 
 🖱 **Tout le monde :**
 1. Sur la carte de votre projet, sous « Prise en charge par périmètre », lisez « Personne ne suit encore ce périmètre ». Cliquez sur « **Je prends en charge** ».
 2. La ligne devient « Vous le suivez depuis le … ».
 3. Cliquez sur « **Ouvrir** » : la page « Enjeux du projet » s'affiche.
-4. Faites le tour en suivant le « Sommaire » de gauche : « Équipes à solliciter », « Risques identifiés », « Points de vigilance », « Rappel de vos réponses » (les réponses du porteur).
+4. **Pour une bonne première vue du projet, commencez par sa vitrine :** cliquez sur « **Vitrine du projet** » en haut de la page. En une minute de défilement, vous voyez le problème traité, la solution, le public visé, l'équipe et la feuille de route, présentés par le porteur lui-même. La vitrine est en lecture seule pour vous.
+5. Revenez sur la vision compliance avec « **Enjeux du projet** » dans la barre du haut.
+6. Faites le tour en suivant le « Sommaire » de gauche : « Équipes à solliciter », « Risques identifiés », « Points de vigilance », « Rappel de vos réponses » (le détail des réponses du porteur).
 
-✅ **Point de contrôle :** le projet est indiqué comme suivi par vous.
+✅ **Point de contrôle :** le projet est indiqué comme suivi par vous, et chacun est revenu sur « Enjeux du projet ».
+
+💬 **À dire** (sur la vitrine) : « Avant de juger les réponses une à une, comprenez ce que le projet veut faire. La vitrine vous le raconte, les enjeux du projet vous disent ce que ça implique pour votre périmètre. »
 
 💬 **À dire :** « Prendre en charge un projet le retire de la liste "À traiter" de vos collègues. Les échanges suivants ne sont notifiés qu'à vous. Pas besoin de cliquer sur ce bouton à chaque fois : publier un avis ou un statut vous désigne automatiquement. »
 
@@ -132,26 +136,29 @@ Deux cas différents, à bien distinguer.
 
 ## 5. Faire passer un projet en comité — 2 min
 
-Un comité se déclenche **automatiquement** quand ses critères sont remplis : des réponses, des règles activées, un score de risque minimal ou un nombre minimal d'équipes. Ces critères se règlent dans le back-office, onglet « Comités de validation ». Mais un membre du comité peut aussi y faire passer un projet que les critères n'ont pas retenu.
+Un comité se déclenche **automatiquement** quand ses critères sont remplis : des réponses, des règles activées, un score de risque minimal ou un nombre minimal d'équipes. Mais un expert membre du comité peut aussi y faire passer un projet que les critères n'ont pas retenu, directement depuis le projet qu'il est en train d'examiner.
 
-🖱 **Participants membres d'un comité :**
-1. Sur l'accueil, onglet « **Hors scope comité** » : les projets soumis sur lesquels votre comité n'est pas déclenché.
-2. Sur le projet choisi, cliquez sur « **Réintégrer en comité** ». Si vous êtes membre de plusieurs comités, choisissez lequel dans « Choisir le comité de réintégration ».
-3. Ouvrez le projet : la section « **Avis Comité** » apparaît dans « Enjeux du projet ».
-
-Le même bouton existe dans la carte d'équipe, sur la page « Enjeux du projet » (« Réintégrer au comité « … » »), pour un expert qui est aussi membre d'un comité.
+🖱 **Participants contacts d'une équipe et membres d'un comité** (les autres regardent) :
+1. Toujours sur « Enjeux du projet », dans la carte de **votre** équipe, repérez le bouton « **Réintégrer au comité « nom du comité » »**, à côté de « Répondre ».
+2. Cliquez dessus.
+3. La section « **Avis Comité** » apparaît aussitôt dans la page (accessible aussi depuis le « Sommaire »). Elle indique si le commentaire du comité est requis ou optionnel selon la configuration.
+4. Dans cette section, le fil du comité permet d'échanger avec le porteur : champ « Répondre », puis « **Envoyer la réponse** ».
 
 ✅ **Point de contrôle :** la section « Avis Comité » apparaît sur le projet.
 
-💬 **À dire :** « Le comité n'est pas réservé aux projets que la règle a repérés : si vous estimez qu'un projet doit y passer, vous l'y amenez en un clic. Le porteur en est informé. »
+💬 **À dire :** « Vous êtes en train d'examiner le projet, vous voyez qu'il mérite un passage en comité : vous l'y amenez en un clic, sans changer de page. Le porteur en est informé. »
 
-> ⚠️ **À vérifier : qui saisit l'avis du comité.** D'après le code actuel, choisir le statut et rédiger le commentaire du comité, sur la page « Enjeux du projet », est réservé aux **administrateurs en mode administrateur**. Les membres du comité peuvent répondre dans le fil du comité (« Répondre », puis « Envoyer la réponse »), mais pas poser le statut. Vérifiez que c'est bien l'organisation voulue chez vous avant de le présenter.
+> 💡 **Le bouton n'apparaît pas ?** Il faut réunir trois conditions : le projet est soumis, vous êtes membre du comité, et ce comité n'est pas déjà déclenché sur le projet. S'il l'est déjà, la section « Avis Comité » est simplement déjà là.
+
+> 💡 **Autre chemin, depuis l'accueil :** l'onglet « **Hors scope comité** » de « Projets déclenchés pour vous » liste tous les projets soumis sur lesquels votre comité n'est pas déclenché. Le bouton « Réintégrer en comité » y fait la même chose. Pratique pour passer en revue plusieurs projets d'un coup avant une séance de comité.
+
+> ⚠️ **À vérifier : qui saisit l'avis du comité.** D'après le code actuel, choisir le statut et rédiger le commentaire du comité, dans la section « Avis Comité », est réservé aux **administrateurs en mode administrateur**. Les membres du comité peuvent répondre dans le fil du comité, mais pas poser le statut. Vérifiez que c'est bien l'organisation voulue chez vous avant de le présenter.
 
 > 💡 **Configurer un comité** (membres d'un comité ou administrateurs) : back-office, onglet « Comités de validation ». On y trouve « Ajouter un comité », « Nom du comité », « Adresses mail » des membres et « Activer la demande de commentaire ». On y règle aussi les critères de déclenchement : groupes de conditions sur les réponses, « Règles ciblées », « Score de risque minimal », « Nombre minimal d'équipes ». En mode SharePoint, ces réglages ne sont visibles des autres qu'après « **Publier vers SharePoint** ».
 
 ---
 
-## 6. Back-office : régler son équipe — 4 min
+## 6. Back-office : régler son équipe et ses relances — 4 min
 
 🖱 **Tout le monde :**
 1. Revenez à l'accueil et cliquez sur l'**icône cadenas** en haut (« Accéder au Back-office »). Pas de mot de passe : votre adresse est contact d'une équipe.
@@ -161,11 +168,34 @@ Le même bouton existe dans la carte d'équipe, sur la page « Enjeux du projet 
    - « **Domaine d'expertise** » ;
    - « **Langues de réponse acceptées** » : les langues dans lesquelles vous acceptez d'échanger avec les porteurs (aucune case cochée = toutes) ;
    - « **Déclenchement par membre** » : bouton « **Critères** » à côté de chaque membre, pour qu'il ne soit sollicité que sur certains projets (« Sollicité si », « Non sollicité si », « Jamais sollicité ») ;
-   - « **Prise en charge des projets** » : au bout de combien de jours ouvrés sans action un projet est signalé, puis son référent relancé (0 désactive) ;
+   - « **Prise en charge des projets** » : les deux délais de relance, détaillés juste en dessous ;
    - « **Absences et suppléances** » : bouton « **Absence** » à côté d'un membre, avec les dates et un suppléant. Cela peut se déclarer pour un collègue absent.
 4. Testez : déclarez-vous une absence fictive avec un collègue comme « Suppléant », puis cliquez sur « **Supprimer l'absence** ».
 
 ✅ **Point de contrôle :** chacun a ouvert le bouton « Absence » de sa propre ligne, puis supprimé l'absence de test.
+
+### Les jours avant relance (« Prise en charge des projets »)
+
+Deux réglages par équipe, exprimés en **jours ouvrés sans action** sur un projet pris en charge :
+
+| Réglage | Valeur par défaut | Ce qui se passe |
+|---|---|---|
+| « Relancer le référent au bout de (jours ouvrés sans action) » | **3** | Le référent du projet (celui qui l'a pris en charge) reçoit **un e-mail de relance**. |
+| « Signaler au bout de (jours ouvrés sans action) » | **6** | Le projet est **signalé visuellement** : badge « Sans action depuis un moment » sur sa ligne de prise en charge à l'accueil, et compteur « N sans action » dans la « Charge actuelle » de l'équipe, au back-office. |
+
+Comment le compteur fonctionne :
+- **Ce qui le remet à zéro :** la prise en charge elle-même, un changement de statut ou de commentaire, ou un nouveau message dans le fil d'échange (y compris une réponse du porteur).
+- **Jours ouvrés** = du lundi au vendredi. Les jours fériés ne sont **pas** pris en compte : un pont de mai compte comme des jours travaillés.
+- **Une seule relance par période d'inactivité.** Tant que rien ne bouge, le référent n'est relancé qu'une fois ; une nouvelle relance n'est possible qu'après une nouvelle activité suivie d'une nouvelle période d'inactivité.
+- **Rien n'est libéré automatiquement.** Au-delà des délais, le projet reste pris en charge par le référent : c'est à un collègue de cliquer sur « Reprendre » (avec un motif) s'il faut le récupérer.
+- **0 désactive** le réglage correspondant (plus de relance, ou plus de signalement).
+- **Seuls les projets pris en charge sont concernés.** Un projet que personne n'a pris en charge reste dans « À traiter » de toute l'équipe, sans relance de ce mécanisme.
+
+> ⚠️ **Il n'y a pas de serveur qui envoie les relances.** La vérification se fait au moment où **un contact de l'équipe ouvre l'application** (n'importe lequel, pas seulement le référent, pour qu'une absence ne bloque pas la relance). Si personne de l'équipe n'ouvre l'outil, la relance part plus tard que prévu. Et comme toute notification, l'e-mail passe par Power Automate : flux coupés pendant la séance, il ne partira pas.
+
+💬 **À dire :** « Réglez ces délais sur votre rythme réel. Une relance qui arrive trop tôt finit ignorée ; un signalement trop tardif ne sert plus à rien. »
+
+> 💡 Ne pas confondre avec les **« Rappels avant lancement »** (onglet « Comités de validation », J-30 puis J-10 par défaut) : ceux-là s'adressent au **porteur**, pour qu'il demande la confirmation finale avant sa date de lancement.
 
 💬 **À dire :**
 - « Les critères par membre réduisent qui reçoit les notifications, jamais qui a accès : un membre non sollicité peut toujours ouvrir les projets de l'équipe. »
@@ -177,7 +207,7 @@ Le même bouton existe dans la carte d'équipe, sur la page « Enjeux du projet 
 
 ---
 
-## 7. Back-office : ses règles et ses questions à préparer — 2 min
+## 7. Back-office : ses règles et ses questions à préparer — 1 min
 
 🖱 **Tout le monde :**
 1. Onglet « **Règles** » : vous ne voyez que les règles qui sollicitent votre équipe. Ouvrez-en une (« Afficher la règle … »).
