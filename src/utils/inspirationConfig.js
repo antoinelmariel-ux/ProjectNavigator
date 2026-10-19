@@ -463,3 +463,83 @@ export const updateInspirationFormField = (config, fieldId, updates) => {
 
   return { ...normalized, fields: nextFields };
 };
+
+const BUILT_IN_INSPIRATION_FORM_FIELD_IDS = new Set(DEFAULT_INSPIRATION_FORM_FIELDS.fields.map((field) => field.id));
+
+// Les champs livrés par défaut sont lus nommément ailleurs (titre de la carte, portée, filtres,
+// fiche détail) : on peut les désactiver, pas les supprimer.
+export const isBuiltInInspirationFormField = (fieldId) => BUILT_IN_INSPIRATION_FORM_FIELD_IDS.has(fieldId);
+
+export const sanitizeInspirationFormFieldId = (value) => {
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9_\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '_');
+};
+
+export const buildUniqueInspirationFormFieldId = (base, existingIds) => {
+  const ids = existingIds instanceof Set ? existingIds : new Set(existingIds || []);
+  const root = sanitizeInspirationFormFieldId(base) || 'field';
+  if (!ids.has(root)) {
+    return root;
+  }
+
+  let counter = 2;
+  while (ids.has(`${root}_${counter}`)) {
+    counter += 1;
+  }
+  return `${root}_${counter}`;
+};
+
+export const getInspirationFiltersUsingFormField = (filtersConfig, fieldId) => {
+  const normalized = normalizeInspirationFiltersConfig(filtersConfig);
+  return normalized.fields.filter((filter) => {
+    const sourceId = typeof filter.sourceQuestionId === 'string' && filter.sourceQuestionId.trim().length > 0
+      ? filter.sourceQuestionId.trim()
+      : filter.id;
+    return sourceId === fieldId;
+  });
+};
+
+// La valeur d'une option est ce que les projets enregistrent et ce que les filtres comparent :
+// une option existante la garde quoi qu'il arrive à son libellé, une nouvelle la tire de son
+// libellé (unique dans la liste). Les lignes sans aucun libellé sont abandonnées.
+export const finalizeInspirationFormFieldOptions = (options) => {
+  const usedValues = new Set();
+  const result = [];
+
+  (Array.isArray(options) ? options : []).forEach((option) => {
+    const label = sanitizeLocalizedValue(option?.label, null);
+    if (!label) {
+      return;
+    }
+
+    let value = sanitizeOptionValue(option?.value);
+    if (!value) {
+      const base = typeof label === 'string'
+        ? label
+        : label.fr || label.en || Object.values(label)[0];
+      value = base;
+      let counter = 2;
+      while (usedValues.has(value)) {
+        value = `${base} (${counter})`;
+        counter += 1;
+      }
+    }
+
+    if (usedValues.has(value)) {
+      return;
+    }
+
+    usedValues.add(value);
+    result.push({ value, label });
+  });
+
+  return result;
+};
