@@ -7,12 +7,6 @@ import {
   ACTIVITY_SCOPE_LABELS,
   ACTIVITY_SCOPE_VALUES
 } from './activityScope.js';
-import {
-  PROJECT_STAGE_ANSWER_KEY,
-  PROJECT_STAGE_LABELS,
-  PROJECT_STAGE_CONDITION_LABEL,
-  PROJECT_STAGE_VALUES
-} from './projectStage.js';
 
 const EXTRA_CHECKBOX_SUFFIX = '__extra_checkbox';
 
@@ -95,13 +89,6 @@ export const getConditionQuestionEntries = (questions = [], language = DEFAULT_L
       question: `${questionLabel} · Case à cocher : ${label}`,
       type: 'boolean'
     });
-  });
-
-  entries.push({
-    id: PROJECT_STAGE_ANSWER_KEY,
-    question: PROJECT_STAGE_CONDITION_LABEL,
-    type: 'choice',
-    options: PROJECT_STAGE_VALUES.map((value) => ({ value, label: PROJECT_STAGE_LABELS[value] }))
   });
 
   entries.push({

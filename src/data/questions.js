@@ -454,10 +454,10 @@ export const initialQuestions = [
     "options": [
       {
         "label": {
-          "en": "Entreprise Demo project",
-          "fr": "Projet Entreprise Demo",
-          "de": "Projekt Entreprise Demo",
-          "es": "Proyecto de Entreprise Demo"
+          "en": "LFB project",
+          "fr": "Projet LFB",
+          "de": "Projekt LFB",
+          "es": "Proyecto de LFB"
         },
         "visibility": "always",
         "subType": null,
@@ -465,14 +465,14 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "projet_du_entreprise_demo"
+        "value": "projet_du_lfb"
       },
       {
         "label": {
-          "en": "Project co-developed by Entreprise Demo and a partner",
-          "fr": "Projet co-construit entre Entreprise Demo et un partenaire",
-          "de": "Gemeinsam von Entreprise Demo und einem Partner entwickeltes Projekt",
-          "es": "Proyecto co-construido entre Entreprise Demo y un socio"
+          "en": "Project co-developed by LFB and a partner",
+          "fr": "Projet co-construit entre LFB et un partenaire",
+          "de": "Gemeinsam von LFB und einem Partner entwickeltes Projekt",
+          "es": "Proyecto co-construido entre LFB y un socio"
         },
         "visibility": "always",
         "subType": null,
@@ -480,7 +480,7 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+        "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
       },
       {
         "label": {
@@ -499,10 +499,10 @@ export const initialQuestions = [
       },
       {
         "label": {
-          "en": "Third-party project supported by Entreprise Demo",
-          "fr": "Projet d’un tiers soutenu par Entreprise Demo",
-          "de": "Projekt eines Dritten, das von Entreprise Demo unterstützt wird",
-          "es": "Proyecto de un tercero apoyado por Entreprise Demo"
+          "en": "Third-party project supported by LFB",
+          "fr": "Projet d’un tiers soutenu par LFB",
+          "de": "Projekt eines Dritten, das von LFB unterstützt wird",
+          "es": "Proyecto de un tercero apoyado por LFB"
         },
         "visibility": "always",
         "subType": null,
@@ -510,7 +510,7 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "projet_d_un_tiers_soutenu_par_le_entreprise_demo"
+        "value": "projet_d_un_tiers_soutenu_par_le_lfb"
       },
       {
         "label": {
@@ -702,7 +702,7 @@ export const initialQuestions = [
       }
     ],
     "required": true,
-    "requiredFromStage": "design",
+    "requiredFromStage": "pre_launch",
     "conditions": [
       {
         "question": "ProjectType",
@@ -902,12 +902,12 @@ export const initialQuestions = [
       }
     ],
     "required": true,
-    "requiredFromStage": "design",
+    "requiredFromStage": "pre_launch",
     "conditions": [
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_d_un_tiers_soutenu_par_le_entreprise_demo"
+        "value": "projet_d_un_tiers_soutenu_par_le_lfb"
       }
     ],
     "conditionLogic": "all",
@@ -918,7 +918,7 @@ export const initialQuestions = [
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_d_un_tiers_soutenu_par_le_entreprise_demo"
+            "value": "projet_d_un_tiers_soutenu_par_le_lfb"
           }
         ]
       }
@@ -1077,10 +1077,10 @@ export const initialQuestions = [
       },
       {
         "label": {
-          "en": "Entreprise Demo employees",
-          "fr": "Collaborateurs Entreprise Demo",
-          "de": "Mitarbeitende Entreprise Demo",
-          "es": "Empleados de Entreprise Demo"
+          "en": "LFB employees",
+          "fr": "Collaborateurs LFB",
+          "de": "Mitarbeitende LFB",
+          "es": "Empleados de LFB"
         },
         "visibility": "conditional",
         "subType": null,
@@ -1105,7 +1105,7 @@ export const initialQuestions = [
           }
         ],
         "conditionLogic": "all",
-        "value": "collaborateurs_du_entreprise_demo"
+        "value": "collaborateurs_du_lfb"
       }
     ],
     "required": true,
@@ -1113,12 +1113,12 @@ export const initialQuestions = [
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_du_entreprise_demo"
+        "value": "projet_du_lfb"
       },
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+        "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
       }
     ],
     "conditionLogic": "any",
@@ -1143,10 +1143,10 @@ export const initialQuestions = [
           "es": "Seleccione todas las personas a las que se dirige su proyecto"
         },
         {
-          "en": "Only select \"Entreprise Demo employees\" if the project is aimed at Entreprise Demo employees (e.g. an intranet site)",
-          "fr": "Ne sélectionnez \"Collaborateurs Entreprise Demo\" que si le projet s’adresse aux collaborateurs Entreprise Demo (ex : un site intranet)",
-          "de": "Wählen Sie „Mitarbeitende Entreprise Demo\" nur aus, wenn sich das Projekt an Entreprise Demo-Mitarbeitende richtet (z. B. eine Intranetseite)",
-          "es": "Seleccione «Empleados de Entreprise Demo» únicamente si el proyecto se dirige a los empleados de Entreprise Demo (por ejemplo, un sitio de intranet)"
+          "en": "Only select \"LFB employees\" if the project is aimed at LFB employees (e.g. an intranet site)",
+          "fr": "Ne sélectionnez \"Collaborateurs LFB\" que si le projet s’adresse aux collaborateurs LFB (ex : un site intranet)",
+          "de": "Wählen Sie „Mitarbeitende LFB\" nur aus, wenn sich das Projekt an LFB-Mitarbeitende richtet (z. B. eine Intranetseite)",
+          "es": "Seleccione «Empleados de LFB» únicamente si el proyecto se dirige a los empleados de LFB (por ejemplo, un sitio de intranet)"
         }
       ]
     },
@@ -1164,12 +1164,12 @@ export const initialQuestions = [
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_entreprise_demo"
+            "value": "projet_du_lfb"
           },
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
           }
         ]
       }
@@ -1347,7 +1347,7 @@ export const initialQuestions = [
       }
     ],
     "required": true,
-    "requiredFromStage": "design",
+    "requiredFromStage": "pre_launch",
     "conditions": [
       {
         "question": "teamLeadTeam",
@@ -1640,17 +1640,17 @@ export const initialQuestions = [
       }
     ],
     "required": true,
-    "requiredFromStage": "design",
+    "requiredFromStage": "pre_launch",
     "conditions": [
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_du_entreprise_demo"
+        "value": "projet_du_lfb"
       },
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+        "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
       }
     ],
     "conditionLogic": "any",
@@ -1683,12 +1683,12 @@ export const initialQuestions = [
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_entreprise_demo"
+            "value": "projet_du_lfb"
           },
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
           }
         ]
       }
@@ -1762,12 +1762,12 @@ export const initialQuestions = [
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_du_entreprise_demo"
+        "value": "projet_du_lfb"
       },
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+        "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
       }
     ],
     "conditionLogic": "any",
@@ -1866,12 +1866,12 @@ export const initialQuestions = [
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_entreprise_demo"
+            "value": "projet_du_lfb"
           },
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
           }
         ]
       }
@@ -1995,12 +1995,12 @@ export const initialQuestions = [
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_du_entreprise_demo"
+        "value": "projet_du_lfb"
       },
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+        "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
       }
     ],
     "conditionLogic": "any",
@@ -2099,12 +2099,12 @@ export const initialQuestions = [
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_entreprise_demo"
+            "value": "projet_du_lfb"
           },
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
           }
         ]
       }
@@ -2379,17 +2379,17 @@ export const initialQuestions = [
       }
     ],
     "required": true,
-    "requiredFromStage": "design",
+    "requiredFromStage": "pre_launch",
     "conditions": [
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_du_entreprise_demo"
+        "value": "projet_du_lfb"
       },
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+        "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
       }
     ],
     "conditionLogic": "any",
@@ -2400,12 +2400,12 @@ export const initialQuestions = [
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_entreprise_demo"
+            "value": "projet_du_lfb"
           },
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
           }
         ]
       }
@@ -2507,10 +2507,10 @@ export const initialQuestions = [
           },
           {
             "label": {
-              "en": "In the presence of an Entreprise Demo employee",
-              "fr": "En présence d’un collaborateur Entreprise Demo",
-              "de": "In Anwesenheit eines Entreprise Demo-Mitarbeiters",
-              "es": "En presencia de un empleado de Entreprise Demo"
+              "en": "In the presence of an LFB employee",
+              "fr": "En présence d’un collaborateur LFB",
+              "de": "In Anwesenheit eines LFB-Mitarbeiters",
+              "es": "En presencia de un empleado de LFB"
             },
             "visibility": "always",
             "subType": null,
@@ -2518,7 +2518,7 @@ export const initialQuestions = [
             "conditionGroups": [],
             "conditions": [],
             "conditionLogic": "all",
-            "value": "en_presence_d_un_collaborateur_du_entreprise_demo"
+            "value": "en_presence_d_un_collaborateur_du_lfb"
           }
         ],
         "conditionGroups": [],
@@ -2543,7 +2543,7 @@ export const initialQuestions = [
       }
     ],
     "required": true,
-    "requiredFromStage": "design",
+    "requiredFromStage": "pre_launch",
     "conditions": [
       {
         "question": "q19",
@@ -2771,12 +2771,12 @@ export const initialQuestions = [
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_du_entreprise_demo"
+        "value": "projet_du_lfb"
       },
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+        "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
       },
       {
         "question": "q18_copy",
@@ -2797,12 +2797,12 @@ export const initialQuestions = [
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_entreprise_demo"
+            "value": "projet_du_lfb"
           },
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
           },
           {
             "question": "q18_copy",
@@ -2949,7 +2949,7 @@ export const initialQuestions = [
       }
     ],
     "required": true,
-    "requiredFromStage": "design",
+    "requiredFromStage": "pre_launch",
     "conditions": [],
     "conditionLogic": "all",
     "conditionGroups": [
@@ -3141,7 +3141,7 @@ export const initialQuestions = [
       }
     ],
     "required": true,
-    "requiredFromStage": "design",
+    "requiredFromStage": "pre_launch",
     "conditions": [],
     "guidance": {
       "objective": {
@@ -3208,12 +3208,12 @@ export const initialQuestions = [
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_entreprise_demo"
+            "value": "projet_du_lfb"
           },
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
           }
         ]
       }
@@ -3285,20 +3285,20 @@ export const initialQuestions = [
     "options": [
       {
         "label": {
-          "en": "Via Entreprise Demo's digital channels",
-          "fr": "Via les canaux digitaux Entreprise Demo",
-          "de": "Über die digitalen Kanäle Entreprise Demo",
-          "es": "A través de los canales digitales de Entreprise Demo"
+          "en": "Via LFB's digital channels",
+          "fr": "Via les canaux digitaux LFB",
+          "de": "Über die digitalen Kanäle LFB",
+          "es": "A través de los canales digitales de LFB"
         },
         "visibility": "always",
         "subType": "multi_choice",
         "subOptions": [
           {
             "label": {
-              "en": "Entreprise Demo corporate website",
-              "fr": "Site internet corporate Entreprise Demo",
-              "de": "Unternehmenswebsite Entreprise Demo",
-              "es": "Sitio web corporativo de Entreprise Demo"
+              "en": "LFB corporate website",
+              "fr": "Site internet corporate LFB",
+              "de": "Unternehmenswebsite LFB",
+              "es": "Sitio web corporativo de LFB"
             },
             "visibility": "always",
             "subType": null,
@@ -3306,14 +3306,14 @@ export const initialQuestions = [
             "conditionGroups": [],
             "conditions": [],
             "conditionLogic": "all",
-            "value": "site_internet_corporate_du_entreprise_demo"
+            "value": "site_internet_corporate_du_lfb"
           },
           {
             "label": {
-              "en": "Entreprise Demo subsidiaries' websites",
-              "fr": "Site internet des filiales de Entreprise Demo",
-              "de": "Websites Entreprise Demo-Tochtergesellschaften",
-              "es": "Sitios web de las filiales de Entreprise Demo"
+              "en": "LFB subsidiaries' websites",
+              "fr": "Site internet des filiales de LFB",
+              "de": "Websites LFB-Tochtergesellschaften",
+              "es": "Sitios web de las filiales de LFB"
             },
             "visibility": "always",
             "subType": null,
@@ -3321,14 +3321,14 @@ export const initialQuestions = [
             "conditionGroups": [],
             "conditions": [],
             "conditionLogic": "all",
-            "value": "site_internet_des_filiales_du_entreprise_demo"
+            "value": "site_internet_des_filiales_du_lfb"
           },
           {
             "label": {
-              "en": "Entreprise Demo social media",
-              "fr": "Réseaux sociaux Entreprise Demo",
-              "de": "Soziale Medien Entreprise Demo",
-              "es": "Redes sociales de Entreprise Demo"
+              "en": "LFB social media",
+              "fr": "Réseaux sociaux LFB",
+              "de": "Soziale Medien LFB",
+              "es": "Redes sociales de LFB"
             },
             "visibility": "always",
             "subType": null,
@@ -3336,7 +3336,7 @@ export const initialQuestions = [
             "conditionGroups": [],
             "conditions": [],
             "conditionLogic": "all",
-            "value": "reseaux_sociaux_du_entreprise_demo"
+            "value": "reseaux_sociaux_du_lfb"
           },
           {
             "label": {
@@ -3357,14 +3357,14 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "via_les_canaux_digitaux_du_entreprise_demo"
+        "value": "via_les_canaux_digitaux_du_lfb"
       },
       {
         "label": {
-          "en": "Via Entreprise Demo's physical channels",
-          "fr": "Via les canaux physiques Entreprise Demo",
-          "de": "Über die physischen Kanäle Entreprise Demo",
-          "es": "A través de los canales físicos de Entreprise Demo"
+          "en": "Via LFB's physical channels",
+          "fr": "Via les canaux physiques LFB",
+          "de": "Über die physischen Kanäle LFB",
+          "es": "A través de los canales físicos de LFB"
         },
         "visibility": "always",
         "subType": "multi_choice",
@@ -3433,7 +3433,7 @@ export const initialQuestions = [
         "conditionGroups": [],
         "conditions": [],
         "conditionLogic": "all",
-        "value": "via_les_canaux_physiques_du_entreprise_demo"
+        "value": "via_les_canaux_physiques_du_lfb"
       },
       {
         "label": {
@@ -3499,7 +3499,7 @@ export const initialQuestions = [
       }
     ],
     "required": true,
-    "requiredFromStage": "design",
+    "requiredFromStage": "pre_launch",
     "conditions": [
       {
         "question": "ProjectType",
@@ -3761,12 +3761,12 @@ export const initialQuestions = [
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_du_entreprise_demo"
+        "value": "projet_du_lfb"
       },
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+        "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
       },
       {
         "question": "ProjectType",
@@ -3782,12 +3782,12 @@ export const initialQuestions = [
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_entreprise_demo"
+            "value": "projet_du_lfb"
           },
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
           },
           {
             "question": "ProjectType",
@@ -3929,7 +3929,7 @@ export const initialQuestions = [
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_d_un_tiers_soutenu_par_le_entreprise_demo"
+        "value": "projet_d_un_tiers_soutenu_par_le_lfb"
       },
       {
         "question": "ProjectType",
@@ -3945,7 +3945,7 @@ export const initialQuestions = [
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_d_un_tiers_soutenu_par_le_entreprise_demo"
+            "value": "projet_d_un_tiers_soutenu_par_le_lfb"
           },
           {
             "question": "ProjectType",
@@ -4129,12 +4129,12 @@ export const initialQuestions = [
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_entreprise_demo"
+            "value": "projet_du_lfb"
           },
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
           }
         ]
       }
@@ -4455,12 +4455,12 @@ export const initialQuestions = [
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_du_entreprise_demo"
+        "value": "projet_du_lfb"
       },
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+        "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
       }
     ],
     "conditionLogic": "any",
@@ -4471,12 +4471,12 @@ export const initialQuestions = [
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_entreprise_demo"
+            "value": "projet_du_lfb"
           },
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
           }
         ]
       }
@@ -4552,17 +4552,17 @@ export const initialQuestions = [
     },
     "options": [],
     "required": true,
-    "requiredFromStage": "design",
+    "requiredFromStage": "pre_launch",
     "conditions": [
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_du_entreprise_demo"
+        "value": "projet_du_lfb"
       },
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+        "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
       }
     ],
     "conditionLogic": "any",
@@ -4661,12 +4661,12 @@ export const initialQuestions = [
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_entreprise_demo"
+            "value": "projet_du_lfb"
           },
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
           }
         ]
       }
@@ -4780,10 +4780,10 @@ export const initialQuestions = [
     "id": "innovationProcess",
     "type": "long_text",
     "question": {
-      "en": "What are Entreprise Demo's objectives behind this project?",
-      "fr": "Quels sont les objectifs Entreprise Demo derrière ce projet ?",
-      "de": "Welche Ziele verfolgt Entreprise Demo mit diesem Projekt?",
-      "es": "¿Cuáles son los objetivos de Entreprise Demo detrás de este proyecto?"
+      "en": "What are LFB's objectives behind this project?",
+      "fr": "Quels sont les objectifs LFB derrière ce projet ?",
+      "de": "Welche Ziele verfolgt LFB mit diesem Projekt?",
+      "es": "¿Cuáles son los objetivos de LFB detrás de este proyecto?"
     },
     "options": [],
     "required": false,
@@ -4797,10 +4797,10 @@ export const initialQuestions = [
         "es": "Identificar el interés de negocio del proyecto"
       },
       "details": {
-        "en": "This answer lets you highlight the value the project generates for Entreprise Demo",
-        "fr": "Cette réponse vous permet de mettre en avant la valeur générée du projet pour Entreprise Demo",
-        "de": "Diese Antwort ermöglicht es Ihnen, den vom Projekt für Entreprise Demo generierten Mehrwert hervorzuheben",
-        "es": "Esta respuesta le permite destacar el valor que genera el proyecto para Entreprise Demo"
+        "en": "This answer lets you highlight the value the project generates for LFB",
+        "fr": "Cette réponse vous permet de mettre en avant la valeur générée du projet pour LFB",
+        "de": "Diese Antwort ermöglicht es Ihnen, den vom Projekt für LFB generierten Mehrwert hervorzuheben",
+        "es": "Esta respuesta le permite destacar el valor que genera el proyecto para LFB"
       },
       "tips": [
         {
@@ -4888,12 +4888,12 @@ export const initialQuestions = [
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_du_entreprise_demo"
+        "value": "projet_du_lfb"
       },
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+        "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
       },
       {
         "question": "q18_copy",
@@ -4997,12 +4997,12 @@ export const initialQuestions = [
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_entreprise_demo"
+            "value": "projet_du_lfb"
           },
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
           },
           {
             "question": "q18_copy",
@@ -5060,12 +5060,12 @@ export const initialQuestions = [
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_du_entreprise_demo"
+        "value": "projet_du_lfb"
       },
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+        "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
       }
     ],
     "conditionLogic": "all",
@@ -5076,12 +5076,12 @@ export const initialQuestions = [
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_entreprise_demo"
+            "value": "projet_du_lfb"
           },
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
           }
         ]
       }
@@ -5163,7 +5163,7 @@ export const initialQuestions = [
     },
     "options": [],
     "required": true,
-    "requiredFromStage": "design",
+    "requiredFromStage": "pre_launch",
     "conditions": [
       {
         "question": "ProjectType__extra_checkbox",
@@ -5471,12 +5471,12 @@ export const initialQuestions = [
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_du_entreprise_demo"
+        "value": "projet_du_lfb"
       },
       {
         "question": "ProjectType",
         "operator": "equals",
-        "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+        "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
       }
     ],
     "conditionLogic": "any",
@@ -5575,12 +5575,12 @@ export const initialQuestions = [
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_du_entreprise_demo"
+            "value": "projet_du_lfb"
           },
           {
             "question": "ProjectType",
             "operator": "equals",
-            "value": "projet_co_construit_entre_le_entreprise_demo_et_un_partenaire"
+            "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
           }
         ]
       }

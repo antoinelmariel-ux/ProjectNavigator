@@ -14,7 +14,8 @@ export const sharepointConfig = {
     userProfiles: 'CN_UserProfiles',
     rules: 'CN_Rules',
     teams: 'CN_Teams',
-    sampleProjects: 'CN_SampleProjects'
+    sampleProjects: 'CN_SampleProjects',
+    faq: 'CN_Faq'
   },
   libraries: {
     app: 'CN-App',
@@ -101,4 +102,20 @@ export const isSharePointMode = () => {
   }
   const { protocol, hostname } = window.location;
   return protocol === 'https:' && /\.sharepoint\.com$/i.test(hostname || '');
+};
+
+export const WEBVIEW_ENV_PARAM = 'env';
+export const WEBVIEW_ENV_VALUE = 'WebView';
+
+export const withWebViewEnv = (href) => {
+  if (typeof href !== 'string' || !href || !isSharePointMode()) {
+    return href;
+  }
+  try {
+    const url = new URL(href);
+    url.searchParams.set(WEBVIEW_ENV_PARAM, WEBVIEW_ENV_VALUE);
+    return url.toString();
+  } catch {
+    return href;
+  }
 };

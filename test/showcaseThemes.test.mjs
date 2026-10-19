@@ -46,7 +46,7 @@ test('une sous-option environnement active le thème correspondant', () => {
   });
 });
 
-test('seuls des thèmes Entreprise Demo sont livrés par défaut', () => {
+test('seuls des thèmes LFB sont livrés par défaut', () => {
   assert.deepEqual(
     initialShowcaseThemes.map((theme) => theme.id),
     [
@@ -93,7 +93,7 @@ test('une option sans thème dédié ne déclenche aucune activation', () => {
 });
 
 test('les sous-options ne débloquent pas un type de projet exclu de la vitrine', () => {
-  assert.equal(isShowcaseAccessBlockedByProjectType({ ProjectType: 'projet_du_entreprise_demo' }), false);
+  assert.equal(isShowcaseAccessBlockedByProjectType({ ProjectType: 'projet_du_lfb' }), false);
   assert.equal(
     isShowcaseAccessBlockedByProjectType({ ProjectType: { value: 'don_bourse_appel_a_projets' } }),
     true

@@ -1,6 +1,4 @@
-import { PROJECT_STAGE_ANSWER_KEY, PROJECT_STAGE_LABELS, normalizeProjectStage } from './projectStage.js';
 import { formatAnswer } from './questions.js';
-import { resolveLocalizedText } from './localizedContent.js';
 import { DEFAULT_LANGUAGE } from '../i18n/languages.js';
 
 // Types dont le contenu ne se compare pas à une valeur : aucune règle ne les lit, donc aucune
@@ -29,10 +27,6 @@ const formatValue = (question, value, language) => {
     return '';
   }
 
-  if (question?.id === PROJECT_STAGE_ANSWER_KEY) {
-    return resolveLocalizedText(PROJECT_STAGE_LABELS[normalizeProjectStage(value)], language);
-  }
-
   return formatAnswer(question, value, language);
 };
 
@@ -43,13 +37,7 @@ export const diffAnswers = (previousAnswers, currentAnswers, questions = [], lan
   const previous = previousAnswers && typeof previousAnswers === 'object' ? previousAnswers : {};
   const current = currentAnswers && typeof currentAnswers === 'object' ? currentAnswers : {};
 
-  const stagePseudoQuestion = {
-    id: PROJECT_STAGE_ANSWER_KEY,
-    type: 'choice',
-    question: { en: 'Project stage', fr: 'Stade du projet', de: 'Projektphase', es: 'Fase del proyecto' }
-  };
-
-  const catalog = [...(Array.isArray(questions) ? questions : []), stagePseudoQuestion];
+  const catalog = Array.isArray(questions) ? questions : [];
 
   return catalog.reduce((acc, question) => {
     if (!question?.id) {
@@ -66,7 +54,7 @@ export const diffAnswers = (previousAnswers, currentAnswers, questions = [], lan
     acc.push({
       questionId: question.id,
       question,
-      narrative: question.id !== PROJECT_STAGE_ANSWER_KEY && isNarrativeQuestion(question),
+      narrative: isNarrativeQuestion(question),
       previousValue: before,
       currentValue: after,
       previousLabel: formatValue(question, before, language),

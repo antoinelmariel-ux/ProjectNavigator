@@ -1,7 +1,6 @@
 import { initialQuestions } from '../data/questions.js';
 import { shouldShowQuestion } from './questions.js';
-import { isAnswerProvided, isQuestionMandatoryAtStage } from './mandatoryQuestions.js';
-import { getProjectStage } from './projectStage.js';
+import { isAnswerProvided, isQuestionMandatory } from './mandatoryQuestions.js';
 
 export const normalizeProjectEntry = (
   project = {},
@@ -24,13 +23,7 @@ export const normalizeProjectEntry = (
 
     return shouldShowQuestion(question, answers);
   });
-  // La progression affichée est celle du stade déclaré : compter des questions qui ne seront
-  // obligatoires qu'avant déploiement afficherait un projet de cadrage comme perpétuellement
-  // incomplet, ce qui est exactement le découragement qu'on veut supprimer.
-  const projectStage = getProjectStage(answers);
-  const mandatoryVisibleQuestions = visibleQuestions.filter(
-    question => isQuestionMandatoryAtStage(question, projectStage)
-  );
+  const mandatoryVisibleQuestions = visibleQuestions.filter(isQuestionMandatory);
   const derivedTotalQuestions = mandatoryVisibleQuestions.length;
   const derivedAnsweredQuestions = mandatoryVisibleQuestions.length > 0
     ? mandatoryVisibleQuestions.filter(question => {

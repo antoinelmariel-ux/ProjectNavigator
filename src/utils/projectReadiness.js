@@ -9,9 +9,9 @@ export const READINESS_ORIENTATION = 'orientation';
 export const READINESS_ADVICE = 'advice';
 export const READINESS_VALIDATION = 'validation';
 
-// Chaque palier est exactement « toutes les questions obligatoires jusqu'à ce stade sont
-// renseignées » : aucune donnée supplémentaire à saisir côté back-office, c'est le même
-// `requiredFromStage` qui module l'obligatoire dans le questionnaire.
+// Chaque palier est exactement « toutes les questions exigibles à ce palier sont renseignées » :
+// aucune donnée supplémentaire à saisir côté back-office, c'est le `requiredFromStage` de chaque
+// question qui la range dans le socle (orientation) ou non.
 //
 // L'avis technique et la validation exigent **le même socle de réponses** : toutes les
 // questions obligatoires déclenchées par le projet. Un expert ne se prononce pas sur le fond
@@ -24,6 +24,17 @@ export const READINESS_LEVELS = [
   { id: READINESS_ADVICE, stage: PROJECT_STAGE_PRE_LAUNCH, rejectUnknown: false },
   { id: READINESS_VALIDATION, stage: PROJECT_STAGE_PRE_LAUNCH, rejectUnknown: true }
 ];
+
+// La porte « avis préliminaire » s'ouvre au palier d'orientation, quel que soit le stade déclaré :
+// le panneau active le bouton sur ce palier, et la soumission doit vérifier exactement la même
+// liste, sinon un palier affiché comme atteint aboutit à un refus d'envoi.
+export const getMissingForPreliminaryRequest = (questions = [], answers = {}) => {
+  const orientation = READINESS_LEVELS.find((level) => level.id === READINESS_ORIENTATION);
+  return getMissingMandatoryQuestions(questions, answers, {
+    stage: orientation.stage,
+    rejectUnknown: orientation.rejectUnknown
+  });
+};
 
 export const getProjectReadiness = (questions = [], answers = {}) => {
   const levels = READINESS_LEVELS.map((level) => {

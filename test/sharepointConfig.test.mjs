@@ -8,7 +8,8 @@ import {
   configureSharePointContext,
   isSharePointMode,
   resetSharePointContextConfig,
-  sharepointConfig
+  sharepointConfig,
+  withWebViewEnv
 } from '../src/config/sharepointConfig.js';
 
 const withLocation = (location, extra, fn) => {
@@ -22,27 +23,27 @@ const withLocation = (location, extra, fn) => {
 };
 
 const spo = (pathname) => ({
-  origin: 'https://entreprisedemo1.sharepoint.com',
+  origin: 'https://lfb1.sharepoint.com',
   pathname,
   protocol: 'https:',
-  hostname: 'entreprisedemo1.sharepoint.com'
+  hostname: 'lfb1.sharepoint.com'
 });
 
 test('getWebUrl : remonte du dossier de l’app jusqu’au web SharePoint', () => {
   withLocation(spo('/sites/ProjectNavigator_DEV/CN-App/index.aspx'), {}, () => {
-    assert.equal(getWebUrl(), 'https://entreprisedemo1.sharepoint.com/sites/ProjectNavigator_DEV');
+    assert.equal(getWebUrl(), 'https://lfb1.sharepoint.com/sites/ProjectNavigator_DEV');
   });
 });
 
 test('getWebUrl : déduit le site depuis n’importe quelle page du site', () => {
   withLocation(spo('/sites/ProjectNavigator_DEV/SitePages/Accueil.aspx'), {}, () => {
-    assert.equal(getWebUrl(), 'https://entreprisedemo1.sharepoint.com/sites/ProjectNavigator_DEV');
+    assert.equal(getWebUrl(), 'https://lfb1.sharepoint.com/sites/ProjectNavigator_DEV');
   });
 });
 
 test('getWebUrl : la surcharge __CN_WEB_URL__ gagne et perd son slash final', () => {
-  withLocation(spo('/sites/Autre/CN-App/index.aspx'), { __CN_WEB_URL__: 'https://entreprisedemo1.sharepoint.com/sites/Force/' }, () => {
-    assert.equal(getWebUrl(), 'https://entreprisedemo1.sharepoint.com/sites/Force');
+  withLocation(spo('/sites/Autre/CN-App/index.aspx'), { __CN_WEB_URL__: 'https://lfb1.sharepoint.com/sites/Force/' }, () => {
+    assert.equal(getWebUrl(), 'https://lfb1.sharepoint.com/sites/Force');
   });
 });
 
@@ -64,7 +65,7 @@ test('getSiteRelativeUrl : chemin relatif au serveur', () => {
 
 test('getOrigin : protocole + hôte, sans le chemin du site', () => {
   withLocation(spo('/sites/ProjectNavigator_DEV/CN-App/index.aspx'), {}, () => {
-    assert.equal(getOrigin(), 'https://entreprisedemo1.sharepoint.com');
+    assert.equal(getOrigin(), 'https://lfb1.sharepoint.com');
   });
 });
 
@@ -114,8 +115,8 @@ test('isSharePointMode : vrai seulement en https sur *.sharepoint.com', () => {
   );
 });
 
-test('sharepointConfig : les 12 listes et 3 bibliothèques attendues', () => {
-  assert.equal(Object.keys(sharepointConfig.lists).length, 12);
+test('sharepointConfig : les 13 listes et 3 bibliothèques attendues', () => {
+  assert.equal(Object.keys(sharepointConfig.lists).length, 13);
   assert.equal(sharepointConfig.lists.projects, 'CN_Projects');
   assert.equal(sharepointConfig.lists.notificationsQueue, 'CN_NotificationsQueue');
   assert.equal(sharepointConfig.lists.siteAccessRequests, 'CN_SiteAccessRequests');
@@ -123,6 +124,7 @@ test('sharepointConfig : les 12 listes et 3 bibliothèques attendues', () => {
   assert.equal(sharepointConfig.lists.rules, 'CN_Rules');
   assert.equal(sharepointConfig.lists.teams, 'CN_Teams');
   assert.equal(sharepointConfig.lists.sampleProjects, 'CN_SampleProjects');
+  assert.equal(sharepointConfig.lists.faq, 'CN_Faq');
   assert.deepEqual(Object.values(sharepointConfig.libraries), [
     'CN-App',
     'CN-Config',
@@ -131,12 +133,12 @@ test('sharepointConfig : les 12 listes et 3 bibliothèques attendues', () => {
 });
 
 test('contexte SPFx injecté : prime sur l’URL de la page et sur __CN_WEB_URL__', () => {
-  configureSharePointContext({ webAbsoluteUrl: 'https://entreprisedemo1.sharepoint.com/sites/Injecte/' });
+  configureSharePointContext({ webAbsoluteUrl: 'https://lfb1.sharepoint.com/sites/Injecte/' });
   try {
     withLocation(spo('/sites/Autre/SitePages/App.aspx'), { __CN_WEB_URL__: 'https://x.sharepoint.com/sites/Force' }, () => {
-      assert.equal(getWebUrl(), 'https://entreprisedemo1.sharepoint.com/sites/Injecte');
+      assert.equal(getWebUrl(), 'https://lfb1.sharepoint.com/sites/Injecte');
       assert.equal(getSiteRelativeUrl(), '/sites/Injecte');
-      assert.equal(getOrigin(), 'https://entreprisedemo1.sharepoint.com');
+      assert.equal(getOrigin(), 'https://lfb1.sharepoint.com');
     });
   } finally {
     resetSharePointContextConfig();
@@ -145,7 +147,7 @@ test('contexte SPFx injecté : prime sur l’URL de la page et sur __CN_WEB_URL_
 
 test('contexte SPFx injecté : mode SharePoint quel que soit l’hôte, jusqu’au reset', () => {
   const localhost = { origin: 'http://localhost:4321', pathname: '/', protocol: 'http:', hostname: 'localhost' };
-  configureSharePointContext({ webAbsoluteUrl: 'https://entreprisedemo1.sharepoint.com/sites/Injecte' });
+  configureSharePointContext({ webAbsoluteUrl: 'https://lfb1.sharepoint.com/sites/Injecte' });
   try {
     withLocation(localhost, {}, () => {
       assert.equal(isSharePointMode(), true);
@@ -161,6 +163,25 @@ test('contexte SPFx injecté : mode SharePoint quel que soit l’hôte, jusqu’
 test('contexte SPFx sans URL : retombe sur la déduction depuis la page', () => {
   configureSharePointContext({});
   withLocation(spo('/sites/ProjectNavigator_DEV/SitePages/Accueil.aspx'), {}, () => {
-    assert.equal(getWebUrl(), 'https://entreprisedemo1.sharepoint.com/sites/ProjectNavigator_DEV');
+    assert.equal(getWebUrl(), 'https://lfb1.sharepoint.com/sites/ProjectNavigator_DEV');
+  });
+});
+
+test('withWebViewEnv force env=WebView en mode SharePoint et préserve le reste', () => {
+  withLocation(spo('/sites/X/SitePages/App.aspx'), {}, () => {
+    assert.equal(
+      withWebViewEnv('https://lfb1.sharepoint.com/sites/X/SitePages/App.aspx?projectId=p1'),
+      'https://lfb1.sharepoint.com/sites/X/SitePages/App.aspx?projectId=p1&env=WebView'
+    );
+    assert.equal(
+      withWebViewEnv('https://lfb1.sharepoint.com/a.aspx?env=Embedded'),
+      'https://lfb1.sharepoint.com/a.aspx?env=WebView'
+    );
+  });
+});
+
+test('withWebViewEnv ne touche pas l’URL hors SharePoint', () => {
+  withLocation({ origin: 'http://localhost', pathname: '/', protocol: 'http:', hostname: 'localhost' }, {}, () => {
+    assert.equal(withWebViewEnv('http://localhost/?a=1'), 'http://localhost/?a=1');
   });
 });

@@ -47,6 +47,10 @@ import { getLocaleTag } from '../i18n/languages.js';
 import { stripRichTextToPlainText } from '../utils/richText.js';
 import { computeProjectValidationStatus } from '../utils/projectValidationStatus.js';
 import { resolveEffectiveTeamComplianceEntry } from '../utils/complianceAutoValidation.js';
+import { selectTeamProjects } from '../utils/reportingHierarchy.js';
+import { getProjectTrashEntry, getRespondedPerimeters, isProjectInOwnerTrash } from '../utils/projectTrash.js';
+import { TeamProjectsPanel } from './TeamProjectsPanel.jsx';
+import { SegmentedTabs } from './SegmentedTabs.jsx';
 
 const formatDate = (isoDate, language, unknownDateLabel) => {
   if (!isoDate) {
@@ -410,6 +414,10 @@ export const HomeScreen = ({
   onStartNewProject,
   onOpenProject,
   onDeleteProject,
+  trashedProjects = [],
+  onRestoreProject,
+  onPermanentlyDeleteProject,
+  canPermanentlyDeleteProject,
   onCancelProjectSubmission,
   submittedProjectNotice = null,
   onDismissSubmittedProjectNotice,
@@ -426,6 +434,9 @@ export const HomeScreen = ({
   questions = [],
   validationCommitteeConfig = null,
   isProjectsLoading = false,
+  reportingHierarchy = null,
+  teamVisibility = null,
+  onRetryReportingHierarchy,
   onPerimeterClaimAction,
   isClaimActionAvailable = true
 }) => {
@@ -516,6 +527,40 @@ export const HomeScreen = ({
     return projects.filter((project) => isOwnedOrSharedProject(project));
   }, [projects, isAdminMode, currentUserEmail, isOwnedOrSharedProject]);
 
+  const ownerTrashProjects = useMemo(() => {
+    if (!Array.isArray(trashedProjects)) {
+      return [];
+    }
+
+    return trashedProjects
+      .filter((project) => isProjectInOwnerTrash(project))
+      .filter((project) => isAdminMode || !currentUserEmail || isOwnedOrSharedProject(project))
+      .sort((a, b) => String(getProjectTrashEntry(b)?.deletedAt || '').localeCompare(String(getProjectTrashEntry(a)?.deletedAt || '')));
+  }, [trashedProjects, isAdminMode, currentUserEmail, isOwnedOrSharedProject]);
+  const [isTrashOpen, setIsTrashOpen] = useState(false);
+  const [trashPurgeTargetId, setTrashPurgeTargetId] = useState(null);
+  const closeTrash = useCallback(() => {
+    setIsTrashOpen(false);
+    setTrashPurgeTargetId(null);
+  }, []);
+
+  const teamProjectEntries = useMemo(
+    () => selectTeamProjects(projects, reportingHierarchy?.people, currentUserEmail, teamVisibility),
+    [projects, reportingHierarchy?.people, currentUserEmail, teamVisibility]
+  );
+  const teamPeopleCount = Array.isArray(reportingHierarchy?.people) ? reportingHierarchy.people.length : 0;
+  // L'onglet n'existe que pour qui a réellement une équipe sous lui : personne d'autre ne doit voir
+  // apparaître une vue vide. Pendant la visite guidée, il disparaît pour que le parcours reste le même.
+  const isTeamViewAvailable = teamPeopleCount > 0 && !tourContext?.isActive;
+  const effectiveHomeView = homeView === 'team' && !isTeamViewAvailable ? 'platform' : homeView;
+  const isPlatformView = effectiveHomeView !== 'inspiration' && effectiveHomeView !== 'team';
+  const isInspirationView = effectiveHomeView === 'inspiration';
+  const isTeamView = effectiveHomeView === 'team';
+  const teamProjectIds = useMemo(
+    () => new Set(teamProjectEntries.map((entry) => entry.project.id)),
+    [teamProjectEntries]
+  );
+
   // Un projet rendu "visible par tous" par un tiers (owner, admin ou comité) n'a rien
   // à faire dans "Vos projets" : ce bloc reste réservé aux projets qu'on possède ou
   // qui nous ont été partagés. Il vit dans son propre bloc, plus bas.
@@ -528,8 +573,10 @@ export const HomeScreen = ({
       project?.status !== 'cancelled'
       && project?.answers?.[PUBLIC_VISIBILITY_KEY] === true
       && !isOwnedOrSharedProject(project)
+      // Déjà rangé sous « Mon équipe » : un projet ne vit qu'à un seul endroit de l'accueil.
+      && !teamProjectIds.has(project.id)
     ));
-  }, [projects, isAdminMode, currentUserEmail, isOwnedOrSharedProject]);
+  }, [projects, isAdminMode, currentUserEmail, isOwnedOrSharedProject, teamProjectIds]);
 
   // Piste 11 : l’argumentaire produit ne s’affiche que tant que l’utilisateur n’a pas
   // de projet en propre. Les projets simplement partagés avec lui ne comptent pas.
@@ -765,7 +812,51 @@ export const HomeScreen = ({
     [complianceTriggeredProjects]
   );
 
-  const displayedComplianceProjects = complianceProjectsView === 'treated'
+  // « Abandonnés » : projets mis à la corbeille (ou retirés de la corbeille par leur porteur) sur
+  // lesquels une équipe ou un comité de cette personne a déjà répondu. Les autres projets
+  // supprimés n'y apparaissent pas : personne n'y a travaillé, ils ne regardent que le porteur.
+  const abandonedComplianceProjects = useMemo(() => {
+    if (!currentUserEmail || !isComplianceActor || !Array.isArray(trashedProjects) || trashedProjects.length === 0) {
+      return [];
+    }
+
+    const myTeams = teams.filter((team) => team?.id && normalizeTeamContacts(team)
+      .some((contact) => normalizeEmail(contact) === currentUserEmail));
+    const contactsByTeamId = myTeams.reduce((acc, team) => {
+      acc[team.id] = normalizeTeamContacts(team);
+      return acc;
+    }, {});
+    const emailsByCommitteeId = currentUserCommittees.reduce((acc, committee) => {
+      acc[committee.id] = Array.isArray(committee.emails) ? committee.emails : [];
+      return acc;
+    }, {});
+
+    return trashedProjects
+      .map((project) => {
+        const responded = getRespondedPerimeters(project, { contactsByTeamId, emailsByCommitteeId });
+        const triggeredPerimeters = [
+          ...myTeams
+            .filter((team) => responded.teamIds.includes(team.id))
+            .map((team) => ({ id: team.id, name: resolveLocalizedText(team.name, language) || team.id, type: 'team' })),
+          ...currentUserCommittees
+            .filter((committee) => responded.committeeIds.includes(committee.id))
+            .map((committee) => ({ id: committee.id, name: committee.name || committee.id, type: 'committee' }))
+        ];
+        return {
+          project,
+          triggeredPerimeters,
+          openPerimeters: [],
+          allValidated: false,
+          deletedAt: getProjectTrashEntry(project)?.deletedAt || ''
+        };
+      })
+      .filter((entry) => entry.triggeredPerimeters.length > 0)
+      .sort((a, b) => String(b.deletedAt).localeCompare(String(a.deletedAt)));
+  }, [currentUserCommittees, currentUserEmail, isComplianceActor, language, teams, trashedProjects]);
+
+  const displayedComplianceProjects = complianceProjectsView === 'abandoned'
+    ? abandonedComplianceProjects
+    : complianceProjectsView === 'treated'
     ? treatedComplianceProjects
     : complianceProjectsView === 'out_of_scope'
       ? outOfScopeCommitteeProjects
@@ -1771,7 +1862,10 @@ export const HomeScreen = ({
     setInspirationFiltersState(buildInitialFiltersState(normalizedInspirationFilters));
   };
 
-  const renderProjectCard = (project) => {
+  const renderProjectCard = (project, { teamEntry = null } = {}) => {
+    // Une carte « Mon équipe » est une carte de consultation : le manager n'est ni porteur ni
+    // co-porteur, aucune action d'écriture n'a donc à y figurer, même pour un administrateur.
+    const isTeamCard = Boolean(teamEntry);
     const risksCount = project.analysis?.risks?.length ?? 0;
     const isDraft = project.status === 'draft';
     const isCancelled = project.status === 'cancelled';
@@ -1798,6 +1892,7 @@ export const HomeScreen = ({
     // « Modifier », pas seulement « Consulter la synthèse ». C'est ce qui rend l'envoi d'une
     // mise à jour atteignable depuis l'accueil.
     const canEditNonDraftProject = !isDraft
+      && !isTeamCard
       && (isAdminMode || isCancelled || (isProjectOpenForEditing(project) && isOwnedOrSharedProject(project)));
     const leadName = getSafeString(project?.answers?.teamLead).trim();
     const leadTeam = resolveChoiceOptionLabel(teamLeadTeamQuestion, project?.answers?.teamLeadTeam);
@@ -1819,6 +1914,7 @@ export const HomeScreen = ({
     const displayProjectName = stripRichTextToPlainText(project.projectName);
     const isPubliclyVisible = project?.answers?.[PUBLIC_VISIBILITY_KEY] === true;
     const canToggleVisibility = !isDraft
+      && !isTeamCard
       && !isCancelled
       && typeof onToggleProjectVisibility === 'function'
       && typeof canSetProjectVisibility === 'function'
@@ -1831,6 +1927,7 @@ export const HomeScreen = ({
     // donc une pastille ici — le tour en cours, et le projet parti sans lui.
     const launchSignal = launchSignals[project.id] || '';
     const canCancelSubmission = project.status === 'submitted'
+      && !isTeamCard
       && typeof onCancelProjectSubmission === 'function'
       && (isAdminMode || isOwnedOrSharedProject(project));
     // Supprimer un projet non-brouillon est réservé au porteur (ou co-porteur) et aux
@@ -1839,20 +1936,57 @@ export const HomeScreen = ({
     // du visiteur courant.
     const canDeleteNonDraftProject = (isCancelled || project.status === 'submitted')
       && (isAdminMode || isOwnedOrSharedProject(project));
-    const canDeleteProject = typeof onDeleteProject === 'function' && (isDraft || canDeleteNonDraftProject);
+    const canDeleteProject = !isTeamCard
+      && typeof onDeleteProject === 'function'
+      && (isDraft || canDeleteNonDraftProject);
+    const teamOwnerName = teamEntry?.owner?.displayName || teamEntry?.owner?.email || '';
+    const teamOwnerInitials = teamOwnerName
+      .split(/[\s.@_-]+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0].toUpperCase())
+      .join('');
 
     return (
       <article
         key={project.id}
         id={`project-card-${project.id}`}
         className={`border rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all ${
-          duplicationNotice?.id === project.id
-            ? 'bg-blue-50 border-blue-200'
-            : 'bg-white border-gray-200'
+          isTeamCard
+            ? 'bg-white border-indigo-200'
+            : duplicationNotice?.id === project.id
+              ? 'bg-blue-50 border-blue-200'
+              : 'bg-white border-gray-200'
         }`}
         role="listitem"
-        aria-label={t('home.projectAriaLabel', { name: displayProjectName || t('home.projectNameFallback') })}
+        aria-label={isTeamCard
+          ? t('home.team.cardAriaLabel', { name: displayProjectName || t('home.projectNameFallback'), owner: teamOwnerName })
+          : t('home.projectAriaLabel', { name: displayProjectName || t('home.projectNameFallback') })}
       >
+        {isTeamCard && (
+          <div className="mb-4 flex items-center gap-3 rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3">
+            <span
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white"
+              aria-hidden="true"
+            >
+              {teamOwnerInitials || '?'}
+            </span>
+            <div className="min-w-0 text-sm">
+              <p className="font-semibold text-indigo-900 truncate">
+                {t('home.team.ownedBy', { name: teamOwnerName })}
+              </p>
+              <p className="text-xs text-indigo-700 truncate">
+                {teamEntry.isDirect || !teamEntry.manager
+                  ? t('home.team.directReport')
+                  : t('home.team.viaManager', { name: teamEntry.manager.displayName || teamEntry.manager.email })}
+              </p>
+            </div>
+            <span className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full border border-indigo-200 bg-white px-2 py-0.5 text-xs font-semibold text-indigo-700">
+              <Eye className="w-3 h-3" aria-hidden="true" />
+              {t('home.team.readOnlyBadge')}
+            </span>
+          </div>
+        )}
         <div className="flex items-start justify-between gap-4">
           <div>
             <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2 flex-wrap">
@@ -1938,7 +2072,7 @@ export const HomeScreen = ({
                 </button>
               )}
             </div>
-            {typeof onDuplicateProject === 'function' && (
+            {!isTeamCard && typeof onDuplicateProject === 'function' && (
               <button
                 type="button"
                 onClick={() => handleDuplicateProjectWithFeedback(project.id)}
@@ -2028,6 +2162,13 @@ export const HomeScreen = ({
           <button
             type="button"
             onClick={() => {
+              // Le brouillon d'un collaborateur se lit dans sa synthèse, jamais dans le
+              // questionnaire : c'est l'écran qui s'ouvre en lecture seule pour un non-porteur.
+              if (isTeamCard) {
+                onOpenProject(project.id, { view: 'synthesis' });
+                return;
+              }
+
               if (isDraft) {
                 onOpenProject(project.id);
                 return;
@@ -2041,12 +2182,12 @@ export const HomeScreen = ({
               onOpenProject(project.id);
             }}
             className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all ${
-              isDraft || canEditNonDraftProject
+              !isTeamCard && (isDraft || canEditNonDraftProject)
                 ? 'hv-button-draft text-white'
                 : 'bg-blue-600 text-white hover:bg-blue-700'
             }`}
           >
-            {isDraft ? (
+            {isDraft && !isTeamCard ? (
               <>
                 <Edit className="w-4 h-4" aria-hidden="true" />
                 <span>{t('home.continueEditing')}</span>
@@ -2207,67 +2348,31 @@ export const HomeScreen = ({
           )}
         </header>
 
-        {isComplianceActor && homeView !== 'inspiration' && (
+        {isComplianceActor && isPlatformView && (
           <section
             aria-labelledby="compliance-projects-heading"
             className="bg-white border border-blue-100 rounded-3xl shadow-xl p-6 sm:p-8 space-y-5"
           >
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h2 id="compliance-projects-heading" className="text-2xl font-bold text-gray-900">
-                  {t('home.triggeredHeading')}
-                </h2>
-                <p className="mt-1 text-sm text-gray-600">{t('home.triggeredSubtitle')}</p>
-              </div>
-              <div className="flex flex-wrap items-center gap-1 rounded-full border border-blue-200 bg-blue-50 p-1" role="group" aria-label={t('home.triggeredFilterAriaLabel')}>
-                <button
-                  type="button"
-                  onClick={() => setComplianceProjectsView('pending')}
-                  className={`rounded-full px-4 py-2 text-xs font-semibold transition-colors ${
-                    complianceProjectsView === 'pending'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-blue-700 hover:bg-blue-100'
-                  }`}
-                >
-                  {t('home.pendingTab', { count: pendingComplianceProjects.length })}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setComplianceProjectsView('teammate')}
-                  className={`rounded-full px-4 py-2 text-xs font-semibold transition-colors ${
-                    complianceProjectsView === 'teammate'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-blue-700 hover:bg-blue-100'
-                  }`}
-                >
-                  {t('home.teammateTab', { count: teammateHandledComplianceProjects.length })}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setComplianceProjectsView('treated')}
-                  className={`rounded-full px-4 py-2 text-xs font-semibold transition-colors ${
-                    complianceProjectsView === 'treated'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-blue-700 hover:bg-blue-100'
-                  }`}
-                >
-                  {t('home.treatedTab', { count: treatedComplianceProjects.length })}
-                </button>
-                {isValidationCommitteeMember && (
-                  <button
-                    type="button"
-                    onClick={() => setComplianceProjectsView('out_of_scope')}
-                    className={`rounded-full px-4 py-2 text-xs font-semibold transition-colors ${
-                      complianceProjectsView === 'out_of_scope'
-                        ? 'bg-blue-600 text-white'
-                        : 'text-blue-700 hover:bg-blue-100'
-                    }`}
-                  >
-                    {t('home.outOfScopeTab', { count: outOfScopeCommitteeProjects.length })}
-                  </button>
-                )}
-              </div>
+            <div>
+              <h2 id="compliance-projects-heading" className="text-2xl font-bold text-gray-900">
+                {t('home.triggeredHeading')}
+              </h2>
+              <p className="mt-1 text-sm text-gray-600">{t('home.triggeredSubtitle')}</p>
             </div>
+            <SegmentedTabs
+              ariaLabel={t('home.triggeredFilterAriaLabel')}
+              value={complianceProjectsView}
+              onChange={setComplianceProjectsView}
+              items={[
+                { id: 'pending', label: t('home.pendingTabLabel'), ariaLabel: t('home.pendingTab', { count: pendingComplianceProjects.length }), count: pendingComplianceProjects.length, urgent: true },
+                { id: 'teammate', label: t('home.teammateTabLabel'), ariaLabel: t('home.teammateTab', { count: teammateHandledComplianceProjects.length }), count: teammateHandledComplianceProjects.length },
+                { id: 'treated', label: t('home.treatedTabLabel'), ariaLabel: t('home.treatedTab', { count: treatedComplianceProjects.length }), count: treatedComplianceProjects.length },
+                ...(isValidationCommitteeMember
+                  ? [{ id: 'out_of_scope', label: t('home.outOfScopeTabLabel'), ariaLabel: t('home.outOfScopeTab', { count: outOfScopeCommitteeProjects.length }), count: outOfScopeCommitteeProjects.length }]
+                  : []),
+                { id: 'abandoned', label: t('home.abandonedTabLabel'), ariaLabel: t('home.abandonedTab', { count: abandonedComplianceProjects.length }), count: abandonedComplianceProjects.length, icon: Trash2 }
+              ]}
+            />
 
             {displayedComplianceProjects.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-blue-200 bg-blue-50/40 p-5 text-sm text-gray-600">
@@ -2277,7 +2382,9 @@ export const HomeScreen = ({
                     ? t('home.noTeammateTriggered')
                     : complianceProjectsView === 'treated'
                       ? t('home.noTreatedTriggered')
-                      : t('home.noOutOfScopeTriggered')}
+                      : complianceProjectsView === 'abandoned'
+                        ? t('home.noAbandonedTriggered')
+                        : t('home.noOutOfScopeTriggered')}
               </div>
             ) : (
               <div className="space-y-3" role="list" aria-label={t('home.triggeredListAriaLabel')}>
@@ -2394,13 +2501,23 @@ export const HomeScreen = ({
                           )}
                         </div>
                         <div className="flex items-center gap-3">
-                          <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${
-                            allValidated
-                              ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                              : 'bg-amber-50 border-amber-200 text-amber-700'
-                          }`}>
-                            {allValidated ? t('home.validated') : t('home.toReview')}
-                          </span>
+                          {complianceProjectsView === 'abandoned' ? (
+                            <span
+                              className="inline-flex items-center gap-1 rounded-full border border-gray-300 bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600"
+                              title={t('home.abandonedBadgeTitle', { date: formatDate(projectEntry.deletedAt, language, t('home.dateUnknown')) })}
+                            >
+                              <Trash2 className="w-3 h-3" aria-hidden="true" />
+                              {t('home.abandonedBadge')}
+                            </span>
+                          ) : (
+                            <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${
+                              allValidated
+                                ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                                : 'bg-amber-50 border-amber-200 text-amber-700'
+                            }`}>
+                              {allValidated ? t('home.validated') : t('home.toReview')}
+                            </span>
+                          )}
                           {complianceProjectsView === 'out_of_scope' && (
                             <button
                               type="button"
@@ -2443,43 +2560,26 @@ export const HomeScreen = ({
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between" data-tour-id="home-inspiration-block">
             <div>
               <h2 id="projects-heading" className="text-2xl font-bold text-gray-900">
-                {homeView === 'inspiration' ? t('home.inspiringProjectsHeading') : t('home.savedProjectsHeading')}
+                {isInspirationView ? t('home.inspiringProjectsHeading') : isTeamView ? t('home.team.heading') : t('home.savedProjectsHeading')}
               </h2>
               <p className="text-sm text-gray-600">
-                {homeView === 'inspiration' ? t('home.inspirationSectionSubtitle') : t('home.projectsSectionSubtitle')}
+                {isInspirationView ? t('home.inspirationSectionSubtitle') : isTeamView ? t('home.team.subtitle') : t('home.projectsSectionSubtitle')}
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div
-                className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 p-1"
-                role="group"
-                aria-label={t('home.blockSelectionAriaLabel')}
-              >
-                <button
-                  type="button"
-                  onClick={() => onHomeViewChange?.('platform')}
-                  className={`rounded-full px-4 py-2 text-xs font-semibold transition-colors ${
-                    homeView !== 'inspiration'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-blue-700 hover:bg-blue-100'
-                  }`}
-                >
-                  {t('home.companyProjectsTab')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onHomeViewChange?.('inspiration')}
-                  className={`rounded-full px-4 py-2 text-xs font-semibold transition-colors ${
-                    homeView === 'inspiration'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-blue-700 hover:bg-blue-100'
-                  }`}
-                  data-tour-id="home-inspiration-toggle"
-                >
-                  {t('home.inspirationTab')}
-                </button>
-              </div>
-              {homeView === 'inspiration' ? (
+              <SegmentedTabs
+                ariaLabel={t('home.blockSelectionAriaLabel')}
+                value={isInspirationView ? 'inspiration' : isTeamView ? 'team' : 'platform'}
+                onChange={(view) => onHomeViewChange?.(view)}
+                items={[
+                  { id: 'platform', label: t(isTeamViewAvailable ? 'home.team.myProjectsTab' : 'home.companyProjectsTab') },
+                  ...(isTeamViewAvailable
+                    ? [{ id: 'team', label: t('home.team.tabLabel'), ariaLabel: t('home.team.tab', { count: teamProjectEntries.length }), count: teamProjectEntries.length, icon: Users, tone: 'indigo' }]
+                    : []),
+                  { id: 'inspiration', label: t('home.inspirationTab'), tourId: 'home-inspiration-toggle' }
+                ]}
+              />
+              {isInspirationView ? (
                 <button
                   type="button"
                   onClick={onStartInspirationProject}
@@ -2489,17 +2589,51 @@ export const HomeScreen = ({
                   <Plus className="w-4 h-4" aria-hidden="true" />
                   {t('home.addInspiringProject')}
                 </button>
-              ) : (
-                <span className="inline-flex items-center text-sm font-semibold text-blue-600 bg-blue-50 border border-blue-200 rounded-full px-3 py-1">
-                  <CheckCircle className="w-4 h-4 mr-2" />{' '}
-                  {t(displayedProjectsCount > 1 ? 'home.projectCountPlural' : 'home.projectCountSingular', { count: displayedProjectsCount })}
-                  {hasActiveFilters ? ` ${t('home.outOfTotal', { total: totalProjectsCount })}` : ''}
-                </span>
+              ) : isTeamView ? null : (
+                <>
+                  <span className="inline-flex items-center text-sm font-semibold text-blue-600 bg-blue-50 border border-blue-200 rounded-full px-3 py-1">
+                    <CheckCircle className="w-4 h-4 mr-2" />{' '}
+                    {t(displayedProjectsCount > 1 ? 'home.projectCountPlural' : 'home.projectCountSingular', { count: displayedProjectsCount })}
+                    {hasActiveFilters ? ` ${t('home.outOfTotal', { total: totalProjectsCount })}` : ''}
+                  </span>
+                  {!tourContext?.isActive && (
+                    <button
+                      type="button"
+                      onClick={() => setIsTrashOpen(true)}
+                      className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-3 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-100"
+                      aria-label={t('home.trash.openAriaLabel', { count: ownerTrashProjects.length })}
+                      title={t('home.trash.title')}
+                      data-testid="home-trash-button"
+                    >
+                      <Trash2 className="w-4 h-4" aria-hidden="true" />
+                      {t('home.trash.buttonLabel')}
+                      {ownerTrashProjects.length > 0 && (
+                        <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-gray-700 px-1.5 text-xs font-bold text-white">
+                          {ownerTrashProjects.length}
+                        </span>
+                      )}
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </div>
 
-          {homeView !== 'inspiration' && submittedProjectNotice && (
+          {isTeamView && (
+            <TeamProjectsPanel
+              entries={teamProjectEntries}
+              peopleCount={teamPeopleCount}
+              status={reportingHierarchy?.status || 'ready'}
+              isPartial={Boolean(reportingHierarchy?.isPartial)}
+              onRetry={onRetryReportingHierarchy}
+              renderCard={renderProjectCard}
+              includesDrafts={Boolean(teamVisibility?.includeDrafts)}
+              getValidationStatus={getProjectValidationStatus}
+              launchSignals={launchSignals}
+            />
+          )}
+
+          {isPlatformView && submittedProjectNotice && (
             <div
               className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
               role="status"
@@ -2522,7 +2656,7 @@ export const HomeScreen = ({
             </div>
           )}
 
-          {homeView !== 'inspiration' && duplicationNotice && (
+          {isPlatformView && duplicationNotice && (
             <div
               className="flex items-start gap-3 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800"
               role="status"
@@ -2536,7 +2670,7 @@ export const HomeScreen = ({
             </div>
           )}
 
-          {homeView !== 'inspiration' && !hasProjects && isProjectsLoading && (
+          {isPlatformView && !hasProjects && isProjectsLoading && (
             <div
               className="bg-white border border-dashed border-blue-200 rounded-3xl p-8"
               role="status"
@@ -2561,7 +2695,7 @@ export const HomeScreen = ({
             </div>
           )}
 
-          {homeView !== 'inspiration' && !hasProjects && !isProjectsLoading && (
+          {isPlatformView && !hasProjects && !isProjectsLoading && (
             <div className="bg-white border border-dashed border-blue-200 rounded-3xl p-8 text-center text-gray-600" role="status" aria-live="polite">
               <p className="text-lg font-medium text-gray-800">{t('home.noProjectsYetTitle')}</p>
               <p className="mt-2">{t('home.noProjectsYetBody')}</p>
@@ -2575,7 +2709,7 @@ export const HomeScreen = ({
             </div>
           )}
 
-          {homeView !== 'inspiration' && hasProjects && (
+          {isPlatformView && hasProjects && (
             <>
               <div className="relative">
                 <label htmlFor="project-search" className="sr-only">
@@ -2783,7 +2917,7 @@ export const HomeScreen = ({
             </>
           )}
 
-          {homeView === 'inspiration' && !hasInspirationProjects && (
+          {isInspirationView && !hasInspirationProjects && (
             <div className="bg-white border border-dashed border-blue-200 rounded-3xl p-8 text-center text-gray-600" role="status" aria-live="polite">
               <p className="text-lg font-medium text-gray-800">{t('home.noInspirationsYetTitle')}</p>
               <p className="mt-2">{t('home.noInspirationsYetBody')}</p>
@@ -2797,7 +2931,7 @@ export const HomeScreen = ({
             </div>
           )}
 
-          {homeView === 'inspiration' && hasInspirationProjects && (
+          {isInspirationView && hasInspirationProjects && (
             <>
               {shouldShowInspirationFiltersCard && (
                 <div
@@ -2980,7 +3114,7 @@ export const HomeScreen = ({
           )}
         </section>
 
-        {homeView !== 'inspiration' && otherPublicProjects.length > 0 && (
+        {isPlatformView && otherPublicProjects.length > 0 && (
           <section aria-labelledby="public-projects-heading" className="space-y-6">
             <div>
               <h2 id="public-projects-heading" className="text-2xl font-bold text-gray-900">
@@ -3104,6 +3238,134 @@ export const HomeScreen = ({
         </div>
       )}
 
+      {isTrashOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
+          <div
+            className="absolute inset-0 bg-gray-900 bg-opacity-60"
+            aria-hidden="true"
+            onClick={closeTrash}
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="project-trash-dialog-title"
+            className="relative z-10 flex max-h-full w-full max-w-2xl flex-col rounded-2xl bg-white p-6 shadow-2xl focus:outline-none"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-700">
+                  <Trash2 className="h-6 w-6" aria-hidden="true" />
+                </div>
+                <div>
+                  <h2 id="project-trash-dialog-title" className="text-xl font-semibold text-gray-900">
+                    {t('home.trash.title')}
+                  </h2>
+                  <p className="mt-1 text-sm text-gray-600">{t('home.trash.subtitle')}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={closeTrash}
+                className="rounded-lg p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                aria-label={t('home.trash.close')}
+              >
+                <Close className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </div>
+
+            {ownerTrashProjects.length === 0 ? (
+              <div className="mt-5 rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-5 text-sm text-gray-600">
+                {t('home.trash.empty')}
+              </div>
+            ) : (
+              <ul className="mt-5 space-y-3 overflow-y-auto" aria-label={t('home.trash.listAriaLabel')}>
+                {ownerTrashProjects.map((project) => {
+                  const projectName = project.projectName || t('home.projectNameFallback');
+                  const deletedAt = getProjectTrashEntry(project)?.deletedAt;
+                  const isPurgeTarget = trashPurgeTargetId === project.id;
+                  const isHardDeletable = typeof canPermanentlyDeleteProject === 'function'
+                    ? canPermanentlyDeleteProject(project)
+                    : true;
+                  return (
+                    <li
+                      key={`trash-${project.id}`}
+                      className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
+                      data-testid="home-trash-item"
+                    >
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="space-y-1">
+                          <p className="text-base font-semibold text-gray-900">{projectName}</p>
+                          <p className="text-xs text-gray-500">
+                            {t('home.trash.deletedOn', { date: formatDate(deletedAt, language, t('home.dateUnknown')) })}
+                            {' · '}
+                            {project.status === 'submitted' ? t('home.trash.statusSubmitted') : t('home.trash.statusDraft')}
+                          </p>
+                          {!isHardDeletable && (
+                            <p className="flex items-start gap-1 text-xs text-amber-700">
+                              <MessageSquare className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                              {t('home.trash.expertResponseNote')}
+                            </p>
+                          )}
+                        </div>
+                        {!isPurgeTarget && (
+                          <div className="flex shrink-0 flex-wrap items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => onRestoreProject?.(project.id)}
+                              className="inline-flex items-center gap-1 rounded-lg border border-blue-200 px-3 py-1.5 text-sm font-semibold text-blue-700 hover:bg-blue-50"
+                            >
+                              <Undo className="h-4 w-4" aria-hidden="true" />
+                              {t('home.trash.restore')}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setTrashPurgeTargetId(project.id)}
+                              className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" aria-hidden="true" />
+                              {t('home.deletePermanently')}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      {isPurgeTarget && (
+                        <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">
+                          <p>
+                            {t(
+                              isHardDeletable ? 'home.trash.confirmHardDelete' : 'home.trash.confirmPurgeWithExpertResponse',
+                              { name: projectName }
+                            )}
+                          </p>
+                          <div className="mt-3 flex flex-wrap justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setTrashPurgeTargetId(null)}
+                              className="inline-flex items-center rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-100"
+                            >
+                              {t('home.cancel')}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onPermanentlyDeleteProject?.(project.id);
+                                setTrashPurgeTargetId(null);
+                              }}
+                              className="inline-flex items-center rounded-lg bg-red-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-red-700"
+                            >
+                              {t('home.trash.confirmButton')}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+
       {deleteDialogState.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
           <div
@@ -3151,7 +3413,7 @@ export const HomeScreen = ({
                 onClick={handleConfirmDeleteProject}
                 className="inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition-colors"
               >
-                {t('home.deletePermanently')}
+                {t('home.moveToTrash')}
               </button>
             </div>
           </div>

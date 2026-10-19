@@ -35,12 +35,7 @@ import {
   getMissingMandatoryQuestions,
   isAnswerProvided
 } from './utils/mandatoryQuestions.js';
-import {
-  DEFAULT_NEW_PROJECT_STAGE,
-  PROJECT_STAGE_ANSWER_KEY,
-  getProjectStage
-} from './utils/projectStage.js';
-import { getProjectReadiness } from './utils/projectReadiness.js';
+import { getMissingForPreliminaryRequest, getProjectReadiness } from './utils/projectReadiness.js';
 import {
   getLastSentSnapshot,
   getSubmissionHistory,
@@ -125,6 +120,15 @@ import {
 } from './utils/teamMemberProfile.js';
 import { normalizeRulesTeamReferences } from './utils/teamIds.js';
 import { MANUAL_TEAM_REQUESTS_KEY, addManualTeamRequest, normalizeManualTeamRequests } from './utils/manualTeamRequests.js';
+import {
+  canPermanentlyDeleteProject,
+  isProjectInOwnerTrash,
+  isProjectTrashed,
+  isRespondingExpert,
+  withProjectPurgedByOwner,
+  withProjectRestored,
+  withProjectTrashed
+} from './utils/projectTrash.js';
 import { canQuestionHaveDoubt, withQuestionDoubt, withoutQuestionDoubt, getOpenQuestionDoubts } from './utils/questionDoubts.js';
 import { getCurrentUser, getRealUser } from './utils/spContext.js';
 import { isImpersonating } from './utils/impersonation.js';
@@ -138,6 +142,8 @@ import { filesIndexProvider } from './utils/filesIndexProvider.js';
 import { rulesProvider } from './utils/rulesProvider.js';
 import { sampleProjectsProvider } from './utils/sampleProjectsProvider.js';
 import { teamsProvider } from './utils/teamsProvider.js';
+import { faqProvider } from './utils/faqProvider.js';
+import { normalizeFaqEntries } from './utils/faqEntries.js';
 import { mergeComplianceComments } from './utils/mergeComplianceComments.js';
 import { createAutosaveQueue } from './utils/autosaveQueue.js';
 import { createRetryQueue } from './utils/retryQueue.js';
@@ -146,7 +152,7 @@ import {
   publishReferentialSettings,
   reinitializeSharePointConfiguration
 } from './utils/sharePointSetup.js';
-import { isSharePointMode } from './config/sharepointConfig.js';
+import { isSharePointMode, withWebViewEnv } from './config/sharepointConfig.js';
 import { REFERENTIAL_FILES, loadReferentials } from './utils/referentialStore.js';
 import { mergeServerAndLocalProjects } from './utils/syncMerge.js';
 import { queueNotification } from './utils/notificationQueue.js';
@@ -157,6 +163,7 @@ import HEADER_LOGO_PATH from './components/logo.png';
 import { injectStyles } from './styles/injectStyles.js';
 import { scrollAppTo } from './utils/scrollContainer.js';
 import { openStaticPage, staticPageLinkProps } from './utils/staticPages.js';
+import { loadReportingHierarchy, normalizeTeamVisibility } from './utils/reportingHierarchy.js';
 import { StaticPageDialog } from './components/StaticPageDialog.jsx';
 
 const APP_VERSION = 'v1.0.385';
@@ -819,6 +826,8 @@ const buildInitialAdminEmailsState = () => {
   return cloneDeep(initialAdminEmails);
 };
 
+const buildInitialTeamVisibility = () => normalizeTeamVisibility(loadPersistedState()?.teamVisibility);
+
 const buildInitialTechnicalContactEmailsState = () => {
   const savedState = loadPersistedState();
   if (savedState && Array.isArray(savedState.technicalContactEmails)) {
@@ -837,6 +846,13 @@ const buildInitialComplianceSampleProjectsState = () => {
   }
 
   return [];
+};
+
+// FAQ de la fenêtre d'aide, éditée dans le back-office. En mode SharePoint elle vient de la
+// liste CN_Faq (hydratation) ; en local elle vit dans cette tranche de complianceNavigatorState.
+const buildInitialFaqEntriesState = () => {
+  const savedState = loadPersistedState();
+  return savedState ? normalizeFaqEntries(savedState.faqEntries) : [];
 };
 
 const isOnboardingProject = (project) => {
@@ -921,7 +937,9 @@ export const App = () => {
   const [launchReminderDays, setLaunchReminderDays] = useState(buildInitialLaunchReminderDays);
   const [adminEmails, setAdminEmails] = useState(buildInitialAdminEmailsState);
   const [technicalContactEmails, setTechnicalContactEmails] = useState(buildInitialTechnicalContactEmailsState);
+  const [teamVisibility, setTeamVisibility] = useState(buildInitialTeamVisibility);
   const [complianceSampleProjects, setComplianceSampleProjects] = useState(buildInitialComplianceSampleProjectsState);
+  const [faqEntries, setFaqEntries] = useState(buildInitialFaqEntriesState);
   const [isBackOfficeUnlocked, setIsBackOfficeUnlocked] = useState(false);
   const [backOfficeAuthError, setBackOfficeAuthError] = useState(null);
   const [isBackOfficePromptOpen, setIsBackOfficePromptOpen] = useState(false);
@@ -960,6 +978,35 @@ export const App = () => {
     () => normalizeEmail(currentUser?.mail || currentUser?.userPrincipalName || ''),
     [currentUser]
   );
+  const [reportingHierarchy, setReportingHierarchy] = useState(() => ({ status: 'idle', people: [], isPartial: false }));
+  const reportingHierarchyRequestRef = useRef(0);
+  const loadTeamHierarchy = useCallback((force = false) => {
+    const requestId = reportingHierarchyRequestRef.current + 1;
+    reportingHierarchyRequestRef.current = requestId;
+    if (!currentUserEmail) {
+      setReportingHierarchy({ status: 'ready', people: [], isPartial: false });
+      return;
+    }
+    setReportingHierarchy((prev) => ({ ...prev, status: 'loading' }));
+    loadReportingHierarchy(currentUserEmail, { force })
+      .then((result) => {
+        if (reportingHierarchyRequestRef.current === requestId) {
+          setReportingHierarchy({ status: 'ready', people: result.people, isPartial: result.isPartial });
+        }
+      })
+      .catch((error) => {
+        console.warn('Organigramme indisponible :', error);
+        if (reportingHierarchyRequestRef.current === requestId) {
+          setReportingHierarchy((prev) => ({ ...prev, status: 'error' }));
+        }
+      });
+  }, [currentUserEmail]);
+  useEffect(() => {
+    loadTeamHierarchy(false);
+    return () => {
+      reportingHierarchyRequestRef.current += 1;
+    };
+  }, [loadTeamHierarchy]);
   const currentUserDisplayName = useMemo(() => {
     const firstName = typeof currentUser?.givenName === 'string' ? currentUser.givenName.trim() : '';
     const lastName = typeof currentUser?.surname === 'string' ? currentUser.surname.trim() : '';
@@ -1105,12 +1152,14 @@ export const App = () => {
   const rulesQueueRef = useRef(null);
   const sampleProjectsQueueRef = useRef(null);
   const teamsQueueRef = useRef(null);
+  const faqQueueRef = useRef(null);
   const inspirationsQueueRef = useRef(null);
   // Métadonnées SharePoint (spItemId/RowVersion/SortOrder) par id de règle/équipe — jamais
   // injectées dans l'objet applicatif consommé par le moteur de règles (rules.js).
   const ruleServerMetaRef = useRef(new Map());
   const sampleProjectServerMetaRef = useRef(new Map());
   const teamServerMetaRef = useRef(new Map());
+  const faqServerMetaRef = useRef(new Map());
   const loadedProjectMembersRef = useRef(new Set());
   const loadedStickyNotesRef = useRef(new Set());
 
@@ -1195,7 +1244,7 @@ export const App = () => {
       if (view) {
         url.searchParams.set('view', view);
       }
-      return url.toString();
+      return withWebViewEnv(url.toString());
     } catch {
       return '';
     }
@@ -1356,7 +1405,8 @@ export const App = () => {
       launchReminderDays,
       inspirationFormFields,
       projectFilters,
-      inspirationFilters
+      inspirationFilters,
+      teamVisibility
     })
   }), [
     questions,
@@ -1370,7 +1420,8 @@ export const App = () => {
     launchReminderDays,
     inspirationFormFields,
     projectFilters,
-    inspirationFilters
+    inspirationFilters,
+    teamVisibility
   ]);
 
   useEffect(() => {
@@ -1486,6 +1537,12 @@ export const App = () => {
   useEffect(() => {
     projectsRef.current = projects;
   }, [projects]);
+
+  // Les projets à la corbeille restent dans `projects` (ils y sont persistés comme les autres),
+  // mais aucun écran ni aucune passe de relance ne doit les traiter comme vivants : l'accueil les
+  // reçoit à part, pour la corbeille du porteur et « Abandonnés » côté experts.
+  const liveProjects = useMemo(() => projects.filter((project) => !isProjectTrashed(project)), [projects]);
+  const trashedProjects = useMemo(() => projects.filter((project) => isProjectTrashed(project)), [projects]);
 
   useEffect(() => {
     if (!showcaseProjectContext) {
@@ -1677,7 +1734,9 @@ const updateProjectFilters = useCallback((updater) => {
       }
       if (typeof savedState.activeProjectId === 'string') setActiveProjectId(savedState.activeProjectId);
       if (typeof savedState.activeInspirationId === 'string') setActiveInspirationId(savedState.activeInspirationId);
-      if (typeof savedState.homeView === 'string') setHomeView(savedState.homeView);
+      // « Mon équipe » ne se rouvre jamais tout seul : on revient sur l'accueil par ses propres
+      // projets, et la vue équipe reste un choix explicite de la session en cours.
+      if (typeof savedState.homeView === 'string') setHomeView(savedState.homeView === 'team' ? 'platform' : savedState.homeView);
       if (Array.isArray(savedState.questions)) {
         setQuestions(restoreShowcaseQuestions(savedState.questions));
       }
@@ -1729,6 +1788,9 @@ const updateProjectFilters = useCallback((updater) => {
       if (Array.isArray(slices.showcaseThemes)) setShowcaseThemes(slices.showcaseThemes);
       if (Array.isArray(slices.adminEmails)) setAdminEmails(slices.adminEmails);
       if (Array.isArray(slices.technicalContactEmails)) setTechnicalContactEmails(slices.technicalContactEmails);
+      if (slices.teamVisibility && typeof slices.teamVisibility === 'object') {
+        setTeamVisibility(normalizeTeamVisibility(slices.teamVisibility));
+      }
       if (Array.isArray(slices.complianceSampleProjects)) setComplianceSampleProjects(slices.complianceSampleProjects);
       if (slices.projectFilters && typeof slices.projectFilters === 'object') {
         setProjectFiltersState(normalizeProjectFilterConfig(stripRetiredProjectFilterFields(slices.projectFilters)));
@@ -1761,7 +1823,8 @@ const updateProjectFilters = useCallback((updater) => {
           complianceCommentsByProject,
           ruleEntries,
           teamEntries,
-          sampleEntries
+          sampleEntries,
+          faqServerEntries
         ] =
           await Promise.all([
             dataProvider.listProjects(),
@@ -1778,7 +1841,9 @@ const updateProjectFilters = useCallback((updater) => {
               teamsFetchFailed = true;
               return [];
             }),
-            sampleProjectsProvider.listAllSampleProjects().catch(() => [])
+            sampleProjectsProvider.listAllSampleProjects().catch(() => []),
+            // Échec de lecture = on garde la FAQ locale ; une liste vide est, elle, une FAQ vide.
+            faqProvider.listAllFaqEntries().catch(() => null)
           ]);
 
         if (cancelled) {
@@ -1804,6 +1869,11 @@ const updateProjectFilters = useCallback((updater) => {
         // règles/équipes dont un tableau vide signifierait « référentiel jamais publié ».
         sampleProjectServerMetaRef.current = new Map(sampleEntries.map(({ sample, meta }) => [sample.id, meta]));
         setComplianceSampleProjects(sampleEntries.map(({ sample }) => sample));
+
+        if (Array.isArray(faqServerEntries)) {
+          faqServerMetaRef.current = new Map(faqServerEntries.map(({ entry, meta }) => [entry.id, meta]));
+          setFaqEntries(faqServerEntries.map(({ entry }) => entry));
+        }
 
         const fallbackQuestionsLength = Array.isArray(referentials.slices.questions)
           ? referentials.slices.questions.length
@@ -1957,7 +2027,9 @@ const updateProjectFilters = useCallback((updater) => {
       launchReminderDays,
       adminEmails,
       technicalContactEmails,
-      complianceSampleProjects
+      teamVisibility,
+      complianceSampleProjects,
+      faqEntries
     };
 
     // Référentiels volumineux : persistés seulement s’ils diffèrent du défaut
@@ -1997,7 +2069,9 @@ const updateProjectFilters = useCallback((updater) => {
     launchReminderDays,
     adminEmails,
     technicalContactEmails,
+    teamVisibility,
     complianceSampleProjects,
+    faqEntries,
     persistDefaults
   ]);
 
@@ -2400,7 +2474,7 @@ const updateProjectFilters = useCallback((updater) => {
       const redirect = () => {
         try {
           if (window.location) {
-            const homeUrl = `${window.location.origin}${window.location.pathname}`;
+            const homeUrl = withWebViewEnv(`${window.location.origin}${window.location.pathname}`);
             if (typeof window.location.assign === 'function') {
               window.location.assign(homeUrl);
             } else {
@@ -3036,6 +3110,22 @@ const updateProjectFilters = useCallback((updater) => {
       getItemKey: (payload) => (payload.action === 'remove' ? payload.sampleId : payload.sample.id)
     });
 
+    faqQueueRef.current = createRetryQueue({
+      processItem: async (payload) => {
+        if (payload.action === 'remove') {
+          await faqProvider.removeFaqEntry(payload.faqId);
+          faqServerMetaRef.current.delete(payload.faqId);
+          return;
+        }
+        const { entry, meta } = await faqProvider.saveFaqEntry(payload.entry, {
+          sortOrder: payload.sortOrder,
+          userEmail: currentUserEmail
+        });
+        faqServerMetaRef.current.set(entry.id, meta);
+      },
+      getItemKey: (payload) => (payload.action === 'remove' ? payload.faqId : payload.entry.id)
+    });
+
     teamsQueueRef.current = createRetryQueue({
       processItem: async (payload) => {
         if (payload.action === 'remove') {
@@ -3162,6 +3252,7 @@ const updateProjectFilters = useCallback((updater) => {
       rulesQueueRef.current?.flush();
       teamsQueueRef.current?.flush();
       sampleProjectsQueueRef.current?.flush();
+      faqQueueRef.current?.flush();
       inspirationsQueueRef.current?.flush();
     };
     const handleOffline = () => setIsOnline(false);
@@ -3185,18 +3276,21 @@ const updateProjectFilters = useCallback((updater) => {
     [questions, answers, shouldShowQuestion]
   );
 
-  const projectStage = useMemo(() => getProjectStage(answers), [answers]);
-
-  // Deux listes, deux portes : ce qui manque pour aller plus loin *au stade déclaré* (et donc
-  // pour demander un avis préliminaire), et ce qui manque pour une soumission finale, où le
-  // stade ne dispense de rien et où un « je ne sais pas encore » ne passe plus.
+  // Trois listes : toutes les questions obligatoires (ce que le questionnaire signale), le socle
+  // (ce qui bloque une demande d'avis préliminaire), et ce qui manque pour une demande de
+  // validation, où un « je ne sais pas encore » ne passe plus.
   const unansweredMandatoryQuestions = useMemo(
-    () => getMissingMandatoryQuestions(activeQuestions, answers, { stage: projectStage }),
-    [activeQuestions, answers, projectStage]
+    () => getMissingMandatoryQuestions(activeQuestions, answers),
+    [activeQuestions, answers]
+  );
+
+  const unansweredPreliminaryQuestions = useMemo(
+    () => getMissingForPreliminaryRequest(activeQuestions, answers),
+    [activeQuestions, answers]
   );
 
   const unansweredFinalMandatoryQuestions = useMemo(
-    () => getMissingMandatoryQuestions(activeQuestions, answers, { ignoreStage: true, rejectUnknown: true }),
+    () => getMissingMandatoryQuestions(activeQuestions, answers, { rejectUnknown: true }),
     [activeQuestions, answers]
   );
 
@@ -3242,13 +3336,15 @@ const updateProjectFilters = useCallback((updater) => {
     [answers, activeQuestions]
   );
 
+  // L'écran intermédiaire ne retient que ce qui bloque la première porte (le socle) : une
+  // question exigible plus tard au stade déclaré ne doit pas barrer l'accès à la vitrine.
   const pendingMandatoryQuestions = useMemo(
     () =>
-      unansweredMandatoryQuestions.map(question => ({
+      unansweredPreliminaryQuestions.map(question => ({
         question,
         position: activeQuestions.findIndex(item => item.id === question.id) + 1
       })),
-    [unansweredMandatoryQuestions, activeQuestions]
+    [unansweredPreliminaryQuestions, activeQuestions]
   );
 
   const hasIncompleteAnswers = useMemo(
@@ -3330,7 +3426,7 @@ const updateProjectFilters = useCallback((updater) => {
     [activeProject, buildRoundPerimeters]
   );
 
-  const launchSignalsByProject = useMemo(() => projects.reduce((acc, project) => {
+  const launchSignalsByProject = useMemo(() => liveProjects.reduce((acc, project) => {
     if (!project?.id || project.status !== 'submitted') {
       return acc;
     }
@@ -3341,7 +3437,7 @@ const updateProjectFilters = useCallback((updater) => {
       reminderDays: launchReminderDays
     });
     return acc;
-  }, {}), [projects, buildRoundPerimeters, launchReminderDays]);
+  }, {}), [liveProjects, buildRoundPerimeters, launchReminderDays]);
 
 
   const activeProjectName = useMemo(() => {
@@ -3500,6 +3596,17 @@ const updateProjectFilters = useCallback((updater) => {
       return committeeEmails.some((email) => normalizeEmail(email) === currentUserEmail);
     });
   }, [currentUserEmail, isAdminMode, validationCommitteeConfig]);
+  // Ouvrir une vitrine n'est pas la posséder : un manager (onglet « Mon équipe ») ou le lecteur
+  // d'un projet rendu visible à tous la consultent, seuls le porteur et ses co-porteurs l'éditent.
+  // Une vitrine sans projet enregistré est celle qu'on est en train de créer.
+  const canEditShowcaseProject = useMemo(() => {
+    const projectId = showcaseProjectContext?.projectId;
+    if (!projectId) {
+      return true;
+    }
+    const project = projects.find((entry) => entry?.id === projectId);
+    return !project || canManageProject(project);
+  }, [showcaseProjectContext?.projectId, projects, canManageProject]);
   const canCloseAnnotationNotes = useMemo(
     () => canManageProject(activeShowcaseProject),
     [activeShowcaseProject, canManageProject]
@@ -4389,7 +4496,7 @@ const updateProjectFilters = useCallback((updater) => {
     const dueReminders = [];
 
     projects.forEach((project) => {
-      if (!project?.id || project.status !== 'submitted') {
+      if (!project?.id || project.status !== 'submitted' || isProjectTrashed(project)) {
         return;
       }
 
@@ -4502,7 +4609,7 @@ const updateProjectFilters = useCallback((updater) => {
     }
 
     projects.forEach((project) => {
-      if (!project?.id || project.status !== 'submitted' || !canManageProject(project)) {
+      if (!project?.id || project.status !== 'submitted' || isProjectTrashed(project) || !canManageProject(project)) {
         return;
       }
 
@@ -4944,15 +5051,11 @@ const updateProjectFilters = useCallback((updater) => {
     });
   }, [activeProjectId]);
 
-  // Le stade n'est plus demandé au porteur : tout projet part du stade le plus avancé, comme
-  // un projet enregistré sans stade (cf. DEFAULT_NEW_PROJECT_STAGE). La consultation précoce
-  // passe par le palier « orientation », pas par une déclaration.
   const buildDefaultAnswers = useCallback(() => {
-    const base = { [PROJECT_STAGE_ANSWER_KEY]: DEFAULT_NEW_PROJECT_STAGE };
     if (currentUserDisplayName) {
-      return { ...base, teamLead: currentUserDisplayName };
+      return { teamLead: currentUserDisplayName };
     }
-    return base;
+    return {};
   }, [currentUserDisplayName]);
 
   const resetProjectState = useCallback(() => {
@@ -5402,24 +5505,88 @@ const updateProjectFilters = useCallback((updater) => {
     });
   }, [activeProjectId, handleReintegrateProjectInCommittee]);
 
-  // Supprimer un projet soumis (ou dont la soumission a été annulée) est une suppression réelle
-  // et persistée, pas un simple masquage local : sans appel serveur, le projet réapparaîtrait au
-  // prochain rechargement en mode SharePoint (le serveur fait autorité à l'hydratation, voir
-  // `mergeServerAndLocalProjects`). Supprimer un projet encore `submitted` vaut annulation de sa
-  // soumission — il sort donc de toutes les files compliance — mais, contrairement à
-  // `handleCancelProjectSubmission`, ne laisse plus aucune trace : c'est délibérément plus fort
-  // qu'une annulation, pas une variante silencieuse de celle-ci.
+  const trashResponseOptions = useMemo(() => ({
+    contactsByTeamId: (Array.isArray(teams) ? teams : []).reduce((acc, team) => {
+      if (team?.id) {
+        acc[team.id] = normalizeTeamContacts(team);
+      }
+      return acc;
+    }, {}),
+    emailsByCommitteeId: normalizeValidationCommitteeConfig(validationCommitteeConfig).committees.reduce((acc, committee) => {
+      if (committee?.id) {
+        acc[committee.id] = Array.isArray(committee.emails) ? committee.emails : [];
+      }
+      return acc;
+    }, {})
+  }), [teams, validationCommitteeConfig]);
+
+  const persistProjectAnswersPatch = useCallback((targetProject, nextAnswers) => {
+    const updatedProject = {
+      ...targetProject,
+      answers: nextAnswers,
+      lastUpdated: new Date().toISOString()
+    };
+
+    setProjects(prevProjects => prevProjects.map(project => (
+      project.id === targetProject.id ? updatedProject : project
+    )));
+
+    const expectedRowVersion = typeof updatedProject.rowVersion === 'number' ? updatedProject.rowVersion : undefined;
+    autosaveQueueRef.current?.enqueue({ project: updatedProject, expectedRowVersion });
+    return updatedProject;
+  }, []);
+
+  // Supprimer un projet le met à la corbeille (voir `projectTrash.js`) : la ligne reste, marquée,
+  // et sort de toutes les listes et files compliance. Un projet encore `submitted` garde son
+  // statut, pour qu'une restauration le remette exactement où il était.
   const handleDeleteProject = useCallback((projectId) => {
     if (!projectId) {
       return;
     }
 
     const targetProject = projectsRef.current.find((project) => project?.id === projectId);
-    if (!targetProject) {
+    if (!targetProject || isProjectTrashed(targetProject)) {
       return;
     }
 
     if (targetProject.status !== 'draft' && !canManageProject(targetProject)) {
+      return;
+    }
+
+    persistProjectAnswersPatch(targetProject, withProjectTrashed(targetProject.answers, { by: currentUserEmail }));
+    setActiveProjectId(prev => (prev === projectId ? null : prev));
+  }, [canManageProject, currentUserEmail, persistProjectAnswersPatch]);
+
+  const handleRestoreProject = useCallback((projectId) => {
+    const targetProject = projectsRef.current.find((project) => project?.id === projectId);
+    if (!targetProject || !isProjectInOwnerTrash(targetProject)) {
+      return;
+    }
+
+    if (targetProject.status !== 'draft' && !canManageProject(targetProject)) {
+      return;
+    }
+
+    persistProjectAnswersPatch(targetProject, withProjectRestored(targetProject.answers));
+  }, [canManageProject, persistProjectAnswersPatch]);
+
+  // Suppression définitive depuis la corbeille. Tant qu'aucun expert n'a répondu, c'est une
+  // suppression réelle et persistée (sans appel serveur, le projet réapparaîtrait au prochain
+  // rechargement en mode SharePoint, le serveur faisant autorité à l'hydratation). Dès qu'un
+  // expert a donné une réponse ou un avis, ce travail n'appartient plus au seul porteur : le
+  // projet quitte sa corbeille mais reste visible des experts, dans « Abandonnés ».
+  const handlePermanentlyDeleteProject = useCallback((projectId) => {
+    const targetProject = projectsRef.current.find((project) => project?.id === projectId);
+    if (!targetProject || !isProjectInOwnerTrash(targetProject)) {
+      return;
+    }
+
+    if (targetProject.status !== 'draft' && !canManageProject(targetProject)) {
+      return;
+    }
+
+    if (!canPermanentlyDeleteProject(targetProject, trashResponseOptions)) {
+      persistProjectAnswersPatch(targetProject, withProjectPurgedByOwner(targetProject.answers, { by: currentUserEmail }));
       return;
     }
 
@@ -5435,7 +5602,7 @@ const updateProjectFilters = useCallback((updater) => {
     complianceCommentsQueueRef.current?.enqueue({ action: 'removeAllForProject', projectId });
     stickyNotesQueueRef.current?.enqueue({ action: 'removeAllForProject', projectId });
     filesIndexQueueRef.current?.enqueue({ projectId });
-  }, [canManageProject]);
+  }, [canManageProject, currentUserEmail, persistProjectAnswersPatch, trashResponseOptions]);
 
   const handleToggleProjectVisibility = useCallback((projectId) => {
     if (!projectId) {
@@ -5689,12 +5856,35 @@ const updateProjectFilters = useCallback((updater) => {
 
     const matchingProject = projects.find(project => project?.id === pendingProjectId);
     if (!matchingProject) {
+      // Une fois la liste réellement chargée, un projet introuvable a été supprimé définitivement
+      // (ou n'a jamais existé) : le lien aboutit à une annonce plutôt qu'à un accueil muet. Tant que
+      // le serveur n'a pas répondu, ou s'il a échoué, on ne conclut rien.
+      if (['local-only', 'synced', 'partial'].includes(sharePointSync.state)) {
+        pendingShowcaseProjectIdRef.current = null;
+        pendingProjectViewRef.current = null;
+        setCancelledSubmissionNotice({ projectName: '', reason: 'missing' });
+        previousScreenRef.current = null;
+        setScreen('submission-cancelled');
+      }
       return;
     }
 
     pendingShowcaseProjectIdRef.current = null;
     const pendingView = pendingProjectViewRef.current;
     pendingProjectViewRef.current = null;
+
+    // Un projet à la corbeille ne s'ouvre plus par lien, vitrine partagée comprise : seul un expert
+    // qui y a répondu en garde la synthèse, comme dans son onglet « Abandonnés ».
+    if (isProjectTrashed(matchingProject)) {
+      if (pendingView === 'synthesis' && isRespondingExpert(matchingProject, currentUserEmail, trashResponseOptions)) {
+        handleOpenProject(pendingProjectId, { view: 'synthesis' });
+        return;
+      }
+      setCancelledSubmissionNotice({ projectName: matchingProject.projectName || '', reason: 'trashed' });
+      previousScreenRef.current = null;
+      setScreen('submission-cancelled');
+      return;
+    }
 
     // Un lien de notification envoyé avant l'annulation de la soumission ne doit jamais
     // exposer le projet (synthèse ou vitrine) : la personne qui clique dessus atterrit sur
@@ -5711,7 +5901,7 @@ const updateProjectFilters = useCallback((updater) => {
     } else {
       openProjectShowcase({ projectId: pendingProjectId });
     }
-  }, [handleOpenProject, isHydrated, openProjectShowcase, projects]);
+  }, [currentUserEmail, handleOpenProject, isHydrated, openProjectShowcase, projects, sharePointSync.state, trashResponseOptions]);
 
   const isActiveProjectShowcaseBlocked = useMemo(
     () => isShowcaseAccessBlockedByProjectType(answers),
@@ -5779,7 +5969,7 @@ const updateProjectFilters = useCallback((updater) => {
   ]);
 
   const leaveQuestionnaireForShowcase = useCallback(() => {
-    if (unansweredMandatoryQuestions.length > 0) {
+    if (unansweredPreliminaryQuestions.length > 0) {
       setValidationError(null);
       setReturnToSynthesisAfterEdit(false);
       setScreen('mandatory-summary');
@@ -5787,7 +5977,7 @@ const updateProjectFilters = useCallback((updater) => {
     }
 
     navigateToProjectShowcase();
-  }, [navigateToProjectShowcase, unansweredMandatoryQuestions]);
+  }, [navigateToProjectShowcase, unansweredPreliminaryQuestions]);
 
   const handleNext = useCallback(() => {
     if (currentQuestionIndex < activeQuestions.length - 1) {
@@ -6211,10 +6401,10 @@ const updateProjectFilters = useCallback((updater) => {
     }
 
     const submissionKind = normalizeSubmissionKind(payload.submissionKind);
-    // Un avis préliminaire n'exige que ce qui est obligatoire au stade déclaré ; une demande
-    // de validation exige tout, et une réponse ferme partout.
+    // Un avis préliminaire n'exige que le socle (palier d'orientation), quel que soit le stade
+    // déclaré ; une demande de validation exige tout, et une réponse ferme partout.
     const blockingQuestions = submissionKind === SUBMISSION_KIND_PRELIMINARY
-      ? unansweredMandatoryQuestions
+      ? unansweredPreliminaryQuestions
       : unansweredFinalMandatoryQuestions;
 
     if (blockingQuestions.length > 0) {
@@ -6244,7 +6434,7 @@ const updateProjectFilters = useCallback((updater) => {
     notifyProjectSubmission,
     t,
     unansweredFinalMandatoryQuestions,
-    unansweredMandatoryQuestions
+    unansweredPreliminaryQuestions
   ]);
 
   const handleSendProjectUpdate = useCallback(() => {
@@ -6630,8 +6820,9 @@ const updateProjectFilters = useCallback((updater) => {
   }, []);
 
   const handleBackToQuestionnaire = useCallback(() => {
-    if (unansweredMandatoryQuestions.length > 0) {
-      const firstMissingId = unansweredMandatoryQuestions[0].id;
+    const firstMissing = unansweredPreliminaryQuestions[0] || unansweredMandatoryQuestions[0];
+    if (firstMissing) {
+      const firstMissingId = firstMissing.id;
       const targetIndex = activeQuestions.findIndex(question => question.id === firstMissingId);
       if (targetIndex >= 0) {
         setCurrentQuestionIndex(targetIndex);
@@ -6647,7 +6838,7 @@ const updateProjectFilters = useCallback((updater) => {
     }
     setValidationError(null);
     setScreen('questionnaire');
-  }, [activeQuestions, unansweredMandatoryQuestions]);
+  }, [activeQuestions, unansweredMandatoryQuestions, unansweredPreliminaryQuestions]);
 
   const handleNavigateToQuestion = useCallback((questionId) => {
     const targetIndex = activeQuestions.findIndex(question => question.id === questionId);
@@ -6706,7 +6897,7 @@ const updateProjectFilters = useCallback((updater) => {
       .forEach((param) => url.searchParams.delete(param));
     url.searchParams.set(SHOWCASE_SHARE_PARAM, token);
     url.hash = '';
-    return url.toString();
+    return withWebViewEnv(url.toString());
   }, [showcaseProjectId, showcaseShareAnnotationVisibility, showcaseShareCommentsEnabled]);
 
   const showcaseShareUrl = useMemo(
@@ -6879,9 +7070,11 @@ const updateProjectFilters = useCallback((updater) => {
           inspirationFormFields,
           onboardingTourConfig,
           validationCommitteeConfig,
+          launchReminderDays,
           showcaseThemes,
           adminEmails,
           technicalContactEmails,
+          teamVisibility,
           userEmail: currentUserEmail
         },
         { files: selectedFileKeys, rules: includeRules, teams: includeTeams }
@@ -6913,6 +7106,8 @@ const updateProjectFilters = useCallback((updater) => {
   }, [
     adminEmails,
     technicalContactEmails,
+    teamVisibility,
+    launchReminderDays,
     currentUserEmail,
     inspirationFilters,
     inspirationFormFields,
@@ -6996,9 +7191,11 @@ const updateProjectFilters = useCallback((updater) => {
           inspirationFormFields,
           onboardingTourConfig,
           validationCommitteeConfig,
+          launchReminderDays,
           showcaseThemes,
           adminEmails,
-          technicalContactEmails
+          technicalContactEmails,
+          teamVisibility
         },
         selectedKeys
       );
@@ -7029,6 +7226,8 @@ const updateProjectFilters = useCallback((updater) => {
   }, [
     adminEmails,
     technicalContactEmails,
+    teamVisibility,
+    launchReminderDays,
     inspirationFilters,
     inspirationFormFields,
     onboardingTourConfig,
@@ -7070,9 +7269,11 @@ const updateProjectFilters = useCallback((updater) => {
           inspirationFormFields,
           onboardingTourConfig,
           validationCommitteeConfig,
+          launchReminderDays,
           showcaseThemes,
           adminEmails,
-          technicalContactEmails
+          technicalContactEmails,
+          teamVisibility
         },
         new Set([key])
       );
@@ -7098,6 +7299,8 @@ const updateProjectFilters = useCallback((updater) => {
   }, [
     adminEmails,
     technicalContactEmails,
+    teamVisibility,
+    launchReminderDays,
     inspirationFilters,
     inspirationFormFields,
     onboardingTourConfig,
@@ -7768,7 +7971,7 @@ const updateProjectFilters = useCallback((updater) => {
                 launchSignals={launchSignalsByProject}
                 launchReminderDays={launchReminderDays}
                 setLaunchReminderDays={setLaunchReminderDays}
-                projects={projects}
+                projects={liveProjects}
                 questions={questions}
                 setQuestions={setQuestions}
                 rules={rules}
@@ -7795,6 +7998,8 @@ const updateProjectFilters = useCallback((updater) => {
                 setAdminEmails={setAdminEmails}
                 technicalContactEmails={technicalContactEmails}
                 setTechnicalContactEmails={setTechnicalContactEmails}
+                teamVisibility={teamVisibility}
+                setTeamVisibility={(next) => setTeamVisibility(normalizeTeamVisibility(next))}
                 complianceSampleProjects={complianceSampleProjects}
                 setComplianceSampleProjects={setComplianceSampleProjects}
                 currentUserEmail={currentUserEmail}
@@ -7817,6 +8022,10 @@ const updateProjectFilters = useCallback((updater) => {
                 teamsQueueRef={teamsQueueRef}
                 ruleServerMetaRef={ruleServerMetaRef}
                 teamServerMetaRef={teamServerMetaRef}
+                faqEntries={faqEntries}
+                setFaqEntries={setFaqEntries}
+                faqQueueRef={faqQueueRef}
+                faqServerMetaRef={faqServerMetaRef}
                 userProfilesByEmail={userProfilesByEmail}
                 onSaveMemberAbsence={handleSaveMemberAbsence}
                 onPerimeterClaimAction={handlePerimeterClaimAction}
@@ -7826,7 +8035,11 @@ const updateProjectFilters = useCallback((updater) => {
         ) : screen === 'home' ? (
           <Suspense fallback={(<LoadingFallback label={t('app.loading.screenLabel')} hint={t('app.loading.screenHint')} />)}>
             <LazyHomeScreen
-            projects={projects}
+            projects={liveProjects}
+            trashedProjects={trashedProjects}
+            onRestoreProject={handleRestoreProject}
+            onPermanentlyDeleteProject={handlePermanentlyDeleteProject}
+            canPermanentlyDeleteProject={(project) => canPermanentlyDeleteProject(project, trashResponseOptions)}
             showcaseFeedbackCounts={showcaseFeedbackCounts}
             launchSignals={launchSignalsByProject}
             projectFilters={projectFilters}
@@ -7839,6 +8052,9 @@ const updateProjectFilters = useCallback((updater) => {
             currentUser={currentUser}
             homeView={homeView}
             onHomeViewChange={handleHomeViewChange}
+            reportingHierarchy={reportingHierarchy}
+            teamVisibility={teamVisibility}
+            onRetryReportingHierarchy={() => loadTeamHierarchy(true)}
             onStartInspirationProject={handleStartInspirationProject}
             onOpenInspirationProject={handleOpenInspirationProject}
             onStartNewProject={handleCreateNewProject}
@@ -7891,7 +8107,6 @@ const updateProjectFilters = useCallback((updater) => {
             onAnswer={handleAnswer}
             onNext={handleNext}
             onBack={handleBack}
-            allQuestions={questions}
             onNavigateToQuestion={handleNavigateToQuestion}
             saveFeedback={saveFeedback}
             onDismissSaveFeedback={handleDismissSaveFeedback}
@@ -7903,7 +8118,6 @@ const updateProjectFilters = useCallback((updater) => {
             tourContext={tourContext}
             onFinish={leaveQuestionnaireForShowcase}
             projectId={activeProjectId}
-            projectStage={projectStage}
             onSetQuestionDoubt={handleSetQuestionDoubt}
             onClearQuestionDoubt={handleClearQuestionDoubt}
             />
@@ -7919,6 +8133,7 @@ const updateProjectFilters = useCallback((updater) => {
         ) : screen === 'submission-cancelled' ? (
           <SubmissionCancelledNotice
             projectName={cancelledSubmissionNotice?.projectName || ''}
+            reason={cancelledSubmissionNotice?.reason || 'cancelled'}
             onBackToHome={handleReturnHomeFromCancelledSubmissionNotice}
           />
         ) : screen === 'synthesis' ? (
@@ -8018,10 +8233,10 @@ const updateProjectFilters = useCallback((updater) => {
                       ? undefined
                       : isOnboardingActive
                         ? noop
-                        : isProjectOpenForEditing({
+                        : (isProjectOpenForEditing({
                           status: showcaseProjectContext.status,
                           answers: showcaseProjectContext.answers
-                        }) || isAdminMode
+                        }) && canEditShowcaseProject) || isAdminMode
                           ? handleUpdateProjectShowcaseAnswers
                           : undefined
                   }
@@ -8066,7 +8281,7 @@ const updateProjectFilters = useCallback((updater) => {
         </a>
       </p>
     </footer>
-    <StaticPageDialog />
+    <StaticPageDialog faqEntries={faqEntries} />
     </div>
   );
 };

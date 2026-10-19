@@ -35,7 +35,7 @@ npm run spfx:start     # sert le bundle en local pour le workbench hébergé
 ```
 
 Le workbench hébergé est configuré sur le site DEV
-(`https://entreprisedemo1.sharepoint.com/sites/ProjectNavigator_DEV/_layouts/workbench.aspx`,
+(`https://lfb1.sharepoint.com/sites/ProjectNavigator_DEV/_layouts/workbench.aspx`,
 voir `config/serve.json`).
 
 ## Déploiement (résumé)

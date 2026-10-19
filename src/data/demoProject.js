@@ -16,9 +16,9 @@ const demoProjectAnswers = {
   solutionDescription:
     'Impact 360 est une plateforme web immersive et éducative qui raconte le parcours d’un produit, depuis la matière première jusqu’à sa mise à disposition finale.\nLe site propose :\n- Une expérience interactive et visuelle retraçant étape par étape le processus de fabrication.\n- Deux parcours de navigation : un mode grand public, simple et narratif, et un mode professionnel, plus technique et structuré.\n- Des vidéos immersives tournées sur nos sites de production.\n- Une bibliothèque de contenus avec infographies, fiches explicatives et ressources téléchargeables.',
   solutionBenefits:
-    'Une meilleure compréhension du rôle d’Entreprise Demo et de la valeur de la matière première utilisée.\nUn format interactif et immersif qui se distingue des ressources actuelles souvent statiques.\nUne double lecture adaptée à chaque public, avec des contenus validés scientifiquement.\nUn outil de communication réutilisable pour la formation, la sensibilisation et les relations institutionnelles.',
+    'Une meilleure compréhension du rôle d’LFB et de la valeur de la matière première utilisée.\nUn format interactif et immersif qui se distingue des ressources actuelles souvent statiques.\nUne double lecture adaptée à chaque public, avec des contenus validés scientifiquement.\nUn outil de communication réutilisable pour la formation, la sensibilisation et les relations institutionnelles.',
   innovationProcess:
-    'Renforcer la compréhension et la confiance envers nos produits.\nValoriser la mission sociétale et le rôle industriel d’Entreprise Demo.\nAccroître la notoriété d’Entreprise Demo auprès des professionnels et du grand public.\nCréer un actif digital durable, réutilisable pour la formation et la communication.',
+    'Renforcer la compréhension et la confiance envers nos produits.\nValoriser la mission sociétale et le rôle industriel d’LFB.\nAccroître la notoriété d’LFB auprès des professionnels et du grand public.\nCréer un actif digital durable, réutilisable pour la formation et la communication.',
   visionStatement:
     'Nombre de visiteurs uniques mensuels.\nTemps moyen passé sur les pages.\nTaux de complétion du parcours interactif.\nNombre de téléchargements de ressources et de quiz complétés.\nMentions ou citations du site sur les réseaux sociaux et dans la presse spécialisée.',
   campaignKickoffDate: '2025-11-03',
@@ -45,11 +45,11 @@ const demoProjectAnswers = {
   teamLeadTeam: 'marketing_doi',
   teamCoreMembers:
     'Julien Morel - Directeur d’un site de production\nClaire Martin - Responsable Médicale\nSophie Leclerc - Responsable Communication Digitale\nStudio Nova - Agence de communication scientifique et design interactif',
-  ProjectType: 'projet_du_entreprise_demo',
+  ProjectType: 'projet_du_lfb',
   q11: ['visuels_crees_specifiquement_pour_le_projet', 'contenu_genere_via_l_ia'],
   q3: ['oui_donnees_de_sante', 'oui_donnees_personnelles_standard_ex_email_satisfaction'],
   q10: ['expert_ou_consultant_independant_france', 'agence'],
-  q14: ['via_les_canaux_digitaux_du_entreprise_demo', 'communique_de_presse'],
+  q14: ['via_les_canaux_digitaux_du_lfb', 'communique_de_presse'],
   q17: ['possibilite_de_renouveler_facilement_ce_type_de_projets_dans_le_temps'],
   q19: ['digital', 'publication_ou_contenu_editorial'],
   q24: ['partager_des_informations_sur_des_sujets_sensibles_ex_defaillance_industrielle_tension_d_approvisionnement_augmentation_de_capital'],

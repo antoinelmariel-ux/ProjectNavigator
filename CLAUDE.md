@@ -103,7 +103,7 @@ Tests live in `test/*.test.mjs` and import pure logic from `src/utils/*` directl
 `npm run test:e2e` runs a separate Playwright suite under `e2e/*.spec.js` — it does **not** run as part of `npm test` (which stays the fast, dependency-free `node --test` logic suite) and CI/local habits built around `npm test` won't pick it up. Build first (`npm run build`): `playwright.config.js` only serves the repo root via `scripts/serve-e2e.js` (a throwaway static server) and drives the dev harness at `/index.html`.
 
 - `e2e/fixtures.js` holds shared helpers: `gotoHome`/`gotoFresh` (clears `localStorage` once via `evaluate()` + a single `reload()` — **never** `page.addInitScript(() => localStorage.clear())` for this, since that hook re-fires on every navigation in the page, including a later `page.reload()` a test does on purpose to check persistence, silently wiping the very state being tested), `walkQuestionnaireToShowcase`/`walkToSynthesis`/`answerCurrentQuestion` (generic questionnaire autopilot — the first stops on the showcase the form now opens, the second carries on to « Enjeux du projet » via `openProjectStakes`), `createAndSubmitProject`, `grantAdminAccess`/`grantSelfComplianceExpertAndCommitteeAccess` (back-office setup for the compliance-dashboard specs), `collectConsoleErrors`.
-- The nav's lock button renders for someone already designated in the back-office (in `adminEmails`, a team contact, or a committee member — see `isCurrentUserAdmin`/`hasScopedBackOfficeAccess` in `App.jsx`), where clicking it goes straight to the back-office view, **and — outside SharePoint mode only — for everyone else**, where it opens the shared-password prompt instead (`isSharedPasswordEntryAvailable = !isSharePointMode()` in `App.jsx`). Under `file://` and this local server there is no SPO session to designate anyone, so the shared password is the only gate that can exist; in SharePoint mode the button stays reserved to designated people as before. `grantAdminAccess` therefore designates the mock user (`bertrand.darieux@entreprise-demo.example`) by seeding `adminEmails` into `complianceNavigatorState` via `page.addInitScript(...)` before reloading, rather than typing the real password (never committed) into the modal — no `E2E_ADMIN_PASSWORD` environment variable is needed for these specs anymore.
+- The nav's lock button renders for someone already designated in the back-office (in `adminEmails`, a team contact, or a committee member — see `isCurrentUserAdmin`/`hasScopedBackOfficeAccess` in `App.jsx`), where clicking it goes straight to the back-office view, **and — outside SharePoint mode only — for everyone else**, where it opens the shared-password prompt instead (`isSharedPasswordEntryAvailable = !isSharePointMode()` in `App.jsx`). Under `file://` and this local server there is no SPO session to designate anyone, so the shared password is the only gate that can exist; in SharePoint mode the button stays reserved to designated people as before. `grantAdminAccess` therefore designates the mock user (`bertrand.darieux@lfb.fr`) by seeding `adminEmails` into `complianceNavigatorState` via `page.addInitScript(...)` before reloading, rather than typing the real password (never committed) into the modal — no `E2E_ADMIN_PASSWORD` environment variable is needed for these specs anymore.
 - Specs targeting the back-office as a compliance expert/committee member (`compliance-comments-and-committee.spec.js`) grant the mock user admin (`grantAdminAccess`, persisted from boot) **before** adding them as a team contact or committee member — see the `allowedTabIds` gotcha below; doing it in the other order locks the test (and a real session) out of most back-office tabs mid-setup.
 - Prefer `page.emulateMedia({ reducedMotion: 'reduce' })` over `test.use({ reducedMotion: 'reduce' })` for reduced-motion specs — in this environment the context-option form isn't reliably reflected by `matchMedia()` before the first navigation, while the explicit call is.
 - To force compliance/committee statuses a spec can't reach through the UI (the comment editor needs back-office access), inject them into `complianceNavigatorState` from a `page.addInitScript(...)` and then navigate — **not** with an `evaluate()` before the navigation. `App.jsx` re-persists its own state synchronously on `pagehide`, so a patch written before the `goto` is overwritten by that flush on the way out. `e2e/home-validation-badge.spec.js` does it this way.
@@ -126,6 +126,7 @@ The app is being migrated off mocks onto real SharePoint lists, using the **Shar
 - **Current status:** `projects`, `inspirations`, `filesIndex`, `notificationsQueue`, `projectMembers`, `complianceComments`, `showcaseStickyNotes`, `userProfiles`, `rules` and `teams` are fully wired through `getRepository(...)` (see `src/utils/projectMembersProvider.js`, `complianceCommentsProvider.js`, `showcaseStickyNotesProvider.js`, `userProfileProvider.js`, `rulesProvider.js`, `teamsProvider.js`, all consumed from `App.jsx`).
 - **`rules`/`teams` moved from CN-Config JSON files to per-item lists (`CN_Rules`/`CN_Teams`)**, so two admins editing different rules no longer conflict on one shared file ETag. Each rule is one row (`RuleId` key, the whole rule object serialized into `PayloadJson` — the nesting is too deep for a column mapping); each team is one row with flat columns (`TeamId`, `Title`, `ContactsJson`, `NameJson`, `Expertise`). Both carry a `SortOrder` column since there's no drag-and-drop UI for rules/teams — display order is purely array-insertion order, and `SortOrder` is what lets `rulesProvider.listAllRules()`/`teamsProvider.listAllTeams()` reconstitute it from independent rows. `App.jsx` keeps the returned `{spItemId, rowVersion, sortOrder}` metadata in side `useRef` maps (`ruleServerMetaRef`/`teamServerMetaRef`) — never merged into the rule/team objects the rules engine consumes. A team's `name` and `expertise` are translatable in the app's 4 languages, stored as `{en, fr, de, es}` objects (same convention as `questions.js`/`rules.js`, resolved via `src/utils/localizedContent.js`); `NameJson`/`Expertise` carry that object, while `Title` stays a plain derived string (default-language name) so the SharePoint list itself stays readable natively. In mock/local mode `rules`/`teams` are untouched: still plain `useState` seeded from `src/data/rules.js`/`teams.js` and persisted in the `complianceNavigatorState` delta. `referentialStore.js`'s `REFERENTIAL_FILES` no longer includes `rules`/`teams` (5 files now, not 7).
 - **`sampleProjects` (`CN_SampleProjects`) backs the rule test bench** in the back-office's `Revue Compliance` tab: one row per named set of answers (`SampleId` key, `AnswersJson` holding the answers in the same shape as `CN_Projects.AnswersJson`, plus `SortOrder` like rules/teams since there's no drag-and-drop). Loaded via `sampleProjectsProvider.listAllSampleProjects()` in `hydrateFromSharePoint`, written through `sampleProjectsQueueRef` (a `retryQueue`). Unlike `rules`/`teams`, **an empty list is a legitimate empty corpus, not "never published"** — it is reflected as-is with no fallback. In mock/local mode the provider is never consulted (hydration is gated on `isSharePointMode()`) and sample projects live in the `complianceSampleProjects` slice of `complianceNavigatorState`, exactly the split used for `rules`/`teams`. A sample project is never a real project: nothing here is submitted, notified or scored.
+- **`faq` (`CN_Faq`) backs the FAQ of the help window, editable by admins only** (back-office tab `faq`, `BackOfficeFaq.jsx`; absent from `allowedTabIds`, so scoped compliance leads never see it). One row per question (`FaqId` key), `QuestionJson`/`AnswerJson` as `{en, fr, de, es}` (answer = limited rich text), optional `CategoryJson` (questions sharing the same label in the reader's language are grouped under one heading, in order of first appearance — no separate categories list), `IsPublished`, `SortOrder`. `StaticPageDialog` builds the FAQ page from `faqEntries` (`src/utils/faqEntries.js#buildFaqPageHtml`, answers through `sanitizeRichText`, injected as a parameter because `richText.js` is JSX and Node tests can't import it) and **falls back to the bundled `src/pages/faq.html` while no entry is published** — an empty list is a legitimate empty FAQ, not an error. A missing language falls back to French, then to any filled language. In mock/local mode the entries live in the `faqEntries` slice of `complianceNavigatorState`. Writes go through `faqQueueRef` (a `retryQueue`), debounced per entry in the editor. The legal notice (`mentions-legales.html`) deliberately stays a bundled file.
 - **`userProfiles` backs the first-login onboarding screen and the "Mon profil" section**, one row per person (keyed by `UserEmail`), holding their activity scope (`ActivityScopeJson`, an array of fixed codes) and preferred language. `App.jsx` shows `OnboardingScreen.jsx` whenever the current user's profile is missing or has `HasCompletedOnboarding !== true`; finishing it (or skipping the tour offer) marks it complete. The activity scope is also exposed as a pseudo-question (`ACTIVITY_SCOPE_QUESTION_ID = '__activity_scope__'` in `src/utils/questions.js`, injected into any `answers` object via `withActivityScope(...)` — never persisted into a project's own answers) so it's selectable as a condition in the back-office question/rule editors exactly like a real question, via the same `getConditionQuestionEntries(...)` both editors already call. `App.jsx` and `BackOffice.jsx` each shadow `shouldShowQuestion`/`analyzeAnswers`/`shouldShowOption` locally to inject the current user's own scope — don't call the raw versions from `src/utils/questions.js`/`rules.js` directly inside those two files, or activity-scope conditions silently stop working there.
 - **Compliance comments are a real read+write cutover, not just a mirror.** `complianceCommentsProvider.listAllComments()` bulk-loads the whole `CN_ComplianceComments` list once at hydration (`App.jsx`'s `hydrateFromSharePoint`) and `src/utils/mergeComplianceComments.js` merges it into each project's `answers['__compliance_team_comments__']`: SharePoint wins per team/committee key when it has a row, the project's own local JSON fills any gap (comments made before this cutover, never yet republished). Writes still go to both places (local state for instant UI feedback, SharePoint via the retry queue below) — don't remove the local write thinking it's now redundant, `SynthesisReport.jsx`/`HomeScreen.jsx`/`BackOfficeDashboard.jsx` all read that same local key directly.
 - **Network-flaky writes go through `src/utils/retryQueue.js`**, not raw `.catch(() => console.warn(...))`. `App.jsx` keeps one `createRetryQueue(...)` instance per entity (`projectMembersQueueRef`, `stickyNotesQueueRef`, `complianceCommentsQueueRef`, `userProfileQueueRef`, `rulesQueueRef`, `teamsQueueRef` — projects keep their own older, project-specific `src/utils/autosaveQueue.js`, untouched). A single `window.addEventListener('online', ...)` in `App.jsx` calls `.flush()` on all of them and drives the `isOnline` banner; queues only ever replay their own pending items on reconnect, never a full resync of local state — that's deliberate, to avoid clobbering someone else's concurrent changes. Route any new SharePoint write path through this pattern rather than inventing another fire-and-forget one.
@@ -200,7 +201,10 @@ Finishing the creation form lands on the **project showcase**, not on the compli
 the tool is meant to make someone think about their project, not just get it stamped. Both
 exits go through `navigateToProjectShowcase` in `App.jsx` — the last question's button
 (« Voir la vitrine du projet »), the mid-questionnaire « Terminer et voir la vitrine », and the
-mandatory-questions interstitial's button, which is the same journey interrupted. A project type
+mandatory-questions interstitial's button, which is the same journey interrupted. That
+interstitial only appears while a **core** question is missing (`unansweredPreliminaryQuestions`,
+the same list that gates the preliminary request) — a question only required for technical
+advice and validation does not stand between the author and their showcase. A project type
 that `isShowcaseAccessBlockedByProjectType` denies the showcase falls back to the report, which
 is the only way that screen is reached directly from the form.
 
@@ -229,27 +233,29 @@ Section colours are **the theme's own colours**, nothing else. `buildAccentFamil
 
 Sharing a showcase produces a single opaque query parameter (`?sv=<token>`, `src/utils/showcaseShareLink.js`) that carries project id, display mode (`full`/`light`), comments toggle and post-it visibility — obfuscated and sealed with a checksum, so a recipient can no longer drop `showcaseMode=light` from the URL to reach the full view. It is deterrence, not security: everything still runs client-side. A tampered token decodes to `null` and opens nothing rather than falling back to full mode; the older plain-text params (`showcaseShared`/`showcaseMode`/…) are still *read* so links already shared keep working, but are never written again. A shared link also hides the app's `<nav>` (`shouldHideMainNav` in `App.jsx`, driven by `isShowcaseSharedView`, which is now seeded from the URL at first render so the bar doesn't flash during hydration); it comes back as soon as the visitor closes the showcase.
 
-## Consulting compliance early (stage, uncertainty, two doors)
+## Consulting compliance early (levels, uncertainty, two doors)
 
 The whole point is that a project owner can consult compliance **before** the project is
 finished, and keep changing it afterwards. Four pieces carry that, and each one degrades
 gracefully to the old behaviour when its data is absent:
 
-- **`src/utils/projectStage.js` — the declared stage** (`framing` / `design` / `pre_launch`),
-  stored in the project's *answers* under `__project_stage__`. In answers rather than as a
-  project column because that makes it selectable as a question/rule condition through the same
-  `getConditionQuestionEntries(...)` both back-office editors already call, and it rides along in
-  `AnswersJson` with **no new SharePoint column**. A project with no stage reads as
-  `pre_launch` (`LEGACY_PROJECT_STAGE`) — never as `framing`, or questions that were mandatory
-  for an already-submitted project would retroactively stop being so. A brand-new project starts
-  at `framing` (`buildDefaultAnswers` in `App.jsx`).
-- **`question.requiredFromStage` — when a mandatory question actually becomes mandatory.**
-  Absent means "mandatory from `framing`", i.e. exactly today's behaviour, so a question nobody
-  requalified never changes regime. Editable per question in `QuestionEditor.jsx`.
-  `src/utils/mandatoryQuestions.js` is now the **only** definition of "this answer is filled in"
+- **There is no project stage — only levels derived from the answers.** A declared stage
+  (`framing`/`design`/`pre_launch`, once a selector in the questionnaire, stored under
+  `__project_stage__`) was removed: classifying yourself is not a question about the project. No
+  project writes that key any more, nothing reads it (older projects may still carry it, it is
+  ignored, and it is no longer a selectable condition nor a diff entry). Don't bring a stage back
+  as a second axis next to the levels: the two disagreed, which is how the preliminary door ended
+  up enabled by the panel and refused at send time.
+- **`question.requiredFromStage` — which level a mandatory question belongs to.** Absent or
+  `framing` = the core, required from orientation on; anything else = required for technical
+  advice and validation only (`getQuestionRequirementLevel` in `src/utils/projectStage.js`; the
+  back-office offers exactly these two choices, and the legacy `design` value reads as the second).
+  The stored values keep their old names so published referentials need no rewrite. Outside the
+  readiness levels, "mandatory" means every `required` question: that is what the questionnaire
+  flags. `src/utils/mandatoryQuestions.js` is the **only** definition of "this answer is filled in"
   and of "this question is mandatory" — it was copy-pasted identically into `App.jsx`,
-  `QuestionnaireScreen.jsx`, `SynthesisReport.jsx` and `projectNormalization.js`, and four copies
-  that disagree about the stage would produce four different progress counts for one project.
+  `QuestionnaireScreen.jsx`, `SynthesisReport.jsx` and `projectNormalization.js`, and copies that
+  disagree would produce different progress counts for one project.
 - **`src/utils/unknownAnswer.js` — "I do not know yet" as a real answer.** Sentinel value stored
   like any other answer, but **no condition is ever satisfied by it**, negative conditions
   included — the guard lives in *both* condition engines (`questions.js#evaluateQuestionCondition`
@@ -270,8 +276,9 @@ gracefully to the old behaviour when its data is absent:
   an option, so without its explicit guard the doubt is erased the moment it is expressed, with no
   error anywhere (that is exactly what happened, on the two types where it is most useful).
 - **`src/utils/submissionKind.js` — two doors, one project.** `preliminary` vs `final`, stored in
-  answers (same reason as the stage). A preliminary request only requires what is mandatory *at
-  the declared stage*; a validation request requires everything, with a firm answer everywhere
+  answers (so it needs no SharePoint column). A preliminary request only requires the orientation
+  level — the core questions (`getMissingForPreliminaryRequest`, the same list that enables the
+  button in `ProjectReadinessPanel.jsx`); a validation request requires everything, with a firm answer everywhere
   (`rejectUnknown`). Never split this into two project objects — answers, threads, rights and the
   showcase would all be duplicated. A favourable opinion on a preliminary request yields
   `PROJECT_VALIDATION_PRELIMINARY`, never `PROJECT_VALIDATION_VALIDATED`, and the team/owner
@@ -296,10 +303,9 @@ Two UI invariants that are easy to break:
   only (`canEditTeamComment` still sees the editor), and **auto-validated perimeters keep their
   current display unconditionally** (`isTeamAutoValidated`): nobody will ever write there, that
   card is the only compliance message those perimeters will ever have.
-- **The stage selector is a segmented control, not `input[type=radio]`.** The questionnaire's
-  sidebar precedes the question in the DOM, so radio inputs there capture any generic "select the
-  first radio" automation aimed at the answer itself (this is what silently broke the e2e
-  autopilot, and it would break any form-filling automation the same way).
+- **No `input[type=radio]` in the questionnaire's sidebar.** It precedes the question in the DOM,
+  so radio inputs there capture any generic "select the first radio" automation aimed at the
+  answer itself (a former stage selector did exactly that and silently broke the e2e autopilot).
 
 ## After submission: the project keeps living (versions, diff, targeted notifications)
 
@@ -373,7 +379,8 @@ expert one click** in the nominal case, and makes a project that ships without i
   and `launched_without` **only** once someone has recorded the launch with an incomplete round —
   true by construction. The dashboard keeps the two apart in two sections, because mixing a
   reproach to the owner with a reproach to the experts makes both unreadable. `launchDate` is
-  mandatory from the `pre_launch` stage, since nothing else can drive the reminders.
+  mandatory for technical advice and validation (`requiredFromStage: 'pre_launch'`), since
+  nothing else can drive the reminders.
 - **Reminders** (default J-30 then J-10, `0` disables, editable in the back-office's validation
   committee tab) run the same way as the claim reminders: no server, so the pass runs in the
   session of whoever opens the app — here the owner, since they are the one who decides to launch
@@ -408,6 +415,67 @@ messages[]}` — anchored to one questionnaire item and one expert team.
 - Replies notify **the other side only** (`QUESTION_ASKED` towards the team via
   `resolveTeamMailRecipients`, `QUESTION_ANSWERED` back to the asker). Tests:
   `test/questionThreads.test.mjs`, `e2e/question-threads.spec.js`.
+
+## A manager's view of their team's projects (« Mon équipe »)
+
+A manager sees the projects of everyone below them, at every level, in a **third home tab**
+(`homeView === 'team'`, between « Mes projets » and « Inspiration ») — never mixed into their own
+list. `src/utils/reportingHierarchy.js` walks the org chart breadth-first through the SharePoint
+user profiles' `DirectReports` (`/_api/SP.UserProfiles.PeopleManager/GetPropertiesFor`, read-only,
+under the current SPO session; `mockOrgReports` in `src/data/mockOrgDirectory.js` outside SharePoint
+mode), cached per tab in `sessionStorage` for 6h and capped at `MAX_REPORTING_PEOPLE` (the UI says
+when the result is partial). It always queries the *current* identity, never `GetMyProperties`, so
+« Voir en tant que » shows the simulated person's team.
+
+- **One project, one place.** `selectTeamProjects` keeps projects owned by someone in the
+  hierarchy and drops any the manager owns or co-owns (those stay in « Mes projets »); the public
+  block drops team projects too. Cancelled submissions never show.
+- **Drafts are an admin setting, private by default.** `teamVisibility: { includeDrafts }` lives in
+  `settings.json` (`SETTINGS_KEYS` in `referentialStore.js`, edited in the back-office
+  `Administrateurs` tab, persisted in `complianceNavigatorState` in local mode), normalized by
+  `normalizeTeamVisibility`. Default `false`: consulting compliance early only works if a draft is
+  not read by the hierarchy before it is sent, so opening drafts is a deliberate organisational
+  choice, and the team panel says which regime applies.
+- **Read-only by construction.** `renderProjectCard(project, { teamEntry })` hides every write action
+  (edit, delete, duplicate, cancel, visibility), even for an admin, and carries an owner ribbon
+  (« Porté par X · Équipe de Y »). Opening one — draft included — goes to the synthesis, read-only
+  for a non-owner, never to the questionnaire. The showcase editor is likewise only handed
+  `onUpdateAnswers` when `canEditShowcaseProject` (owner/co-owner/admin) holds: opening a showcase
+  is not owning it. This grants visibility in the UI only, like every other access rule here.
+- **The tab only exists for someone with reports**, is hidden during the guided tour, and is never
+  restored from `complianceNavigatorState` on reload — a manager always lands on their own projects.
+  Inside, `TeamProjectsPanel.jsx` adds search, one chip per direct report (sub-team) and a
+  « Points d'attention » filter (rejected/outdated opinion, late or unconfirmed launch).
+- Tests: `test/reportingHierarchy.test.mjs`, `e2e/home-team-projects.spec.js`.
+
+## Deleting a project (trash, « Abandonnés »)
+
+Deleting a project from the home screen **never removes it**: it puts a marker in its answers
+(`__project_trash__`, `src/utils/projectTrash.js` — no new SharePoint column, like every other
+project-level marker), the row stays and keeps its status, so restoring puts it back exactly where
+it was. `App.jsx` splits `projects` into `liveProjects` (what the home, the back-office, launch
+signals and the reminder passes get) and `trashedProjects` (handed to `HomeScreen` only). Iterate
+`liveProjects`, or guard with `isProjectTrashed`, in any new pass over projects — a trashed project
+must not reach a queue, a reminder or a dashboard.
+
+- **The owner's trash** (button next to the project count in « Mes projets ») lists trashed projects
+  with *Restaurer* and *Supprimer définitivement*.
+- **Permanent deletion is real only while no expert has answered** (`canPermanentlyDeleteProject`:
+  a status, a comment, or a thread reply from someone other than the owner/co-owners — or, when
+  known, from a contact of that team/committee — on the *raw* compliance entry, so auto-validation
+  and a bare claim never count). It then goes through the old hard-delete path, satellite lists
+  included. Once an expert has answered, the same button only stamps `purgedByOwnerAt`: the project
+  leaves the owner's trash but survives for the experts — their work is not the owner's to erase.
+- **« Abandonnés »** is a tab of the experts' triggered-projects section: every trashed project
+  (in the owner's trash or purged from it) on which one of *that person's* teams/committees has
+  answered. A trashed project nobody answered is invisible to experts.
+- **A link never opens a trashed or deleted project** — shared showcase (`?sv=`), `?showcase=` or a
+  notification's synthesis link alike. The pending-link effect in `App.jsx` routes it to
+  `SubmissionCancelledNotice` with `reason: 'trashed'`, or `'missing'` once the project list has
+  really loaded (`sharePointSync.state` in `local-only`/`synced`/`partial` — never while loading or
+  after a failed load, which would announce a deletion that didn't happen). The one exception is
+  the synthesis link for an expert who answered (`isRespondingExpert`), consistent with « Abandonnés ».
+- Tests: `test/projectTrash.test.mjs`, `e2e/project-trash.spec.js`.
 
 ## Project validation status (home cards)
 

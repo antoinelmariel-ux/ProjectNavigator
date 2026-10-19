@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from '../react.js';
 import { Edit, Close, Link as LinkIcon } from './icons.js';
 import { normalizeInspirationFormConfig } from '../utils/inspirationConfig.js';
 import { RichTextEditor } from './RichTextEditor.jsx';
+import { SegmentedTabs } from './SegmentedTabs.jsx';
 import { renderRichText } from '../utils/richText.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { resolveLocalizedText } from '../utils/localizedContent.js';
@@ -393,34 +394,15 @@ export const InspirationDetail = ({
               <p className="text-xs text-gray-500">{t('inspirationDetail.shareModeLabel')}</p>
               <p className="text-sm font-semibold text-gray-700">{visibilityLabel}</p>
             </div>
-            <div
-              className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 p-1"
-              role="group"
-              aria-label={t('inspirationDetail.shareModeLabel')}
-            >
-              <button
-                type="button"
-                onClick={() => onUpdate(project.id, { visibility: 'personal', updatedAt: new Date().toISOString() })}
-                className={`rounded-full px-4 py-2 text-xs font-semibold transition-colors ${
-                  project.visibility !== 'shared'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-blue-700 hover:bg-blue-100'
-                }`}
-              >
-                {t('inspirationDetail.visibilityPersonal')}
-              </button>
-              <button
-                type="button"
-                onClick={() => onUpdate(project.id, { visibility: 'shared', updatedAt: new Date().toISOString() })}
-                className={`rounded-full px-4 py-2 text-xs font-semibold transition-colors ${
-                  project.visibility === 'shared'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-blue-700 hover:bg-blue-100'
-                }`}
-              >
-                {t('inspirationDetail.visibilityShared')}
-              </button>
-            </div>
+            <SegmentedTabs
+              ariaLabel={t('inspirationDetail.shareModeLabel')}
+              value={project.visibility === 'shared' ? 'shared' : 'personal'}
+              onChange={(visibility) => onUpdate(project.id, { visibility, updatedAt: new Date().toISOString() })}
+              items={[
+                { id: 'personal', label: t('inspirationDetail.visibilityPersonal') },
+                { id: 'shared', label: t('inspirationDetail.visibilityShared') }
+              ]}
+            />
           </div>
         </header>
 

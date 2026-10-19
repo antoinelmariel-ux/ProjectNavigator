@@ -153,7 +153,9 @@ export default {
     staticPages: {
       faqTitle: 'Häufig gestellte Fragen',
       legalTitle: 'Impressum',
-      close: 'Schließen'
+      close: 'Schließen',
+      faqHeading: 'Häufig gestellte Fragen',
+      faqIntro: 'Hier finden Sie Antworten auf die häufigsten Fragen zur Nutzung von Project Navigator.'
     },
     beforeUnload: {
       message: 'Haben Sie Ihr Projekt vor dem Verlassen gespeichert?'
@@ -302,7 +304,7 @@ export default {
       'Dokumentieren Sie ein inspirierendes Projekt aus einem anderen Labor, um die Beispieldatenbank zu erweitern.',
     back: 'Zurück',
     privacyNotice:
-      'Entreprise Demo verarbeitet die erhobenen Daten, um die den internen Expertenteams vorzulegenden Projekte zu verwalten.',
+      'LFB verarbeitet die erhobenen Daten, um die den internen Expertenteams vorzulegenden Projekte zu verwalten.',
     privacyLink: 'Erfahren Sie mehr über Ihre Daten und Ihre Rechte',
     selectPlaceholder: 'Auswählen...',
     visibilityPersonal: 'Persönlich',
@@ -322,7 +324,40 @@ export default {
     save: 'Speichern'
   },
   home: {
+    team: {
+      emptyBodyWithDrafts: 'Projekte erscheinen hier, sobald ihre Verantwortlichen sie angelegt haben.',
+      draftsIncludedNotice: 'Entwürfe in Bearbeitung werden ebenfalls angezeigt.',
+      draftsPrivateNotice: 'Entwürfe bleiben bis zum Versand privat.',
+      myProjectsTab: 'Meine Projekte',
+      tab: 'Mein Team ({{count}})',
+      tabLabel: 'Mein Team',
+      heading: 'Projekte Ihres Teams',
+      subtitle: 'Projekte der Ihnen unterstellten Personen, über alle Ebenen. Sie bleiben von Ihren eigenen Projekten getrennt.',
+      readOnlyTitle: 'Nur Ansicht.',
+      readOnlyBodySingular: 'Diese Projekte gehören der Person in Ihrer Organisation ({{count}} Person): Sie sind nicht Mitverantwortliche·r und können sie nicht bearbeiten.',
+      readOnlyBodyPlural: 'Diese Projekte gehören den {{count}} Personen Ihrer Organisation: Sie sind nicht Mitverantwortliche·r und können sie nicht bearbeiten.',
+      partialNotice: 'Ihre Organisation ist sehr groß: Nur die ersten {{count}} Personen wurden berücksichtigt.',
+      loadError: 'Ihr Organigramm kann derzeit nicht aktualisiert werden.',
+      retry: 'Erneut versuchen',
+      emptyTitle: 'Noch kein Projekt in Ihrem Team',
+      emptyBody: 'Projekte erscheinen hier, sobald ihre Verantwortlichen sie an Compliance gesendet haben.',
+      searchLabel: 'Projekt oder Person suchen',
+      branchFilterAriaLabel: 'Nach Teilteam filtern',
+      allBranches: 'Gesamtes Team ({{count}})',
+      branchChip: '{{name}} ({{count}})',
+      branchTooltip: 'Projekte von {{name}} und dessen Team',
+      attentionFilter: 'Zu beachten ({{count}})',
+      attentionTooltip: 'Ablehnende Stellungnahme, nach einer Aktualisierung zu überprüfende Stellungnahme oder Start ohne abschließende Bestätigung',
+      listAriaLabel: 'Projekte Ihres Teams',
+      showMore: '{{count}} weitere Projekte anzeigen',
+      cardAriaLabel: 'Projekt {{name}}, verantwortet von {{owner}}',
+      ownedBy: 'Verantwortet von {{name}}',
+      directReport: 'Direkt unterstellt',
+      viaManager: 'Team von {{name}}',
+      readOnlyBadge: 'Nur Ansicht'
+    },
     teammateTab: 'Vom Team übernommen ({{count}})',
+    teammateTabLabel: 'Vom Team übernommen',
     noTeammateTriggered: 'Derzeit wird kein Projekt von einem anderen Mitglied Ihrer Teams betreut.',
     claim: {
       listAriaLabel: 'Betreuung je Zuständigkeitsbereich',
@@ -427,8 +462,11 @@ export default {
       'Finden Sie die Projekte, bei denen Sie als Experte oder Ausschussmitglied angefragt werden.',
     triggeredFilterAriaLabel: 'Filter für ausgelöste Projekte',
     pendingTab: 'Zu bearbeiten ({{count}})',
+    pendingTabLabel: 'Zu bearbeiten',
     treatedTab: 'Bearbeitet ({{count}})',
+    treatedTabLabel: 'Bearbeitet',
     outOfScopeTab: 'Außerhalb des Ausschussbereichs ({{count}})',
+    outOfScopeTabLabel: 'Außerhalb des Ausschussbereichs',
     noPendingTriggered: 'Derzeit kein zu bearbeitendes Projekt.',
     noTreatedTriggered: 'Noch kein bearbeitetes Projekt.',
     noOutOfScopeTriggered: 'Derzeit kein Projekt außerhalb des Ausschussbereichs.',
@@ -449,7 +487,7 @@ export default {
     projectsSectionSubtitle:
       'Greifen Sie jederzeit auf Entwürfe und fertiggestellte Projekte zu, um sie fortzusetzen.',
     blockSelectionAriaLabel: 'Auswahl des Projektbereichs',
-    companyProjectsTab: 'Entreprise Demo-Projekte',
+    companyProjectsTab: 'LFB-Projekte',
     inspirationTab: 'Inspiration',
     addInspiringProject: 'Inspirierendes Projekt hinzufügen',
     duplicateNoticePrefix: 'Kopie erstellt:',
@@ -481,10 +519,33 @@ export default {
       'Dieses Projekt kann in mehrere Ausschüsse reintegriert werden. Wählen Sie den Zielausschuss.',
     deleteProjectDialogTitle: 'Projekt löschen?',
     deleteProjectDescription:
-      'Sie sind dabei, „{{name}}“ zu löschen. Diese Aktion ist endgültig und das Projekt kann nicht wiederhergestellt werden.',
+      '„{{name}}“ wird in den Papierkorb verschoben. Sie können es dort wiederherstellen oder endgültig löschen.',
     deleteSubmittedProjectDescription:
-      'Sie sind dabei, „{{name}}“ zu löschen. Damit wird die Einreichung storniert: Die Compliance-Teams sehen das Projekt nicht mehr, es wird keine Benachrichtigung gesendet, und diese Aktion ist endgültig — das Projekt kann nicht wiederhergestellt werden.',
+      '„{{name}}“ wird in den Papierkorb verschoben: Die Compliance-Teams sehen es nicht mehr in ihren Listen, und es werden keine Benachrichtigungen gesendet. Sie können es aus dem Papierkorb wiederherstellen.',
     deletePermanently: 'Endgültig löschen',
+    abandonedTab: 'Aufgegeben ({{count}})',
+    abandonedTabLabel: 'Aufgegeben',
+    noAbandonedTriggered: 'Kein aufgegebenes Projekt, zu dem Sie geantwortet oder eine Stellungnahme abgegeben haben.',
+    abandonedBadge: 'Aufgegeben',
+    abandonedBadgeTitle: 'Am {{date}} vom Projektverantwortlichen gelöscht',
+    moveToTrash: 'In den Papierkorb',
+    trash: {
+      buttonLabel: 'Papierkorb',
+      title: 'Papierkorb',
+      openAriaLabel: 'Papierkorb öffnen ({{count}} Projekt(e))',
+      subtitle: 'Gelöschte Projekte bleiben hier, bis Sie sie wiederherstellen oder endgültig löschen.',
+      close: 'Papierkorb schließen',
+      empty: 'Der Papierkorb ist leer.',
+      listAriaLabel: 'Projekte im Papierkorb',
+      deletedOn: 'Gelöscht am {{date}}',
+      statusSubmitted: 'Eingereicht',
+      statusDraft: 'Entwurf',
+      restore: 'Wiederherstellen',
+      expertResponseNote: 'Ein Experte hat bereits geantwortet oder eine Stellungnahme abgegeben: Dieses Projekt bleibt für die beteiligten Experten einsehbar.',
+      confirmHardDelete: '„{{name}}“ wird endgültig gelöscht. Dies kann nicht rückgängig gemacht werden.',
+      confirmPurgeWithExpertResponse: 'Ein Experte hat bereits zu „{{name}}“ geantwortet oder Stellung genommen: Es verschwindet aus Ihrem Papierkorb, bleibt aber für die beteiligten Experten unter ihren aufgegebenen Projekten sichtbar.',
+      confirmButton: 'Löschen bestätigen'
+    },
     projectAriaLabel: 'Projekt {{name}}',
     demoProjectBadge: 'Demo-Projekt',
     duplicateProjectAriaLabel: 'Projekt {{name}} duplizieren',
@@ -575,14 +636,6 @@ export default {
     summaryProgressCompact: '{{answered}}/{{total}}',
     summaryMissingRequiredSingular: '{{count}} Pflichtfrage ohne Antwort',
     summaryMissingRequiredPlural: '{{count}} Pflichtfragen ohne Antwort',
-    stageHeading: 'Projektphase',
-    stageHint: 'Sie bestimmt, was jetzt von Ihnen verlangt wird, nicht was Sie am Ende klären müssen.',
-    stageDescription: {
-      framing: 'Die Idee steht, nichts ist entschieden.',
-      design: 'Die großen Optionen sind gewählt, die Details entstehen.',
-      pre_launch: 'Der Start steht bevor: alles muss entschieden sein.'
-    },
-    deferredAnswer: 'Später zu klären',
     doubtToggle: 'Ich habe Zweifel',
     doubtToggleHint: 'Aktivieren Sie dies, wenn Sie sich bei dieser Antwort nicht sicher sind: Sie können anschließend erklären, warum.',
     doubtActiveHint: 'Weiterhin als offen markiert. Für eine endgültige Validierung muss dieser Punkt geklärt sein.',
@@ -593,29 +646,14 @@ export default {
     questionProgress: 'Frage {{current}} von {{total}}',
     visibilityHint: 'Je nach Ihren Antworten können weitere Fragen erscheinen',
     privacyNotice:
-      'Entreprise Demo verarbeitet die erhobenen Daten, um die den internen Expertenteams vorzulegenden Projekte zu verwalten.',
+      'LFB verarbeitet die erhobenen Daten, um die den internen Expertenteams vorzulegenden Projekte zu verwalten.',
     privacyLink: 'Erfahren Sie mehr über Ihre Daten und Ihre Rechte',
     close: 'Schließen',
     hideHelp: 'Hilfe ausblenden',
     showHelp: 'Diese Frage verstehen',
     optionalAnswer: 'Optionale Antwort',
     contextualHelpAriaLabel: 'Kontexthilfe',
-    contextualGuidance: 'Kontextbezogene Anleitung',
-    whyThisQuestionAppears: 'Warum diese Frage erscheint',
-    showsIfAny: 'Sie erscheint, wenn mindestens eine der folgenden Bedingungen erfüllt ist.',
-    showsIfAll: 'Sie erscheint, wenn alle folgenden Bedingungen erfüllt sind.',
-    multiGroupIntroPrefix: 'Diese Frage erscheint, wenn',
-    multiGroupIntroBold: 'jede Bedingungsgruppe',
-    multiGroupIntroSuffix: ' unten erfüllt ist.',
-    multiGroupHint:
-      'Befolgen Sie innerhalb jeder Gruppe die angegebene Logik (UND oder ODER) für die aufgeführten Bedingungen.',
-    group: 'Gruppe {{number}}',
-    groupLogicBadge: 'Logik {{logic}}',
-    logicAnd: 'UND',
-    logicOr: 'ODER',
-    andWithPrevious: 'UND mit vorheriger',
-    conditionQuote: '„{{value}}“',
-    yourAnswer: 'Ihre Antwort:',
+    contextualGuidance: 'Erläuterung',
     practicalTips: 'Praktische Tipps',
     missingRequiredAnswer: 'Pflichtantwort fehlt',
     returnToSynthesisNotice:
@@ -625,15 +663,6 @@ export default {
     viewShowcase: 'Projekt-Showcase ansehen',
     next: 'Weiter',
     finish: 'Fertigstellen und Showcase ansehen',
-    operators: {
-      equals: 'ist gleich',
-      not_equals: 'ist ungleich',
-      contains: 'enthält',
-      lt: 'ist kleiner als',
-      lte: 'ist kleiner oder gleich',
-      gt: 'ist größer als',
-      gte: 'ist größer oder gleich'
-    }
   },
   backOffice: {
     dashboard: {
@@ -861,8 +890,10 @@ export default {
       numberUnitOptionsLabel: 'Weitere verfügbare Währungen',
       numberUnitOptionsHint:
         'Wählen Sie zusätzliche Währungen aus: Sobald 2 Währungen für diese Frage verfügbar sind, kann die antwortende Person ihre Währung wählen.',
-      requiredFromStageLabel: 'Pflicht ab Phase',
-      requiredFromStageHint: 'Vor dieser Phase bleibt die Frage sichtbar und beantwortbar, verhindert aber nicht, Compliance zu befragen.',
+      requiredFromStageLabel: 'Erforderlich ab Stufe',
+      requiredFromStageHint: 'Eine Basisfrage muss beantwortet sein, um eine Orientierung (vorläufige Einschätzung) anzufragen. Jede Pflichtfrage bleibt für die fachliche Einschätzung und die Freigabe erforderlich.',
+      requiredForOrientation: 'Ab der Orientierung (Basis)',
+      requiredForAdvice: 'Für die fachliche Einschätzung und die Freigabe',
       requiredLabel: 'Pflichtfrage',
       draftLabel: 'Frage als Entwurf',
       draftHint: 'Eine Frage im Entwurfsstatus erscheint nicht mehr im Formular zur Projekterstellung.',
@@ -996,6 +1027,27 @@ export default {
       groupsHeading: 'Bedingungsgruppen',
       noConditionsYet: 'Keine Bedingung definiert. Fügen Sie eine Gruppe hinzu, um die Anzeige einzuschränken.',
       addConditionToActivateGroup: 'Fügen Sie eine Bedingung hinzu, um diese Gruppe zu aktivieren.'
+    },
+    faq: {
+      title: 'FAQ der Anwendung',
+      description: 'Fragen, die im Hilfefenster angezeigt werden. Jede Änderung wird automatisch in der SharePoint-Liste CN_Faq gespeichert. Solange keine Frage veröffentlicht ist, wird die Standard-Hilfeseite angezeigt.',
+      adminOnly: 'Nur Administratoren können die FAQ bearbeiten.',
+      add: 'Frage hinzufügen',
+      editingLanguage: 'Bearbeitungssprache',
+      editingLanguageHint: 'Frage und Antwort werden in dieser Sprache erfasst',
+      empty: 'Noch keine Fragen. Fügen Sie eine hinzu, um die Standard-Hilfeseite zu ersetzen.',
+      entryNumber: 'Frage {{number}}',
+      published: 'Veröffentlicht',
+      moveUp: 'Frage nach oben',
+      moveDown: 'Frage nach unten',
+      delete: 'Löschen',
+      confirmDelete: 'Diese FAQ-Frage endgültig löschen?',
+      categoryLabel: 'Kategorie (optional)',
+      categoryPlaceholder: 'z. B. Der Fragebogen — Fragen mit derselben Kategorie werden gruppiert',
+      questionLabel: 'Frage',
+      answerLabel: 'Antwort',
+      missingTranslations: 'Zu übersetzen: {{languages}}. Bei fehlender Sprache wird Französisch angezeigt.',
+      fullyTranslated: 'In alle 4 Sprachen übersetzt.'
     },
     main: {
       claimSettingsHeading: 'Übernahme von Projekten',
@@ -1373,6 +1425,14 @@ export default {
       adminEmailsLabel: 'E-Mail-Adressen der Administratoren',
       adminEmailsPlaceholder: 'Administrator suchen…',
       technicalContactsHeading: 'Technische Ansprechpartner',
+      teamVisibilityHeading: 'Sichtbarkeit der Projekte für Führungskräfte',
+      teamVisibilitySubtitle: 'Im Reiter « Mein Team » ihrer Startseite sieht eine Führungskraft schreibgeschützt die Projekte der ihr unterstellten Personen (SharePoint-Organigramm, alle Ebenen). Legen Sie fest, ob auch Entwürfe angezeigt werden.',
+      teamVisibility: {
+        submittedOnlyTitle: 'Nur gesendete Projekte (empfohlen)',
+        submittedOnlyBody: 'Entwürfe bleiben bis zum Versand privat: Alle können Compliance frühzeitig einbinden, ohne sich von der Hierarchie beobachtet zu fühlen.',
+        withDraftsTitle: 'Gesendete Projekte und Entwürfe',
+        withDraftsBody: 'Die Führungskraft verfolgt auch Projekte in Bearbeitung, ab ihrer Erstellung. Den Projektverantwortlichen mitteilen.'
+      },
       technicalContactsSubtitle: 'Diese Personen erhalten die automatischen Absturzberichte anstelle der Administratoren und verfügen über dieselben Rechte wie ein Administrator (vollständiger Zugriff auf das Back-Office ohne Passwort, „Anzeigen als“ …).',
       technicalContactEmailsLabel: 'E-Mail-Adressen der technischen Ansprechpartner',
       technicalContactEmailsPlaceholder: 'Technischen Ansprechpartner suchen…',
@@ -1645,6 +1705,7 @@ export default {
       tabTeamsTemplate: 'Teams ({{count}})',
       tabComplianceReview: 'Regelüberprüfung',
       tabTranslationsTemplate: 'Übersetzungen ({{count}})',
+      tabFaqTemplate: 'FAQ ({{count}})',
       acceptedLanguagesLabel: 'Akzeptierte Antwortsprachen',
       acceptedLanguagesHint: 'Sprachen, in denen Sie mit Projektverantwortlichen kommunizieren können. Keine Auswahl = alle Sprachen werden akzeptiert.',
       translations: {
@@ -1745,7 +1806,7 @@ export default {
     pendingTitle: 'Auszufüllende Pflichtfragen',
     doneTitle: 'Alle Pflichtfragen sind ausgefüllt',
     pendingSubtitle:
-      'Sie können den Projekt-Showcase bereits jetzt entdecken: Diese Antworten werden beim Einreichen des Projekts angefordert.',
+      'Sie können den Projekt-Showcase bereits jetzt entdecken: Diese Basisfragen müssen beantwortet sein, bevor Sie die Experten um eine Einschätzung bitten können.',
     doneSubtitle: 'Sie können jetzt den Projekt-Showcase entdecken.',
     ariaLabel: 'Unbeantwortete Pflichtfragen',
     positionLabel: 'Frage {{position}} von {{total}}',
@@ -1760,7 +1821,17 @@ export default {
     description: 'Der Projektverantwortliche hat diese Einreichung storniert. Das Projekt ist über diesen Link nicht mehr zugänglich.',
     descriptionWithName:
       'Der Verantwortliche des Projekts „{{name}}“ hat die Einreichung storniert. Das Projekt ist über diesen Link nicht mehr zugänglich.',
-    backToHome: 'Zurück zur Startseite'
+    backToHome: 'Zurück zur Startseite',
+    trashed: {
+      title: 'Projekt gelöscht',
+      description: 'Der Projektverantwortliche hat dieses Projekt gelöscht. Es ist über diesen Link nicht mehr erreichbar.',
+      descriptionWithName: 'Der Verantwortliche des Projekts „{{name}}“ hat es gelöscht. Es ist über diesen Link nicht mehr erreichbar.'
+    },
+    missing: {
+      title: 'Projekt nicht gefunden',
+      description: 'Dieses Projekt existiert nicht oder wurde endgültig gelöscht. Es ist über diesen Link nicht mehr erreichbar.',
+      descriptionWithName: 'Dieses Projekt existiert nicht oder wurde endgültig gelöscht. Es ist über diesen Link nicht mehr erreichbar.'
+    }
   },
   synthesisReport: {
     launchQuestionTitle: 'Ist dieses Projekt gestartet?',
@@ -2105,7 +2176,7 @@ export default {
     deploymentCountriesLabel: 'Einsatzländer',
     keyMemberFallback: 'Schlüsselmitglied',
     upcomingMilestoneFallback: 'Bevorstehender Meilenstein',
-    heroEyebrow: 'Entreprise Demo, ethisches Engagement',
+    heroEyebrow: 'LFB, ethisches Engagement',
     heroCta: 'Projekt entdecken',
     heroScrollCue: 'Nach unten scrollen',
     problemHeadline: 'Warum dieses Projekt existieren muss',
@@ -2185,7 +2256,7 @@ export default {
     columnBlockPlaceholderTemplate: 'Inhalt von Block {{index}}',
     addColumnBlockButton: 'Block hinzufügen',
     documentUrlLabel: 'Dokument',
-    documentUrlHint: 'Das Dokument wird in der dafür vorgesehenen SharePoint-Bibliothek abgelegt und bleibt für Entreprise Demo-Mitarbeitende zugänglich.',
+    documentUrlHint: 'Das Dokument wird in der dafür vorgesehenen SharePoint-Bibliothek abgelegt und bleibt für LFB-Mitarbeitende zugänglich.',
     documentUploadedLabel: 'Dokument hochgeladen — öffnen',
     chooseDocumentButton: 'Datei auswählen',
     removeDocumentButton: 'Entfernen',

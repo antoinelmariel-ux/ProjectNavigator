@@ -37,10 +37,10 @@ const withFetch = async (handler, fn) => {
   const calls = [];
   globalThis.window = {
     location: {
-      origin: 'https://entreprisedemo1.sharepoint.com',
+      origin: 'https://lfb1.sharepoint.com',
       pathname: '/sites/ProjectNavigator_DEV/CN-App/index.aspx',
       protocol: 'https:',
-      hostname: 'entreprisedemo1.sharepoint.com'
+      hostname: 'lfb1.sharepoint.com'
     },
     fetch: async (url, init = {}) => {
       calls.push({ url, init });
@@ -305,4 +305,16 @@ test('diagnoseInstallation : signale listes, bibliothèques et fichiers manquant
       assert.equal(diagnostic.files.find((entry) => entry.name === 'risk-level-rules.json').present, false);
     }
   );
+});
+
+test('settings.json porte les relances avant lancement et la visibilité des managers', () => {
+  const payload = buildReferentialPayload({
+    launchReminderDays: { first: 45, second: 7 },
+    teamVisibility: { includeDrafts: true }
+  });
+  assert.deepEqual(payload.settings.launchReminderDays, { first: 45, second: 7 });
+  assert.deepEqual(payload.settings.teamVisibility, { includeDrafts: true });
+  const slices = flattenReferentials(payload);
+  assert.deepEqual(slices.launchReminderDays, { first: 45, second: 7 });
+  assert.deepEqual(slices.teamVisibility, { includeDrafts: true });
 });
