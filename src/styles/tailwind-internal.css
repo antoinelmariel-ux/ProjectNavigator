@@ -20,6 +20,11 @@
   -webkit-text-size-adjust: 100%;
   font-family: 'Inter', 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
 }
+:where(.cn-app-root, .tgjs-container) :where(ul, ol, menu) {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
 :where(.cn-app-root) a {
   color: inherit;
   text-decoration: inherit;
