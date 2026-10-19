@@ -109,6 +109,8 @@ test.describe('Consultation compliance en amont', () => {
     await answerEverything(page);
 
     await page.getByRole('button', { name: 'Demander un avis préliminaire' }).click();
+    // Plusieurs périmètres sont concernés : le porteur choisit qui consulter, tous par défaut.
+    await page.getByRole('button', { name: 'Envoyer à tous les périmètres' }).click();
 
     await expect(page.getByText('Avis préliminaire demandé :')).toBeVisible();
     // Le porteur garde la main : l'envoi ne fige pas le projet.

@@ -307,6 +307,35 @@ Two UI invariants that are easy to break:
   so radio inputs there capture any generic "select the first radio" automation aimed at the
   answer itself (a former stage selector did exactly that and silently broke the e2e autopilot).
 
+## Consulting by waves (a preliminary request to some perimeters first)
+
+A preliminary request can solicit only some of the detected perimeters first (teams *and*
+committees): the owner consults the one that conditions the rest, adjusts, then solicits the
+others on a corrected project. `src/utils/stagedConsultation.js` holds it, in `answers` under
+`__staged_consultation__` (`{isActive, solicited[], waves[]}`, keys `team:<id>`/`committee:<id>`).
+
+- **Only solicited perimeters are stored**; « à solliciter ensuite » is *derived*
+  (`getDeferredPerimeters` = `getSolicitablePerimeters` minus `solicited`, while `isActive`). So a
+  team an update makes appear falls into it by itself, and one no longer concerned vanishes
+  without ever having been told anything. Auto-validated teams are never solicitable.
+- **A deferred perimeter receives nothing and sees nothing**: skipped by
+  `notifyProjectSubmission`, filtered out of every bucket of `handleSendProjectUpdate` (no update,
+  no « no longer concerned » mail for a team that never heard of the project), absent from
+  `HomeScreen`'s `complianceTriggeredProjects` and from the scoped back-office dashboard. The one
+  exception is a team with a manual request (an anchored question): it was explicitly asked.
+- **It never passes for favourable**: `projectValidationStatus` returns `partial`
+  (« Consultation partielle ») while anything is deferred — below `rejected`, above everything else.
+  Admins see the list in the dashboard (« Périmètres jamais sollicités »), separate from expert delays.
+- **Soliciting the next wave** (`handleSolicitDeferredPerimeters`) goes through
+  `handleSendProjectUpdate({ solicitKeys })` when the project changed since the last send (the
+  first wave must see those changes, the new one discovers the current state), otherwise it only
+  notifies the newly solicited teams and the version does not move. The marker closes itself when
+  nothing is left; a validation request always closes it (`withStagedConsultationClosed`) and
+  solicits everyone. There are no reminders and no admin-imposed order, deliberately.
+- The chooser in `ProjectReadinessPanel.jsx` only appears with two perimeters or more, defaults to
+  « tous », and uses buttons with `aria-pressed`, not radios. Tests: `test/stagedConsultation.test.mjs`,
+  `e2e/staged-consultation.spec.js`.
+
 ## After submission: the project keeps living (versions, diff, targeted notifications)
 
 Consulting compliance early is pointless if the request freezes the project. A **submitted project

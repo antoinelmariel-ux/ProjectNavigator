@@ -59,6 +59,16 @@ import {
 } from './utils/launchConfirmation.js';
 import { isProjectLaunched, withProjectLaunch, withoutProjectLaunch } from './utils/projectLaunch.js';
 import { getProjectCompliancePerimeters } from './utils/projectValidationStatus.js';
+import {
+  PERIMETER_TYPE_TEAM,
+  buildPerimeterKey,
+  getDeferredPerimeterKeys,
+  getSolicitablePerimeters,
+  getStagedConsultation,
+  withPerimetersSolicited,
+  withStagedConsultationClosed,
+  withStagedConsultationStart
+} from './utils/stagedConsultation.js';
 import { stampReviewedVersions, withNeedsReviewSince } from './utils/perimeterReview.js';
 import {
   SUBMISSION_KIND_PRELIMINARY,
@@ -6282,9 +6292,13 @@ const updateProjectFilters = useCallback((updater) => {
   // `notifiedTeams` (et non `teams`) respecte le drapeau `notifyTeam` de chaque règle :
   // un administrateur peut décider qu’une règle mobilise une équipe sans la notifier.
   const notifyProjectSubmission = useCallback((project) => {
+    // Une consultation par vagues ne prévient que les périmètres retenus : les autres ne
+    // découvriront le projet que le jour où le porteur les sollicitera.
+    const deferredKeys = getDeferredPerimeterKeys(project, { teams, validationCommitteeConfig });
     const notifiedTeams = (Array.isArray(project?.analysis?.notifiedTeams)
       ? project.analysis.notifiedTeams
       : [])
+      .filter((teamId) => !deferredKeys.has(buildPerimeterKey(PERIMETER_TYPE_TEAM, teamId)))
       .map((teamId) => teams.find((entry) => entry?.id === teamId))
       .filter(Boolean);
     const teamNames = notifiedTeams.map((team) => resolveLocalizedText(team.name, DEFAULT_LANGUAGE)).filter(Boolean);
@@ -6323,7 +6337,7 @@ const updateProjectFilters = useCallback((updater) => {
       // Le porteur qui soumet doit recevoir sa propre confirmation.
       includeActor: true
     });
-  }, [buildOwnerNotificationRecipients, notify, resolveTeamMailRecipients, teams]);
+  }, [buildOwnerNotificationRecipients, notify, resolveTeamMailRecipients, teams, validationCommitteeConfig]);
 
   const buildChangeSummary = useCallback((changes) => changes
     .slice(0, 8)
@@ -6433,7 +6447,20 @@ const updateProjectFilters = useCallback((updater) => {
       return null;
     }
 
-    const entry = handleSaveProject({ ...payload, status: 'submitted', submissionKind });
+    const baseAnswers = payload.answers && typeof payload.answers === 'object' ? payload.answers : answers;
+    const solicitableKeys = getSolicitablePerimeters(
+      { answers: baseAnswers, analysis: payload.analysis || analysis },
+      { teams, validationCommitteeConfig }
+    ).map((perimeter) => perimeter.key);
+    const stagedAnswers = submissionKind === SUBMISSION_KIND_PRELIMINARY && Array.isArray(payload.solicitedPerimeterKeys)
+      ? withStagedConsultationStart(baseAnswers, {
+        solicitedKeys: payload.solicitedPerimeterKeys.filter((key) => solicitableKeys.includes(key)),
+        solicitableKeys,
+        by: currentUserEmail
+      })
+      : withStagedConsultationClosed(baseAnswers, { solicitableKeys, by: currentUserEmail });
+
+    const entry = handleSaveProject({ ...payload, answers: stagedAnswers, status: 'submitted', submissionKind });
     if (entry) {
       notifyProjectSubmission(entry);
       setValidationError(null);
@@ -6449,14 +6476,19 @@ const updateProjectFilters = useCallback((updater) => {
       scrollAppTo({ top: 0, behavior: 'smooth' });
     }
   }, [
+    analysis,
+    answers,
+    currentUserEmail,
     handleSaveProject,
     notifyProjectSubmission,
     t,
+    teams,
     unansweredFinalMandatoryQuestions,
-    unansweredPreliminaryQuestions
+    unansweredPreliminaryQuestions,
+    validationCommitteeConfig
   ]);
 
-  const handleSendProjectUpdate = useCallback(() => {
+  const handleSendProjectUpdate = useCallback((options = {}) => {
     if (autosaveQueueRef.current && autosaveQueueRef.current.size() > 0) {
       setSaveFeedback({ status: 'error', message: t('app.submit.syncing') });
       return null;
@@ -6467,9 +6499,30 @@ const updateProjectFilters = useCallback((updater) => {
       return null;
     }
 
-    const currentAnswers = project.answers && typeof project.answers === 'object' ? project.answers : {};
-    const snapshot = getLastSentSnapshot(currentAnswers);
-    const nextAnalysis = analyzeAnswers(currentAnswers, rules, riskLevelRules, riskWeights);
+    const projectAnswers = project.answers && typeof project.answers === 'object' ? project.answers : {};
+    const snapshot = getLastSentSnapshot(projectAnswers);
+    const nextAnalysis = analyzeAnswers(projectAnswers, rules, riskLevelRules, riskWeights);
+    const stagedOptions = { teams, validationCommitteeConfig };
+    const previousStaged = getStagedConsultation(projectAnswers);
+    const previouslySolicitedKeys = new Set(previousStaged.solicited);
+    const solicitKeys = Array.isArray(options?.solicitKeys) ? options.solicitKeys : [];
+    const currentAnswers = solicitKeys.length > 0
+      ? withPerimetersSolicited(projectAnswers, {
+        keys: solicitKeys,
+        solicitableKeys: getSolicitablePerimeters({ answers: projectAnswers, analysis: nextAnalysis }, stagedOptions)
+          .map((perimeter) => perimeter.key),
+        by: currentUserEmail
+      })
+      : projectAnswers;
+    const deferredKeysAfter = getDeferredPerimeterKeys({ answers: currentAnswers, analysis: nextAnalysis }, stagedOptions);
+    const teamKey = (teamId) => buildPerimeterKey(PERIMETER_TYPE_TEAM, teamId);
+    // Une équipe encore « à solliciter ensuite » n'a rien reçu : ni mise à jour, ni avis de
+    // retrait ne la concernent. Une équipe sollicitée par cet envoi le découvre en entier.
+    const wasSolicited = (teamId) => !previousStaged.isActive || previouslySolicitedKeys.has(teamKey(teamId));
+    const newlySolicitedTeamIds = solicitKeys
+      .filter((key) => key.startsWith(`${PERIMETER_TYPE_TEAM}:`) && !previouslySolicitedKeys.has(key))
+      .map((key) => key.slice(PERIMETER_TYPE_TEAM.length + 1))
+      .filter((teamId) => (Array.isArray(nextAnalysis?.notifiedTeams) ? nextAnalysis.notifiedTeams : []).includes(teamId));
 
     // Sans instantané — projet soumis avant cette fonctionnalité — on ne peut pas savoir ce qui a
     // changé. Toutes les équipes du périmètre sont alors invitées à ré-examiner : deviner un état
@@ -6486,9 +6539,20 @@ const updateProjectFilters = useCallback((updater) => {
         hasImpact: true
       };
 
+    const isNewlySolicited = (teamId) => newlySolicitedTeamIds.includes(teamId);
+    const stagedImpact = {
+      ...impact,
+      added: Array.from(new Set([
+        ...impact.added.filter((teamId) => !deferredKeysAfter.has(teamKey(teamId))),
+        ...newlySolicitedTeamIds
+      ])),
+      changed: impact.changed.filter((teamId) => wasSolicited(teamId) && !isNewlySolicited(teamId)),
+      removed: impact.removed.filter((teamId) => wasSolicited(teamId))
+    };
+
     const changes = diffAnswers(snapshot || {}, currentAnswers, questions, language);
     const nextVersion = getSubmissionVersion(project) + 1;
-    const impactedTeamIds = [...impact.changed, ...impact.removed];
+    const impactedTeamIds = [...stagedImpact.changed, ...stagedImpact.removed];
 
     let answersForUpdate = currentAnswers;
     if (impactedTeamIds.length > 0) {
@@ -6529,12 +6593,14 @@ const updateProjectFilters = useCallback((updater) => {
       return null;
     }
 
-    notifyProjectUpdate(entry, impact, buildChangeSummary(changes));
+    notifyProjectUpdate(entry, stagedImpact, buildChangeSummary(changes));
     setSaveFeedback({
       status: 'success',
-      message: impact.hasImpact
-        ? t('app.submit.sentWithImpact')
-        : t('app.submit.sentWithoutImpact')
+      message: solicitKeys.length > 0
+        ? t('app.submit.perimetersSolicited')
+        : impact.hasImpact
+          ? t('app.submit.sentWithImpact')
+          : t('app.submit.sentWithoutImpact')
     });
 
     return entry;
@@ -6543,6 +6609,7 @@ const updateProjectFilters = useCallback((updater) => {
     analyzeAnswers,
     buildChangeSummary,
     canManageProject,
+    currentUserEmail,
     handleSaveProject,
     language,
     notifyProjectUpdate,
@@ -6550,7 +6617,79 @@ const updateProjectFilters = useCallback((updater) => {
     riskLevelRules,
     riskWeights,
     rules,
-    t
+    t,
+    teams,
+    validationCommitteeConfig
+  ]);
+
+  // Solliciter la vague suivante. Si le projet a bougé depuis le dernier envoi, ces
+  // modifications partent avec — les périmètres déjà consultés doivent les voir, et ceux qu'on
+  // sollicite découvrent le projet dans son état présent. Sinon, seuls les nouveaux périmètres
+  // sont prévenus : rien n'a changé pour les autres, et le numéro de version ne bouge pas.
+  const handleSolicitDeferredPerimeters = useCallback((keys) => {
+    const project = projectsRef.current.find((entry) => entry?.id === activeProjectId);
+    const solicitKeys = Array.isArray(keys) ? keys.filter((key) => typeof key === 'string') : [];
+    if (!project || !isPreliminarySubmission(project) || !canManageProject(project) || solicitKeys.length === 0) {
+      return null;
+    }
+
+    const projectAnswers = project.answers && typeof project.answers === 'object' ? project.answers : {};
+    const snapshot = getLastSentSnapshot(projectAnswers);
+    if (!snapshot || diffAnswers(snapshot, projectAnswers, questions, language).length > 0) {
+      return handleSendProjectUpdate({ solicitKeys });
+    }
+
+    const stagedOptions = { teams, validationCommitteeConfig };
+    const previousStaged = getStagedConsultation(projectAnswers);
+    const nextAnswers = withPerimetersSolicited(projectAnswers, {
+      keys: solicitKeys,
+      solicitableKeys: getSolicitablePerimeters(project, stagedOptions).map((perimeter) => perimeter.key),
+      by: currentUserEmail
+    });
+    if (nextAnswers === projectAnswers) {
+      return null;
+    }
+
+    const updatedProject = { ...project, answers: nextAnswers, lastUpdated: new Date().toISOString() };
+    setAnswers(nextAnswers);
+    setProjects((prevProjects) => prevProjects.map((entry) => (entry?.id === project.id ? updatedProject : entry)));
+
+    const notifiedTeamIds = Array.isArray(project.analysis?.notifiedTeams) ? project.analysis.notifiedTeams : [];
+    const solicitedTeams = solicitKeys
+      .filter((key) => key.startsWith(`${PERIMETER_TYPE_TEAM}:`) && !previousStaged.solicited.includes(key))
+      .map((key) => key.slice(PERIMETER_TYPE_TEAM.length + 1))
+      .filter((teamId) => notifiedTeamIds.includes(teamId))
+      .map((teamId) => teams.find((team) => team?.id === teamId))
+      .filter(Boolean);
+    const teamNames = solicitedTeams.map((team) => resolveLocalizedText(team.name, DEFAULT_LANGUAGE)).filter(Boolean);
+    const recipients = normalizeRecipientList(
+      solicitedTeams.flatMap((team) => resolveTeamMailRecipients(team, nextAnswers))
+    );
+
+    if (recipients.length > 0) {
+      notify({
+        type: NOTIFICATION_TYPES.PROJECT_PRELIMINARY_TEAM,
+        project: updatedProject,
+        to: recipients,
+        teamNames,
+        view: 'synthesis'
+      });
+    }
+
+    setSaveFeedback({ status: 'success', message: t('app.submit.perimetersSolicited') });
+    return updatedProject;
+  }, [
+    activeProjectId,
+    canManageProject,
+    currentUserEmail,
+    handleSendProjectUpdate,
+    language,
+    notify,
+    questions,
+    resolveTeamMailRecipients,
+    t,
+    teams,
+    validationCommitteeConfig
   ]);
 
   // Le dernier tour est demandé par le porteur, jamais déclenché tout seul : lui seul sait qu'il
@@ -8202,6 +8341,7 @@ const updateProjectFilters = useCallback((updater) => {
               submissionVersion={getSubmissionVersion(activeProject)}
               lastSentAt={activeProjectSubmissionHistory.lastSentAt}
               onSendUpdate={activeProjectId ? handleSendProjectUpdate : undefined}
+              onSolicitPerimeters={activeProjectId ? handleSolicitDeferredPerimeters : undefined}
               submissionHistory={activeProjectSubmissionHistory}
               launchSignal={activeProjectId ? (launchSignalsByProject[activeProjectId] || 'none') : 'none'}
               roundStatus={activeProjectRoundStatus}

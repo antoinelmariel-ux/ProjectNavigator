@@ -53,6 +53,13 @@ import { isLanguageAcceptedBy, normalizeAcceptedLanguages } from '../utils/trans
 import { isTeamAutoValidated, resolveEffectiveTeamComplianceEntry } from '../utils/complianceAutoValidation.js';
 import { MANUAL_TEAM_REQUESTS_KEY, normalizeManualTeamRequests } from '../utils/manualTeamRequests.js';
 import { getAppScrollTopForElement, scrollAppTo } from '../utils/scrollContainer.js';
+import {
+  PERIMETER_TYPE_COMMITTEE,
+  PERIMETER_TYPE_TEAM,
+  buildPerimeterKey,
+  getSolicitablePerimeters,
+  getStagedConsultation
+} from '../utils/stagedConsultation.js';
 
 const formatNumber = (value, options = {}, language) => {
   return Number(value).toLocaleString(getLocaleTag(language), options);
@@ -651,6 +658,7 @@ export const SynthesisReport = ({
   submissionVersion = 0,
   lastSentAt = '',
   onSendUpdate,
+  onSolicitPerimeters,
   submissionHistory = null,
   launchSignal = '',
   roundStatus = null,
@@ -966,6 +974,106 @@ export const SynthesisReport = ({
         && !triggeredValidationCommittees.some((entry) => entry.id === committee.id)
     );
   }, [currentUserEmail, onReintegrateInCommittee, projectStatus, triggeredValidationCommittees, validationCommittees]);
+
+  // Consultation par vagues (cf. stagedConsultation.js) : les périmètres que le porteur peut
+  // choisir de solliciter, ceux qui attendent encore, et la vague de chacun des autres.
+  const stagedConsultation = useMemo(() => getStagedConsultation(answers), [answers]);
+  const solicitablePerimeters = useMemo(
+    () => getSolicitablePerimeters({ answers, analysis }, {
+      teams,
+      validationCommitteeConfig: normalizedValidationCommitteeConfig
+    }).map((perimeter) => ({
+      key: perimeter.key,
+      type: perimeter.type,
+      id: perimeter.id,
+      name: perimeter.type === PERIMETER_TYPE_TEAM
+        ? (resolveLocalizedText(perimeter.team?.name, language) || perimeter.id)
+        : (perimeter.committee?.name || perimeter.id)
+    })),
+    [analysis, answers, language, normalizedValidationCommitteeConfig, teams]
+  );
+  const deferredPerimeters = useMemo(() => {
+    if (!stagedConsultation.isActive) {
+      return [];
+    }
+    const solicited = new Set(stagedConsultation.solicited);
+    return solicitablePerimeters.filter((perimeter) => !solicited.has(perimeter.key));
+  }, [solicitablePerimeters, stagedConsultation]);
+  const deferredPerimeterKeys = useMemo(
+    () => new Set(deferredPerimeters.map((perimeter) => perimeter.key)),
+    [deferredPerimeters]
+  );
+  const perimeterWaveByKey = useMemo(() => stagedConsultation.waves.reduce((acc, wave, index) => {
+    wave.perimeters.forEach((key) => {
+      if (!acc[key]) {
+        acc[key] = { number: index + 1, at: wave.at };
+      }
+    });
+    return acc;
+  }, {}), [stagedConsultation]);
+  const isPreliminaryRequest = projectStatus === 'submitted' && submissionKind === SUBMISSION_KIND_PRELIMINARY;
+  const canSolicitPerimeters = isPreliminaryRequest
+    && isProjectEditable
+    && typeof onSolicitPerimeters === 'function';
+  const hasSolicitedOpinion = useMemo(() => solicitablePerimeters.some((perimeter) => {
+    if (deferredPerimeterKeys.has(perimeter.key)) {
+      return false;
+    }
+    const entry = perimeter.type === PERIMETER_TYPE_TEAM
+      ? complianceComments.teams?.[perimeter.id]
+      : complianceComments.committees?.[perimeter.id];
+    const status = typeof entry?.status === 'string' ? entry.status.trim() : '';
+    const comment = typeof entry?.comment === 'string' ? entry.comment.trim() : '';
+    return status.length > 0 || comment.length > 0;
+  }), [complianceComments, deferredPerimeterKeys, solicitablePerimeters]);
+  // Un expert d'un périmètre sollicité en premier doit savoir que d'autres attendent son avis.
+  const isFirstWaveExpert = deferredPerimeters.length > 0 && (
+    Array.from(complianceTeamIdsForUser).some(
+      (teamId) => !deferredPerimeterKeys.has(buildPerimeterKey(PERIMETER_TYPE_TEAM, teamId))
+    )
+    || triggeredValidationCommittees.some((committee) => (
+      !deferredPerimeterKeys.has(buildPerimeterKey(PERIMETER_TYPE_COMMITTEE, committee.id))
+      && (Array.isArray(committee?.emails) ? committee.emails : [])
+        .some((email) => normalizeEmail(email) === currentUserEmail)
+    ))
+  );
+  const formatWaveDate = useCallback((value) => {
+    if (!value) {
+      return '';
+    }
+    const date = new Date(value);
+    return Number.isNaN(date.getTime())
+      ? ''
+      : new Intl.DateTimeFormat(getLocaleTag(language), { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date);
+  }, [language]);
+  const renderPerimeterStage = (perimeterKey, hasOpinion) => {
+    if (deferredPerimeterKeys.has(perimeterKey)) {
+      return (
+        <div className="mt-3 rounded-xl border border-dashed border-gray-300 bg-gray-50 px-3 py-2 text-xs text-gray-700" role="status">
+          <p className="font-semibold text-gray-800">{t('synthesisReport.stagedConsultation.deferredTitle')}</p>
+          <p className="mt-1">{t('synthesisReport.stagedConsultation.deferredHint')}</p>
+          {canSolicitPerimeters && (
+            <button
+              type="button"
+              onClick={() => onSolicitPerimeters([perimeterKey])}
+              className="mt-2 rounded-lg border border-blue-200 bg-white px-2 py-1 font-semibold text-blue-700 hover:bg-blue-50"
+            >
+              {t('synthesisReport.stagedConsultation.solicitNow')}
+            </button>
+          )}
+        </div>
+      );
+    }
+    const wave = perimeterWaveByKey[perimeterKey];
+    if (!wave || hasOpinion) {
+      return null;
+    }
+    return (
+      <p className="mt-3 text-xs text-gray-600">
+        {t('synthesisReport.stagedConsultation.solicitedWave', { wave: wave.number, date: formatWaveDate(wave.at) })}
+      </p>
+    );
+  };
 
   const resolveTeamLabel = useCallback(
     (teamId) => {
@@ -1723,7 +1831,7 @@ export const SynthesisReport = ({
     );
   }, [additionalTeamSelection, language, onRequestAdditionalTeam, scheduleComplianceFeedback, t, teams]);
 
-  const handleSubmitProject = useCallback((kind = SUBMISSION_KIND_FINAL) => {
+  const handleSubmitProject = useCallback((kind = SUBMISSION_KIND_FINAL, solicitedPerimeterKeys) => {
     if (!onSubmitProject) {
       return;
     }
@@ -1734,12 +1842,13 @@ export const SynthesisReport = ({
       analysis,
       relevantTeams,
       timelineDetails,
-      submissionKind: kind
+      submissionKind: kind,
+      ...(Array.isArray(solicitedPerimeterKeys) ? { solicitedPerimeterKeys } : {})
     });
   }, [analysis, answers, effectiveProjectName, onSubmitProject, relevantTeams, timelineDetails]);
 
   const handleSubmitPreliminary = useCallback(
-    () => handleSubmitProject(SUBMISSION_KIND_PRELIMINARY),
+    (solicitedPerimeterKeys) => handleSubmitProject(SUBMISSION_KIND_PRELIMINARY, solicitedPerimeterKeys),
     [handleSubmitProject]
   );
 
@@ -1917,6 +2026,11 @@ export const SynthesisReport = ({
                 submissionVersion={submissionVersion}
                 lastSentAt={lastSentAt}
                 onSendUpdate={onSendUpdate}
+                solicitablePerimeters={solicitablePerimeters}
+                deferredPerimeters={deferredPerimeters}
+                hasSolicitedOpinion={hasSolicitedOpinion}
+                onSolicitPerimeters={canSolicitPerimeters ? onSolicitPerimeters : undefined}
+                onEditProject={onBack}
                 launchSignal={launchSignal}
                 roundStatus={roundStatus}
                 onRequestFinalValidation={onRequestFinalValidation}
@@ -2038,6 +2152,13 @@ export const SynthesisReport = ({
                     {teamStatusSummary[entry.value]} {t(`synthesisReport.${entry.labelKey}`).toLowerCase()}
                   </span>
                 ))}
+              </div>
+            )}
+            {isFirstWaveExpert && (
+              <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900" role="status">
+                {t('synthesisReport.stagedConsultation.firstWaveBanner', {
+                  perimeters: deferredPerimeters.map((perimeter) => perimeter.name).join(', ')
+                })}
               </div>
             )}
             {canRequestAdditionalTeam && (
@@ -2186,6 +2307,8 @@ export const SynthesisReport = ({
                   ? teamCollapsedOverrides[team.id]
                   : true;
                 const teamAccentColor = TEAM_STATUS_ACCENT_COLOR[storedEntry.status] ?? TEAM_STATUS_ACCENT_COLOR[''];
+                const teamPerimeterKey = buildPerimeterKey(PERIMETER_TYPE_TEAM, team.id);
+                const isTeamDeferred = deferredPerimeterKeys.has(teamPerimeterKey);
 
                 return (
                   <div
@@ -2239,7 +2362,11 @@ export const SynthesisReport = ({
                           le statut suffisent. La priorité ne s'affiche que lorsqu'elle sort de
                           l'ordinaire, et le détail reste dans la carte dépliée. */}
                       <div className="flex flex-shrink-0 flex-col items-end gap-2 sm:flex-row sm:items-center">
-                        {headerStatusMeta && (
+                        {isTeamDeferred ? (
+                          <span className="px-3 py-1 rounded-full text-xs font-semibold border border-gray-300 bg-gray-50 text-gray-700">
+                            {t('synthesisReport.stagedConsultation.deferredBadge')}
+                          </span>
+                        ) : headerStatusMeta && (
                           <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${headerStatusMeta.badgeClass}`}>
                             {headerStatusMeta.label}
                           </span>
@@ -2266,6 +2393,7 @@ export const SynthesisReport = ({
                             {renderTextWithLinks(teamContactLabel)}
                           </div>
                         )}
+                        {renderPerimeterStage(teamPerimeterKey, hasExpertOpinion)}
 
                         {(teamClaim || canActOnTeamClaim) && (
                           <div className="mt-3 space-y-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-700">
@@ -3061,7 +3189,11 @@ export const SynthesisReport = ({
                                 : t('synthesisReport.committeeOptionalHint')}
                             </p>
                           </div>
-                          {committeeStatusMeta && (
+                          {deferredPerimeterKeys.has(buildPerimeterKey(PERIMETER_TYPE_COMMITTEE, committee.id)) ? (
+                            <span className="px-3 py-1 rounded-full text-xs font-semibold border border-gray-300 bg-white text-gray-700">
+                              {t('synthesisReport.stagedConsultation.deferredBadge')}
+                            </span>
+                          ) : committeeStatusMeta && (
                             <span
                               className={`px-3 py-1 rounded-full text-xs font-semibold border ${committeeStatusMeta.badgeClass}`}
                             >
@@ -3069,6 +3201,10 @@ export const SynthesisReport = ({
                             </span>
                           )}
                         </div>
+                        {renderPerimeterStage(
+                          buildPerimeterKey(PERIMETER_TYPE_COMMITTEE, committee.id),
+                          committeeCommentEntry.status.length > 0 || committeeCommentEntry.comment.trim().length > 0
+                        )}
 
                         {!isLanguageAcceptedBy(committee.acceptedLanguages, language) && (
                           <div className="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">

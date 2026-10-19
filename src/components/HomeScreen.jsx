@@ -25,6 +25,12 @@ import { normalizeProjectFilterConfig } from '../utils/projectFilters.js';
 import { normalizeInspirationFiltersConfig } from '../utils/inspirationConfig.js';
 import { normalizeTeamContacts } from '../utils/teamContacts.js';
 import { MANUAL_TEAM_REQUESTS_KEY, normalizeManualTeamRequests } from '../utils/manualTeamRequests.js';
+import {
+  PERIMETER_TYPE_COMMITTEE,
+  PERIMETER_TYPE_TEAM,
+  buildPerimeterKey,
+  getDeferredPerimeterKeys
+} from '../utils/stagedConsultation.js';
 import { normalizeEmail } from '../utils/normalizeEmail.js';
 import { isProjectOpenForEditing } from '../utils/submissionKind.js';
 import {
@@ -321,6 +327,14 @@ const VALIDATION_BADGE_META = {
     className: 'bg-blue-50 border-blue-200 text-blue-700',
     labelKey: 'home.validationStatusPreliminary',
     tooltipKey: 'home.validationTooltipPreliminary'
+  },
+  // Le porteur n'a sollicité qu'une partie des périmètres : aucun avis favorable ne peut encore
+  // parler pour le projet entier.
+  partial: {
+    icon: Clock,
+    className: 'bg-amber-50 border-amber-200 text-amber-700',
+    labelKey: 'home.validationStatusPartial',
+    tooltipKey: 'home.validationTooltipPartial'
   }
 };
 
@@ -687,8 +701,17 @@ export const HomeScreen = ({
         const relevantTeams = teams.filter(
           (team) => team?.id && (analysisTeamIds.includes(team.id) || manualTeamIds.includes(team.id))
         );
+        // Un périmètre que le porteur a mis de côté (consultation par vagues) n'a pas encore été
+        // sollicité : ses experts ne doivent pas voir le projet. Une équipe à qui une question a
+        // été posée l'a été, elle, explicitement — elle garde le projet.
+        const deferredKeys = getDeferredPerimeterKeys(project, {
+          teams,
+          validationCommitteeConfig: normalizedValidationCommitteeConfig
+        });
 
         const triggeredTeams = relevantTeams
+          .filter((team) => !deferredKeys.has(buildPerimeterKey(PERIMETER_TYPE_TEAM, team.id))
+            || manualTeamIds.includes(team.id))
           .filter((team) => {
             const contacts = normalizeTeamContacts(team);
             return contacts.some((contact) => normalizeEmail(contact) === currentUserEmail);
@@ -731,7 +754,11 @@ export const HomeScreen = ({
             isStale: false
           }));
 
-        const triggeredPerimeters = [...triggeredTeams, ...triggeredCommittees].map((entry) => ({
+        const solicitedCommittees = triggeredCommittees.filter(
+          (committee) => !deferredKeys.has(buildPerimeterKey(PERIMETER_TYPE_COMMITTEE, committee.id))
+        );
+
+        const triggeredPerimeters = [...triggeredTeams, ...solicitedCommittees].map((entry) => ({
           ...entry,
           isResolved: isCompliancePerimeterResolved(
             entry.type === 'committee'
@@ -2012,7 +2039,8 @@ export const HomeScreen = ({
                   className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full border ${validationBadge.className}`}
                   title={t(validationBadge.tooltipKey, {
                     approved: validation.approvedCount,
-                    total: validation.requiredCount
+                    total: validation.requiredCount,
+                    deferred: validation.deferredCount
                   })}
                   aria-label={t('home.validationStatusAriaLabel', {
                     name: displayProjectName || t('home.projectNameFallback'),
