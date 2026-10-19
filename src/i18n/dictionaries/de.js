@@ -1214,6 +1214,7 @@ export default {
       targetElementIdHint: 'Geben Sie das id-Attribut (ohne #) ein, um ein bestimmtes Element anzusteuern.',
       targetCssSelectorLabel: 'Ziel (erweiterter CSS-Selektor)',
       targetCssSelectorHint: 'Verwenden Sie bei Bedarf einen benutzerdefinierten Selektor (z. B. [data-tour-id="home-create-project"]).',
+      titleFieldLabel: 'Titel',
       tooltipPositionLabel: 'Tooltip-Position',
       automaticOption: 'Automatisch',
       topOption: 'Oben',

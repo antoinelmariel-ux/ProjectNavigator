@@ -1212,6 +1212,7 @@ export default {
       targetElementIdHint: 'Saisissez l’attribut id (sans #) pour cibler un élément précis.',
       targetCssSelectorLabel: 'Cible (sélecteur CSS avancé)',
       targetCssSelectorHint: 'Utilisez un sélecteur personnalisé si besoin (ex. [data-tour-id="home-create-project"]).',
+      titleFieldLabel: 'Titre',
       tooltipPositionLabel: 'Position du tooltip',
       automaticOption: 'Automatique',
       topOption: 'Haut',

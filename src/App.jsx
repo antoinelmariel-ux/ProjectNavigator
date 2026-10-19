@@ -134,6 +134,7 @@ import { getCurrentUser, getRealUser } from './utils/spContext.js';
 import { isImpersonating } from './utils/impersonation.js';
 import { dataProvider } from './utils/dataProvider.js';
 import { inspirationDataProvider, buildOnboardingDemoInspirations } from './utils/inspirationDataProvider.js';
+import { hasInspirationContent, pruneEmptyInspirationDrafts } from './utils/inspirationDrafts.js';
 import { projectMembersProvider } from './utils/projectMembersProvider.js';
 import { userProfileProvider } from './utils/userProfileProvider.js';
 import { showcaseStickyNotesProvider } from './utils/showcaseStickyNotesProvider.js';
@@ -5275,21 +5276,7 @@ const updateProjectFilters = useCallback((updater) => {
 
   const handleCancelInspirationForm = useCallback(() => {
     if (activeInspirationProject) {
-      const hasContent = [
-        activeInspirationProject.title,
-        activeInspirationProject.labName,
-        activeInspirationProject.target,
-        activeInspirationProject.typology,
-        activeInspirationProject.therapeuticArea,
-        activeInspirationProject.country,
-        activeInspirationProject.description,
-        activeInspirationProject.link,
-        activeInspirationProject.review
-      ].some((value) => typeof value === 'string' && value.trim().length > 0)
-        || (Array.isArray(activeInspirationProject.documents)
-          && activeInspirationProject.documents.length > 0);
-
-      if (!hasContent) {
+      if (!hasInspirationContent(activeInspirationProject)) {
         setInspirationProjects((prev) =>
           (Array.isArray(prev) ? prev : []).filter((project) => project?.id !== activeInspirationProject.id)
         );
@@ -5299,6 +5286,15 @@ const updateProjectFilters = useCallback((updater) => {
     setScreen('home');
     handleHomeViewChange('inspiration');
   }, [activeInspirationProject, handleHomeViewChange]);
+
+  // « Annuler » nettoie l'ébauche vide, mais la barre de navigation, le logo ou un rechargement
+  // quittent le formulaire sans passer par lui : on balaie donc à chaque changement d'écran.
+  useEffect(() => {
+    if (screen === 'inspiration-form') {
+      return;
+    }
+    setInspirationProjects((prev) => pruneEmptyInspirationDrafts(prev));
+  }, [screen, inspirationProjects]);
 
   const handleOpenInspirationProject = useCallback((projectId) => {
     if (!projectId) {
@@ -6499,7 +6495,7 @@ const updateProjectFilters = useCallback((updater) => {
       narrativeQuestionIds: getNarrativeQuestionIds(changes),
       changes: changes.map((change) => ({
         questionId: change.questionId,
-        label: resolveLocalizedText(change.question?.question, DEFAULT_LANGUAGE) || change.questionId,
+        label: resolveLocalizedText(change.question?.question, language) || change.questionId,
         previousLabel: change.previousLabel,
         currentLabel: change.currentLabel,
         narrative: change.narrative
@@ -6514,8 +6510,8 @@ const updateProjectFilters = useCallback((updater) => {
     setSaveFeedback({
       status: 'success',
       message: impact.hasImpact
-        ? t('app.update.sentWithImpact')
-        : t('app.update.sentWithoutImpact')
+        ? t('app.submit.sentWithImpact')
+        : t('app.submit.sentWithoutImpact')
     });
 
     return entry;
