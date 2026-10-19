@@ -6529,8 +6529,8 @@ const updateProjectFilters = useCallback((updater) => {
     setSaveFeedback({
       status: 'success',
       message: impact.hasImpact
-        ? t('app.update.sentWithImpact')
-        : t('app.update.sentWithoutImpact')
+        ? t('app.submit.sentWithImpact')
+        : t('app.submit.sentWithoutImpact')
     });
 
     return entry;
