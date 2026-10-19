@@ -148,4 +148,48 @@ test.describe('Visionneuse documentaire — dépôt de fichier par glisser-dépo
     await stopHovering(page);
     expect(topElementClass).toBe('veil');
   });
+
+  test('un fichier lâché à côté d’une zone n’est pas ouvert par le navigateur, seulement en édition', async ({ page }) => {
+    test.setTimeout(180000);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await gotoHome(page);
+    await createProjectAndOpenShowcase(page);
+
+    // Renvoie, pour un dragover puis un drop lâchés hors de toute zone, si le navigateur
+    // aurait appliqué son comportement par défaut (ouvrir le fichier) et l'effet affiché.
+    const dropOutsideZones = () =>
+      page.evaluate(() => {
+        const target = document.querySelector('[data-showcase-section]') || document.body;
+        const transfer = new DataTransfer();
+        transfer.items.add(new File(['x'], 'egare.png', { type: 'image/png' }));
+        const over = new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer: transfer });
+        target.dispatchEvent(over);
+        const drop = new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: transfer });
+        target.dispatchEvent(drop);
+        return {
+          overBlocked: over.defaultPrevented,
+          dropEffect: transfer.dropEffect,
+          dropBlocked: drop.defaultPrevented
+        };
+      });
+
+    // Hors édition, l'application ne s'en mêle pas.
+    expect(await dropOutsideZones()).toMatchObject({ overBlocked: false, dropBlocked: false });
+
+    await page.getByRole('button', { name: 'Modifier' }).click();
+    await expect(page.locator('.sge-topbar')).toBeVisible();
+    expect(await dropOutsideZones()).toEqual({ overBlocked: true, dropEffect: 'none', dropBlocked: true });
+
+    // Une zone de la visionneuse garde la main : le dépôt y est accepté, pas refusé.
+    const inserter = page.locator('.sge-insert').nth(2);
+    await inserter.scrollIntoViewIfNeeded();
+    await inserter.hover();
+    await inserter.locator('.sge-insert__button').click();
+    await page.locator('.sge-picker__card').filter({ hasText: 'Visionneuse documentaire' }).click();
+    const canvasZone = page.locator(
+      '.sge-workspace__canvas [data-showcase-section="document-viewer"] .sg-doc .sge-dropzone'
+    );
+    await dropFiles(canvasZone, page, [png('accepte.png')]);
+    await expect(canvasZone.locator('img.sg-doc__image')).toBeVisible();
+  });
 });

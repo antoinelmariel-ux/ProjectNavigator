@@ -10,7 +10,7 @@ import { SectionInserter } from './showcase/SectionInserter.jsx';
 import { ShowcaseEditorBar } from './showcase/ShowcaseEditorBar.jsx';
 import { ShowcaseOutline } from './showcase/ShowcaseOutline.jsx';
 import { InlineRichText } from './showcase/InlineRichText.jsx';
-import { DocumentDropZone } from './showcase/DocumentDropZone.jsx';
+import { DocumentDropZone, useBlockStrayFileDrops } from './showcase/DocumentDropZone.jsx';
 import {
   SHOWCASE_SECTION_IDS,
   buildPreviewAnswers,
@@ -2446,6 +2446,7 @@ export const ProjectShowcase = ({
   // Chrome d'édition visible : on édite *et* on n'est pas passé en aperçu (touche P).
   // Toute la différence entre « je travaille » et « je juge le rendu » tient à ce booléen.
   const isEditorChromeVisible = isLiveEditing && !isPreviewingInEditor;
+  useBlockStrayFileDrops(isLiveEditing);
 
   const canShowBudget = isEditorChromeVisible || displayMode === 'full' || lightSections.budget !== false;
 

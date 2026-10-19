@@ -46,6 +46,42 @@ const useFileDragOverPage = (enabled) => {
   return isActive;
 };
 
+// Pendant l'édition, un fichier lâché à côté d'une zone ne doit pas être ouvert par le
+// navigateur : sur une page SharePoint, cela quitte l'application en pleine modification.
+// Écoute en phase de bouillonnement sur `window` : une zone (ou tout autre gestionnaire,
+// SharePoint compris) qui accepte le fichier a déjà appelé preventDefault et reste maître.
+export const useBlockStrayFileDrops = (enabled) => {
+  useEffect(() => {
+    if (!enabled || typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const handleDragOver = (event) => {
+      if (event.defaultPrevented || !hasFiles(event)) {
+        return;
+      }
+      event.preventDefault();
+      if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = 'none';
+      }
+    };
+    const handleDrop = (event) => {
+      if (event.defaultPrevented || !hasFiles(event)) {
+        return;
+      }
+      event.preventDefault();
+    };
+
+    window.addEventListener('dragover', handleDragOver);
+    window.addEventListener('drop', handleDrop);
+
+    return () => {
+      window.removeEventListener('dragover', handleDragOver);
+      window.removeEventListener('drop', handleDrop);
+    };
+  }, [enabled]);
+};
+
 /**
  * Zone de dépôt de fichier pour la visionneuse documentaire, posée autour d'un contenu
  * existant (champ de l'inspecteur, emplacement vide ou document affiché sur le canevas).
