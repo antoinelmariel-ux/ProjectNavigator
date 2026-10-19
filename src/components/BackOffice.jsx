@@ -115,6 +115,7 @@ import {
   isBuiltInInspirationFormField
 } from '../utils/inspirationConfig.js';
 import { InspirationFieldEditor } from './InspirationFieldEditor.jsx';
+import { InspirationFilterEditor } from './InspirationFilterEditor.jsx';
 import { cloneDeep } from '../utils/clone.js';
 import { initialShowcaseThemes } from '../data/showcaseThemes.js';
 import { normalizeValidationCommitteeConfig } from '../utils/validationCommittee.js';
@@ -946,7 +947,8 @@ export const BackOffice = ({
   const [expandedQuestionIds, setExpandedQuestionIds] = useState(() => new Set());
   const [expandedRuleIds, setExpandedRuleIds] = useState(() => new Set());
   const [selectedFilterQuestionId, setSelectedFilterQuestionId] = useState('');
-  const [selectedInspirationFilterQuestionId, setSelectedInspirationFilterQuestionId] = useState('');
+  const [inspirationFilterEditor, setInspirationFilterEditor] = useState(null);
+  const [expandedInspirationFilterIds, setExpandedInspirationFilterIds] = useState(() => new Set());
   const [inspirationFieldEditor, setInspirationFieldEditor] = useState(null);
   const [inspirationFieldSearch, setInspirationFieldSearch] = useState('');
   const [inspirationFieldTypeFilter, setInspirationFieldTypeFilter] = useState('all');
@@ -2450,6 +2452,7 @@ export const BackOffice = ({
         if (sourceId) {
           usedQuestionIds.add(sourceId);
         }
+        usedQuestionIds.add(field.id);
       });
     }
 
@@ -2467,19 +2470,7 @@ export const BackOffice = ({
     return options.sort((a, b) => a.label.localeCompare(b.label, 'fr', { sensitivity: 'base' }));
   }, [inspirationFormFieldEntries, normalizedInspirationFilters.fields, language]);
 
-  const selectedInspirationFilterOption = useMemo(() => {
-    if (!selectedInspirationFilterQuestionId) {
-      return null;
-    }
-
-    return availableInspirationFilterQuestionOptions.find(
-      (option) => option.value === selectedInspirationFilterQuestionId
-    ) || null;
-  }, [availableInspirationFilterQuestionOptions, selectedInspirationFilterQuestionId]);
-
-  const canAddInspirationFilter = Boolean(
-    selectedInspirationFilterOption && !selectedInspirationFilterOption.disabled
-  );
+  const hasAvailableInspirationFilterSource = availableInspirationFilterQuestionOptions.some((option) => !option.disabled);
 
   const handleProjectFilterToggle = useCallback((fieldId, enabled) => {
     if (typeof setProjectFilters !== 'function') {
@@ -2567,78 +2558,98 @@ export const BackOffice = ({
     setSelectedFilterQuestionId('');
   }, [questions, selectedFilterQuestionId, setProjectFilters]);
 
-  const handleAddInspirationFilter = useCallback(() => {
+  const openInspirationFilterCreation = useCallback(() => {
+    setInspirationFilterEditor({ mode: 'create', filter: null });
+  }, []);
+
+  const openInspirationFilterEdition = useCallback((filter) => {
+    if (filter) {
+      setInspirationFilterEditor({ mode: 'edit', filter });
+    }
+  }, []);
+
+  const closeInspirationFilterEditor = useCallback(() => {
+    setInspirationFilterEditor(null);
+  }, []);
+
+  const toggleInspirationFilterExpansion = useCallback((filterId) => {
+    setExpandedInspirationFilterIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(filterId)) {
+        next.delete(filterId);
+      } else {
+        next.add(filterId);
+      }
+      return next;
+    });
+  }, []);
+
+  const moveInspirationFilter = useCallback((fromIndex, toIndex) => {
     if (typeof setInspirationFilters !== 'function') {
-      return;
-    }
-
-    const fieldId = typeof selectedInspirationFilterQuestionId === 'string'
-      ? selectedInspirationFilterQuestionId.trim()
-      : '';
-
-    if (fieldId.length === 0) {
-      return;
-    }
-
-    const formField = Array.isArray(inspirationFormFieldEntries)
-      ? inspirationFormFieldEntries.find((field) => field && field.id === fieldId)
-      : null;
-
-    if (!formField || !INSPIRATION_FILTER_COMPATIBLE_FIELD_TYPES.has(formField.type)) {
       return;
     }
 
     setInspirationFilters((prev) => {
       const normalized = normalizeInspirationFiltersConfig(prev);
-      const existing = Array.isArray(normalized.fields)
-        ? normalized.fields.some((field) => {
-            if (!field) {
-              return false;
-            }
-
-            const sourceId = typeof field.sourceQuestionId === 'string' && field.sourceQuestionId.trim().length > 0
-              ? field.sourceQuestionId.trim()
-              : field.id;
-
-            return sourceId === fieldId;
-          })
-        : false;
-
-      if (existing) {
-        return normalized;
+      const fields = normalized.fields.slice();
+      if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || fromIndex >= fields.length || toIndex >= fields.length) {
+        return prev;
       }
+      const [moved] = fields.splice(fromIndex, 1);
+      fields.splice(toIndex, 0, moved);
+      setReorderAnnouncement(t('backOffice.main.fieldMovedAnnouncementTemplate', {
+        label: resolveLocalizedText(moved.label, language) || moved.id,
+        position: toIndex + 1,
+        total: fields.length
+      }));
+      return { ...normalized, fields };
+    });
+  }, [setInspirationFilters, t, language]);
 
-      const type = formField.type === 'select' || formField.type === 'multi_select' ? 'select' : 'text';
-      const newField = {
-        id: formField.id,
-        label: formField.label || formField.id,
-        type,
-        enabled: true,
-        sourceQuestionId: formField.id
-      };
+  const saveInspirationFilter = useCallback((nextFilter) => {
+    if (typeof setInspirationFilters !== 'function' || !inspirationFilterEditor || !nextFilter) {
+      return;
+    }
 
-      if (type === 'select') {
-        newField.emptyOptionLabel = t('backOffice.main.allValuesDefault');
-        if (Array.isArray(formField.options)) {
-          newField.options = formField.options;
+    const { mode, filter: originalFilter } = inspirationFilterEditor;
+    const sourceField = inspirationFormFieldEntries.find((field) => field && field.id === nextFilter.sourceQuestionId);
+
+    if (mode !== 'edit' && (!sourceField || !INSPIRATION_FILTER_COMPATIBLE_FIELD_TYPES.has(sourceField.type))) {
+      return;
+    }
+
+    setInspirationFilters((prev) => {
+      const normalized = normalizeInspirationFiltersConfig(prev);
+      const fields = normalized.fields.slice();
+
+      if (mode === 'edit') {
+        const index = fields.findIndex((item) => item.id === originalFilter?.id);
+        if (index === -1) {
+          return prev;
         }
+        fields[index] = nextFilter;
+      } else {
+        if (
+          getInspirationFiltersUsingFormField(normalized, sourceField.id).length > 0
+          || fields.some((item) => item.id === sourceField.id)
+        ) {
+          return prev;
+        }
+        const created = { ...nextFilter, id: sourceField.id };
+        if (created.type === 'select' && Array.isArray(sourceField.options)) {
+          created.options = sourceField.options;
+        }
+        fields.push(created);
       }
 
-      const fields = Array.isArray(normalized.fields) ? [...normalized.fields, newField] : [newField];
-
-      return {
-        ...normalized,
-        fields
-      };
+      return normalizeInspirationFiltersConfig({ ...normalized, fields });
     });
 
-    setSelectedInspirationFilterQuestionId('');
-  }, [
-    inspirationFormFieldEntries,
-    selectedInspirationFilterQuestionId,
-    setInspirationFilters,
-    t
-  ]);
+    setReorderAnnouncement(t('backOffice.inspirationFields.fieldSavedAnnouncementTemplate', {
+      label: resolveLocalizedText(nextFilter.label, language) || nextFilter.sourceQuestionId
+    }));
+    setInspirationFilterEditor(null);
+  }, [inspirationFilterEditor, inspirationFormFieldEntries, language, setInspirationFilters, t]);
 
   const handleRemoveProjectFilter = useCallback((field) => {
     if (!field || typeof setProjectFilters !== 'function') {
@@ -2757,34 +2768,6 @@ export const BackOffice = ({
     setProjectFilters(resetProjectFiltersConfig());
   }, [setProjectFilters]);
 
-  const parseOptionList = (value) => {
-    if (typeof value !== 'string') {
-      return [];
-    }
-
-    return value
-      .split(',')
-      .map((option) => option.trim())
-      .filter((option) => option.length > 0);
-  };
-
-  // Une option de sélection garde une valeur stable (ce qui est réellement enregistré et comparé
-  // par les filtres), indépendante de son libellé traduit — même principe que value/label sur les
-  // options de questions.js. On ne touche donc qu'au libellé de la langue en cours d'édition ; une
-  // nouvelle entrée dans la liste (comptage plus long qu'avant) crée une nouvelle option.
-  const mergeOptionLabelsFromCommaList = (existingOptions, rawValue, editingLanguage) => {
-    const labels = parseOptionList(rawValue);
-    const existing = Array.isArray(existingOptions) ? existingOptions : [];
-
-    return labels.map((text, index) => {
-      const current = existing[index];
-      if (current && typeof current === 'object') {
-        return { ...current, label: setLocalizedText(current.label, editingLanguage, text) };
-      }
-      return { value: text, label: { [editingLanguage]: text } };
-    });
-  };
-
   const handleInspirationFilterToggle = useCallback((fieldId, enabled) => {
     if (typeof setInspirationFilters !== 'function') {
       return;
@@ -2792,32 +2775,6 @@ export const BackOffice = ({
 
     setInspirationFilters((prev) => updateInspirationFilterField(prev, fieldId, { enabled }));
   }, [setInspirationFilters]);
-
-  const handleInspirationFilterLabelChange = useCallback((fieldId, text) => {
-    if (typeof setInspirationFilters !== 'function') {
-      return;
-    }
-
-    setInspirationFilters((prev) => {
-      const normalized = normalizeInspirationFiltersConfig(prev);
-      const current = normalized.fields.find((field) => field.id === fieldId);
-      const label = setLocalizedText(current?.label, inspirationEditingLanguage, text);
-      return updateInspirationFilterField(prev, fieldId, { label });
-    });
-  }, [setInspirationFilters, inspirationEditingLanguage]);
-
-  const handleInspirationFilterOptionsChange = useCallback((fieldId, rawValue) => {
-    if (typeof setInspirationFilters !== 'function') {
-      return;
-    }
-
-    setInspirationFilters((prev) => {
-      const normalized = normalizeInspirationFiltersConfig(prev);
-      const current = normalized.fields.find((field) => field.id === fieldId);
-      const options = mergeOptionLabelsFromCommaList(current?.options, rawValue, inspirationEditingLanguage);
-      return updateInspirationFilterField(prev, fieldId, { options });
-    });
-  }, [setInspirationFilters, inspirationEditingLanguage]);
 
   const handleResetInspirationFilters = useCallback(() => {
     if (typeof setInspirationFilters !== 'function') {
@@ -2833,7 +2790,7 @@ export const BackOffice = ({
     }
 
     setInspirationFormFields((prev) => updateInspirationFormField(prev, fieldId, { enabled }));
-  }, [setInspirationFilters, setInspirationFormFields]);
+  }, [setInspirationFormFields]);
 
   const syncLinkedInspirationFilterOptions = useCallback((fieldId, options) => {
     if (typeof setInspirationFilters !== 'function') {
@@ -5367,183 +5324,226 @@ export const BackOffice = ({
 
               {renderReferentialPublishControl('settings', { noteKey: 'referentialSettingsSharedNote' })}
 
-              <article className="space-y-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="space-y-2">
+              <article className="space-y-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div>
                     <h2 className="text-2xl font-bold text-gray-800">{t('backOffice.main.inspirationFiltersTitle')}</h2>
-                    <p className="text-sm text-gray-600">
-                      {t('backOffice.main.inspirationFiltersSubtitle')}
-                    </p>
+                    <p className="text-sm text-gray-600">{t('backOffice.main.inspirationFiltersSubtitle')}</p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleResetInspirationFilters}
-                    className={`inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
-                      inspirationFiltersAreDefault
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        : 'bg-blue-600 text-white hover:bg-blue-700'
-                    }`}
-                    disabled={inspirationFiltersAreDefault}
-                  >
-                    {t('backOffice.main.resetButton')}
-                  </button>
-                </header>
-
-                <div className="flex flex-col gap-4">
-                  <div className="rounded-xl border border-dashed border-blue-200 bg-blue-50/70 p-4 md:flex md:items-end md:justify-between md:gap-4">
-                    <div className="flex-1 space-y-2">
-                      <label htmlFor="new-inspiration-filter-question" className="text-sm font-medium text-blue-900">
-                        {t('backOffice.main.addInspirationFilterFromFieldLabel')}
-                      </label>
-                      <select
-                        id="new-inspiration-filter-question"
-                        value={selectedInspirationFilterQuestionId}
-                        onChange={(event) => setSelectedInspirationFilterQuestionId(event.target.value)}
-                        className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                      >
-                        <option value="">{t('backOffice.main.selectFieldPlaceholder')}</option>
-                        {availableInspirationFilterQuestionOptions.map((option) => (
-                          <option key={option.value} value={option.value} disabled={option.disabled}>
-                            {option.label}{option.disabled ? t('backOffice.main.alreadyUsedSuffix') : ''}
-                          </option>
-                        ))}
-                      </select>
-                      <p className="text-xs text-blue-700">
-                        {t('backOffice.main.inspirationFilterableFieldsHint')}
-                      </p>
-                    </div>
+                  <div className="flex flex-col gap-2 sm:flex-row">
                     <button
                       type="button"
-                      onClick={handleAddInspirationFilter}
-                      disabled={!canAddInspirationFilter}
-                      className={`mt-4 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors md:mt-0 ${
-                        canAddInspirationFilter
+                      onClick={handleResetInspirationFilters}
+                      disabled={inspirationFiltersAreDefault}
+                      className={`inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                        inspirationFiltersAreDefault
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {t('backOffice.main.resetButton')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={openInspirationFilterCreation}
+                      disabled={!hasAvailableInspirationFilterSource}
+                      title={hasAvailableInspirationFilterSource ? undefined : t('backOffice.inspirationFilters.noSourceAvailable')}
+                      className={`inline-flex items-center justify-center px-4 py-2 rounded-lg shadow-sm w-full sm:w-auto text-sm sm:text-base ${
+                        hasAvailableInspirationFilterSource
                           ? 'bg-blue-600 text-white hover:bg-blue-700'
                           : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                       }`}
                     >
-                      <Plus className="w-4 h-4" /> {t('backOffice.main.addFilterButton')}
+                      <Plus className="w-5 h-5 mr-2" />
+                      {t('backOffice.inspirationFilters.addButton')}
                     </button>
                   </div>
+                </div>
 
-                  <div className="space-y-4">
-                    {inspirationFilterFields.length === 0 ? (
-                      <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 text-sm text-gray-600">
-                        {t('backOffice.main.noFilterConfiguredYet')}
-                      </div>
-                    ) : (
-                      inspirationFilterFields.map((field) => {
-                        const typeLabel = getInspirationFilterTypeLabel(t, field.type) || t('backOffice.main.parameterFallbackLabel');
-                        const labelInputId = `inspiration-filter-label-${field.id}`;
-                        const sourceQuestionId = field.sourceQuestionId || field.id;
-                        const sourceQuestion = inspirationFormFieldEntries.find(
-                          (item) => item && item.id === sourceQuestionId
-                        );
-                        const sourceLabel = resolveLocalizedText(sourceQuestion?.label, language);
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                  <p className="text-xs text-gray-500">
+                    {inspirationFilterFields.length === 0
+                      ? t('backOffice.main.noFilterConfiguredYet')
+                      : t('backOffice.inspirationFilters.summaryTemplate', {
+                          count: inspirationFilterFields.length,
+                          enabled: inspirationFilterFields.filter((filter) => filter.enabled).length
+                        })}
+                    {!hasAvailableInspirationFilterSource && inspirationFilterFields.length > 0 && (
+                      <span>{' '}{t('backOffice.inspirationFilters.noSourceAvailable')}</span>
+                    )}
+                  </p>
+                </div>
 
-                        return (
-                          <article key={field.id} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                              <div className="space-y-2">
-                                <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wide">
-                                  <span className="rounded-full bg-blue-100 px-2 py-1 text-blue-700">
-                                    {typeLabel}
+                {inspirationFilterFields.length === 0 ? (
+                  <div className="border border-dashed border-gray-300 rounded-xl p-6 text-center text-gray-500">
+                    {t('backOffice.main.noFilterConfiguredYet')}
+                  </div>
+                ) : (
+                  <ol className="list-none pl-0 space-y-4">
+                    {inspirationFilterFields.map((filter, index) => {
+                      const typeLabel = getInspirationFilterTypeLabel(t, filter.type) || t('backOffice.main.parameterFallbackLabel');
+                      const sourceId = filter.sourceQuestionId || filter.id;
+                      const sourceField = inspirationFormFieldEntries.find((item) => item && item.id === sourceId);
+                      const sourceLabel = resolveLocalizedText(sourceField?.label, language) || sourceId;
+                      const filterDisplayName = resolveLocalizedText(filter.label, language) || filter.id;
+                      const isExpanded = expandedInspirationFilterIds.has(filter.id);
+                      const detailsId = `inspiration-filter-details-${filter.id}`;
+                      const options = Array.isArray(sourceField?.options) ? sourceField.options : (Array.isArray(filter.options) ? filter.options : []);
+                      const toggleLabel = isExpanded
+                        ? t('backOffice.inspirationFilters.hideDetailsTemplate', { name: filterDisplayName })
+                        : t('backOffice.inspirationFilters.showDetailsTemplate', { name: filterDisplayName });
+
+                      return (
+                        <li
+                          key={filter.id}
+                          className={`border border-gray-200 rounded-xl p-6 shadow-sm ${filter.enabled ? 'bg-white' : 'bg-gray-50'}`}
+                        >
+                          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                            <div className="flex items-start gap-3 flex-1 min-w-0">
+                              <button
+                                type="button"
+                                onClick={() => toggleInspirationFilterExpansion(filter.id)}
+                                className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full"
+                                aria-expanded={isExpanded}
+                                aria-controls={detailsId}
+                              >
+                                <ChevronRight className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                                <span className="sr-only">{toggleLabel}</span>
+                              </button>
+                              <div className="space-y-2 flex-1 min-w-0">
+                                <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
+                                  <span className="px-2 py-1 rounded-full bg-gray-100 text-gray-600">
+                                    {t('backOffice.main.positionTemplate', { position: index + 1, total: inspirationFilterFields.length })}
                                   </span>
+                                  <span className="px-2 py-1 rounded-full bg-blue-100 text-blue-700">{typeLabel}</span>
                                   <span
-                                    className={`rounded-full px-2 py-1 ${
-                                      field.enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'
+                                    className={`px-2 py-1 rounded-full ${
+                                      filter.enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'
                                     }`}
                                   >
-                                    {field.enabled ? t('backOffice.main.enabledLabel') : t('backOffice.main.disabledLabel')}
+                                    {filter.enabled ? t('backOffice.main.enabledLabel') : t('backOffice.main.disabledLabel')}
+                                  </span>
+                                  {!sourceField && (
+                                    <span className="px-2 py-1 rounded-full bg-red-100 text-red-700">
+                                      {t('backOffice.inspirationFilters.missingSourceBadge')}
+                                    </span>
+                                  )}
+                                </div>
+                                <h3 className={`text-lg font-semibold ${filter.enabled ? 'text-gray-800' : 'text-gray-500'}`}>
+                                  {filterDisplayName}
+                                </h3>
+                                <div className="flex flex-wrap gap-2 text-xs">
+                                  <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded-full border border-blue-100">
+                                    {t('backOffice.inspirationFilters.sourceChipTemplate', { field: sourceLabel })}
                                   </span>
                                 </div>
-                                <h3 className="text-lg font-semibold text-gray-800">{resolveLocalizedText(field.label, language) || field.id}</h3>
-                                {sourceQuestionId && (
-                                  <p className="text-xs text-gray-500">
-                                    {t('backOffice.main.sourceLabelTemplate', { value: sourceQuestionId })}
-                                    {sourceLabel ? ` – ${sourceLabel}` : ''}
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => moveInspirationFilter(index, index - 1)}
+                                disabled={index === 0}
+                                className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded disabled:opacity-30 disabled:hover:bg-transparent"
+                                aria-label={t('backOffice.inspirationFilters.moveUpAriaTemplate', { name: filterDisplayName })}
+                                title={t('backOffice.inspirationFilters.moveUpAriaTemplate', { name: filterDisplayName })}
+                              >
+                                <ArrowUp className="w-5 h-5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => moveInspirationFilter(index, index + 1)}
+                                disabled={index === inspirationFilterFields.length - 1}
+                                className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded disabled:opacity-30 disabled:hover:bg-transparent"
+                                aria-label={t('backOffice.inspirationFilters.moveDownAriaTemplate', { name: filterDisplayName })}
+                                title={t('backOffice.inspirationFilters.moveDownAriaTemplate', { name: filterDisplayName })}
+                              >
+                                <ArrowDown className="w-5 h-5" />
+                              </button>
+                              <button
+                                type="button"
+                                role="switch"
+                                aria-checked={filter.enabled}
+                                onClick={() => handleInspirationFilterToggle(filter.id, !filter.enabled)}
+                                className="p-2 text-gray-600 hover:bg-gray-100 rounded"
+                                aria-label={t(filter.enabled
+                                  ? 'backOffice.inspirationFilters.disableAriaTemplate'
+                                  : 'backOffice.inspirationFilters.enableAriaTemplate', { name: filterDisplayName })}
+                                title={t(filter.enabled
+                                  ? 'backOffice.inspirationFilters.disableAriaTemplate'
+                                  : 'backOffice.inspirationFilters.enableAriaTemplate', { name: filterDisplayName })}
+                              >
+                                {filter.enabled ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => openInspirationFilterEdition(filter)}
+                                className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                                aria-label={t('backOffice.inspirationFilters.editAriaTemplate', { name: filterDisplayName })}
+                                title={t('backOffice.inspirationFilters.editAriaTemplate', { name: filterDisplayName })}
+                              >
+                                <Edit className="w-5 h-5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveInspirationFilter(filter)}
+                                className="p-2 text-red-600 hover:bg-red-50 rounded"
+                                aria-label={t('backOffice.inspirationFilters.deleteAriaTemplate', { name: filterDisplayName })}
+                                title={t('backOffice.inspirationFilters.deleteAriaTemplate', { name: filterDisplayName })}
+                              >
+                                <Trash2 className="w-5 h-5" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {isExpanded && (
+                            <div id={detailsId} className="mt-4 grid grid-cols-1 gap-4 text-sm text-gray-700 md:grid-cols-2">
+                              <div className="space-y-2">
+                                <h4 className="font-semibold text-gray-800">{t('backOffice.main.behaviorLabel')}</h4>
+                                {filter.type === 'select' ? (
+                                  <p className="text-gray-600">
+                                    {t('backOffice.inspirationFilters.selectBehaviorTemplate', {
+                                      empty: resolveLocalizedText(filter.emptyOptionLabel, language) || t('backOffice.main.allValuesDefault')
+                                    })}
+                                  </p>
+                                ) : (
+                                  <p className="text-gray-600">{t('backOffice.main.inspirationFullTextSearchHint')}</p>
+                                )}
+                              </div>
+                              <div className="space-y-2">
+                                <h4 className="font-semibold text-gray-800">{t('backOffice.inspirationFieldEditor.optionsHeading')}</h4>
+                                {filter.type === 'select' && options.length > 0 ? (
+                                  <ul className="list-none pl-0 flex flex-wrap gap-2">
+                                    {options.map((option) => (
+                                      <li
+                                        key={`${filter.id}-option-${option.value}`}
+                                        className="px-2 py-1 bg-blue-50 text-blue-700 rounded border border-blue-100"
+                                      >
+                                        {resolveLocalizedText(option.label, language) || option.value}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                ) : (
+                                  <p className="text-xs text-gray-500 italic">
+                                    {filter.type === 'select'
+                                      ? t('backOffice.inspirationFilters.noOptionsYet')
+                                      : t('backOffice.inspirationFilters.textFilterNoOptions')}
                                   </p>
                                 )}
                               </div>
-                              <div className="flex flex-wrap items-center gap-2">
-                                <label className="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
-                                  <input
-                                    type="checkbox"
-                                    checked={field.enabled}
-                                    onChange={(event) => handleInspirationFilterToggle(field.id, event.target.checked)}
-                                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                  />
-                                  <span>{t('backOffice.main.activateLabel')}</span>
-                                </label>
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveInspirationFilter(field)}
-                                  className="inline-flex items-center gap-1 rounded-lg border border-red-100 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-100"
-                                >
-                                  <Trash2 className="w-4 h-4" /> {t('backOffice.main.removeButton')}
-                                </button>
-                              </div>
-                            </div>
-
-                            <div className="mt-4 grid gap-4 md:grid-cols-2">
-                              <div className="flex flex-col gap-2">
-                                <label htmlFor={labelInputId} className="text-sm font-medium text-gray-700">
-                                  {t('backOffice.main.displayedLabelLabel')}
-                                </label>
-                                <input
-                                  id={labelInputId}
-                                  type="text"
-                                  value={getLocalizedRaw(field.label, inspirationEditingLanguage)}
-                                  onChange={(event) => handleInspirationFilterLabelChange(field.id, event.target.value)}
-                                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                                />
-                                <p className="text-xs text-gray-500">
-                                  {t('backOffice.main.inspirationFilterLabelHint')}
+                              {!sourceField && (
+                                <p className="md:col-span-2 flex items-start gap-2 text-xs text-red-700">
+                                  <Info className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                                  {t('backOffice.inspirationFilters.missingSourceHint')}
                                 </p>
-                              </div>
-
-                              {field.type === 'select' ? (
-                                <div className="flex flex-col gap-2">
-                                  <label
-                                    htmlFor={`inspiration-filter-empty-option-${field.id}`}
-                                    className="text-sm font-medium text-gray-700"
-                                  >
-                                    {t('backOffice.main.allOptionLabelLabel')}
-                                  </label>
-                                  <input
-                                    id={`inspiration-filter-empty-option-${field.id}`}
-                                    type="text"
-                                    value={getLocalizedRaw(field.emptyOptionLabel, inspirationEditingLanguage) || t('backOffice.main.allValuesDefault')}
-                                    onChange={(event) =>
-                                      setInspirationFilters((prev) => {
-                                        const normalized = normalizeInspirationFiltersConfig(prev);
-                                        const current = normalized.fields.find((item) => item.id === field.id);
-                                        return updateInspirationFilterField(prev, field.id, {
-                                          emptyOptionLabel: setLocalizedText(current?.emptyOptionLabel, inspirationEditingLanguage, event.target.value)
-                                        });
-                                      })
-                                    }
-                                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                                  />
-                                  <p className="text-xs text-gray-500">
-                                    {t('backOffice.main.allValuesHint')}
-                                  </p>
-                                </div>
-                              ) : (
-                                <div className="flex flex-col gap-2 text-sm text-gray-600">
-                                  <span className="font-medium text-gray-700">{t('backOffice.main.behaviorLabel')}</span>
-                                  <p className="text-xs text-gray-500">
-                                    {t('backOffice.main.inspirationFullTextSearchHint')}
-                                  </p>
-                                </div>
                               )}
                             </div>
-                          </article>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ol>
+                )}
               </article>
 
               <article className="space-y-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -10345,6 +10345,18 @@ export const BackOffice = ({
             onSave={saveQuestion}
             onCancel={cancelQuestionEdit}
             allQuestions={questions}
+          />
+        )}
+
+        {inspirationFilterEditor && (
+          <InspirationFilterEditor
+            mode={inspirationFilterEditor.mode}
+            filter={inspirationFilterEditor.filter}
+            sourceOptions={availableInspirationFilterQuestionOptions}
+            formFields={inspirationFormFieldEntries}
+            initialLanguage={inspirationEditingLanguage}
+            onSave={saveInspirationFilter}
+            onCancel={closeInspirationFilterEditor}
           />
         )}
 

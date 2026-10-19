@@ -826,6 +826,10 @@
   line-height: 1.25;
 }
 
+.left-3 {
+  left: 0.75rem;
+}
+
 .left-4 {
   left: 1rem;
 }
@@ -1157,12 +1161,20 @@
   padding-left: 1.5rem;
 }
 
+.pl-9 {
+  padding-left: 2.25rem;
+}
+
 .pointer-events-none {
   pointer-events: none;
 }
 
 .pr-1 {
   padding-right: 0.25rem;
+}
+
+.pr-3 {
+  padding-right: 0.75rem;
 }
 
 .pr-4 {

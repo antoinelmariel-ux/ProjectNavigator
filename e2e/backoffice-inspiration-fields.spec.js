@@ -63,3 +63,51 @@ test.describe('Back-office : champs du formulaire inspiration', () => {
     expect(errors).toEqual([]);
   });
 });
+
+const filterCards = (page) => page.locator('ol > li').filter({ has: page.getByRole('button', { name: /^Modifier le filtre/ }) });
+
+test.describe('Back-office : filtres inspiration', () => {
+  test('créer un filtre sur un champ, le réordonner, le modifier puis le supprimer', async ({ page }) => {
+    const errors = collectConsoleErrors(page);
+    await openInspirationTab(page);
+
+    const initialCount = await filterCards(page).count();
+    expect(initialCount).toBeGreaterThan(0);
+
+    await page.getByRole('button', { name: 'Ajouter un filtre' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Nouveau filtre' });
+    await dialog.getByRole('button', { name: 'Enregistrer' }).click();
+    await expect(dialog.getByRole('alert')).toBeVisible();
+
+    await dialog.getByLabel('Champ du formulaire filtré').selectOption('visibility');
+    await expect(dialog.getByLabel('Libellé affiché')).toHaveValue('Portée de l’inspiration');
+    await dialog.getByLabel('Libellé affiché').fill('Portée');
+    await dialog.getByRole('button', { name: 'Enregistrer' }).click();
+    await expect(dialog).toBeHidden();
+
+    await expect(filterCards(page)).toHaveCount(initialCount + 1);
+    const card = filterCards(page).last();
+    await expect(card.getByRole('heading', { name: 'Portée' })).toBeVisible();
+    await expect(card.getByText('Champ source : Portée de l’inspiration')).toBeVisible();
+
+    await card.getByRole('button', { name: 'Monter le filtre Portée' }).click();
+    await expect(filterCards(page).nth(initialCount - 1).getByRole('heading', { name: 'Portée' })).toBeVisible();
+
+    const moved = filterCards(page).nth(initialCount - 1);
+    await moved.getByRole('button', { name: 'Modifier le filtre Portée' }).click();
+    const editDialog = page.getByRole('dialog', { name: 'Modifier le filtre' });
+    await editDialog.getByLabel('Libellé de l’option « toutes »').fill('Toutes les portées');
+    await editDialog.getByRole('button', { name: 'Enregistrer' }).click();
+    await moved.getByRole('button', { name: 'Afficher le détail du filtre Portée' }).click();
+    await expect(moved.getByText('« Toutes les portées »', { exact: false })).toBeVisible();
+
+    await moved.getByRole('switch', { name: 'Masquer le filtre Portée de l’accueil' }).click();
+    await expect(moved.getByText('Désactivé', { exact: true })).toBeVisible();
+
+    page.once('dialog', (confirmDialog) => confirmDialog.accept());
+    await moved.getByRole('button', { name: 'Supprimer le filtre Portée' }).click();
+    await expect(filterCards(page)).toHaveCount(initialCount);
+
+    expect(errors).toEqual([]);
+  });
+});
