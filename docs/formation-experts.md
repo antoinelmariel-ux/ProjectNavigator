@@ -36,7 +36,7 @@
 | 1 | **Chaque participant est contact de son équipe experte** (back-office, onglet « Équipes », « Contacts e-mail »). | C'est ce qui fait apparaître les projets dans son accueil et lui ouvre le back-office de son équipe, sans mot de passe. |
 | 2 | **Un projet de formation par participant**, soumis, qui déclenche l'équipe de ce participant et affiche des « Points à préparer » dans sa carte. Nommez-les clairement, par exemple « Formation experts – Prénom ». Le plus simple : dupliquez un projet complet, renommez la copie, soumettez-la, et recommencez pour chaque participant. | Un avis est rendu **par équipe et par projet**. Si deux experts de la même équipe travaillent sur le même projet, le premier prend le projet en charge et le second ne peut plus le faire (étape 2) : ils se gêneraient. |
 | 3 | **Une réponse du porteur** dans l'« Échange en cours » d'au moins un projet, par exemple une réponse aux points à préparer. | Étape 3 : l'expert voit qu'un échange existe déjà avant même son avis. |
-| 4 | **Au moins un participant à la fois contact de son équipe et membre d'un comité de validation** (back-office, onglet « Comités de validation », « Adresses mail »), avec un projet de formation soumis sur lequel ce comité n'est **pas** déclenché automatiquement. | Étape 5 : ce sont les trois conditions pour que le bouton « Réintégrer au comité « … » » apparaisse dans la carte d'équipe des enjeux du projet. Si personne ne les remplit, faites l'étape 5 en 🎬 formateur seul. |
+| 4 | **Au moins un participant à la fois contact de son équipe et membre d'un comité de validation** (back-office, onglet « Comités de validation », « Adresses mail »), avec un projet de formation soumis sur lequel ce comité n'est **pas** déclenché automatiquement. | Étape 5 : ce sont les trois conditions pour que le bouton « Réintégrer en comité » apparaisse dans la carte d'équipe des enjeux du projet. Si personne ne les remplit, faites l'étape 5 en 🎬 formateur seul. |
 | 5 | **Les flux Power Automate désactivés** juste avant la séance. | Aucune notification ne part vers les porteurs ni vers les équipes. |
 
 > ⚠️ **À vérifier : les notifications en attente.** Même flux coupés, l'application écrit chaque notification dans la liste SharePoint `CN_NotificationsQueue`. Je ne sais pas si vos flux traiteront ces éléments une fois réactivés : cela dépend de la configuration de leur déclencheur. Par précaution, après la séance et **avant** de réactiver les flux, supprimez les éléments créés pendant la démo.
@@ -51,11 +51,12 @@
 
 🖱 **Tout le monde :**
 1. Ouvrez Project Navigator. Sur l'accueil, repérez la section « **Projets déclenchés pour vous** ».
-2. Parcourez les onglets :
+2. Parcourez la barre d'onglets. Chaque onglet affiche son nombre de projets entre parenthèses :
    - « **À traiter** » : les projets qui attendent votre avis ;
    - « **Traités** » : ceux où vous vous êtes déjà prononcé ;
    - « **Pris en charge par l'équipe** » : ceux qu'un collègue de votre équipe suit déjà ;
-   - « **Hors scope comité** » : visible seulement pour les membres d'un comité (voir étape 5).
+   - « **Hors scope comité** » : visible seulement pour les membres d'un comité (voir étape 5) ;
+   - « **Abandonnés** » : les projets que leur porteur a supprimés alors que votre équipe ou votre comité avait déjà répondu ou donné un avis. Ils restent consultables, marqués « Abandonné ».
 3. Sur chaque projet, le badge indique votre rôle (« Expert » ou « Comité »).
 
 ✅ **Point de contrôle :** chacun voit son projet « Formation experts – Prénom » dans « À traiter ».
@@ -126,7 +127,7 @@ Deux cas différents, à bien distinguer.
 
 💬 **À dire :** « Vous êtes souvent le mieux placé pour voir qu'il manque quelqu'un. Si ça se reproduit sur plusieurs projets, c'est qu'une règle manque : signalez-le à l'équipe concernée ou à un administrateur. »
 
-> ⚠️ L'équipe ajoutée reste attachée au projet de formation : supprimez ces projets après la séance.
+> ⚠️ L'équipe ajoutée reste attachée au projet de formation : supprimez ces projets après la séance (voir « Après la séance »).
 
 ### Cas 2 : un **collègue de votre équipe** n'est pas encore contact
 
@@ -139,7 +140,7 @@ Deux cas différents, à bien distinguer.
 Un comité se déclenche **automatiquement** quand ses critères sont remplis : des réponses, des règles activées, un score de risque minimal ou un nombre minimal d'équipes. Mais un expert membre du comité peut aussi y faire passer un projet que les critères n'ont pas retenu, directement depuis le projet qu'il est en train d'examiner.
 
 🖱 **Participants contacts d'une équipe et membres d'un comité** (les autres regardent) :
-1. Toujours sur « Enjeux du projet », dans la carte de **votre** équipe, repérez le bouton « **Réintégrer au comité « nom du comité » »**, à côté de « Répondre ».
+1. Toujours sur « Enjeux du projet », dans la carte de **votre** équipe, repérez le bouton « **Réintégrer en comité** », à côté de « Répondre ». S'il existe plusieurs comités auxquels le projet peut être réintégré, il y a un bouton par comité, libellé « Réintégrer au comité « nom du comité » ».
 2. Cliquez dessus.
 3. La section « **Avis Comité** » apparaît aussitôt dans la page (accessible aussi depuis le « Sommaire »). Elle indique si le commentaire du comité est requis ou optionnel selon la configuration.
 4. Dans cette section, le fil du comité permet d'échanger avec le porteur : champ « Répondre », puis « **Envoyer la réponse** ».
@@ -247,6 +248,7 @@ Back-office : contacts, absences, critères par membre, règles, questions à pr
 
 ### Après la séance
 
-- Supprimez les projets « Formation experts – … ».
+- Supprimez les projets « Formation experts – … » : icône corbeille sur leur carte, puis « Supprimer définitivement » dans la « Corbeille » de « Mes projets » (porteur, co-porteur ou administrateur).
+  > ⚠️ **À savoir :** pendant la séance, les participants ont donné un avis sur ces projets. Dans ce cas, « Supprimer définitivement » ne les efface pas : ils quittent la corbeille du porteur, mais restent visibles des experts concernés, dans l'onglet « Abandonnés » (c'est voulu : un avis donné est un travail qui appartient aussi aux experts). Je ne sais pas s'il existe dans l'interface un moyen de les effacer complètement ; à défaut, il faudrait supprimer les éléments correspondants directement dans la liste SharePoint `CN_Projects`, ce que je ne peux pas vérifier. Le plus simple est de prévenir les participants que ces projets de formation resteront dans leur onglet « Abandonnés ».
 - Remettez les réglages d'équipe modifiés pendant la séance.
 - Videz `CN_NotificationsQueue` avant de réactiver les flux Power Automate.

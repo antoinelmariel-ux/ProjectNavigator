@@ -53,11 +53,11 @@ Sans ces préparatifs, la séance ne peut pas être fluide.
 
 > ⚠️ **À vérifier : les notifications en attente.** L'application ne désactive rien de son côté : elle continue d'écrire chaque notification dans la liste SharePoint `CN_NotificationsQueue`, et ce sont les flux qui envoient les e-mails. Je ne sais pas si vos flux traiteront ces éléments une fois réactivés. Cela dépend de la configuration de leur déclencheur. Par précaution, après la séance et **avant** de réactiver les flux, consultez cette liste et supprimez les éléments créés pendant la démo.
 
-> 💡 **Parlez-en aussi aux équipes expertes.** Même sans e-mail, les projets soumis pendant la séance apparaîtront dans leur « Projets déclenchés pour vous ». Prévenez-les, ou faites supprimer les projets de formation après la séance (icône corbeille sur la carte, réservée au porteur et aux administrateurs).
+> 💡 **Parlez-en aussi aux équipes expertes.** Même sans e-mail, les projets soumis pendant la séance apparaîtront dans leur « Projets déclenchés pour vous ». Prévenez-les, ou faites supprimer les projets de formation après la séance : icône corbeille sur la carte (réservée au porteur, aux co-porteurs et aux administrateurs), puis « Supprimer définitivement » dans la « Corbeille ». Un projet seulement mis à la corbeille sort des files des experts, mais reste restaurable. Tant qu'aucun expert n'a répondu ou donné d'avis, la suppression définitive l'efface vraiment ; sinon, il reste visible des experts concernés, dans leur onglet « Abandonnés ».
 
 > ⚠️ **À vérifier** : l'adresse de la page SharePoint qui héberge Project Navigator. Elle n'est pas indiquée dans le code de l'application : `______________________`. Envoyez-la aux participants avant la séance.
 
-> ⚠️ **À vérifier** : la FAQ (lien « Aide » du guide). Au moment de la rédaction, elle affiche « Cette page est en cours de construction ». Si c'est toujours le cas, ne l'ouvrez pas à l'étape 12.
+> ⚠️ **À vérifier** : la FAQ (lien « Aide » du guide). Elle est désormais rédigée par les administrateurs dans le back-office (onglet FAQ). Tant qu'aucune question n'y est publiée, elle affiche « Cette page est en cours de construction ». Si c'est le cas chez vous, ne l'ouvrez pas à l'étape 12.
 
 > ⚠️ **À vérifier** : les noms d'équipes, de règles et de risques dépendent de la configuration de votre organisation. Testez le déroulé complet une fois, la veille, avec un compte de test.
 
@@ -71,11 +71,13 @@ Sans ces préparatifs, la séance ne peut pas être fluide.
 3. Écran « Votre profil est enregistré » : cliquez sur « Non merci, je découvrirai seul(e) ». Le guide sera vu en fin de séance.
 4. En haut à droite de l'accueil, cliquez sur l'icône ronde « Mon profil ». Vérifiez votre périmètre et votre « Langue de l'interface », puis « Enregistrer ».
 
-✅ **Point de contrôle :** tout le monde voit l'accueil avec le bouton « Créer un nouveau projet ».
+✅ **Point de contrôle :** tout le monde voit l'accueil avec le bouton « Créer un nouveau projet » (« Créer un projet » pour qui a déjà des projets).
 
 💬 **À dire :** « Votre périmètre d'activité adapte les questions qu'on vous posera : prenez le temps de le renseigner correctement. »
 
 > 💡 Un participant qui s'est déjà connecté ne verra pas l'écran de bienvenue : il passe directement à « Mon profil ».
+
+> 💡 Un participant manager verra un onglet de plus à côté de « Mes projets » : « **Mon équipe** ». Il y retrouve, en lecture seule, les projets des personnes qui lui sont rattachées dans l'organigramme SharePoint. Les brouillons n'y apparaissent que si un administrateur l'a autorisé. On ne s'y attarde pas pendant la séance.
 
 ---
 
@@ -157,7 +159,7 @@ Sans ces préparatifs, la séance ne peut pas être fluide.
 
 🖱 **Tout le monde :**
 1. Revenez à l'accueil et cliquez sur « **Créer un nouveau projet** » (ou « Créer un projet »).
-2. Répondez aux premières questions. Sur l'une d'elles, cliquez sur « **Comprendre cette question** » : objectif, conseils pratiques, et « Pourquoi cette question apparaît ».
+2. Répondez aux premières questions. Sur l'une d'elles, cliquez sur « **Comprendre cette question** » : « Explication » et « Conseils pratiques ». Ce bouton n'apparaît que sur les questions pour lesquelles une aide a été rédigée.
 3. Sur une question dont vous n'êtes pas sûr, cliquez sur « **J'ai un doute** » et écrivez pourquoi.
 4. Repérez le **Sommaire** à gauche : état de chaque question, et accès direct à n'importe laquelle.
 5. Revenez à l'accueil : le projet est enregistré en brouillon, avec sa barre « Avancement ».
@@ -167,6 +169,8 @@ Sans ces préparatifs, la séance ne peut pas être fluide.
 💬 **À dire :** « Tout est sauvegardé en continu. Vous reprendrez ce projet tranquillement avec "Continuer l'édition". En fin de questionnaire, "Terminer et voir la vitrine" vous mène à la vitrine : l'outil est d'abord fait pour réfléchir à votre projet. »
 
 > 💡 Un « J'ai un doute » n'empêche pas de demander un avis préliminaire, mais il bloque la validation définitive.
+
+> 💡 En sortant du questionnaire, un écran « Questions obligatoires à compléter » n'apparaît que s'il manque une question du **socle** (celles exigées dès l'avis préliminaire). Les questions exigées seulement pour l'avis technique et la validation ne bloquent pas l'accès à la vitrine.
 
 ---
 
@@ -286,7 +290,8 @@ Créer → Vitrine (réfléchir, présenter, post-its) → Enjeux du projet
 - **« Je dois enregistrer ? »** Non pour le questionnaire, la sauvegarde est continue. Oui pour la vitrine : « Publier ».
 - **« Une fois soumis, c'est figé ? »** Non. On modifie, puis « Envoyer la mise à jour ».
 - **« Je ne connais pas encore la réponse. »** « J'ai un doute » : cela suffit pour un avis préliminaire, pas pour une validation.
-- **« Pourquoi on me pose cette question ? »** « Comprendre cette question », puis « Pourquoi cette question apparaît ».
+- **« Pourquoi on me pose cette question ? »** « Comprendre cette question », quand le bouton est proposé. Le questionnaire est adaptatif : une question apparaît selon vos réponses précédentes et votre périmètre d'activité.
+- **« J'ai supprimé un projet par erreur. »** Il est dans la « Corbeille », à côté du nombre de projets de « Mes projets » : « Restaurer ».
 - **« Mon collègue ne voit pas mon projet. »** Ajoutez-le dans « Partage du projet » (page « Enjeux du projet »).
 
 ### Après la séance
