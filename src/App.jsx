@@ -8216,7 +8216,11 @@ const updateProjectFilters = useCallback((updater) => {
         ) : screen === 'showcase' ? (
           showcaseProjectContext ? (
             <div className="space-y-4">
-              {showcaseProjectContext.status !== 'draft' && showcaseProjectContext.status !== 'cancelled' && (
+              {showcaseProjectContext.status !== 'draft' && showcaseProjectContext.status !== 'cancelled'
+                && !(isProjectOpenForEditing({
+                  status: showcaseProjectContext.status,
+                  answers: showcaseProjectContext.answers
+                }) && canEditShowcaseProject) && (
                 <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
                   {isAdminMode
                     ? t('app.showcaseStatus.adminEditable')
