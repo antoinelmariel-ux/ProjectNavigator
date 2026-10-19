@@ -5854,6 +5854,17 @@ const updateProjectFilters = useCallback((updater) => {
       return;
     }
 
+    // Les réglages d'un lien partagé ne valent que pour la vitrine qu'il ouvre. Restés armés, ils
+    // s'appliquaient à la prochaine vitrine ouverte — celle du projet que la personne crée ensuite,
+    // qu'elle voyait alors sans menu ni édition, comme un destinataire externe.
+    const discardPendingSharedShowcase = () => {
+      pendingShowcaseDisplayModeRef.current = null;
+      pendingShowcaseSharedRef.current = false;
+      pendingShowcaseCommentsRef.current = false;
+      pendingShowcaseAnnotationVisibilityRef.current = 'all';
+      setIsShowcaseSharedView(false);
+    };
+
     const matchingProject = projects.find(project => project?.id === pendingProjectId);
     if (!matchingProject) {
       // Une fois la liste réellement chargée, un projet introuvable a été supprimé définitivement
@@ -5862,6 +5873,7 @@ const updateProjectFilters = useCallback((updater) => {
       if (['local-only', 'synced', 'partial'].includes(sharePointSync.state)) {
         pendingShowcaseProjectIdRef.current = null;
         pendingProjectViewRef.current = null;
+        discardPendingSharedShowcase();
         setCancelledSubmissionNotice({ projectName: '', reason: 'missing' });
         previousScreenRef.current = null;
         setScreen('submission-cancelled');
@@ -5876,6 +5888,7 @@ const updateProjectFilters = useCallback((updater) => {
     // Un projet à la corbeille ne s'ouvre plus par lien, vitrine partagée comprise : seul un expert
     // qui y a répondu en garde la synthèse, comme dans son onglet « Abandonnés ».
     if (isProjectTrashed(matchingProject)) {
+      discardPendingSharedShowcase();
       if (pendingView === 'synthesis' && isRespondingExpert(matchingProject, currentUserEmail, trashResponseOptions)) {
         handleOpenProject(pendingProjectId, { view: 'synthesis' });
         return;
@@ -5890,6 +5903,7 @@ const updateProjectFilters = useCallback((updater) => {
     // exposer le projet (synthèse ou vitrine) : la personne qui clique dessus atterrit sur
     // une annonce dédiée, sans plus de détail.
     if (matchingProject.status === 'cancelled') {
+      discardPendingSharedShowcase();
       setCancelledSubmissionNotice({ projectName: matchingProject.projectName || '' });
       previousScreenRef.current = null;
       setScreen('submission-cancelled');
@@ -5897,6 +5911,7 @@ const updateProjectFilters = useCallback((updater) => {
     }
 
     if (pendingView === 'synthesis') {
+      discardPendingSharedShowcase();
       handleOpenProject(pendingProjectId, { view: 'synthesis' });
     } else {
       openProjectShowcase({ projectId: pendingProjectId });
