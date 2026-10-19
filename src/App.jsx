@@ -6437,12 +6437,16 @@ const updateProjectFilters = useCallback((updater) => {
     if (entry) {
       notifyProjectSubmission(entry);
       setValidationError(null);
-      setSubmittedProjectNotice({
-        id: entry.id,
-        projectName: entry.projectName,
-        submissionKind
+      const isPreliminary = submissionKind === SUBMISSION_KIND_PRELIMINARY;
+      setSaveFeedback({
+        status: 'success',
+        message: [
+          t(isPreliminary ? 'home.preliminaryNoticePrefix' : 'home.submissionNoticePrefix'),
+          entry.projectName,
+          t(isPreliminary ? 'home.preliminaryNoticeSuffix' : 'home.submissionNoticeSuffix')
+        ].join(' ')
       });
-      setScreen('home');
+      scrollAppTo({ top: 0, behavior: 'smooth' });
     }
   }, [
     handleSaveProject,
