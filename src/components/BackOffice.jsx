@@ -19,7 +19,8 @@ import {
   Save,
   LayoutList,
   UserCircle,
-  Send
+  Send,
+  EyeOff
 } from './icons.js';
 import { QuestionEditor } from './QuestionEditor.jsx';
 import { RuleEditor } from './RuleEditor.jsx';
@@ -109,8 +110,12 @@ import {
   resetInspirationFiltersConfig,
   resetInspirationFormConfig,
   updateInspirationFilterField,
-  updateInspirationFormField
+  updateInspirationFormField,
+  getInspirationFiltersUsingFormField,
+  isBuiltInInspirationFormField
 } from '../utils/inspirationConfig.js';
+import { InspirationFieldEditor } from './InspirationFieldEditor.jsx';
+import { cloneDeep } from '../utils/clone.js';
 import { initialShowcaseThemes } from '../data/showcaseThemes.js';
 import { normalizeValidationCommitteeConfig } from '../utils/validationCommittee.js';
 import { getShowcaseThemeActivationConflicts, normalizeThemeActivation } from '../utils/showcase.js';
@@ -704,16 +709,6 @@ const buildShowcaseThemePaletteFieldGroups = (t) =>
     }))
   }));
 
-const createEmptyInspirationFormField = () => ({
-  id: '',
-  label: '',
-  type: 'text',
-  placeholder: '',
-  options: '',
-  required: false,
-  enabled: true
-});
-
 const TEAM_VISIBILITY_OPTION_SELECTED = 'border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200';
 const TEAM_VISIBILITY_OPTION_IDLE = 'border-gray-200 bg-white hover:bg-gray-50';
 
@@ -952,7 +947,11 @@ export const BackOffice = ({
   const [expandedRuleIds, setExpandedRuleIds] = useState(() => new Set());
   const [selectedFilterQuestionId, setSelectedFilterQuestionId] = useState('');
   const [selectedInspirationFilterQuestionId, setSelectedInspirationFilterQuestionId] = useState('');
-  const [newInspirationFormField, setNewInspirationFormField] = useState(() => createEmptyInspirationFormField());
+  const [inspirationFieldEditor, setInspirationFieldEditor] = useState(null);
+  const [inspirationFieldSearch, setInspirationFieldSearch] = useState('');
+  const [inspirationFieldTypeFilter, setInspirationFieldTypeFilter] = useState('all');
+  const [inspirationFieldStatusFilter, setInspirationFieldStatusFilter] = useState('all');
+  const [expandedInspirationFieldIds, setExpandedInspirationFieldIds] = useState(() => new Set());
   const undoStackRef = useRef([]);
   const [canUndo, setCanUndo] = useState(false);
   const [undoMessage, setUndoMessage] = useState('');
@@ -1925,6 +1924,23 @@ export const BackOffice = ({
         setReorderAnnouncement(t('backOffice.main.filterDeletionUndoneAnnouncement'));
         break;
       }
+      case 'inspirationFormField': {
+        if (typeof setInspirationFormFields === 'function') {
+          setInspirationFormFields((prevFields) => {
+            const normalized = normalizeInspirationFormConfig(prevFields);
+            const fields = normalized.fields.filter((field) => field.id !== entry.item?.id);
+            const insertIndex = Math.max(0, Math.min(entry.index ?? fields.length, fields.length));
+            fields.splice(insertIndex, 0, entry.item);
+            return { ...normalized, fields };
+          });
+        }
+        {
+          const label = resolveLocalizedText(entry.item?.label, language) || entry.item?.id || t('backOffice.main.fieldWordFallback');
+          setUndoMessage(t('backOffice.inspirationFields.fieldRestoredTemplate', { label }));
+          setReorderAnnouncement(t('backOffice.inspirationFields.fieldRestoredTemplate', { label }));
+        }
+        break;
+      }
       default:
         setUndoMessage(t('backOffice.main.lastActionUndoneMessage'));
         break;
@@ -1936,6 +1952,7 @@ export const BackOffice = ({
     setTeams,
     setProjectFilters,
     setInspirationFilters,
+    setInspirationFormFields,
     setReorderAnnouncement,
     t,
     language,
@@ -2342,13 +2359,38 @@ export const BackOffice = ({
   const inspirationFilterFields = Array.isArray(normalizedInspirationFilters.fields)
     ? normalizedInspirationFilters.fields
     : [];
-  const inspirationFormFieldEntries = Array.isArray(normalizedInspirationFormFields.fields)
-    ? normalizedInspirationFormFields.fields
-    : [];
+  const inspirationFormFieldEntries = useMemo(
+    () => (Array.isArray(normalizedInspirationFormFields.fields) ? normalizedInspirationFormFields.fields : []),
+    [normalizedInspirationFormFields]
+  );
   const inspirationFieldIds = useMemo(
     () => new Set(inspirationFormFieldEntries.map((field) => field.id)),
     [inspirationFormFieldEntries]
   );
+  const inspirationFormFieldTypeOptions = useMemo(() => buildInspirationFormFieldTypeOptions(t), [t]);
+  const isInspirationFieldListFiltered = inspirationFieldSearch.trim().length > 0
+    || inspirationFieldTypeFilter !== 'all'
+    || inspirationFieldStatusFilter !== 'all';
+  const canReorderInspirationFields = !isInspirationFieldListFiltered;
+  const visibleInspirationFormFields = useMemo(() => {
+    const query = inspirationFieldSearch.trim().toLocaleLowerCase();
+    return inspirationFormFieldEntries
+      .map((field, index) => ({ field, index }))
+      .filter(({ field }) => {
+        if (inspirationFieldTypeFilter !== 'all' && field.type !== inspirationFieldTypeFilter) {
+          return false;
+        }
+        if (inspirationFieldStatusFilter === 'enabled' && !field.enabled) return false;
+        if (inspirationFieldStatusFilter === 'disabled' && field.enabled) return false;
+        if (inspirationFieldStatusFilter === 'required' && !field.required) return false;
+        if (inspirationFieldStatusFilter === 'custom' && isBuiltInInspirationFormField(field.id)) return false;
+        if (!query) {
+          return true;
+        }
+        const label = resolveLocalizedText(field.label, language) || '';
+        return label.toLocaleLowerCase().includes(query) || field.id.toLocaleLowerCase().includes(query);
+      });
+  }, [inspirationFormFieldEntries, inspirationFieldSearch, inspirationFieldTypeFilter, inspirationFieldStatusFilter, language]);
 
   const availableFilterQuestionOptions = useMemo(() => {
     const usedQuestionIds = new Set();
@@ -2715,11 +2757,6 @@ export const BackOffice = ({
     setProjectFilters(resetProjectFiltersConfig());
   }, [setProjectFilters]);
 
-  const formatOptionList = (options, editingLanguage) =>
-    Array.isArray(options)
-      ? options.map((option) => getLocalizedRaw(option?.label, editingLanguage)).join(', ')
-      : '';
-
   const parseOptionList = (value) => {
     if (typeof value !== 'string') {
       return [];
@@ -2747,38 +2784,6 @@ export const BackOffice = ({
       return { value: text, label: { [editingLanguage]: text } };
     });
   };
-
-  const sanitizeInspirationFieldId = (value) => {
-    if (typeof value !== 'string') {
-      return '';
-    }
-
-    const trimmed = value.trim();
-    if (!trimmed) {
-      return '';
-    }
-
-    return trimmed
-      .replace(/\s+/g, '_')
-      .replace(/[^a-zA-Z0-9_-]/g, '');
-  };
-
-  const suggestedNewInspirationFieldId = useMemo(() => {
-    const directId = sanitizeInspirationFieldId(newInspirationFormField.id);
-    if (directId) {
-      return directId;
-    }
-
-    return sanitizeInspirationFieldId(newInspirationFormField.label);
-  }, [newInspirationFormField.id, newInspirationFormField.label]);
-
-  const isNewInspirationFieldIdDuplicate =
-    suggestedNewInspirationFieldId.length > 0 && inspirationFieldIds.has(suggestedNewInspirationFieldId);
-
-  const canAddInspirationFormField =
-    suggestedNewInspirationFieldId.length > 0
-    && newInspirationFormField.label.trim().length > 0
-    && !isNewInspirationFieldIdDuplicate;
 
   const handleInspirationFilterToggle = useCallback((fieldId, enabled) => {
     if (typeof setInspirationFilters !== 'function') {
@@ -2830,143 +2835,177 @@ export const BackOffice = ({
     setInspirationFormFields((prev) => updateInspirationFormField(prev, fieldId, { enabled }));
   }, [setInspirationFilters, setInspirationFormFields]);
 
-  const handleInspirationFormFieldLabelChange = useCallback((fieldId, text) => {
-    if (typeof setInspirationFormFields !== 'function') {
+  const syncLinkedInspirationFilterOptions = useCallback((fieldId, options) => {
+    if (typeof setInspirationFilters !== 'function') {
       return;
     }
 
-    setInspirationFormFields((prev) => {
-      const normalized = normalizeInspirationFormConfig(prev);
-      const current = normalized.fields.find((field) => field.id === fieldId);
-      const label = setLocalizedText(current?.label, inspirationEditingLanguage, text);
-      return updateInspirationFormField(prev, fieldId, { label });
-    });
-  }, [setInspirationFormFields, inspirationEditingLanguage]);
-
-  const handleInspirationFormFieldTypeChange = useCallback((fieldId, nextType) => {
-    if (typeof setInspirationFormFields !== 'function') {
-      return;
-    }
-
-    const normalizedType = Object.prototype.hasOwnProperty.call(INSPIRATION_FORM_FIELD_TYPE_KEYS, nextType)
-      ? nextType
-      : 'text';
-
-    setInspirationFormFields((prev) => {
-      const normalized = normalizeInspirationFormConfig(prev);
-      const currentField = normalized.fields.find((field) => field.id === fieldId);
-      const nextOptions = normalizedType === 'select' || normalizedType === 'multi_select'
-        ? (Array.isArray(currentField?.options) && currentField.options.length > 0
-          ? currentField.options
-          : ['Option 1', 'Option 2'])
-        : undefined;
-
-      return updateInspirationFormField(prev, fieldId, {
-        type: normalizedType,
-        options: nextOptions
+    setInspirationFilters((prev) => {
+      let nextConfig = normalizeInspirationFiltersConfig(prev);
+      getInspirationFiltersUsingFormField(nextConfig, fieldId).forEach((filter) => {
+        if (filter.type === 'select') {
+          nextConfig = updateInspirationFilterField(nextConfig, filter.id, { options });
+        }
       });
+      return nextConfig;
     });
-  }, [setInspirationFormFields]);
+  }, [setInspirationFilters]);
 
-  const handleInspirationFormFieldPlaceholderChange = useCallback((fieldId, placeholder) => {
-    if (typeof setInspirationFormFields !== 'function') {
+  const openInspirationFieldCreation = useCallback(() => {
+    setInspirationFieldEditor({ mode: 'create', field: null, insertAfterId: null });
+  }, []);
+
+  const openInspirationFieldEdition = useCallback((field) => {
+    if (field) {
+      setInspirationFieldEditor({ mode: 'edit', field, insertAfterId: null });
+    }
+  }, []);
+
+  const openInspirationFieldDuplication = useCallback((field) => {
+    if (!field) {
       return;
     }
 
-    setInspirationFormFields((prev) => updateInspirationFormField(prev, fieldId, { placeholder }));
-  }, [setInspirationFormFields]);
+    const copySuffix = t('backOffice.inspirationFields.copySuffix');
+    const label = typeof field.label === 'string'
+      ? `${field.label}${copySuffix}`
+      : Object.fromEntries(Object.entries(field.label || {}).map(([code, text]) => [code, `${text}${copySuffix}`]));
 
-  const handleInspirationFormFieldOptionsChange = useCallback((fieldId, rawValue) => {
-    if (typeof setInspirationFormFields !== 'function') {
+    setInspirationFieldEditor({
+      mode: 'create',
+      field: { ...cloneDeep(field), label },
+      insertAfterId: field.id
+    });
+  }, [t]);
+
+  const closeInspirationFieldEditor = useCallback(() => {
+    setInspirationFieldEditor(null);
+  }, []);
+
+  const saveInspirationFormField = useCallback((nextField) => {
+    if (typeof setInspirationFormFields !== 'function' || !inspirationFieldEditor || !nextField?.id) {
       return;
     }
 
-    const currentFormField = normalizedInspirationFormFields.fields.find((field) => field.id === fieldId);
-    const options = mergeOptionLabelsFromCommaList(currentFormField?.options, rawValue, inspirationEditingLanguage);
-
-    setInspirationFormFields((prev) => updateInspirationFormField(prev, fieldId, { options }));
-    if (typeof setInspirationFilters === 'function') {
-      setInspirationFilters((prev) => {
-        const normalized = normalizeInspirationFiltersConfig(prev);
-        let nextConfig = normalized;
-
-        normalized.fields.forEach((field) => {
-          const sourceId = typeof field.sourceQuestionId === 'string' && field.sourceQuestionId.trim().length > 0
-            ? field.sourceQuestionId.trim()
-            : field.id;
-
-          if (sourceId === fieldId && field.type === 'select') {
-            nextConfig = updateInspirationFilterField(nextConfig, field.id, { options });
-          }
-        });
-
-        return nextConfig;
-      });
-    }
-  }, [setInspirationFormFields, setInspirationFilters, normalizedInspirationFormFields, inspirationEditingLanguage]);
-
-  const handleAddInspirationFormField = useCallback(() => {
-    if (typeof setInspirationFormFields !== 'function') {
-      return;
-    }
-
-    const label = newInspirationFormField.label.trim();
-    if (!label) {
-      return;
-    }
-
-    const fieldId = suggestedNewInspirationFieldId;
-    if (!fieldId || inspirationFieldIds.has(fieldId)) {
-      return;
-    }
-
-    const normalizedType = Object.prototype.hasOwnProperty.call(INSPIRATION_FORM_FIELD_TYPE_KEYS, newInspirationFormField.type)
-      ? newInspirationFormField.type
-      : 'text';
-
-    const nextField = {
-      id: fieldId,
-      label: { [inspirationEditingLanguage]: label },
-      type: normalizedType,
-      enabled: Boolean(newInspirationFormField.enabled),
-      required: Boolean(newInspirationFormField.required)
-    };
-
-    const placeholder = newInspirationFormField.placeholder.trim();
-    if (INSPIRATION_FORM_FIELD_PLACEHOLDER_TYPES.has(normalizedType) && placeholder.length > 0) {
-      nextField.placeholder = placeholder;
-    }
-
-    if (normalizedType === 'select' || normalizedType === 'multi_select') {
-      const parsedOptions = parseOptionList(newInspirationFormField.options);
-      const optionTexts = parsedOptions.length > 0 ? parsedOptions : ['Option 1', 'Option 2'];
-      nextField.options = optionTexts.map((text) => ({ value: text, label: { [inspirationEditingLanguage]: text } }));
-    }
+    const { mode, field: originalField, insertAfterId } = inspirationFieldEditor;
 
     setInspirationFormFields((prev) => {
       const normalized = normalizeInspirationFormConfig(prev);
-      return {
-        ...normalized,
-        fields: [...normalized.fields, nextField]
-      };
+      const fields = normalized.fields.slice();
+
+      if (mode === 'edit') {
+        const index = fields.findIndex((item) => item.id === originalField?.id);
+        if (index === -1) {
+          return prev;
+        }
+        fields[index] = nextField;
+      } else {
+        if (fields.some((item) => item.id === nextField.id)) {
+          return prev;
+        }
+        const afterIndex = insertAfterId ? fields.findIndex((item) => item.id === insertAfterId) : -1;
+        if (afterIndex >= 0) {
+          fields.splice(afterIndex + 1, 0, nextField);
+        } else {
+          fields.push(nextField);
+        }
+      }
+
+      return normalizeInspirationFormConfig({ ...normalized, fields });
     });
 
-    setNewInspirationFormField(createEmptyInspirationFormField());
+    if (mode === 'edit' && Array.isArray(nextField.options)) {
+      syncLinkedInspirationFilterOptions(nextField.id, nextField.options);
+    }
+
+    const label = resolveLocalizedText(nextField.label, language) || nextField.id;
+    setReorderAnnouncement(t(mode === 'edit'
+      ? 'backOffice.inspirationFields.fieldSavedAnnouncementTemplate'
+      : 'backOffice.inspirationFields.fieldCreatedAnnouncementTemplate', { label }));
+    if (mode !== 'edit') {
+      setInspirationFieldSearch('');
+      setInspirationFieldTypeFilter('all');
+      setInspirationFieldStatusFilter('all');
+    }
+    setInspirationFieldEditor(null);
   }, [
-    inspirationFieldIds,
-    newInspirationFormField,
+    inspirationFieldEditor,
+    language,
     setInspirationFormFields,
-    suggestedNewInspirationFieldId,
-    inspirationEditingLanguage
+    syncLinkedInspirationFilterOptions,
+    t
   ]);
 
-  const handleInspirationFormFieldRequiredChange = useCallback((fieldId, required) => {
+  const deleteInspirationFormField = useCallback((fieldId) => {
     if (typeof setInspirationFormFields !== 'function') {
       return;
     }
 
-    setInspirationFormFields((prev) => updateInspirationFormField(prev, fieldId, { required }));
-  }, [setInspirationFormFields]);
+    const index = inspirationFormFieldEntries.findIndex((field) => field.id === fieldId);
+    if (index === -1) {
+      return;
+    }
+
+    if (
+      isBuiltInInspirationFormField(fieldId)
+      || getInspirationFiltersUsingFormField(normalizedInspirationFilters, fieldId).length > 0
+    ) {
+      return;
+    }
+
+    const target = inspirationFormFieldEntries[index];
+    const label = resolveLocalizedText(target.label, language) || target.id;
+
+    if (!confirmDeletion(t('backOffice.inspirationFields.confirmDeleteTemplate', { label }))) {
+      return;
+    }
+
+    pushUndoEntry({
+      type: 'inspirationFormField',
+      item: cloneDeep(target),
+      index,
+      message: t('backOffice.inspirationFields.fieldDeletedUndoTemplate', { label })
+    });
+
+    setInspirationFormFields((prev) => {
+      const normalized = normalizeInspirationFormConfig(prev);
+      return { ...normalized, fields: normalized.fields.filter((field) => field.id !== fieldId) };
+    });
+    setExpandedInspirationFieldIds((prev) => {
+      if (!prev.has(fieldId)) {
+        return prev;
+      }
+      const next = new Set(prev);
+      next.delete(fieldId);
+      return next;
+    });
+  }, [
+    confirmDeletion,
+    inspirationFormFieldEntries,
+    language,
+    normalizedInspirationFilters,
+    pushUndoEntry,
+    setInspirationFormFields,
+    t
+  ]);
+
+  const toggleInspirationFieldExpansion = useCallback((fieldId) => {
+    setExpandedInspirationFieldIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(fieldId)) {
+        next.delete(fieldId);
+      } else {
+        next.add(fieldId);
+      }
+      return next;
+    });
+  }, []);
+
+  const resetInspirationFieldListFilters = useCallback(() => {
+    setInspirationFieldSearch('');
+    setInspirationFieldTypeFilter('all');
+    setInspirationFieldStatusFilter('all');
+  }, []);
 
   const handleResetInspirationFormFields = useCallback(() => {
     if (typeof setInspirationFormFields !== 'function') {
@@ -3469,7 +3508,7 @@ export const BackOffice = ({
       fields.splice(toIndex, 0, movedField);
 
       if (movedField) {
-        const label = movedField.label || movedField.id || t('backOffice.main.fieldWordFallback');
+        const label = resolveLocalizedText(movedField.label, language) || movedField.id || t('backOffice.main.fieldWordFallback');
         setReorderAnnouncement(t('backOffice.main.fieldMovedAnnouncementTemplate', { label, position: toIndex + 1, total: fields.length }));
       }
 
@@ -5507,373 +5546,335 @@ export const BackOffice = ({
                 </div>
               </article>
 
-              <article className="space-y-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="space-y-2">
+              <article className="space-y-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div>
                     <h2 className="text-2xl font-bold text-gray-800">{t('backOffice.main.formFieldsTitle')}</h2>
-                    <p className="text-sm text-gray-600">
-                      {t('backOffice.main.formFieldsSubtitle')}
-                    </p>
+                    <p className="text-sm text-gray-600">{t('backOffice.main.formFieldsSubtitle')}</p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleResetInspirationFormFields}
-                    className={`inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
-                      inspirationFormAreDefault
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        : 'bg-blue-600 text-white hover:bg-blue-700'
-                    }`}
-                    disabled={inspirationFormAreDefault}
-                  >
-                    {t('backOffice.main.resetButton')}
-                  </button>
-                </header>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <button
+                      type="button"
+                      onClick={handleResetInspirationFormFields}
+                      disabled={inspirationFormAreDefault}
+                      className={`inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                        inspirationFormAreDefault
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {t('backOffice.main.resetButton')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={openInspirationFieldCreation}
+                      className="inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow-sm hover:bg-blue-700 w-full sm:w-auto text-sm sm:text-base"
+                    >
+                      <Plus className="w-5 h-5 mr-2" />
+                      {t('backOffice.inspirationFields.addButton')}
+                    </button>
+                  </div>
+                </div>
 
-                <div className="space-y-4">
-                  <div className="rounded-xl border border-dashed border-blue-200 bg-blue-50/70 p-5">
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                      <div className="flex-1 space-y-4">
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                          <div>
-                            <label
-                              htmlFor="new-inspiration-field-label"
-                              className="text-xs font-semibold uppercase tracking-wide text-blue-800"
-                            >
-                              {t('backOffice.main.fieldLabelLabel')}
-                            </label>
-                            <input
-                              id="new-inspiration-field-label"
-                              type="text"
-                              value={newInspirationFormField.label}
-                              onChange={(event) =>
-                                setNewInspirationFormField((prev) => ({
-                                  ...prev,
-                                  label: event.target.value
-                                }))
-                              }
-                              className="mt-1 w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                              placeholder={t('backOffice.main.fieldLabelPlaceholderExample')}
-                            />
-                          </div>
-                          <div>
-                            <label
-                              htmlFor="new-inspiration-field-id"
-                              className="text-xs font-semibold uppercase tracking-wide text-blue-800"
-                            >
-                              {t('backOffice.main.technicalIdLabel')}
-                            </label>
-                            <input
-                              id="new-inspiration-field-id"
-                              type="text"
-                              value={newInspirationFormField.id}
-                              onChange={(event) =>
-                                setNewInspirationFormField((prev) => ({
-                                  ...prev,
-                                  id: event.target.value
-                                }))
-                              }
-                              className="mt-1 w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                              placeholder={t('backOffice.main.fieldIdPlaceholderExample')}
-                            />
-                            <p className="mt-1 text-xs text-blue-700">
-                              {isNewInspirationFieldIdDuplicate
-                                ? t('backOffice.main.duplicateIdError')
-                                : suggestedNewInspirationFieldId
-                                  ? t('backOffice.main.idUsedTemplate', { id: suggestedNewInspirationFieldId })
-                                  : t('backOffice.main.leaveEmptyToGenerateId')}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                          <div>
-                            <label
-                              htmlFor="new-inspiration-field-type"
-                              className="text-xs font-semibold uppercase tracking-wide text-blue-800"
-                            >
-                              {t('backOffice.main.fieldTypeLabel')}
-                            </label>
-                            <select
-                              id="new-inspiration-field-type"
-                              value={newInspirationFormField.type}
-                              onChange={(event) =>
-                                setNewInspirationFormField((prev) => ({
-                                  ...prev,
-                                  type: event.target.value
-                                }))
-                              }
-                              className="mt-1 w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                            >
-                              {buildInspirationFormFieldTypeOptions(t).map((option) => (
-                                <option key={option.value} value={option.value}>
-                                  {option.label}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                          {newInspirationFormField.type === 'select' || newInspirationFormField.type === 'multi_select' ? (
-                            <div className="md:col-span-2 space-y-3">
-                              <div>
-                                <label
-                                  htmlFor="new-inspiration-field-options"
-                                  className="text-xs font-semibold uppercase tracking-wide text-blue-800"
-                                >
-                                  {t('backOffice.main.optionsCommaSeparatedLabel')}
-                                </label>
-                                <input
-                                  id="new-inspiration-field-options"
-                                  type="text"
-                                  value={newInspirationFormField.options}
-                                  onChange={(event) =>
-                                    setNewInspirationFormField((prev) => ({
-                                      ...prev,
-                                      options: event.target.value
-                                    }))
-                                  }
-                                  className="mt-1 w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                                  placeholder={t('backOffice.main.optionsPlaceholderExample')}
-                                />
-                              </div>
-                              {newInspirationFormField.type === 'select' && (
-                                <div>
-                                  <label
-                                    htmlFor="new-inspiration-field-select-placeholder"
-                                    className="text-xs font-semibold uppercase tracking-wide text-blue-800"
-                                  >
-                                    {t('backOffice.main.defaultSelectLabelLabel')}
-                                  </label>
-                                  <input
-                                    id="new-inspiration-field-select-placeholder"
-                                    type="text"
-                                    value={newInspirationFormField.placeholder}
-                                    onChange={(event) =>
-                                      setNewInspirationFormField((prev) => ({
-                                        ...prev,
-                                        placeholder: event.target.value
-                                      }))
-                                    }
-                                    className="mt-1 w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                                    placeholder={t('backOffice.main.defaultSelectPlaceholderExample')}
-                                  />
-                                </div>
-                              )}
-                            </div>
-                          ) : INSPIRATION_FORM_FIELD_PLACEHOLDER_TYPES.has(newInspirationFormField.type) ? (
-                            <div className="md:col-span-2">
-                              <label
-                                htmlFor="new-inspiration-field-placeholder"
-                                className="text-xs font-semibold uppercase tracking-wide text-blue-800"
-                              >
-                                {t('backOffice.main.placeholderFieldLabel')}
-                              </label>
-                              <input
-                                id="new-inspiration-field-placeholder"
-                                type="text"
-                                value={newInspirationFormField.placeholder}
-                                onChange={(event) =>
-                                  setNewInspirationFormField((prev) => ({
-                                    ...prev,
-                                    placeholder: event.target.value
-                                  }))
-                                }
-                                className="mt-1 w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                                placeholder={t('backOffice.main.placeholderDisplayedText')}
-                              />
-                            </div>
-                          ) : (
-                            <div className="md:col-span-2 flex items-center text-xs text-blue-700">
-                              {t('backOffice.main.noPlaceholderNeeded')}
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex flex-wrap gap-4 text-sm text-blue-900">
-                          <label className="inline-flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={newInspirationFormField.required}
-                              onChange={(event) =>
-                                setNewInspirationFormField((prev) => ({
-                                  ...prev,
-                                  required: event.target.checked
-                                }))
-                              }
-                              className="h-4 w-4 rounded border-blue-300 text-blue-600 focus:ring-blue-500"
-                            />
-                            {t('backOffice.main.requiredFieldLabel')}
-                          </label>
-                          <label className="inline-flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={newInspirationFormField.enabled}
-                              onChange={(event) =>
-                                setNewInspirationFormField((prev) => ({
-                                  ...prev,
-                                  enabled: event.target.checked
-                                }))
-                              }
-                              className="h-4 w-4 rounded border-blue-300 text-blue-600 focus:ring-blue-500"
-                            />
-                            {t('backOffice.main.activeFieldLabel')}
-                          </label>
-                        </div>
-                      </div>
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-4">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    <div className="lg:col-span-2">
+                      <label
+                        htmlFor="inspiration-field-search"
+                        className="text-xs font-semibold uppercase tracking-wide text-gray-600"
+                      >
+                        {t('backOffice.inspirationFields.searchLabel')}
+                      </label>
+                      <input
+                        id="inspiration-field-search"
+                        type="text"
+                        value={inspirationFieldSearch}
+                        onChange={(event) => setInspirationFieldSearch(event.target.value)}
+                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                        placeholder={t('backOffice.inspirationFields.searchPlaceholder')}
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="inspiration-field-type-filter"
+                        className="text-xs font-semibold uppercase tracking-wide text-gray-600"
+                      >
+                        {t('backOffice.main.fieldTypeLabel')}
+                      </label>
+                      <select
+                        id="inspiration-field-type-filter"
+                        value={inspirationFieldTypeFilter}
+                        onChange={(event) => setInspirationFieldTypeFilter(event.target.value)}
+                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                      >
+                        <option value="all">{t('backOffice.inspirationFields.allTypesOption')}</option>
+                        {inspirationFormFieldTypeOptions.map((option) => (
+                          <option key={`inspiration-field-type-filter-${option.value}`} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="inspiration-field-status-filter"
+                        className="text-xs font-semibold uppercase tracking-wide text-gray-600"
+                      >
+                        {t('backOffice.inspirationFields.statusFilterLabel')}
+                      </label>
+                      <select
+                        id="inspiration-field-status-filter"
+                        value={inspirationFieldStatusFilter}
+                        onChange={(event) => setInspirationFieldStatusFilter(event.target.value)}
+                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                      >
+                        <option value="all">{t('backOffice.inspirationFields.allStatusesOption')}</option>
+                        <option value="enabled">{t('backOffice.main.enabledLabel')}</option>
+                        <option value="disabled">{t('backOffice.main.disabledLabel')}</option>
+                        <option value="required">{t('backOffice.main.requiredBadge')}</option>
+                        <option value="custom">{t('backOffice.inspirationFields.customBadge')}</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-xs text-gray-500">
+                      {inspirationFormFieldEntries.length === 0
+                        ? t('backOffice.main.noFieldConfigured')
+                        : visibleInspirationFormFields.length === inspirationFormFieldEntries.length
+                          ? t('backOffice.inspirationFields.allFieldsDisplayedTemplate', {
+                              count: inspirationFormFieldEntries.length,
+                              enabled: inspirationFormFieldEntries.filter((field) => field.enabled).length
+                            })
+                          : visibleInspirationFormFields.length === 0
+                            ? t('backOffice.inspirationFields.noFieldMatchesFilters')
+                            : t('backOffice.inspirationFields.fieldMatchCountTemplate', {
+                                count: visibleInspirationFormFields.length,
+                                total: inspirationFormFieldEntries.length
+                              })}
+                    </p>
+                    {isInspirationFieldListFiltered ? (
                       <button
                         type="button"
-                        onClick={handleAddInspirationFormField}
-                        disabled={!canAddInspirationFormField}
-                        className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
-                          canAddInspirationFormField
-                            ? 'bg-blue-600 text-white hover:bg-blue-700'
-                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        }`}
+                        onClick={resetInspirationFieldListFilters}
+                        className="self-start text-xs font-semibold text-blue-600 hover:text-blue-800"
                       >
-                        <Plus className="w-4 h-4" />
-                        {t('backOffice.main.addFieldButton')}
+                        {t('backOffice.inspirationFields.clearFiltersButton')}
                       </button>
-                    </div>
+                    ) : inspirationFormFieldEntries.length > 1 && (
+                      <p className="text-xs text-gray-500">{t('backOffice.inspirationFields.reorderHint')}</p>
+                    )}
                   </div>
+                </div>
 
-                  {inspirationFormFieldEntries.length === 0 ? (
-                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 text-sm text-gray-600">
-                      {t('backOffice.main.noFieldConfigured')}
-                    </div>
-                  ) : (
-                    inspirationFormFieldEntries.map((field, index) => {
+                {inspirationFormFieldEntries.length === 0 ? (
+                  <div className="border border-dashed border-gray-300 rounded-xl p-6 text-center text-gray-500">
+                    {t('backOffice.main.noFieldConfigured')}
+                  </div>
+                ) : visibleInspirationFormFields.length === 0 ? (
+                  <div className="border border-dashed border-gray-300 rounded-xl p-6 text-center text-gray-500">
+                    {t('backOffice.inspirationFields.noFieldMatchesFilters')}
+                  </div>
+                ) : (
+                  <ol className="list-none pl-0 space-y-4">
+                    {visibleInspirationFormFields.map(({ field, index }) => {
                       const positionId = `inspiration-form-position-${field.id}`;
+                      const detailsId = `inspiration-field-details-${field.id}`;
+                      const fieldDisplayName = resolveLocalizedText(field.label, language) || field.id;
+                      const isExpanded = expandedInspirationFieldIds.has(field.id);
+                      const isBuiltIn = isBuiltInInspirationFormField(field.id);
+                      const linkedFilters = getInspirationFiltersUsingFormField(normalizedInspirationFilters, field.id);
+                      const options = Array.isArray(field.options) ? field.options : [];
+                      const deleteBlockedReason = isBuiltIn
+                        ? t('backOffice.inspirationFields.deleteBuiltInBlocked')
+                        : linkedFilters.length > 0
+                          ? t('backOffice.inspirationFields.deleteLinkedFilterBlocked')
+                          : '';
+                      const toggleLabel = isExpanded
+                        ? t('backOffice.inspirationFields.hideDetailsTemplate', { name: fieldDisplayName })
+                        : t('backOffice.inspirationFields.showDetailsTemplate', { name: fieldDisplayName });
 
                       return (
-                        <article
+                        <li
                           key={field.id}
-                          className={`rounded-xl border border-gray-200 bg-white p-5 shadow-sm ${
+                          className={`border border-gray-200 rounded-xl p-6 shadow-sm transition ${
+                            field.enabled ? 'bg-white' : 'bg-gray-50'
+                          } ${
                             dragOverInspirationFieldIndex === index ? 'ring-2 ring-blue-400 ring-offset-2' : ''
                           } ${
                             draggedInspirationFieldIndex === index ? 'opacity-75' : ''
                           }`}
-                          onDragOver={(event) => handleInspirationFieldDragOver(event, index)}
-                          onDrop={(event) => handleInspirationFieldDrop(event, index)}
+                          onDragOver={canReorderInspirationFields ? (event) => handleInspirationFieldDragOver(event, index) : undefined}
+                          onDrop={canReorderInspirationFields ? (event) => handleInspirationFieldDrop(event, index) : undefined}
                         >
-                        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                          <div className="space-y-2">
-                            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wide">
-                              <span className="rounded-full bg-blue-100 px-2 py-1 text-blue-700">
-                                {getInspirationFormFieldTypeLabel(t, field.type)}
-                              </span>
-                              <span
-                                className={`rounded-full px-2 py-1 ${
-                                  field.enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'
-                                }`}
+                          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                            <div className="flex items-start gap-3 flex-1 min-w-0">
+                              <button
+                                type="button"
+                                onClick={() => toggleInspirationFieldExpansion(field.id)}
+                                className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full"
+                                aria-expanded={isExpanded}
+                                aria-controls={detailsId}
                               >
-                                {field.enabled ? t('backOffice.main.enabledLabel') : t('backOffice.main.disabledLabel')}
-                              </span>
-                              {field.required && (
-                                <span className="rounded-full bg-purple-100 px-2 py-1 text-purple-700">{t('backOffice.main.requiredBadge')}</span>
+                                <ChevronRight className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                                <span className="sr-only">{toggleLabel}</span>
+                              </button>
+                              <div className="space-y-2 flex-1 min-w-0">
+                                <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
+                                  <span className="px-2 py-1 rounded-full bg-gray-100 text-gray-600" id={positionId}>
+                                    {t('backOffice.main.positionTemplate', { position: index + 1, total: inspirationFormFieldEntries.length })}
+                                  </span>
+                                  <span className="px-2 py-1 rounded-full bg-blue-100 text-blue-700">
+                                    {getInspirationFormFieldTypeLabel(t, field.type)}
+                                  </span>
+                                  <span
+                                    className={`px-2 py-1 rounded-full ${
+                                      field.enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'
+                                    }`}
+                                  >
+                                    {field.enabled ? t('backOffice.main.enabledLabel') : t('backOffice.main.disabledLabel')}
+                                  </span>
+                                  {field.required && (
+                                    <span className="px-2 py-1 rounded-full bg-purple-100 text-purple-700">{t('backOffice.main.requiredBadge')}</span>
+                                  )}
+                                  {!isBuiltIn && (
+                                    <span className="px-2 py-1 rounded-full bg-amber-100 text-amber-700">{t('backOffice.inspirationFields.customBadge')}</span>
+                                  )}
+                                </div>
+                                <h3 className={`text-lg font-semibold ${field.enabled ? 'text-gray-800' : 'text-gray-500'}`}>
+                                  {fieldDisplayName}
+                                </h3>
+                                <p className="text-xs text-gray-500">
+                                  <span className="font-mono">{field.id}</span>
+                                  {options.length > 0 && (
+                                    <span>{' · '}{t('backOffice.inspirationFields.optionCountTemplate', { count: options.length })}</span>
+                                  )}
+                                </p>
+                                {linkedFilters.length > 0 && (
+                                  <div className="flex flex-wrap gap-2 text-xs">
+                                    {linkedFilters.map((filter) => (
+                                      <span
+                                        key={`${field.id}-filter-${filter.id}`}
+                                        className="px-2 py-1 bg-blue-50 text-blue-700 rounded-full border border-blue-100"
+                                      >
+                                        {t('backOffice.inspirationFields.usedAsFilterTemplate', {
+                                          filter: resolveLocalizedText(filter.label, language) || filter.id
+                                        })}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              {canReorderInspirationFields && inspirationFormFieldEntries.length > 1 && (
+                                <button
+                                  type="button"
+                                  className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded cursor-move"
+                                  aria-label={t('backOffice.main.reorderFieldAriaLabelTemplate', { field: fieldDisplayName, position: index + 1, total: inspirationFormFieldEntries.length })}
+                                  title={t('backOffice.inspirationFields.reorderHint')}
+                                  aria-describedby={positionId}
+                                  draggable
+                                  onDragStart={(event) => handleInspirationFieldDragStart(event, index)}
+                                  onDragOver={(event) => handleInspirationFieldDragOver(event, index)}
+                                  onDrop={(event) => handleInspirationFieldDrop(event, index)}
+                                  onDragEnd={handleInspirationFieldDragEnd}
+                                  onKeyDown={(event) => handleInspirationFieldKeyboardReorder(event, index)}
+                                >
+                                  <GripVertical className="w-5 h-5" />
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                role="switch"
+                                aria-checked={field.enabled}
+                                onClick={() => handleInspirationFormFieldToggle(field.id, !field.enabled)}
+                                className="p-2 text-gray-600 hover:bg-gray-100 rounded"
+                                aria-label={t(field.enabled
+                                  ? 'backOffice.inspirationFields.disableFieldAriaTemplate'
+                                  : 'backOffice.inspirationFields.enableFieldAriaTemplate', { name: fieldDisplayName })}
+                                title={t(field.enabled
+                                  ? 'backOffice.inspirationFields.disableFieldAriaTemplate'
+                                  : 'backOffice.inspirationFields.enableFieldAriaTemplate', { name: fieldDisplayName })}
+                              >
+                                {field.enabled ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => openInspirationFieldEdition(field)}
+                                className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                                aria-label={t('backOffice.inspirationFields.editFieldAriaTemplate', { name: fieldDisplayName })}
+                                title={t('backOffice.inspirationFields.editFieldAriaTemplate', { name: fieldDisplayName })}
+                              >
+                                <Edit className="w-5 h-5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => openInspirationFieldDuplication(field)}
+                                className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                                aria-label={t('backOffice.inspirationFields.duplicateFieldAriaTemplate', { name: fieldDisplayName })}
+                                title={t('backOffice.inspirationFields.duplicateFieldAriaTemplate', { name: fieldDisplayName })}
+                              >
+                                <Copy className="w-5 h-5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => deleteInspirationFormField(field.id)}
+                                disabled={Boolean(deleteBlockedReason)}
+                                className="p-2 text-red-600 hover:bg-red-50 rounded disabled:text-gray-300 disabled:hover:bg-transparent disabled:cursor-not-allowed"
+                                aria-label={t('backOffice.inspirationFields.deleteFieldAriaTemplate', { name: fieldDisplayName })}
+                                title={deleteBlockedReason || t('backOffice.inspirationFields.deleteFieldAriaTemplate', { name: fieldDisplayName })}
+                              >
+                                <Trash2 className="w-5 h-5" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {isExpanded && (
+                            <div id={detailsId} className="mt-4 grid grid-cols-1 gap-4 text-sm text-gray-700 md:grid-cols-2">
+                              <div className="space-y-2">
+                                <h4 className="font-semibold text-gray-800">
+                                  {field.type === 'select' ? t('backOffice.main.selectionLabelLabel') : t('backOffice.main.placeholderLabel')}
+                                </h4>
+                                {INSPIRATION_FORM_FIELD_PLACEHOLDER_TYPES.has(field.type) ? (
+                                  field.placeholder ? (
+                                    <p className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-gray-600">{field.placeholder}</p>
+                                  ) : (
+                                    <p className="text-xs text-gray-500 italic">{t('backOffice.inspirationFields.noPlaceholder')}</p>
+                                  )
+                                ) : (
+                                  <p className="text-xs text-gray-500 italic">{t('backOffice.main.noPlaceholderNeeded')}</p>
+                                )}
+                              </div>
+                              <div className="space-y-2">
+                                <h4 className="font-semibold text-gray-800">{t('backOffice.inspirationFieldEditor.optionsHeading')}</h4>
+                                {options.length > 0 ? (
+                                  <ul className="list-none pl-0 flex flex-wrap gap-2">
+                                    {options.map((option) => (
+                                      <li
+                                        key={`${field.id}-option-${option.value}`}
+                                        className="px-2 py-1 bg-blue-50 text-blue-700 rounded border border-blue-100"
+                                      >
+                                        {resolveLocalizedText(option.label, language) || option.value}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                ) : (
+                                  <p className="text-xs text-gray-500 italic">{t('backOffice.inspirationFields.noOptionsForType')}</p>
+                                )}
+                              </div>
+                              {deleteBlockedReason && (
+                                <p className="md:col-span-2 flex items-start gap-2 text-xs text-gray-500">
+                                  <Info className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                                  {deleteBlockedReason}
+                                </p>
                               )}
                             </div>
-                            <div className="text-xs text-gray-500" id={positionId}>
-                              {t('backOffice.main.positionTemplate', { position: index + 1, total: inspirationFormFieldEntries.length })}
-                            </div>
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                              <label className="flex flex-col gap-2 text-sm text-gray-700">
-                                <span className="font-semibold text-gray-700">{t('backOffice.main.labelFieldLabel')}</span>
-                                <input
-                                  type="text"
-                                  value={getLocalizedRaw(field.label, inspirationEditingLanguage)}
-                                  onChange={(event) => handleInspirationFormFieldLabelChange(field.id, event.target.value)}
-                                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                                />
-                              </label>
-                              <label className="flex flex-col gap-2 text-sm text-gray-700">
-                                <span className="font-semibold text-gray-700">{t('backOffice.main.fieldTypeLabel')}</span>
-                                <select
-                                  value={field.type}
-                                  onChange={(event) => handleInspirationFormFieldTypeChange(field.id, event.target.value)}
-                                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                                >
-                                  {buildInspirationFormFieldTypeOptions(t).map((option) => (
-                                    <option key={option.value} value={option.value}>
-                                      {option.label}
-                                    </option>
-                                  ))}
-                                </select>
-                              </label>
-                            </div>
-                            {INSPIRATION_FORM_FIELD_PLACEHOLDER_TYPES.has(field.type) && (
-                              <label className="flex flex-col gap-2 text-sm text-gray-700">
-                                <span className="font-semibold text-gray-700">
-                                  {field.type === 'select' ? t('backOffice.main.selectionLabelLabel') : t('backOffice.main.placeholderLabel')}
-                                </span>
-                                {field.type === 'long_text' ? (
-                                  <textarea
-                                    rows={2}
-                                    value={field.placeholder || ''}
-                                    onChange={(event) => handleInspirationFormFieldPlaceholderChange(field.id, event.target.value)}
-                                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                                    placeholder={t('backOffice.main.placeholderIndicativeText')}
-                                  />
-                                ) : (
-                                  <input
-                                    type="text"
-                                    value={field.placeholder || ''}
-                                    onChange={(event) => handleInspirationFormFieldPlaceholderChange(field.id, event.target.value)}
-                                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                                    placeholder={t('backOffice.main.placeholderIndicativeText')}
-                                  />
-                                )}
-                              </label>
-                            )}
-                            {field.type === 'select' || field.type === 'multi_select' ? (
-                              <label className="flex flex-col gap-2 text-sm text-gray-700">
-                                <span className="font-semibold text-gray-700">{t('backOffice.main.optionsCommaSeparatedLabel')}</span>
-                                <input
-                                  type="text"
-                                  value={formatOptionList(field.options, inspirationEditingLanguage)}
-                                  onChange={(event) => handleInspirationFormFieldOptionsChange(field.id, event.target.value)}
-                                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                                />
-                              </label>
-                            ) : null}
-                            <label className="inline-flex items-center gap-2 text-sm text-gray-700">
-                              <input
-                                type="checkbox"
-                                checked={Boolean(field.required)}
-                                onChange={(event) => handleInspirationFormFieldRequiredChange(field.id, event.target.checked)}
-                                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                              />
-                              {t('backOffice.main.requiredFieldLabel')}
-                            </label>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            <button
-                              type="button"
-                              className="p-2 text-gray-500 hover:text-blue-600 rounded cursor-move"
-                              aria-label={t('backOffice.main.reorderFieldAriaLabelTemplate', { field: resolveLocalizedText(field.label, language) || field.id, position: index + 1, total: inspirationFormFieldEntries.length })}
-                              aria-describedby={positionId}
-                              draggable
-                              onDragStart={(event) => handleInspirationFieldDragStart(event, index)}
-                              onDragOver={(event) => handleInspirationFieldDragOver(event, index)}
-                              onDrop={(event) => handleInspirationFieldDrop(event, index)}
-                              onDragEnd={handleInspirationFieldDragEnd}
-                              onKeyDown={(event) => handleInspirationFieldKeyboardReorder(event, index)}
-                            >
-                              <GripVertical className="w-4 h-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleInspirationFormFieldToggle(field.id, !field.enabled)}
-                              className={`inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
-                                field.enabled
-                                  ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                  : 'bg-blue-600 text-white hover:bg-blue-700'
-                              }`}
-                            >
-                              {field.enabled ? t('backOffice.main.disableButton') : t('backOffice.main.activateLabel')}
-                            </button>
-                          </div>
-                        </div>
-                      </article>
+                          )}
+                        </li>
                       );
-                    })
-                  )}
-                </div>
+                    })}
+                  </ol>
+                )}
               </article>
             </section>
           )}
@@ -10344,6 +10345,23 @@ export const BackOffice = ({
             onSave={saveQuestion}
             onCancel={cancelQuestionEdit}
             allQuestions={questions}
+          />
+        )}
+
+        {inspirationFieldEditor && (
+          <InspirationFieldEditor
+            mode={inspirationFieldEditor.mode}
+            field={inspirationFieldEditor.field}
+            typeOptions={inspirationFormFieldTypeOptions}
+            existingIds={inspirationFieldIds}
+            isBuiltIn={inspirationFieldEditor.mode === 'edit' && isBuiltInInspirationFormField(inspirationFieldEditor.field?.id)}
+            linkedFilterLabels={inspirationFieldEditor.mode === 'edit'
+              ? getInspirationFiltersUsingFormField(normalizedInspirationFilters, inspirationFieldEditor.field?.id)
+                .map((filter) => resolveLocalizedText(filter.label, language) || filter.id)
+              : []}
+            initialLanguage={inspirationEditingLanguage}
+            onSave={saveInspirationFormField}
+            onCancel={closeInspirationFieldEditor}
           />
         )}
 
