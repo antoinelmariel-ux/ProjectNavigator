@@ -10,6 +10,7 @@ import { SectionInserter } from './showcase/SectionInserter.jsx';
 import { ShowcaseEditorBar } from './showcase/ShowcaseEditorBar.jsx';
 import { ShowcaseOutline } from './showcase/ShowcaseOutline.jsx';
 import { InlineRichText } from './showcase/InlineRichText.jsx';
+import { DocumentDropZone } from './showcase/DocumentDropZone.jsx';
 import {
   SHOWCASE_SECTION_IDS,
   buildPreviewAnswers,
@@ -2108,6 +2109,7 @@ export const ProjectShowcase = ({
   );
   const [isLightConfigOpen, setIsLightConfigOpen] = useState(false);
   const [documentUploadErrors, setDocumentUploadErrors] = useState({});
+  const [documentUploadPending, setDocumentUploadPending] = useState({});
 
   const resetMilestoneDragState = useCallback(() => {
     setMilestoneDragState(createEmptyMilestoneDragState());
@@ -2122,7 +2124,18 @@ export const ProjectShowcase = ({
       return;
     }
 
+    // Seul le glisser-déposer peut en apporter plusieurs : en garder un au hasard laisserait
+    // croire que les autres ont été déposés aussi.
+    if (files.length > 1) {
+      setDocumentUploadErrors(previous => ({
+        ...previous,
+        [uploadKey]: t('projectShowcase.documentDropSingleFileMessage')
+      }));
+      return;
+    }
+
     setDocumentUploadErrors(previous => ({ ...previous, [uploadKey]: '' }));
+    setDocumentUploadPending(previous => ({ ...previous, [uploadKey]: true }));
 
     try {
       const attachment = await createAttachmentFromFile(file, {
@@ -2145,6 +2158,8 @@ export const ProjectShowcase = ({
         ...previous,
         [uploadKey]: error?.message || t('projectShowcase.documentUploadFailedMessage')
       }));
+    } finally {
+      setDocumentUploadPending(previous => ({ ...previous, [uploadKey]: false }));
     }
   }, [projectId, t]);
 
@@ -4015,44 +4030,63 @@ export const ProjectShowcase = ({
                 <p className="sg-tile__text sg-tile__text--muted">{renderTextWithLinks(section.description)}</p>
               )}
               <div className="sg-doc">
-                {section.documentUrl ? (
-                  isImage ? (
-                    <img
-                      className="sg-doc__image"
-                      src={section.documentUrl}
-                      alt={t('projectShowcase.documentAltTemplate', { title })}
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  ) : documentEmbedSrc ? (
-                    <iframe
-                      className="sg-doc__frame"
-                      title={t('projectShowcase.documentAltTemplate', { title })}
-                      src={documentEmbedSrc}
-                      loading="lazy"
-                    />
+                {/* Sur le canevas même : on dépose le document là où il s'affichera, et un
+                    dépôt sur un document déjà affiché le remplace. */}
+                <DocumentDropZone
+                  enabled={editable}
+                  isBusy={Boolean(documentUploadPending[section.id])}
+                  label={t(section.documentUrl
+                    ? 'projectShowcase.documentDropReplaceLabel'
+                    : 'projectShowcase.documentDropLabel')}
+                  busyLabel={t('projectShowcase.documentUploadingLabel')}
+                  onFiles={(files) => handleDocumentUpload(
+                    section.id,
+                    (field, value) => handleCustomSectionFieldChange(section.id, field, value),
+                    files
+                  )}
+                >
+                  {section.documentUrl ? (
+                    isImage ? (
+                      <img
+                        className="sg-doc__image"
+                        src={section.documentUrl}
+                        alt={t('projectShowcase.documentAltTemplate', { title })}
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : documentEmbedSrc ? (
+                      <iframe
+                        className="sg-doc__frame"
+                        title={t('projectShowcase.documentAltTemplate', { title })}
+                        src={documentEmbedSrc}
+                        loading="lazy"
+                      />
+                    ) : (
+                      // Format bureautique hors mode SharePoint : aucun convertisseur Office n'est
+                      // joignable (voir documentEmbed.js), le lien d'ouverture reste le seul accès.
+                      <div className="sg-doc__empty" style={{ '--sg-c': family.c }}>
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+                          <path d="M14 3v5h5" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+                        </svg>
+                        <span>{t('projectShowcase.documentReadyLabel')}</span>
+                      </div>
+                    )
                   ) : (
-                    // Format bureautique hors mode SharePoint : aucun convertisseur Office n'est
-                    // joignable (voir documentEmbed.js), le lien d'ouverture reste le seul accès.
                     <div className="sg-doc__empty" style={{ '--sg-c': family.c }}>
                       <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                         <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
                         <path d="M14 3v5h5" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
                       </svg>
-                      <span>{t('projectShowcase.documentReadyLabel')}</span>
+                      <span>{t('projectShowcase.noDocumentLinked')}</span>
+                      <span className="sg-doc__url">{t('projectShowcase.addSharePointLinkHint')}</span>
                     </div>
-                  )
-                ) : (
-                  <div className="sg-doc__empty" style={{ '--sg-c': family.c }}>
-                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
-                      <path d="M14 3v5h5" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
-                    </svg>
-                    <span>{t('projectShowcase.noDocumentLinked')}</span>
-                    <span className="sg-doc__url">{t('projectShowcase.addSharePointLinkHint')}</span>
-                  </div>
-                )}
+                  )}
+                </DocumentDropZone>
               </div>
+              {editable && documentUploadErrors[section.id] && (
+                <p className="sge-doc-error" role="alert">{documentUploadErrors[section.id]}</p>
+              )}
               {section.documentUrl && (
                 <div className="sg-doc__bar">
                   <span>{t('projectShowcase.sharePointSourceTemplate', { type: section.documentType?.toUpperCase() || 'DOC' })}</span>
@@ -4072,7 +4106,7 @@ export const ProjectShowcase = ({
         </div>
       </section>
     );
-  }, [accentFamilies, documentEmbedContext, handleCustomSectionColumnChange, handleCustomSectionFieldChange, handleCustomSectionItemChange, t]);
+  }, [accentFamilies, documentEmbedContext, documentUploadErrors, documentUploadPending, handleCustomSectionColumnChange, handleCustomSectionFieldChange, handleCustomSectionItemChange, handleDocumentUpload, t]);
 
   // Pendant l'édition, le canvas lit les sections *non assainies* : `sanitizeCustomSections`
   // supprime une section devenue entièrement vide, ce qui la ferait disparaître sous les
@@ -4722,44 +4756,58 @@ export const ProjectShowcase = ({
                       {documentUploadErrors[section.id] && (
                         <p className="text-xs text-red-600">{documentUploadErrors[section.id]}</p>
                       )}
-                      {section.documentUrl ? (
-                        <div className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm">
-                          <a
-                            href={section.documentUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="truncate text-blue-600 hover:underline"
-                          >
-                            {t('projectShowcase.documentUploadedLabel')}
-                          </a>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              handleCustomSectionFieldChange(section.id, 'documentUrl', '');
-                              handleCustomSectionFieldChange(section.id, 'documentType', 'pdf');
-                            }}
-                            className="shrink-0 text-xs font-semibold text-gray-500 hover:text-gray-700"
-                          >
-                            {t('projectShowcase.removeDocumentButton')}
-                          </button>
-                        </div>
-                      ) : (
-                        <label className="flex w-full cursor-pointer items-center justify-center rounded-lg border border-dashed border-blue-300 bg-blue-50 px-3 py-3 text-center text-sm font-medium text-blue-700 hover:bg-blue-100">
-                          <input
-                            type="file"
-                            className="sr-only"
-                            onChange={(event) => {
-                              handleDocumentUpload(
-                                section.id,
-                                (field, value) => handleCustomSectionFieldChange(section.id, field, value),
-                                event.target.files
-                              );
-                              event.target.value = '';
-                            }}
-                          />
-                          {t('projectShowcase.chooseDocumentButton')}
-                        </label>
-                      )}
+                      <DocumentDropZone
+                        className="rounded-lg"
+                        isBusy={Boolean(documentUploadPending[section.id])}
+                        label={t(section.documentUrl
+                          ? 'projectShowcase.documentDropReplaceLabel'
+                          : 'projectShowcase.documentDropLabel')}
+                        busyLabel={t('projectShowcase.documentUploadingLabel')}
+                        onFiles={(files) => handleDocumentUpload(
+                          section.id,
+                          (field, value) => handleCustomSectionFieldChange(section.id, field, value),
+                          files
+                        )}
+                      >
+                        {section.documentUrl ? (
+                          <div className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm">
+                            <a
+                              href={section.documentUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="truncate text-blue-600 hover:underline"
+                            >
+                              {t('projectShowcase.documentUploadedLabel')}
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleCustomSectionFieldChange(section.id, 'documentUrl', '');
+                                handleCustomSectionFieldChange(section.id, 'documentType', 'pdf');
+                              }}
+                              className="shrink-0 text-xs font-semibold text-gray-500 hover:text-gray-700"
+                            >
+                              {t('projectShowcase.removeDocumentButton')}
+                            </button>
+                          </div>
+                        ) : (
+                          <label className="flex w-full cursor-pointer items-center justify-center rounded-lg border border-dashed border-blue-300 bg-blue-50 px-3 py-3 text-center text-sm font-medium text-blue-700 hover:bg-blue-100">
+                            <input
+                              type="file"
+                              className="sr-only"
+                              onChange={(event) => {
+                                handleDocumentUpload(
+                                  section.id,
+                                  (field, value) => handleCustomSectionFieldChange(section.id, field, value),
+                                  event.target.files
+                                );
+                                event.target.value = '';
+                              }}
+                            />
+                            {t('projectShowcase.chooseDocumentButton')}
+                          </label>
+                        )}
+                      </DocumentDropZone>
                     </div>
                   </>
                 )}

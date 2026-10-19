@@ -1757,3 +1757,63 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
+
+/* ---------- dépôt de document (visionneuse) ----------
+   Le voile n'apparaît que lorsqu'un fichier survole la page : il couvre aussi l'<iframe>
+   d'un PDF ou d'une présentation, qui sinon recevrait le dépôt à la place de la vitrine. */
+.sge-dropzone {
+  position: relative;
+}
+
+.sge-dropzone__veil {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  border: 2px dashed var(--sge-primary-line);
+  border-radius: inherit;
+  background: rgba(239, 246, 255, 0.72);
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.sge-dropzone--over .sge-dropzone__veil {
+  border-color: var(--sge-primary);
+  background: rgba(219, 234, 254, 0.9);
+}
+
+.sge-dropzone--busy .sge-dropzone__veil {
+  border-style: solid;
+  cursor: progress;
+}
+
+.sge-dropzone__label {
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  background: var(--sge-surface);
+  box-shadow: var(--sge-shadow);
+  color: var(--sge-primary-strong);
+  font-family: var(--sge-font);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.sge-doc-error {
+  margin-top: 0.6rem;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--sge-danger-line);
+  border-radius: var(--sge-r-sm);
+  background: var(--sge-danger-soft);
+  color: var(--sge-danger);
+  font-family: var(--sge-font);
+  font-size: 0.82rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sge-dropzone__veil {
+    transition: none;
+  }
+}
