@@ -214,8 +214,14 @@ test.describe('Enjeux du projet tolérants à une analyse absente', () => {
     await page.getByRole('button', { name: /Retourner à l.accueil des projets/ }).first().click();
     await expect(page.getByRole('button', { name: /Continuer l.édition/ }).first()).toBeVisible();
 
-    const projectId = ((await readStoredState(page)).projects || [])[0]?.id;
-    expect(projectId).toBeTruthy();
+    // La sauvegarde est debouncée (400 ms) puis asynchrone : on attend que le projet soit stocké.
+    let projectId;
+    await expect
+      .poll(async () => {
+        projectId = ((await readStoredState(page)).projects || [])[0]?.id;
+        return projectId;
+      })
+      .toBeTruthy();
 
     // patchStateOnBoot plutôt qu'un evaluate + reload : le flush `pagehide` de la page courante
     // réécrirait sinon l'état React par-dessus la modification juste avant le rechargement.

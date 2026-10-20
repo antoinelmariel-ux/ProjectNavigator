@@ -5,19 +5,28 @@ test.describe('Persistance transverse', () => {
   test('un edit très récent (avant le debounce) est quand même sauvegardé au pagehide', async ({ page }) => {
     await gotoHome(page);
     await page.getByRole('button', { name: /Créer un projet/ }).first().click();
+
+    // Simule un onglet qui se ferme avant que l'écriture IndexedDB ne soit confirmée : plus
+    // aucune transaction n'aboutit dans cette page.
+    await page.evaluate(() => {
+      window.IDBDatabase.prototype.transaction = () => ({
+        objectStore: () => ({ put() {}, get: () => ({}) })
+      });
+    });
     await page.locator('[contenteditable="true"]').first().click();
     await page.keyboard.type('Projet pagehide test');
 
-    // Déclenche le flush pagehide directement (sans attendre les 400ms de debounce). L'écriture
-    // IndexedDB qu'il lance est asynchrone et pourrait mourir avec l'onglet : la copie de secours
-    // synchrone dans le localStorage doit donc déjà contenir l'état le plus récent.
+    // Le flush pagehide doit donc laisser une copie synchrone dans le localStorage.
     await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
     const localCopy = await page.evaluate(() => window.localStorage.getItem('complianceNavigatorState'));
     expect(localCopy).toContain('Projet pagehide test');
 
-    // Une fois l'écriture IndexedDB confirmée, la copie de secours est retirée : elle ne doit
-    // pas occuper durablement le quota qu'on cherche justement à épargner.
-    expect(JSON.stringify(await readStoredState(page))).toContain('Projet pagehide test');
+    // Au démarrage suivant, cette copie est reprise, écrite dans IndexedDB puis retirée : elle ne
+    // doit pas occuper durablement le quota qu'on cherche justement à épargner.
+    await page.reload();
+    await expect
+      .poll(async () => JSON.stringify(await readStoredState(page)))
+      .toContain('Projet pagehide test');
     await expect
       .poll(() => page.evaluate(() => window.localStorage.getItem('complianceNavigatorState')))
       .toBeNull();

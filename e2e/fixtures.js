@@ -9,6 +9,9 @@ export async function gotoFresh(page) {
   // justement à travers un rechargement (persistance). Le nettoyage se fait une fois, depuis
   // une page de la même origine qui ne monte pas l'app : une app ouverte garderait sa base
   // IndexedDB ouverte et réécrirait son état en partant.
+  await page.route('**/__e2e-blank__', (route) =>
+    route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>e2e</title>' })
+  );
   await page.goto('/__e2e-blank__');
   await page.evaluate(
     () =>
