@@ -72,6 +72,7 @@ test('buildReferentialPayload : un fichier par référentiel, réglages regroup�
     riskLevelRules: [],
     riskWeights: { a: 1 },
     showcaseThemes: [],
+    showcaseTemplates: [],
     adminEmails: ['a@b.fr'],
     onboardingTourConfig: { steps: [] },
     validationCommitteeConfig: {},
@@ -105,6 +106,7 @@ test('aller-retour build → flatten', () => {
     riskLevelRules: [],
     riskWeights: {},
     showcaseThemes: [],
+    showcaseTemplates: [],
     adminEmails: ['x@y.fr'],
     onboardingTourConfig: { a: 1 },
     validationCommitteeConfig: { b: 2 },
@@ -179,6 +181,7 @@ test('publishAllReferentials : crée les fichiers absents via Files/add', async 
         riskLevelRules: [],
         riskWeights: {},
         showcaseThemes: [],
+        showcaseTemplates: [],
         adminEmails: ['a@b.fr']
       });
 
@@ -262,6 +265,7 @@ test('publishAllReferentials : une sélection restreint les fichiers publiés', 
           riskLevelRules: [],
           riskWeights: {},
           showcaseThemes: [],
+          showcaseTemplates: [],
           adminEmails: ['a@b.fr']
         },
         new Set(['questions'])
@@ -271,6 +275,7 @@ test('publishAllReferentials : une sélection restreint les fichiers publiés', 
       assert.equal(results.find((entry) => entry.key === 'riskLevelRules').status, 'skipped');
       assert.equal(results.find((entry) => entry.key === 'riskWeights').status, 'skipped');
       assert.equal(results.find((entry) => entry.key === 'showcaseThemes').status, 'skipped');
+      assert.equal(results.find((entry) => entry.key === 'showcaseTemplates').status, 'skipped');
       assert.equal(results.find((entry) => entry.key === 'settings').status, 'skipped');
 
       assert.ok(!calls.some((call) => call.url.includes('risk-level-rules.json')));

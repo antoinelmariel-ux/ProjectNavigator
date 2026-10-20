@@ -436,7 +436,6 @@ export const HomeScreen = ({
   submittedProjectNotice = null,
   onDismissSubmittedProjectNotice,
   onShowProjectShowcase,
-  canShowProjectShowcase,
   onDuplicateProject,
   onReintegrateProjectInCommittee,
   onToggleProjectVisibility,
@@ -2242,7 +2241,7 @@ export const HomeScreen = ({
               <span>{t('home.viewSynthesis')}</span>
             </button>
           )}
-          {onShowProjectShowcase && (typeof canShowProjectShowcase !== 'function' || canShowProjectShowcase(project)) && (
+          {onShowProjectShowcase && (
             <button
               type="button"
               onClick={() => onShowProjectShowcase(project.id)}

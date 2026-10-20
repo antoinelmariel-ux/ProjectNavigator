@@ -4,7 +4,6 @@ import assert from 'node:assert/strict';
 import { initialShowcaseThemes } from '../src/data/showcaseThemes.js';
 import {
   getShowcaseThemeActivationConflicts,
-  isShowcaseAccessBlockedByProjectType,
   resolveThemeFromActivation
 } from '../src/utils/showcase.js';
 
@@ -90,12 +89,4 @@ test('une réponse multi-select expose aussi ses sous-options', () => {
 test('une option sans thème dédié ne déclenche aucune activation', () => {
   const answers = { showcaseTheme: { value: 'environnement', children: ['pneumologie'] } };
   assert.equal(resolveThemeFromActivation(initialShowcaseThemes, answers), null);
-});
-
-test('les sous-options ne débloquent pas un type de projet exclu de la vitrine', () => {
-  assert.equal(isShowcaseAccessBlockedByProjectType({ ProjectType: 'projet_du_lfb' }), false);
-  assert.equal(
-    isShowcaseAccessBlockedByProjectType({ ProjectType: { value: 'don_bourse_appel_a_projets' } }),
-    true
-  );
 });

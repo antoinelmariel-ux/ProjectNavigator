@@ -23,6 +23,7 @@ export const REFERENTIAL_FILES = {
   riskLevelRules: { file: 'risk-level-rules.json', label: 'Niveaux de risque' },
   riskWeights: { file: 'risk-weighting.json', label: 'Pondérations de risque' },
   showcaseThemes: { file: 'showcase-themes.json', label: 'Thèmes de vitrine' },
+  showcaseTemplates: { file: 'showcase-templates.json', label: 'Modèles de vitrine' },
   settings: { file: 'settings.json', label: 'Réglages généraux', keys: SETTINGS_KEYS }
 };
 

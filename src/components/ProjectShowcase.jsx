@@ -37,6 +37,13 @@ import { renderTextWithLinks } from '../utils/linkify.js';
 import { splitRichTextIntoBlocks } from '../utils/richText.js';
 import { hasChronologicalDate, sortMilestonesChronologically } from '../utils/showcaseMilestones.js';
 import { initialShowcaseThemes } from '../data/showcaseThemes.js';
+import { initialShowcaseTemplates } from '../data/showcaseTemplates.js';
+import {
+  SHOWCASE_TEMPLATE_BLOCK_TYPES,
+  applyShowcaseTemplate,
+  getTemplateBuiltInSectionIds,
+  resolveShowcaseTemplate
+} from '../utils/showcaseTemplates.js';
 import {
   THEME_ACCENT_FAMILY_ID,
   buildAccentFamilies,
@@ -55,8 +62,8 @@ import { scrollAppTo } from '../utils/scrollContainer.js';
 
 const SHOWCASE_SECTION_OPTIONS = SHOWCASE_SECTION_IDS.map(id => ({ id }));
 
-const LIGHT_VISIBILITY_OPTIONS = [
-  ...SHOWCASE_SECTION_OPTIONS,
+const buildLightVisibilityOptions = (builtInSectionIds = SHOWCASE_SECTION_IDS) => [
+  ...builtInSectionIds.map(id => ({ id })),
   { id: 'budget' }
 ];
 
@@ -64,15 +71,7 @@ const getSectionOptionLabel = (t, sectionId) => t(`projectShowcase.sectionOption
 
 const MAX_CUSTOM_SECTION_COLUMNS = 4;
 
-const SECTION_TEMPLATES = [
-  { id: 'highlight' },
-  { id: 'figure' },
-  { id: 'columns' },
-  { id: 'document-viewer' },
-  { id: 'story' },
-  { id: 'checklist' },
-  { id: 'stack' }
-];
+const SECTION_TEMPLATES = SHOWCASE_TEMPLATE_BLOCK_TYPES.map(id => ({ id }));
 
 const getTemplateMeta = (t, templateId) => {
   switch (templateId) {
@@ -274,11 +273,11 @@ const SECTION_TEMPLATE_CONFIG = {
 };
 
 const buildLightVisibilityIds = (sectionIds = []) => {
-  const merged = [...sectionIds, ...LIGHT_VISIBILITY_OPTIONS.map(option => option.id)];
+  const merged = [...sectionIds, 'budget'];
   return Array.from(new Set(merged));
 };
 
-const buildDefaultLightSectionSelection = (sectionIds = LIGHT_VISIBILITY_OPTIONS.map(section => section.id)) =>
+const buildDefaultLightSectionSelection = (sectionIds = buildLightVisibilityOptions().map(section => section.id)) =>
   sectionIds.reduce((acc, sectionId) => {
     acc[sectionId] = true;
     return acc;
@@ -462,7 +461,8 @@ const computeShowcaseUpdates = ({
   draftValues,
   customSections,
   sectionOrder,
-  sectionAccents
+  sectionAccents,
+  builtInSectionIds
 }) => {
   const updates = {};
 
@@ -490,8 +490,8 @@ const computeShowcaseUpdates = ({
 
   const previousCustomSections = sanitizeCustomSections(answers?.customShowcaseSections);
   const nextCustomSections = sanitizeCustomSections(customSections);
-  const previousSectionOrder = normalizeSectionOrder(answers?.showcaseSectionOrder, previousCustomSections);
-  const nextSectionOrder = normalizeSectionOrder(sectionOrder, nextCustomSections);
+  const previousSectionOrder = normalizeSectionOrder(answers?.showcaseSectionOrder, previousCustomSections, builtInSectionIds);
+  const nextSectionOrder = normalizeSectionOrder(sectionOrder, nextCustomSections, builtInSectionIds);
 
   if (!areCustomSectionsEqual(previousCustomSections, nextCustomSections)) {
     updates.customShowcaseSections = nextCustomSections;
@@ -2009,12 +2009,13 @@ export const ProjectShowcase = ({
   analysis,
   relevantTeams,
   questions,
-  answers,
+  answers: rawAnswers,
   timelineDetails,
   renderInStandalone = false,
   onUpdateAnswers,
   tourContext = null,
   showcaseThemes = initialShowcaseThemes,
+  showcaseTemplates = initialShowcaseTemplates,
   hasIncompleteAnswers = false,
   onAnnotationScopeChange = null,
   onEditingStateChange = null,
@@ -2026,6 +2027,25 @@ export const ProjectShowcase = ({
   canConfigureDisplayModes = true
 }) => {
   const { t, language } = useTranslation();
+  // Tout le composant lit `answers` à travers le modèle de vitrine du projet : ses blocs et
+  // son ordre tiennent lieu de valeurs enregistrées, si bien que publier sans les toucher
+  // n'écrit rien et que la vitrine continue de suivre le modèle.
+  const activeShowcaseTemplate = useMemo(
+    () => resolveShowcaseTemplate(rawAnswers, showcaseTemplates),
+    [rawAnswers, showcaseTemplates]
+  );
+  const builtInSectionIds = useMemo(
+    () => getTemplateBuiltInSectionIds(activeShowcaseTemplate),
+    [activeShowcaseTemplate]
+  );
+  const answers = useMemo(
+    () => applyShowcaseTemplate(rawAnswers, activeShowcaseTemplate, language),
+    [activeShowcaseTemplate, language, rawAnswers]
+  );
+  const lightVisibilityOptions = useMemo(
+    () => buildLightVisibilityOptions(builtInSectionIds),
+    [builtInSectionIds]
+  );
   const missingInfoLabel = t('projectShowcase.missingInfoLabel');
   const answeredProjectNameRaw = getRawAnswer(answers, 'projectName');
   const answeredProjectName = typeof answeredProjectNameRaw === 'string' ? answeredProjectNameRaw.trim() : '';
@@ -2093,7 +2113,7 @@ export const ProjectShowcase = ({
     sanitizeCustomSections(answers?.customShowcaseSections)
   );
   const [sectionOrder, setSectionOrder] = useState(() =>
-    normalizeSectionOrder(answers?.showcaseSectionOrder, sanitizeCustomSections(answers?.customShowcaseSections))
+    normalizeSectionOrder(answers?.showcaseSectionOrder, sanitizeCustomSections(answers?.customShowcaseSections), builtInSectionIds)
   );
   const [milestoneDragState, setMilestoneDragState] = useState(createEmptyMilestoneDragState);
   const resolvedDisplayModeLock =
@@ -2170,9 +2190,9 @@ export const ProjectShowcase = ({
     setDraftValues(buildDraftValues(editableFields, answers, rawProjectName));
     const sanitizedSections = sanitizeCustomSections(answers?.customShowcaseSections);
     setCustomSections(sanitizedSections);
-    setSectionOrder(normalizeSectionOrder(answers?.showcaseSectionOrder, sanitizedSections));
+    setSectionOrder(normalizeSectionOrder(answers?.showcaseSectionOrder, sanitizedSections, builtInSectionIds));
     setSectionAccentsDraft(normalizeSectionAccents(answers?.showcaseSectionAccents));
-  }, [answers, editableFields, rawProjectName]);
+  }, [answers, builtInSectionIds, editableFields, rawProjectName]);
 
   useEffect(() => {
     if (!isEditing) {
@@ -2472,7 +2492,7 @@ export const ProjectShowcase = ({
   const handleStartEditing = useCallback(() => {
     const nextDraftValues = buildDraftValues(editableFields, answers, rawProjectName);
     const nextCustomSections = sanitizeCustomSections(answers?.customShowcaseSections);
-    const nextSectionOrder = normalizeSectionOrder(answers?.showcaseSectionOrder, nextCustomSections);
+    const nextSectionOrder = normalizeSectionOrder(answers?.showcaseSectionOrder, nextCustomSections, builtInSectionIds);
     const nextSectionAccents = normalizeSectionAccents(answers?.showcaseSectionAccents);
 
     setDraftValues(nextDraftValues);
@@ -2499,7 +2519,7 @@ export const ProjectShowcase = ({
       sideInspector ? (nextSectionOrder.find(id => id !== 'notice') || nextSectionOrder[0] || null) : null
     );
     setIsEditing(true);
-  }, [answers, editableFields, rawProjectName, resetMilestoneDragState]);
+  }, [answers, builtInSectionIds, editableFields, rawProjectName, resetMilestoneDragState]);
 
   const handleCancelEditing = useCallback(() => {
     setDraftValues(buildDraftValues(editableFields, answers, rawProjectName));
@@ -2511,9 +2531,9 @@ export const ProjectShowcase = ({
     setIsExitConfirmOpen(false);
     const sanitizedSections = sanitizeCustomSections(answers?.customShowcaseSections);
     setCustomSections(sanitizedSections);
-    setSectionOrder(normalizeSectionOrder(answers?.showcaseSectionOrder, sanitizedSections));
+    setSectionOrder(normalizeSectionOrder(answers?.showcaseSectionOrder, sanitizedSections, builtInSectionIds));
     setSectionAccentsDraft(normalizeSectionAccents(answers?.showcaseSectionAccents));
-  }, [answers, editableFields, rawProjectName]);
+  }, [answers, builtInSectionIds, editableFields, rawProjectName]);
 
   const handleFieldChange = useCallback((fieldId, valueOrUpdater) => {
     setDraftValues(prev => {
@@ -2758,10 +2778,11 @@ export const ProjectShowcase = ({
           draftValues,
           customSections,
           sectionOrder,
-          sectionAccents: sectionAccentsDraft
+          sectionAccents: sectionAccentsDraft,
+          builtInSectionIds
         })
         : null,
-    [answers, customSections, draftValues, editableFields, isLiveEditing, sectionAccentsDraft, sectionOrder]
+    [answers, builtInSectionIds, customSections, draftValues, editableFields, isLiveEditing, sectionAccentsDraft, sectionOrder]
   );
 
   const hasUnpublishedChanges = Boolean(pendingUpdates && Object.keys(pendingUpdates).length > 0);
@@ -2790,7 +2811,8 @@ export const ProjectShowcase = ({
         draftValues,
         customSections,
         sectionOrder,
-        sectionAccents: sectionAccentsDraft
+        sectionAccents: sectionAccentsDraft,
+        builtInSectionIds
       });
 
       if (Object.keys(updates).length > 0) {
@@ -2806,7 +2828,7 @@ export const ProjectShowcase = ({
       setIsExitConfirmOpen(false);
       setIsEditing(false);
     },
-    [answers, canEdit, customSections, draftValues, editableFields, onUpdateAnswers, projectId, sectionAccentsDraft, sectionOrder]
+    [answers, builtInSectionIds, canEdit, customSections, draftValues, editableFields, onUpdateAnswers, projectId, sectionAccentsDraft, sectionOrder]
   );
 
   // Superposition « brouillon -> vitrine » : la brique qui rend l'aperçu vivant. Hors
@@ -4349,7 +4371,7 @@ export const ProjectShowcase = ({
       </div>
 
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-        {LIGHT_VISIBILITY_OPTIONS.map(section => {
+        {lightVisibilityOptions.map(section => {
           const checkboxId = `light-section-${section.id}`;
           const isChecked = pendingLightSections[section.id] !== false;
           return (
@@ -4419,14 +4441,14 @@ export const ProjectShowcase = ({
 
   const extraVisibilityOptions = useMemo(
     () =>
-      LIGHT_VISIBILITY_OPTIONS
+      lightVisibilityOptions
         .filter(option => !sectionOrder.includes(option.id))
         .map(option => ({
           id: option.id,
           label: getSectionOptionLabel(t, option.id),
           isHiddenInLight: isSectionHiddenInLight(option.id)
         })),
-    [isSectionHiddenInLight, sectionOrder, t]
+    [isSectionHiddenInLight, lightVisibilityOptions, sectionOrder, t]
   );
 
   const applyEditorSnapshot = useCallback((snapshot) => {
@@ -4514,7 +4536,7 @@ export const ProjectShowcase = ({
     }
 
     const restoredCustomSections = sanitizeCustomSections(pendingDraft.customSections);
-    const restoredOrder = normalizeSectionOrder(pendingDraft.sectionOrder, restoredCustomSections);
+    const restoredOrder = normalizeSectionOrder(pendingDraft.sectionOrder, restoredCustomSections, builtInSectionIds);
     const restoredDraftValues = pendingDraft.draftValues || {};
     const restoredSectionAccents = normalizeSectionAccents(pendingDraft.sectionAccents);
 
@@ -4536,7 +4558,7 @@ export const ProjectShowcase = ({
     setIsPreviewingInEditor(false);
     setIsExitConfirmOpen(false);
     setIsEditing(true);
-  }, [pendingDraft]);
+  }, [builtInSectionIds, pendingDraft]);
 
   const handleDiscardStoredDraft = useCallback(() => {
     clearShowcaseDraft(projectId);
