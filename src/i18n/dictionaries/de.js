@@ -271,6 +271,7 @@ export default {
     exitMode: 'Anmerkungsmodus verlassen',
     resume: 'Fortsetzen',
     pause: 'Pausieren',
+    doubleClickHint: 'Doppelklicken, um eine Haftnotiz hinzuzufügen',
     introTitle: 'Einen Kommentar auf der Vitrine hinterlassen',
     introBody: 'Kommentare sind Haftnotizen, die direkt auf der Vitrine platziert werden.',
     introStepCreate: 'Doppelklicken Sie an der gewünschten Stelle, um eine Haftnotiz zu erstellen.',

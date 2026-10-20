@@ -271,6 +271,7 @@ export default {
     exitMode: 'Quitter le mode annotation',
     resume: 'Relancer',
     pause: 'Mettre en pause',
+    doubleClickHint: 'Double-cliquez pour ajouter un post-it',
     introTitle: 'Laisser un commentaire sur la vitrine',
     introBody: 'Les commentaires prennent la forme de post-its posés directement sur la vitrine.',
     introStepCreate: 'Double-cliquez à l’endroit voulu pour créer un post-it.',

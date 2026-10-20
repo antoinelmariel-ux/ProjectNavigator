@@ -67,7 +67,9 @@ const rememberIntroDismissed = () => {
 export const AnnotationLayer = ({
   isActive = false,
   suppressIntro = false,
+  hideToolbar = false,
   isEditing = false,
+  projectName = '',
   notes = [],
   canCloseNotes = false,
   canDeleteNote,
@@ -75,6 +77,7 @@ export const AnnotationLayer = ({
   currentSourceId = '',
   activeContextId = '',
   autoFocusNoteId = null,
+  onExit,
   onNoteChange,
   onNoteClose,
   onNoteDelete,
@@ -312,6 +315,36 @@ export const AnnotationLayer = ({
 
   return (
     <React.Fragment>
+      {!hideToolbar && (
+        <div className="annotation-toolbar fixed top-0 inset-x-0 z-[2147483600]" data-annotation-ui="true">
+          <div className="max-w-7xl mx-auto px-4 sm:px-8">
+            <div className="mt-2 rounded-b-xl bg-white border border-slate-200 text-slate-900 shadow-2xl px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap items-center gap-2 text-sm text-slate-800">
+                <span className="font-semibold">{t('annotationLayer.modeLabel')}</span>
+                {projectName ? (
+                  <span className="text-xs text-slate-600">
+                    {t('annotationLayer.projectLabel', { name: projectName })}
+                  </span>
+                ) : null}
+                <span className="text-xs text-slate-600">{t('annotationLayer.doubleClickHint')}</span>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={onExit}
+                  className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white p-2 text-slate-600 hover:text-slate-900 hover:border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+                  aria-label={t('annotationLayer.exitMode')}
+                  title={t('annotationLayer.exitMode')}
+                >
+                  <Close className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isIntroOpen && (
         <div
           className="fixed inset-0 flex items-center justify-center px-4"

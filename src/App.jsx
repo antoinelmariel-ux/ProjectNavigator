@@ -3992,6 +3992,10 @@ const updateProjectFilters = useCallback((updater) => {
     || (canManageProject(activeProject) && isProjectOpenForEditing(activeProject))
     || isAdminMode;
 
+  const annotationOffsetClass = isAnnotationModeEnabled && screen === 'showcase'
+    ? 'pt-20 lg:pt-24'
+    : '';
+
   const handleAnswer = useCallback((questionId, answer) => {
     const previousValue = answers[questionId];
     let answerChanged = !areAnswersEqual(previousValue, answer);
@@ -7506,7 +7510,7 @@ const updateProjectFilters = useCallback((updater) => {
   ]);
 
   return (
-    <div className="min-h-screen">
+    <div className={`min-h-screen ${annotationOffsetClass}`}>
       {isSimulatedSession && (
         <ImpersonationBanner simulatedEmail={currentUserEmail} realEmail={realUserEmail} />
       )}
@@ -7590,6 +7594,9 @@ const updateProjectFilters = useCallback((updater) => {
       <AnnotationLayer
         isActive={isAnnotationModeEnabled && screen === 'showcase'}
         suppressIntro={isOnboardingActive}
+        hideToolbar={isOnboardingActive && onboardingStepId === 'showcase-back-to-report'}
+        projectName={showcaseProjectContext?.projectName || ''}
+        onExit={handleToggleAnnotationMode}
         isEditing={isShowcaseEditing}
         notes={annotationNotes}
         activeContextId={activeAnnotationContextKey}

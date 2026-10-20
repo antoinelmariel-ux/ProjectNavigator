@@ -271,6 +271,7 @@ export default {
     exitMode: 'Salir del modo de anotación',
     resume: 'Reanudar',
     pause: 'Pausar',
+    doubleClickHint: 'Haga doble clic para añadir una nota adhesiva',
     introTitle: 'Dejar un comentario en la vitrina',
     introBody: 'Los comentarios son notas adhesivas colocadas directamente en la vitrina.',
     introStepCreate: 'Haga doble clic donde quiera crear una nota adhesiva.',

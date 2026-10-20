@@ -271,6 +271,7 @@ export default {
     exitMode: 'Exit annotation mode',
     resume: 'Resume',
     pause: 'Pause',
+    doubleClickHint: 'Double-click to add a sticky note',
     introTitle: 'Leave a comment on the showcase',
     introBody: 'Comments are sticky notes placed directly on the showcase.',
     introStepCreate: 'Double-click where you want to create a sticky note.',
