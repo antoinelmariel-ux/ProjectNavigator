@@ -3,7 +3,8 @@
 // « solution »). Un modèle choisit les sections intégrées gardées, leur ordre, et y intercale
 // des blocs personnalisés pré-intitulés. Logique pure, sans React : `npm test` la couvre.
 import { resolveLocalizedText } from './localizedContent.js';
-import { extractAnswerValues } from './showcase.js';
+import { evaluateRule } from './rules.js';
+import { normalizeRuleConditionGroups } from './ruleConditions.js';
 import { SHOWCASE_SECTION_IDS } from './showcaseEditor.js';
 import { THEME_ACCENT_FAMILY_ID } from './showcaseAccents.js';
 
@@ -20,8 +21,6 @@ export const SHOWCASE_TEMPLATE_BLOCK_TYPES = [
 // Le bandeau « réponses incomplètes » n'est pas une section du récit : il s'affiche de
 // lui-même selon l'état du projet, aucun modèle ne doit pouvoir le faire disparaître.
 export const SHOWCASE_TEMPLATE_MANDATORY_SECTION_ID = 'notice';
-
-const DEFAULT_ACTIVATION_QUESTION_ID = 'ProjectType';
 
 const normalizeString = (value) => (typeof value === 'string' ? value.trim() : '');
 
@@ -40,15 +39,52 @@ const normalizeLocalized = (value) => {
   return '';
 };
 
+// L'activation reprend la grammaire des règles (groupes ET entre eux, ET/OU à l'intérieur,
+// mêmes opérateurs) et passe par `evaluateRule` : les deux ne peuvent pas diverger. Un modèle
+// enregistré avec l'ancienne forme `{questionId, values}` est relu comme « question = l'une
+// de ces réponses ».
 const normalizeActivation = (activation) => {
   const raw = activation && typeof activation === 'object' ? activation : {};
+  if (Array.isArray(raw.conditionGroups)) {
+    return { conditionGroups: normalizeRuleConditionGroups({ conditionGroups: raw.conditionGroups }) };
+  }
+
+  const questionId = normalizeString(raw.questionId);
   const values = Array.isArray(raw.values)
     ? Array.from(new Set(raw.values.map(normalizeString).filter(Boolean)))
     : [];
+  if (!questionId || values.length === 0) {
+    return { conditionGroups: [] };
+  }
   return {
-    questionId: normalizeString(raw.questionId) || DEFAULT_ACTIVATION_QUESTION_ID,
-    values
+    conditionGroups: normalizeRuleConditionGroups({
+      conditionGroups: [{
+        logic: 'any',
+        conditions: values.map((value) => ({ type: 'question', question: questionId, operator: 'equals', value }))
+      }]
+    })
   };
+};
+
+// Une condition encore vide (question non choisie) est satisfaite par le moteur de règles :
+// sans ce garde-fou, un modèle en cours de saisie s'appliquerait à tous les projets.
+const isConditionDefined = (condition) => {
+  if (!condition || typeof condition !== 'object') {
+    return false;
+  }
+  if ((condition.type || 'question') === 'timing') {
+    return Boolean(condition.startQuestion && condition.endQuestion);
+  }
+  return Boolean(condition.question);
+};
+
+export const hasShowcaseTemplateActivation = (template) => {
+  const groups = template?.activation?.conditionGroups;
+  return Array.isArray(groups)
+    && groups.length > 0
+    && groups.every((group) => Array.isArray(group.conditions)
+      && group.conditions.length > 0
+      && group.conditions.every(isConditionDefined));
 };
 
 const normalizeEntry = (entry, index) => {
@@ -123,34 +159,17 @@ export const normalizeShowcaseTemplates = (rawTemplates) => {
     });
 };
 
-// Premier modèle dont une valeur d'activation figure parmi les réponses à la question visée.
-// Un modèle sans valeur ne s'active jamais : il est en cours de préparation.
+// Premier modèle, dans l'ordre de la liste, dont les conditions sont remplies par les réponses
+// du projet. Un modèle sans condition complète ne s'active jamais : il est en préparation.
+// Le périmètre d'activité de la personne connectée n'est pas injecté : une vitrine se lit par
+// n'importe qui, sa structure ne peut pas dépendre de qui la regarde.
 export const resolveShowcaseTemplate = (answers, templates) => {
-  const normalized = normalizeShowcaseTemplates(templates);
   const source = answers && typeof answers === 'object' ? answers : {};
 
-  return normalized.find((template) => {
-    const { questionId, values } = template.activation;
-    if (values.length === 0) {
-      return false;
-    }
-    const selected = extractAnswerValues(source[questionId]);
-    return selected.some((value) => values.includes(value));
-  }) || null;
-};
-
-// Les options revendiquées par plusieurs modèles : seul le premier s'appliquera.
-export const getShowcaseTemplateActivationConflicts = (templates) => {
-  const claims = new Map();
-  normalizeShowcaseTemplates(templates).forEach((template) => {
-    template.activation.values.forEach((value) => {
-      const key = `${template.activation.questionId}::${value}`;
-      const current = claims.get(key) || { questionId: template.activation.questionId, value, templateIds: [] };
-      current.templateIds.push(template.id);
-      claims.set(key, current);
-    });
-  });
-  return Array.from(claims.values()).filter((claim) => claim.templateIds.length > 1);
+  return normalizeShowcaseTemplates(templates).find((template) => (
+    hasShowcaseTemplateActivation(template)
+    && evaluateRule({ conditionGroups: template.activation.conditionGroups }, source).triggered
+  )) || null;
 };
 
 export const getTemplateBuiltInSectionIds = (template) => {
@@ -224,7 +243,7 @@ export const createShowcaseTemplate = (existingTemplates = []) => {
   return normalizeShowcaseTemplate({
     id: `showcase-template-${counter}`,
     name: '',
-    activation: { questionId: DEFAULT_ACTIVATION_QUESTION_ID, values: [] },
+    activation: { conditionGroups: [] },
     sections: SHOWCASE_SECTION_IDS.map((id) => ({ kind: 'builtin', id }))
   });
 };

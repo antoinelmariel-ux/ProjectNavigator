@@ -3,6 +3,12 @@
 // retouchent dans le back-office (onglet « Modèles de vitrine »).
 const block = (id, type, title, description) => ({ kind: 'block', id, type, title, description });
 const builtin = (id) => ({ kind: 'builtin', id });
+const whenProjectTypeIs = (value) => ({
+  conditionGroups: [{
+    logic: 'all',
+    conditions: [{ type: 'question', question: 'ProjectType', operator: 'equals', value }]
+  }]
+});
 
 export const initialShowcaseTemplates = [
   {
@@ -13,7 +19,7 @@ export const initialShowcaseTemplates = [
       de: 'Spende / Stipendium / Projektausschreibung',
       es: 'Donación / beca / convocatoria de proyectos'
     },
-    activation: { questionId: 'ProjectType', values: ['don_bourse_appel_a_projets'] },
+    activation: whenProjectTypeIs('don_bourse_appel_a_projets'),
     sections: [
       builtin('notice'),
       builtin('hero'),
@@ -62,7 +68,7 @@ export const initialShowcaseTemplates = [
       de: 'Projekt eines Dritten, das von LFB unterstützt wird',
       es: 'Proyecto de un tercero apoyado por LFB'
     },
-    activation: { questionId: 'ProjectType', values: ['projet_d_un_tiers_soutenu_par_le_lfb'] },
+    activation: whenProjectTypeIs('projet_d_un_tiers_soutenu_par_le_lfb'),
     sections: [
       builtin('notice'),
       builtin('hero'),
@@ -102,7 +108,7 @@ export const initialShowcaseTemplates = [
       de: 'Advisory Board ohne Projektbezug',
       es: 'Advisory Board no vinculado a un proyecto'
     },
-    activation: { questionId: 'ProjectType', values: ['advisory_board_non_relie_a_un_projet'] },
+    activation: whenProjectTypeIs('advisory_board_non_relie_a_un_projet'),
     sections: [
       builtin('notice'),
       builtin('hero'),

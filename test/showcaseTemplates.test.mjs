@@ -8,8 +8,8 @@ import {
   applyShowcaseTemplate,
   buildTemplateBlockSectionId,
   createShowcaseTemplate,
-  getShowcaseTemplateActivationConflicts,
   getTemplateBuiltInSectionIds,
+  hasShowcaseTemplateActivation,
   normalizeShowcaseTemplate,
   resolveShowcaseTemplate
 } from '../src/utils/showcaseTemplates.js';
@@ -32,7 +32,12 @@ test('les valeurs d’activation par défaut existent dans la question ProjectTy
   const projectType = initialQuestions.find((question) => question.id === 'ProjectType');
   const values = new Set(projectType.options.map((option) => option.value));
   initialShowcaseTemplates.forEach((template) => {
-    template.activation.values.forEach((value) => assert.ok(values.has(value), value));
+    template.activation.conditionGroups.forEach((group) => {
+      group.conditions.forEach((condition) => {
+        assert.equal(condition.question, 'ProjectType');
+        assert.ok(values.has(condition.value), condition.value);
+      });
+    });
   });
 });
 
@@ -44,10 +49,65 @@ test('l’activation lit aussi une réponse à choix stockée en objet', () => {
   assert.equal(template.id, 'don-bourse-appel-a-projets');
 });
 
-test('un modèle sans réponse cochée ne s’applique jamais', () => {
+test('un modèle sans condition ne s’applique jamais', () => {
   const draft = createShowcaseTemplate([]);
-  assert.deepEqual(draft.activation.values, []);
+  assert.deepEqual(draft.activation.conditionGroups, []);
+  assert.equal(hasShowcaseTemplateActivation(draft), false);
   assert.equal(resolveShowcaseTemplate({ ProjectType: 'projet_du_lfb' }, [draft]), null);
+});
+
+test('une condition dont la question n’est pas choisie ne fait pas s’appliquer le modèle partout', () => {
+  const template = {
+    id: 'draft',
+    activation: { conditionGroups: [{ logic: 'all', conditions: [{ type: 'question', question: '', operator: 'equals', value: '' }] }] },
+    sections: []
+  };
+  assert.equal(resolveShowcaseTemplate({ ProjectType: 'projet_du_lfb' }, [template]), null);
+});
+
+test('les conditions combinent plusieurs questions et opérateurs, comme les règles', () => {
+  const template = {
+    id: 'don-hors-france',
+    activation: {
+      conditionGroups: [
+        { logic: 'all', conditions: [{ type: 'question', question: 'ProjectType', operator: 'equals', value: 'don_bourse_appel_a_projets' }] },
+        {
+          logic: 'any',
+          conditions: [
+            { type: 'question', question: 'country', operator: 'not_equals', value: 'france' },
+            { type: 'question', question: 'amount', operator: 'gte', value: '10000' }
+          ]
+        }
+      ]
+    },
+    sections: []
+  };
+  const don = { ProjectType: 'don_bourse_appel_a_projets' };
+  assert.equal(resolveShowcaseTemplate({ ...don, country: 'france', amount: '500' }, [template]), null);
+  assert.equal(resolveShowcaseTemplate({ ...don, country: 'italie', amount: '500' }, [template]).id, 'don-hors-france');
+  assert.equal(resolveShowcaseTemplate({ ...don, country: 'france', amount: '20000' }, [template]).id, 'don-hors-france');
+  assert.equal(resolveShowcaseTemplate({ ProjectType: 'projet_du_lfb', country: 'italie' }, [template]), null);
+});
+
+test('le premier modèle de la liste qui convient l’emporte', () => {
+  const when = (value) => ({ conditionGroups: [{ logic: 'all', conditions: [{ type: 'question', question: 'ProjectType', operator: 'equals', value }] }] });
+  const templates = [
+    { id: 'premier', activation: when('x'), sections: [] },
+    { id: 'second', activation: when('x'), sections: [] }
+  ];
+  assert.equal(resolveShowcaseTemplate({ ProjectType: 'x' }, templates).id, 'premier');
+  assert.equal(resolveShowcaseTemplate({ ProjectType: 'x' }, [...templates].reverse()).id, 'second');
+});
+
+test('un modèle enregistré avec l’ancienne activation (question + réponses) est relu en conditions', () => {
+  const template = normalizeShowcaseTemplate({
+    id: 'ancien',
+    activation: { questionId: 'ProjectType', values: ['a', 'b'] },
+    sections: []
+  });
+  assert.equal(hasShowcaseTemplateActivation(template), true);
+  assert.equal(resolveShowcaseTemplate({ ProjectType: 'b' }, [template]).id, 'ancien');
+  assert.equal(resolveShowcaseTemplate({ ProjectType: 'c' }, [template]), null);
 });
 
 test('le bandeau de complétude ne peut pas être retiré d’un modèle', () => {
@@ -62,7 +122,7 @@ test('sans modèle, toutes les sections intégrées restent proposées', () => {
 test('un modèle tient lieu d’ordre et de blocs tant que rien n’est enregistré', () => {
   const template = normalizeShowcaseTemplate({
     id: 'tpl',
-    activation: { questionId: 'ProjectType', values: ['a'] },
+    activation: { conditionGroups: [{ logic: 'all', conditions: [{ type: 'question', question: 'ProjectType', operator: 'equals', value: 'a' }] }] },
     sections: [
       { kind: 'builtin', id: 'hero' },
       { kind: 'block', id: 'b1', type: 'story', title: { fr: 'Le bénéficiaire', en: 'The beneficiary' }, description: '' },
@@ -102,12 +162,3 @@ test('une section intégrée retirée par le modèle n’est jamais réinjectée
   assert.deepEqual(order, ['hero', 'notice']);
 });
 
-test('deux modèles sur la même réponse sont signalés', () => {
-  const conflicts = getShowcaseTemplateActivationConflicts([
-    { id: 'a', activation: { questionId: 'ProjectType', values: ['x'] }, sections: [] },
-    { id: 'b', activation: { questionId: 'ProjectType', values: ['x', 'y'] }, sections: [] }
-  ]);
-  assert.equal(conflicts.length, 1);
-  assert.deepEqual(conflicts[0].templateIds, ['a', 'b']);
-  assert.equal(conflicts[0].value, 'x');
-});

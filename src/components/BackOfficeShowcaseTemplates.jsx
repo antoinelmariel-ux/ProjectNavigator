@@ -6,9 +6,11 @@ import {
   SHOWCASE_TEMPLATE_MANDATORY_SECTION_ID,
   createShowcaseTemplate,
   createShowcaseTemplateBlock,
-  getShowcaseTemplateActivationConflicts,
+  hasShowcaseTemplateActivation,
   normalizeShowcaseTemplates
 } from '../utils/showcaseTemplates.js';
+import { ACTIVITY_SCOPE_QUESTION_ID } from '../utils/questions.js';
+import { ConditionGroupsEditor } from './ConditionGroupsEditor.jsx';
 import { LanguageEditSwitcher } from './LocalizedFieldEditor.jsx';
 import { ArrowDown, ArrowUp, Plus, Trash2 } from './icons.js';
 
@@ -22,8 +24,6 @@ const BLOCK_TYPE_LABEL_KEYS = {
   stack: 'stack'
 };
 
-const CHOICE_QUESTION_TYPES = new Set(['choice', 'multi_choice']);
-
 const moveItem = (items, index, delta) => {
   const target = index + delta;
   if (target < 0 || target >= items.length) {
@@ -36,7 +36,8 @@ const moveItem = (items, index, delta) => {
 };
 
 // Éditeur des modèles de vitrine (référentiel showcase-templates.json). Un modèle s'applique
-// aux projets dont la réponse à la question choisie figure parmi les options cochées.
+// aux projets qui remplissent ses conditions, saisies avec le même panneau que les règles ;
+// le premier modèle de la liste qui convient l'emporte, d'où les flèches de réordonnancement.
 export const BackOfficeShowcaseTemplates = ({
   templates,
   setTemplates,
@@ -47,28 +48,7 @@ export const BackOfficeShowcaseTemplates = ({
 }) => {
   const [editingLanguage, setEditingLanguage] = useState(language);
   const normalizedTemplates = useMemo(() => normalizeShowcaseTemplates(templates), [templates]);
-  const conflicts = useMemo(() => getShowcaseTemplateActivationConflicts(normalizedTemplates), [normalizedTemplates]);
-
-  const choiceQuestions = useMemo(
-    () => (Array.isArray(questions) ? questions : []).filter(
-      (question) => question && CHOICE_QUESTION_TYPES.has(question.type) && Array.isArray(question.options)
-    ),
-    [questions]
-  );
-
-  const templateNameById = useMemo(() => {
-    const map = new Map();
-    normalizedTemplates.forEach((template) => {
-      map.set(template.id, resolveLocalizedText(template.name, language) || t('backOffice.showcaseTemplates.untitled'));
-    });
-    return map;
-  }, [language, normalizedTemplates, t]);
-
-  const findOptionLabel = (questionId, value) => {
-    const question = choiceQuestions.find((entry) => entry.id === questionId);
-    const option = question?.options.find((entry) => entry?.value === value);
-    return option ? resolveLocalizedText(option.label, language) || value : value;
-  };
+  const conditionQuestions = Array.isArray(questions) ? questions : [];
 
   const updateTemplate = (templateId, updater) => {
     setTemplates((previous) => normalizeShowcaseTemplates(previous).map((template) => (
@@ -97,17 +77,8 @@ export const BackOfficeShowcaseTemplates = ({
     setTemplates((previous) => normalizeShowcaseTemplates(previous).filter((template) => template.id !== templateId));
   };
 
-  const handleToggleValue = (templateId, value) => {
-    updateTemplate(templateId, (template) => {
-      const values = template.activation.values.includes(value)
-        ? template.activation.values.filter((entry) => entry !== value)
-        : [...template.activation.values, value];
-      return { ...template, activation: { ...template.activation, values } };
-    });
-  };
-
-  const handleQuestionChange = (templateId, questionId) => {
-    updateTemplate(templateId, (template) => ({ ...template, activation: { questionId, values: [] } }));
+  const handleMoveTemplate = (index, delta) => {
+    setTemplates((previous) => moveItem(normalizeShowcaseTemplates(previous), index, delta));
   };
 
   return (
@@ -137,36 +108,18 @@ export const BackOfficeShowcaseTemplates = ({
           hint={t('backOffice.showcaseTemplates.editingLanguageHint')}
         />
 
-        {conflicts.length > 0 && (
-          <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-            <p className="font-semibold">{t('backOffice.showcaseTemplates.conflictsTitle')}</p>
-            <ul className="mt-2 list-disc space-y-1 pl-5">
-              {conflicts.map((conflict) => (
-                <li key={`${conflict.questionId}-${conflict.value}`}>
-                  {t('backOffice.showcaseTemplates.conflictItem', {
-                    option: findOptionLabel(conflict.questionId, conflict.value),
-                    templates: conflict.templateIds.map((id) => templateNameById.get(id) || id).join(', ')
-                  })}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
         {normalizedTemplates.length === 0 ? (
           <div className="rounded-xl border border-dashed border-gray-300 p-6 text-center text-gray-500">
             {t('backOffice.showcaseTemplates.empty')}
           </div>
         ) : (
           <div className="space-y-4">
-            {normalizedTemplates.map((template) => {
-              const activationQuestion = choiceQuestions.find((question) => question.id === template.activation.questionId);
+            {normalizedTemplates.map((template, templateIndex) => {
               const usedBuiltIns = new Set(
                 template.sections.filter((entry) => entry.kind === 'builtin').map((entry) => entry.id)
               );
               const availableBuiltIns = SHOWCASE_SECTION_IDS.filter((id) => !usedBuiltIns.has(id));
               const nameId = `${template.id}-name`;
-              const questionSelectId = `${template.id}-question`;
               const addBuiltInId = `${template.id}-add-builtin`;
 
               return (
@@ -192,6 +145,28 @@ export const BackOfficeShowcaseTemplates = ({
                         className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
                       />
                     </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleMoveTemplate(templateIndex, -1)}
+                        disabled={templateIndex === 0}
+                        aria-label={t('backOffice.showcaseTemplates.moveTemplateUp')}
+                        title={t('backOffice.showcaseTemplates.moveTemplateUp')}
+                        className="rounded-lg border border-gray-200 bg-white p-2 text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+                      >
+                        <ArrowUp className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleMoveTemplate(templateIndex, 1)}
+                        disabled={templateIndex === normalizedTemplates.length - 1}
+                        aria-label={t('backOffice.showcaseTemplates.moveTemplateDown')}
+                        title={t('backOffice.showcaseTemplates.moveTemplateDown')}
+                        className="rounded-lg border border-gray-200 bg-white p-2 text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+                      >
+                        <ArrowDown className="w-4 h-4" />
+                      </button>
+                    </div>
                     <button
                       type="button"
                       onClick={() => handleDeleteTemplate(template.id)}
@@ -206,55 +181,22 @@ export const BackOfficeShowcaseTemplates = ({
                     <legend className="px-1 text-sm font-semibold text-gray-800">
                       {t('backOffice.showcaseTemplates.activationTitle')}
                     </legend>
-                    <div>
-                      <label htmlFor={questionSelectId} className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-600">
-                        {t('backOffice.showcaseTemplates.activationQuestionLabel')}
-                      </label>
-                      <select
-                        id={questionSelectId}
-                        value={template.activation.questionId}
-                        onChange={(event) => handleQuestionChange(template.id, event.target.value)}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                      >
-                        {!activationQuestion && (
-                          <option value={template.activation.questionId}>{template.activation.questionId}</option>
-                        )}
-                        {choiceQuestions.map((question) => (
-                          <option key={question.id} value={question.id}>
-                            {resolveLocalizedText(question.question, language) || question.id}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-600">
-                        {t('backOffice.showcaseTemplates.activationValuesLabel')}
-                      </p>
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        {(activationQuestion?.options || []).filter((option) => option?.value).map((option) => {
-                          const checkboxId = `${template.id}-value-${option.value}`;
-                          return (
-                            <label
-                              key={option.value}
-                              htmlFor={checkboxId}
-                              className="flex cursor-pointer items-start gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-800 hover:border-blue-200"
-                            >
-                              <input
-                                id={checkboxId}
-                                type="checkbox"
-                                checked={template.activation.values.includes(option.value)}
-                                onChange={() => handleToggleValue(template.id, option.value)}
-                                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600"
-                              />
-                              <span>{resolveLocalizedText(option.label, language) || option.value}</span>
-                            </label>
-                          );
-                        })}
-                      </div>
-                      {template.activation.values.length === 0 && (
-                        <p className="mt-2 text-xs text-amber-700">{t('backOffice.showcaseTemplates.activationEmptyHint')}</p>
-                      )}
-                    </div>
+                    <p className="text-xs text-gray-600">{t('backOffice.showcaseTemplates.activationHint')}</p>
+                    <ConditionGroupsEditor
+                      idPrefix={`showcase-template-${template.id}`}
+                      groups={template.activation.conditionGroups}
+                      onChange={(conditionGroups) => updateTemplate(template.id, (current) => ({
+                        ...current,
+                        activation: { conditionGroups }
+                      }))}
+                      questions={conditionQuestions}
+                      language={language}
+                      excludedQuestionIds={[ACTIVITY_SCOPE_QUESTION_ID]}
+                      emptyStateText={t('backOffice.showcaseTemplates.activationEmptyHint')}
+                    />
+                    {template.activation.conditionGroups.length > 0 && !hasShowcaseTemplateActivation(template) && (
+                      <p className="text-xs text-amber-700">{t('backOffice.showcaseTemplates.activationIncompleteHint')}</p>
+                    )}
                   </fieldset>
 
                   <fieldset className="space-y-3 rounded-lg border border-gray-200 bg-white p-4">

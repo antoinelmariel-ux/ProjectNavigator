@@ -20,7 +20,7 @@ const flattenAnswerChildren = (children) => {
   return [];
 };
 
-export const extractAnswerValues = (answer) => {
+const extractAnswerValues = (answer) => {
   if (Array.isArray(answer)) {
     return answer.map(normalizeString).filter(Boolean);
   }

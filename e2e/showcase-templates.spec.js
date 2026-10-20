@@ -45,17 +45,32 @@ test.describe('Modèles de vitrine', () => {
     await expect(page.locator('[data-showcase-section="solution"]')).toHaveCount(0);
   });
 
-  test('le back-office liste les modèles par défaut et en crée un nouveau', async ({ page }) => {
+  test('le back-office règle l’activation avec les conditions des règles', async ({ page }) => {
     await gotoHome(page);
     await grantAdminAccess(page);
 
     await page.getByRole('tab', { name: /Modèles de vitrine/ }).click();
     const cards = page.getByTestId('showcase-template-card');
     await expect(cards).toHaveCount(3);
-    await expect(cards.first().getByLabel('Don / bourse / Appel à projets')).toBeChecked();
+    const questionSelect = (card) => card
+      .locator('select')
+      .filter({ has: page.locator('option[value="ProjectType"]') })
+      .first();
+    await expect(questionSelect(cards.first())).toHaveValue('ProjectType');
 
     await page.getByRole('button', { name: 'Ajouter un modèle' }).click();
     await expect(cards).toHaveCount(4);
-    await expect(cards.last().getByText('Aucune réponse cochée')).toBeVisible();
+    const draft = cards.last();
+    await expect(draft.getByText('Aucune condition')).toBeVisible();
+
+    await draft.getByRole('button', { name: 'Créer un groupe de conditions' }).click();
+    await expect(draft.getByText('Une condition n’a pas encore de question')).toBeVisible();
+    await questionSelect(draft).selectOption('ProjectType');
+    await expect(draft.getByText('Une condition n’a pas encore de question')).toHaveCount(0);
+
+    // Le premier modèle qui convient l'emporte : le nouveau peut passer en tête.
+    await cards.nth(3).getByRole('button', { name: /Monter le modèle/ }).click();
+    await expect(cards.nth(2).getByLabel('Nom du modèle')).toHaveValue('');
+    await expect(cards.nth(3).getByLabel('Nom du modèle')).toHaveValue('Advisory Board non relié à un projet');
   });
 });

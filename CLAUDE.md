@@ -224,9 +224,15 @@ don't rename those chasing the copy. It is reached from the showcase's nav butto
 `src/utils/showcaseTemplates.js` (defaults in `src/data/showcaseTemplates.js`, back-office tab
 `showcaseTemplates`, `BackOfficeShowcaseTemplates.jsx`, admin-only like `faq`) lets an admin give a
 project type its own showcase structure: which built-in sections are kept and in what order, plus
-pre-titled custom blocks (title/starting text in the 4 languages). A template activates when the
-answer to its question (default `ProjectType`) is one of its ticked values; the first match wins and
-the tab flags overlaps. Published as the CN-Config file `showcase-templates.json`, like
+pre-titled custom blocks (title/starting text in the 4 languages). A template's activation is
+`{conditionGroups}` in the rules grammar, edited with the shared `ConditionGroupsEditor` and
+evaluated by `evaluateRule` — so it can never drift from the rules. The first template in list order
+that matches wins (the tab has up/down arrows for that). A template with no condition, or with a
+condition whose question is still empty, never applies (`hasShowcaseTemplateActivation`) — the
+rules engine treats an empty condition as satisfied, which would otherwise hit every project. The
+activity-scope pseudo-question is deliberately excluded (`excludedQuestionIds`): it is the
+*viewer's* scope, and a showcase's structure can't depend on who reads it. The legacy
+`{questionId, values}` activation is still read, as one OR group. Published as the CN-Config file `showcase-templates.json`, like
 `showcase-themes.json`; delta-persisted in `complianceNavigatorState` in local mode.
 
 - **Nothing is written into the project.** `ProjectShowcase` reads its `answers` prop through
