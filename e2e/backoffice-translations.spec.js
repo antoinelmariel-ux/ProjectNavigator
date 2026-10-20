@@ -3,6 +3,7 @@ import {
   gotoHome,
   grantAdminAccess,
   createAndSubmitProject,
+  goToProjectsHome,
   openTriggeredProjectAndExpandTeam,
   collectConsoleErrors,
   patchStateOnBoot
@@ -82,6 +83,8 @@ test.describe('Langues de réponse acceptées', () => {
     await expect(page.getByRole('button', { name: /Créer un projet/ }).first()).toBeVisible();
 
     await createAndSubmitProject(page);
+
+    await goToProjectsHome(page);
     await openTriggeredProjectAndExpandTeam(page, 'Contrôle pub');
 
     const notice = page.getByText(/échange uniquement dans les langues suivantes/);

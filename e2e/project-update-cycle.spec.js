@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { gotoHome, createAndSubmitProject, openProjectStakes, readStoredState } from './fixtures.js';
+import { gotoHome, createAndSubmitProject,
+  goToProjectsHome, openProjectStakes, readStoredState } from './fixtures.js';
 
 // Lot 2 : un projet soumis continue de vivre. Le porteur peut le modifier, il voit ce qui a
 // bougé depuis ce que les experts ont reçu, et l'envoi de la mise à jour est un acte explicite.
@@ -8,6 +9,7 @@ test.describe('Cycle de mise à jour après soumission', () => {
     test.slow();
     await gotoHome(page);
     await createAndSubmitProject(page);
+    await goToProjectsHome(page);
 
     // La soumission enregistre la v1 et l'instantané des réponses envoyées.
     const afterSubmit = await readStoredState(page).then((parsed) => {

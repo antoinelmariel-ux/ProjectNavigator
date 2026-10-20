@@ -3509,12 +3509,12 @@ export const initialQuestions = [
       {
         "question": "q18_copy",
         "operator": "not_equals",
-        "value": "etude_interventionnelle_iis"
+        "value": "mecenat_de_competences"
       },
       {
         "question": "q18_copy",
         "operator": "not_equals",
-        "value": "etude_non_interventionnelle_nis"
+        "value": "partenariat_de_recherche_academique"
       },
       {
         "question": "ProjectType",
@@ -3535,12 +3535,12 @@ export const initialQuestions = [
           {
             "question": "q18_copy",
             "operator": "not_equals",
-            "value": "etude_interventionnelle_iis"
+            "value": "mecenat_de_competences"
           },
           {
             "question": "q18_copy",
             "operator": "not_equals",
-            "value": "etude_non_interventionnelle_nis"
+            "value": "partenariat_de_recherche_academique"
           },
           {
             "question": "ProjectType",

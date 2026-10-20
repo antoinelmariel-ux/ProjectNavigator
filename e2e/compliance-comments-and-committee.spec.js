@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import {
   gotoHome,
   createAndSubmitProject,
+  goToProjectsHome,
   grantSelfComplianceExpertAndCommitteeAccess,
   openTriggeredProjectAndExpandTeam,
   collectConsoleErrors,
@@ -17,6 +18,7 @@ test.describe('Commentaires experts, réponses et validation par équipe', () =>
     await gotoHome(page);
     await grantSelfComplianceExpertAndCommitteeAccess(page);
     await createAndSubmitProject(page);
+    await goToProjectsHome(page);
     await openTriggeredProjectAndExpandTeam(page, 'Contrôle pub');
 
     await page.getByRole('button', { name: /Modifier le commentaire/ }).first().click();
@@ -36,6 +38,7 @@ test.describe('Commentaires experts, réponses et validation par équipe', () =>
     await gotoHome(page);
     await grantSelfComplianceExpertAndCommitteeAccess(page);
     await createAndSubmitProject(page);
+    await goToProjectsHome(page);
     await openTriggeredProjectAndExpandTeam(page, 'Contrôle pub');
 
     await page.getByRole('button', { name: /Modifier le commentaire/ }).first().click();
@@ -67,6 +70,7 @@ test.describe('Commentaires experts, réponses et validation par équipe', () =>
     await gotoHome(page);
     await grantSelfComplianceExpertAndCommitteeAccess(page);
     await createAndSubmitProject(page);
+    await goToProjectsHome(page);
 
     await expect(page.getByRole('button', { name: /À traiter \(1\)/ })).toBeVisible();
 
@@ -94,6 +98,7 @@ test.describe('Repêchage par un comité (réintégration)', () => {
     // supplémentaire.
     await grantSelfComplianceExpertAndCommitteeAccess(page);
     await createAndSubmitProject(page);
+    await goToProjectsHome(page);
 
     await page.getByRole('button', { name: /Hors scope comité \(1\)/ }).click();
     const reintegrateBtn = page.getByRole('button', { name: 'Réintégrer en comité' });

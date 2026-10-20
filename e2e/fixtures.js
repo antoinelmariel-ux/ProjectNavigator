@@ -247,6 +247,12 @@ export async function createAndSubmitProject(page) {
   await page.waitForTimeout(400);
 }
 
+// La soumission laisse volontairement sur les enjeux du projet : les specs qui travaillent
+// depuis la liste des projets repartent de l'accueil explicitement.
+export async function goToProjectsHome(page) {
+  await page.getByRole('button', { name: 'Retourner à l’accueil des projets' }).click();
+}
+
 // Le bouton cadenas qui ouvre le back-office n'est visible que pour une personne déjà désignée
 // (adminEmails, contact d'équipe ou membre de comité) : on ne peut plus, comme avant, l'atteindre
 // via le mot de passe partagé en tant qu'utilisateur quelconque. Pour les tests, on désigne donc

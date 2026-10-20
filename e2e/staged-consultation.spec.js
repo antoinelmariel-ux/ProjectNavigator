@@ -70,12 +70,12 @@ test('commencer par un périmètre : les autres attendent, invisibles de leurs e
   await chooser.getByLabel('Juridique International').check();
 
   const send = chooser.getByRole('button', { name: /Envoyer à Juridique International/ });
-  await expect(send).toContainText('2 périmètres seront sollicités plus tard');
+  await expect(send).toContainText('3 périmètres seront sollicités plus tard');
   await send.click();
 
-  await expect(page.getByText('Consultation partielle : 1 périmètre sur 3 sollicité')).toBeVisible();
-  await expect(page.getByText('À solliciter ensuite : DPO, PI.')).toBeVisible();
-  await expect(page.getByText('À solliciter ensuite', { exact: true })).toHaveCount(2);
+  await expect(page.getByText('Consultation partielle : 1 périmètre sur 4 sollicité')).toBeVisible();
+  await expect(page.getByText('À solliciter ensuite : Contrôle pub, DPO, PI.')).toBeVisible();
+  await expect(page.getByText('À solliciter ensuite', { exact: true })).toHaveCount(3);
 
   const staged = await readStaged(page);
   expect(staged?.isActive).toBe(true);
@@ -102,7 +102,7 @@ test('solliciter les autres périmètres referme la consultation par vagues', as
   await chooser.getByRole('button', { name: 'Commencer par certains périmètres' }).click();
   await chooser.getByLabel('Juridique International').check();
   await chooser.getByRole('button', { name: /Envoyer à Juridique International/ }).click();
-  await expect(page.getByText('Consultation partielle : 1 périmètre sur 3 sollicité')).toBeVisible();
+  await expect(page.getByText('Consultation partielle : 1 périmètre sur 4 sollicité')).toBeVisible();
 
   await page.getByRole('button', { name: 'Solliciter les autres périmètres' }).click();
   await expect(page.getByText(/Consultation partielle/)).toHaveCount(0);
