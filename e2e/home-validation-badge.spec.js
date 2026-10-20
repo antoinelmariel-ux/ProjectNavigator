@@ -52,7 +52,7 @@ test('la carte d’un projet soumis porte son statut de validation', async ({ pa
 
   let badge = await reloadWithMode(page, 'pending');
   await expect(badge).toHaveText('En attente de validation');
-  await expect(badge).toHaveAttribute('title', /3 avis rendus sur 5 attendus/);
+  await expect(badge).toHaveAttribute('title', /2 avis rendus sur 4 attendus/);
 
   badge = await reloadWithMode(page, 'validated');
   await expect(badge).toHaveText('Validé');

@@ -1077,23 +1077,6 @@ export const initialRules = [
             "value": "projet_co_construit_entre_le_lfb_et_un_partenaire"
           }
         ]
-      },
-      {
-        "logic": "all",
-        "conditions": [
-          {
-            "type": "question",
-            "question": "q11",
-            "operator": "contains",
-            "value": "visuels_crees_specifiquement_pour_le_projet"
-          },
-          {
-            "type": "question",
-            "question": "q10",
-            "operator": "equals",
-            "value": "agence"
-          }
-        ]
       }
     ],
     "conditionLogic": "all",
