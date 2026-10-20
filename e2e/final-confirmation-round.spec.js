@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { gotoHome, createAndSubmitProject, grantSelfComplianceExpertAndCommitteeAccess, openTriggeredProjectAndExpandTeam, readStoredState } from './fixtures.js';
+import { gotoHome, createAndSubmitProject,
+  goToProjectsHome, grantSelfComplianceExpertAndCommitteeAccess, openTriggeredProjectAndExpandTeam, readStoredState } from './fixtures.js';
 
 // Lot 3 : dernier tour avant lancement. Rien ne peut le rendre obligatoire — il n'existe pas de
 // jalon opposable — donc ce qui est testé ici, c'est qu'il est demandé explicitement, qu'il ne
@@ -10,6 +11,7 @@ test.describe('Confirmation finale avant lancement', () => {
     await gotoHome(page);
     await grantSelfComplianceExpertAndCommitteeAccess(page);
     await createAndSubmitProject(page);
+    await goToProjectsHome(page);
 
     // Un avis est d'abord rendu : sans avis, il n'y a rien à confirmer.
     await openTriggeredProjectAndExpandTeam(page, 'Contrôle pub');
@@ -54,6 +56,7 @@ test('un lancement se déclare : il n’est jamais déduit d’une date dépass�
   await gotoHome(page);
   await grantSelfComplianceExpertAndCommitteeAccess(page);
   await createAndSubmitProject(page);
+  await goToProjectsHome(page);
 
   await openTriggeredProjectAndExpandTeam(page, 'Contrôle pub');
   await page.getByRole('button', { name: /Modifier le commentaire/ }).first().click();

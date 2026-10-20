@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import {
   collectConsoleErrors,
   createAndSubmitProject,
+  goToProjectsHome,
   gotoHome,
   grantAdminAccess,
   grantSelfComplianceExpertAndCommitteeAccess,
@@ -52,6 +53,7 @@ test.describe('Prise en charge d’un projet par un membre d’équipe', () => {
     await gotoHome(page);
     await grantSelfComplianceExpertAndCommitteeAccess(page);
     await createAndSubmitProject(page);
+    await goToProjectsHome(page);
 
     const claimRow = page.getByRole('list', { name: 'Prise en charge par périmètre' }).first();
     await expect(claimRow).toContainText('Personne ne suit encore ce périmètre');
@@ -75,6 +77,7 @@ test.describe('Prise en charge d’un projet par un membre d’équipe', () => {
     await gotoHome(page);
     await grantSelfComplianceExpertAndCommitteeAccess(page);
     await createAndSubmitProject(page);
+    await goToProjectsHome(page);
     await injectClaim(page, 'marie.dupont@lfb.fr');
 
     await expect(page.getByRole('button', { name: /À traiter \(0\)/ })).toBeVisible();
@@ -98,6 +101,7 @@ test.describe('Prise en charge d’un projet par un membre d’équipe', () => {
     await gotoHome(page);
     await grantSelfComplianceExpertAndCommitteeAccess(page);
     await createAndSubmitProject(page);
+    await goToProjectsHome(page);
     await openTriggeredProjectAndExpandTeam(page, 'Contrôle pub');
 
     await expect(page.getByText('personne ne suit encore ce périmètre.')).toBeVisible();
@@ -133,6 +137,7 @@ test.describe('Prise en charge d’un projet par un membre d’équipe', () => {
     await gotoHome(page);
     await grantSelfComplianceExpertAndCommitteeAccess(page);
     await createAndSubmitProject(page);
+    await goToProjectsHome(page);
     await injectClaim(page, 'laure.dabel@lfb.fr');
 
     await grantAdminAccess(page);

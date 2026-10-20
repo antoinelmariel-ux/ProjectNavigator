@@ -1,5 +1,11 @@
 import { test, expect } from '@playwright/test';
-import { gotoHome, createAndSubmitProject, collectConsoleErrors, patchStateOnBoot } from './fixtures.js';
+import {
+  gotoHome,
+  createAndSubmitProject,
+  goToProjectsHome,
+  collectConsoleErrors,
+  patchStateOnBoot
+} from './fixtures.js';
 
 // Le badge de validation remplace le badge « Enjeux finalisés » sur la carte d'un projet
 // soumis dès qu'au moins un périmètre (équipe experte ou comité) doit se prononcer.
@@ -48,6 +54,7 @@ test('la carte d’un projet soumis porte son statut de validation', async ({ pa
   const errors = collectConsoleErrors(page);
   await gotoHome(page);
   await createAndSubmitProject(page);
+  await goToProjectsHome(page);
   await patchStateOnBoot(page, injectComplianceStatuses);
 
   let badge = await reloadWithMode(page, 'pending');
@@ -66,6 +73,7 @@ test('la carte d’un projet soumis porte son statut de validation', async ({ pa
 test('le titre des enjeux rappelle le nom du projet', async ({ page }) => {
   await gotoHome(page);
   await createAndSubmitProject(page);
+  await goToProjectsHome(page);
   await firstCard(page).getByRole('button', { name: 'Consulter les enjeux' }).click();
 
   const heading = page.locator('main h1').first();
