@@ -177,7 +177,7 @@ test('le module de revue liste les regles existantes et permet de les ouvrir', a
   await page.screenshot({ path: `${SHOT}/13-rules-panel.png`, fullPage: true });
 
   // Filtrer puis ouvrir une règle : l'éditeur complet s'ouvre, groupes de conditions compris.
-  await page.getByPlaceholder('Filtrer par nom de règle…').fill('Généralité');
+  await page.getByPlaceholder('Filtrer par nom de règle…').fill('Contrôle des contenus promotionnels');
   await triggeredRows.first().click();
   await expect(page.getByRole('heading', { name: 'Édition de règle' })).toBeVisible();
   await expect(page.getByText('Conditions de déclenchement')).toBeVisible();

@@ -138,14 +138,14 @@ test.describe('Prise en charge d’un projet par un membre d’équipe', () => {
     await grantSelfComplianceExpertAndCommitteeAccess(page);
     await createAndSubmitProject(page);
     await goToProjectsHome(page);
-    await injectClaim(page, 'laure.dabel@lfb.fr');
+    await injectClaim(page, 'laure.chevalier@lfb.fr');
 
     await grantAdminAccess(page);
     await page.getByRole('tab', { name: /Équipes/ }).click();
 
-    const staleInput = page.getByLabel('Signaler au bout de (jours ouvrés sans action)').first();
+    const staleInput = page.getByLabel('Afficher « sans activité » sur le projet après').first();
     await expect(staleInput).toHaveValue('6');
-    await expect(page.getByLabel('Relancer le référent au bout de (jours ouvrés sans action)').first())
+    await expect(page.getByLabel('Envoyer un e-mail à l’expert qui a pris le projet en charge après').first())
       .toHaveValue('3');
     await staleInput.fill('3');
     // Attente sur la valeur réellement persistée plutôt que sur un délai fixe : la persistance
@@ -158,11 +158,11 @@ test.describe('Prise en charge d’un projet par un membre d’équipe', () => {
       })
       .toBe(3);
 
-    // La charge de l'équipe montre la prise en charge de laure.dabel@lfb.fr…
+    // La charge de l'équipe montre la prise en charge de laure.chevalier@lfb.fr…
     await expect(page.getByText('1 projet(s) suivi(s)').first()).toBeVisible();
 
     // …et retirer ce contact demande d'abord ce que deviennent ses projets.
-    await page.getByRole('button', { name: 'Retirer laure.dabel@lfb.fr' }).click();
+    await page.getByRole('button', { name: 'Retirer laure.chevalier@lfb.fr' }).click();
     const dialog = page.getByRole('alertdialog', { name: 'Ce contact porte encore des projets' });
     await expect(dialog).toBeVisible();
     await dialog.getByRole('button', { name: 'Les remettre dans « À traiter »' }).click();
@@ -174,7 +174,7 @@ test.describe('Prise en charge d’un projet par un membre d’équipe', () => {
       contacts: stored.teams?.find((team) => team.id === 'controle_pub')?.contacts || [],
       claim: storedProject?.answers?.__compliance_team_comments__?.teams?.controle_pub?.claim || null
     };
-    expect(afterRemoval.contacts).not.toContain('laure.dabel@lfb.fr');
+    expect(afterRemoval.contacts).not.toContain('laure.chevalier@lfb.fr');
     expect(afterRemoval.claim).toBeNull();
   });
 });
