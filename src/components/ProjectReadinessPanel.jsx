@@ -40,6 +40,11 @@ export const ProjectReadinessPanel = ({
   submissionVersion = 0,
   lastSentAt = '',
   onSendUpdate,
+  solicitablePerimeters = [],
+  deferredPerimeters = [],
+  hasSolicitedOpinion = false,
+  onSolicitPerimeters,
+  onEditProject,
   launchSignal = '',
   roundStatus = null,
   onRequestFinalValidation,
@@ -51,6 +56,11 @@ export const ProjectReadinessPanel = ({
   // Déclaré avant toute sortie anticipée : un `return` placé au-dessus d'un hook casserait les
   // règles des hooks (cf. CLAUDE.md, le même piège a déjà été corrigé dans QuestionnaireScreen).
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  // Choix des périmètres d'une demande préliminaire : tous (par défaut), ou seulement certains
+  // d'abord — les autres attendront que le porteur les sollicite.
+  const [isChoosingPerimeters, setIsChoosingPerimeters] = useState(false);
+  const [perimeterScope, setPerimeterScope] = useState('all');
+  const [selectedPerimeterKeys, setSelectedPerimeterKeys] = useState([]);
 
   if (!readiness) {
     return null;
@@ -71,6 +81,33 @@ export const ProjectReadinessPanel = ({
   const resolvedLaunchSignal = launchSignal === 'none' && canRequestValidation && !roundStatus?.isRequested
     ? LAUNCH_CONFIRMATION_DUE
     : launchSignal;
+  const isStaged = isPreliminaryPending && deferredPerimeters.length > 0;
+  const solicitedPerimeterCount = solicitablePerimeters.length - deferredPerimeters.length;
+
+  const handlePreliminaryClick = () => {
+    if (solicitablePerimeters.length < 2) {
+      onSubmitPreliminary?.();
+      return;
+    }
+    setPerimeterScope('all');
+    setSelectedPerimeterKeys([]);
+    setIsChoosingPerimeters(true);
+  };
+  const togglePerimeterSelection = (key) => {
+    setSelectedPerimeterKeys((previous) => (
+      previous.includes(key) ? previous.filter((entry) => entry !== key) : [...previous, key]
+    ));
+  };
+  const selectedPerimeters = solicitablePerimeters.filter((perimeter) => selectedPerimeterKeys.includes(perimeter.key));
+  const isPartialSelection = perimeterScope === 'some'
+    && selectedPerimeters.length > 0
+    && selectedPerimeters.length < solicitablePerimeters.length;
+  const laterCount = solicitablePerimeters.length - selectedPerimeters.length;
+  const handleConfirmPerimeters = () => {
+    setIsChoosingPerimeters(false);
+    onSubmitPreliminary?.(isPartialSelection ? selectedPerimeters.map((perimeter) => perimeter.key) : undefined);
+  };
+
   const formattedLastSentAt = lastSentAt
     ? new Intl.DateTimeFormat(getLocaleTag(language), { day: '2-digit', month: '2-digit', year: 'numeric' })
       .format(new Date(lastSentAt))
@@ -268,7 +305,81 @@ export const ProjectReadinessPanel = ({
       {/* Les deux portes forment une seule cible pour le tour guidé, qui les présente ensemble. */}
       {!isSubmitted && (
         <div className="mt-4" data-tour-id="synthesis-submit">
-          {isValidationPrimary ? (
+          {isChoosingPerimeters ? (
+            <div className="rounded-xl border border-blue-200 bg-white p-3" role="group" aria-labelledby="perimeter-choice-heading">
+              <p id="perimeter-choice-heading" className="text-sm font-semibold text-gray-900">
+                {t('synthesisReport.stagedConsultation.chooseHeading')}
+              </p>
+              {/* Deux boutons plutôt que des boutons radio : un choix exclusif suffit, et le
+                  rail reste libre de tout input[type=radio] qu'une automatisation générique
+                  prendrait pour une réponse. */}
+              <div className="mt-2 flex flex-col gap-2">
+                {['all', 'some'].map((scope) => (
+                  <button
+                    key={scope}
+                    type="button"
+                    aria-pressed={perimeterScope === scope}
+                    onClick={() => setPerimeterScope(scope)}
+                    className={`w-full rounded-lg border px-3 py-2 text-left text-xs font-semibold transition-all ${
+                      perimeterScope === scope
+                        ? 'border-blue-500 bg-blue-50 text-blue-900'
+                        : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    {t(scope === 'all'
+                      ? 'synthesisReport.stagedConsultation.scopeAll'
+                      : 'synthesisReport.stagedConsultation.scopeSome')}
+                  </button>
+                ))}
+              </div>
+              {perimeterScope === 'some' && (
+                <ul className="mt-3 list-none space-y-1.5 p-0">
+                  {solicitablePerimeters.map((perimeter) => (
+                    <li key={perimeter.key}>
+                      <label className="flex items-start gap-2 text-xs text-gray-800">
+                        <input
+                          type="checkbox"
+                          checked={selectedPerimeterKeys.includes(perimeter.key)}
+                          onChange={() => togglePerimeterSelection(perimeter.key)}
+                          className="mt-0.5"
+                        />
+                        <span>{perimeter.name}</span>
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <button
+                type="button"
+                onClick={handleConfirmPerimeters}
+                disabled={perimeterScope === 'some' && selectedPerimeters.length === 0}
+                className="mt-3 w-full px-3 py-2 rounded-lg font-semibold text-xs transition-all flex flex-col items-center justify-center bg-blue-600 text-white hover:bg-blue-700 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span className="flex items-center">
+                  <Send className="w-4 h-4 mr-2" />
+                  {isPartialSelection
+                    ? t('synthesisReport.stagedConsultation.sendTo', {
+                      perimeters: selectedPerimeters.map((perimeter) => perimeter.name).join(', ')
+                    })
+                    : t('synthesisReport.stagedConsultation.sendToAll')}
+                </span>
+                {isPartialSelection && (
+                  <span className="mt-0.5 font-normal">
+                    {t(laterCount > 1
+                      ? 'synthesisReport.stagedConsultation.laterPlural'
+                      : 'synthesisReport.stagedConsultation.laterSingular', { count: laterCount })}
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsChoosingPerimeters(false)}
+                className="mt-2 w-full text-xs font-semibold text-gray-600 underline underline-offset-2 hover:text-gray-800"
+              >
+                {t('synthesisReport.stagedConsultation.cancel')}
+              </button>
+            </div>
+          ) : isValidationPrimary ? (
             <React.Fragment>
               <button
                 type="button"
@@ -281,7 +392,7 @@ export const ProjectReadinessPanel = ({
               <p className="mt-2 text-xs text-gray-600">{t('synthesisReport.readiness.validationHint')}</p>
               <button
                 type="button"
-                onClick={onSubmitPreliminary}
+                onClick={handlePreliminaryClick}
                 className="mt-2 text-xs font-semibold text-blue-700 underline underline-offset-2 hover:text-blue-900"
               >
                 {t('synthesisReport.readiness.preliminaryAction')}
@@ -291,7 +402,7 @@ export const ProjectReadinessPanel = ({
             <React.Fragment>
               <button
                 type="button"
-                onClick={onSubmitPreliminary}
+                onClick={handlePreliminaryClick}
                 disabled={!canRequestPreliminary}
                 className="w-full px-4 py-2.5 rounded-lg font-semibold text-sm transition-all flex items-center justify-center bg-blue-600 text-white hover:bg-blue-700 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -447,15 +558,78 @@ export const ProjectReadinessPanel = ({
           <p className="mt-1 text-xs text-blue-800">
             {t('synthesisReport.readiness.preliminaryPendingHint')}
           </p>
+          {isStaged && (
+            <div className="mt-3 rounded-lg border border-blue-200 bg-white p-3">
+              <p className="text-xs font-semibold text-gray-900">
+                {t(solicitedPerimeterCount > 1
+                  ? 'synthesisReport.stagedConsultation.partialPlural'
+                  : 'synthesisReport.stagedConsultation.partialSingular', {
+                  count: solicitedPerimeterCount,
+                  total: solicitablePerimeters.length
+                })}
+              </p>
+              {hasSolicitedOpinion && (
+                <p className="mt-1 text-xs text-gray-700">
+                  {t('synthesisReport.stagedConsultation.opinionArrived')}
+                </p>
+              )}
+              <p className="mt-2 text-xs text-gray-600">
+                {t('synthesisReport.stagedConsultation.laterList', {
+                  perimeters: deferredPerimeters.map((perimeter) => perimeter.name).join(', ')
+                })}
+              </p>
+              {hasSolicitedOpinion && typeof onEditProject === 'function' && (
+                <button
+                  type="button"
+                  onClick={onEditProject}
+                  className="mt-3 w-full px-3 py-2 rounded-lg font-semibold text-xs transition-all flex items-center justify-center border border-gray-300 bg-white text-gray-800 hover:bg-gray-100"
+                >
+                  {t('synthesisReport.stagedConsultation.editProject')}
+                </button>
+              )}
+              {typeof onSolicitPerimeters === 'function' && (
+                <React.Fragment>
+                  <button
+                    type="button"
+                    onClick={() => onSolicitPerimeters(deferredPerimeters.map((perimeter) => perimeter.key))}
+                    className={`mt-2 w-full px-3 py-2 rounded-lg font-semibold text-xs transition-all flex items-center justify-center ${
+                      hasSolicitedOpinion
+                        ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-md'
+                        : 'border border-blue-200 bg-white text-blue-700 hover:bg-blue-50'
+                    }`}
+                  >
+                    <Send className="w-4 h-4 mr-2" />
+                    {t('synthesisReport.stagedConsultation.solicitOthers')}
+                  </button>
+                  {hasChangesToSend && (
+                    <p className="mt-2 text-xs text-gray-600">
+                      {t('synthesisReport.stagedConsultation.changesTravelWith')}
+                    </p>
+                  )}
+                </React.Fragment>
+              )}
+            </div>
+          )}
           {canRequestValidation && typeof onSubmitFinal === 'function' && (
-            <button
-              type="button"
-              onClick={onSubmitFinal}
-              className="mt-3 w-full px-3 py-2 rounded-lg font-semibold text-xs transition-all flex items-center justify-center bg-blue-600 text-white hover:bg-blue-700 shadow-md"
-            >
-              <Send className="w-4 h-4 mr-2" />
-              {t('synthesisReport.readiness.validationAction')}
-            </button>
+            <React.Fragment>
+              <button
+                type="button"
+                onClick={onSubmitFinal}
+                className="mt-3 w-full px-3 py-2 rounded-lg font-semibold text-xs transition-all flex items-center justify-center bg-blue-600 text-white hover:bg-blue-700 shadow-md"
+              >
+                <Send className="w-4 h-4 mr-2" />
+                {t('synthesisReport.readiness.validationAction')}
+              </button>
+              {isStaged && (
+                <p className="mt-2 text-xs text-blue-800">
+                  {t(deferredPerimeters.length > 1
+                    ? 'synthesisReport.stagedConsultation.discoverAtValidationPlural'
+                    : 'synthesisReport.stagedConsultation.discoverAtValidationSingular', {
+                    count: deferredPerimeters.length
+                  })}
+                </p>
+              )}
+            </React.Fragment>
           )}
         </div>
       )}

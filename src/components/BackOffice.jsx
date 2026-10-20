@@ -26,6 +26,12 @@ import { QuestionEditor } from './QuestionEditor.jsx';
 import { RuleEditor } from './RuleEditor.jsx';
 import { RuleDraftBuilder } from './RuleDraftBuilder.jsx';
 import { BackOfficeDashboard } from './BackOfficeDashboard.jsx';
+import {
+  PERIMETER_TYPE_COMMITTEE,
+  PERIMETER_TYPE_TEAM,
+  buildPerimeterKey,
+  getDeferredPerimeters
+} from '../utils/stagedConsultation.js';
 import { normalizeLaunchReminderDays } from '../utils/launchConfirmation.js';
 import { VirtualizedList } from './VirtualizedList.jsx';
 import { renderTextWithLinks } from '../utils/linkify.js';
@@ -1083,6 +1089,39 @@ export const BackOffice = ({
 
     return ids;
   }, [hasComplianceTeamScopedAccess, hasScopedBackOfficeAccess, hasValidationCommitteeScopedAccess, isCurrentUserAdmin]);
+
+  // Consultation par vagues : un périmètre que le porteur n'a pas encore sollicité ne doit pas
+  // découvrir le projet par le tableau de bord. Les administrateurs, eux, voient ce qui attend.
+  const deferredPerimetersByProject = useMemo(() => (Array.isArray(projects) ? projects : [])
+    .map((project) => ({
+      project,
+      perimeters: getDeferredPerimeters(project, {
+        teams,
+        validationCommitteeConfig: normalizedValidationCommitteeConfig
+      })
+    }))
+    .filter((entry) => entry.perimeters.length > 0), [normalizedValidationCommitteeConfig, projects, teams]);
+  const dashboardProjects = useMemo(() => {
+    if (!allowedTabIds) {
+      return projects;
+    }
+    const ownKeys = new Set([
+      ...currentUserTeamIds.map((teamId) => buildPerimeterKey(PERIMETER_TYPE_TEAM, teamId)),
+      ...currentUserCommitteeIds.map((committeeId) => buildPerimeterKey(PERIMETER_TYPE_COMMITTEE, committeeId))
+    ]);
+    const hiddenProjectIds = new Set(deferredPerimetersByProject
+      .filter((entry) => entry.perimeters.some((perimeter) => ownKeys.has(perimeter.key)))
+      .map((entry) => entry.project?.id));
+    return (Array.isArray(projects) ? projects : []).filter((project) => !hiddenProjectIds.has(project?.id));
+  }, [allowedTabIds, currentUserCommitteeIds, currentUserTeamIds, deferredPerimetersByProject, projects]);
+  const neverSolicitedPerimeters = useMemo(() => (allowedTabIds ? [] : deferredPerimetersByProject
+    .map((entry) => ({
+      projectId: entry.project?.id,
+      projectName: entry.project?.projectName,
+      perimeterNames: entry.perimeters.map((perimeter) => (perimeter.type === PERIMETER_TYPE_TEAM
+        ? (resolveLocalizedText(perimeter.team?.name, language) || perimeter.id)
+        : (perimeter.committee?.name || perimeter.id)))
+    }))), [allowedTabIds, deferredPerimetersByProject, language]);
 
   const ruleVisibilitySource = useMemo(() => {
     if (!allowedTabIds || !allowedTabIds.has('rules')) {
@@ -5065,7 +5104,12 @@ export const BackOffice = ({
               aria-labelledby="backoffice-tab-dashboard"
               className="space-y-6"
             >
-              <BackOfficeDashboard projects={projects} teams={teams} launchSignals={launchSignals} />
+              <BackOfficeDashboard
+                projects={dashboardProjects}
+                teams={teams}
+                launchSignals={launchSignals}
+                neverSolicitedPerimeters={neverSolicitedPerimeters}
+              />
             </section>
           )}
 

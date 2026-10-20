@@ -644,7 +644,7 @@ const formatDateRangeSummary = (range, fallbackLabel, language) => {
   return `${formatter.format(range.start)} – ${formatter.format(range.end)}`;
 };
 
-export const BackOfficeDashboard = ({ projects = [], teams = [], launchSignals = {} }) => {
+export const BackOfficeDashboard = ({ projects = [], teams = [], launchSignals = {}, neverSolicitedPerimeters = [] }) => {
   const { t, language } = useTranslation();
   const [selectedLeadTeam, setSelectedLeadTeam] = useState('all');
   const [selectedTimeFilter, setSelectedTimeFilter] = useState('all');
@@ -1065,6 +1065,31 @@ export const BackOfficeDashboard = ({ projects = [], teams = [], launchSignals =
             {launchesWaitingOnCompliance.map((project) => (
               <li key={project.id} className="text-sm text-amber-900">
                 {stripRichTextToPlainText(project.projectName) || project.id}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* Consultation par vagues : séparée des retards des experts, puisque rien ne leur a encore
+          été demandé — c'est le porteur qui tient la suite entre ses mains. */}
+      {neverSolicitedPerimeters.length > 0 && (
+        <section
+          className="rounded-2xl border border-gray-200 bg-gray-50 p-5"
+          role="status"
+          aria-label={t('backOffice.dashboard.neverSolicitedLabel')}
+        >
+          <p className="text-sm font-semibold text-gray-900">
+            {t('backOffice.dashboard.neverSolicitedLabel')}
+          </p>
+          <p className="mt-1 text-xs text-gray-700">
+            {t('backOffice.dashboard.neverSolicitedHint')}
+          </p>
+          <ul className="mt-3 space-y-1">
+            {neverSolicitedPerimeters.map((entry) => (
+              <li key={entry.projectId} className="text-sm text-gray-900">
+                {stripRichTextToPlainText(entry.projectName) || entry.projectId}
+                <span className="text-gray-600"> · {entry.perimeterNames.join(', ')}</span>
               </li>
             ))}
           </ul>

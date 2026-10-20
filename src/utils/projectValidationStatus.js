@@ -2,6 +2,7 @@ import { getTriggeredValidationCommittees } from './validationCommittee.js';
 import { resolveEffectiveTeamComplianceEntry } from './complianceAutoValidation.js';
 import { isPreliminarySubmission } from './submissionKind.js';
 import { isPerimeterReviewPending } from './perimeterReview.js';
+import { getDeferredPerimeters } from './stagedConsultation.js';
 
 export const COMPLIANCE_COMMENTS_KEY = '__compliance_team_comments__';
 
@@ -27,6 +28,9 @@ export const PROJECT_VALIDATION_PRELIMINARY = 'preliminary';
 // Tous les avis requis sont favorables, mais l'un d'eux porte sur un état du projet que la
 // dernière mise à jour a modifié : ce n'est plus une validation, c'est une validation périmée.
 export const PROJECT_VALIDATION_OUTDATED = 'outdated';
+// Le porteur n'a encore sollicité qu'une partie des périmètres (cf. stagedConsultation.js) :
+// tant qu'un périmètre attend d'être sollicité, aucun verdict favorable n'est possible.
+export const PROJECT_VALIDATION_PARTIAL = 'partial';
 
 const readStatus = (entry) => (typeof entry?.status === 'string' ? entry.status : '');
 
@@ -101,6 +105,7 @@ export const computeProjectValidationStatus = (project, options = {}) => {
   const conditionalCount = requiredPerimeters.filter(
     (perimeter) => perimeter.status === 'validated_with_conditions'
   ).length;
+  const deferredCount = getDeferredPerimeters(project, options).length;
 
   let status = PROJECT_VALIDATION_PENDING;
 
@@ -108,6 +113,8 @@ export const computeProjectValidationStatus = (project, options = {}) => {
     status = PROJECT_VALIDATION_REJECTED;
   } else if (requiredPerimeters.length === 0) {
     status = PROJECT_VALIDATION_NONE;
+  } else if (deferredCount > 0) {
+    status = PROJECT_VALIDATION_PARTIAL;
   } else if (approvedCount === requiredPerimeters.length) {
     if (isPreliminarySubmission(project)) {
       status = PROJECT_VALIDATION_PRELIMINARY;
@@ -124,6 +131,7 @@ export const computeProjectValidationStatus = (project, options = {}) => {
     approvedCount,
     rejectedCount,
     conditionalCount,
+    deferredCount,
     reviewPendingCount: perimeters.filter((perimeter) => perimeter.reviewPending).length
   };
 };
