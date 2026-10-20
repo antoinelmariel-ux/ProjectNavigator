@@ -274,6 +274,8 @@ export default {
     closedStatus: 'Geschlossen',
     closeNote: 'Notiz schließen',
     closeButton: 'Schließen',
+    deleteNote: 'Notiz löschen',
+    deleteButton: 'Löschen',
     notePlaceholder: 'Fügen Sie hier Ihre Anmerkung hinzu...',
     closedBy: 'Geschlossen von {{name}}',
     closedGeneric: 'Geschlossen',

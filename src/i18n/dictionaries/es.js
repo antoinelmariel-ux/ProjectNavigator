@@ -274,6 +274,8 @@ export default {
     closedStatus: 'Cerrado',
     closeNote: 'Cerrar la nota',
     closeButton: 'Cerrar',
+    deleteNote: 'Eliminar la nota',
+    deleteButton: 'Eliminar',
     notePlaceholder: 'Agregue su comentario aquí...',
     closedBy: 'Cerrado por {{name}}',
     closedGeneric: 'Cerrado',

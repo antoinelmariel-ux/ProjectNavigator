@@ -274,6 +274,8 @@ export default {
     closedStatus: 'Closed',
     closeNote: 'Close the note',
     closeButton: 'Close',
+    deleteNote: 'Delete the note',
+    deleteButton: 'Delete',
     notePlaceholder: 'Add your comment here...',
     closedBy: 'Closed by {{name}}',
     closedGeneric: 'Closed',

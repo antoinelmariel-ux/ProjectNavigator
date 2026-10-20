@@ -3044,11 +3044,15 @@ const updateProjectFilters = useCallback((updater) => {
     });
 
     stickyNotesQueueRef.current = createRetryQueue({
-      processItem: (payload) => (
-        payload.action === 'removeAllForProject'
-          ? showcaseStickyNotesProvider.removeAllForProject(payload.projectId)
-          : showcaseStickyNotesProvider.upsertNote(payload, { userEmail: currentUserEmail })
-      ),
+      processItem: (payload) => {
+        if (payload.action === 'removeAllForProject') {
+          return showcaseStickyNotesProvider.removeAllForProject(payload.projectId);
+        }
+        if (payload.action === 'removeNote') {
+          return showcaseStickyNotesProvider.removeNote(payload.id);
+        }
+        return showcaseStickyNotesProvider.upsertNote(payload, { userEmail: currentUserEmail });
+      },
       getItemKey: (payload) => (
         payload.action === 'removeAllForProject' ? `${payload.projectId}::__all__` : payload.id
       )
@@ -3836,6 +3840,17 @@ const updateProjectFilters = useCallback((updater) => {
 
     stickyNotesQueueRef.current?.enqueue(closedNote);
   }, [currentUserDisplayName, t]);
+
+  const handleDeleteAnnotationNote = useCallback((noteId) => {
+    const current = (annotationNotesRef.current || []).find((entry) => entry?.id === noteId);
+    if (!current) {
+      return;
+    }
+
+    setAnnotationNotes(prevNotes => prevNotes.filter(note => note?.id !== noteId));
+
+    stickyNotesQueueRef.current?.enqueue({ action: 'removeNote', id: noteId, projectId: current.projectId });
+  }, []);
 
   const handleAddAnnotationReply = useCallback((noteId, replyText) => {
     if (!replyText) {
@@ -7572,6 +7587,7 @@ const updateProjectFilters = useCallback((updater) => {
         onExit={handleToggleAnnotationMode}
         onNoteChange={handleAnnotationTextChange}
         onNoteClose={handleCloseAnnotationNote}
+        onNoteDelete={handleDeleteAnnotationNote}
         onNoteReply={handleAddAnnotationReply}
       />
 

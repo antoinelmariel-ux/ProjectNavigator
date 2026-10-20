@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from '../react.js';
-import { Close, Pause, Play } from './icons.js';
+import { Close, Pause, Play, Trash2 } from './icons.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { getLocaleTag } from '../i18n/languages.js';
 
@@ -62,6 +62,7 @@ export const AnnotationLayer = ({
   onExit,
   onNoteChange,
   onNoteClose,
+  onNoteDelete,
   onNoteReply,
   onAutoFocusComplete
 }) => {
@@ -347,6 +348,17 @@ export const AnnotationLayer = ({
                     >
                       <Close className="h-4 w-4" />
                       <span>{t('annotationLayer.closeButton')}</span>
+                    </button>
+                  ) : null}
+                  {canCloseNotes && typeof onNoteDelete === 'function' ? (
+                    <button
+                      type="button"
+                      onClick={() => onNoteDelete(note.id)}
+                      className="feedback-note-close"
+                      aria-label={t('annotationLayer.deleteNote')}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      <span>{t('annotationLayer.deleteButton')}</span>
                     </button>
                   ) : null}
                 </div>
