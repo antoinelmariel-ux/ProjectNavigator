@@ -275,7 +275,7 @@ export default {
     closeNote: 'Notiz schließen',
     closeButton: 'Schließen',
     deleteNote: 'Notiz löschen',
-    deleteButton: 'Löschen',
+    deleteConfirm: 'Diese Haftnotiz und ihre Antworten endgültig löschen?',
     notePlaceholder: 'Fügen Sie hier Ihre Anmerkung hinzu...',
     closedBy: 'Geschlossen von {{name}}',
     closedGeneric: 'Geschlossen',

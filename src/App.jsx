@@ -3841,16 +3841,28 @@ const updateProjectFilters = useCallback((updater) => {
     stickyNotesQueueRef.current?.enqueue(closedNote);
   }, [currentUserDisplayName, t]);
 
+  const canDeleteAnnotationNote = useCallback((note) => {
+    if (!note) {
+      return false;
+    }
+    if (canCloseAnnotationNotes) {
+      return true;
+    }
+    const authorEmail = typeof note.sourceEmail === 'string' ? note.sourceEmail.trim().toLowerCase() : '';
+    const viewerEmail = typeof currentUserEmail === 'string' ? currentUserEmail.trim().toLowerCase() : '';
+    return authorEmail.length > 0 && authorEmail === viewerEmail;
+  }, [canCloseAnnotationNotes, currentUserEmail]);
+
   const handleDeleteAnnotationNote = useCallback((noteId) => {
     const current = (annotationNotesRef.current || []).find((entry) => entry?.id === noteId);
-    if (!current) {
+    if (!current || !canDeleteAnnotationNote(current)) {
       return;
     }
 
     setAnnotationNotes(prevNotes => prevNotes.filter(note => note?.id !== noteId));
 
     stickyNotesQueueRef.current?.enqueue({ action: 'removeNote', id: noteId, projectId: current.projectId });
-  }, []);
+  }, [canDeleteAnnotationNote]);
 
   const handleAddAnnotationReply = useCallback((noteId, replyText) => {
     if (!replyText) {
@@ -7588,6 +7600,7 @@ const updateProjectFilters = useCallback((updater) => {
         onNoteChange={handleAnnotationTextChange}
         onNoteClose={handleCloseAnnotationNote}
         onNoteDelete={handleDeleteAnnotationNote}
+        canDeleteNote={canDeleteAnnotationNote}
         onNoteReply={handleAddAnnotationReply}
       />
 

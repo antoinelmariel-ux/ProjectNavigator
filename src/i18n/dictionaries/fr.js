@@ -275,7 +275,7 @@ export default {
     closeNote: 'Clôturer la note',
     closeButton: 'Clôturer',
     deleteNote: 'Supprimer la note',
-    deleteButton: 'Supprimer',
+    deleteConfirm: 'Supprimer définitivement ce post-it et ses réponses ?',
     notePlaceholder: 'Ajoutez votre remarque ici...',
     closedBy: 'Clôturé par {{name}}',
     closedGeneric: 'Clôturé',

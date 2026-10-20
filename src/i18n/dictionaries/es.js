@@ -275,7 +275,7 @@ export default {
     closeNote: 'Cerrar la nota',
     closeButton: 'Cerrar',
     deleteNote: 'Eliminar la nota',
-    deleteButton: 'Eliminar',
+    deleteConfirm: '¿Eliminar definitivamente esta nota adhesiva y sus respuestas?',
     notePlaceholder: 'Agregue su comentario aquí...',
     closedBy: 'Cerrado por {{name}}',
     closedGeneric: 'Cerrado',

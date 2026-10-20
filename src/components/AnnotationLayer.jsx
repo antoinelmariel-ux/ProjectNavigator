@@ -53,6 +53,7 @@ export const AnnotationLayer = ({
   hideToolbar = false,
   notes = [],
   canCloseNotes = false,
+  canDeleteNote,
   noteVisibilityMode = 'all',
   currentSourceId = '',
   activeContextId = '',
@@ -350,15 +351,19 @@ export const AnnotationLayer = ({
                       <span>{t('annotationLayer.closeButton')}</span>
                     </button>
                   ) : null}
-                  {canCloseNotes && typeof onNoteDelete === 'function' ? (
+                  {typeof onNoteDelete === 'function' && (typeof canDeleteNote === 'function' ? canDeleteNote(note) : canCloseNotes) ? (
                     <button
                       type="button"
-                      onClick={() => onNoteDelete(note.id)}
-                      className="feedback-note-close"
+                      onClick={() => {
+                        if (window.confirm(t('annotationLayer.deleteConfirm'))) {
+                          onNoteDelete(note.id);
+                        }
+                      }}
+                      className="feedback-note-close feedback-note-delete"
                       aria-label={t('annotationLayer.deleteNote')}
+                      title={t('annotationLayer.deleteNote')}
                     >
                       <Trash2 className="h-4 w-4" />
-                      <span>{t('annotationLayer.deleteButton')}</span>
                     </button>
                   ) : null}
                 </div>
