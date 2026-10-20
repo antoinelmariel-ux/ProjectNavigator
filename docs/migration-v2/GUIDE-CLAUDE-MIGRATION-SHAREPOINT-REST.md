@@ -434,6 +434,7 @@ Les référentiels administrés en back-office (aujourd'hui persistés en delta 
 | `risk-level-rules.json` | `riskLevelRules` |
 | `risk-weighting.json` | `riskWeights` |
 | `showcase-themes.json` | `showcaseThemes` |
+| `showcase-templates.json` | `showcaseTemplates` |
 | `settings.json` | `adminEmails`, `onboardingTourConfig`, `validationCommitteeConfig`, `inspirationFormFields` |
 
 > `rules` et `teams` ne sont **pas** dans ce tableau : ils ont été migrés vers des listes

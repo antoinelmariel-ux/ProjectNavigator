@@ -10,6 +10,7 @@ const OTHER_TABS = [
   'Filtres d’accueil',
   'Inspiration',
   'Thèmes vitrine',
+  'Modèles de vitrine',
   'Onboarding',
   'Comités de validation',
   'Administrateurs',

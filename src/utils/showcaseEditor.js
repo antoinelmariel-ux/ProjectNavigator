@@ -64,11 +64,13 @@ export const LEGACY_SHOWCASE_SECTION_REPLACEMENTS = {
   'innovation-metrics': ['indicators']
 };
 
-export const normalizeSectionOrder = (rawOrder, customSections) => {
+// `builtInIds` : sections intégrées que la vitrine propose (toutes, ou celles qu'un modèle de
+// vitrine garde). Une section intégrée absente de cette liste n'est jamais réinjectée.
+export const normalizeSectionOrder = (rawOrder, customSections, builtInIds = SHOWCASE_SECTION_IDS) => {
   const customIds = Array.isArray(customSections)
     ? customSections.map(section => section?.id).filter(id => typeof id === 'string')
     : [];
-  const fallbackOrder = [...SHOWCASE_SECTION_IDS, ...customIds];
+  const fallbackOrder = [...builtInIds, ...customIds];
 
   if (!Array.isArray(rawOrder)) {
     return fallbackOrder;

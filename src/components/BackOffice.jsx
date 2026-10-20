@@ -133,6 +133,7 @@ import { collectTranslationItems } from '../utils/translationAudit.js';
 import { LanguageEditSwitcher } from './LocalizedFieldEditor.jsx';
 import { BackOfficeTranslations } from './BackOfficeTranslations.jsx';
 import { BackOfficeFaq } from './BackOfficeFaq.jsx';
+import { BackOfficeShowcaseTemplates } from './BackOfficeShowcaseTemplates.jsx';
 import { isSharePointMode } from '../config/sharepointConfig.js';
 import { scrollAppTo } from '../utils/scrollContainer.js';
 
@@ -508,6 +509,7 @@ const REFERENTIAL_SELECTION_ITEMS = [
   { key: 'riskLevelRules', labelKey: 'referentialItemRiskLevelRules' },
   { key: 'riskWeights', labelKey: 'referentialItemRiskWeights' },
   { key: 'showcaseThemes', labelKey: 'referentialItemShowcaseThemes' },
+  { key: 'showcaseTemplates', labelKey: 'referentialItemShowcaseTemplates' },
   { key: 'settings', labelKey: 'referentialItemSettings' }
 ];
 
@@ -736,6 +738,8 @@ export const BackOffice = ({
   setTeams,
   showcaseThemes,
   setShowcaseThemes,
+  showcaseTemplates = [],
+  setShowcaseTemplates,
   projectFilters,
   setProjectFilters,
   inspirationFilters,
@@ -3963,6 +3967,13 @@ export const BackOffice = ({
       id: 'themes',
       label: t('backOffice.main.tabThemesTemplate', { count: showcaseThemeCount }),
       panelId: 'backoffice-tabpanel-themes'
+    },
+    {
+      id: 'showcaseTemplates',
+      label: t('backOffice.main.tabShowcaseTemplatesTemplate', {
+        count: Array.isArray(showcaseTemplates) ? showcaseTemplates.length : 0
+      }),
+      panelId: 'backoffice-tabpanel-showcaseTemplates'
     },
     {
       id: 'onboarding',
@@ -10328,6 +10339,23 @@ export const BackOffice = ({
                 teams={teams}
                 isCurrentUserAdmin={isCurrentUserAdmin}
                 onChange={handleTranslationValueChange}
+                t={t}
+              />
+            </section>
+          )}
+
+          {activeTab === 'showcaseTemplates' && (
+            <section
+              id="backoffice-tabpanel-showcaseTemplates"
+              role="tabpanel"
+              aria-labelledby="backoffice-tab-showcaseTemplates"
+            >
+              <BackOfficeShowcaseTemplates
+                templates={showcaseTemplates}
+                setTemplates={setShowcaseTemplates}
+                questions={questions}
+                language={language}
+                publishControl={renderReferentialPublishControl('showcaseTemplates')}
                 t={t}
               />
             </section>

@@ -24,6 +24,7 @@ import { initialRiskLevelRules } from './data/riskLevelRules.js';
 import { initialRiskWeights } from './data/riskWeights.js';
 import { initialTeams } from './data/teams.js';
 import { initialShowcaseThemes } from './data/showcaseThemes.js';
+import { initialShowcaseTemplates } from './data/showcaseTemplates.js';
 import { initialOnboardingTourConfig } from './data/onboardingTour.js';
 import { initialValidationCommitteeConfig } from './data/validationCommitteeConfig.js';
 import { initialAdminEmails } from './data/adminEmails.js';
@@ -97,7 +98,6 @@ import {
   normalizeInspirationFormConfig
 } from './utils/inspirationConfig.js';
 import { normalizeValidationCommitteeConfig } from './utils/validationCommittee.js';
-import { isShowcaseAccessBlockedByProjectType } from './utils/showcase.js';
 import {
   SHOWCASE_SHARE_PARAM,
   LEGACY_SHOWCASE_SHARE_PARAMS,
@@ -934,6 +934,7 @@ export const App = () => {
   const [riskWeights, setRiskWeights] = useState(() => normalizeRiskWeighting(initialRiskWeights));
   const [teams, setTeams] = useState(initialTeams);
   const [showcaseThemes, setShowcaseThemes] = useState(initialShowcaseThemes);
+  const [showcaseTemplates, setShowcaseTemplates] = useState(initialShowcaseTemplates);
   const [projectFilters, setProjectFiltersState] = useState(() => createDefaultProjectFiltersConfig());
   const [inspirationFilters, setInspirationFilters] = useState(() => createDefaultInspirationFiltersConfig());
   const [inspirationFormFields, setInspirationFormFields] = useState(() => createDefaultInspirationFormConfig());
@@ -1407,6 +1408,7 @@ export const App = () => {
     riskLevelRules: JSON.stringify(riskLevelRules),
     riskWeights: JSON.stringify(riskWeights),
     showcaseThemes: JSON.stringify(showcaseThemes),
+    showcaseTemplates: JSON.stringify(showcaseTemplates),
     settings: JSON.stringify({
       adminEmails,
       technicalContactEmails,
@@ -1423,6 +1425,7 @@ export const App = () => {
     riskLevelRules,
     riskWeights,
     showcaseThemes,
+    showcaseTemplates,
     adminEmails,
     technicalContactEmails,
     onboardingTourConfig,
@@ -1759,6 +1762,7 @@ const updateProjectFilters = useCallback((updater) => {
       }
       if (Array.isArray(savedState.teams)) setTeams(savedState.teams);
       if (Array.isArray(savedState.showcaseThemes)) setShowcaseThemes(savedState.showcaseThemes);
+      if (Array.isArray(savedState.showcaseTemplates)) setShowcaseTemplates(savedState.showcaseTemplates);
       if (savedState && typeof savedState.projectFilters === 'object') {
         setProjectFiltersState(normalizeProjectFilterConfig(stripRetiredProjectFilterFields(savedState.projectFilters)));
       }
@@ -1796,6 +1800,7 @@ const updateProjectFilters = useCallback((updater) => {
         setRiskWeights(normalizeRiskWeighting(slices.riskWeights));
       }
       if (Array.isArray(slices.showcaseThemes)) setShowcaseThemes(slices.showcaseThemes);
+      if (Array.isArray(slices.showcaseTemplates)) setShowcaseTemplates(slices.showcaseTemplates);
       if (Array.isArray(slices.adminEmails)) setAdminEmails(slices.adminEmails);
       if (Array.isArray(slices.technicalContactEmails)) setTechnicalContactEmails(slices.technicalContactEmails);
       if (slices.teamVisibility && typeof slices.teamVisibility === 'object') {
@@ -2018,7 +2023,8 @@ const updateProjectFilters = useCallback((updater) => {
     riskLevelRules: JSON.stringify(initialRiskLevelRules),
     riskWeights: JSON.stringify(normalizeRiskWeighting(initialRiskWeights)),
     teams: JSON.stringify(initialTeams),
-    showcaseThemes: JSON.stringify(initialShowcaseThemes)
+    showcaseThemes: JSON.stringify(initialShowcaseThemes),
+    showcaseTemplates: JSON.stringify(initialShowcaseTemplates)
   }), []);
 
   const buildPersistPayload = useCallback(() => {
@@ -2050,7 +2056,8 @@ const updateProjectFilters = useCallback((updater) => {
       riskLevelRules,
       riskWeights,
       teams,
-      showcaseThemes
+      showcaseThemes,
+      showcaseTemplates
     };
     Object.entries(referentials).forEach(([key, value]) => {
       if (JSON.stringify(value) !== persistDefaults[key]) {
@@ -2071,6 +2078,7 @@ const updateProjectFilters = useCallback((updater) => {
     riskWeights,
     teams,
     showcaseThemes,
+    showcaseTemplates,
     projectFilters,
     inspirationFilters,
     inspirationFormFields,
@@ -5965,54 +5973,30 @@ const updateProjectFilters = useCallback((updater) => {
     }
   }, [currentUserEmail, handleOpenProject, isHydrated, openProjectShowcase, projects, sharePointSync.state, trashResponseOptions]);
 
-  const isActiveProjectShowcaseBlocked = useMemo(
-    () => isShowcaseAccessBlockedByProjectType(answers),
-    [answers]
-  );
-
-  const canShowProjectShowcase = useCallback(
-    (project) => !isShowcaseAccessBlockedByProjectType(project?.answers || {}),
-    []
-  );
-
   const handleShowProjectShowcase = useCallback((projectId) => {
     if (!projectId) {
       return;
     }
 
-    const project = projects.find((entry) => entry?.id === projectId);
-    if (isShowcaseAccessBlockedByProjectType(project?.answers || {})) {
-      return;
-    }
-
     openProjectShowcase({ projectId });
-  }, [openProjectShowcase, projects]);
+  }, [openProjectShowcase]);
 
   const handleOpenActiveProjectShowcase = useCallback((payload = {}) => {
     const projectId = payload?.projectId || activeProjectId || null;
-
-    if (isShowcaseAccessBlockedByProjectType(answers)) {
-      return;
-    }
 
     openProjectShowcase({
       ...payload,
       projectId
     });
-  }, [activeProjectId, answers, openProjectShowcase]);
+  }, [activeProjectId, openProjectShowcase]);
 
   // Sortie de questionnaire : la vitrine est la destination par défaut, l'outil servant d'abord
-  // à penser le projet. Les types de projet privés de vitrine retombent sur les enjeux.
+  // à penser le projet. Tout projet a sa vitrine ; un modèle de vitrine en adapte la structure.
   const navigateToProjectShowcase = useCallback(() => {
     const result = analyzeAnswers(answers, rules, riskLevelRules, riskWeights);
     setAnalysis(result);
     setValidationError(null);
     setReturnToSynthesisAfterEdit(false);
-
-    if (isActiveProjectShowcaseBlocked) {
-      setScreen('synthesis');
-      return;
-    }
 
     openProjectShowcase({
       projectId: activeProjectId,
@@ -6023,7 +6007,6 @@ const updateProjectFilters = useCallback((updater) => {
     activeProjectId,
     analyzeAnswers,
     answers,
-    isActiveProjectShowcaseBlocked,
     openProjectShowcase,
     riskLevelRules,
     riskWeights,
@@ -7267,6 +7250,7 @@ const updateProjectFilters = useCallback((updater) => {
           validationCommitteeConfig,
           launchReminderDays,
           showcaseThemes,
+          showcaseTemplates,
           adminEmails,
           technicalContactEmails,
           teamVisibility,
@@ -7315,6 +7299,7 @@ const updateProjectFilters = useCallback((updater) => {
     rules,
     sharePointReinitSelection,
     showcaseThemes,
+    showcaseTemplates,
     t,
     teams,
     validationCommitteeConfig
@@ -7388,6 +7373,7 @@ const updateProjectFilters = useCallback((updater) => {
           validationCommitteeConfig,
           launchReminderDays,
           showcaseThemes,
+          showcaseTemplates,
           adminEmails,
           technicalContactEmails,
           teamVisibility
@@ -7433,6 +7419,7 @@ const updateProjectFilters = useCallback((updater) => {
     riskLevelRules,
     riskWeights,
     showcaseThemes,
+    showcaseTemplates,
     t,
     validationCommitteeConfig
   ]);
@@ -7466,6 +7453,7 @@ const updateProjectFilters = useCallback((updater) => {
           validationCommitteeConfig,
           launchReminderDays,
           showcaseThemes,
+          showcaseTemplates,
           adminEmails,
           technicalContactEmails,
           teamVisibility
@@ -7505,6 +7493,7 @@ const updateProjectFilters = useCallback((updater) => {
     riskLevelRules,
     riskWeights,
     showcaseThemes,
+    showcaseTemplates,
     t,
     validationCommitteeConfig
   ]);
@@ -8180,6 +8169,8 @@ const updateProjectFilters = useCallback((updater) => {
                 setTeams={setTeams}
                 showcaseThemes={showcaseThemes}
                 setShowcaseThemes={setShowcaseThemes}
+                showcaseTemplates={showcaseTemplates}
+                setShowcaseTemplates={setShowcaseTemplates}
                 projectFilters={projectFilters}
                 setProjectFilters={updateProjectFilters}
                 inspirationFilters={inspirationFilters}
@@ -8259,7 +8250,6 @@ const updateProjectFilters = useCallback((updater) => {
             submittedProjectNotice={submittedProjectNotice}
             onDismissSubmittedProjectNotice={handleDismissSubmittedProjectNotice}
             onShowProjectShowcase={handleShowProjectShowcase}
-            canShowProjectShowcase={canShowProjectShowcase}
             onDuplicateProject={handleDuplicateProject}
             onCancelProjectSubmission={handleCancelProjectSubmission}
             onReintegrateProjectInCommittee={handleReintegrateProjectInCommittee}
@@ -8343,7 +8333,6 @@ const updateProjectFilters = useCallback((updater) => {
               projectId={activeProjectId}
               projectName={activeProjectName}
               onOpenProjectShowcase={handleOpenActiveProjectShowcase}
-              canOpenProjectShowcase={!isActiveProjectShowcaseBlocked}
               isProjectEditable={isActiveProjectEditable}
               onRestart={handleRestart}
               onBack={isActiveProjectEditable ? handleBackToQuestionnaire : undefined}
@@ -8423,6 +8412,7 @@ const updateProjectFilters = useCallback((updater) => {
                   answers={showcaseProjectContext.answers}
                   timelineDetails={showcaseProjectContext.timelineDetails}
                   showcaseThemes={showcaseThemes}
+                  showcaseTemplates={showcaseTemplates}
                   hasIncompleteAnswers={Boolean(showcaseProjectContext.hasIncompleteAnswers)}
                   initialDisplayMode={showcaseDisplayMode}
                   displayModeLock={showcaseDisplayModeLock}

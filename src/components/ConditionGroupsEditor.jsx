@@ -24,11 +24,13 @@ export const ConditionGroupsEditor = ({
   emptyStateText,
   summary = null,
   addGroupLabel,
-  createGroupLabel
+  createGroupLabel,
+  excludedQuestionIds = []
 }) => {
   const { t } = useTranslation();
   const conditionGroups = Array.isArray(groups) ? groups : [];
-  const conditionQuestionEntries = getConditionQuestionEntries(questions, language);
+  const conditionQuestionEntries = getConditionQuestionEntries(questions, language)
+    .filter((entry) => !excludedQuestionIds.includes(entry?.id));
   const dateQuestions = questions.filter((question) => (question.type || 'choice') === 'date');
 
   const emitGroups = (updater) => {

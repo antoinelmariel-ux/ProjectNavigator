@@ -127,7 +127,7 @@ The app is being migrated off mocks onto real SharePoint lists, using the **Shar
 - User-side setup (lists, columns, flows): [`docs/migration-v2/PREPARATION-SHAREPOINT-POWERAUTOMATE.md`](docs/migration-v2/PREPARATION-SHAREPOINT-POWERAUTOMATE.md)
 - **Ignore** every other migration doc: everything in `docs/*.md` and `docs/migration-v2/_obsolete/` describes abandoned strategies.
 - **Current status:** `projects`, `inspirations`, `filesIndex`, `notificationsQueue`, `projectMembers`, `complianceComments`, `showcaseStickyNotes`, `userProfiles`, `rules` and `teams` are fully wired through `getRepository(...)` (see `src/utils/projectMembersProvider.js`, `complianceCommentsProvider.js`, `showcaseStickyNotesProvider.js`, `userProfileProvider.js`, `rulesProvider.js`, `teamsProvider.js`, all consumed from `App.jsx`).
-- **`rules`/`teams` moved from CN-Config JSON files to per-item lists (`CN_Rules`/`CN_Teams`)**, so two admins editing different rules no longer conflict on one shared file ETag. Each rule is one row (`RuleId` key, the whole rule object serialized into `PayloadJson` — the nesting is too deep for a column mapping); each team is one row with flat columns (`TeamId`, `Title`, `ContactsJson`, `NameJson`, `Expertise`). Both carry a `SortOrder` column since there's no drag-and-drop UI for rules/teams — display order is purely array-insertion order, and `SortOrder` is what lets `rulesProvider.listAllRules()`/`teamsProvider.listAllTeams()` reconstitute it from independent rows. `App.jsx` keeps the returned `{spItemId, rowVersion, sortOrder}` metadata in side `useRef` maps (`ruleServerMetaRef`/`teamServerMetaRef`) — never merged into the rule/team objects the rules engine consumes. A team's `name` and `expertise` are translatable in the app's 4 languages, stored as `{en, fr, de, es}` objects (same convention as `questions.js`/`rules.js`, resolved via `src/utils/localizedContent.js`); `NameJson`/`Expertise` carry that object, while `Title` stays a plain derived string (default-language name) so the SharePoint list itself stays readable natively. In mock/local mode `rules`/`teams` are untouched: still plain `useState` seeded from `src/data/rules.js`/`teams.js` and persisted in the `complianceNavigatorState` delta. `referentialStore.js`'s `REFERENTIAL_FILES` no longer includes `rules`/`teams` (5 files now, not 7).
+- **`rules`/`teams` moved from CN-Config JSON files to per-item lists (`CN_Rules`/`CN_Teams`)**, so two admins editing different rules no longer conflict on one shared file ETag. Each rule is one row (`RuleId` key, the whole rule object serialized into `PayloadJson` — the nesting is too deep for a column mapping); each team is one row with flat columns (`TeamId`, `Title`, `ContactsJson`, `NameJson`, `Expertise`). Both carry a `SortOrder` column since there's no drag-and-drop UI for rules/teams — display order is purely array-insertion order, and `SortOrder` is what lets `rulesProvider.listAllRules()`/`teamsProvider.listAllTeams()` reconstitute it from independent rows. `App.jsx` keeps the returned `{spItemId, rowVersion, sortOrder}` metadata in side `useRef` maps (`ruleServerMetaRef`/`teamServerMetaRef`) — never merged into the rule/team objects the rules engine consumes. A team's `name` and `expertise` are translatable in the app's 4 languages, stored as `{en, fr, de, es}` objects (same convention as `questions.js`/`rules.js`, resolved via `src/utils/localizedContent.js`); `NameJson`/`Expertise` carry that object, while `Title` stays a plain derived string (default-language name) so the SharePoint list itself stays readable natively. In mock/local mode `rules`/`teams` are untouched: still plain `useState` seeded from `src/data/rules.js`/`teams.js` and persisted in the `complianceNavigatorState` delta. `referentialStore.js`'s `REFERENTIAL_FILES` no longer includes `rules`/`teams` (6 files now, `showcase-templates.json` included).
 - **`sampleProjects` (`CN_SampleProjects`) backs the rule test bench** in the back-office's `Revue Compliance` tab: one row per named set of answers (`SampleId` key, `AnswersJson` holding the answers in the same shape as `CN_Projects.AnswersJson`, plus `SortOrder` like rules/teams since there's no drag-and-drop). Loaded via `sampleProjectsProvider.listAllSampleProjects()` in `hydrateFromSharePoint`, written through `sampleProjectsQueueRef` (a `retryQueue`). Unlike `rules`/`teams`, **an empty list is a legitimate empty corpus, not "never published"** — it is reflected as-is with no fallback. In mock/local mode the provider is never consulted (hydration is gated on `isSharePointMode()`) and sample projects live in the `complianceSampleProjects` slice of `complianceNavigatorState`, exactly the split used for `rules`/`teams`. A sample project is never a real project: nothing here is submitted, notified or scored.
 - **`faq` (`CN_Faq`) backs the FAQ of the help window, editable by admins only** (back-office tab `faq`, `BackOfficeFaq.jsx`; absent from `allowedTabIds`, so scoped compliance leads never see it). One row per question (`FaqId` key), `QuestionJson`/`AnswerJson` as `{en, fr, de, es}` (answer = limited rich text), optional `CategoryJson` (questions sharing the same label in the reader's language are grouped under one heading, in order of first appearance — no separate categories list), `IsPublished`, `SortOrder`. `StaticPageDialog` builds the FAQ page from `faqEntries` (`src/utils/faqEntries.js#buildFaqPageHtml`, answers through `sanitizeRichText`, injected as a parameter because `richText.js` is JSX and Node tests can't import it) and **falls back to the bundled `src/pages/faq.html` while no entry is published** — an empty list is a legitimate empty FAQ, not an error. A missing language falls back to French, then to any filled language. In mock/local mode the entries live in the `faqEntries` slice of `complianceNavigatorState`. Writes go through `faqQueueRef` (a `retryQueue`), debounced per entry in the editor. The legal notice (`mentions-legales.html`) deliberately stays a bundled file.
 - **`userProfiles` backs the first-login onboarding screen and the "Mon profil" section**, one row per person (keyed by `UserEmail`), holding their activity scope (`ActivityScopeJson`, an array of fixed codes) and preferred language. `App.jsx` shows `OnboardingScreen.jsx` whenever the current user's profile is missing or has `HasCompletedOnboarding !== true`; finishing it (or skipping the tour offer) marks it complete. The activity scope is also exposed as a pseudo-question (`ACTIVITY_SCOPE_QUESTION_ID = '__activity_scope__'` in `src/utils/questions.js`, injected into any `answers` object via `withActivityScope(...)` — never persisted into a project's own answers) so it's selectable as a condition in the back-office question/rule editors exactly like a real question, via the same `getConditionQuestionEntries(...)` both editors already call. `App.jsx` and `BackOffice.jsx` each shadow `shouldShowQuestion`/`analyzeAnswers`/`shouldShowOption` locally to inject the current user's own scope — don't call the raw versions from `src/utils/questions.js`/`rules.js` directly inside those two files, or activity-scope conditions silently stop working there.
@@ -207,9 +207,10 @@ exits go through `navigateToProjectShowcase` in `App.jsx` — the last question'
 mandatory-questions interstitial's button, which is the same journey interrupted. That
 interstitial only appears while a **core** question is missing (`unansweredPreliminaryQuestions`,
 the same list that gates the preliminary request) — a question only required for technical
-advice and validation does not stand between the author and their showcase. A project type
-that `isShowcaseAccessBlockedByProjectType` denies the showcase falls back to the report, which
-is the only way that screen is reached directly from the form.
+advice and validation does not stand between the author and their showcase. **Every project
+has a showcase**: the project types that used to be denied one (third-party project, donation /
+grant, Advisory Board) now get a showcase template instead (see below) — don't bring back a
+type-based block.
 
 The report itself is **« Enjeux du projet »** everywhere in the UI (`synthesisReport.title`,
 `app.nav.reportSummaryLabel`, the home cards' « Consulter les enjeux »); the code keeps its
@@ -217,6 +218,35 @@ The report itself is **« Enjeux du projet »** everywhere in the UI (`synthesis
 don't rename those chasing the copy. It is reached from the showcase's nav button, and
 `handleReturnToComplianceReport` deliberately ignores `previousScreenRef` when it holds
 `questionnaire`, so that button always opens what it announces.
+
+## Showcase templates (one structure per project type)
+
+`src/utils/showcaseTemplates.js` (defaults in `src/data/showcaseTemplates.js`, back-office tab
+`showcaseTemplates`, `BackOfficeShowcaseTemplates.jsx`, admin-only like `faq`) lets an admin give a
+project type its own showcase structure: which built-in sections are kept and in what order, plus
+pre-titled custom blocks (title/starting text in the 4 languages). A template's activation is
+`{conditionGroups}` in the rules grammar, edited with the shared `ConditionGroupsEditor` and
+evaluated by `evaluateRule` — so it can never drift from the rules. The first template in list order
+that matches wins (the tab has up/down arrows for that). A template with no condition, or with a
+condition whose question is still empty, never applies (`hasShowcaseTemplateActivation`) — the
+rules engine treats an empty condition as satisfied, which would otherwise hit every project. The
+activity-scope pseudo-question is deliberately excluded (`excludedQuestionIds`): it is the
+*viewer's* scope, and a showcase's structure can't depend on who reads it. The legacy
+`{questionId, values}` activation is still read, as one OR group. Published as the CN-Config file `showcase-templates.json`, like
+`showcase-themes.json`; delta-persisted in `complianceNavigatorState` in local mode.
+
+- **Nothing is written into the project.** `ProjectShowcase` reads its `answers` prop through
+  `applyShowcaseTemplate`, which stands in for `customShowcaseSections`/`showcaseSectionOrder`
+  while the project has not stored its own. Because `computeShowcaseUpdates` diffs against that
+  same view, entering edit mode shows « Tout est publié » and publishing an untouched template
+  writes nothing — so a template edited later reaches every showcase nobody customised, and a
+  customised one belongs to its owner. Template block ids are stable
+  (`template-<templateId>-<blockId>`) because a stored order may reference them while the blocks
+  still come from the template.
+- **A built-in section the template drops is never re-injected**: `normalizeSectionOrder` takes
+  the template's built-in ids as its third argument (every call in `ProjectShowcase` passes
+  `builtInSectionIds`), and the light-mode options follow the same list. `notice` can't be removed.
+- Tests: `test/showcaseTemplates.test.mjs`, `e2e/showcase-templates.spec.js`.
 
 ## The showcase editor (live canvas)
 
