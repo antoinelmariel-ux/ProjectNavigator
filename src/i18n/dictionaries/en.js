@@ -274,6 +274,8 @@ export default {
     closedStatus: 'Closed',
     closeNote: 'Close the note',
     closeButton: 'Close',
+    deleteNote: 'Delete the note',
+    deleteConfirm: 'Permanently delete this sticky note and its replies?',
     notePlaceholder: 'Add your comment here...',
     closedBy: 'Closed by {{name}}',
     closedGeneric: 'Closed',

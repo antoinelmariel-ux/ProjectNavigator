@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from '../react.js';
-import { Close, Pause, Play } from './icons.js';
+import { Close, Pause, Play, Trash2 } from './icons.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { getLocaleTag } from '../i18n/languages.js';
 
@@ -53,6 +53,7 @@ export const AnnotationLayer = ({
   hideToolbar = false,
   notes = [],
   canCloseNotes = false,
+  canDeleteNote,
   noteVisibilityMode = 'all',
   currentSourceId = '',
   activeContextId = '',
@@ -62,6 +63,7 @@ export const AnnotationLayer = ({
   onExit,
   onNoteChange,
   onNoteClose,
+  onNoteDelete,
   onNoteReply,
   onAutoFocusComplete
 }) => {
@@ -347,6 +349,21 @@ export const AnnotationLayer = ({
                     >
                       <Close className="h-4 w-4" />
                       <span>{t('annotationLayer.closeButton')}</span>
+                    </button>
+                  ) : null}
+                  {typeof onNoteDelete === 'function' && (typeof canDeleteNote === 'function' ? canDeleteNote(note) : canCloseNotes) ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (window.confirm(t('annotationLayer.deleteConfirm'))) {
+                          onNoteDelete(note.id);
+                        }
+                      }}
+                      className="feedback-note-close feedback-note-delete"
+                      aria-label={t('annotationLayer.deleteNote')}
+                      title={t('annotationLayer.deleteNote')}
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   ) : null}
                 </div>
