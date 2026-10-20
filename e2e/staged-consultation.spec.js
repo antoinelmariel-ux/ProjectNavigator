@@ -4,36 +4,32 @@ import {
   collectConsoleErrors,
   gotoHome,
   openProjectStakes,
+  patchStateOnBoot,
   proceedThroughMandatorySummary,
+  readStoredState,
   walkQuestionnaireToShowcase
 } from './fixtures.js';
 
 // Une demande d'avis préliminaire peut ne solliciter d'abord qu'une partie des périmètres : les
 // autres attendent que le porteur les sollicite, sans rien recevoir ni voir du projet.
 //
-// Le compte de test devient contact de l'équipe PI dès le démarrage (addInitScript, pour que le
+// Le compte de test devient contact de l'équipe PI dès le démarrage (patchStateOnBoot, pour que le
 // flush sur pagehide ne l'écrase pas) : il est à la fois porteur et expert d'un périmètre mis
 // de côté, ce qui permet de vérifier dans une seule session que l'expert ne voit rien.
-const makeSelfPiExpert = (teams) => {
-  const KEY = 'complianceNavigatorState';
-  let state = {};
-  try {
-    state = JSON.parse(window.localStorage.getItem(KEY) || '{}') || {};
-  } catch {
-    state = {};
-  }
+const makeSelfPiExpert = (stored, teams) => {
+  const state = stored || {};
   state.teams = teams.map((team) => (team.id === 'pi'
     ? { ...team, contacts: [...(team.contacts || []), 'bertrand.darieux@lfb.fr'] }
     : team));
-  window.localStorage.setItem(KEY, JSON.stringify(state));
+  return state;
 };
 
-const readStaged = (page) => page.evaluate(() => {
-  window.dispatchEvent(new Event('pagehide'));
-  const state = JSON.parse(window.localStorage.getItem('complianceNavigatorState') || '{}');
+const readStaged = async (page) => {
+  await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+  const state = await readStoredState(page);
   const project = (state.projects || []).find((entry) => entry.status === 'submitted');
   return project?.answers?.__staged_consultation__ || null;
-});
+};
 
 const openStakesOfNewProject = async (page) => {
   await page.getByRole('button', { name: /Créer un projet/ }).first().click();
@@ -62,7 +58,7 @@ const openStakesOfNewProject = async (page) => {
 test('commencer par un périmètre : les autres attendent, invisibles de leurs experts', async ({ page }) => {
   const errors = collectConsoleErrors(page);
   await gotoHome(page);
-  await page.addInitScript(makeSelfPiExpert, initialTeams);
+  await patchStateOnBoot(page, makeSelfPiExpert, initialTeams);
   await page.reload();
   await openStakesOfNewProject(page);
 
@@ -97,7 +93,7 @@ test('commencer par un périmètre : les autres attendent, invisibles de leurs e
 
 test('solliciter les autres périmètres referme la consultation par vagues', async ({ page }) => {
   await gotoHome(page);
-  await page.addInitScript(makeSelfPiExpert, initialTeams);
+  await patchStateOnBoot(page, makeSelfPiExpert, initialTeams);
   await page.reload();
   await openStakesOfNewProject(page);
 

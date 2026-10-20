@@ -28,7 +28,7 @@ import { initialOnboardingTourConfig } from './data/onboardingTour.js';
 import { initialValidationCommitteeConfig } from './data/validationCommitteeConfig.js';
 import { initialAdminEmails } from './data/adminEmails.js';
 import { initialTechnicalContactEmails } from './data/technicalContactEmails.js';
-import { loadPersistedState, persistState } from './utils/storage.js';
+import { flushPersistedState, loadPersistedState, persistState } from './utils/storage.js';
 import { shouldShowQuestion as shouldShowQuestionBase, withActivityScope } from './utils/questions.js';
 import {
   computeMandatoryProgress,
@@ -2085,18 +2085,29 @@ const updateProjectFilters = useCallback((updater) => {
     persistDefaults
   ]);
 
+  const isUnmountedRef = useRef(false);
   const persistNow = useCallback(() => {
-    const result = persistState(buildPersistPayload());
-    setPersistenceError(!(result && result.ok));
+    persistState(buildPersistPayload()).then((result) => {
+      if (!isUnmountedRef.current) {
+        setPersistenceError(!(result && result.ok));
+      }
+    });
+  }, [buildPersistPayload]);
+
+  // Flush synchrone : l’écriture IndexedDB de persistNow est asynchrone et peut mourir avec
+  // l’onglet, flushPersistedState la double d’une copie localStorage tant qu’elle n’est pas
+  // confirmée.
+  const flushNow = useCallback(() => {
+    flushPersistedState(buildPersistPayload());
   }, [buildPersistPayload]);
 
   // Le debounce ci-dessous attend 400ms pour éviter d’écrire à chaque frappe. L’effet
-  // suivant garde toujours la dernière version de persistNow disponible pour un flush
+  // suivant garde toujours la dernière version de flushNow disponible pour un flush
   // immédiat si l’onglet se ferme avant que ce délai ne s’écoule.
   const persistNowRef = useRef(null);
   useEffect(() => {
-    persistNowRef.current = isHydrated ? persistNow : null;
-  }, [isHydrated, persistNow]);
+    persistNowRef.current = isHydrated ? flushNow : null;
+  }, [isHydrated, flushNow]);
 
   useEffect(() => {
     if (!isHydrated) {
@@ -2129,6 +2140,7 @@ const updateProjectFilters = useCallback((updater) => {
       window.removeEventListener('pagehide', flushPendingChanges);
       window.removeEventListener('beforeunload', flushPendingChanges);
       // Démontage du web part : SharePoint change de page sans pagehide (navigation SPA).
+      isUnmountedRef.current = true;
       flushPendingChanges();
     };
   }, []);

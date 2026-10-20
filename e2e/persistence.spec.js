@@ -1,32 +1,71 @@
 import { test, expect } from '@playwright/test';
-import { gotoHome, walkToSynthesis, collectConsoleErrors } from './fixtures.js';
+import { gotoHome, walkToSynthesis, collectConsoleErrors, readStoredState } from './fixtures.js';
 
 test.describe('Persistance transverse', () => {
   test('un edit très récent (avant le debounce) est quand même sauvegardé au pagehide', async ({ page }) => {
     await gotoHome(page);
     await page.getByRole('button', { name: /Créer un projet/ }).first().click();
+
+    // Simule un onglet qui se ferme avant que l'écriture IndexedDB ne soit confirmée : plus
+    // aucune transaction n'aboutit dans cette page.
+    await page.evaluate(() => {
+      window.IDBDatabase.prototype.transaction = () => ({
+        objectStore: () => ({ put() {}, get: () => ({}) })
+      });
+    });
     await page.locator('[contenteditable="true"]').first().click();
     await page.keyboard.type('Projet pagehide test');
 
-    // Déclenche le flush pagehide directement (sans attendre les 400ms de debounce), pour
-    // vérifier que persistNowRef sauvegarde bien l'état le plus récent à la fermeture.
+    // Le flush pagehide doit donc laisser une copie synchrone dans le localStorage.
     await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
-    const stateRaw = await page.evaluate(() => window.localStorage.getItem('complianceNavigatorState'));
-    expect(stateRaw).toContain('Projet pagehide test');
+    const localCopy = await page.evaluate(() => window.localStorage.getItem('complianceNavigatorState'));
+    expect(localCopy).toContain('Projet pagehide test');
+
+    // Au démarrage suivant, cette copie est reprise, écrite dans IndexedDB puis retirée : elle ne
+    // doit pas occuper durablement le quota qu'on cherche justement à épargner.
+    await page.reload();
+    await expect
+      .poll(async () => JSON.stringify(await readStoredState(page)))
+      .toContain('Projet pagehide test');
+    await expect
+      .poll(() => page.evaluate(() => window.localStorage.getItem('complianceNavigatorState')))
+      .toBeNull();
   });
 
-  test('la bannière de stockage plein apparaît quand le quota localStorage est atteint', async ({ page }) => {
-    await gotoHome(page);
-    await page.evaluate(() => {
-      try {
-        const chunk = 'x'.repeat(1024 * 1024);
-        for (let i = 0; i < 20; i += 1) {
-          window.localStorage.setItem('e2e-quota-filler-' + i, chunk);
-        }
-      } catch {
-        // Le remplissage s'arrête naturellement dès que le quota est atteint.
+  const fillLocalStorage = (page) => page.evaluate(() => {
+    try {
+      const chunk = 'x'.repeat(1024 * 1024);
+      for (let i = 0; i < 20; i += 1) {
+        window.localStorage.setItem('e2e-quota-filler-' + i, chunk);
       }
+    } catch {
+      // Le remplissage s'arrête naturellement dès que le quota est atteint.
+    }
+  });
+
+  test('un localStorage saturé n’empêche plus la sauvegarde', async ({ page }) => {
+    await gotoHome(page);
+    await fillLocalStorage(page);
+
+    await page.getByRole('button', { name: /Créer un projet/ }).first().click();
+    await page.locator('[contenteditable="true"]').first().click();
+    await page.keyboard.type('Projet quota test');
+
+    await expect
+      .poll(async () => JSON.stringify(await readStoredState(page)))
+      .toContain('Projet quota test');
+    await expect(page.getByText(/espace de stockage/i)).toHaveCount(0);
+  });
+
+  test('la bannière de stockage plein apparaît quand IndexedDB est indisponible et le localStorage saturé', async ({ page }) => {
+    await gotoHome(page);
+    await page.addInitScript(() => {
+      window.IDBFactory.prototype.open = () => {
+        throw new Error('IndexedDB indisponible (e2e)');
+      };
     });
+    await page.reload();
+    await fillLocalStorage(page);
 
     await page.getByRole('button', { name: /Créer un projet/ }).first().click();
     await page.locator('[contenteditable="true"]').first().click();

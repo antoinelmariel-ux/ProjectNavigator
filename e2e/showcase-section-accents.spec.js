@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoHome, walkQuestionnaireToShowcase, proceedThroughMandatorySummary } from './fixtures.js';
+import { gotoHome, walkQuestionnaireToShowcase, proceedThroughMandatorySummary, readStoredState } from './fixtures.js';
 
 // Ouvre la vitrine d'un projet Gemuline : sa palette (accent #2b8f42) sert de référence
 // pour vérifier que les sections intégrées suivent le thème par défaut.
@@ -75,11 +75,8 @@ test.describe('Couleur des sections de la vitrine', () => {
     // Le choix appartient au projet et non à la session : il est écrit dans ses réponses,
     // contrairement à la sélection des sections du mode Light qui reste un réglage éphémère.
     await page.reload();
-    const stored = await page.evaluate(() => {
-      const state = JSON.parse(localStorage.getItem('complianceNavigatorState'));
-      const project = (state.projects || []).find((item) => item?.answers?.showcaseSectionAccents);
-      return project ? project.answers.showcaseSectionAccents : null;
-    });
+    const project = ((await readStoredState(page)).projects || []).find((item) => item?.answers?.showcaseSectionAccents);
+    const stored = project ? project.answers.showcaseSectionAccents : null;
     // Seul l'écart au thème est stocké, et sous forme de rang de pastille : une section
     // laissée sur « Thème » suivra la marque même si la palette change plus tard, et une
     // section colorée gardera son rang si le projet change de thème.

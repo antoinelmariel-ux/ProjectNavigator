@@ -8,7 +8,7 @@ import { languageFromCulture } from './i18n/detectLanguage.js';
 import { normalizeEmail } from './utils/normalizeEmail.js';
 import mockCurrentUser from './data/graph-current-user.json';
 import { LanguageProvider, LanguageContext } from './i18n/LanguageContext.jsx';
-import { loadPersistedState } from './utils/storage.js';
+import { hydratePersistedState, loadPersistedState } from './utils/storage.js';
 import { initialAdminEmails } from './data/adminEmails.js';
 import { initialTechnicalContactEmails } from './data/technicalContactEmails.js';
 import { queueNotification } from './utils/notificationQueue.js';
@@ -272,10 +272,16 @@ export const mountApp = (rootElement, { webAbsoluteUrl, user, cultureName } = {}
   injectStyles('tailwind-internal', tailwindCss);
   injectStyles('app-shell', appShellCss);
 
-  return initSharePointContext({ fallbackUser: mockCurrentUser, spfxUser: user })
-    .catch((error) => {
+  // L'état sauvegardé (IndexedDB) est lu avant le premier rendu : App.jsx et
+  // applyImpersonationRequest le lisent de façon synchrone.
+  return Promise.all([
+    initSharePointContext({ fallbackUser: mockCurrentUser, spfxUser: user }).catch((error) => {
       console.error('Initialisation du contexte SharePoint impossible :', error);
+    }),
+    hydratePersistedState().catch((error) => {
+      console.error('Lecture de l’état sauvegardé impossible :', error);
     })
+  ])
     .then(() => {
       if (!rootElement.isConnected) {
         return;

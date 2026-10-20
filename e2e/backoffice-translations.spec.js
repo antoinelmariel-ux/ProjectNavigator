@@ -4,7 +4,8 @@ import {
   grantAdminAccess,
   createAndSubmitProject,
   openTriggeredProjectAndExpandTeam,
-  collectConsoleErrors
+  collectConsoleErrors,
+  patchStateOnBoot
 } from './fixtures.js';
 
 test.describe('Back-office : onglet Traductions', () => {
@@ -45,17 +46,11 @@ test.describe('Back-office : onglet Traductions', () => {
     // Retire les droits admin (en gardant le statut de contact d'équipe déjà persisté) pour
     // basculer sur la vue restreinte "responsable compliance" — être à la fois admin et contact
     // d'équipe garde sciemment l'accès admin complet (voir grantSelfComplianceExpertAndCommitteeAccess).
-    await page.addInitScript(() => {
-      const KEY = 'complianceNavigatorState';
-      let state = {};
-      try {
-        state = JSON.parse(window.localStorage.getItem(KEY) || '{}') || {};
-      } catch {
-        state = {};
-      }
+    await patchStateOnBoot(page, (stored) => {
+      const state = stored || {};
       state.adminEmails = (Array.isArray(state.adminEmails) ? state.adminEmails : [])
         .filter((email) => email !== 'bertrand.darieux@lfb.fr');
-      window.localStorage.setItem(KEY, JSON.stringify(state));
+      return state;
     });
     await page.reload();
     await page.getByRole('button', { name: /Accéder au Back-office/ }).click();
