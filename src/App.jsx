@@ -3955,20 +3955,21 @@ const updateProjectFilters = useCallback((updater) => {
       return undefined;
     }
 
-    const handleDocumentClick = (event) => {
+    const handleDocumentDoubleClick = (event) => {
       const target = event?.target;
 
       if (isAnnotationUiInteraction(event)) {
         return;
       }
 
+      window.getSelection?.()?.removeAllRanges();
       handleAddAnnotationNote(event.clientX, event.clientY, target);
     };
 
-    window.addEventListener('click', handleDocumentClick, true);
+    window.addEventListener('dblclick', handleDocumentDoubleClick, true);
 
     return () => {
-      window.removeEventListener('click', handleDocumentClick, true);
+      window.removeEventListener('dblclick', handleDocumentDoubleClick, true);
     };
   }, [handleAddAnnotationNote, isAnnotationModeEnabled, isAnnotationPaused, isAnnotationUiInteraction, screen]);
 
@@ -7595,6 +7596,7 @@ const updateProjectFilters = useCallback((updater) => {
       )}
       <AnnotationLayer
         isActive={isAnnotationModeEnabled && screen === 'showcase'}
+        suppressIntro={isOnboardingActive}
         isPaused={isAnnotationPaused}
         isEditing={isShowcaseEditing}
         hideToolbar={isOnboardingActive && onboardingStepId === 'showcase-back-to-report'}
