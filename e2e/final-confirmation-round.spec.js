@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoHome, createAndSubmitProject, grantSelfComplianceExpertAndCommitteeAccess, openTriggeredProjectAndExpandTeam } from './fixtures.js';
+import { gotoHome, createAndSubmitProject, grantSelfComplianceExpertAndCommitteeAccess, openTriggeredProjectAndExpandTeam, readStoredState } from './fixtures.js';
 
 // Lot 3 : dernier tour avant lancement. Rien ne peut le rendre obligatoire — il n'existe pas de
 // jalon opposable — donc ce qui est testé ici, c'est qu'il est demandé explicitement, qu'il ne
@@ -22,8 +22,7 @@ test.describe('Confirmation finale avant lancement', () => {
     await page.getByRole('button', { name: 'Demander la confirmation finale' }).click();
 
     await expect
-      .poll(() => page.evaluate(() => {
-        const parsed = JSON.parse(window.localStorage.getItem('complianceNavigatorState'));
+      .poll(() => readStoredState(page).then((parsed) => {
         const project = parsed.projects?.find((entry) => entry?.answers?.__final_validation_round__);
         return project?.answers?.__final_validation_round__?.round ?? null;
       }))
@@ -42,8 +41,7 @@ test.describe('Confirmation finale avant lancement', () => {
     await expect(page.getByText('Confirmation finale obtenue')).toBeVisible();
 
     await expect
-      .poll(() => page.evaluate(() => {
-        const parsed = JSON.parse(window.localStorage.getItem('complianceNavigatorState'));
+      .poll(() => readStoredState(page).then((parsed) => {
         const project = parsed.projects?.find((entry) => entry?.answers?.__final_validation_round__);
         return project?.answers?.__compliance_team_comments__?.teams?.controle_pub?.confirmation?.state ?? null;
       }))
@@ -75,8 +73,7 @@ test('un lancement se déclare : il n’est jamais déduit d’une date dépass�
   await expect(page.getByText('Projet lancé sans confirmation finale')).toBeVisible();
 
   await expect
-    .poll(() => page.evaluate(() => {
-      const parsed = JSON.parse(window.localStorage.getItem('complianceNavigatorState'));
+    .poll(() => readStoredState(page).then((parsed) => {
       const project = parsed.projects?.find((entry) => entry?.answers?.__project_launch__?.launchedAt);
       return Boolean(project);
     }))

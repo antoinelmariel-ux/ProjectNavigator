@@ -4,7 +4,8 @@ import {
   createAndSubmitProject,
   grantSelfComplianceExpertAndCommitteeAccess,
   openTriggeredProjectAndExpandTeam,
-  collectConsoleErrors
+  collectConsoleErrors,
+  readStoredState
 } from './fixtures.js';
 
 test.describe('Commentaires experts, réponses et validation par équipe', () => {
@@ -46,11 +47,8 @@ test.describe('Commentaires experts, réponses et validation par équipe', () =>
     await expect(page.getByRole('button', { name: /Contrôle pub/ }).first()).toContainText('Validé sous conditions');
 
     await page.waitForTimeout(600); // laisse passer le debounce de persistance (400ms)
-    const storedComments = await page.evaluate(() => {
-      const parsed = JSON.parse(window.localStorage.getItem('complianceNavigatorState'));
-      const withComments = parsed.projects?.find((p) => p.answers?.__compliance_team_comments__?.teams?.controle_pub);
-      return withComments?.answers?.__compliance_team_comments__ ?? null;
-    });
+    const withComments = (await readStoredState(page)).projects?.find((p) => p.answers?.__compliance_team_comments__?.teams?.controle_pub);
+    const storedComments = withComments?.answers?.__compliance_team_comments__ ?? null;
     expect(storedComments?.teams?.controle_pub?.status).toBe('validated_with_conditions');
     expect(storedComments?.teams?.controle_pub?.comment).toContain('budget détaillé');
 

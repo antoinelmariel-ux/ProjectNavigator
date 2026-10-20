@@ -3,14 +3,45 @@
 import { expect } from '@playwright/test';
 
 export async function gotoFresh(page) {
-  // Volontairement pas de addInitScript() pour vider le localStorage : ce hook se
+  // Volontairement pas de addInitScript() pour vider le stockage : ce hook se
   // réexécuterait à chaque navigation, y compris un page.reload() ultérieur dans le test,
   // ce qui reviderait le stockage juste après une action que le test cherche à vérifier
-  // justement à travers un rechargement (persistance). Un seul clear + reload suffit.
+  // justement à travers un rechargement (persistance). Le nettoyage se fait une fois, depuis
+  // une page de la même origine qui ne monte pas l'app : une app ouverte garderait sa base
+  // IndexedDB ouverte et réécrirait son état en partant.
+  await page.goto('/__e2e-blank__');
+  await page.evaluate(
+    () =>
+      new Promise((resolve) => {
+        window.localStorage.clear();
+        const request = window.indexedDB.deleteDatabase('complianceNavigator');
+        request.onsuccess = () => resolve();
+        request.onerror = () => resolve();
+        request.onblocked = () => resolve();
+      })
+  );
   await page.goto('/index.html');
-  await page.evaluate(() => window.localStorage.clear());
-  await page.reload();
   await expect(page.getByRole('heading', { name: 'Bienvenue sur Project Navigator' })).toBeVisible();
+}
+
+// État réellement stocké (IndexedDB, ou sa copie de secours localStorage), une fois les
+// écritures en cours terminées. `{}` quand rien n'est encore stocké.
+export async function readStoredState(page) {
+  return (await page.evaluate(() => window.__cnReadPersistedState())) || {};
+}
+
+// Modifie l'état stocké avant chaque démarrage de l'app (comme un addInitScript qui patchait
+// le localStorage avant). `patch(state, arg)` reçoit l'état stocké (`null` s'il n'y en a pas)
+// et renvoie l'état à écrire ; il s'exécute dans la page, sans accès aux variables du test.
+export async function patchStateOnBoot(page, patch, arg) {
+  await page.addInitScript(
+    ({ source, patchArg }) => {
+      const patchFn = (0, eval)(`(${source})`);
+      window.__cnE2EStatePatches = window.__cnE2EStatePatches || [];
+      window.__cnE2EStatePatches.push((state) => patchFn(state, patchArg));
+    },
+    { source: patch.toString(), patchArg: arg === undefined ? null : arg }
+  );
 }
 
 export async function completeOnboarding(page, { startTour = false } = {}) {
@@ -177,7 +208,7 @@ export async function publishShowcaseImpactFigure(page, { figure, unit = '', cap
 
   await page.getByRole('button', { name: 'Publier' }).click();
   await expect
-    .poll(() => page.evaluate(() => window.localStorage.getItem('complianceNavigatorState') || ''))
+    .poll(async () => JSON.stringify(await readStoredState(page)))
     .toContain('showcaseImpactFigure');
 
   await page.reload();
@@ -216,22 +247,20 @@ export async function createAndSubmitProject(page) {
 // Le bouton cadenas qui ouvre le back-office n'est visible que pour une personne déjà désignée
 // (adminEmails, contact d'équipe ou membre de comité) : on ne peut plus, comme avant, l'atteindre
 // via le mot de passe partagé en tant qu'utilisateur quelconque. Pour les tests, on désigne donc
-// le compte de test avant même que l'app ne démarre (page.addInitScript, pas evaluate() après coup
+// le compte de test avant même que l'app ne démarre (patchStateOnBoot, pas evaluate() après coup
 // : App.jsx re-persiste son état sur pagehide, ce qui écraserait un patch écrit avant une navigation
 // à venir — voir la note équivalente pour les statuts de conformité plus haut dans ce fichier).
 export async function grantAdminAccess(page, email = 'bertrand.darieux@lfb.fr') {
-  await page.addInitScript((adminEmail) => {
-    const KEY = 'complianceNavigatorState';
-    let state = {};
-    try {
-      state = JSON.parse(window.localStorage.getItem(KEY) || '{}') || {};
-    } catch {
-      state = {};
-    }
-    const existing = Array.isArray(state.adminEmails) ? state.adminEmails : [];
-    state.adminEmails = existing.includes(adminEmail) ? existing : [...existing, adminEmail];
-    window.localStorage.setItem(KEY, JSON.stringify(state));
-  }, email);
+  await patchStateOnBoot(
+    page,
+    (stored, adminEmail) => {
+      const state = stored || {};
+      const existing = Array.isArray(state.adminEmails) ? state.adminEmails : [];
+      state.adminEmails = existing.includes(adminEmail) ? existing : [...existing, adminEmail];
+      return state;
+    },
+    email
+  );
   await page.reload();
   await page.getByRole('button', { name: /Accéder au Back-office/ }).click();
   await expect(page.getByRole('heading', { name: 'Back-office' })).toBeVisible();

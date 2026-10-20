@@ -1,20 +1,17 @@
 import { test, expect } from '@playwright/test';
-import { gotoHome, createAndSubmitProject, collectConsoleErrors } from './fixtures.js';
+import { gotoHome, createAndSubmitProject, collectConsoleErrors, patchStateOnBoot } from './fixtures.js';
 
 // Le badge de validation remplace le badge « Enjeux finalisés » sur la carte d'un projet
 // soumis dès qu'au moins un périmètre (équipe experte ou comité) doit se prononcer.
 //
 // Les statuts sont injectés dans le stockage plutôt que saisis dans la synthèse : l'éditeur de
 // commentaire n'est accessible qu'à un expert compliance, ce qui suppose le mot de passe admin
-// (absent de ce dépôt). L'injection se fait dans un addInitScript et non avant la navigation,
+// (absent de ce dépôt). L'injection se fait au démarrage (patchStateOnBoot) et non avant la navigation,
 // car App.jsx réécrit complianceNavigatorState de façon synchrone sur pagehide : un patch posé
 // avant le goto serait écrasé par ce flush au moment même de quitter la page.
-const injectComplianceStatuses = () => {
+const injectComplianceStatuses = (state) => {
   const mode = window.localStorage.getItem('__e2eComplianceMode');
-  if (!mode) return;
-  const raw = window.localStorage.getItem('complianceNavigatorState');
-  if (!raw) return;
-  const state = JSON.parse(raw);
+  if (!mode || !state) return;
   const target = (state.projects || []).find((project) => project.status === 'submitted');
   if (!target) return;
 
@@ -34,7 +31,7 @@ const injectComplianceStatuses = () => {
     ...(target.answers || {}),
     __compliance_team_comments__: { teams, committees: {}, forcedCommitteeIds: [] }
   };
-  window.localStorage.setItem('complianceNavigatorState', JSON.stringify(state));
+  return state;
 };
 
 const firstCard = (page) => page.locator('article[id^="project-card-"]').first();
@@ -51,7 +48,7 @@ test('la carte d’un projet soumis porte son statut de validation', async ({ pa
   const errors = collectConsoleErrors(page);
   await gotoHome(page);
   await createAndSubmitProject(page);
-  await page.addInitScript(injectComplianceStatuses);
+  await patchStateOnBoot(page, injectComplianceStatuses);
 
   let badge = await reloadWithMode(page, 'pending');
   await expect(badge).toHaveText('En attente de validation');

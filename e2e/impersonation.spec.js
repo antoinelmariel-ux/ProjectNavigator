@@ -1,20 +1,18 @@
 import { test, expect } from '@playwright/test';
-import { gotoHome } from './fixtures.js';
+import { gotoHome, patchStateOnBoot, readStoredState } from './fixtures.js';
 
 const MOCK_USER = 'bertrand.darieux@lfb.fr';
 const SIMULATED_USER = 'marie.durand@lfb.fr';
 
 // Le paramètre ?viewAs n'est honoré que si la session réelle est administratrice : en local,
 // l'utilisateur mock n'est pas dans initialAdminEmails, on l'y ajoute via l'état persisté.
-// addInitScript (et non un simple evaluate, contrairement à l'avertissement de fixtures.js
-// sur localStorage.clear) : à la navigation suivante, la page quittée vide d'abord son état
-// applicatif dans le localStorage via pagehide et écraserait une écriture faite avant elle.
+// patchStateOnBoot (et non un simple evaluate) : à la navigation suivante, la page quittée vide
+// d'abord son état applicatif dans le stockage via pagehide et écraserait une écriture faite avant elle.
 async function grantSelfAdmin(page) {
-  await page.addInitScript((email) => {
-    const raw = window.localStorage.getItem('complianceNavigatorState');
-    const state = raw ? JSON.parse(raw) : {};
+  await patchStateOnBoot(page, (stored, email) => {
+    const state = stored || {};
     state.adminEmails = [email];
-    window.localStorage.setItem('complianceNavigatorState', JSON.stringify(state));
+    return state;
   }, MOCK_USER);
 }
 
@@ -37,12 +35,14 @@ test('un administrateur voit l’application sous l’identité simulée, sans r
   await expect(banner).toContainText(MOCK_USER);
   await expect(page).toHaveTitle(/^\[Simulation\]/);
 
-  // L'onglet de simulation partage le localStorage de la session réelle : il ne doit rien y
+  // L'onglet de simulation partage le stockage de la session réelle : il ne doit rien y
   // écrire, sinon il écraserait l'état de l'administrateur resté dans son propre onglet.
-  const before = await page.evaluate(() => window.localStorage.getItem('complianceNavigatorState'));
+  const before = JSON.stringify(await readStoredState(page));
   await page.waitForTimeout(1500);
-  const after = await page.evaluate(() => window.localStorage.getItem('complianceNavigatorState'));
+  await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+  const after = JSON.stringify(await readStoredState(page));
   expect(after).toBe(before);
+  expect(await page.evaluate(() => window.localStorage.getItem('complianceNavigatorState'))).toBeNull();
 
   await banner.getByRole('button', { name: 'Quitter la simulation' }).click();
   await expect(page.getByRole('alert').filter({ hasText: 'Simulation d’identité' })).toHaveCount(0);

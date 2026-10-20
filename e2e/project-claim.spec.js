@@ -5,21 +5,17 @@ import {
   gotoHome,
   grantAdminAccess,
   grantSelfComplianceExpertAndCommitteeAccess,
-  openTriggeredProjectAndExpandTeam
+  openTriggeredProjectAndExpandTeam,
+  patchStateOnBoot,
+  readStoredState
 } from './fixtures.js';
 
 // Injecte une prise en charge sur le périmètre « Contrôle pub » du projet soumis. Comme pour les
-// statuts de conformité (voir fixtures.js), il faut passer par addInitScript et non evaluate() :
+// statuts de conformité (voir fixtures.js), il faut passer par patchStateOnBoot et non evaluate() :
 // App.jsx re-persiste son état sur pagehide et écraserait un patch écrit avant la navigation.
 async function injectClaim(page, assigneeEmail) {
-  await page.addInitScript((email) => {
-    const KEY = 'complianceNavigatorState';
-    let state = {};
-    try {
-      state = JSON.parse(window.localStorage.getItem(KEY) || '{}') || {};
-    } catch {
-      state = {};
-    }
+  await patchStateOnBoot(page, (stored, email) => {
+    const state = stored || {};
     (Array.isArray(state.projects) ? state.projects : []).forEach((project) => {
       // Seul le projet créé par le test (« project-<horodatage> ») : les projets de démo du
       // jeu de données mock sont aussi « submitted » et fausseraient les compteurs.
@@ -39,10 +35,16 @@ async function injectClaim(page, assigneeEmail) {
       };
       project.answers.__compliance_team_comments__ = { ...comments, teams };
     });
-    window.localStorage.setItem(KEY, JSON.stringify(state));
+    return state;
   }, assigneeEmail);
   await page.reload();
 }
+
+const readStoredClaim = async (page) => {
+  const parsed = await readStoredState(page);
+  const project = parsed.projects?.find((entry) => entry?.answers?.__compliance_team_comments__?.teams?.controle_pub?.claim);
+  return project?.answers?.__compliance_team_comments__?.teams?.controle_pub?.claim || null;
+};
 
 test.describe('Prise en charge d’un projet par un membre d’équipe', () => {
   test('revendiquer puis libérer un périmètre depuis la liste des projets déclenchés', async ({ page }) => {
@@ -61,11 +63,7 @@ test.describe('Prise en charge d’un projet par un membre d’équipe', () => {
     await expect(page.getByRole('button', { name: /Pris en charge par l’équipe \(0\)/ })).toBeVisible();
 
     await page.waitForTimeout(600);
-    const storedAssignee = await page.evaluate(() => {
-      const parsed = JSON.parse(window.localStorage.getItem('complianceNavigatorState'));
-      const project = parsed.projects?.find((entry) => entry?.answers?.__compliance_team_comments__?.teams?.controle_pub?.claim);
-      return project?.answers?.__compliance_team_comments__?.teams?.controle_pub?.claim?.assigneeEmail || '';
-    });
+    const storedAssignee = (await readStoredClaim(page))?.assigneeEmail || '';
     expect(storedAssignee).toBe('bertrand.darieux@lfb.fr');
 
     await page.getByRole('button', { name: 'Libérer' }).first().click();
@@ -111,11 +109,7 @@ test.describe('Prise en charge d’un projet par un membre d’équipe', () => {
     await page.getByRole('button', { name: 'Enregistrer le commentaire' }).click();
     await page.waitForTimeout(600);
 
-    const claim = await page.evaluate(() => {
-      const parsed = JSON.parse(window.localStorage.getItem('complianceNavigatorState'));
-      const project = parsed.projects?.find((entry) => entry?.answers?.__compliance_team_comments__?.teams?.controle_pub?.claim);
-      return project?.answers?.__compliance_team_comments__?.teams?.controle_pub?.claim || null;
-    });
+    const claim = await readStoredClaim(page);
     expect(claim?.assigneeEmail).toBe('bertrand.darieux@lfb.fr');
 
     await page.getByRole('button', { name: /Contrôle pub/ }).first().click();
@@ -130,11 +124,7 @@ test.describe('Prise en charge d’un projet par un membre d’équipe', () => {
     await page.getByRole('button', { name: 'Envoyer la réponse' }).click();
     await page.waitForTimeout(600);
 
-    const claimAfterReply = await page.evaluate(() => {
-      const parsed = JSON.parse(window.localStorage.getItem('complianceNavigatorState'));
-      const project = parsed.projects?.find((entry) => entry?.answers?.__compliance_team_comments__?.teams?.controle_pub?.claim);
-      return project?.answers?.__compliance_team_comments__?.teams?.controle_pub?.claim || null;
-    });
+    const claimAfterReply = await readStoredClaim(page);
     expect(claimAfterReply?.assigneeEmail).toBe('bertrand.darieux@lfb.fr');
     expect(claimAfterReply?.assignedAt).toBe(claim?.assignedAt);
   });
@@ -157,10 +147,10 @@ test.describe('Prise en charge d’un projet par un membre d’équipe', () => {
     // est debouncée (400 ms) et repart à chaque frappe, donc un timeout calé au plus juste
     // échoue dès que le navigateur est occupé par ailleurs.
     await expect
-      .poll(() => page.evaluate(() => {
-        const parsed = JSON.parse(window.localStorage.getItem('complianceNavigatorState'));
+      .poll(async () => {
+        const parsed = await readStoredState(page);
         return parsed.teams?.find((team) => team.id === 'controle_pub')?.claimStaleDays ?? null;
-      }))
+      })
       .toBe(3);
 
     // La charge de l'équipe montre la prise en charge de laure.dabel@lfb.fr…
@@ -173,14 +163,12 @@ test.describe('Prise en charge d’un projet par un membre d’équipe', () => {
     await dialog.getByRole('button', { name: 'Les remettre dans « À traiter »' }).click();
 
     await page.waitForTimeout(600);
-    const afterRemoval = await page.evaluate(() => {
-      const parsed = JSON.parse(window.localStorage.getItem('complianceNavigatorState'));
-      const project = parsed.projects?.find((entry) => entry?.answers?.__compliance_team_comments__?.teams?.controle_pub);
-      return {
-        contacts: parsed.teams?.find((team) => team.id === 'controle_pub')?.contacts || [],
-        claim: project?.answers?.__compliance_team_comments__?.teams?.controle_pub?.claim || null
-      };
-    });
+    const stored = await readStoredState(page);
+    const storedProject = stored.projects?.find((entry) => entry?.answers?.__compliance_team_comments__?.teams?.controle_pub);
+    const afterRemoval = {
+      contacts: stored.teams?.find((team) => team.id === 'controle_pub')?.contacts || [],
+      claim: storedProject?.answers?.__compliance_team_comments__?.teams?.controle_pub?.claim || null
+    };
     expect(afterRemoval.contacts).not.toContain('laure.dabel@lfb.fr');
     expect(afterRemoval.claim).toBeNull();
   });

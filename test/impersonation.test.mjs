@@ -9,7 +9,7 @@ import {
   startImpersonation,
   stopImpersonation
 } from '../src/utils/impersonation.js';
-import { persistState, STORAGE_KEY } from '../src/utils/storage.js';
+import { flushPersistedState, persistState, STORAGE_KEY } from '../src/utils/storage.js';
 import { savePersistedMockMap, loadPersistedMockMap } from '../src/utils/mockProviderPersistence.js';
 import { spPost } from '../src/utils/spRestClient.js';
 import { createRetryQueue } from '../src/utils/retryQueue.js';
@@ -37,12 +37,12 @@ class FakeStorage {
   }
 }
 
-const withStorage = (fn) => {
+const withStorage = async (fn) => {
   const previous = globalThis.window;
   const storage = new FakeStorage();
   globalThis.window = { localStorage: storage };
   try {
-    return fn(storage);
+    return await fn(storage);
   } finally {
     globalThis.window = previous;
     stopImpersonation();
@@ -89,16 +89,17 @@ test('startImpersonation refuse une adresse invalide', () => {
   assert.equal(isImpersonating(), false);
 });
 
-test('une simulation n’écrit jamais dans le localStorage partagé', () => {
-  withStorage((storage) => {
-    assert.equal(persistState({ projects: [] }).ok, true);
+test('une simulation n’écrit jamais dans le localStorage partagé', async () => {
+  await withStorage(async (storage) => {
+    assert.equal((await persistState({ projects: [] })).ok, true);
     assert.ok(storage.getItem(STORAGE_KEY));
     storage.removeItem(STORAGE_KEY);
 
     startImpersonation({ email: 'marie.durand@lfb.fr' });
-    const result = persistState({ projects: [{ id: 'p1' }] });
+    const result = await persistState({ projects: [{ id: 'p1' }] });
     assert.equal(result.ok, true);
     assert.equal(result.skipped, 'simulation');
+    assert.equal(flushPersistedState({ projects: [{ id: 'p1' }] }).skipped, 'simulation');
     assert.equal(storage.getItem(STORAGE_KEY), null);
 
     savePersistedMockMap('complianceNavigatorShowcaseDrafts', new Map([['p1', { title: 'x' }]]));

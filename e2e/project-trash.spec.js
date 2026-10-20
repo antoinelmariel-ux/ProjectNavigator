@@ -4,7 +4,9 @@ import {
   createAndSubmitProject,
   createProjectAndOpenShowcase,
   grantSelfComplianceExpertAndCommitteeAccess,
-  collectConsoleErrors
+  collectConsoleErrors,
+  patchStateOnBoot,
+  readStoredState
 } from './fixtures.js';
 
 const trashButton = (page) => page.getByTestId('home-trash-button');
@@ -54,17 +56,15 @@ test('un projet supprimé passe par la corbeille, se restaure, puis se supprime 
 
   await page.reload();
   await expect(page.getByText('Projet e2e Corbeille')).toHaveCount(0);
-  const stored = await page.evaluate(() => JSON.parse(window.localStorage.getItem('complianceNavigatorState') || '{}'));
+  const stored = await readStoredState(page);
   expect((stored.projects || []).some((project) => project.projectName === 'Projet e2e Corbeille')).toBe(false);
   expect(errors).toEqual([]);
 });
 
-// L'avis est injecté dans le stockage (addInitScript, pour survivre au flush pagehide d'App.jsx)
+// L'avis est injecté dans le stockage (patchStateOnBoot, pour survivre au flush pagehide d'App.jsx)
 // sur la première équipe, dont la session de test est contact.
-const injectExpertOpinion = () => {
-  const raw = window.localStorage.getItem('complianceNavigatorState');
-  if (!raw) return;
-  const state = JSON.parse(raw);
+const injectExpertOpinion = (state) => {
+  if (!state) return;
   const teamId = Array.isArray(state.teams) && state.teams[0] ? state.teams[0].id : null;
   const target = (state.projects || []).find((project) => project.status === 'submitted');
   if (!teamId || !target) return;
@@ -78,7 +78,7 @@ const injectExpertOpinion = () => {
       forcedCommitteeIds: comments.forcedCommitteeIds || []
     }
   };
-  window.localStorage.setItem('complianceNavigatorState', JSON.stringify(state));
+  return state;
 };
 
 test('un projet ayant reçu un avis quitte la corbeille du porteur mais reste « Abandonné » côté expert', async ({ page }) => {
@@ -86,7 +86,7 @@ test('un projet ayant reçu un avis quitte la corbeille du porteur mais reste «
   await gotoHome(page);
   await grantSelfComplianceExpertAndCommitteeAccess(page);
   await createAndSubmitProject(page);
-  await page.addInitScript(injectExpertOpinion);
+  await patchStateOnBoot(page, injectExpertOpinion);
   await page.goto('/index.html');
 
   const abandonedTab = page.getByRole('button', { name: /Abandonnés/ });

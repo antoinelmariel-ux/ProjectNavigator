@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { answerCurrentQuestion, gotoHome, walkToSynthesis } from './fixtures.js';
+import { answerCurrentQuestion, gotoHome, readStoredState, walkToSynthesis } from './fixtures.js';
 
 const answerEverything = (page) => walkToSynthesis(page, {
   async onQuestion(heading, p) {
@@ -32,11 +32,8 @@ test.describe('Consultation compliance en amont', () => {
     // Il n'y a plus de stade, seulement des paliers dérivés des réponses : un nouveau projet
     // ne porte donc plus de clé de stade dans ses réponses.
     await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
-    const stored = await page.evaluate(() => {
-      const state = JSON.parse(window.localStorage.getItem('complianceNavigatorState') || '{}');
-      const project = (state.projects || [])[0];
-      return project ? { hasStage: Object.prototype.hasOwnProperty.call(project.answers || {}, '__project_stage__') } : null;
-    });
+    const project = ((await readStoredState(page)).projects || [])[0];
+    const stored = project ? { hasStage: Object.prototype.hasOwnProperty.call(project.answers || {}, '__project_stage__') } : null;
     expect(stored).toEqual({ hasStage: false });
   });
 
@@ -117,7 +114,7 @@ test.describe('Consultation compliance en amont', () => {
     await expect(page.getByText(/Vous pouvez continuer à le faire évoluer/)).toBeVisible();
 
     await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
-    const stateRaw = await page.evaluate(() => window.localStorage.getItem('complianceNavigatorState'));
+    const stateRaw = JSON.stringify(await readStoredState(page));
     expect(stateRaw).toContain('"__submission_kind__":"preliminary"');
   });
 });
