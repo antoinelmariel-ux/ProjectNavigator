@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from '../react.js';
-import { Close, Pause, Play, Trash2 } from './icons.js';
+import { Close, Trash2 } from './icons.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { getLocaleTag } from '../i18n/languages.js';
+import { isImpersonating } from '../utils/impersonation.js';
 
 const clamp01 = (value) => {
   if (typeof value !== 'number' || Number.isNaN(value)) {
@@ -31,11 +32,6 @@ const escapeAttributeValue = (value) => {
   return value.replace(/"/g, '\\"');
 };
 
-const STATUS_BADGE = {
-  active: 'bg-emerald-500 text-white',
-  paused: 'bg-amber-500 text-white'
-};
-
 const SOURCE_PALETTE_KEYS = ['palette-0', 'palette-1', 'palette-2', 'palette-3', 'palette-4'];
 
 const getFeedbackPaletteKey = (note, sourcePalette) => {
@@ -46,20 +42,41 @@ const getFeedbackPaletteKey = (note, sourcePalette) => {
   return 'base';
 };
 
+const INTRO_DISMISSED_STORAGE_KEY = 'complianceNavigatorAnnotationIntroDismissed';
+
+const isIntroDismissed = () => {
+  try {
+    return window.localStorage.getItem(INTRO_DISMISSED_STORAGE_KEY) === '1';
+  } catch {
+    return false;
+  }
+};
+
+const rememberIntroDismissed = () => {
+  if (isImpersonating()) {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(INTRO_DISMISSED_STORAGE_KEY, '1');
+  } catch {
+    // Préférence de confort : sans stockage, l'aide réapparaîtra simplement.
+  }
+};
+
 export const AnnotationLayer = ({
   isActive = false,
-  isPaused = false,
-  isEditing = false,
+  suppressIntro = false,
   hideToolbar = false,
+  isEditing = false,
+  projectName = '',
   notes = [],
   canCloseNotes = false,
   canDeleteNote,
   noteVisibilityMode = 'all',
   currentSourceId = '',
   activeContextId = '',
-  projectName = '',
   autoFocusNoteId = null,
-  onTogglePause,
   onExit,
   onNoteChange,
   onNoteClose,
@@ -70,6 +87,9 @@ export const AnnotationLayer = ({
   const { t, language } = useTranslation();
   const [, setLayoutVersion] = useState(0);
   const [replyDrafts, setReplyDrafts] = useState({});
+  const [isIntroOpen, setIsIntroOpen] = useState(false);
+  const [dontShowIntroAgain, setDontShowIntroAgain] = useState(false);
+  const introStartRef = useRef(null);
   const normalizedCurrentSourceId =
     typeof currentSourceId === 'string' ? currentSourceId.trim().toLowerCase() : '';
   const visibleNotes = useMemo(
@@ -105,6 +125,30 @@ export const AnnotationLayer = ({
   }, [visibleNotes]);
 
   const textareaRefs = useRef(new Map());
+
+  useEffect(() => {
+    if (!isActive || suppressIntro || isIntroDismissed()) {
+      setIsIntroOpen(false);
+      return;
+    }
+
+    setDontShowIntroAgain(false);
+    setIsIntroOpen(true);
+  }, [isActive, suppressIntro]);
+
+  useEffect(() => {
+    if (isIntroOpen && introStartRef.current) {
+      introStartRef.current.focus();
+    }
+  }, [isIntroOpen]);
+
+  const closeIntro = () => {
+    if (dontShowIntroAgain) {
+      rememberIntroDismissed();
+    }
+
+    setIsIntroOpen(false);
+  };
 
   const registerTextareaRef = (noteId) => (node) => {
     if (!noteId) {
@@ -275,19 +319,14 @@ export const AnnotationLayer = ({
         <div className="annotation-toolbar fixed top-0 inset-x-0 z-[2147483600]" data-annotation-ui="true">
           <div className="max-w-7xl mx-auto px-4 sm:px-8">
             <div className="mt-2 rounded-b-xl bg-white border border-slate-200 text-slate-900 shadow-2xl px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2 text-sm text-slate-800">
+              <div className="flex flex-wrap items-center gap-2 text-sm text-slate-800">
                 <span className="font-semibold">{t('annotationLayer.modeLabel')}</span>
-                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold ${
-                  isPaused ? STATUS_BADGE.paused : STATUS_BADGE.active
-                }`}>
-                  <span className="w-2 h-2 rounded-full bg-white" aria-hidden="true" />
-                  {isPaused ? t('annotationLayer.statusPaused') : t('annotationLayer.statusActive')}
-                </span>
                 {projectName ? (
                   <span className="text-xs text-slate-600">
                     {t('annotationLayer.projectLabel', { name: projectName })}
                   </span>
                 ) : null}
+                <span className="text-xs text-slate-600">{t('annotationLayer.doubleClickHint')}</span>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
@@ -300,15 +339,50 @@ export const AnnotationLayer = ({
                 >
                   <Close className="h-4 w-4" />
                 </button>
-                <button
-                  type="button"
-                  onClick={onTogglePause}
-                  className="inline-flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
-                >
-                  {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
-                  {isPaused ? t('annotationLayer.resume') : t('annotationLayer.pause')}
-                </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isIntroOpen && (
+        <div
+          className="fixed inset-0 flex items-center justify-center px-4"
+          style={{ zIndex: 2147483646, backgroundColor: 'rgba(15, 23, 42, 0.55)' }}
+          data-annotation-ui="true"
+          data-testid="annotation-intro"
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="annotation-intro-title"
+            className="w-full max-w-md rounded-xl bg-white border border-slate-200 p-6 shadow-2xl text-slate-900"
+          >
+            <h2 id="annotation-intro-title" className="text-lg font-semibold">
+              {t('annotationLayer.introTitle')}
+            </h2>
+            <p className="mt-3 text-sm text-slate-700">{t('annotationLayer.introBody')}</p>
+            <ul className="mt-3 list-disc pl-5 text-sm text-slate-700 space-y-1">
+              <li>{t('annotationLayer.introStepCreate')}</li>
+              <li>{t('annotationLayer.introStepNavigate')}</li>
+            </ul>
+            <label className="mt-4 flex items-center gap-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={dontShowIntroAgain}
+                onChange={(event) => setDontShowIntroAgain(event.target.checked)}
+              />
+              {t('annotationLayer.introDontShowAgain')}
+            </label>
+            <div className="mt-5 flex justify-end">
+              <button
+                ref={introStartRef}
+                type="button"
+                onClick={closeIntro}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+              >
+                {t('annotationLayer.introConfirm')}
+              </button>
             </div>
           </div>
         </div>
