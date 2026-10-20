@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from '../react.js';
-import { Close, Pause, Play, Trash2 } from './icons.js';
+import { Close, Trash2 } from './icons.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { getLocaleTag } from '../i18n/languages.js';
 import { isImpersonating } from '../utils/impersonation.js';
@@ -30,11 +30,6 @@ const escapeAttributeValue = (value) => {
   }
 
   return value.replace(/"/g, '\\"');
-};
-
-const STATUS_BADGE = {
-  active: 'bg-emerald-500 text-white',
-  paused: 'bg-amber-500 text-white'
 };
 
 const SOURCE_PALETTE_KEYS = ['palette-0', 'palette-1', 'palette-2', 'palette-3', 'palette-4'];
@@ -72,19 +67,14 @@ const rememberIntroDismissed = () => {
 export const AnnotationLayer = ({
   isActive = false,
   suppressIntro = false,
-  isPaused = false,
   isEditing = false,
-  hideToolbar = false,
   notes = [],
   canCloseNotes = false,
   canDeleteNote,
   noteVisibilityMode = 'all',
   currentSourceId = '',
   activeContextId = '',
-  projectName = '',
   autoFocusNoteId = null,
-  onTogglePause,
-  onExit,
   onNoteChange,
   onNoteClose,
   onNoteDelete,
@@ -322,50 +312,6 @@ export const AnnotationLayer = ({
 
   return (
     <React.Fragment>
-      {!hideToolbar && (
-        <div className="annotation-toolbar fixed top-0 inset-x-0 z-[2147483600]" data-annotation-ui="true">
-          <div className="max-w-7xl mx-auto px-4 sm:px-8">
-            <div className="mt-2 rounded-b-xl bg-white border border-slate-200 text-slate-900 shadow-2xl px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2 text-sm text-slate-800">
-                <span className="font-semibold">{t('annotationLayer.modeLabel')}</span>
-                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold ${
-                  isPaused ? STATUS_BADGE.paused : STATUS_BADGE.active
-                }`}>
-                  <span className="w-2 h-2 rounded-full bg-white" aria-hidden="true" />
-                  {isPaused ? t('annotationLayer.statusPaused') : t('annotationLayer.statusActive')}
-                </span>
-                {projectName ? (
-                  <span className="text-xs text-slate-600">
-                    {t('annotationLayer.projectLabel', { name: projectName })}
-                  </span>
-                ) : null}
-                <span className="text-xs text-slate-600">{t('annotationLayer.doubleClickHint')}</span>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={onExit}
-                  className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white p-2 text-slate-600 hover:text-slate-900 hover:border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
-                  aria-label={t('annotationLayer.exitMode')}
-                  title={t('annotationLayer.exitMode')}
-                >
-                  <Close className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={onTogglePause}
-                  className="inline-flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
-                >
-                  {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
-                  {isPaused ? t('annotationLayer.resume') : t('annotationLayer.pause')}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {isIntroOpen && (
         <div
           className="fixed inset-0 flex items-center justify-center px-4"
@@ -386,7 +332,6 @@ export const AnnotationLayer = ({
             <ul className="mt-3 list-disc pl-5 text-sm text-slate-700 space-y-1">
               <li>{t('annotationLayer.introStepCreate')}</li>
               <li>{t('annotationLayer.introStepNavigate')}</li>
-              <li>{t('annotationLayer.introStepPause')}</li>
             </ul>
             <label className="mt-4 flex items-center gap-2 text-sm text-slate-700">
               <input

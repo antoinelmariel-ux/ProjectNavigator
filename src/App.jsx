@@ -3942,10 +3942,6 @@ const updateProjectFilters = useCallback((updater) => {
     });
   }, []);
 
-  const handleToggleAnnotationPause = useCallback(() => {
-    setIsAnnotationPaused(prev => !prev);
-  }, []);
-
   useEffect(() => {
     if (typeof window === 'undefined') {
       return undefined;
@@ -3995,9 +3991,6 @@ const updateProjectFilters = useCallback((updater) => {
   const isActiveProjectEditable = !activeProject
     || (canManageProject(activeProject) && isProjectOpenForEditing(activeProject))
     || isAdminMode;
-  const annotationOffsetClass = isAnnotationModeEnabled && screen === 'showcase'
-    ? 'pt-20 lg:pt-24'
-    : '';
 
   const handleAnswer = useCallback((questionId, answer) => {
     const previousValue = answers[questionId];
@@ -7513,7 +7506,7 @@ const updateProjectFilters = useCallback((updater) => {
   ]);
 
   return (
-    <div className={`min-h-screen ${annotationOffsetClass}`}>
+    <div className="min-h-screen">
       {isSimulatedSession && (
         <ImpersonationBanner simulatedEmail={currentUserEmail} realEmail={realUserEmail} />
       )}
@@ -7597,20 +7590,15 @@ const updateProjectFilters = useCallback((updater) => {
       <AnnotationLayer
         isActive={isAnnotationModeEnabled && screen === 'showcase'}
         suppressIntro={isOnboardingActive}
-        isPaused={isAnnotationPaused}
         isEditing={isShowcaseEditing}
-        hideToolbar={isOnboardingActive && onboardingStepId === 'showcase-back-to-report'}
         notes={annotationNotes}
         activeContextId={activeAnnotationContextKey}
         sourceColors={annotationSources}
-        projectName={showcaseProjectContext?.projectName || ''}
         autoFocusNoteId={autoFocusAnnotationId}
         onAutoFocusComplete={() => setAutoFocusAnnotationId(null)}
         canCloseNotes={canCloseAnnotationNotes}
         noteVisibilityMode={isShowcaseSharedView ? showcaseAnnotationVisibilityMode : 'all'}
         currentSourceId={currentUserDisplayName || ''}
-        onTogglePause={handleToggleAnnotationPause}
-        onExit={handleToggleAnnotationMode}
         onNoteChange={handleAnnotationTextChange}
         onNoteClose={handleCloseAnnotationNote}
         onNoteDelete={handleDeleteAnnotationNote}
