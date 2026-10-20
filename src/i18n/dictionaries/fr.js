@@ -1050,7 +1050,7 @@ export default {
     main: {
       claimSettingsHeading: 'Suivi des projets pris en charge',
       claimSettingsHint: 'Un membre de cette équipe peut prendre en charge un projet déclenché : il quitte alors la file « À traiter » des autres membres, et les échanges suivants ne partent plus qu’à lui.',
-      claimStaleDaysLabel: 'Afficher « sans activité » sur le projet après (jours ouvrés sans action)',
+      claimStaleDaysLabel: 'Afficher « Sans action depuis un moment » sur le projet après (jours ouvrés sans action)',
       claimReminderDaysLabel: 'Envoyer un e-mail à l’expert qui a pris le projet en charge après (jours ouvrés sans action)',
       claimDaysZeroHint: '0 désactive la fonction correspondante.',
       memberAbsenceHeading: 'Absences et suppléances',

@@ -1043,7 +1043,7 @@ export default {
     main: {
       claimSettingsHeading: 'Seguimiento de los proyectos asumidos',
       claimSettingsHint: 'Un miembro de este equipo puede asumir un proyecto activado: entonces sale de la lista «Por tratar» de los demás miembros y los intercambios posteriores solo le llegan a él.',
-      claimStaleDaysLabel: 'Mostrar «sin actividad» en el proyecto tras (días hábiles sin acción)',
+      claimStaleDaysLabel: 'Mostrar «Sin acción desde hace tiempo» en el proyecto tras (días hábiles sin acción)',
       claimReminderDaysLabel: 'Enviar un correo al experto que asumió el proyecto tras (días hábiles sin acción)',
       claimDaysZeroHint: '0 desactiva la función correspondiente.',
       memberAbsenceHeading: 'Ausencias y suplencias',

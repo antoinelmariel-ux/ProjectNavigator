@@ -1042,7 +1042,7 @@ export default {
     main: {
       claimSettingsHeading: 'Follow-up of projects taken in charge',
       claimSettingsHint: 'A member of this team can take a triggered project in charge: it then leaves the other members’ "To review" list, and further exchanges only go to them.',
-      claimStaleDaysLabel: 'Show “no activity” on the project after (business days without action)',
+      claimStaleDaysLabel: 'Show “No action for a while” on the project after (business days without action)',
       claimReminderDaysLabel: 'Email the expert who took the project in charge after (business days without action)',
       claimDaysZeroHint: '0 disables the corresponding feature.',
       memberAbsenceHeading: 'Absences and backups',

@@ -1052,7 +1052,7 @@ export default {
     main: {
       claimSettingsHeading: 'Nachverfolgung übernommener Projekte',
       claimSettingsHint: 'Ein Mitglied dieses Teams kann ein ausgelöstes Projekt übernehmen: es verlässt dann die Liste „Zu bearbeiten“ der anderen Mitglieder, und der weitere Austausch geht nur noch an diese Person.',
-      claimStaleDaysLabel: '„Keine Aktivität“ am Projekt anzeigen nach (Arbeitstage ohne Aktion)',
+      claimStaleDaysLabel: '„Seit längerem ohne Aktion“ am Projekt anzeigen nach (Arbeitstage ohne Aktion)',
       claimReminderDaysLabel: 'E-Mail an die Fachperson senden, die das Projekt übernommen hat, nach (Arbeitstage ohne Aktion)',
       claimDaysZeroHint: '0 deaktiviert die jeweilige Funktion.',
       memberAbsenceHeading: 'Abwesenheiten und Vertretungen',
