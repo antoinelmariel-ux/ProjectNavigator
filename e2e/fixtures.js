@@ -245,7 +245,11 @@ export async function createAndSubmitProject(page) {
   // Deux portes d'entrée depuis les enjeux : ici on demande la validation complète.
   await page.getByRole('button', { name: 'Demander la validation' }).click();
   await page.waitForTimeout(400);
-  // La soumission laisse sur les enjeux : les specs qui suivent partent de l'accueil.
+}
+
+// La soumission laisse volontairement sur les enjeux du projet : les specs qui travaillent
+// depuis la liste des projets repartent de l'accueil explicitement.
+export async function goToProjectsHome(page) {
   await page.getByRole('button', { name: 'Retourner à l’accueil des projets' }).click();
 }
 
