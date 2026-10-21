@@ -656,6 +656,7 @@ per-person settings this feature needs.
   `normalizeTeamMemberRules` does with orphan routing criteria, and on purpose: stale criteria are
   noise, work in progress is not. Removing a contact who still holds claims opens a dialog first
   (reassign / put back in the queue), it never orphans them silently.
+- **A perimeter nobody took in charge is reminded once** (`getUnclaimedReminderState`): no claim, no status, same `ClaimReminderDays` as the stale-claim reminder, counted from the solicitation (`lastSentAt`, or the manual request date) or the last activity. The whole team is mailed (`PERIMETER_UNCLAIMED_REMINDER`, English), `unclaimedReminderSentAt` on the perimeter entry makes it single until new activity. Like the stale-claim pass it runs in-app in local mode only; the SharePoint side would need its own Power Automate flow (not written).
 - **Absence lives in the profile, not in `memberRules`**: those conditions are evaluated against a
   project's answers and know nothing about dates. `AbsenceJson` carries the period and a backup (who
   must be a contact of the same team to receive anything), and it is editable by a third party from

@@ -11,6 +11,8 @@ import {
   getClaimStaleness,
   getPerimeterLastActivityAt,
   getTeamClaim,
+  getUnclaimedReminderState,
+  markUnclaimedReminderSent,
   isClaimedBy,
   isClaimedByOther,
   isOrphanClaim,
@@ -275,4 +277,31 @@ test('la vue charge agrège les prises en charge, les retards et les orphelines'
   assert.equal(summary.rows[0].total, 1);
   assert.equal(collectTeamClaims(projects, { id: 'other', contacts: [] }).length, 0);
   assert.equal(collectTeamClaims(null, TEAM).length, 0);
+});
+
+test('relance sans prise en charge : due après le délai de l’équipe, comptée depuis la sollicitation', () => {
+  const solicitedAt = '2026-09-07T09:00:00Z';
+  const early = getUnclaimedReminderState({}, { team: TEAM, solicitedAt, now: '2026-09-09T09:00:00Z' });
+  assert.equal(early.isReminderDue, false);
+  const due = getUnclaimedReminderState({}, { team: TEAM, solicitedAt, now: '2026-09-10T09:00:00Z' });
+  assert.equal(due.isReminderDue, true);
+  assert.equal(due.businessDaysSinceReference, DEFAULT_CLAIM_REMINDER_DAYS);
+});
+
+test('relance sans prise en charge : unique, désactivable, et muette si prise en charge ou statut', () => {
+  const solicitedAt = '2026-09-07T09:00:00Z';
+  const now = '2026-09-14T09:00:00Z';
+  const sent = markUnclaimedReminderSent({}, now);
+  assert.equal(getUnclaimedReminderState(sent, { team: TEAM, solicitedAt, now: '2026-09-30T09:00:00Z' }).isReminderDue, false);
+  assert.equal(getUnclaimedReminderState({}, { team: { ...TEAM, claimReminderDays: 0 }, solicitedAt, now }).isReminderDue, false);
+  const claim = { assigneeEmail: 'bob@lfb.fr', assignedAt: solicitedAt };
+  assert.equal(getUnclaimedReminderState({ claim }, { team: TEAM, solicitedAt, now }).isReminderDue, false);
+  assert.equal(getUnclaimedReminderState({ status: 'validated' }, { team: TEAM, solicitedAt, now }).isReminderDue, false);
+  assert.equal(getUnclaimedReminderState({}, { team: TEAM, solicitedAt: '', now }).isReminderDue, false);
+});
+
+test('relance sans prise en charge : une nouvelle activité réarme le compteur', () => {
+  const entry = { ...markUnclaimedReminderSent({}, '2026-09-14T09:00:00Z'), replies: [{ createdAt: '2026-09-15T09:00:00Z' }] };
+  assert.equal(getUnclaimedReminderState(entry, { team: TEAM, solicitedAt: '2026-09-07T09:00:00Z', now: '2026-09-17T09:00:00Z' }).isReminderDue, false);
+  assert.equal(getUnclaimedReminderState(entry, { team: TEAM, solicitedAt: '2026-09-07T09:00:00Z', now: '2026-09-18T09:00:00Z' }).isReminderDue, true);
 });

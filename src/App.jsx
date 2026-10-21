@@ -106,6 +106,7 @@ import {
   readShowcaseShareToken
 } from './utils/showcaseShareLink.js';
 import { resolveTeamRecipients } from './utils/teamMemberRules.js';
+import { resolveEffectiveTeamComplianceEntry } from './utils/complianceAutoValidation.js';
 import { normalizeTeamContacts } from './utils/teamContacts.js';
 import {
   CLAIM_ACTION_CLAIM,
@@ -117,8 +118,10 @@ import {
   getClaimStaleness,
   getPerimeterClaim,
   getPerimeterClaimHistory,
+  getUnclaimedReminderState,
   isTeamContact,
   markClaimReminderSent,
+  markUnclaimedReminderSent,
   resolveClaimAwareRecipients,
   resolveClaimCopyRecipients
 } from './utils/projectClaims.js';
@@ -4650,6 +4653,130 @@ const updateProjectFilters = useCallback((updater) => {
     notify,
     projects,
     teams
+  ]);
+
+  // Relance, une seule fois, d'une équipe sollicitée que personne n'a prise en charge ni commencé
+  // à traiter, au bout du délai `ClaimReminderDays` de l'équipe. Même régime que la relance du
+  // référent inactif ci-dessus : passe côté app en mode local uniquement (en SharePoint, une seule
+  // source d'envoi), faite par la session de n'importe quel contact de l'équipe qui ouvre l'app.
+  // Les périmètres différés (consultation par vagues) et auto-validés ne sont pas concernés.
+  const unclaimedRemindersSentRef = useRef(new Set());
+
+  useEffect(() => {
+    if (!isHydrated || !currentUserEmail || isSimulatedSession || projects.length === 0 || isSharePointMode()) {
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const dueReminders = [];
+
+    projects.forEach((project) => {
+      if (!project?.id || project.status !== 'submitted' || isProjectTrashed(project)) {
+        return;
+      }
+
+      const analysisTeamIds = Array.isArray(project.analysis?.teams) ? project.analysis.teams : [];
+      const manualRequests = normalizeManualTeamRequests(project.answers?.[MANUAL_TEAM_REQUESTS_KEY]);
+      const deferredKeys = getDeferredPerimeterKeys(project, { teams, validationCommitteeConfig });
+      const rawComments = project.answers?.[COMPLIANCE_COMMENTS_KEY];
+      const teamEntries = rawComments?.teams && typeof rawComments.teams === 'object' && !Array.isArray(rawComments.teams)
+        ? rawComments.teams
+        : {};
+      const sentAt = getSubmissionHistory(project.answers).lastSentAt || project.submittedAt || '';
+
+      teams.forEach((team) => {
+        const teamId = team?.id;
+        const manualRequest = manualRequests.find((request) => request.teamId === teamId);
+        if (!teamId || !isTeamContact(team, currentUserEmail)) {
+          return;
+        }
+        const isInAnalysis = analysisTeamIds.includes(teamId);
+        if (!isInAnalysis && !manualRequest) {
+          return;
+        }
+        if (deferredKeys.has(buildPerimeterKey(PERIMETER_TYPE_TEAM, teamId)) && !manualRequest) {
+          return;
+        }
+
+        const entry = resolveEffectiveTeamComplianceEntry(teamEntries[teamId], project.analysis, teamId, language);
+        const state = getUnclaimedReminderState(entry, {
+          team,
+          solicitedAt: isInAnalysis ? sentAt : manualRequest.requestedAt || sentAt,
+          now
+        });
+        if (!state.isReminderDue) {
+          return;
+        }
+
+        const guardKey = `${project.id}::${teamId}::${state.referenceAt}`;
+        if (unclaimedRemindersSentRef.current.has(guardKey)) {
+          return;
+        }
+        unclaimedRemindersSentRef.current.add(guardKey);
+        dueReminders.push({ project, team, teamId, entry: teamEntries[teamId], state });
+      });
+    });
+
+    dueReminders.forEach(({ project, team, teamId, entry, state }) => {
+      const remindedEntry = markUnclaimedReminderSent(entry, now);
+
+      setProjects((prevProjects) => prevProjects.map((candidate) => {
+        if (candidate?.id !== project.id) {
+          return candidate;
+        }
+        const candidateAnswers = candidate.answers && typeof candidate.answers === 'object' ? candidate.answers : {};
+        const candidateComments = candidateAnswers[COMPLIANCE_COMMENTS_KEY];
+        const comments = candidateComments && typeof candidateComments === 'object' && !Array.isArray(candidateComments)
+          ? candidateComments
+          : {};
+        const currentTeams = comments.teams && typeof comments.teams === 'object' && !Array.isArray(comments.teams)
+          ? comments.teams
+          : {};
+        return {
+          ...candidate,
+          answers: {
+            ...candidateAnswers,
+            [COMPLIANCE_COMMENTS_KEY]: { ...comments, teams: { ...currentTeams, [teamId]: remindedEntry } }
+          }
+        };
+      }));
+
+      if (project.id === activeProjectId) {
+        setAnswers((prevAnswers) => {
+          const comments = prevAnswers?.[COMPLIANCE_COMMENTS_KEY];
+          const base = comments && typeof comments === 'object' && !Array.isArray(comments) ? comments : {};
+          const currentTeams = base.teams && typeof base.teams === 'object' ? base.teams : {};
+          return {
+            ...prevAnswers,
+            [COMPLIANCE_COMMENTS_KEY]: { ...base, teams: { ...currentTeams, [teamId]: remindedEntry } }
+          };
+        });
+      }
+
+      const recipients = resolveTeamMailRecipients(team, project.answers || {});
+      if (recipients.length > 0) {
+        notify({
+          type: NOTIFICATION_TYPES.PERIMETER_UNCLAIMED_REMINDER,
+          project,
+          to: recipients,
+          teamNames: [resolveLocalizedText(team.name, DEFAULT_LANGUAGE)].filter(Boolean),
+          excerpt: `No one has taken this project in charge for ${state.businessDaysSinceReference} business days.`,
+          view: 'synthesis',
+          includeActor: true
+        });
+      }
+    });
+  }, [
+    activeProjectId,
+    currentUserEmail,
+    isHydrated,
+    isSimulatedSession,
+    language,
+    notify,
+    projects,
+    resolveTeamMailRecipients,
+    teams,
+    validationCommitteeConfig
   ]);
 
   // Rappel au porteur quand la date de lancement qu'il a déclarée approche et qu'aucune
