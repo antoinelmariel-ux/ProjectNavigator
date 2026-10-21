@@ -962,6 +962,20 @@ export const SynthesisReport = ({
     () => triggeredValidationCommittees.filter((committee) => committee.commentRequired),
     [triggeredValidationCommittees]
   );
+  const committeeIdsForUser = useMemo(() => {
+    const matched = new Set();
+    if (!currentUserEmail) {
+      return matched;
+    }
+    validationCommittees.forEach((committee) => {
+      const isMember = (Array.isArray(committee?.emails) ? committee.emails : [])
+        .some((email) => normalizeEmail(email) === currentUserEmail);
+      if (isMember && committee?.id) {
+        matched.add(committee.id);
+      }
+    });
+    return matched;
+  }, [currentUserEmail, validationCommittees]);
   const reintegrableCommittees = useMemo(() => {
     if (!currentUserEmail || projectStatus !== 'submitted' || typeof onReintegrateInCommittee !== 'function') {
       return [];
@@ -1252,6 +1266,9 @@ export const SynthesisReport = ({
       }
 
       const isCommittee = targetType === 'committee';
+      if (isCommittee && !canBypassCompliancePerimeter && !committeeIdsForUser.has(targetId)) {
+        return;
+      }
       const currentEntry = isCommittee
         ? complianceCommentDrafts.committees?.[targetId]
         : complianceCommentDrafts.teams?.[targetId];
@@ -1323,6 +1340,8 @@ export const SynthesisReport = ({
     },
     [
       canSaveComplianceComment,
+      canBypassCompliancePerimeter,
+      committeeIdsForUser,
       effectiveProjectName,
       complianceCommentDrafts,
       complianceComments,
@@ -1521,6 +1540,13 @@ export const SynthesisReport = ({
         return;
       }
 
+      const isPerimeterMember = targetType === 'committee'
+        ? committeeIdsForUser.has(targetId)
+        : complianceTeamIdsForUser.has(targetId);
+      if (!canBypassCompliancePerimeter && !isPerimeterMember && !canReplyAsProjectContributor) {
+        return;
+      }
+
       const threadKey = `${targetType}-${targetId}`;
       const draft = normalizeReplyDraft(complianceReplyDrafts[threadKey]);
       const trimmed = draft.message.trim();
@@ -1589,6 +1615,10 @@ export const SynthesisReport = ({
     },
     [
       canSaveComplianceComment,
+      canBypassCompliancePerimeter,
+      canReplyAsProjectContributor,
+      committeeIdsForUser,
+      complianceTeamIdsForUser,
       complianceComments,
       complianceReplyDrafts,
       currentUserDisplayName,
@@ -3158,8 +3188,10 @@ export const SynthesisReport = ({
                     const committeeCommentEntry = committeeCommentMap[committee.id] || normalizeCommentEntry();
                     const committeeDraft = complianceCommentDrafts.committees?.[committee.id] || committeeCommentEntry;
                     const feedbackMessage = getComplianceFeedbackMessage(`committee-${committee.id}`);
+                    const canEditCommitteeOpinion = canBypassCompliancePerimeter || committeeIdsForUser.has(committee.id);
+                    const canReplyCommitteeThread = canEditCommitteeOpinion || canReplyAsProjectContributor;
                     const committeeStatusMeta = getCommentStatusMeta(
-                      canBypassCompliancePerimeter ? committeeDraft.status : committeeCommentEntry.status,
+                      canEditCommitteeOpinion ? committeeDraft.status : committeeCommentEntry.status,
                       t
                     );
                     const isRequired = requiredCommitteeIds.has(committee.id);
@@ -3216,7 +3248,7 @@ export const SynthesisReport = ({
                           </div>
                         )}
 
-                        {canBypassCompliancePerimeter ? (
+                        {canEditCommitteeOpinion ? (
                           <form
                             onSubmit={(event) =>
                               handleComplianceCommentSubmit({
@@ -3377,6 +3409,7 @@ export const SynthesisReport = ({
                               {t('synthesisReport.noCommitteeCommentYet')}
                             </p>
                           )}
+                          {canReplyCommitteeThread && (
                           <div className="border-t border-gray-200 pt-3">
                             <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide">
                               {t('synthesisReport.replyFieldLabel')}
@@ -3437,6 +3470,7 @@ export const SynthesisReport = ({
                               )}
                             </div>
                           </div>
+                          )}
                         </div>
                       </article>
                     );
