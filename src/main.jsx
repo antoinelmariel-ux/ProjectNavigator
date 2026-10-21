@@ -15,6 +15,7 @@ import { queueNotification } from './utils/notificationQueue.js';
 import { buildErrorReportEmail } from './utils/notificationTemplates.js';
 import { injectStyles } from './styles/injectStyles.js';
 import { setAppScrollRoot } from './utils/scrollContainer.js';
+import { installNewTabLinkRelay } from './utils/newTabLinks.js';
 import fontsCss from './styles/fonts.css?raw';
 import tailwindCss from './styles/tailwind-internal.css?raw';
 import appShellCss from './styles/app-shell.css?raw';
@@ -219,14 +220,22 @@ const renderApplication = (rootElement, fallbackLanguage) => {
     </LanguageProvider>
   );
 
+  let unmountReact;
   if (typeof ReactDOM.createRoot === 'function') {
     const root = ReactDOM.createRoot(rootElement);
     root.render(element);
-    mountedRoots.set(rootElement, () => root.unmount());
+    unmountReact = () => root.unmount();
   } else {
     ReactDOM.render(element, rootElement);
-    mountedRoots.set(rootElement, () => ReactDOM.unmountComponentAtNode(rootElement));
+    unmountReact = () => ReactDOM.unmountComponentAtNode(rootElement);
   }
+  // Posé après le rendu, donc après les écouteurs de React : un gestionnaire de l'app qui a
+  // déjà appelé preventDefault garde la main.
+  const uninstallLinkRelay = installNewTabLinkRelay(rootElement);
+  mountedRoots.set(rootElement, () => {
+    uninstallLinkRelay();
+    unmountReact();
+  });
   rootElement.dataset.appMounted = 'true';
 };
 

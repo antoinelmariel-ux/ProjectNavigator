@@ -254,7 +254,7 @@ export const RichTextEditor = ({
     }
 
     const normalizedDisplayText = linkText.trim() || selectedTextRef.current || trimmedUrl;
-    const linkHtml = `<a href="${trimmedUrl}" target="_blank" rel="noopener noreferrer">${normalizedDisplayText}</a>`;
+    const linkHtml = `<a href="${trimmedUrl}" target="_blank" rel="noopener noreferrer" data-interception="off">${normalizedDisplayText}</a>`;
 
     if (typeof window !== 'undefined' && selectionRangeRef.current && typeof window.getSelection === 'function') {
       const selection = window.getSelection();

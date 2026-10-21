@@ -1,4 +1,5 @@
 import React from '../react.js';
+import { NEW_TAB_LINK_ATTRIBUTES } from './newTabLinks.js';
 
 const URL_REGEX = /(https?:\/\/[^\s<]+)/gi;
 const MARKDOWN_LINK_REGEX = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/gi;
@@ -30,12 +31,11 @@ const ensureAllowedAnchor = (node) => {
     node.setAttribute('href', href);
   }
 
-  node.setAttribute('target', '_blank');
-  node.setAttribute('rel', 'noopener noreferrer');
+  Object.entries(NEW_TAB_LINK_ATTRIBUTES).forEach(([name, value]) => node.setAttribute(name, value));
 
   Array.from(node.attributes || []).forEach(attribute => {
     const name = attribute?.name?.toLowerCase();
-    if (!['href', 'target', 'rel'].includes(name)) {
+    if (name !== 'href' && !Object.prototype.hasOwnProperty.call(NEW_TAB_LINK_ATTRIBUTES, name)) {
       node.removeAttribute(attribute.name);
     }
   });
@@ -109,8 +109,7 @@ const linkifyTextNode = (node, documentContext) => {
     const anchor = documentContext.createElement('a');
     anchor.textContent = match.type === 'markdown' ? match.label : url;
     anchor.href = url;
-    anchor.target = '_blank';
-    anchor.rel = 'noopener noreferrer';
+    Object.entries(NEW_TAB_LINK_ATTRIBUTES).forEach(([name, value]) => anchor.setAttribute(name, value));
     fragment.appendChild(anchor);
 
     if (trailing) {
