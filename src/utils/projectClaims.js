@@ -290,6 +290,37 @@ export const getClaimStaleness = (entry, { team, now = new Date().toISOString() 
   };
 };
 
+export const markUnclaimedReminderSent = (entry, now = new Date().toISOString()) => ({
+  ...(entry && typeof entry === 'object' ? entry : {}),
+  unclaimedReminderSentAt: now
+});
+
+// Un périmètre sollicité que personne n'a pris en charge ni commencé à traiter (aucun statut)
+// est relancé une seule fois, au bout du même délai que la relance d'un référent inactif
+// (`ClaimReminderDays`). Le compteur part de la sollicitation, ou du dernier signe de vie si
+// un échange a eu lieu depuis ; `unclaimedReminderSentAt` rend la relance unique tant qu'aucune
+// activité nouvelle ne la réarme.
+export const getUnclaimedReminderState = (entry, { team, solicitedAt = '', now = new Date().toISOString() } = {}) => {
+  const { reminderDays } = resolveTeamClaimSettings(team);
+  const status = typeof entry?.status === 'string' ? entry.status.trim() : '';
+  const referenceAt = [toIsoText(solicitedAt), getPerimeterLastActivityAt(entry)].filter(Boolean).sort().pop() || '';
+
+  if (getPerimeterClaim(entry) || status || !referenceAt) {
+    return { isReminderDue: false, referenceAt, businessDaysSinceReference: 0, reminderDays };
+  }
+
+  const businessDaysSinceReference = countBusinessDaysBetween(referenceAt, now);
+  const alreadyReminded = toIsoText(entry?.unclaimedReminderSentAt) >= referenceAt
+    && toIsoText(entry?.unclaimedReminderSentAt) !== '';
+
+  return {
+    isReminderDue: reminderDays > 0 && businessDaysSinceReference >= reminderDays && !alreadyReminded,
+    referenceAt,
+    businessDaysSinceReference,
+    reminderDays
+  };
+};
+
 // Destinataires des échanges postérieurs à la prise en charge : le référent seul. S'il n'est
 // plus contact de l'équipe, on retombe sur toute l'équipe plutôt que d'écrire dans le vide.
 export const resolveClaimAwareRecipients = (team, answers = {}, claim = null, options = {}) => {

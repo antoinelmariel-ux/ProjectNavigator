@@ -28,6 +28,7 @@ export const NOTIFICATION_TYPES = {
   PERIMETER_TAKEN_OVER: 'perimeter-taken-over',
   PERIMETER_RELEASED: 'perimeter-released',
   PERIMETER_STALE_REMINDER: 'perimeter-stale-reminder',
+  PERIMETER_UNCLAIMED_REMINDER: 'perimeter-unclaimed-reminder',
   TEAM_MANUALLY_REQUESTED: 'team-manually-requested'
 };
 
@@ -333,6 +334,19 @@ export const NOTIFICATION_CATALOG = {
       'Release the project so that another member of your team can pick it up, if you cannot handle it.'
     ],
     reason: () => 'you took this project in charge for your team and it is still waiting.'
+  },
+
+  [NOTIFICATION_TYPES.PERIMETER_UNCLAIMED_REMINDER]: {
+    actionType: 'Reminder: project waiting to be taken in charge',
+    intro: (ctx) =>
+      ctx.teamNames.length > 0
+        ? `Nobody has taken the project ${quoted(ctx.projectName)} in charge yet for ${ctx.teamNames.join(', ')}.`
+        : `Nobody has taken the project ${quoted(ctx.projectName)} in charge yet.`,
+    expected: () => [
+      'Open the project stakes page and take the project in charge if it falls within your area.',
+      'Post your review, or update the compliance status.'
+    ],
+    reason: () => 'you are a contact of the team concerned by this project, and no one has taken it in charge yet.'
   },
 
   // Une équipe que le moteur de règles n'avait pas identifiée peut être ajoutée à la main par
