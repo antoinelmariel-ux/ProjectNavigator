@@ -30,8 +30,10 @@ import {
   PERIMETER_TYPE_COMMITTEE,
   PERIMETER_TYPE_TEAM,
   buildPerimeterKey,
-  getDeferredPerimeters
+  getDeferredPerimeters,
+  getSolicitablePerimeters
 } from '../utils/stagedConsultation.js';
+import { MANUAL_TEAM_REQUESTS_KEY, normalizeManualTeamRequests } from '../utils/manualTeamRequests.js';
 import { normalizeLaunchReminderDays } from '../utils/launchConfirmation.js';
 import { VirtualizedList } from './VirtualizedList.jsx';
 import { renderTextWithLinks } from '../utils/linkify.js';
@@ -1105,19 +1107,36 @@ export const BackOffice = ({
       })
     }))
     .filter((entry) => entry.perimeters.length > 0), [normalizedValidationCommitteeConfig, projects, teams]);
+  // Un expert ne voit au tableau de bord que les projets qui sollicitent ses équipes ou ses
+  // comités, et un périmètre mis de côté (vagues) ne compte pas encore. Une équipe à qui une
+  // question a été posée l'a été explicitement : elle garde le projet.
+  const dashboardScope = useMemo(() => (allowedTabIds
+    ? { teamIds: currentUserTeamIds, committeeIds: currentUserCommitteeIds }
+    : null), [allowedTabIds, currentUserCommitteeIds, currentUserTeamIds]);
   const dashboardProjects = useMemo(() => {
-    if (!allowedTabIds) {
+    if (!dashboardScope) {
       return projects;
     }
+    const ownTeamIds = new Set(dashboardScope.teamIds);
     const ownKeys = new Set([
-      ...currentUserTeamIds.map((teamId) => buildPerimeterKey(PERIMETER_TYPE_TEAM, teamId)),
-      ...currentUserCommitteeIds.map((committeeId) => buildPerimeterKey(PERIMETER_TYPE_COMMITTEE, committeeId))
+      ...dashboardScope.teamIds.map((teamId) => buildPerimeterKey(PERIMETER_TYPE_TEAM, teamId)),
+      ...dashboardScope.committeeIds.map((committeeId) => buildPerimeterKey(PERIMETER_TYPE_COMMITTEE, committeeId))
     ]);
-    const hiddenProjectIds = new Set(deferredPerimetersByProject
-      .filter((entry) => entry.perimeters.some((perimeter) => ownKeys.has(perimeter.key)))
-      .map((entry) => entry.project?.id));
-    return (Array.isArray(projects) ? projects : []).filter((project) => !hiddenProjectIds.has(project?.id));
-  }, [allowedTabIds, currentUserCommitteeIds, currentUserTeamIds, deferredPerimetersByProject, projects]);
+    const deferredKeysByProject = new Map(deferredPerimetersByProject
+      .map((entry) => [entry.project?.id, new Set(entry.perimeters.map((perimeter) => perimeter.key))]));
+    return (Array.isArray(projects) ? projects : []).filter((project) => {
+      const manualTeamIds = normalizeManualTeamRequests(project?.answers?.[MANUAL_TEAM_REQUESTS_KEY])
+        .map((entry) => entry.teamId);
+      if (manualTeamIds.some((teamId) => ownTeamIds.has(teamId))) {
+        return true;
+      }
+      const deferredKeys = deferredKeysByProject.get(project?.id);
+      return getSolicitablePerimeters(project, {
+        teams,
+        validationCommitteeConfig: normalizedValidationCommitteeConfig
+      }).some((perimeter) => ownKeys.has(perimeter.key) && !(deferredKeys && deferredKeys.has(perimeter.key)));
+    });
+  }, [dashboardScope, deferredPerimetersByProject, normalizedValidationCommitteeConfig, projects, teams]);
   const neverSolicitedPerimeters = useMemo(() => (allowedTabIds ? [] : deferredPerimetersByProject
     .map((entry) => ({
       projectId: entry.project?.id,
@@ -5118,6 +5137,7 @@ export const BackOffice = ({
               <BackOfficeDashboard
                 projects={dashboardProjects}
                 teams={teams}
+                scopeTeamIds={dashboardScope ? dashboardScope.teamIds : null}
                 launchSignals={launchSignals}
                 neverSolicitedPerimeters={neverSolicitedPerimeters}
               />

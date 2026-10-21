@@ -302,7 +302,8 @@ const buildExpertLabelMap = (teams = [], language) => {
   return map;
 };
 
-const computeComplianceMetrics = (projects = [], teams = [], t, language) => {
+const computeComplianceMetrics = (projects = [], teams = [], t, language, scopeTeamIds = null) => {
+  const scopedTeamIds = Array.isArray(scopeTeamIds) ? new Set(scopeTeamIds) : null;
   const expertLabelMap = buildExpertLabelMap(teams, language);
   const perExpert = new Map();
   let globalValidationTotal = 0;
@@ -318,7 +319,7 @@ const computeComplianceMetrics = (projects = [], teams = [], t, language) => {
     let projectStartDate = null;
     let earliestDecisionDate = null;
 
-    Object.entries(teamEntries).forEach(([teamId, entry]) => {
+    Object.entries(teamEntries).filter(([teamId]) => !scopedTeamIds || scopedTeamIds.has(teamId)).forEach(([teamId, entry]) => {
       const label = expertLabelMap.get(teamId) || teamId || t('backOffice.dashboard.expertNotIdentified');
       const normalizedReplies = Array.isArray(entry?.replies)
         ? entry.replies.map(normalizeReply).filter(Boolean).sort((a, b) => a.createdAt - b.createdAt)
@@ -644,7 +645,7 @@ const formatDateRangeSummary = (range, fallbackLabel, language) => {
   return `${formatter.format(range.start)} – ${formatter.format(range.end)}`;
 };
 
-export const BackOfficeDashboard = ({ projects = [], teams = [], launchSignals = {}, neverSolicitedPerimeters = [] }) => {
+export const BackOfficeDashboard = ({ projects = [], teams = [], launchSignals = {}, neverSolicitedPerimeters = [], scopeTeamIds = null }) => {
   const { t, language } = useTranslation();
   const [selectedLeadTeam, setSelectedLeadTeam] = useState('all');
   const [selectedTimeFilter, setSelectedTimeFilter] = useState('all');
@@ -786,8 +787,8 @@ export const BackOfficeDashboard = ({ projects = [], teams = [], launchSignals =
   }, [filteredProjects]);
 
   const complianceMetrics = useMemo(
-    () => computeComplianceMetrics(filteredProjects, teams, t, language),
-    [filteredProjects, teams, t, language]
+    () => computeComplianceMetrics(filteredProjects, teams, t, language, scopeTeamIds),
+    [filteredProjects, teams, t, language, scopeTeamIds]
   );
 
   const riskSeverityAverages = useMemo(() => {
@@ -877,6 +878,9 @@ export const BackOfficeDashboard = ({ projects = [], teams = [], launchSignals =
       });
 
       collected.forEach((teamId) => {
+        if (scopeTeamIds && !scopeTeamIds.includes(teamId)) {
+          return;
+        }
         counts.set(teamId, (counts.get(teamId) || 0) + 1);
       });
     });
@@ -893,7 +897,7 @@ export const BackOfficeDashboard = ({ projects = [], teams = [], launchSignals =
       total: entries.reduce((sum, entry) => sum + entry.value, 0),
       entries
     };
-  }, [filteredProjects, teams, language]);
+  }, [filteredProjects, teams, language, scopeTeamIds]);
 
   const leadTeamFilterLabel = useMemo(() => {
     if (selectedLeadTeam === 'all') {
