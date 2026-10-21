@@ -87,6 +87,7 @@ const renderWithoutDomParser = (text) => {
         href={url}
         target="_blank"
         rel="noopener noreferrer"
+        data-interception="off"
         className="text-blue-600 underline"
       >
         {match.type === 'markdown' ? match.label : url}

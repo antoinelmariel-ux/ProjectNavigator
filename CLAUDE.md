@@ -79,6 +79,11 @@ Phase 4 (living inside a SharePoint page) — four rules that keep holding:
   and open inside the app, in `StaticPageDialog.jsx` (a sandboxed `iframe`, so their own `body`/
   `header` styles stay isolated), via `openStaticPage(id)` / `staticPageLinkProps(id)`
   (`src/utils/staticPages.js`). The tour's « Aide » link uses `helpLink.onClick`.
+- **External links open in a new tab, even under SharePoint's link interception.** A modern page
+  intercepts link clicks for its SPA navigation and could open a `target="_blank"` link in the app's
+  own tab. Every sanitized/linkified link carries `data-interception="off"` (`NEW_TAB_LINK_ATTRIBUTES`,
+  `src/utils/newTabLinks.js`), and `mountApp` installs a click relay on the app root that opens any
+  `target="_blank"` http(s) link itself (`e2e/external-links.spec.js`).
 - **Unmount flushes.** The `pagehide` flush effect in `App.jsx` also flushes in its cleanup, because
   SharePoint's SPA navigation disposes the web part without any `pagehide`.
 
