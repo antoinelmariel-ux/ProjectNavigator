@@ -3596,7 +3596,7 @@ const updateProjectFilters = useCallback((updater) => {
       return false;
     }
 
-    if (isAdminMode) {
+    if (isAdminMode || isCurrentUserAdmin) {
       return true;
     }
 
@@ -3609,7 +3609,7 @@ const updateProjectFilters = useCallback((updater) => {
     const isCoOwner = sharedWith.some(entry => normalizeEmail(entry) === currentUserEmail);
 
     return ownerEmail === currentUserEmail || isCoOwner;
-  }, [currentUserEmail, isAdminMode]);
+  }, [currentUserEmail, isAdminMode, isCurrentUserAdmin]);
   const canSetProjectVisibility = useCallback((project) => {
     if (!project) {
       return false;
@@ -4001,7 +4001,8 @@ const updateProjectFilters = useCallback((updater) => {
   // compliance.
   const isActiveProjectEditable = !activeProject
     || (canManageProject(activeProject) && isProjectOpenForEditing(activeProject))
-    || isAdminMode;
+    || isAdminMode
+    || isCurrentUserAdmin;
 
   const annotationOffsetClass = isAnnotationModeEnabled && screen === 'showcase'
     ? 'pt-20 lg:pt-24'
@@ -5767,7 +5768,7 @@ const updateProjectFilters = useCallback((updater) => {
       return;
     }
 
-    if (!canPermanentlyDeleteProject(targetProject, trashResponseOptions)) {
+    if (!isAdminMode && !isCurrentUserAdmin && !canPermanentlyDeleteProject(targetProject, trashResponseOptions)) {
       persistProjectAnswersPatch(targetProject, withProjectPurgedByOwner(targetProject.answers, { by: currentUserEmail }));
       return;
     }
@@ -5784,7 +5785,7 @@ const updateProjectFilters = useCallback((updater) => {
     complianceCommentsQueueRef.current?.enqueue({ action: 'removeAllForProject', projectId });
     stickyNotesQueueRef.current?.enqueue({ action: 'removeAllForProject', projectId });
     filesIndexQueueRef.current?.enqueue({ projectId });
-  }, [canManageProject, currentUserEmail, persistProjectAnswersPatch, trashResponseOptions]);
+  }, [canManageProject, currentUserEmail, isAdminMode, isCurrentUserAdmin, persistProjectAnswersPatch, trashResponseOptions]);
 
   const handleToggleProjectVisibility = useCallback((projectId) => {
     if (!projectId) {
@@ -8353,7 +8354,8 @@ const updateProjectFilters = useCallback((updater) => {
             trashedProjects={trashedProjects}
             onRestoreProject={handleRestoreProject}
             onPermanentlyDeleteProject={handlePermanentlyDeleteProject}
-            canPermanentlyDeleteProject={(project) => canPermanentlyDeleteProject(project, trashResponseOptions)}
+            canPermanentlyDeleteProject={(project) => isAdminMode || isCurrentUserAdmin
+              || canPermanentlyDeleteProject(project, trashResponseOptions)}
             showcaseFeedbackCounts={showcaseFeedbackCounts}
             launchSignals={launchSignalsByProject}
             projectFilters={projectFilters}
