@@ -1,6 +1,7 @@
 import { normalizeEmail } from './normalizeEmail.js';
 import { normalizeTeamContacts } from './teamContacts.js';
 import { resolveTeamRecipients } from './teamMemberRules.js';
+import { withTeamFollowers } from './perimeterFollowers.js';
 import { countBusinessDaysBetween } from './businessDays.js';
 import { applyAbsenceSubstitution, wantsClaimCopyForTeam } from './teamMemberProfile.js';
 
@@ -321,7 +322,8 @@ export const getUnclaimedReminderState = (entry, { team, solicitedAt = '', now =
   };
 };
 
-// Destinataires des échanges postérieurs à la prise en charge : le référent seul. S'il n'est
+// Destinataires des échanges postérieurs à la prise en charge : le référent et les personnes
+// ajoutées au suivi (perimeterFollowers.js), plus personne d'autre. Si le référent n'est
 // plus contact de l'équipe, on retombe sur toute l'équipe plutôt que d'écrire dans le vide.
 export const resolveClaimAwareRecipients = (team, answers = {}, claim = null, options = {}) => {
   const routed = resolveTeamRecipients(team, answers);
@@ -342,9 +344,11 @@ export const resolveClaimAwareRecipients = (team, answers = {}, claim = null, op
     return withAbsence;
   }
 
+  // Le référent, plus les collègues qu'un expert a explicitement ajoutés au suivi du projet.
+  const handlers = withTeamFollowers([assignee], team, answers);
   return options.profiles
-    ? applyAbsenceSubstitution([assignee], { team, profiles: options.profiles, now: options.now })
-    : [assignee];
+    ? applyAbsenceSubstitution(handlers, { team, profiles: options.profiles, now: options.now })
+    : handlers;
 };
 
 // Copies volontaires de l'annonce de prise en charge. Deux garde-fous : la copie ne ressuscite

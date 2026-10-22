@@ -2132,6 +2132,16 @@ export default {
       solicitedWave: 'Consultado · ola {{wave}} · {{date}}',
       firstWaveBanner: 'Se le consulta en primer lugar. {{perimeters}} lo serán después de su dictamen.'
     },
+    followers: {
+      label: 'Personas que siguen este proyecto:',
+      none: 'Ningún colega añadido.',
+      selectLabel: 'Añadir un miembro del equipo al seguimiento',
+      selectPlaceholder: 'Elegir un miembro del equipo…',
+      addButton: 'Añadir al seguimiento',
+      removeButton: 'Quitar a {{person}} del seguimiento',
+      addedBy: 'Añadido por {{person}}',
+      hint: 'La persona añadida también recibe las notificaciones de este proyecto para este equipo, aunque otra persona se encargue de él, y puede responder o emitir la opinión.'
+    },
     claim: {
       label: 'Responsable:',
       unassigned: 'nadie sigue todavía este ámbito.',

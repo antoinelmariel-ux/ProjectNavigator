@@ -30,6 +30,12 @@ import {
 import { normalizeTeamContacts } from '../utils/teamContacts.js';
 import { resolveTeamRecipients } from '../utils/teamMemberRules.js';
 import {
+  FOLLOWER_ACTION_ADD,
+  FOLLOWER_ACTION_REMOVE,
+  getPerimeterFollowers,
+  resolveTeamFollowerContacts
+} from '../utils/perimeterFollowers.js';
+import {
   CLAIM_ACTION_CLAIM,
   CLAIM_ACTION_RELEASE,
   CLAIM_ACTION_TAKEOVER,
@@ -321,11 +327,12 @@ const normalizeCommentEntry = (entry) => {
         .filter((reply) => reply.message.trim().length > 0 || reply.authorName || reply.authorEmail)
     : [];
 
-  // La prise en charge du périmètre (voir projectClaims.js) n'est pas éditée ici, mais elle vit
-  // dans la même entrée : sans ces deux champs, chaque enregistrement de commentaire ou de
+  // La prise en charge du périmètre (voir projectClaims.js) et ses suiveurs ne sont pas édités
+  // ici, mais ils vivent dans la même entrée : sans ces champs, chaque enregistrement de commentaire ou de
   // réponse — qui repart de cette normalisation — effacerait le référent du périmètre.
   const claim = getPerimeterClaim(entry);
   const claimHistory = getPerimeterClaimHistory(entry);
+  const followers = getPerimeterFollowers(entry);
 
   return {
     comment,
@@ -334,7 +341,8 @@ const normalizeCommentEntry = (entry) => {
     attachments: normalizeCommentAttachments(entry?.attachments),
     replies,
     ...(claim ? { claim } : {}),
-    ...(claimHistory.length > 0 ? { claimHistory } : {})
+    ...(claimHistory.length > 0 ? { claimHistory } : {}),
+    ...(followers.length > 0 ? { followers } : {})
   };
 };
 
@@ -647,6 +655,7 @@ export const SynthesisReport = ({
   focusPerimeter = null,
   onFocusPerimeterHandled,
   onPerimeterClaimAction,
+  onPerimeterFollowerAction,
   isClaimActionAvailable = true,
   onRequestAdditionalTeam,
   readiness = null,
@@ -859,6 +868,18 @@ export const SynthesisReport = ({
     }
     onPerimeterClaimAction(projectId, teamId, action, options);
   }, [onPerimeterClaimAction, projectId]);
+
+  const [followerDrafts, setFollowerDrafts] = useState({});
+
+  const handleFollowerAction = useCallback((teamId, action, email) => {
+    if (typeof onPerimeterFollowerAction !== 'function' || !projectId || !teamId || !email) {
+      return;
+    }
+    onPerimeterFollowerAction(projectId, teamId, action, email);
+    if (action === FOLLOWER_ACTION_ADD) {
+      setFollowerDrafts((prev) => ({ ...prev, [teamId]: '' }));
+    }
+  }, [onPerimeterFollowerAction, projectId]);
 
   const handleOpenClaimTakeover = useCallback((teamId) => {
     setClaimTakeoverReason(CLAIM_REASONS[0]);
@@ -2269,16 +2290,34 @@ export const SynthesisReport = ({
                 const teamClaimAssigneeLabel = teamClaim
                   ? (teamClaim.assigneeName || teamClaim.assigneeEmail)
                   : '';
+                // Les collègues ajoutés au suivi du projet (perimeterFollowers.js) reçoivent les
+                // notifications en plus du référent : ils font donc partie de la ligne de contact.
+                const teamFollowerContacts = resolveTeamFollowerContacts(team, answers);
+                const teamFollowerEntries = getPerimeterFollowers(complianceComments.teams?.[team.id]);
+                // Ajouter quelqu'un qui reçoit déjà tout garde son sens : l'ajout tient encore
+                // quand un collègue prend ensuite le projet en charge.
+                const teamFollowerEmailSet = new Set(teamFollowerContacts.map((contact) => normalizeEmail(contact)));
+                const teamFollowerCandidates = normalizeTeamContacts(team).filter((contact) => {
+                  const key = normalizeEmail(contact);
+                  return !teamFollowerEmailSet.has(key) && key !== teamClaim?.assigneeEmail;
+                });
                 const teamContactLabel = teamClaim
-                  ? (teamClaim.assigneeName
-                    ? `${teamClaim.assigneeName} (${teamClaim.assigneeEmail})`
-                    : teamClaim.assigneeEmail)
+                  ? [
+                    teamClaim.assigneeName
+                      ? `${teamClaim.assigneeName} (${teamClaim.assigneeEmail})`
+                      : teamClaim.assigneeEmail,
+                    ...teamFollowerContacts.filter((contact) => normalizeEmail(contact) !== teamClaim.assigneeEmail)
+                  ].join(' · ')
                   : resolveTeamRecipients(team, answers).join(' · ');
                 const isTeamClaimMine = isClaimedBy(teamClaim, currentUserEmail);
                 const isTeamClaimTaken = isClaimedByOther(teamClaim, currentUserEmail);
                 const canActOnTeamClaim = isClaimActionAvailable
                   && typeof onPerimeterClaimAction === 'function'
                   && complianceTeamIdsForUser.has(team.id);
+                const canManageTeamFollowers = isClaimActionAvailable
+                  && typeof onPerimeterFollowerAction === 'function'
+                  && (complianceTeamIdsForUser.has(team.id) || canBypassCompliancePerimeter);
+                const teamFollowerDraft = followerDrafts[team.id] || '';
                 const formattedTeamQuestions = Array.isArray(teamQuestions)
                   ? teamQuestions
                       .map((entry) => normalizeTeamQuestionForDisplay(entry, language))
@@ -2519,6 +2558,76 @@ export const SynthesisReport = ({
                                   </button>
                                 </div>
                               </div>
+                            )}
+                          </div>
+                        )}
+
+                        {(canManageTeamFollowers || teamFollowerContacts.length > 0) && (
+                          <div
+                            className="mt-3 space-y-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700"
+                            data-testid={`team-followers-${team.id}`}
+                          >
+                            <p className="font-semibold text-gray-800">{t('synthesisReport.followers.label')}</p>
+                            {teamFollowerContacts.length === 0 ? (
+                              <p className="text-gray-500">{t('synthesisReport.followers.none')}</p>
+                            ) : (
+                              <ul className="flex flex-wrap gap-1.5">
+                                {teamFollowerContacts.map((contact) => {
+                                  const followerEntry = teamFollowerEntries.find(
+                                    (entry) => entry.email === normalizeEmail(contact)
+                                  );
+                                  return (
+                                    <li
+                                      key={`follower-${team.id}-${contact}`}
+                                      className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-1 text-blue-800"
+                                      title={followerEntry?.addedByEmail
+                                        ? t('synthesisReport.followers.addedBy', { person: followerEntry.addedByEmail })
+                                        : undefined}
+                                    >
+                                      <span>{contact}</span>
+                                      {canManageTeamFollowers && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleFollowerAction(team.id, FOLLOWER_ACTION_REMOVE, contact)}
+                                          className="rounded-full px-1 font-semibold text-blue-700 hover:bg-blue-100"
+                                          aria-label={t('synthesisReport.followers.removeButton', { person: contact })}
+                                        >
+                                          ×
+                                        </button>
+                                      )}
+                                    </li>
+                                  );
+                                })}
+                              </ul>
+                            )}
+                            {canManageTeamFollowers && teamFollowerCandidates.length > 0 && (
+                              <div className="flex flex-wrap items-center gap-2">
+                                <select
+                                  value={teamFollowerDraft}
+                                  onChange={(event) => {
+                                    const { value } = event.target;
+                                    setFollowerDrafts((prev) => ({ ...prev, [team.id]: value }));
+                                  }}
+                                  aria-label={t('synthesisReport.followers.selectLabel')}
+                                  className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700"
+                                >
+                                  <option value="">{t('synthesisReport.followers.selectPlaceholder')}</option>
+                                  {teamFollowerCandidates.map((contact) => (
+                                    <option key={`follower-candidate-${team.id}-${contact}`} value={contact}>{contact}</option>
+                                  ))}
+                                </select>
+                                <button
+                                  type="button"
+                                  disabled={!teamFollowerDraft}
+                                  onClick={() => handleFollowerAction(team.id, FOLLOWER_ACTION_ADD, teamFollowerDraft)}
+                                  className="rounded-lg border border-blue-200 bg-white px-2 py-1 font-semibold text-blue-700 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  {t('synthesisReport.followers.addButton')}
+                                </button>
+                              </div>
+                            )}
+                            {canManageTeamFollowers && teamFollowerCandidates.length > 0 && (
+                              <p className="text-gray-500">{t('synthesisReport.followers.hint')}</p>
                             )}
                           </div>
                         )}

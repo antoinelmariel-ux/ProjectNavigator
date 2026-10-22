@@ -2,21 +2,28 @@ import { isSharePointMode } from '../config/sharepointConfig.js';
 import { getRepository } from './listRepository.js';
 import { loadPersistedMockMap, savePersistedMockMap } from './mockProviderPersistence.js';
 import { normalizeClaim, normalizeClaimHistory } from './projectClaims.js';
+import { normalizePerimeterFollowers } from './perimeterFollowers.js';
 
 // La prise en charge d'un périmètre (voir projectClaims.js) voyage avec la ligne racine :
 // `AssigneeEmail` reste lisible dans les vues SharePoint natives, `ClaimJson` porte le détail
-// (date, auteur de l'attribution, motif, relance envoyée) et l'historique.
+// (date, auteur de l'attribution, motif, relance envoyée) et l'historique. Les personnes ajoutées
+// au suivi du périmètre (perimeterFollowers.js) y voyagent aussi, sans colonne dédiée.
 const toClaimColumns = (entry) => {
   const claim = normalizeClaim(entry?.claim);
   const history = normalizeClaimHistory(entry?.claimHistory);
+  const followers = normalizePerimeterFollowers(entry?.followers);
 
-  if (!claim && history.length === 0) {
+  if (!claim && history.length === 0 && followers.length === 0) {
     return { AssigneeEmail: '', ClaimJson: {} };
   }
 
   return {
     AssigneeEmail: claim?.assigneeEmail || '',
-    ClaimJson: { claim: claim || null, history }
+    ClaimJson: {
+      claim: claim || null,
+      history,
+      ...(followers.length > 0 ? { followers } : {})
+    }
   };
 };
 
@@ -24,9 +31,11 @@ const fromClaimColumns = (row) => {
   const payload = row?.ClaimJson && typeof row.ClaimJson === 'object' ? row.ClaimJson : {};
   const claim = normalizeClaim(payload.claim || (row?.AssigneeEmail ? { assigneeEmail: row.AssigneeEmail } : null));
   const claimHistory = normalizeClaimHistory(payload.history);
+  const followers = normalizePerimeterFollowers(payload.followers);
   return {
     ...(claim ? { claim } : {}),
-    ...(claimHistory.length > 0 ? { claimHistory } : {})
+    ...(claimHistory.length > 0 ? { claimHistory } : {}),
+    ...(followers.length > 0 ? { followers } : {})
   };
 };
 

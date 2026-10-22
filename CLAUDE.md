@@ -681,6 +681,15 @@ per-person settings this feature needs.
   project's answers and know nothing about dates. `AbsenceJson` carries the period and a backup (who
   must be a contact of the same team to receive anything), and it is editable by a third party from
   the back-office — an unplanned absence is never declared by the person who is away.
+- **Followers widen recipients on one project** (`src/utils/perimeterFollowers.js`, `followers` next
+  to `claim` in the team's compliance entry, carried in `ClaimJson` on `CN_ComplianceComments` — no
+  new column). Any contact of the team (or an admin) adds a colleague from the team card of the
+  synthesis, just above « Points à préparer ». A follower must already be a team contact, so it
+  grants no access; what it changes is mail: `resolveTeamRecipients` adds followers even when member
+  routing excludes them, `resolveClaimAwareRecipients` sends to assignee + followers, and a follower
+  keeps a claimed project in « À traiter ». The synthesis editor never edits followers:
+  `preservePerimeterFollowers` restores them on every comment save. Tests:
+  `test/perimeterFollowers.test.mjs`, `e2e/perimeter-followers.spec.js`.
 - Tests: `test/projectClaims.test.mjs`, `test/teamMemberProfile.test.mjs`, `e2e/project-claim.spec.js`.
 
 ## The rules/questions engine (the risk-critical logic)

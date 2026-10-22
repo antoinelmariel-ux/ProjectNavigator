@@ -111,6 +111,11 @@ import { resolveTeamRecipients } from './utils/teamMemberRules.js';
 import { resolveEffectiveTeamComplianceEntry } from './utils/complianceAutoValidation.js';
 import { normalizeTeamContacts } from './utils/teamContacts.js';
 import {
+  FOLLOWER_ACTION_ADD,
+  applyFollowerAction,
+  preservePerimeterFollowers
+} from './utils/perimeterFollowers.js';
+import {
   CLAIM_ACTION_CLAIM,
   CLAIM_ACTION_IMPLICIT,
   CLAIM_ACTION_REASSIGN,
@@ -4430,6 +4435,109 @@ const updateProjectFilters = useCallback((updater) => {
     teams
   ]);
 
+  // Ajouter (ou retirer) un collègue de l'équipe au suivi d'un périmètre. Même logique d'écriture
+  // que la prise en charge : l'état vit dans l'entrée de conformité de l'équipe, part vers
+  // CN_ComplianceComments par la file de réessais. La personne doit déjà être contact de
+  // l'équipe — l'ajout élargit les destinataires, jamais les accès. Elle seule est prévenue de
+  // l'ajout ; un retrait ne déclenche aucun e-mail.
+  const handlePerimeterFollowerAction = useCallback((projectId, teamId, action, email) => {
+    if (!projectId || !teamId || !action || isSimulatedSession) {
+      return;
+    }
+
+    const project = projects.find((entry) => entry?.id === projectId);
+    const team = teams.find((entry) => entry?.id === teamId);
+    const followerEmail = normalizeEmail(email);
+    if (!project || !team || !followerEmail) {
+      return;
+    }
+
+    if (!isTeamContact(team, currentUserEmail) && !isAdminMode) {
+      return;
+    }
+
+    if (action === FOLLOWER_ACTION_ADD && !isTeamContact(team, followerEmail)) {
+      return;
+    }
+
+    const projectAnswers = project.answers && typeof project.answers === 'object' ? project.answers : {};
+    const rawComments = projectAnswers[COMPLIANCE_COMMENTS_KEY];
+    const baseEntry = rawComments?.teams?.[teamId] && typeof rawComments.teams[teamId] === 'object'
+      && !Array.isArray(rawComments.teams[teamId])
+      ? rawComments.teams[teamId]
+      : {};
+
+    const now = new Date().toISOString();
+    const nextEntry = applyFollowerAction(baseEntry, {
+      action,
+      email: followerEmail,
+      actorEmail: currentUserEmail,
+      now
+    });
+
+    if (nextEntry === baseEntry) {
+      return;
+    }
+
+    const mergeEntry = (sourceAnswers) => {
+      const currentAnswers = sourceAnswers && typeof sourceAnswers === 'object' ? sourceAnswers : {};
+      const currentRaw = currentAnswers[COMPLIANCE_COMMENTS_KEY];
+      const currentComments = currentRaw && typeof currentRaw === 'object' && !Array.isArray(currentRaw)
+        ? currentRaw
+        : {};
+      const currentTeams = currentComments.teams && typeof currentComments.teams === 'object' && !Array.isArray(currentComments.teams)
+        ? currentComments.teams
+        : {};
+      return {
+        ...currentAnswers,
+        [COMPLIANCE_COMMENTS_KEY]: { ...currentComments, teams: { ...currentTeams, [teamId]: nextEntry } }
+      };
+    };
+
+    setProjects((prevProjects) => prevProjects.map((entry) => (
+      entry?.id === projectId
+        ? { ...entry, answers: mergeEntry(entry.answers), lastUpdated: now }
+        : entry
+    )));
+
+    if (projectId === activeProjectId) {
+      setAnswers((prevAnswers) => mergeEntry(prevAnswers));
+    }
+
+    complianceCommentsQueueRef.current?.enqueue({
+      projectId,
+      targetType: 'team',
+      targetId: teamId,
+      entry: nextEntry,
+      userEmail: currentUserEmail
+    });
+
+    if (action === FOLLOWER_ACTION_ADD) {
+      const to = normalizeRecipientList(applyAbsenceSubstitution([followerEmail], {
+        team,
+        profiles: userProfilesByEmail
+      }));
+      if (to.length > 0) {
+        notify({
+          type: NOTIFICATION_TYPES.PERIMETER_FOLLOWER_ADDED,
+          project,
+          to,
+          teamNames: [resolveLocalizedText(team.name, DEFAULT_LANGUAGE)].filter(Boolean),
+          view: 'synthesis'
+        });
+      }
+    }
+  }, [
+    activeProjectId,
+    currentUserEmail,
+    isAdminMode,
+    isSimulatedSession,
+    notify,
+    projects,
+    teams,
+    userProfilesByEmail
+  ]);
+
   // Revendication implicite (décision produit) : poster un commentaire de conformité, changer un
   // statut ou répondre dans le fil vaut prise en charge du périmètre. Sans cela, le référent
   // reste « libre » chez les autres alors que le travail est déjà fait, et la file « À traiter »
@@ -4868,7 +4976,7 @@ const updateProjectFilters = useCallback((updater) => {
     // Un avis porte la version du projet sur laquelle il a été rendu : c'est ce qui permet, plus
     // tard, de distinguer une validation encore valable d'une validation périmée.
     const versionedComments = stampReviewedVersions(
-      claimAwareComments,
+      preservePerimeterFollowers(claimAwareComments, projectBeforeUpdate?.answers?.[COMPLIANCE_COMMENTS_KEY]),
       projectBeforeUpdate?.answers?.[COMPLIANCE_COMMENTS_KEY],
       getSubmissionVersion(projectBeforeUpdate)
     );
@@ -8514,6 +8622,7 @@ const updateProjectFilters = useCallback((updater) => {
               focusPerimeter={synthesisFocusPerimeter}
               onFocusPerimeterHandled={() => setSynthesisFocusPerimeter(null)}
               onPerimeterClaimAction={activeProjectId ? handlePerimeterClaimAction : undefined}
+              onPerimeterFollowerAction={activeProjectId ? handlePerimeterFollowerAction : undefined}
               isClaimActionAvailable={!isSimulatedSession}
               onRequestAdditionalTeam={activeProjectId ? handleRequestAdditionalTeam : undefined}
               readiness={projectReadiness}

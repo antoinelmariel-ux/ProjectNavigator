@@ -27,6 +27,7 @@ export const NOTIFICATION_TYPES = {
   PERIMETER_CLAIMED: 'perimeter-claimed',
   PERIMETER_TAKEN_OVER: 'perimeter-taken-over',
   PERIMETER_RELEASED: 'perimeter-released',
+  PERIMETER_FOLLOWER_ADDED: 'perimeter-follower-added',
   PERIMETER_STALE_REMINDER: 'perimeter-stale-reminder',
   PERIMETER_UNCLAIMED_REMINDER: 'perimeter-unclaimed-reminder',
   TEAM_MANUALLY_REQUESTED: 'team-manually-requested'
@@ -294,6 +295,21 @@ export const NOTIFICATION_CATALOG = {
     ],
     reason: () =>
       'you asked to be copied when a colleague takes charge of a project for this team. You can turn this off in "My profile".'
+  },
+
+  // Envoyé à la seule personne ajoutée au suivi d'un périmètre par un collègue de l'équipe.
+  [NOTIFICATION_TYPES.PERIMETER_FOLLOWER_ADDED]: {
+    actionType: 'Added as a follower of a project',
+    intro: (ctx) =>
+      ctx.teamNames.length > 0
+        ? `${ctx.actorName} added you as a follower of the project ${quoted(ctx.projectName)} for ${ctx.teamNames.join(', ')}.`
+        : `${ctx.actorName} added you as a follower of the project ${quoted(ctx.projectName)}.`,
+    expected: () => [
+      'Open the project’s stakes page in Project Navigator to catch up on the review and the exchanges so far.',
+      'You will now receive the notifications of this project for your team, even while a colleague is handling it.',
+      'You can reply to the project owner or give your team’s opinion directly in the project stakes page.'
+    ],
+    reason: () => 'a colleague from your expert team added you to the people following this project.'
   },
 
   [NOTIFICATION_TYPES.PERIMETER_TAKEN_OVER]: {
