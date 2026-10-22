@@ -2,7 +2,8 @@ import React from './react.js';
 import { ReactDOM } from './react.js';
 import { App } from './App.jsx';
 import { initSharePointContext, getRealUser, resetSharePointContext } from './utils/spContext.js';
-import { readImpersonationRequest, startImpersonation, stopImpersonation } from './utils/impersonation.js';
+import { isImpersonating, readImpersonationRequest, startImpersonation, stopImpersonation } from './utils/impersonation.js';
+import { readAdminConsoleRequest, startAdminConsole, stopAdminConsole } from './utils/adminConsole.js';
 import { configureSharePointContext } from './config/sharepointConfig.js';
 import { languageFromCulture } from './i18n/detectLanguage.js';
 import { normalizeEmail } from './utils/normalizeEmail.js';
@@ -264,6 +265,25 @@ const applyImpersonationRequest = () => {
   startImpersonation({ email: requestedEmail });
 };
 
+// Console d'administration des projets (voir adminConsole.js) : même contrôle sur l'identité
+// réelle que la simulation, et jamais les deux à la fois — simuler quelqu'un n'est pas
+// administrer à sa place.
+const applyAdminConsoleRequest = () => {
+  if (!readAdminConsoleRequest(typeof window !== 'undefined' && window.location ? window.location.search : '')) {
+    return;
+  }
+
+  const realUser = getRealUser();
+  const realEmail = normalizeEmail(realUser?.mail || realUser?.userPrincipalName || '');
+
+  if (isImpersonating() || !realEmail || !resolveAdminRightsEmails().includes(realEmail)) {
+    console.warn('Console d’administration ignorée : la session en cours n’est pas administratrice.');
+    return;
+  }
+
+  startAdminConsole();
+};
+
 // L'identité est résolue avant le premier rendu : App.jsx peut alors la lire de façon
 // synchrone. Hors SharePoint, initSharePointContext retombe immédiatement sur le mock.
 // Le web part SPFx transmet son pageContext (URL du site, utilisateur, culture) ; le harnais de
@@ -296,6 +316,7 @@ export const mountApp = (rootElement, { webAbsoluteUrl, user, cultureName } = {}
         return;
       }
       applyImpersonationRequest();
+      applyAdminConsoleRequest();
       renderApplication(rootElement, languageFromCulture(cultureName));
     });
 };
@@ -312,5 +333,6 @@ export const unmountApp = (rootElement) => {
   // La navigation SharePoint ne recharge pas la page : les modules restent en mémoire d'un
   // montage à l'autre, et ni l'identité ni une simulation « Voir en tant que » ne doivent survivre.
   stopImpersonation();
+  stopAdminConsole();
   resetSharePointContext();
 };

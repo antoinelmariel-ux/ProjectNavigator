@@ -10,6 +10,10 @@ export const LazyProjectShowcase = lazy(() =>
   import(/* webpackChunkName: "project-showcase" */ './components/ProjectShowcase.jsx').then((module) => ({ default: module.ProjectShowcase }))
 );
 
+export const LazyAdminProjectsConsole = lazy(() =>
+  import(/* webpackChunkName: "admin-console" */ './components/AdminProjectsConsole.jsx').then((module) => ({ default: module.AdminProjectsConsole }))
+);
+
 export const LazyHomeScreen = lazy(() =>
   import(/* webpackMode: "eager" */ './components/HomeScreen.jsx').then((module) => ({ default: module.HomeScreen }))
 );

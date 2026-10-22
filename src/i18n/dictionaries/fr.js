@@ -82,6 +82,12 @@ export default {
       },
       unknownError: 'Erreur inconnue.'
     },
+    adminConsole: {
+      titlePrefix: '[Admin]',
+      bannerTitle: 'Console d’administration : vous avez la main sur tous les projets.',
+      bannerBody: 'Connecté en tant que {{admin}}. Chaque modification, annulation ou suppression faite ici est réelle et s’applique au projet de son porteur.',
+      exit: 'Quitter la console'
+    },
     impersonation: {
       titlePrefix: '[Simulation]',
       bannerTitle: 'Simulation d’identité : vous voyez l’application comme {{simulated}}.',
@@ -1557,6 +1563,10 @@ export default {
       triggerByTeamCountHint: 'Déclenchez ce comité en fonction du nombre d’équipes SME impliquées.',
       minTeamsCountLabel: 'Nombre minimal d’équipes',
       exampleThreePlaceholder: 'Ex. 3',
+      adminConsoleTitle: 'Console d’administration des projets',
+      adminConsoleDescription: 'Ouvre Project Navigator dans un nouvel onglet, en version administrateur : tous les projets de la plateforme, brouillons compris, avec un moteur de recherche (par porteur, nom, co-porteur…) et la main sur chacun — modifier les réponses, annuler une soumission, supprimer, restaurer.',
+      adminConsoleButton: 'Ouvrir la console d’administration',
+      adminConsoleHint: 'Ces droits ne s’exercent que dans cet onglet, signalé par un bandeau rouge. Votre onglet habituel reste inchangé.',
       viewAsTitle: 'Voir en tant que',
       viewAsDescription:
         'Ouvre l’application dans un nouvel onglet avec l’identité choisie, pour vérifier ce que cette personne voit réellement : projets visibles, onglets du back-office, questionnaire adapté à son périmètre d’activité.',
@@ -1947,6 +1957,50 @@ export default {
         statusAlertStrongStart: { label: 'Statut alerte forte (début)', description: 'Première couleur du dégradé utilisé pour les alertes les plus critiques.' },
         statusAlertStrongEnd: { label: 'Statut alerte forte (fin)', description: 'Seconde couleur du dégradé des alertes les plus critiques.' }
       }
+    }
+  },
+  adminConsole: {
+    heading: 'Tous les projets',
+    description: 'Retrouvez n’importe quel projet de la plateforme, soumis ou non, et agissez à la place de son porteur.',
+    searchLabel: 'Rechercher',
+    searchPlaceholder: 'Porteur, nom du projet, co-porteur, chef de projet…',
+    ownerLabel: 'Porteur',
+    allOwners: 'Tous les porteurs',
+    statusLabel: 'Statut',
+    allStatuses: 'Tous les statuts',
+    reset: 'Réinitialiser',
+    resultCount: '{{count}} projet(s) sur {{total}}',
+    loading: 'Chargement des projets…',
+    noResult: 'Aucun projet ne correspond à cette recherche.',
+    listAriaLabel: 'Résultats de la recherche de projets',
+    showMore: 'Afficher plus ({{count}} restant(s))',
+    unnamedProject: 'Projet sans nom',
+    noOwner: 'Porteur inconnu',
+    filterByThisOwner: 'Afficher tous les projets de ce porteur',
+    coOwners: 'Co-porteurs : {{list}}',
+    updatedOn: 'Mis à jour le {{date}}',
+    status: {
+      draft: 'Brouillon',
+      submitted: 'Soumis',
+      cancelled: 'Soumission annulée',
+      trashed: 'Corbeille'
+    },
+    actions: {
+      editAnswers: 'Modifier les réponses',
+      synthesis: 'Enjeux du projet',
+      showcase: 'Vitrine',
+      cancelSubmission: 'Annuler la soumission',
+      trash: 'Mettre à la corbeille',
+      restore: 'Restaurer',
+      purge: 'Supprimer définitivement'
+    },
+    confirm: {
+      cancel: 'Annuler la soumission de « {{name}} » ? Le projet sort des files compliance et redevient modifiable par son porteur. Aucune notification n’est envoyée.',
+      trash: 'Mettre « {{name}} » à la corbeille ? Il sort de toutes les listes et peut être restauré.',
+      purge: 'Supprimer définitivement « {{name}} » ? Cette action est irréversible.',
+      purgeExpertWork: 'Des experts ont déjà répondu sur ce projet : leurs avis et échanges seront supprimés avec lui.',
+      dismiss: 'Annuler',
+      confirm: 'Confirmer'
     }
   },
   mandatoryQuestionsSummary: {

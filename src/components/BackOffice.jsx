@@ -100,6 +100,7 @@ import { ConditionGroupsEditor } from './ConditionGroupsEditor.jsx';
 import { ACTIVITY_SCOPE_LABELS, ACTIVITY_SCOPE_VALUES } from '../utils/activityScope.js';
 import { PeoplePicker } from './PeoplePicker.jsx';
 import { buildImpersonationUrl, isImpersonating } from '../utils/impersonation.js';
+import { buildAdminConsoleUrl, isAdminConsoleActive } from '../utils/adminConsole.js';
 import {
   createOnboardingAction,
   createOnboardingStep,
@@ -1052,6 +1053,16 @@ export const BackOffice = ({
       window.open(url, '_blank', 'noopener');
     }
   }, [impersonationSelection]);
+  const isAdminConsoleWindow = isAdminConsoleActive();
+  const handleOpenAdminConsole = useCallback(() => {
+    if (typeof window === 'undefined' || !window.location) {
+      return;
+    }
+    const url = buildAdminConsoleUrl(window.location.href);
+    if (url) {
+      window.open(url, '_blank', 'noopener');
+    }
+  }, []);
   const normalizedCurrentUserEmail = useMemo(
     () => (typeof currentUserEmail === 'string' ? currentUserEmail.trim().toLowerCase() : ''),
     [currentUserEmail]
@@ -8469,6 +8480,25 @@ export const BackOffice = ({
                       );
                     })}
                   </div>
+                </div>
+              )}
+
+              {isCurrentUserAdmin && !isSimulatedSession && !isAdminConsoleWindow && (
+                <div className="bg-white border border-red-200 rounded-xl p-6 shadow-sm space-y-4" data-testid="admin-console-launcher">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800">{t('backOffice.main.adminConsoleTitle')}</h3>
+                    <p className="text-sm text-gray-600 mt-1">{t('backOffice.main.adminConsoleDescription')}</p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleOpenAdminConsole}
+                    className="inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium bg-red-700 text-white hover:bg-red-800 transition-all"
+                  >
+                    {t('backOffice.main.adminConsoleButton')}
+                  </button>
+
+                  <p className="text-xs text-gray-500">{t('backOffice.main.adminConsoleHint')}</p>
                 </div>
               )}
 

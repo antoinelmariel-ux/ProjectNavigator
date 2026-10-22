@@ -203,6 +203,21 @@ covers `CN_NotificationsQueue`, so no real Power Automate mail), `storage.js#per
 would be blocked anyway. If you add a new write path, guard it too: the simulation tab shares
 `localStorage` with the admin's real tab and would otherwise clobber their state.
 
+## Project administration console
+
+Full control over every project (other people's drafts included: edit answers, cancel a
+submission, trash, restore, permanently delete even after an expert answered) lives in a
+**dedicated tab**, `?adminConsole=1`, launched from the back-office `Administrateurs` tab — never in
+an admin's ordinary session, so those rights can't be used by accident. `src/utils/adminConsole.js`
+holds the flag; `main.jsx` sets it only when the **real** identity is in `adminEmails` and no
+« Voir en tant que » simulation is active (the two modes exclude each other). `App.jsx` reads it
+once (`isAdminConsole`) and it widens `canManageProject`, `isActiveProjectEditable`, the showcase
+edit gates, restore/permanent delete (any trashed project, not only the owner's trash). In that
+tab the home is replaced by `AdminProjectsConsole.jsx` (own chunk) under a red
+`AdminConsoleBanner`; search is `src/utils/adminProjectSearch.js` (accent/case-insensitive, every
+word must match, owner matches first, owner and status filters). The back-office's own
+`isAdminMode` gates are unchanged. Tests: `test/adminConsole.test.mjs`, `e2e/admin-console.spec.js`.
+
 ## Where the questionnaire lets you out (showcase first)
 
 Finishing the creation form lands on the **project showcase**, not on the compliance report:
