@@ -2132,6 +2132,16 @@ export default {
       solicitedWave: 'Solicited · wave {{wave}} · {{date}}',
       firstWaveBanner: 'You are being consulted first. {{perimeters}} will be after your opinion.'
     },
+    followers: {
+      label: 'People following this project:',
+      none: 'No colleague added.',
+      selectLabel: 'Add a team member as a follower',
+      selectPlaceholder: 'Choose a team member…',
+      addButton: 'Add as follower',
+      removeButton: 'Remove {{person}} from followers',
+      addedBy: 'Added by {{person}}',
+      hint: 'The person you add also receives this project’s notifications for this team, even when someone else is handling it, and can reply or give the opinion.'
+    },
     claim: {
       label: 'Ownership:',
       unassigned: 'nobody is handling this perimeter yet.',

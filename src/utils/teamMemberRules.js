@@ -2,6 +2,7 @@ import { applyRuleConditionGroups, normalizeRuleConditionGroups } from './ruleCo
 import { evaluateRule } from './rules.js';
 import { normalizeEmail } from './normalizeEmail.js';
 import { normalizeTeamContacts } from './teamContacts.js';
+import { withTeamFollowers } from './perimeterFollowers.js';
 
 // Une équipe experte à plusieurs membres peut router chaque sollicitation : un membre porte
 // soit des critères de déclenchement (« uniquement si… »), soit des critères d'exclusion
@@ -102,7 +103,9 @@ export const isTeamMemberTriggered = (rule, answers = {}) => {
 };
 
 // Les destinataires réels d'une équipe pour un projet donné. Sans critère, on retombe exactement
-// sur normalizeTeamContacts (tous les contacts), ce qui garde le comportement d'avant.
+// sur normalizeTeamContacts (tous les contacts), ce qui garde le comportement d'avant. Les
+// contacts qu'un expert a ajoutés au suivi de ce projet (perimeterFollowers.js) sont toujours
+// destinataires : ce choix explicite, fait sur ce projet-là, l'emporte sur les critères.
 export const resolveTeamRecipients = (team, answers = {}) => {
   const rulesByEmail = new Map(
     normalizeTeamMemberRules(team).map((entry) => [normalizeEmail(entry.email), entry])
@@ -112,8 +115,12 @@ export const resolveTeamRecipients = (team, answers = {}) => {
     return normalizeTeamContacts(team);
   }
 
-  return normalizeTeamContacts(team).filter((contact) =>
-    isTeamMemberTriggered(rulesByEmail.get(normalizeEmail(contact)) || null, answers)
+  return withTeamFollowers(
+    normalizeTeamContacts(team).filter((contact) =>
+      isTeamMemberTriggered(rulesByEmail.get(normalizeEmail(contact)) || null, answers)
+    ),
+    team,
+    answers
   );
 };
 

@@ -23,6 +23,7 @@ import {
 } from './icons.js';
 import { normalizeProjectFilterConfig } from '../utils/projectFilters.js';
 import { normalizeInspirationFiltersConfig } from '../utils/inspirationConfig.js';
+import { isPerimeterFollower } from '../utils/perimeterFollowers.js';
 import { normalizeTeamContacts } from '../utils/teamContacts.js';
 import { MANUAL_TEAM_REQUESTS_KEY, normalizeManualTeamRequests } from '../utils/manualTeamRequests.js';
 import {
@@ -725,7 +726,10 @@ export const HomeScreen = ({
               complianceEmails: normalizeTeamContacts(team).map(normalizeEmail),
               claim,
               isMine: isClaimedBy(claim, currentUserEmail),
-              isHandledByOther: isClaimedByOther(claim, currentUserEmail),
+              // Quelqu'un qu'un collègue a ajouté au suivi garde le projet dans sa file, même
+              // pris en charge par un autre : c'est tout l'objet de l'ajout.
+              isHandledByOther: isClaimedByOther(claim, currentUserEmail)
+                && !isPerimeterFollower(teamEntry, currentUserEmail),
               isStale: getClaimStaleness(teamEntry, { team, now: nowIso }).isStale
             };
           });

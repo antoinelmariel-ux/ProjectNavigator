@@ -2142,6 +2142,16 @@ export default {
       solicitedWave: 'Angefragt · Welle {{wave}} · {{date}}',
       firstWaveBanner: 'Sie werden als Erste konsultiert. {{perimeters}} folgen nach Ihrer Stellungnahme.'
     },
+    followers: {
+      label: 'Personen, die dieses Projekt verfolgen:',
+      none: 'Keine Kollegin und kein Kollege hinzugefügt.',
+      selectLabel: 'Ein Teammitglied zur Nachverfolgung hinzufügen',
+      selectPlaceholder: 'Teammitglied auswählen…',
+      addButton: 'Zur Nachverfolgung hinzufügen',
+      removeButton: '{{person}} aus der Nachverfolgung entfernen',
+      addedBy: 'Hinzugefügt von {{person}}',
+      hint: 'Die hinzugefügte Person erhält ebenfalls die Benachrichtigungen zu diesem Projekt für dieses Team, auch wenn jemand anderes zuständig ist, und kann antworten oder die Stellungnahme abgeben.'
+    },
     claim: {
       label: 'Betreuung:',
       unassigned: 'diesen Bereich betreut noch niemand.',

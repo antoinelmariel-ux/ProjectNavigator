@@ -2141,6 +2141,16 @@ export default {
       solicitedWave: 'Sollicité · vague {{wave}} · {{date}}',
       firstWaveBanner: 'Vous êtes consultés en premier. {{perimeters}} le seront après votre avis.'
     },
+    followers: {
+      label: 'Personnes qui suivent ce projet :',
+      none: 'Aucun collègue ajouté.',
+      selectLabel: 'Ajouter un membre de l’équipe au suivi',
+      selectPlaceholder: 'Choisir un membre de l’équipe…',
+      addButton: 'Ajouter au suivi',
+      removeButton: 'Retirer {{person}} du suivi',
+      addedBy: 'Ajouté par {{person}}',
+      hint: 'La personne ajoutée reçoit elle aussi les notifications de ce projet pour cette équipe, même s’il est pris en charge par quelqu’un d’autre, et peut répondre ou rendre l’avis.'
+    },
     claim: {
       label: 'Prise en charge :',
       unassigned: 'personne ne suit encore ce périmètre.',
