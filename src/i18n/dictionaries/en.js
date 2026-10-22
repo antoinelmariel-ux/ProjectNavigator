@@ -82,6 +82,12 @@ export default {
       },
       unknownError: 'Unknown error.'
     },
+    adminConsole: {
+      titlePrefix: '[Admin]',
+      bannerTitle: 'Administration console: you have control over every project.',
+      bannerBody: 'Signed in as {{admin}}. Every change, cancellation or deletion made here is real and applies to the owner’s project.',
+      exit: 'Leave the console'
+    },
     impersonation: {
       titlePrefix: '[Simulation]',
       bannerTitle: 'Identity simulation: you are seeing the app as {{simulated}}.',
@@ -1549,6 +1555,10 @@ export default {
       triggerByTeamCountHint: 'Trigger this committee based on the number of SME teams involved.',
       minTeamsCountLabel: 'Minimum number of teams',
       exampleThreePlaceholder: 'E.g.: 3',
+      adminConsoleTitle: 'Project administration console',
+      adminConsoleDescription: 'Opens Project Navigator in a new tab, in administrator mode: every project on the platform, drafts included, with a search engine (by owner, name, co-owner…) and full control over each one — edit answers, cancel a submission, delete, restore.',
+      adminConsoleButton: 'Open the administration console',
+      adminConsoleHint: 'These rights only apply in that tab, flagged by a red banner. Your usual tab is unchanged.',
       viewAsTitle: 'View as',
       viewAsDescription:
         'Opens the app in a new tab with the chosen identity, to check what that person actually sees: visible projects, back-office tabs, questionnaire adapted to their activity scope.',
@@ -1939,6 +1949,50 @@ export default {
         statusAlertStrongStart: { label: 'Strong alert status (start)', description: 'First color of the gradient used for the most critical alerts.' },
         statusAlertStrongEnd: { label: 'Strong alert status (end)', description: 'Second color of the gradient used for the most critical alerts.' }
       }
+    }
+  },
+  adminConsole: {
+    heading: 'All projects',
+    description: 'Find any project on the platform, submitted or not, and act on its owner’s behalf.',
+    searchLabel: 'Search',
+    searchPlaceholder: 'Owner, project name, co-owner, project lead…',
+    ownerLabel: 'Owner',
+    allOwners: 'All owners',
+    statusLabel: 'Status',
+    allStatuses: 'All statuses',
+    reset: 'Reset',
+    resultCount: '{{count}} project(s) out of {{total}}',
+    loading: 'Loading projects…',
+    noResult: 'No project matches this search.',
+    listAriaLabel: 'Project search results',
+    showMore: 'Show more ({{count}} left)',
+    unnamedProject: 'Untitled project',
+    noOwner: 'Unknown owner',
+    filterByThisOwner: 'Show all projects of this owner',
+    coOwners: 'Co-owners: {{list}}',
+    updatedOn: 'Updated on {{date}}',
+    status: {
+      draft: 'Draft',
+      submitted: 'Submitted',
+      cancelled: 'Submission cancelled',
+      trashed: 'Trash'
+    },
+    actions: {
+      editAnswers: 'Edit answers',
+      synthesis: 'Project stakes',
+      showcase: 'Showcase',
+      cancelSubmission: 'Cancel submission',
+      trash: 'Move to trash',
+      restore: 'Restore',
+      purge: 'Delete permanently'
+    },
+    confirm: {
+      cancel: 'Cancel the submission of “{{name}}”? The project leaves the compliance queues and becomes editable by its owner again. No notification is sent.',
+      trash: 'Move “{{name}}” to the trash? It leaves every list and can be restored.',
+      purge: 'Permanently delete “{{name}}”? This cannot be undone.',
+      purgeExpertWork: 'Experts have already answered on this project: their opinions and exchanges will be deleted with it.',
+      dismiss: 'Cancel',
+      confirm: 'Confirm'
     }
   },
   mandatoryQuestionsSummary: {

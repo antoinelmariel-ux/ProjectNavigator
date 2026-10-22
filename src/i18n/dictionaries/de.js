@@ -82,6 +82,12 @@ export default {
       },
       unknownError: 'Unbekannter Fehler.'
     },
+    adminConsole: {
+      titlePrefix: '[Admin]',
+      bannerTitle: 'Administrationskonsole: Sie haben die Kontrolle über alle Projekte.',
+      bannerBody: 'Angemeldet als {{admin}}. Jede hier vorgenommene Änderung, Stornierung oder Löschung ist echt und gilt für das Projekt seines Verantwortlichen.',
+      exit: 'Konsole verlassen'
+    },
     impersonation: {
       titlePrefix: '[Simulation]',
       bannerTitle: 'Identitätssimulation: Sie sehen die Anwendung als {{simulated}}.',
@@ -1559,6 +1565,10 @@ export default {
       triggerByTeamCountHint: 'Lösen Sie diesen Ausschuss basierend auf der Anzahl der beteiligten SME-Teams aus.',
       minTeamsCountLabel: 'Mindestanzahl der Teams',
       exampleThreePlaceholder: 'Z. B.: 3',
+      adminConsoleTitle: 'Administrationskonsole für Projekte',
+      adminConsoleDescription: 'Öffnet Project Navigator in einem neuen Tab im Administratormodus: alle Projekte der Plattform, Entwürfe eingeschlossen, mit einer Suchmaschine (nach Verantwortlichem, Name, Mitverantwortlichem…) und voller Kontrolle über jedes Projekt — Antworten bearbeiten, Einreichung stornieren, löschen, wiederherstellen.',
+      adminConsoleButton: 'Administrationskonsole öffnen',
+      adminConsoleHint: 'Diese Rechte gelten nur in diesem Tab, der durch ein rotes Banner gekennzeichnet ist. Ihr gewohnter Tab bleibt unverändert.',
       viewAsTitle: 'Anzeigen als',
       viewAsDescription:
         'Öffnet die Anwendung in einem neuen Tab mit der gewählten Identität, um zu prüfen, was diese Person tatsächlich sieht: sichtbare Projekte, Back-Office-Registerkarten, an ihren Tätigkeitsbereich angepasster Fragebogen.',
@@ -1949,6 +1959,50 @@ export default {
         statusAlertStrongStart: { label: 'Status starker Alarm (Start)', description: 'Erste Farbe des Verlaufs für die kritischsten Alarme.' },
         statusAlertStrongEnd: { label: 'Status starker Alarm (Ende)', description: 'Zweite Farbe des Verlaufs für die kritischsten Alarme.' }
       }
+    }
+  },
+  adminConsole: {
+    heading: 'Alle Projekte',
+    description: 'Finden Sie jedes Projekt der Plattform, eingereicht oder nicht, und handeln Sie anstelle seines Verantwortlichen.',
+    searchLabel: 'Suchen',
+    searchPlaceholder: 'Verantwortlicher, Projektname, Mitverantwortlicher, Projektleiter…',
+    ownerLabel: 'Verantwortlicher',
+    allOwners: 'Alle Verantwortlichen',
+    statusLabel: 'Status',
+    allStatuses: 'Alle Status',
+    reset: 'Zurücksetzen',
+    resultCount: '{{count}} Projekt(e) von {{total}}',
+    loading: 'Projekte werden geladen…',
+    noResult: 'Kein Projekt entspricht dieser Suche.',
+    listAriaLabel: 'Ergebnisse der Projektsuche',
+    showMore: 'Mehr anzeigen ({{count}} verbleibend)',
+    unnamedProject: 'Unbenanntes Projekt',
+    noOwner: 'Unbekannter Verantwortlicher',
+    filterByThisOwner: 'Alle Projekte dieses Verantwortlichen anzeigen',
+    coOwners: 'Mitverantwortliche: {{list}}',
+    updatedOn: 'Aktualisiert am {{date}}',
+    status: {
+      draft: 'Entwurf',
+      submitted: 'Eingereicht',
+      cancelled: 'Einreichung storniert',
+      trashed: 'Papierkorb'
+    },
+    actions: {
+      editAnswers: 'Antworten bearbeiten',
+      synthesis: 'Projektthemen',
+      showcase: 'Schaufenster',
+      cancelSubmission: 'Einreichung stornieren',
+      trash: 'In den Papierkorb',
+      restore: 'Wiederherstellen',
+      purge: 'Endgültig löschen'
+    },
+    confirm: {
+      cancel: 'Einreichung von „{{name}}“ stornieren? Das Projekt verlässt die Compliance-Warteschlangen und kann von seinem Verantwortlichen wieder bearbeitet werden. Es wird keine Benachrichtigung gesendet.',
+      trash: '„{{name}}“ in den Papierkorb verschieben? Es verschwindet aus allen Listen und kann wiederhergestellt werden.',
+      purge: '„{{name}}“ endgültig löschen? Dies kann nicht rückgängig gemacht werden.',
+      purgeExpertWork: 'Experten haben zu diesem Projekt bereits geantwortet: Ihre Stellungnahmen und Austausche werden mit gelöscht.',
+      dismiss: 'Abbrechen',
+      confirm: 'Bestätigen'
     }
   },
   mandatoryQuestionsSummary: {

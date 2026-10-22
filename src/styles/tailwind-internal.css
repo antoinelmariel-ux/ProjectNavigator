@@ -292,6 +292,11 @@
   background-color: rgba(220,38,38, var(--tw-bg-opacity));
 }
 
+.bg-red-700 {
+  --tw-bg-opacity: 1;
+  background-color: rgba(185,28,28, var(--tw-bg-opacity));
+}
+
 .bg-rose-100 {
   --tw-bg-opacity: 1;
   background-color: rgba(255,228,230, var(--tw-bg-opacity));
@@ -521,6 +526,11 @@
 
 .border-transparent {
   border-color: transparent;
+}
+
+.border-white {
+  --tw-border-opacity: 1;
+  border-color: rgba(255,255,255, var(--tw-border-opacity));
 }
 
 .border-yellow-200 {
@@ -2406,6 +2416,18 @@
   }
 }
 
+@media (min-width: 768px) {
+  .md\:w-48 {
+    width: 12rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .md\:w-64 {
+    width: 16rem;
+  }
+}
+
 @media (min-width: 1024px) {
   .lg\:border-l {
     border-left-width: 1px;
@@ -2666,6 +2688,11 @@
   background-color: rgba(255,237,213, var(--tw-bg-opacity));
 }
 
+.hover\:bg-orange-50:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgba(255,247,237, var(--tw-bg-opacity));
+}
+
 .hover\:bg-orange-600:hover {
   --tw-bg-opacity: 1;
   background-color: rgba(234,88,12, var(--tw-bg-opacity));
@@ -2699,6 +2726,11 @@
 .hover\:bg-red-700:hover {
   --tw-bg-opacity: 1;
   background-color: rgba(185,28,28, var(--tw-bg-opacity));
+}
+
+.hover\:bg-red-800:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgba(153,27,27, var(--tw-bg-opacity));
 }
 
 .hover\:bg-yellow-100:hover {

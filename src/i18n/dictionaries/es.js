@@ -82,6 +82,12 @@ export default {
       },
       unknownError: 'Error desconocido.'
     },
+    adminConsole: {
+      titlePrefix: '[Admin]',
+      bannerTitle: 'Consola de administración: tiene el control de todos los proyectos.',
+      bannerBody: 'Conectado como {{admin}}. Cada modificación, anulación o eliminación realizada aquí es real y se aplica al proyecto de su responsable.',
+      exit: 'Salir de la consola'
+    },
     impersonation: {
       titlePrefix: '[Simulación]',
       bannerTitle: 'Simulación de identidad: está viendo la aplicación como {{simulated}}.',
@@ -1550,6 +1556,10 @@ export default {
       triggerByTeamCountHint: 'Active este comité en función del número de equipos SME implicados.',
       minTeamsCountLabel: 'Número mínimo de equipos',
       exampleThreePlaceholder: 'Ej.: 3',
+      adminConsoleTitle: 'Consola de administración de proyectos',
+      adminConsoleDescription: 'Abre Project Navigator en una nueva pestaña, en modo administrador: todos los proyectos de la plataforma, borradores incluidos, con un buscador (por responsable, nombre, corresponsable…) y control total sobre cada uno — modificar respuestas, anular un envío, eliminar, restaurar.',
+      adminConsoleButton: 'Abrir la consola de administración',
+      adminConsoleHint: 'Estos derechos solo se aplican en esa pestaña, señalada con un banner rojo. Su pestaña habitual no cambia.',
       viewAsTitle: 'Ver como',
       viewAsDescription:
         'Abre la aplicación en una pestaña nueva con la identidad elegida, para comprobar lo que esa persona ve realmente: proyectos visibles, pestañas del back-office, cuestionario adaptado a su ámbito de actividad.',
@@ -1940,6 +1950,50 @@ export default {
         statusAlertStrongStart: { label: 'Estado de alerta reforzada (inicio)', description: 'Primer color del degradado utilizado para las alertas más críticas.' },
         statusAlertStrongEnd: { label: 'Estado de alerta reforzada (fin)', description: 'Segundo color del degradado utilizado para las alertas más críticas.' }
       }
+    }
+  },
+  adminConsole: {
+    heading: 'Todos los proyectos',
+    description: 'Encuentre cualquier proyecto de la plataforma, enviado o no, y actúe en lugar de su responsable.',
+    searchLabel: 'Buscar',
+    searchPlaceholder: 'Responsable, nombre del proyecto, corresponsable, jefe de proyecto…',
+    ownerLabel: 'Responsable',
+    allOwners: 'Todos los responsables',
+    statusLabel: 'Estado',
+    allStatuses: 'Todos los estados',
+    reset: 'Restablecer',
+    resultCount: '{{count}} proyecto(s) de {{total}}',
+    loading: 'Cargando proyectos…',
+    noResult: 'Ningún proyecto coincide con esta búsqueda.',
+    listAriaLabel: 'Resultados de la búsqueda de proyectos',
+    showMore: 'Mostrar más (quedan {{count}})',
+    unnamedProject: 'Proyecto sin nombre',
+    noOwner: 'Responsable desconocido',
+    filterByThisOwner: 'Mostrar todos los proyectos de este responsable',
+    coOwners: 'Corresponsables: {{list}}',
+    updatedOn: 'Actualizado el {{date}}',
+    status: {
+      draft: 'Borrador',
+      submitted: 'Enviado',
+      cancelled: 'Envío anulado',
+      trashed: 'Papelera'
+    },
+    actions: {
+      editAnswers: 'Modificar respuestas',
+      synthesis: 'Retos del proyecto',
+      showcase: 'Escaparate',
+      cancelSubmission: 'Anular el envío',
+      trash: 'Mover a la papelera',
+      restore: 'Restaurar',
+      purge: 'Eliminar definitivamente'
+    },
+    confirm: {
+      cancel: '¿Anular el envío de «{{name}}»? El proyecto sale de las colas de compliance y vuelve a ser editable por su responsable. No se envía ninguna notificación.',
+      trash: '¿Mover «{{name}}» a la papelera? Sale de todas las listas y puede restaurarse.',
+      purge: '¿Eliminar definitivamente «{{name}}»? Esta acción es irreversible.',
+      purgeExpertWork: 'Los expertos ya han respondido en este proyecto: sus opiniones e intercambios se eliminarán con él.',
+      dismiss: 'Cancelar',
+      confirm: 'Confirmar'
     }
   },
   mandatoryQuestionsSummary: {

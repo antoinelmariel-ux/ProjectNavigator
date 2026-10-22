@@ -1,9 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState, Suspense } from './react.js';
 import { AnnotationLayer } from './components/AnnotationLayer.jsx';
 import { ImpersonationBanner } from './components/ImpersonationBanner.jsx';
+import { AdminConsoleBanner } from './components/AdminConsoleBanner.jsx';
 import {
   LazyBackOffice,
   LazyProjectShowcase,
+  LazyAdminProjectsConsole,
   LazyHomeScreen,
   LazyInspirationForm,
   LazyInspirationDetail,
@@ -145,6 +147,7 @@ import {
 import { canQuestionHaveDoubt, withQuestionDoubt, withoutQuestionDoubt, getOpenQuestionDoubts } from './utils/questionDoubts.js';
 import { getCurrentUser, getRealUser } from './utils/spContext.js';
 import { isImpersonating } from './utils/impersonation.js';
+import { isAdminConsoleActive } from './utils/adminConsole.js';
 import { dataProvider } from './utils/dataProvider.js';
 import { inspirationDataProvider, buildOnboardingDemoInspirations } from './utils/inspirationDataProvider.js';
 import { projectMembersProvider } from './utils/projectMembersProvider.js';
@@ -984,6 +987,9 @@ export const App = () => {
   // logique de rôles en découle sans autre point de branchement.
   const currentUser = getCurrentUser();
   const isSimulatedSession = isImpersonating();
+  // Fenêtre ouverte depuis le back-office (voir adminConsole.js) : seule à donner la main sur
+  // tous les projets, brouillons des autres compris. Fixée par main.jsx avant le premier rendu.
+  const isAdminConsole = isAdminConsoleActive();
   const realUserEmail = useMemo(
     () => normalizeEmail(getRealUser()?.mail || getRealUser()?.userPrincipalName || ''),
     []
@@ -3596,7 +3602,7 @@ const updateProjectFilters = useCallback((updater) => {
       return false;
     }
 
-    if (isAdminMode || isCurrentUserAdmin) {
+    if (isAdminMode || isAdminConsole) {
       return true;
     }
 
@@ -3609,7 +3615,7 @@ const updateProjectFilters = useCallback((updater) => {
     const isCoOwner = sharedWith.some(entry => normalizeEmail(entry) === currentUserEmail);
 
     return ownerEmail === currentUserEmail || isCoOwner;
-  }, [currentUserEmail, isAdminMode, isCurrentUserAdmin]);
+  }, [currentUserEmail, isAdminConsole, isAdminMode]);
   const canSetProjectVisibility = useCallback((project) => {
     if (!project) {
       return false;
@@ -3995,14 +4001,15 @@ const updateProjectFilters = useCallback((updater) => {
     && !userProfileLoadFailed
     && (!userProfile || !userProfile.hasCompletedOnboarding)
     && !isOpeningSharedShowcaseLink
-    && !isSimulatedSession;
+    && !isSimulatedSession
+    && !isAdminConsole;
   // Une soumission annulée redevient modifiable par son porteur, exactement comme un
   // brouillon — c'est le sens même de l'annulation, pas un simple retrait de la file
   // compliance.
   const isActiveProjectEditable = !activeProject
     || (canManageProject(activeProject) && isProjectOpenForEditing(activeProject))
     || isAdminMode
-    || isCurrentUserAdmin;
+    || isAdminConsole;
 
   const annotationOffsetClass = isAnnotationModeEnabled && screen === 'showcase'
     ? 'pt-20 lg:pt-24'
@@ -4091,7 +4098,7 @@ const updateProjectFilters = useCallback((updater) => {
           return prevProjects;
         }
 
-        const canUpdateProject = isProjectOpenForEditing(project) || isAdminMode;
+        const canUpdateProject = isProjectOpenForEditing(project) || isAdminMode || isAdminConsole;
         if (!canUpdateProject) {
           return prevProjects;
         }
@@ -4174,7 +4181,7 @@ const updateProjectFilters = useCallback((updater) => {
             return prevProjects;
           }
 
-          const canUpdateProject = isProjectOpenForEditing(project) || isAdminMode;
+          const canUpdateProject = isProjectOpenForEditing(project) || isAdminMode || isAdminConsole;
           if (!canUpdateProject) {
             return prevProjects;
           }
@@ -5740,9 +5747,16 @@ const updateProjectFilters = useCallback((updater) => {
     setActiveProjectId(prev => (prev === projectId ? null : prev));
   }, [canManageProject, currentUserEmail, persistProjectAnswersPatch]);
 
+  // La console d'administration voit toute la corbeille, y compris les projets que leur porteur
+  // en a déjà retirés parce qu'un expert y avait répondu (« Abandonnés »).
+  const isRecoverableFromTrash = useCallback(
+    (project) => (isAdminConsole ? isProjectTrashed(project) : isProjectInOwnerTrash(project)),
+    [isAdminConsole]
+  );
+
   const handleRestoreProject = useCallback((projectId) => {
     const targetProject = projectsRef.current.find((project) => project?.id === projectId);
-    if (!targetProject || !isProjectInOwnerTrash(targetProject)) {
+    if (!targetProject || !isRecoverableFromTrash(targetProject)) {
       return;
     }
 
@@ -5751,7 +5765,7 @@ const updateProjectFilters = useCallback((updater) => {
     }
 
     persistProjectAnswersPatch(targetProject, withProjectRestored(targetProject.answers));
-  }, [canManageProject, persistProjectAnswersPatch]);
+  }, [canManageProject, isRecoverableFromTrash, persistProjectAnswersPatch]);
 
   // Suppression définitive depuis la corbeille. Tant qu'aucun expert n'a répondu, c'est une
   // suppression réelle et persistée (sans appel serveur, le projet réapparaîtrait au prochain
@@ -5760,7 +5774,7 @@ const updateProjectFilters = useCallback((updater) => {
   // projet quitte sa corbeille mais reste visible des experts, dans « Abandonnés ».
   const handlePermanentlyDeleteProject = useCallback((projectId) => {
     const targetProject = projectsRef.current.find((project) => project?.id === projectId);
-    if (!targetProject || !isProjectInOwnerTrash(targetProject)) {
+    if (!targetProject || !isRecoverableFromTrash(targetProject)) {
       return;
     }
 
@@ -5768,7 +5782,7 @@ const updateProjectFilters = useCallback((updater) => {
       return;
     }
 
-    if (!isAdminMode && !isCurrentUserAdmin && !canPermanentlyDeleteProject(targetProject, trashResponseOptions)) {
+    if (!isAdminConsole && !canPermanentlyDeleteProject(targetProject, trashResponseOptions)) {
       persistProjectAnswersPatch(targetProject, withProjectPurgedByOwner(targetProject.answers, { by: currentUserEmail }));
       return;
     }
@@ -5785,7 +5799,7 @@ const updateProjectFilters = useCallback((updater) => {
     complianceCommentsQueueRef.current?.enqueue({ action: 'removeAllForProject', projectId });
     stickyNotesQueueRef.current?.enqueue({ action: 'removeAllForProject', projectId });
     filesIndexQueueRef.current?.enqueue({ projectId });
-  }, [canManageProject, currentUserEmail, isAdminMode, isCurrentUserAdmin, persistProjectAnswersPatch, trashResponseOptions]);
+  }, [canManageProject, currentUserEmail, isAdminConsole, isRecoverableFromTrash, persistProjectAnswersPatch, trashResponseOptions]);
 
   const handleToggleProjectVisibility = useCallback((projectId) => {
     if (!projectId) {
@@ -6216,10 +6230,10 @@ const updateProjectFilters = useCallback((updater) => {
     if (
       !showcaseProjectContext ||
       !projectId ||
-      (!isEditableContext(showcaseProjectContext.status) && !isAdminMode)
+      (!isEditableContext(showcaseProjectContext.status) && !isAdminMode && !isAdminConsole)
       || !canManageProject(project)
       || !project
-      || (!isProjectOpenForEditing(project) && !isAdminMode)
+      || (!isProjectOpenForEditing(project) && !isAdminMode && !isAdminConsole)
     ) {
       return;
     }
@@ -6850,7 +6864,7 @@ const updateProjectFilters = useCallback((updater) => {
       return false;
     }
 
-    if (isCurrentUserAdmin || isAdminMode || canManageProject(project)) {
+    if (isCurrentUserAdmin || isAdminMode || isAdminConsole || canManageProject(project)) {
       return true;
     }
 
@@ -7631,6 +7645,7 @@ const updateProjectFilters = useCallback((updater) => {
       {isSimulatedSession && (
         <ImpersonationBanner simulatedEmail={currentUserEmail} realEmail={realUserEmail} />
       )}
+      {isAdminConsole && <AdminConsoleBanner adminEmail={realUserEmail} />}
 
       {!isOnline && (
         <div
@@ -8347,6 +8362,20 @@ const updateProjectFilters = useCallback((updater) => {
               />
             </Suspense>
           </AdminBackOfficeErrorBoundary>
+        ) : screen === 'home' && isAdminConsole ? (
+          <Suspense fallback={(<LoadingFallback label={t('app.loading.screenLabel')} hint={t('app.loading.screenHint')} />)}>
+            <LazyAdminProjectsConsole
+              projects={projects}
+              isProjectsLoading={sharePointSync.state === 'loading'}
+              canPermanentlyDeleteProject={(project) => canPermanentlyDeleteProject(project, trashResponseOptions)}
+              onOpenProject={handleOpenProject}
+              onShowProjectShowcase={handleShowProjectShowcase}
+              onCancelProjectSubmission={handleCancelProjectSubmission}
+              onDeleteProject={handleDeleteProject}
+              onRestoreProject={handleRestoreProject}
+              onPermanentlyDeleteProject={handlePermanentlyDeleteProject}
+            />
+          </Suspense>
         ) : screen === 'home' ? (
           <Suspense fallback={(<LoadingFallback label={t('app.loading.screenLabel')} hint={t('app.loading.screenHint')} />)}>
             <LazyHomeScreen
@@ -8354,8 +8383,7 @@ const updateProjectFilters = useCallback((updater) => {
             trashedProjects={trashedProjects}
             onRestoreProject={handleRestoreProject}
             onPermanentlyDeleteProject={handlePermanentlyDeleteProject}
-            canPermanentlyDeleteProject={(project) => isAdminMode || isCurrentUserAdmin
-              || canPermanentlyDeleteProject(project, trashResponseOptions)}
+            canPermanentlyDeleteProject={(project) => canPermanentlyDeleteProject(project, trashResponseOptions)}
             showcaseFeedbackCounts={showcaseFeedbackCounts}
             launchSignals={launchSignalsByProject}
             projectFilters={projectFilters}
@@ -8518,7 +8546,7 @@ const updateProjectFilters = useCallback((updater) => {
                   answers: showcaseProjectContext.answers
                 }) && canEditShowcaseProject) && (
                 <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
-                  {isAdminMode
+                  {isAdminMode || isAdminConsole
                     ? t('app.showcaseStatus.adminEditable')
                     : t('app.showcaseStatus.readOnly')}
                 </div>
@@ -8556,7 +8584,7 @@ const updateProjectFilters = useCallback((updater) => {
                         : (isProjectOpenForEditing({
                           status: showcaseProjectContext.status,
                           answers: showcaseProjectContext.answers
-                        }) && canEditShowcaseProject) || isAdminMode
+                        }) && canEditShowcaseProject) || isAdminMode || isAdminConsole
                           ? handleUpdateProjectShowcaseAnswers
                           : undefined
                   }
