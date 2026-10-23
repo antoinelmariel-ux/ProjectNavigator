@@ -685,9 +685,10 @@ export const HomeScreen = ({
     const nowIso = new Date().toISOString();
 
     return projects
-      // Une soumission annulée sort immédiatement de la file compliance : elle ne doit plus
-      // apparaître ni « à traiter » ni « traitée », le porteur l'a retirée du circuit.
-      .filter((project) => project?.status !== 'cancelled')
+      // Un expert n'est sollicité que par une soumission (orientation, avis technique ou
+      // validation) : un brouillon n'entre jamais dans sa file, même si ses réponses déclenchent son
+      // équipe. Une soumission annulée en sort aussi, le porteur l'a retirée du circuit.
+      .filter((project) => project?.status === 'submitted')
       .map((project) => {
         const comments = normalizeComplianceComments(project?.answers?.[COMPLIANCE_COMMENTS_KEY]);
         const forcedCommitteeIds = comments.forcedCommitteeIds;
@@ -702,16 +703,14 @@ export const HomeScreen = ({
           (team) => team?.id && (analysisTeamIds.includes(team.id) || manualTeamIds.includes(team.id))
         );
         // Un périmètre que le porteur a mis de côté (consultation par vagues) n'a pas encore été
-        // sollicité : ses experts ne doivent pas voir le projet. Une équipe à qui une question a
-        // été posée l'a été, elle, explicitement — elle garde le projet.
+        // sollicité : ses experts ne doivent pas voir le projet.
         const deferredKeys = getDeferredPerimeterKeys(project, {
           teams,
           validationCommitteeConfig: normalizedValidationCommitteeConfig
         });
 
         const triggeredTeams = relevantTeams
-          .filter((team) => !deferredKeys.has(buildPerimeterKey(PERIMETER_TYPE_TEAM, team.id))
-            || manualTeamIds.includes(team.id))
+          .filter((team) => !deferredKeys.has(buildPerimeterKey(PERIMETER_TYPE_TEAM, team.id)))
           .filter((team) => {
             const contacts = normalizeTeamContacts(team);
             return contacts.some((contact) => normalizeEmail(contact) === currentUserEmail);

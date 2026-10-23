@@ -1119,8 +1119,8 @@ export const BackOffice = ({
     }))
     .filter((entry) => entry.perimeters.length > 0), [normalizedValidationCommitteeConfig, projects, teams]);
   // Un expert ne voit au tableau de bord que les projets qui sollicitent ses équipes ou ses
-  // comités, et un périmètre mis de côté (vagues) ne compte pas encore. Une équipe à qui une
-  // question a été posée l'a été explicitement : elle garde le projet.
+  // comités, et un périmètre mis de côté (vagues) ne compte pas encore. Un brouillon n'a sollicité
+  // personne : seules les soumissions apparaissent.
   const dashboardScope = useMemo(() => (allowedTabIds
     ? { teamIds: currentUserTeamIds, committeeIds: currentUserCommitteeIds }
     : null), [allowedTabIds, currentUserCommitteeIds, currentUserTeamIds]);
@@ -1136,12 +1136,16 @@ export const BackOffice = ({
     const deferredKeysByProject = new Map(deferredPerimetersByProject
       .map((entry) => [entry.project?.id, new Set(entry.perimeters.map((perimeter) => perimeter.key))]));
     return (Array.isArray(projects) ? projects : []).filter((project) => {
-      const manualTeamIds = normalizeManualTeamRequests(project?.answers?.[MANUAL_TEAM_REQUESTS_KEY])
-        .map((entry) => entry.teamId);
-      if (manualTeamIds.some((teamId) => ownTeamIds.has(teamId))) {
-        return true;
+      if (project?.status !== 'submitted') {
+        return false;
       }
       const deferredKeys = deferredKeysByProject.get(project?.id);
+      const manualTeamIds = normalizeManualTeamRequests(project?.answers?.[MANUAL_TEAM_REQUESTS_KEY])
+        .map((entry) => entry.teamId);
+      if (manualTeamIds.some((teamId) => ownTeamIds.has(teamId)
+        && !(deferredKeys && deferredKeys.has(buildPerimeterKey(PERIMETER_TYPE_TEAM, teamId))))) {
+        return true;
+      }
       return getSolicitablePerimeters(project, {
         teams,
         validationCommitteeConfig: normalizedValidationCommitteeConfig
