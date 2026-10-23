@@ -175,7 +175,7 @@ import {
 } from './utils/sharePointSetup.js';
 import { isSharePointMode, withWebViewEnv } from './config/sharepointConfig.js';
 import { REFERENTIAL_FILES, loadReferentials } from './utils/referentialStore.js';
-import { mergeServerAndLocalProjects } from './utils/syncMerge.js';
+import { listPossiblyDeletedProjects, mergeServerAndLocalProjects } from './utils/syncMerge.js';
 import { queueNotification } from './utils/notificationQueue.js';
 import { NOTIFICATION_TYPES, buildNotification } from './utils/notificationTemplates.js';
 import { resolveLocalizedText } from './utils/localizedContent.js';
@@ -340,6 +340,7 @@ const verifyBackOfficePassword = async (value) => {
 const COMPLIANCE_COMMENTS_KEY = '__compliance_team_comments__';
 const PUBLIC_VISIBILITY_KEY = '__public_visibility__';
 const SHOWCASE_COMMENT_EDIT_DEBOUNCE_MS = 1200;
+const MAX_DELETION_CHECKS = 50;
 
 const REFERENTIAL_SELECTION_KEYS = Object.keys(REFERENTIAL_FILES);
 const REFERENTIAL_FILE_NAME_TO_KEY = Object.fromEntries(
@@ -1920,8 +1921,26 @@ const updateProjectFilters = useCallback((updater) => {
           }
         }));
 
+        // Un projet déjà confirmé par le serveur puis absent de la liste n'est retiré du cache
+        // que si une lecture ciblée confirme qu'il n'existe plus. Toute erreur le conserve.
+        const suspectProjects = listPossiblyDeletedProjects(
+          normalizedServerProjects,
+          projectsRef.current
+        ).slice(0, MAX_DELETION_CHECKS);
+        const confirmedDeletedIds = (await Promise.all(suspectProjects.map(async (project) => {
+          try {
+            return (await dataProvider.projectExists(project.id)) === false ? project.id : null;
+          } catch {
+            return null;
+          }
+        }))).filter(Boolean);
+
+        if (cancelled) {
+          return;
+        }
+
         setProjects((previousProjects) =>
-          mergeServerAndLocalProjects(normalizedServerProjects, previousProjects)
+          mergeServerAndLocalProjects(normalizedServerProjects, previousProjects, confirmedDeletedIds)
         );
 
         const warnings = [];

@@ -125,6 +125,10 @@ class MockSharePointProvider {
     this.projects.delete(projectId);
     return { id: projectId };
   }
+
+  async projectExists(projectId) {
+    return this.projects.has(projectId);
+  }
 }
 
 // Pas de listProjectsSync ici : l’accès réseau est asynchrone par nature. Les appelants
@@ -177,6 +181,10 @@ export class SharePointRestProvider {
     }
     await this.repository.remove(found.row.Id, found.etag);
     return { id: projectId };
+  }
+
+  async projectExists(projectId) {
+    return Boolean(await this.repository.findRawByKey(projectId));
   }
 }
 
