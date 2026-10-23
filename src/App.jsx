@@ -152,7 +152,7 @@ import {
 import { canQuestionHaveDoubt, withQuestionDoubt, withoutQuestionDoubt, getOpenQuestionDoubts } from './utils/questionDoubts.js';
 import { getCurrentUser, getRealUser } from './utils/spContext.js';
 import { isImpersonating } from './utils/impersonation.js';
-import { isAdminConsoleActive } from './utils/adminConsole.js';
+import { buildAdminConsoleUrl, isAdminConsoleActive } from './utils/adminConsole.js';
 import { dataProvider } from './utils/dataProvider.js';
 import { inspirationDataProvider, buildOnboardingDemoInspirations } from './utils/inspirationDataProvider.js';
 import { projectMembersProvider } from './utils/projectMembersProvider.js';
@@ -1542,7 +1542,7 @@ export const App = () => {
 
     if (projectId) {
       pendingShowcaseProjectIdRef.current = projectId;
-      pendingProjectViewRef.current = rawView === 'synthesis' ? 'synthesis' : null;
+      pendingProjectViewRef.current = rawView === 'synthesis' || rawView === 'questionnaire' ? rawView : null;
     }
 
     if (resolvedShowcaseMode) {
@@ -6234,13 +6234,22 @@ const updateProjectFilters = useCallback((updater) => {
       return;
     }
 
-    if (pendingView === 'synthesis') {
+    if (pendingView === 'synthesis' || (pendingView === 'questionnaire' && isAdminConsole)) {
       discardPendingSharedShowcase();
-      handleOpenProject(pendingProjectId, { view: 'synthesis' });
+      handleOpenProject(pendingProjectId, { view: pendingView });
     } else {
       openProjectShowcase({ projectId: pendingProjectId });
     }
-  }, [currentUserEmail, handleOpenProject, isHydrated, openProjectShowcase, projects, sharePointSync.state, trashResponseOptions]);
+  }, [currentUserEmail, handleOpenProject, isAdminConsole, isHydrated, openProjectShowcase, projects, sharePointSync.state, trashResponseOptions]);
+
+  const handleOpenProjectInNewTab = useCallback((projectId, view) => {
+    const baseUrl = buildProjectUrl(projectId, view);
+    if (!baseUrl || typeof window === 'undefined') {
+      return;
+    }
+
+    window.open(buildAdminConsoleUrl(baseUrl), '_blank', 'noopener');
+  }, [buildProjectUrl]);
 
   const handleShowProjectShowcase = useCallback((projectId) => {
     if (!projectId) {
@@ -8495,8 +8504,8 @@ const updateProjectFilters = useCallback((updater) => {
               projects={projects}
               isProjectsLoading={sharePointSync.state === 'loading'}
               canPermanentlyDeleteProject={(project) => canPermanentlyDeleteProject(project, trashResponseOptions)}
-              onOpenProject={handleOpenProject}
-              onShowProjectShowcase={handleShowProjectShowcase}
+              onOpenProject={handleOpenProjectInNewTab}
+              onShowProjectShowcase={(projectId) => handleOpenProjectInNewTab(projectId, null)}
               onCancelProjectSubmission={handleCancelProjectSubmission}
               onDeleteProject={handleDeleteProject}
               onRestoreProject={handleRestoreProject}
