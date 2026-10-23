@@ -1,6 +1,34 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mergeServerAndLocalProjects } from '../src/utils/syncMerge.js';
+import { listPossiblyDeletedProjects, mergeServerAndLocalProjects } from '../src/utils/syncMerge.js';
+
+test('seuls les projets déjà confirmés par le serveur (rowVersion) sont suspects', () => {
+  const suspects = listPossiblyDeletedProjects(
+    [{ id: 'on-server', rowVersion: 2 }],
+    [
+      { id: 'on-server', rowVersion: 1 },
+      { id: 'synced-then-gone', rowVersion: 3 },
+      { id: 'never-synced' },
+      { id: 'demo', rowVersion: 1, isDemo: true }
+    ]
+  );
+
+  assert.deepEqual(suspects.map((project) => project.id), ['synced-then-gone']);
+});
+
+test('un projet dont l’absence est confirmée est retiré, les autres restent', () => {
+  const merged = mergeServerAndLocalProjects(
+    [{ id: 'p-1', rowVersion: 1 }],
+    [
+      { id: 'gone', rowVersion: 2 },
+      { id: 'unverified', rowVersion: 2 },
+      { id: 'never-synced' }
+    ],
+    ['gone']
+  );
+
+  assert.deepEqual(merged.map((project) => project.id), ['p-1', 'unverified', 'never-synced']);
+});
 
 test('le serveur fait autorité sur les projets qu’il connaît', () => {
   const merged = mergeServerAndLocalProjects(
