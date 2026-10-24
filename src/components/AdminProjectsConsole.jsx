@@ -170,7 +170,7 @@ export const AdminProjectsConsole = ({
                 <>
                   <button
                     type="button"
-                    onClick={() => onOpenProject?.(project.id, { view: 'questionnaire' })}
+                    onClick={() => onOpenProject?.(project.id, 'questionnaire')}
                     className={`${ACTION_BUTTON_CLASSNAME} border-blue-200 text-blue-700 hover:bg-blue-50`}
                   >
                     <Edit className="h-4 w-4" aria-hidden="true" />
@@ -178,7 +178,7 @@ export const AdminProjectsConsole = ({
                   </button>
                   <button
                     type="button"
-                    onClick={() => onOpenProject?.(project.id, { view: 'synthesis' })}
+                    onClick={() => onOpenProject?.(project.id, 'synthesis')}
                     className={`${ACTION_BUTTON_CLASSNAME} border-gray-200 text-gray-700 hover:bg-gray-50`}
                   >
                     <FileText className="h-4 w-4" aria-hidden="true" />
