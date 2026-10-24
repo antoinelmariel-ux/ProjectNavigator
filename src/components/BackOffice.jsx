@@ -38,6 +38,7 @@ import { normalizeLaunchReminderDays } from '../utils/launchConfirmation.js';
 import { VirtualizedList } from './VirtualizedList.jsx';
 import { renderTextWithLinks } from '../utils/linkify.js';
 import { normalizeConditionGroups } from '../utils/conditionGroups.js';
+import { foldSearchText } from '../utils/adminProjectSearch.js';
 import {
   buildExtraCheckboxQuestionId,
   getConditionQuestionEntries,
@@ -1194,6 +1195,7 @@ export const BackOffice = ({
   const [complianceReviewDisplayMode, setComplianceReviewDisplayMode] = useState('direct');
   const [complianceReviewActiveQuestionId, setComplianceReviewActiveQuestionId] = useState('');
   const [complianceReviewSampleId, setComplianceReviewSampleId] = useState('');
+  const [complianceSampleSearch, setComplianceSampleSearch] = useState('');
   const [complianceReviewSampleLabel, setComplianceReviewSampleLabel] = useState('');
   const [complianceReviewSampleDirty, setComplianceReviewSampleDirty] = useState(false);
   const [isSampleNameRowOpen, setIsSampleNameRowOpen] = useState(false);
@@ -4278,6 +4280,26 @@ export const BackOffice = ({
       })),
     [projects, t]
   );
+
+  const filteredComplianceSamples = useMemo(() => {
+    const needle = foldSearchText(complianceSampleSearch).trim();
+    if (!needle) {
+      return complianceSampleList;
+    }
+    return complianceSampleList.filter((sample) => (
+      `sample:${sample.id}` === complianceReviewSampleId || foldSearchText(sample.name).includes(needle)
+    ));
+  }, [complianceSampleList, complianceSampleSearch, complianceReviewSampleId]);
+
+  const filteredComplianceRealProjects = useMemo(() => {
+    const needle = foldSearchText(complianceSampleSearch).trim();
+    if (!needle) {
+      return complianceRealProjects;
+    }
+    return complianceRealProjects.filter((project) => (
+      `project:${project.id}` === complianceReviewSampleId || foldSearchText(project.name).includes(needle)
+    ));
+  }, [complianceRealProjects, complianceSampleSearch, complianceReviewSampleId]);
 
   const applyComplianceSampleAnswers = useCallback((answers, label, sampleId) => {
     setComplianceReviewAnswers(answers && typeof answers === 'object' ? { ...answers } : {});
@@ -9525,29 +9547,43 @@ export const BackOffice = ({
                 </div>
 
                 <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
+                  <div className="flex w-full flex-col gap-2 lg:max-w-md">
+                  <input
+                    id="compliance-review-sample-search"
+                    type="search"
+                    value={complianceSampleSearch}
+                    onChange={(event) => setComplianceSampleSearch(event.target.value)}
+                    aria-label={t('backOffice.main.benchSampleSearchLabel')}
+                    placeholder={t('backOffice.main.benchSampleSearchPlaceholder')}
+                    className="w-full px-3 py-2 border border-indigo-200 rounded-lg text-sm bg-white"
+                  />
                   <select
                     id="compliance-review-sample"
                     value={complianceReviewSampleId}
                     onChange={(event) => handleLoadComplianceSample(event.target.value)}
                     aria-label={t('backOffice.main.benchSampleSelectLabel')}
-                    className="w-full lg:max-w-md px-3 py-2 border border-indigo-200 rounded-lg text-sm bg-white"
+                    className="w-full px-3 py-2 border border-indigo-200 rounded-lg text-sm bg-white"
                   >
                     <option value="">{t('backOffice.main.benchSampleBlankOption')}</option>
-                    {complianceSampleList.length > 0 && (
+                    {filteredComplianceSamples.length > 0 && (
                       <optgroup label={t('backOffice.main.benchSampleMineGroup')}>
-                        {complianceSampleList.map((sample) => (
+                        {filteredComplianceSamples.map((sample) => (
                           <option key={sample.id} value={`sample:${sample.id}`}>{sample.name}</option>
                         ))}
                       </optgroup>
                     )}
-                    {complianceRealProjects.length > 0 && (
+                    {filteredComplianceRealProjects.length > 0 && (
                       <optgroup label={t('backOffice.main.benchSampleProjectsGroup')}>
-                        {complianceRealProjects.map((project) => (
+                        {filteredComplianceRealProjects.map((project) => (
                           <option key={project.id} value={`project:${project.id}`}>{project.name}</option>
                         ))}
                       </optgroup>
                     )}
                   </select>
+                  {complianceSampleSearch.trim() && filteredComplianceSamples.length === 0 && filteredComplianceRealProjects.length === 0 && (
+                    <p className="text-xs text-indigo-800">{t('backOffice.main.benchSampleSearchEmpty')}</p>
+                  )}
+                  </div>
 
                   <div className="flex flex-wrap gap-2">
                     <button
