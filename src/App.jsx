@@ -913,6 +913,7 @@ export const App = () => {
   const [analysis, setAnalysis] = useState(null);
   const [projects, setProjects] = useState(buildInitialProjectsState);
   const projectsRef = useRef(projects);
+  const openedProjectAnswersRef = useRef(null);
   const [inspirationProjects, setInspirationProjects] = useState(() => []);
   const [hasLoadedInspirationProjects, setHasLoadedInspirationProjects] = useState(false);
   const [onboardingTourConfig, setOnboardingTourConfig] = useState(buildInitialOnboardingConfig);
@@ -3462,6 +3463,70 @@ const updateProjectFilters = useCallback((updater) => {
     () => projects.find(project => project.id === activeProjectId) || null,
     [projects, activeProjectId]
   );
+  // Un projet ouvert depuis le cache local (lien d'e-mail, accueil) copie ses réponses dans `answers`
+  // avant que SharePoint ait répondu ; la liste `projects` se met ensuite à jour mais cette copie
+  // restait figée sur l'ancienne version. Tant que personne n'y a touché (même référence qu'à
+  // l'ouverture), on la réaligne sur le projet à jour ; une copie déjà modifiée n'est jamais écrasée.
+  useEffect(() => {
+    const opened = openedProjectAnswersRef.current;
+    if (!opened || !activeProject || answers !== opened || hasUnsavedChanges) {
+      return;
+    }
+
+    const fresh = activeProject.answers;
+    if (!fresh || fresh === opened) {
+      return;
+    }
+
+    openedProjectAnswersRef.current = fresh;
+    if (JSON.stringify(fresh) === JSON.stringify(opened)) {
+      return;
+    }
+
+    const freshAnalysis = resolveProjectAnalysis(
+      activeProject,
+      (a) => analyzeAnswers(a, rules, riskLevelRules, riskWeights)
+    );
+    setAnswers(fresh);
+    setAnalysis(freshAnalysis);
+
+    if (isShowcaseEditing) {
+      return;
+    }
+
+    setShowcaseProjectContext((previous) => {
+      if (!previous || previous.projectId !== activeProject.id || previous.answers !== opened) {
+        return previous;
+      }
+
+      const freshQuestions = questions.filter((question) => shouldShowQuestion(question, fresh));
+      return {
+        ...previous,
+        status: activeProject.status || previous.status,
+        answers: fresh,
+        analysis: freshAnalysis,
+        relevantTeams: teams.filter((team) => (freshAnalysis?.teams || []).includes(team.id)),
+        questions: freshQuestions,
+        timelineDetails: freshAnalysis?.timeline?.details || [],
+        hasIncompleteAnswers: freshQuestions.length > 0
+          ? getMissingMandatoryQuestions(freshQuestions, fresh).length > 0
+          : Object.keys(fresh).length === 0
+      };
+    });
+  }, [
+    activeProject,
+    analyzeAnswers,
+    answers,
+    hasUnsavedChanges,
+    isShowcaseEditing,
+    questions,
+    riskLevelRules,
+    riskWeights,
+    rules,
+    shouldShowQuestion,
+    teams
+  ]);
+
   const activeInspirationProject = useMemo(
     () => inspirationProjects.find(project => project.id === activeInspirationId) || null,
     [inspirationProjects, activeInspirationId]
@@ -5698,6 +5763,7 @@ const updateProjectFilters = useCallback((updater) => {
     const isResumableProject = isProjectOpenForEditing(project);
     const startingIndex = missingIndex >= 0 ? missingIndex : isResumableProject ? sanitizedIndex : 0;
 
+    openedProjectAnswersRef.current = projectAnswers;
     setAnswers(projectAnswers);
     setAnalysis(derivedAnalysis);
     setCurrentQuestionIndex(startingIndex);
