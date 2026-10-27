@@ -913,6 +913,8 @@ export const App = () => {
   const [analysis, setAnalysis] = useState(null);
   const [projects, setProjects] = useState(buildInitialProjectsState);
   const projectsRef = useRef(projects);
+  const openedProjectAnswersRef = useRef(null);
+  const showcaseOpenedAnswersRef = useRef(null);
   const [inspirationProjects, setInspirationProjects] = useState(() => []);
   const [hasLoadedInspirationProjects, setHasLoadedInspirationProjects] = useState(false);
   const [onboardingTourConfig, setOnboardingTourConfig] = useState(buildInitialOnboardingConfig);
@@ -3462,6 +3464,99 @@ const updateProjectFilters = useCallback((updater) => {
     () => projects.find(project => project.id === activeProjectId) || null,
     [projects, activeProjectId]
   );
+  // Un projet ouvert depuis le cache local (lien d'e-mail, accueil) copie ses réponses dans `answers`
+  // avant que SharePoint ait répondu ; la liste `projects` se met ensuite à jour mais cette copie
+  // restait figée sur l'ancienne version. Tant que personne n'y a touché (même référence qu'à
+  // l'ouverture), on la réaligne sur le projet à jour ; une copie déjà modifiée n'est jamais écrasée.
+  useEffect(() => {
+    const opened = openedProjectAnswersRef.current;
+    if (!opened || !activeProject || answers !== opened || hasUnsavedChanges) {
+      return;
+    }
+
+    const fresh = activeProject.answers;
+    if (!fresh || fresh === opened) {
+      return;
+    }
+
+    openedProjectAnswersRef.current = fresh;
+    if (JSON.stringify(fresh) === JSON.stringify(opened)) {
+      return;
+    }
+
+    const freshAnalysis = resolveProjectAnalysis(
+      activeProject,
+      (a) => analyzeAnswers(a, rules, riskLevelRules, riskWeights)
+    );
+    setAnswers(fresh);
+    setAnalysis(freshAnalysis);
+  }, [
+    activeProject,
+    analyzeAnswers,
+    answers,
+    hasUnsavedChanges,
+    riskLevelRules,
+    riskWeights,
+    rules
+  ]);
+
+  // Même réalignement pour la vitrine, qui garde un instantané des réponses pris à l'ouverture :
+  // un lien direct (`?sv=`, `?showcase=`) l'ouvre sans passer par la synthèse, donc sans copie de
+  // travail ni `activeProjectId`. Seule une vitrine encore bâtie sur les réponses du projet
+  // (même référence qu'à l'ouverture) est remplacée, et jamais pendant qu'on l'édite.
+  useEffect(() => {
+    const opened = showcaseOpenedAnswersRef.current;
+    if (!opened || !showcaseProjectContext || showcaseProjectContext.answers !== opened || isShowcaseEditing) {
+      return;
+    }
+
+    const project = projects.find((entry) => entry?.id === showcaseProjectContext.projectId);
+    const fresh = project?.answers;
+    if (!fresh || fresh === opened) {
+      return;
+    }
+
+    showcaseOpenedAnswersRef.current = fresh;
+    if (JSON.stringify(fresh) === JSON.stringify(opened)) {
+      return;
+    }
+
+    const freshAnalysis = resolveProjectAnalysis(
+      project,
+      (a) => analyzeAnswers(a, rules, riskLevelRules, riskWeights)
+    );
+    const freshQuestions = questions.filter((question) => shouldShowQuestion(question, fresh));
+    setShowcaseProjectContext((previous) => {
+      if (!previous || previous.answers !== opened) {
+        return previous;
+      }
+
+      return {
+        ...previous,
+        status: project.status || previous.status,
+        answers: fresh,
+        analysis: freshAnalysis,
+        relevantTeams: teams.filter((team) => (freshAnalysis?.teams || []).includes(team.id)),
+        questions: freshQuestions,
+        timelineDetails: freshAnalysis?.timeline?.details || [],
+        hasIncompleteAnswers: freshQuestions.length > 0
+          ? getMissingMandatoryQuestions(freshQuestions, fresh).length > 0
+          : Object.keys(fresh).length === 0
+      };
+    });
+  }, [
+    analyzeAnswers,
+    isShowcaseEditing,
+    projects,
+    questions,
+    riskLevelRules,
+    riskWeights,
+    rules,
+    shouldShowQuestion,
+    showcaseProjectContext,
+    teams
+  ]);
+
   const activeInspirationProject = useMemo(
     () => inspirationProjects.find(project => project.id === activeInspirationId) || null,
     [inspirationProjects, activeInspirationId]
@@ -5698,6 +5793,7 @@ const updateProjectFilters = useCallback((updater) => {
     const isResumableProject = isProjectOpenForEditing(project);
     const startingIndex = missingIndex >= 0 ? missingIndex : isResumableProject ? sanitizedIndex : 0;
 
+    openedProjectAnswersRef.current = projectAnswers;
     setAnswers(projectAnswers);
     setAnalysis(derivedAnalysis);
     setCurrentQuestionIndex(startingIndex);
@@ -6141,6 +6237,7 @@ const updateProjectFilters = useCallback((updater) => {
     setShowcaseCommentsEnabled(pendingComments);
     setShowcaseAnnotationVisibilityMode(pendingAnnotationVisibility);
 
+    showcaseOpenedAnswersRef.current = project && project.answers === answersSource ? answersSource : null;
     setShowcaseProjectContext({
       projectId: projectId || null,
       projectName: resolvedProjectName,
