@@ -3,6 +3,7 @@ import { getRepository } from './listRepository.js';
 import { loadPersistedMockMap, savePersistedMockMap } from './mockProviderPersistence.js';
 import { normalizeClaim, normalizeClaimHistory } from './projectClaims.js';
 import { normalizePerimeterFollowers } from './perimeterFollowers.js';
+import { getAdminProxy, normalizeAdminProxy } from './adminProxyOpinion.js';
 
 // La prise en charge d'un périmètre (voir projectClaims.js) voyage avec la ligne racine :
 // `AssigneeEmail` reste lisible dans les vues SharePoint natives, `ClaimJson` porte le détail
@@ -12,8 +13,9 @@ const toClaimColumns = (entry) => {
   const claim = normalizeClaim(entry?.claim);
   const history = normalizeClaimHistory(entry?.claimHistory);
   const followers = normalizePerimeterFollowers(entry?.followers);
+  const adminProxy = getAdminProxy(entry);
 
-  if (!claim && history.length === 0 && followers.length === 0) {
+  if (!claim && history.length === 0 && followers.length === 0 && !adminProxy) {
     return { AssigneeEmail: '', ClaimJson: {} };
   }
 
@@ -22,7 +24,8 @@ const toClaimColumns = (entry) => {
     ClaimJson: {
       claim: claim || null,
       history,
-      ...(followers.length > 0 ? { followers } : {})
+      ...(followers.length > 0 ? { followers } : {}),
+      ...(adminProxy ? { adminProxy } : {})
     }
   };
 };
@@ -32,10 +35,12 @@ const fromClaimColumns = (row) => {
   const claim = normalizeClaim(payload.claim || (row?.AssigneeEmail ? { assigneeEmail: row.AssigneeEmail } : null));
   const claimHistory = normalizeClaimHistory(payload.history);
   const followers = normalizePerimeterFollowers(payload.followers);
+  const adminProxy = normalizeAdminProxy(payload.adminProxy);
   return {
     ...(claim ? { claim } : {}),
     ...(claimHistory.length > 0 ? { claimHistory } : {}),
-    ...(followers.length > 0 ? { followers } : {})
+    ...(followers.length > 0 ? { followers } : {}),
+    ...(adminProxy ? { adminProxy } : {})
   };
 };
 

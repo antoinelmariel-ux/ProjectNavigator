@@ -36,6 +36,11 @@ import {
   resolveTeamFollowerContacts
 } from '../utils/perimeterFollowers.js';
 import {
+  getAdminProxy,
+  isAdminAuthoredMessage,
+  resolveAdminProxyForSave
+} from '../utils/adminProxyOpinion.js';
+import {
   CLAIM_ACTION_CLAIM,
   CLAIM_ACTION_RELEASE,
   CLAIM_ACTION_TAKEOVER,
@@ -333,6 +338,7 @@ const normalizeCommentEntry = (entry) => {
   const claim = getPerimeterClaim(entry);
   const claimHistory = getPerimeterClaimHistory(entry);
   const followers = getPerimeterFollowers(entry);
+  const adminProxy = getAdminProxy(entry);
 
   return {
     comment,
@@ -342,7 +348,8 @@ const normalizeCommentEntry = (entry) => {
     replies,
     ...(claim ? { claim } : {}),
     ...(claimHistory.length > 0 ? { claimHistory } : {}),
-    ...(followers.length > 0 ? { followers } : {})
+    ...(followers.length > 0 ? { followers } : {}),
+    ...(adminProxy ? { adminProxy } : {})
   };
 };
 
@@ -649,6 +656,7 @@ export const SynthesisReport = ({
   saveFeedback,
   onDismissSaveFeedback,
   isAdminMode = false,
+  isAdminConsole = false,
   tourContext = null,
   hasIncompleteAnswers = false,
   validationCommitteeConfig = null,
@@ -920,8 +928,8 @@ export const SynthesisReport = ({
     [adminEmails]
   );
   const canBypassCompliancePerimeter = useMemo(
-    () => isAdminMode && !!currentUserEmail && normalizedAdminEmails.includes(currentUserEmail),
-    [isAdminMode, currentUserEmail, normalizedAdminEmails]
+    () => (isAdminMode || isAdminConsole) && !!currentUserEmail && normalizedAdminEmails.includes(currentUserEmail),
+    [isAdminMode, isAdminConsole, currentUserEmail, normalizedAdminEmails]
   );
   const complianceTeamIdsForUser = useMemo(() => {
     if (!currentUserEmail) {
@@ -1301,12 +1309,18 @@ export const SynthesisReport = ({
       const normalizedDraft =
         typeof currentEntry.comment === 'string' ? currentEntry.comment.replace(/\r\n/g, '\n') : '';
       const trimmedDraft = normalizedDraft.trim();
+      const adminProxy = resolveAdminProxyForSave({
+        canBypass: canBypassCompliancePerimeter,
+        isPerimeterMember: isCommittee ? committeeIdsForUser.has(targetId) : complianceTeamIdsForUser.has(targetId),
+        email: currentUserEmail
+      });
       const nextEntry = {
         comment: trimmedDraft,
         status: currentEntry.status,
         statusUpdatedAt: new Date().toISOString(),
         replies: Array.isArray(currentEntry.replies) ? currentEntry.replies : [],
-        attachments: normalizeCommentAttachments(currentEntry.attachments)
+        attachments: normalizeCommentAttachments(currentEntry.attachments),
+        ...(adminProxy ? { adminProxy } : {})
       };
 
       const nextComments = {
@@ -1363,6 +1377,8 @@ export const SynthesisReport = ({
       canSaveComplianceComment,
       canBypassCompliancePerimeter,
       committeeIdsForUser,
+      complianceTeamIdsForUser,
+      currentUserEmail,
       effectiveProjectName,
       complianceCommentDrafts,
       complianceComments,
@@ -1678,7 +1694,8 @@ export const SynthesisReport = ({
         authorName: authorLabel || t('synthesisReport.defaultTeamLabel'),
         authorEmail: '',
         createdAt: '',
-        attachments: normalizeCommentAttachments(normalized.attachments)
+        attachments: normalizeCommentAttachments(normalized.attachments),
+        adminProxy: normalized.adminProxy || null
       });
     }
 
@@ -2765,10 +2782,20 @@ export const SynthesisReport = ({
                                     {t('synthesisReport.validationOpinionLabel')}
                                   </span>
                                   <span className="text-blue-300">·</span>
-                                  <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-bold text-blue-800">
-                                    <UserCircle className="w-3 h-3" />
-                                    {t('synthesisReport.expertRoleLabel')}
-                                  </span>
+                                  {storedEntry.adminProxy ? (
+                                    <span
+                                      className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-900"
+                                      data-testid={`admin-proxy-badge-${team.id}`}
+                                    >
+                                      <UserCircle className="w-3 h-3" />
+                                      {t('synthesisReport.adminRoleLabel')}
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-bold text-blue-800">
+                                      <UserCircle className="w-3 h-3" />
+                                      {t('synthesisReport.expertRoleLabel')}
+                                    </span>
+                                  )}
                                 </div>
                                 {canEditTeamComment && (
                                   <button
@@ -2806,6 +2833,14 @@ export const SynthesisReport = ({
                               ) : (
                                 <p className="mt-2 text-sm text-gray-500">{t('synthesisReport.noCommentYet')}</p>
                               )}
+                              {storedEntry.adminProxy && (
+                                <p className="mt-2 rounded-lg border border-amber-300 bg-amber-50 px-2 py-1 text-xs text-amber-900" role="note">
+                                  {t('synthesisReport.adminProxyOpinionNotice', {
+                                    email: storedEntry.adminProxy.email,
+                                    date: storedEntry.adminProxy.at ? formatTimestamp(storedEntry.adminProxy.at, language) : '—'
+                                  })}
+                                </p>
+                              )}
                             </div>
                             )}
 
@@ -2821,8 +2856,15 @@ export const SynthesisReport = ({
                                     const isTruncated = shouldCollapse && trimmedMessage.length > 240;
                                     const preview = isTruncated ? `${trimmedMessage.slice(0, 240)}…` : trimmedMessage;
                                     const isExpertAuthor = teamContactEmailSet.has(normalizeEmail(message.authorEmail));
+                                    const isAdminAuthor = isAdminAuthoredMessage({
+                                      authorEmail: message.authorEmail,
+                                      adminEmails: normalizedAdminEmails,
+                                      memberEmails: [...teamContactEmailSet]
+                                    });
                                     const roleLabel = t(
-                                      isExpertAuthor ? 'synthesisReport.expertRoleLabel' : 'synthesisReport.projectOwnerRoleLabel'
+                                      isAdminAuthor
+                                        ? 'synthesisReport.adminRoleLabel'
+                                        : isExpertAuthor ? 'synthesisReport.expertRoleLabel' : 'synthesisReport.projectOwnerRoleLabel'
                                     );
 
                                     return (
@@ -2842,7 +2884,9 @@ export const SynthesisReport = ({
                                             </span>
                                             <span
                                               className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
-                                                isExpertAuthor ? 'bg-blue-100 text-blue-800' : 'bg-gray-200 text-gray-700'
+                                                isAdminAuthor
+                                                  ? 'bg-amber-100 text-amber-900'
+                                                  : isExpertAuthor ? 'bg-blue-100 text-blue-800' : 'bg-gray-200 text-gray-700'
                                               }`}
                                             >
                                               {roleLabel}
@@ -2890,6 +2934,11 @@ export const SynthesisReport = ({
                                   }
                                   className="mt-3 space-y-3"
                                 >
+                                  {canBypassCompliancePerimeter && !complianceTeamIdsForUser.has(team.id) && (
+                                    <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900" role="note">
+                                      {t('synthesisReport.adminProxyEditorNotice')}
+                                    </p>
+                                  )}
                                   <div>
                                     <label className="block text-sm font-medium text-gray-700" htmlFor={`compliance-status-${team.id}`}>
                                       {t('synthesisReport.statusFieldLabel')}
@@ -3368,6 +3417,11 @@ export const SynthesisReport = ({
                             }
                             className="mt-4 space-y-3"
                           >
+                            {canBypassCompliancePerimeter && !committeeIdsForUser.has(committee.id) && (
+                              <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900" role="note">
+                                {t('synthesisReport.adminProxyEditorNotice')}
+                              </p>
+                            )}
                             <div>
                               <label
                                 className="block text-sm font-medium text-gray-700"
@@ -3484,6 +3538,22 @@ export const SynthesisReport = ({
                                   <div key={message.id} className="rounded-lg bg-white border border-gray-200 p-3">
                                     <div className="flex items-center justify-between gap-2 text-xs text-gray-500">
                                       <span className="font-semibold text-gray-700">{message.authorName}</span>
+                                      {(message.adminProxy || isAdminAuthoredMessage({
+                                        authorEmail: message.authorEmail,
+                                        adminEmails: normalizedAdminEmails
+                                      })) && (
+                                        <span
+                                          className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-900"
+                                          title={message.adminProxy
+                                            ? t('synthesisReport.adminProxyOpinionNotice', {
+                                              email: message.adminProxy.email,
+                                              date: message.adminProxy.at ? formatTimestamp(message.adminProxy.at, language) : '—'
+                                            })
+                                            : undefined}
+                                        >
+                                          {t('synthesisReport.adminRoleLabel')}
+                                        </span>
+                                      )}
                                       {message.createdAt && <span>{formatTimestamp(message.createdAt, language)}</span>}
                                     </div>
                                     <p className="mt-2 text-sm text-gray-700 whitespace-pre-line">

@@ -8643,6 +8643,7 @@ const updateProjectFilters = useCallback((updater) => {
               saveFeedback={saveFeedback}
               onDismissSaveFeedback={handleDismissSaveFeedback}
               isAdminMode={isAdminMode}
+              isAdminConsole={isAdminConsole}
               hasIncompleteAnswers={hasIncompleteAnswers}
               tourContext={tourContext}
               validationCommitteeConfig={validationCommitteeConfig}
