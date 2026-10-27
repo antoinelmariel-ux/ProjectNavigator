@@ -40,9 +40,17 @@ import { initialShowcaseThemes } from '../data/showcaseThemes.js';
 import { initialShowcaseTemplates } from '../data/showcaseTemplates.js';
 import {
   SHOWCASE_TEMPLATE_BLOCK_TYPES,
+  applyShowcaseFieldSources,
+  applyShowcaseFieldSourcesToQuestions,
   applyShowcaseTemplate,
+  buildLinkedBlockFieldId,
+  fillMissingSourcedTextFields,
   getTemplateBuiltInSectionIds,
-  resolveShowcaseTemplate
+  isLinkedBlockLinkable,
+  mapShowcaseUpdatesToSources,
+  resolveLinkedBlockFieldSources,
+  resolveShowcaseTemplate,
+  resolveShowcaseTemplateFieldSources
 } from '../utils/showcaseTemplates.js';
 import {
   THEME_ACCENT_FAMILY_ID,
@@ -397,13 +405,15 @@ const sanitizeCustomSections = (rawSections) => {
       const columnCount = resolveCustomSectionColumnCount(section.columnCount, section.columns);
       const columns = normalizeCustomSectionColumns(section.columns).filter(Boolean);
       const hasColumnContent = columns.length > 0;
+      const sourceQuestionId = typeof section.sourceQuestionId === 'string' ? section.sourceQuestionId.trim() : '';
 
-      if (!title && !subtitle && !description && !documentUrl && !figure && items.length === 0 && !hasColumnContent) {
+      if (!title && !subtitle && !description && !documentUrl && !figure && items.length === 0 && !hasColumnContent && !sourceQuestionId) {
         return null;
       }
 
       return {
         id,
+        ...(sourceQuestionId ? { sourceQuestionId } : {}),
         type,
         title,
         subtitle,
@@ -437,6 +447,7 @@ const areCustomSectionsEqual = (previous, next) => {
     }
 
     return entry.id === candidate.id
+      && (entry.sourceQuestionId || '') === (candidate.sourceQuestionId || '')
       && entry.title === candidate.title
       && entry.subtitle === candidate.subtitle
       && entry.description === candidate.description
@@ -2008,7 +2019,7 @@ export const ProjectShowcase = ({
   onClose,
   analysis,
   relevantTeams,
-  questions,
+  questions: rawQuestions,
   answers: rawAnswers,
   timelineDetails,
   renderInStandalone = false,
@@ -2038,9 +2049,31 @@ export const ProjectShowcase = ({
     () => getTemplateBuiltInSectionIds(activeShowcaseTemplate),
     [activeShowcaseTemplate]
   );
-  const answers = useMemo(
+  const templatedAnswers = useMemo(
     () => applyShowcaseTemplate(rawAnswers, activeShowcaseTemplate, language),
     [activeShowcaseTemplate, language, rawAnswers]
+  );
+  // Champs qu'un modèle fait lire dans une autre question : la vitrine les voit sous leur
+  // identifiant habituel, et la publication réécrit la question liée.
+  const templateFieldSources = useMemo(
+    () => resolveShowcaseTemplateFieldSources(activeShowcaseTemplate, rawQuestions),
+    [activeShowcaseTemplate, rawQuestions]
+  );
+  const linkedBlockFieldSources = useMemo(
+    () => resolveLinkedBlockFieldSources(templatedAnswers?.customShowcaseSections, rawQuestions),
+    [rawQuestions, templatedAnswers]
+  );
+  const fieldSources = useMemo(
+    () => ({ ...templateFieldSources, ...linkedBlockFieldSources }),
+    [linkedBlockFieldSources, templateFieldSources]
+  );
+  const answers = useMemo(
+    () => applyShowcaseFieldSources(templatedAnswers, fieldSources),
+    [fieldSources, templatedAnswers]
+  );
+  const questions = useMemo(
+    () => applyShowcaseFieldSourcesToQuestions(rawQuestions, fieldSources),
+    [fieldSources, rawQuestions]
   );
   const lightVisibilityOptions = useMemo(
     () => buildLightVisibilityOptions(builtInSectionIds),
@@ -2083,11 +2116,14 @@ export const ProjectShowcase = ({
 
   const editableFields = useMemo(
     () =>
-      SHOWCASE_FIELD_CONFIG.map(config => ({
+      [
+        ...SHOWCASE_FIELD_CONFIG,
+        ...Object.keys(linkedBlockFieldSources).map(id => ({ id, fallbackType: 'long_text' }))
+      ].map(config => ({
         ...config,
         question: findQuestionById(questions, config.id)
       })),
-    [questions]
+    [linkedBlockFieldSources, questions]
   );
 
   const [isEditing, setIsEditing] = useState(false);
@@ -2816,7 +2852,7 @@ export const ProjectShowcase = ({
       });
 
       if (Object.keys(updates).length > 0) {
-        onUpdateAnswers(updates);
+        onUpdateAnswers(mapShowcaseUpdatesToSources(updates, fieldSources));
       }
 
       clearShowcaseDraft(projectId);
@@ -2828,13 +2864,13 @@ export const ProjectShowcase = ({
       setIsExitConfirmOpen(false);
       setIsEditing(false);
     },
-    [answers, builtInSectionIds, canEdit, customSections, draftValues, editableFields, onUpdateAnswers, projectId, sectionAccentsDraft, sectionOrder]
+    [answers, builtInSectionIds, canEdit, customSections, draftValues, editableFields, fieldSources, onUpdateAnswers, projectId, sectionAccentsDraft, sectionOrder]
   );
 
   // Superposition « brouillon -> vitrine » : la brique qui rend l'aperçu vivant. Hors
   // édition, on renvoie `answers` inchangé — la vitrine consultée ou partagée ne doit
   // dépendre d'aucun état d'édition.
-  const previewAnswers = useMemo(() => {
+  const draftPreviewAnswers = useMemo(() => {
     if (!isLiveEditing) {
       return answers;
     }
@@ -2855,6 +2891,15 @@ export const ProjectShowcase = ({
       sectionOrder
     });
   }, [answers, draftValues, editableFields, isLiveEditing, sanitizedCustomSections, sectionAccentsDraft, sectionOrder]);
+
+  // Un champ lié par le modèle dont la question est sans réponse : le lecteur (et l'aperçu)
+  // voit « information manquante », l'édition garde un champ vide où écrire.
+  const previewAnswers = useMemo(
+    () => (isEditorChromeVisible
+      ? draftPreviewAnswers
+      : fillMissingSourcedTextFields(draftPreviewAnswers, templateFieldSources, missingInfoLabel)),
+    [draftPreviewAnswers, isEditorChromeVisible, missingInfoLabel, templateFieldSources]
+  );
 
   // Le thème fait partie des champs éditables : il est résolu depuis les réponses d'aperçu
   // pour que changer de palette repeigne la vitrine immédiatement.
@@ -3708,23 +3753,46 @@ export const ProjectShowcase = ({
 
   // chaque gabarit personnalisé reprend une section existante : aucune forme nouvelle,
   // seule la famille de couleur choisie par l'utilisateur change.
-  const renderCustomSectionSignature = useCallback((section, index, options = {}) => {
-    if (!section) {
+  const renderCustomSectionSignature = useCallback((rawSection, index, options = {}) => {
+    if (!rawSection) {
       return null;
     }
 
     // Les vignettes du sélecteur et l'aperçu fantôme réutilisent ce rendu : ils passent
     // `editable: false` pour rester de simples images de ce qui sera obtenu.
     const editable = Boolean(options.editable);
+    // Bloc lié à une question : son texte est la réponse, et l'écrire répond à la question.
+    // Une question à choix ne s'édite pas dans le canvas, mais dans l'inspecteur.
+    const linkedFieldId = isLinkedBlockLinkable(rawSection) ? buildLinkedBlockFieldId(rawSection.sourceQuestionId) : null;
+    const linkedQuestion = linkedFieldId && fieldSources[linkedFieldId] ? findQuestionById(questions, linkedFieldId) : null;
+    const isLinkedTextEditable = Boolean(
+      editable && linkedQuestion && (linkedQuestion.type === 'text' || linkedQuestion.type === 'long_text')
+    );
+    const section = linkedQuestion
+      ? {
+          ...rawSection,
+          description: isLinkedTextEditable
+            ? (typeof draftValues[linkedFieldId] === 'string' ? draftValues[linkedFieldId] : '')
+            : getFormattedAnswer(questions, previewAnswers, linkedFieldId, editable ? '' : missingInfoLabel, language)
+        }
+      : rawSection;
     const editText = (field, value, { placeholder = '', ariaLabel = '', className = '' } = {}) => {
       if (!editable) {
+        return renderTextWithLinks(value);
+      }
+
+      if (field === 'description' && linkedQuestion && !isLinkedTextEditable) {
         return renderTextWithLinks(value);
       }
 
       return (
         <InlineRichText
           value={typeof value === 'string' ? value : ''}
-          onChange={(nextValue) => handleCustomSectionFieldChange(section.id, field, nextValue)}
+          onChange={(nextValue) => (
+            field === 'description' && isLinkedTextEditable
+              ? handleFieldChange(linkedFieldId, nextValue)
+              : handleCustomSectionFieldChange(section.id, field, nextValue)
+          )}
           placeholder={placeholder}
           ariaLabel={ariaLabel || placeholder}
           className={className}
@@ -4129,7 +4197,7 @@ export const ProjectShowcase = ({
         </div>
       </section>
     );
-  }, [accentFamilies, documentEmbedContext, documentUploadErrors, documentUploadPending, handleCustomSectionColumnChange, handleCustomSectionFieldChange, handleCustomSectionItemChange, handleDocumentUpload, t]);
+  }, [accentFamilies, documentEmbedContext, documentUploadErrors, documentUploadPending, draftValues, fieldSources, handleCustomSectionColumnChange, handleCustomSectionFieldChange, handleCustomSectionItemChange, handleDocumentUpload, handleFieldChange, language, missingInfoLabel, previewAnswers, questions, t]);
 
   // Pendant l'édition, le canvas lit les sections *non assainies* : `sanitizeCustomSections`
   // supprime une section devenue entièrement vide, ce qui la ferait disparaître sous les
@@ -4637,6 +4705,10 @@ export const ProjectShowcase = ({
 
   const renderCustomSectionControls = (section) => {
             const templateConfig = resolveTemplateConfig(section.type);
+            const linkedFieldId = isLinkedBlockLinkable(section) ? buildLinkedBlockFieldId(section.sourceQuestionId) : null;
+            const linkedField = linkedFieldId
+              ? editableFields.find(field => field.id === linkedFieldId && field.question) || null
+              : null;
             const sectionTitle = section.title || t('projectShowcase.customBlockFallback');
             const annotationSectionId = section.type || 'custom';
 
@@ -4834,7 +4906,13 @@ export const ProjectShowcase = ({
                     </div>
                   </>
                 )}
-                {templateConfig.showDescription && (
+                {templateConfig.showDescription && linkedField && (
+                  <div className="mt-4 space-y-2" data-testid="showcase-linked-block-field">
+                    <p className="text-xs text-gray-500">{t('projectShowcase.linkedBlockHint')}</p>
+                    {renderStandardFieldControl(linkedField)}
+                  </div>
+                )}
+                {templateConfig.showDescription && !linkedField && (
                   <div className="mt-4 space-y-1">
                     <label htmlFor={`custom-section-${section.id}-description`} className="text-sm font-medium text-gray-800">
                       {t('projectShowcase.descriptionFieldLabel')}

@@ -5,13 +5,20 @@ import { initialShowcaseTemplates } from '../src/data/showcaseTemplates.js';
 import { initialQuestions } from '../src/data/questions.js';
 import { SHOWCASE_SECTION_IDS, normalizeSectionOrder } from '../src/utils/showcaseEditor.js';
 import {
+  applyShowcaseFieldSources,
+  applyShowcaseFieldSourcesToQuestions,
   applyShowcaseTemplate,
+  buildLinkedBlockFieldId,
   buildTemplateBlockSectionId,
   createShowcaseTemplate,
+  fillMissingSourcedTextFields,
   getTemplateBuiltInSectionIds,
   hasShowcaseTemplateActivation,
+  mapShowcaseUpdatesToSources,
   normalizeShowcaseTemplate,
-  resolveShowcaseTemplate
+  resolveLinkedBlockFieldSources,
+  resolveShowcaseTemplate,
+  resolveShowcaseTemplateFieldSources
 } from '../src/utils/showcaseTemplates.js';
 
 const FORMERLY_BLOCKED_TYPES = [
@@ -162,3 +169,106 @@ test('une section intégrée retirée par le modèle n’est jamais réinjectée
   assert.deepEqual(order, ['hero', 'notice']);
 });
 
+
+const SOURCE_QUESTIONS = [
+  { id: 'problemPainPoints', type: 'long_text', question: 'Besoins' },
+  { id: 'targetAudience', type: 'multi_choice', question: 'Audience' },
+  { id: 'donationContext', type: 'long_text', question: 'Contexte du don' },
+  { id: 'beneficiaryKind', type: 'choice', question: 'Type de bénéficiaire', options: ['a', 'b'] },
+  { id: 'launchDate', type: 'date', question: 'Lancement' }
+];
+
+test('un modèle relie un champ de section intégrée à une autre question', () => {
+  const template = normalizeShowcaseTemplate({
+    id: 'tpl',
+    sections: [
+      { kind: 'builtin', id: 'problem', fieldSources: { problemPainPoints: 'donationContext', unknownField: 'x' } },
+      { kind: 'builtin', id: 'hero', fieldSources: { projectSlogan: '' } }
+    ]
+  });
+  const problem = template.sections.find((entry) => entry.id === 'problem');
+  const hero = template.sections.find((entry) => entry.id === 'hero');
+  assert.deepEqual(problem.fieldSources, { problemPainPoints: 'donationContext' });
+  assert.equal('fieldSources' in hero, false);
+  assert.deepEqual(resolveShowcaseTemplateFieldSources(template, SOURCE_QUESTIONS), { problemPainPoints: 'donationContext' });
+});
+
+test('une question supprimée ou d’un type incompatible rend le champ à sa question d’origine', () => {
+  const template = normalizeShowcaseTemplate({
+    id: 'tpl',
+    sections: [
+      { kind: 'builtin', id: 'problem', fieldSources: { problemPainPoints: 'deletedQuestion' } },
+      { kind: 'builtin', id: 'solution', fieldSources: { solutionDescription: 'beneficiaryKind' } },
+      { kind: 'builtin', id: 'hero', fieldSources: { targetAudience: 'launchDate', projectSlogan: 'donationContext' } }
+    ]
+  });
+  assert.deepEqual(resolveShowcaseTemplateFieldSources(template, SOURCE_QUESTIONS), { projectSlogan: 'donationContext' });
+});
+
+test('les champs à choix n’acceptent que des questions à choix', () => {
+  const template = normalizeShowcaseTemplate({
+    id: 'tpl',
+    sections: [{ kind: 'builtin', id: 'hero', fieldSources: { targetAudience: 'beneficiaryKind' } }]
+  });
+  assert.deepEqual(resolveShowcaseTemplateFieldSources(template, SOURCE_QUESTIONS), { targetAudience: 'beneficiaryKind' });
+});
+
+test('la vitrine lit la question liée et la publication l’écrit', () => {
+  const sources = { problemPainPoints: 'donationContext' };
+  const view = applyShowcaseFieldSources({ problemPainPoints: 'ancien', donationContext: 'nouveau' }, sources);
+  assert.equal(view.problemPainPoints, 'nouveau');
+
+  const emptyView = applyShowcaseFieldSources({ problemPainPoints: 'ancien' }, sources);
+  assert.equal(emptyView.problemPainPoints, undefined);
+
+  assert.deepEqual(
+    mapShowcaseUpdatesToSources({ problemPainPoints: 'édité', showcaseSectionOrder: ['hero'] }, sources),
+    { donationContext: 'édité', showcaseSectionOrder: ['hero'] }
+  );
+});
+
+test('la question liée prend l’identifiant du champ et devient obligatoire', () => {
+  const view = applyShowcaseFieldSourcesToQuestions(SOURCE_QUESTIONS, { problemPainPoints: 'donationContext' });
+  const alias = view.find((question) => question.id === 'problemPainPoints');
+  assert.equal(alias.question, 'Contexte du don');
+  assert.equal(alias.required, true);
+  assert.equal(view.filter((question) => question.id === 'problemPainPoints').length, 1);
+  assert.ok(view.some((question) => question.id === 'donationContext'));
+});
+
+test('un champ texte lié sans réponse affiche « information manquante », pas un champ à choix', () => {
+  const sources = { problemPainPoints: 'donationContext', targetAudience: 'beneficiaryKind', teamLead: 'donationContext' };
+  const filled = fillMissingSourcedTextFields({ problemPainPoints: '', targetAudience: undefined, teamLead: 'Alice' }, sources, 'Information manquante');
+  assert.equal(filled.problemPainPoints, 'Information manquante');
+  assert.equal(filled.targetAudience, undefined);
+  assert.equal(filled.teamLead, 'Alice');
+});
+
+test('un bloc lié garde son lien une fois recopié dans la vitrine', () => {
+  const template = normalizeShowcaseTemplate({
+    id: 'tpl',
+    activation: { conditionGroups: [] },
+    sections: [
+      { kind: 'block', id: 'context', type: 'story', title: { fr: 'Contexte' }, description: '', sourceQuestionId: 'donationContext' },
+      { kind: 'block', id: 'untitled', type: 'highlight', title: '', description: '', sourceQuestionId: 'beneficiaryKind' },
+      { kind: 'block', id: 'grid', type: 'columns', title: { fr: 'Grille' }, description: '', sourceQuestionId: 'donationContext' }
+    ]
+  });
+  const answers = applyShowcaseTemplate({}, template, 'fr');
+  const story = answers.customShowcaseSections.find((section) => section.type === 'story');
+  assert.equal(story.sourceQuestionId, 'donationContext');
+  assert.equal(answers.customShowcaseSections.length, 3);
+
+  const sources = resolveLinkedBlockFieldSources(answers.customShowcaseSections, SOURCE_QUESTIONS);
+  assert.deepEqual(sources, {
+    [buildLinkedBlockFieldId('donationContext')]: 'donationContext',
+    [buildLinkedBlockFieldId('beneficiaryKind')]: 'beneficiaryKind'
+  });
+});
+
+test('un bloc lié à une date n’est pas relié', () => {
+  assert.deepEqual(
+    resolveLinkedBlockFieldSources([{ id: 'x', type: 'story', sourceQuestionId: 'launchDate' }], SOURCE_QUESTIONS),
+    {}
+  );
+});

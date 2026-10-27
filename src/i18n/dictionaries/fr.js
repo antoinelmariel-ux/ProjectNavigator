@@ -1177,7 +1177,12 @@ export default {
       blockDescriptionHint: 'Affiché dans la vitrine tant que le porteur ne l’a pas remplacé : formulez-le comme une consigne.',
       editingLanguageLabel: 'Langue éditée',
       editingLanguageHint: 'les textes des modèles se traduisent dans les 4 langues',
-      defaultShowcaseNote: 'Un projet qu’aucun modèle ne couvre garde la vitrine standard.'
+      defaultShowcaseNote: 'Un projet qu’aucun modèle ne couvre garde la vitrine standard.',
+      fieldSourcesHint: 'Chaque champ de cette section affiche la réponse à une question. Changez-la pour ce type de projet : ce que le porteur modifie dans la vitrine modifie aussi cette réponse dans le questionnaire.',
+      defaultSourceOption: 'Question par défaut',
+      blockSourceLabel: 'Contenu issu de la question',
+      blockSourceNone: 'Aucune — texte de départ ci-dessous',
+      blockSourceHint: 'Le bloc affiche la réponse à cette question (« information manquante » tant qu’elle est vide). La modifier dans la vitrine modifie la réponse dans le questionnaire.'
     },
     faq: {
       title: 'FAQ de l\'application',
@@ -2588,6 +2593,7 @@ export default {
     multiWithOptionsHelper: 'Sélectionnez une ou plusieurs options.',
     multiFreeformHelper: 'Indiquez une valeur par ligne.',
     lineByLineHelper: 'Utilisez une ligne par élément pour une meilleure mise en forme.',
+    linkedBlockHint: 'Ce bloc affiche la réponse à une question du questionnaire : la modifier ici modifie aussi le questionnaire et peut changer l’analyse de risque.',
     noMilestoneYet: 'Aucun jalon n’a encore été ajouté.',
     dateLabel: 'Date',
     addMilestoneButton: 'Ajouter un jalon',

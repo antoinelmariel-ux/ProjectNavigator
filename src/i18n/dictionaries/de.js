@@ -1179,7 +1179,12 @@ export default {
       blockDescriptionHint: 'Wird in der Vitrine angezeigt, bis der Projektträger ihn ersetzt: Formulieren Sie ihn als Anleitung.',
       editingLanguageLabel: 'Bearbeitete Sprache',
       editingLanguageHint: 'die Texte der Vorlagen werden in die 4 Sprachen übersetzt',
-      defaultShowcaseNote: 'Ein Projekt, das keine Vorlage abdeckt, behält die Standard-Vitrine.'
+      defaultShowcaseNote: 'Ein Projekt, das keine Vorlage abdeckt, behält die Standard-Vitrine.',
+      fieldSourcesHint: 'Jedes Feld dieses Abschnitts zeigt die Antwort auf eine Frage. Ändern Sie sie für diesen Projekttyp: Was der Projektträger in der Vitrine ändert, ändert auch diese Antwort im Fragebogen.',
+      defaultSourceOption: 'Standardfrage',
+      blockSourceLabel: 'Inhalt aus der Frage',
+      blockSourceNone: 'Keine — Starttext unten',
+      blockSourceHint: 'Der Block zeigt die Antwort auf diese Frage („fehlende Information“, solange sie leer ist). Eine Änderung in der Vitrine ändert die Antwort im Fragebogen.'
     },
     faq: {
       title: 'FAQ der Anwendung',
@@ -2589,6 +2594,7 @@ export default {
     multiWithOptionsHelper: 'Wählen Sie eine oder mehrere Optionen aus.',
     multiFreeformHelper: 'Geben Sie einen Wert pro Zeile ein.',
     lineByLineHelper: 'Verwenden Sie eine Zeile pro Element für eine bessere Formatierung.',
+    linkedBlockHint: 'Dieser Block zeigt die Antwort auf eine Frage des Fragebogens: Eine Änderung hier ändert auch den Fragebogen und kann die Risikoanalyse verändern.',
     noMilestoneYet: 'Es wurde noch kein Meilenstein hinzugefügt.',
     dateLabel: 'Datum',
     addMilestoneButton: 'Meilenstein hinzufügen',

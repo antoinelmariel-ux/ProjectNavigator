@@ -1170,7 +1170,12 @@ export default {
       blockDescriptionHint: 'Se muestra en la vitrina mientras el promotor no lo sustituya: formúlelo como una consigna.',
       editingLanguageLabel: 'Idioma editado',
       editingLanguageHint: 'los textos de las plantillas se traducen a los 4 idiomas',
-      defaultShowcaseNote: 'Un proyecto que ninguna plantilla cubre conserva la vitrina estándar.'
+      defaultShowcaseNote: 'Un proyecto que ninguna plantilla cubre conserva la vitrina estándar.',
+      fieldSourcesHint: 'Cada campo de esta sección muestra la respuesta a una pregunta. Cámbiela para este tipo de proyecto: lo que el responsable modifica en la vitrina también modifica esa respuesta en el cuestionario.',
+      defaultSourceOption: 'Pregunta por defecto',
+      blockSourceLabel: 'Contenido tomado de la pregunta',
+      blockSourceNone: 'Ninguna — texto inicial abajo',
+      blockSourceHint: 'El bloque muestra la respuesta a esta pregunta («información faltante» mientras esté vacía). Modificarla en la vitrina modifica la respuesta en el cuestionario.'
     },
     faq: {
       title: 'FAQ de la aplicación',
@@ -2579,6 +2584,7 @@ export default {
     multiWithOptionsHelper: 'Seleccione una o varias opciones.',
     multiFreeformHelper: 'Indique un valor por línea.',
     lineByLineHelper: 'Use una línea por elemento para un mejor formato.',
+    linkedBlockHint: 'Este bloque muestra la respuesta a una pregunta del cuestionario: modificarla aquí también modifica el cuestionario y puede cambiar el análisis de riesgo.',
     noMilestoneYet: 'Aún no se ha añadido ningún hito.',
     dateLabel: 'Fecha',
     addMilestoneButton: 'Añadir un hito',

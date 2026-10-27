@@ -266,7 +266,22 @@ activity-scope pseudo-question is deliberately excluded (`excludedQuestionIds`):
 - **A built-in section the template drops is never re-injected**: `normalizeSectionOrder` takes
   the template's built-in ids as its third argument (every call in `ProjectShowcase` passes
   `builtInSectionIds`), and the light-mode options follow the same list. `notice` can't be removed.
-- Tests: `test/showcaseTemplates.test.mjs`, `e2e/showcase-templates.spec.js`.
+- **A template can say which question feeds a section.** A built-in entry may carry
+  `fieldSources` (`{fieldId: questionId}`, one question per field, only the fields listed in
+  `SHOWCASE_TEMPLATE_SOURCE_FIELDS` — text fields take `text`/`long_text`, choice fields
+  `choice`/`multi_choice`; dates, budget, milestones, theme and project name stay fixed); a
+  `highlight`/`story` block may carry `sourceQuestionId` (text or choice), which travels with the
+  block once the owner stores their own sections. `ProjectShowcase` applies this as an **alias at
+  its boundary**: `answers[fieldId]` reads the linked question, `questions` exposes a clone of
+  it under the field id (marked `required`, so an empty answer reads « information
+  manquante »), and `mapShowcaseUpdatesToSources` renames the published keys back — so editing
+  in the showcase writes the questionnaire answer itself, and a choice changed there re-runs
+  the risk analysis like any other answer (`handleUpdateProjectShowcaseAnswers`). Linked blocks
+  use the synthetic key `buildLinkedBlockFieldId(questionId)` so they never collide with a
+  built-in field. A linked question that disappears or changes type is ignored (the field
+  falls back to its own question). Text fields only get the missing label outside edit chrome
+  (`fillMissingSourcedTextFields`), so the draft never captures it.
+- Tests: `test/showcaseTemplates.test.mjs`, `e2e/showcase-templates.spec.js`, `e2e/showcase-template-sources.spec.js`.
 
 ## The showcase editor (live canvas)
 
