@@ -25,7 +25,12 @@ export const normalizeManualTeamRequests = (value) => {
   }, []);
 };
 
-export const addManualTeamRequest = (existingValue, { teamId, requestedBy } = {}) => {
+export const removeManualTeamRequest = (existingValue, teamId) => {
+  const normalizedTeamId = typeof teamId === 'string' ? teamId.trim() : '';
+  return normalizeManualTeamRequests(existingValue).filter((entry) => entry.teamId !== normalizedTeamId);
+};
+
+export const addManualTeamRequest =(existingValue, { teamId, requestedBy } = {}) => {
   const normalizedTeamId = typeof teamId === 'string' ? teamId.trim() : '';
   const current = normalizeManualTeamRequests(existingValue);
   if (!normalizedTeamId || current.some((entry) => entry.teamId === normalizedTeamId)) {

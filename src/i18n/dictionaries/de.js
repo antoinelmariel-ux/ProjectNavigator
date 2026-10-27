@@ -2238,6 +2238,8 @@ export default {
     requestAdditionalTeamPlaceholder: 'Team auswählen',
     requestAdditionalTeamButton: 'Dieses Team anfragen',
     teamRequestSentMessage: 'Das Team {{team}} wurde den Projektherausforderungen hinzugefügt und benachrichtigt.',
+    removeAdditionalTeamButton: 'Dieses Team nicht mehr anfragen',
+    teamRemovedMessage: 'Das Team {{team}} wurde aus den Projektherausforderungen entfernt.',
     sharedBlockAriaLabelTemplate: 'Gemeinsamer Block {{ruleName}}',
     ruleFallback: 'Regel',
     unnamedRuleFallback: 'Unbenannte Regel',

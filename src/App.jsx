@@ -140,7 +140,7 @@ import {
   setTeamPreference
 } from './utils/teamMemberProfile.js';
 import { normalizeRulesTeamReferences } from './utils/teamIds.js';
-import { MANUAL_TEAM_REQUESTS_KEY, addManualTeamRequest, normalizeManualTeamRequests } from './utils/manualTeamRequests.js';
+import { MANUAL_TEAM_REQUESTS_KEY, addManualTeamRequest, normalizeManualTeamRequests, removeManualTeamRequest } from './utils/manualTeamRequests.js';
 import {
   canPermanentlyDeleteProject,
   isProjectInOwnerTrash,
@@ -5409,6 +5409,39 @@ const updateProjectFilters = useCallback((updater) => {
     }
   }, [activeProjectId, currentUserEmail, notify, projects, resolveTeamMailRecipients, setHasUnsavedChanges, teams]);
 
+  const handleRemoveAdditionalTeam = useCallback((teamId) => {
+    if (!activeProjectId) {
+      return;
+    }
+
+    const project = projects.find((entry) => entry?.id === activeProjectId);
+    if (!project) {
+      return;
+    }
+
+    const existingRequests = normalizeManualTeamRequests(project.answers?.[MANUAL_TEAM_REQUESTS_KEY]);
+    if (!existingRequests.some((entry) => entry.teamId === teamId)) {
+      return;
+    }
+
+    const nextRequests = removeManualTeamRequest(existingRequests, teamId);
+
+    setAnswers((prevAnswers) => ({
+      ...prevAnswers,
+      [MANUAL_TEAM_REQUESTS_KEY]: nextRequests
+    }));
+    setHasUnsavedChanges(true);
+    setProjects((prevProjects) => prevProjects.map((entry) => (
+      entry.id === activeProjectId
+        ? {
+          ...entry,
+          answers: { ...entry.answers, [MANUAL_TEAM_REQUESTS_KEY]: nextRequests },
+          lastUpdated: new Date().toISOString()
+        }
+        : entry
+    )));
+  }, [activeProjectId, projects, setHasUnsavedChanges]);
+
   const handleAddSharedMember = useCallback((email) => {
     if (!activeProjectId) {
       return;
@@ -8786,6 +8819,7 @@ const updateProjectFilters = useCallback((updater) => {
               onPerimeterFollowerAction={activeProjectId ? handlePerimeterFollowerAction : undefined}
               isClaimActionAvailable={!isSimulatedSession}
               onRequestAdditionalTeam={activeProjectId ? handleRequestAdditionalTeam : undefined}
+              onRemoveAdditionalTeam={activeProjectId ? handleRemoveAdditionalTeam : undefined}
               readiness={projectReadiness}
               openQuestionDoubts={openQuestionDoubts}
               submissionKind={getSubmissionKind(activeProject)}

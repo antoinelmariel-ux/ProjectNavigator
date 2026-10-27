@@ -2228,6 +2228,8 @@ export default {
     requestAdditionalTeamPlaceholder: 'Select a team',
     requestAdditionalTeamButton: 'Request this team',
     teamRequestSentMessage: 'The {{team}} team has been added to the project stakes and notified.',
+    removeAdditionalTeamButton: 'Stop requesting this team',
+    teamRemovedMessage: 'The {{team}} team has been removed from the project stakes.',
     sharedBlockAriaLabelTemplate: 'Shared block {{ruleName}}',
     ruleFallback: 'rule',
     unnamedRuleFallback: 'Unnamed rule',

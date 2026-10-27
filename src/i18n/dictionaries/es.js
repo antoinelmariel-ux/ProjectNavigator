@@ -2228,6 +2228,8 @@ export default {
     requestAdditionalTeamPlaceholder: 'Seleccionar un equipo',
     requestAdditionalTeamButton: 'Solicitar este equipo',
     teamRequestSentMessage: 'El equipo {{team}} se añadió a los retos del proyecto y fue notificado.',
+    removeAdditionalTeamButton: 'Dejar de solicitar a este equipo',
+    teamRemovedMessage: 'El equipo {{team}} se retiró de los retos del proyecto.',
     sharedBlockAriaLabelTemplate: 'Bloque compartido {{ruleName}}',
     ruleFallback: 'regla',
     unnamedRuleFallback: 'Regla sin nombre',

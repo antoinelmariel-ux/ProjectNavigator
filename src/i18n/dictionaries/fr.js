@@ -2237,6 +2237,8 @@ export default {
     requestAdditionalTeamPlaceholder: 'Sélectionner une équipe',
     requestAdditionalTeamButton: 'Solliciter cette équipe',
     teamRequestSentMessage: 'L’équipe {{team}} a été ajoutée aux enjeux du projet et notifiée.',
+    removeAdditionalTeamButton: 'Ne plus solliciter cette équipe',
+    teamRemovedMessage: 'L’équipe {{team}} a été retirée des enjeux du projet.',
     sharedBlockAriaLabelTemplate: 'Bloc commun {{ruleName}}',
     ruleFallback: 'règle',
     unnamedRuleFallback: 'Règle sans nom',
