@@ -20,6 +20,7 @@ export const CLAIM_ACTION_IMPLICIT = 'implicit';
 export const CLAIM_ACTION_TAKEOVER = 'takeover';
 export const CLAIM_ACTION_RELEASE = 'release';
 export const CLAIM_ACTION_REASSIGN = 'reassign';
+export const CLAIM_ACTION_TRANSFER = 'transfer';
 
 export const CLAIM_REASON_ABSENCE = 'absence';
 export const CLAIM_REASON_WORKLOAD = 'workload';
@@ -205,6 +206,36 @@ export const applyClaimAction = (entry, {
   const nextAssignee = normalizeEmail(assigneeEmail);
   if (!nextAssignee) {
     return baseEntry;
+  }
+
+  // Transfert volontaire : l'actuel référent donne le périmètre à un collègue. Sans prise en
+  // charge il n'y a rien à donner, et le cédant sort du suivi — ni référent ni suiveur — comme
+  // le destinataire, devenu référent, n'a plus à figurer parmi les suiveurs.
+  if (action === CLAIM_ACTION_TRANSFER) {
+    if (!previousClaim || previousClaim.assigneeEmail === nextAssignee) {
+      return baseEntry;
+    }
+    const leaving = new Set([previousClaim.assigneeEmail, nextAssignee]);
+    const remainingFollowers = Array.isArray(baseEntry.followers)
+      ? baseEntry.followers.filter((follower) => !leaving.has(
+        normalizeEmail(typeof follower === 'string' ? follower : follower?.email)
+      ))
+      : [];
+    const { followers: _discardedFollowers, ...rest } = baseEntry;
+    return {
+      ...rest,
+      ...(remainingFollowers.length > 0 ? { followers: remainingFollowers } : {}),
+      claim: normalizeClaim({
+        assigneeEmail: nextAssignee,
+        assigneeName,
+        assignedAt: now,
+        assignedByEmail: actorEmail,
+        reason: '',
+        reasonNote,
+        reminderSentAt: ''
+      }),
+      claimHistory: pushHistory(nextAssignee)
+    };
   }
 
   // Re-revendiquer ce qu'on suit déjà ne doit ni réinitialiser la date de prise en charge ni

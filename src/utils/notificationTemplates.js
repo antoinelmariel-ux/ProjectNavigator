@@ -28,6 +28,7 @@ export const NOTIFICATION_TYPES = {
   PERIMETER_TAKEN_OVER: 'perimeter-taken-over',
   PERIMETER_RELEASED: 'perimeter-released',
   PERIMETER_FOLLOWER_ADDED: 'perimeter-follower-added',
+  PERIMETER_TRANSFERRED: 'perimeter-transferred',
   PERIMETER_STALE_REMINDER: 'perimeter-stale-reminder',
   PERIMETER_UNCLAIMED_REMINDER: 'perimeter-unclaimed-reminder',
   TEAM_MANUALLY_REQUESTED: 'team-manually-requested'
@@ -310,6 +311,21 @@ export const NOTIFICATION_CATALOG = {
       'You can reply to the project owner or give your team’s opinion directly in the project stakes page.'
     ],
     reason: () => 'a colleague from your expert team added you to the people following this project.'
+  },
+
+  // Envoyé à la seule personne à qui un collègue transfère le projet : elle en devient le référent.
+  [NOTIFICATION_TYPES.PERIMETER_TRANSFERRED]: {
+    actionType: 'Project transferred to you',
+    intro: (ctx) =>
+      ctx.teamNames.length > 0
+        ? `${ctx.actorName} transferred the project ${quoted(ctx.projectName)} to you for ${ctx.teamNames.join(', ')}.`
+        : `${ctx.actorName} transferred the project ${quoted(ctx.projectName)} to you.`,
+    expected: () => [
+      'You are now the person handling this project for your team.',
+      'Open the project’s stakes page in Project Navigator to catch up on the review and the exchanges so far.',
+      'Release the project from Project Navigator if it should go back to the team queue.'
+    ],
+    reason: () => 'a colleague from your expert team handed this project over to you.'
   },
 
   [NOTIFICATION_TYPES.PERIMETER_TAKEN_OVER]: {
