@@ -44,6 +44,7 @@ import {
   CLAIM_ACTION_CLAIM,
   CLAIM_ACTION_RELEASE,
   CLAIM_ACTION_TAKEOVER,
+  CLAIM_ACTION_TRANSFER,
   CLAIM_REASONS,
   getPerimeterClaim,
   getPerimeterClaimHistory,
@@ -878,6 +879,27 @@ export const SynthesisReport = ({
   }, [onPerimeterClaimAction, projectId]);
 
   const [followerDrafts, setFollowerDrafts] = useState({});
+
+  const [claimTransferTeamId, setClaimTransferTeamId] = useState('');
+  const [claimTransferTarget, setClaimTransferTarget] = useState('');
+  const [claimTransferNote, setClaimTransferNote] = useState('');
+
+  const handleOpenClaimTransfer = useCallback((teamId) => {
+    setClaimTransferTarget('');
+    setClaimTransferNote('');
+    setClaimTransferTeamId(teamId);
+  }, []);
+
+  const handleConfirmClaimTransfer = useCallback(() => {
+    if (!claimTransferTeamId || !claimTransferTarget) {
+      return;
+    }
+    handleClaimAction(claimTransferTeamId, CLAIM_ACTION_TRANSFER, {
+      assigneeEmail: claimTransferTarget,
+      reasonNote: claimTransferNote.trim()
+    });
+    setClaimTransferTeamId('');
+  }, [claimTransferNote, claimTransferTarget, claimTransferTeamId, handleClaimAction]);
 
   const handleFollowerAction = useCallback((teamId, action, email) => {
     if (typeof onPerimeterFollowerAction !== 'function' || !projectId || !teamId || !email) {
@@ -2335,6 +2357,12 @@ export const SynthesisReport = ({
                   && typeof onPerimeterFollowerAction === 'function'
                   && (complianceTeamIdsForUser.has(team.id) || canBypassCompliancePerimeter);
                 const teamFollowerDraft = followerDrafts[team.id] || '';
+                const canTransferTeamClaim = canActOnTeamClaim
+                  && Boolean(teamClaim)
+                  && (isTeamClaimMine || canBypassCompliancePerimeter);
+                const teamTransferCandidates = canTransferTeamClaim
+                  ? normalizeTeamContacts(team).filter((contact) => normalizeEmail(contact) !== teamClaim.assigneeEmail)
+                  : [];
                 const formattedTeamQuestions = Array.isArray(teamQuestions)
                   ? teamQuestions
                       .map((entry) => normalizeTeamQuestionForDisplay(entry, language))
@@ -2510,6 +2538,15 @@ export const SynthesisReport = ({
                                   {t('synthesisReport.claim.releaseButton')}
                                 </button>
                               )}
+                              {canTransferTeamClaim && teamTransferCandidates.length > 0 && claimTransferTeamId !== team.id && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenClaimTransfer(team.id)}
+                                  className="rounded-lg border border-blue-200 bg-white px-2 py-1 font-semibold text-blue-700 hover:bg-blue-50"
+                                >
+                                  {t('synthesisReport.claim.transferButton')}
+                                </button>
+                              )}
                               {canActOnTeamClaim && isTeamClaimTaken && claimTakeoverTeamId !== team.id && (
                                 <button
                                   type="button"
@@ -2527,6 +2564,50 @@ export const SynthesisReport = ({
                               <p className="text-gray-500">
                                 {t('synthesisReport.claim.takenHint', { person: teamClaimAssigneeLabel })}
                               </p>
+                            )}
+                            {claimTransferTeamId === team.id && (
+                              <div className="space-y-2 rounded-lg border border-blue-200 bg-white p-2" data-testid={`claim-transfer-panel-${team.id}`}>
+                                <label className="block space-y-1">
+                                  <span className="font-semibold text-gray-800">{t('synthesisReport.claim.transferTargetLabel')}</span>
+                                  <select
+                                    value={claimTransferTarget}
+                                    onChange={(event) => setClaimTransferTarget(event.target.value)}
+                                    className="w-full rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700"
+                                  >
+                                    <option value="">{t('synthesisReport.claim.transferTargetPlaceholder')}</option>
+                                    {teamTransferCandidates.map((contact) => (
+                                      <option key={`transfer-candidate-${team.id}-${contact}`} value={contact}>{contact}</option>
+                                    ))}
+                                  </select>
+                                </label>
+                                <label className="block space-y-1">
+                                  <span className="font-medium text-gray-700">{t('synthesisReport.claim.transferNoteLabel')}</span>
+                                  <textarea
+                                    value={claimTransferNote}
+                                    onChange={(event) => setClaimTransferNote(event.target.value)}
+                                    rows={2}
+                                    className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-xs text-gray-700"
+                                  />
+                                </label>
+                                <p className="text-gray-500">{t('synthesisReport.claim.transferNotice')}</p>
+                                <div className="flex justify-end gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => setClaimTransferTeamId('')}
+                                    className="rounded-lg border border-gray-300 px-2 py-1 font-medium text-gray-700 hover:bg-gray-50"
+                                  >
+                                    {t('synthesisReport.claim.cancelButton')}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={!claimTransferTarget}
+                                    onClick={handleConfirmClaimTransfer}
+                                    className="rounded-lg bg-blue-600 px-2 py-1 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                  >
+                                    {t('synthesisReport.claim.transferConfirm')}
+                                  </button>
+                                </div>
+                              </div>
                             )}
                             {claimTakeoverTeamId === team.id && (
                               <div className="space-y-2 rounded-lg border border-amber-200 bg-white p-2">

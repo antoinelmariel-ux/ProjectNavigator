@@ -4,6 +4,7 @@ import {
   CLAIM_ACTION_IMPLICIT,
   CLAIM_ACTION_RELEASE,
   CLAIM_ACTION_TAKEOVER,
+  CLAIM_ACTION_TRANSFER,
   DEFAULT_CLAIM_REMINDER_DAYS,
   DEFAULT_CLAIM_STALE_DAYS,
   applyClaimAction,
@@ -304,4 +305,42 @@ test('relance sans prise en charge : une nouvelle activité réarme le compteur'
   const entry = { ...markUnclaimedReminderSent({}, '2026-09-14T09:00:00Z'), replies: [{ createdAt: '2026-09-15T09:00:00Z' }] };
   assert.equal(getUnclaimedReminderState(entry, { team: TEAM, solicitedAt: '2026-09-07T09:00:00Z', now: '2026-09-17T09:00:00Z' }).isReminderDue, false);
   assert.equal(getUnclaimedReminderState(entry, { team: TEAM, solicitedAt: '2026-09-07T09:00:00Z', now: '2026-09-18T09:00:00Z' }).isReminderDue, true);
+});
+
+test('transfert : le référent donne le périmètre, le cédant sort du suivi, l’historique garde le texte', () => {
+  const entry = {
+    status: '',
+    claim: { assigneeEmail: 'alice@lfb.fr', assignedAt: '2026-09-01T10:00:00Z' },
+    followers: [{ email: 'alice@lfb.fr' }, { email: 'bob@lfb.fr' }, { email: 'carla@lfb.fr' }]
+  };
+  const next = applyClaimAction(entry, {
+    action: CLAIM_ACTION_TRANSFER,
+    assigneeEmail: 'bob@lfb.fr',
+    actorEmail: 'alice@lfb.fr',
+    reasonNote: 'Je pars en congés',
+    now: '2026-09-02T10:00:00Z'
+  });
+  assert.equal(next.claim.assigneeEmail, 'bob@lfb.fr');
+  assert.equal(next.claim.reasonNote, 'Je pars en congés');
+  assert.deepEqual(next.followers.map((follower) => follower.email), ['carla@lfb.fr']);
+  const last = next.claimHistory.at(-1);
+  assert.equal(last.action, CLAIM_ACTION_TRANSFER);
+  assert.equal(last.previousAssigneeEmail, 'alice@lfb.fr');
+  assert.equal(last.assigneeEmail, 'bob@lfb.fr');
+  assert.equal(last.note, 'Je pars en congés');
+});
+
+test('transfert : sans prise en charge, ou vers le référent lui-même, rien ne bouge', () => {
+  const free = { status: '' };
+  assert.equal(applyClaimAction(free, { action: CLAIM_ACTION_TRANSFER, assigneeEmail: 'bob@lfb.fr' }), free);
+  const claimed = { claim: { assigneeEmail: 'alice@lfb.fr' } };
+  assert.equal(applyClaimAction(claimed, { action: CLAIM_ACTION_TRANSFER, assigneeEmail: 'ALICE@lfb.fr' }), claimed);
+});
+
+test('transfert : le dernier suiveur parti, la clé followers disparaît', () => {
+  const next = applyClaimAction(
+    { claim: { assigneeEmail: 'alice@lfb.fr' }, followers: [{ email: 'bob@lfb.fr' }] },
+    { action: CLAIM_ACTION_TRANSFER, assigneeEmail: 'bob@lfb.fr' }
+  );
+  assert.equal('followers' in next, false);
 });

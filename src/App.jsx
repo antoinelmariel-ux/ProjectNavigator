@@ -121,6 +121,7 @@ import {
   CLAIM_ACTION_REASSIGN,
   CLAIM_ACTION_RELEASE,
   CLAIM_ACTION_TAKEOVER,
+  CLAIM_ACTION_TRANSFER,
   applyClaimAction,
   getClaimStaleness,
   getPerimeterClaim,
@@ -4398,6 +4399,26 @@ const updateProjectFilters = useCallback((updater) => {
       return;
     }
 
+    // Un transfert ne prévient que le destinataire : le cédant en est l'auteur et l'équipe n'a
+    // pas à être sollicitée pour une passation décidée entre deux collègues.
+    if (action === CLAIM_ACTION_TRANSFER) {
+      const to = normalizeRecipientList(applyAbsenceSubstitution([nextClaim?.assigneeEmail || ''], {
+        team,
+        profiles: userProfilesByEmail
+      }));
+      if (to.length > 0) {
+        notify({
+          type: NOTIFICATION_TYPES.PERIMETER_TRANSFERRED,
+          project,
+          to,
+          teamNames,
+          excerpt: reasonNote || '',
+          view: 'synthesis'
+        });
+      }
+      return;
+    }
+
     if (action === CLAIM_ACTION_RELEASE) {
       notify({
         type: NOTIFICATION_TYPES.PERIMETER_RELEASED,
@@ -4461,6 +4482,20 @@ const updateProjectFilters = useCallback((updater) => {
 
     if (!isRelease && !isTeamContact(team, assigneeEmail)) {
       return;
+    }
+
+    // Seul le référent actuel (ou un administrateur) donne un périmètre, et à quelqu'un d'autre.
+    if (action === CLAIM_ACTION_TRANSFER) {
+      const currentClaim = getPerimeterClaim(
+        project.answers?.[COMPLIANCE_COMMENTS_KEY]?.teams?.[teamId]
+      );
+      if (
+        !currentClaim
+        || currentClaim.assigneeEmail === assigneeEmail
+        || (currentClaim.assigneeEmail !== currentUserEmail && !isAdminMode)
+      ) {
+        return;
+      }
     }
 
     const projectAnswers = project.answers && typeof project.answers === 'object' ? project.answers : {};
