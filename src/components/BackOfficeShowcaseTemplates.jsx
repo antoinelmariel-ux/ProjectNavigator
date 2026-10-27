@@ -3,10 +3,13 @@ import { getLocalizedRaw, resolveLocalizedText, setLocalizedText } from '../util
 import { SHOWCASE_SECTION_IDS } from '../utils/showcaseEditor.js';
 import {
   SHOWCASE_TEMPLATE_BLOCK_TYPES,
+  SHOWCASE_TEMPLATE_LINKABLE_BLOCK_TYPES,
   SHOWCASE_TEMPLATE_MANDATORY_SECTION_ID,
+  SHOWCASE_TEMPLATE_SOURCE_FIELDS,
   createShowcaseTemplate,
   createShowcaseTemplateBlock,
   hasShowcaseTemplateActivation,
+  isQuestionCompatibleWithSourceKind,
   normalizeShowcaseTemplates
 } from '../utils/showcaseTemplates.js';
 import { ACTIVITY_SCOPE_QUESTION_ID } from '../utils/questions.js';
@@ -49,6 +52,13 @@ export const BackOfficeShowcaseTemplates = ({
   const [editingLanguage, setEditingLanguage] = useState(language);
   const normalizedTemplates = useMemo(() => normalizeShowcaseTemplates(templates), [templates]);
   const conditionQuestions = Array.isArray(questions) ? questions : [];
+  const questionLabel = (question) => {
+    const label = resolveLocalizedText(question.question, language);
+    return label ? `${label} (${question.id})` : question.id;
+  };
+  const questionsForKind = (kind) => conditionQuestions.filter(
+    (question) => question.id !== ACTIVITY_SCOPE_QUESTION_ID && isQuestionCompatibleWithSourceKind(question, kind)
+  );
 
   const updateTemplate = (templateId, updater) => {
     setTemplates((previous) => normalizeShowcaseTemplates(previous).map((template) => (
@@ -63,6 +73,14 @@ export const BackOfficeShowcaseTemplates = ({
   const updateBlock = (templateId, blockId, patch) => {
     updateSections(templateId, (sections) => sections.map((entry) => (
       entry.kind === 'block' && entry.id === blockId ? { ...entry, ...patch } : entry
+    )));
+  };
+
+  const updateFieldSource = (templateId, sectionId, fieldId, questionId) => {
+    updateSections(templateId, (sections) => sections.map((entry) => (
+      entry.kind === 'builtin' && entry.id === sectionId
+        ? { ...entry, fieldSources: { ...(entry.fieldSources || {}), [fieldId]: questionId } }
+        : entry
     )));
   };
 
@@ -260,6 +278,36 @@ export const BackOfficeShowcaseTemplates = ({
                                 </button>
                               )}
                             </div>
+                            {entry.kind === 'builtin' && SHOWCASE_TEMPLATE_SOURCE_FIELDS[entry.id] && (
+                              <div className="mt-3 space-y-2" data-testid="showcase-template-field-sources">
+                                <p className="text-xs text-gray-600">{t('backOffice.showcaseTemplates.fieldSourcesHint')}</p>
+                                <div className="grid gap-3 md:grid-cols-2">
+                                  {SHOWCASE_TEMPLATE_SOURCE_FIELDS[entry.id].map((field) => {
+                                    const selectId = `${template.id}-${entry.id}-${field.id}-source`;
+                                    return (
+                                      <div key={field.id}>
+                                        <label htmlFor={selectId} className="block text-xs font-semibold uppercase tracking-wide text-gray-600">
+                                          {t(`projectShowcase.fieldFallbackLabels.${field.id}`)}
+                                        </label>
+                                        <select
+                                          id={selectId}
+                                          value={entry.fieldSources?.[field.id] || ''}
+                                          onChange={(event) => updateFieldSource(template.id, entry.id, field.id, event.target.value)}
+                                          className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                                        >
+                                          <option value="">{t('backOffice.showcaseTemplates.defaultSourceOption')}</option>
+                                          {questionsForKind(field.kind)
+                                            .filter((question) => question.id !== field.id)
+                                            .map((question) => (
+                                              <option key={question.id} value={question.id}>{questionLabel(question)}</option>
+                                            ))}
+                                        </select>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
                             {entry.kind === 'block' && (
                               <div className="mt-3 grid gap-3 md:grid-cols-3">
                                 <label className="block">
@@ -287,20 +335,40 @@ export const BackOfficeShowcaseTemplates = ({
                                     className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
                                   />
                                 </label>
-                                <label className="block md:col-span-3">
-                                  <span className="block text-xs font-semibold uppercase tracking-wide text-gray-600">{t('backOffice.showcaseTemplates.blockDescriptionLabel')}</span>
-                                  <textarea
-                                    rows={2}
-                                    value={getLocalizedRaw(entry.description, editingLanguage)}
-                                    onChange={(event) => updateBlock(template.id, entry.id, {
-                                      description: setLocalizedText(entry.description, editingLanguage, event.target.value)
-                                    })}
-                                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                                  />
-                                  <span className="mt-1 block text-xs text-gray-500">
-                                    {t('backOffice.showcaseTemplates.blockDescriptionHint')}
-                                  </span>
-                                </label>
+                                {SHOWCASE_TEMPLATE_LINKABLE_BLOCK_TYPES.includes(entry.type) && (
+                                  <label className="block md:col-span-3">
+                                    <span className="block text-xs font-semibold uppercase tracking-wide text-gray-600">{t('backOffice.showcaseTemplates.blockSourceLabel')}</span>
+                                    <select
+                                      value={entry.sourceQuestionId || ''}
+                                      onChange={(event) => updateBlock(template.id, entry.id, { sourceQuestionId: event.target.value })}
+                                      className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                                    >
+                                      <option value="">{t('backOffice.showcaseTemplates.blockSourceNone')}</option>
+                                      {questionsForKind('block').map((question) => (
+                                        <option key={question.id} value={question.id}>{questionLabel(question)}</option>
+                                      ))}
+                                    </select>
+                                    <span className="mt-1 block text-xs text-gray-500">
+                                      {t('backOffice.showcaseTemplates.blockSourceHint')}
+                                    </span>
+                                  </label>
+                                )}
+                                {!(entry.sourceQuestionId && SHOWCASE_TEMPLATE_LINKABLE_BLOCK_TYPES.includes(entry.type)) && (
+                                  <label className="block md:col-span-3">
+                                    <span className="block text-xs font-semibold uppercase tracking-wide text-gray-600">{t('backOffice.showcaseTemplates.blockDescriptionLabel')}</span>
+                                    <textarea
+                                      rows={2}
+                                      value={getLocalizedRaw(entry.description, editingLanguage)}
+                                      onChange={(event) => updateBlock(template.id, entry.id, {
+                                        description: setLocalizedText(entry.description, editingLanguage, event.target.value)
+                                      })}
+                                      className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                                    />
+                                    <span className="mt-1 block text-xs text-gray-500">
+                                      {t('backOffice.showcaseTemplates.blockDescriptionHint')}
+                                    </span>
+                                  </label>
+                                )}
                               </div>
                             )}
                           </li>

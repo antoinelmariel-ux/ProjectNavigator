@@ -1169,7 +1169,12 @@ export default {
       blockDescriptionHint: 'Shown in the showcase until the owner replaces it: phrase it as an instruction.',
       editingLanguageLabel: 'Editing language',
       editingLanguageHint: 'template texts are translated into the 4 languages',
-      defaultShowcaseNote: 'A project no template covers keeps the standard showcase.'
+      defaultShowcaseNote: 'A project no template covers keeps the standard showcase.',
+      fieldSourcesHint: 'Each field of this section shows the answer to a question. Change it for this project type: what the owner edits in the showcase also edits that answer in the questionnaire.',
+      defaultSourceOption: 'Default question',
+      blockSourceLabel: 'Content taken from the question',
+      blockSourceNone: 'None — starting text below',
+      blockSourceHint: 'The block shows the answer to this question (“missing information” while it is empty). Editing it in the showcase edits the answer in the questionnaire.'
     },
     faq: {
       title: 'Application FAQ',
@@ -2587,6 +2592,7 @@ export default {
     multiWithOptionsHelper: 'Select one or more options.',
     multiFreeformHelper: 'Enter one value per line.',
     lineByLineHelper: 'Use one line per item for better formatting.',
+    linkedBlockHint: 'This block shows the answer to a questionnaire question: editing it here also edits the questionnaire and may change the risk analysis.',
     noMilestoneYet: 'No milestone has been added yet.',
     dateLabel: 'Date',
     addMilestoneButton: 'Add a milestone',
