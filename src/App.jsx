@@ -914,6 +914,7 @@ export const App = () => {
   const [projects, setProjects] = useState(buildInitialProjectsState);
   const projectsRef = useRef(projects);
   const openedProjectAnswersRef = useRef(null);
+  const showcaseOpenedAnswersRef = useRef(null);
   const [inspirationProjects, setInspirationProjects] = useState(() => []);
   const [hasLoadedInspirationProjects, setHasLoadedInspirationProjects] = useState(false);
   const [onboardingTourConfig, setOnboardingTourConfig] = useState(buildInitialOnboardingConfig);
@@ -3489,20 +3490,50 @@ const updateProjectFilters = useCallback((updater) => {
     );
     setAnswers(fresh);
     setAnalysis(freshAnalysis);
+  }, [
+    activeProject,
+    analyzeAnswers,
+    answers,
+    hasUnsavedChanges,
+    riskLevelRules,
+    riskWeights,
+    rules
+  ]);
 
-    if (isShowcaseEditing) {
+  // Même réalignement pour la vitrine, qui garde un instantané des réponses pris à l'ouverture :
+  // un lien direct (`?sv=`, `?showcase=`) l'ouvre sans passer par la synthèse, donc sans copie de
+  // travail ni `activeProjectId`. Seule une vitrine encore bâtie sur les réponses du projet
+  // (même référence qu'à l'ouverture) est remplacée, et jamais pendant qu'on l'édite.
+  useEffect(() => {
+    const opened = showcaseOpenedAnswersRef.current;
+    if (!opened || !showcaseProjectContext || showcaseProjectContext.answers !== opened || isShowcaseEditing) {
       return;
     }
 
+    const project = projects.find((entry) => entry?.id === showcaseProjectContext.projectId);
+    const fresh = project?.answers;
+    if (!fresh || fresh === opened) {
+      return;
+    }
+
+    showcaseOpenedAnswersRef.current = fresh;
+    if (JSON.stringify(fresh) === JSON.stringify(opened)) {
+      return;
+    }
+
+    const freshAnalysis = resolveProjectAnalysis(
+      project,
+      (a) => analyzeAnswers(a, rules, riskLevelRules, riskWeights)
+    );
+    const freshQuestions = questions.filter((question) => shouldShowQuestion(question, fresh));
     setShowcaseProjectContext((previous) => {
-      if (!previous || previous.projectId !== activeProject.id || previous.answers !== opened) {
+      if (!previous || previous.answers !== opened) {
         return previous;
       }
 
-      const freshQuestions = questions.filter((question) => shouldShowQuestion(question, fresh));
       return {
         ...previous,
-        status: activeProject.status || previous.status,
+        status: project.status || previous.status,
         answers: fresh,
         analysis: freshAnalysis,
         relevantTeams: teams.filter((team) => (freshAnalysis?.teams || []).includes(team.id)),
@@ -3514,16 +3545,15 @@ const updateProjectFilters = useCallback((updater) => {
       };
     });
   }, [
-    activeProject,
     analyzeAnswers,
-    answers,
-    hasUnsavedChanges,
     isShowcaseEditing,
+    projects,
     questions,
     riskLevelRules,
     riskWeights,
     rules,
     shouldShowQuestion,
+    showcaseProjectContext,
     teams
   ]);
 
@@ -6207,6 +6237,7 @@ const updateProjectFilters = useCallback((updater) => {
     setShowcaseCommentsEnabled(pendingComments);
     setShowcaseAnnotationVisibilityMode(pendingAnnotationVisibility);
 
+    showcaseOpenedAnswersRef.current = project && project.answers === answersSource ? answersSource : null;
     setShowcaseProjectContext({
       projectId: projectId || null,
       projectName: resolvedProjectName,
