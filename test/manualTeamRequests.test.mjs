@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   MANUAL_TEAM_REQUESTS_KEY,
   addManualTeamRequest,
+  removeManualTeamRequest,
   normalizeManualTeamRequests
 } from '../src/utils/manualTeamRequests.js';
 
@@ -42,4 +43,11 @@ test('addManualTeamRequest ignore un teamId vide', () => {
 
 test('la clé exportée reste stable (persistée dans les réponses projet)', () => {
   assert.equal(MANUAL_TEAM_REQUESTS_KEY, '__compliance_manual_teams__');
+});
+
+test('removeManualTeamRequest retire seulement l’équipe visée', () => {
+  const requests = [{ teamId: 'a' }, { teamId: 'b' }];
+  assert.deepEqual(removeManualTeamRequest(requests, 'a').map((entry) => entry.teamId), ['b']);
+  assert.deepEqual(removeManualTeamRequest(requests, 'zzz').map((entry) => entry.teamId), ['a', 'b']);
+  assert.deepEqual(removeManualTeamRequest(undefined, 'a'), []);
 });

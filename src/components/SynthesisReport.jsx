@@ -667,6 +667,7 @@ export const SynthesisReport = ({
   onPerimeterFollowerAction,
   isClaimActionAvailable = true,
   onRequestAdditionalTeam,
+  onRemoveAdditionalTeam,
   readiness = null,
   openQuestionDoubts = [],
   submissionKind = SUBMISSION_KIND_FINAL,
@@ -2508,6 +2509,30 @@ export const SynthesisReport = ({
                           </div>
                         )}
                         {renderPerimeterStage(teamPerimeterKey, hasExpertOpinion)}
+
+                        {canRequestAdditionalTeam
+                          && typeof onRemoveAdditionalTeam === 'function'
+                          && manualTeamIds.has(team.id)
+                          && !(analysisTeamIds || []).includes(team.id)
+                          && !hasExpertOpinion
+                          && !storedEntry.status
+                          && replyMessages.length === 0 && (
+                          <div className="mt-3">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onRemoveAdditionalTeam(team.id);
+                                scheduleComplianceFeedback(
+                                  'additional-team-request',
+                                  t('synthesisReport.teamRemovedMessage', { team: teamDisplayName })
+                                );
+                              }}
+                              className="inline-flex items-center rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50 transition-colors"
+                            >
+                              {t('synthesisReport.removeAdditionalTeamButton')}
+                            </button>
+                          </div>
+                        )}
 
                         {(teamClaim || canActOnTeamClaim) && (
                           <div className="mt-3 space-y-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-700">
