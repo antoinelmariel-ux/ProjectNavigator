@@ -131,3 +131,13 @@
     animation: none;
   }
 }
+
+.sg-richtext a {
+  color: #2563eb;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.sg-richtext a:hover {
+  color: #1d4ed8;
+}
