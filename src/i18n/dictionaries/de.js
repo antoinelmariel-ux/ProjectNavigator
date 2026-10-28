@@ -1244,7 +1244,13 @@ export default {
       previewTitle: 'Vorschau der Vorlage „{{name}}“',
       previewHint: 'Beispielantworten: Es wird nichts gespeichert.',
       previewClose: 'Vorschau schließen',
-      previewLoading: 'Vorschau wird geladen…'
+      previewLoading: 'Vorschau wird geladen…',
+      displayConditionTitle: 'Anzeigebedingung',
+      displayConditionNone: 'immer angezeigt',
+      displayConditionActive: 'unter Bedingung angezeigt',
+      displayConditionHint: 'Der Abschnitt erscheint nur in Vitrinen, deren Antworten diese Bedingungen erfüllen (gleiche Grammatik wie die Regeln). Der Projektträger sieht ihn beim Bearbeiten ausgegraut, Leser sehen ihn nicht.',
+      displayConditionEmpty: 'Keine Bedingung: Der Abschnitt wird immer angezeigt.',
+      displayConditionIncomplete: 'Eine Bedingung hat noch keine Frage: Solange sie nicht vervollständigt ist, bleibt der Abschnitt immer angezeigt.'
     },
     faq: {
       title: 'FAQ der Anwendung',
@@ -2637,6 +2643,7 @@ export default {
       addSectionTitle: 'Abschnitt hinzufügen',
       addSectionHint: 'Fahren Sie über eine Vorlage, um sie an ihrem Platz zu sehen.',
       hiddenInLight: 'In der Light-Ansicht ausgeblendet',
+      hiddenByCondition: 'Für dieses Projekt ausgeblendet (Bedingung der Vorlage)',
       showInLight: 'In der Light-Ansicht anzeigen',
       hideInLight: 'In der Light-Ansicht ausblenden',
       sectionMoveUp: 'Abschnitt nach oben',

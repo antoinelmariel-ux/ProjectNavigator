@@ -14,6 +14,7 @@ import {
   createShowcaseTemplateBlock,
   extractSlotPlaceholders,
   getBlockSlotDefinitions,
+  hasSectionDisplayCondition,
   hasShowcaseTemplateActivation,
   isQuestionCompatibleWithSourceKind,
   normalizeBlockSlots,
@@ -277,6 +278,45 @@ const BuiltInOptionsEditor = ({ templateId, entry, onChange, editingLanguage, t 
         </div>
       )}
     </div>
+  );
+};
+
+// Condition d'affichage d'une section : repliée tant qu'il n'y en a pas, pour que la liste
+// des sections reste lisible.
+const DisplayConditionEditor = ({ idPrefix, entry, onChange, questions, language, t }) => {
+  const groups = entry.displayCondition?.conditionGroups || [];
+  const isActive = hasSectionDisplayCondition(entry);
+  return (
+    <details
+      className="mt-3 rounded-lg border border-gray-200 bg-white px-3 py-2"
+      data-testid="showcase-template-display-condition"
+      open={groups.length > 0 || undefined}
+    >
+      <summary className="cursor-pointer text-sm font-medium text-gray-800">
+        {t('backOffice.showcaseTemplates.displayConditionTitle')}
+        {' — '}
+        <span className={isActive ? 'text-blue-700' : 'text-gray-500'}>
+          {t(isActive
+            ? 'backOffice.showcaseTemplates.displayConditionActive'
+            : 'backOffice.showcaseTemplates.displayConditionNone')}
+        </span>
+      </summary>
+      <div className="mt-2 space-y-2">
+        <p className="text-xs text-gray-600">{t('backOffice.showcaseTemplates.displayConditionHint')}</p>
+        <ConditionGroupsEditor
+          idPrefix={idPrefix}
+          groups={groups}
+          onChange={(conditionGroups) => onChange({ ...entry, displayCondition: { conditionGroups } })}
+          questions={questions}
+          language={language}
+          excludedQuestionIds={[ACTIVITY_SCOPE_QUESTION_ID]}
+          emptyStateText={t('backOffice.showcaseTemplates.displayConditionEmpty')}
+        />
+        {groups.length > 0 && !isActive && (
+          <p className="text-xs text-amber-700">{t('backOffice.showcaseTemplates.displayConditionIncomplete')}</p>
+        )}
+      </div>
+    </details>
   );
 };
 
@@ -711,6 +751,16 @@ export const BackOfficeShowcaseTemplates = ({
                                     ))}
                                   </div>
                                 </div>
+                              )}
+                              {!isLocked && (
+                                <DisplayConditionEditor
+                                  idPrefix={`showcase-template-${template.id}-${entry.kind}-${entry.id}-display`}
+                                  entry={entry}
+                                  onChange={(nextEntry) => updateEntry(template.id, entry.kind, entry.id, () => nextEntry)}
+                                  questions={conditionQuestions}
+                                  language={language}
+                                  t={t}
+                                />
                               )}
                             </li>
                           );

@@ -1234,7 +1234,13 @@ export default {
       previewTitle: 'Preview of the “{{name}}” template',
       previewHint: 'Sample answers: nothing is saved.',
       previewClose: 'Close the preview',
-      previewLoading: 'Loading the preview…'
+      previewLoading: 'Loading the preview…',
+      displayConditionTitle: 'Display condition',
+      displayConditionNone: 'always shown',
+      displayConditionActive: 'shown on condition',
+      displayConditionHint: 'The section only appears in showcases whose answers meet these conditions (same grammar as the rules). The owner sees it greyed out while editing; readers do not see it.',
+      displayConditionEmpty: 'No condition: the section is always shown.',
+      displayConditionIncomplete: 'A condition has no question yet: until it is completed, the section stays always shown.'
     },
     faq: {
       title: 'Application FAQ',
@@ -2627,6 +2633,7 @@ export default {
       addSectionTitle: 'Add a section',
       addSectionHint: 'Hover a template to see it appear in place.',
       hiddenInLight: 'Hidden in Light view',
+      hiddenByCondition: 'Hidden for this project (template condition)',
       showInLight: 'Show in Light view',
       hideInLight: 'Hide in Light view',
       sectionMoveUp: 'Move section up',

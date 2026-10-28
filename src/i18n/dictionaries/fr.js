@@ -1242,7 +1242,13 @@ export default {
       previewTitle: 'Aperçu du modèle « {{name}} »',
       previewHint: 'Réponses fictives : rien n’est enregistré.',
       previewClose: 'Fermer l’aperçu',
-      previewLoading: 'Chargement de l’aperçu…'
+      previewLoading: 'Chargement de l’aperçu…',
+      displayConditionTitle: 'Condition d’affichage',
+      displayConditionNone: 'toujours affichée',
+      displayConditionActive: 'affichée sous condition',
+      displayConditionHint: 'La section n’apparaît que dans les vitrines dont les réponses remplissent ces conditions (même grammaire que les règles). Le porteur la voit grisée en édition, le lecteur ne la voit pas.',
+      displayConditionEmpty: 'Sans condition, la section est toujours affichée.',
+      displayConditionIncomplete: 'Une condition n’a pas encore de question : tant qu’elle n’est pas complétée, la section reste toujours affichée.'
     },
     faq: {
       title: 'FAQ de l\'application',
@@ -2636,6 +2642,7 @@ export default {
       addSectionTitle: 'Ajouter une section',
       addSectionHint: 'Survolez un gabarit pour le voir apparaître à sa place.',
       hiddenInLight: 'Masquée en vue Light',
+      hiddenByCondition: 'Masquée pour ce projet (condition du modèle)',
       showInLight: 'Afficher en vue Light',
       hideInLight: 'Masquer en vue Light',
       sectionMoveUp: 'Monter la section',

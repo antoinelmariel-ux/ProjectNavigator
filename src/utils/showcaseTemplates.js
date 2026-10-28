@@ -550,14 +550,27 @@ const isConditionDefined = (condition) => {
   return Boolean(condition.question);
 };
 
-export const hasShowcaseTemplateActivation = (template) => {
-  const groups = template?.activation?.conditionGroups;
-  return Array.isArray(groups)
-    && groups.length > 0
-    && groups.every((group) => Array.isArray(group.conditions)
-      && group.conditions.length > 0
-      && group.conditions.every(isConditionDefined));
+const areConditionGroupsDefined = (groups) => (
+  Array.isArray(groups)
+  && groups.length > 0
+  && groups.every((group) => Array.isArray(group.conditions)
+    && group.conditions.length > 0
+    && group.conditions.every(isConditionDefined))
+);
+
+export const hasShowcaseTemplateActivation = (template) => areConditionGroupsDefined(template?.activation?.conditionGroups);
+
+// Condition d'affichage d'une section, même grammaire que l'activation. Absente, vide ou
+// encore incomplète, elle ne masque rien : une condition en cours de saisie ne doit pas
+// faire disparaître une section de toutes les vitrines.
+const normalizeDisplayCondition = (raw) => {
+  const groups = raw && typeof raw === 'object' && Array.isArray(raw.conditionGroups)
+    ? normalizeRuleConditionGroups({ conditionGroups: raw.conditionGroups })
+    : [];
+  return groups.length > 0 ? { conditionGroups: groups } : null;
 };
+
+export const hasSectionDisplayCondition = (entry) => areConditionGroupsDefined(entry?.displayCondition?.conditionGroups);
 
 // Seuls les champs que la section affiche vraiment sont gardés, et un champ renvoyé vers
 // sa propre question ne crée pas de correspondance.
@@ -614,6 +627,10 @@ const normalizeEntry = (entry, index) => {
     if (Object.keys(labels).length > 0) {
       normalized.labels = labels;
     }
+    const displayCondition = id === SHOWCASE_TEMPLATE_MANDATORY_SECTION_ID ? null : normalizeDisplayCondition(entry.displayCondition);
+    if (displayCondition) {
+      normalized.displayCondition = displayCondition;
+    }
     return normalized;
   }
 
@@ -622,11 +639,13 @@ const normalizeEntry = (entry, index) => {
     const rawSlots = entry.slots && typeof entry.slots === 'object'
       ? entry.slots
       : legacySlotsFromBlock(entry, type);
+    const displayCondition = normalizeDisplayCondition(entry.displayCondition);
     return {
       kind: 'block',
       id: normalizeString(entry.id) || `block-${index + 1}`,
       type,
-      slots: normalizeBlockSlots(type, rawSlots)
+      slots: normalizeBlockSlots(type, rawSlots),
+      ...(displayCondition ? { displayCondition } : {})
     };
   }
 
@@ -735,6 +754,33 @@ export const resolveBuiltInSectionLabel = (template, sectionId, key, language) =
   const entry = findBuiltInEntry(template, sectionId);
   const value = entry?.labels?.[key];
   return value === undefined ? '' : resolveLocalizedText(value, language).trim();
+};
+
+// Conditions d'affichage complètes du modèle, par identifiant de section de la vitrine.
+// Comme les emplacements, elles suivent le modèle même dans une vitrine personnalisée.
+export const getTemplateSectionDisplayConditions = (template) => {
+  if (!template || !Array.isArray(template.sections)) {
+    return {};
+  }
+  return template.sections.reduce((accumulator, entry) => {
+    if (!hasSectionDisplayCondition(entry)) {
+      return accumulator;
+    }
+    const sectionId = entry.kind === 'block' ? buildTemplateBlockSectionId(template.id, entry.id) : entry.id;
+    accumulator[sectionId] = entry.displayCondition.conditionGroups;
+    return accumulator;
+  }, {});
+};
+
+// Sections que les réponses du projet masquent. Le périmètre d'activité de la personne
+// connectée n'est pas injecté, pour la même raison que dans resolveShowcaseTemplate.
+export const getSectionsHiddenByCondition = (displayConditions, answers) => {
+  const source = answers && typeof answers === 'object' ? answers : {};
+  return new Set(
+    Object.entries(displayConditions || {})
+      .filter(([, conditionGroups]) => !evaluateRule({ conditionGroups }, source).triggered)
+      .map(([sectionId]) => sectionId)
+  );
 };
 
 // Identifiant stable d'un bloc issu d'un modèle : l'ordre enregistré d'une vitrine peut

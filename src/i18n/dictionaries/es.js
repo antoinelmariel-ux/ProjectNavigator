@@ -1235,7 +1235,13 @@ export default {
       previewTitle: 'Vista previa de la plantilla «{{name}}»',
       previewHint: 'Respuestas ficticias: no se guarda nada.',
       previewClose: 'Cerrar la vista previa',
-      previewLoading: 'Cargando la vista previa…'
+      previewLoading: 'Cargando la vista previa…',
+      displayConditionTitle: 'Condición de visualización',
+      displayConditionNone: 'siempre visible',
+      displayConditionActive: 'visible con condición',
+      displayConditionHint: 'La sección solo aparece en las vitrinas cuyas respuestas cumplen estas condiciones (misma gramática que las reglas). El promotor la ve atenuada al editar; los lectores no la ven.',
+      displayConditionEmpty: 'Sin condición: la sección siempre se muestra.',
+      displayConditionIncomplete: 'Una condición aún no tiene pregunta: mientras no se complete, la sección se muestra siempre.'
     },
     faq: {
       title: 'FAQ de la aplicación',
@@ -2627,6 +2633,7 @@ export default {
       addSectionTitle: 'Añadir una sección',
       addSectionHint: 'Pase el cursor sobre una plantilla para verla aparecer en su sitio.',
       hiddenInLight: 'Oculta en la vista Light',
+      hiddenByCondition: 'Oculta para este proyecto (condición de la plantilla)',
       showInLight: 'Mostrar en la vista Light',
       hideInLight: 'Ocultar en la vista Light',
       sectionMoveUp: 'Subir la sección',

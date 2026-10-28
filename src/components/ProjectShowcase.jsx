@@ -51,8 +51,10 @@ import {
   formatSlotQuestionValue,
   getBlockSlotDefinitions,
   getTemplateBlockSlots,
+  getSectionsHiddenByCondition,
   getTemplateBuiltInSectionIds,
   getTemplateHiddenFieldIds,
+  getTemplateSectionDisplayConditions,
   isBuiltInPartHidden,
   mapShowcaseUpdatesToSources,
   normalizeShowcaseTemplate,
@@ -3041,6 +3043,26 @@ export const ProjectShowcase = ({
     });
     return { slots, modes, values, units };
   }, [describeMissingSlotQuestion, findSlotQuestion, language, readSlotQuestion, templateBlockSlots]);
+  // Conditions d'affichage du modèle, évaluées sur les réponses du projet sous l'identifiant
+  // de leur question, brouillon compris : une réponse changée dans l'inspecteur fait
+  // apparaître ou disparaître la section aussitôt.
+  const templateDisplayConditions = useMemo(
+    () => getTemplateSectionDisplayConditions(activeShowcaseTemplate),
+    [activeShowcaseTemplate]
+  );
+  const sectionsHiddenByCondition = useMemo(() => {
+    if (Object.keys(templateDisplayConditions).length === 0) {
+      return new Set();
+    }
+    const conditionAnswers = { ...(rawAnswers || {}) };
+    editableFields.forEach((field) => {
+      const value = getRawAnswer(draftPreviewAnswers, field.id);
+      if (value !== undefined) {
+        conditionAnswers[fieldSources[field.id] || field.id] = value;
+      }
+    });
+    return getSectionsHiddenByCondition(templateDisplayConditions, conditionAnswers);
+  }, [draftPreviewAnswers, editableFields, fieldSources, rawAnswers, templateDisplayConditions]);
   const isTemplatePartHidden = useCallback(
     (sectionId, part) => isBuiltInPartHidden(activeShowcaseTemplate, sectionId, part),
     [activeShowcaseTemplate]
@@ -4501,15 +4523,22 @@ export const ProjectShowcase = ({
           plainTitle: title,
           templateLabel: custom ? getTemplateMeta(t, custom.type).name : '',
           isHiddenInLight: isSectionHiddenInLight(sectionId),
-          node: custom
-            ? renderCustomSectionSignature(custom, index, { editable: isEditorChromeVisible })
-            : renderSignatureSection(sectionId, index)
+          // Masquée par une condition du modèle : le lecteur (et l'aperçu) ne la voit pas ;
+          // en édition, elle reste dans son cadre, grisée, pour que le porteur comprenne
+          // pourquoi elle ne s'affiche pas.
+          isHiddenByCondition: sectionsHiddenByCondition.has(sectionId),
+          node: sectionsHiddenByCondition.has(sectionId) && !isEditorChromeVisible
+            ? null
+            : custom
+              ? renderCustomSectionSignature(custom, index, { editable: isEditorChromeVisible })
+              : renderSignatureSection(sectionId, index)
         };
       }),
     [
       canvasCustomSectionMap,
       isEditorChromeVisible,
       isSectionHiddenInLight,
+      sectionsHiddenByCondition,
       renderCustomSectionSignature,
       renderSignatureSection,
       sectionFieldsById,
@@ -4604,6 +4633,7 @@ export const ProjectShowcase = ({
           isCustom={entry.isCustom}
           isActive={activeSectionId === entry.id}
           isHiddenInLight={entry.isHiddenInLight}
+          isHiddenByCondition={entry.isHiddenByCondition}
           isDragging={canvasDragIndex === index}
           onSelect={handleSelectSection}
           onMove={handleMoveSection}

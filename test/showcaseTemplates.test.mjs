@@ -21,7 +21,10 @@ import {
   formatSlotQuestionValue,
   getTemplateBlockSlots,
   getTemplateBuiltInSectionIds,
+  getSectionsHiddenByCondition,
   getTemplateHiddenFieldIds,
+  getTemplateSectionDisplayConditions,
+  hasSectionDisplayCondition,
   hasShowcaseTemplateActivation,
   isBuiltInPartHidden,
   mapShowcaseUpdatesToSources,
@@ -579,4 +582,44 @@ test('l’aperçu invente une réponse, selon son type, pour chaque question lue
   assert.deepEqual(answers.kinds, ['fin', 'nature']);
   assert.equal(answers.schedule, 'unique');
   assert.match(answers.beneficiary, /^Exemple de réponse/);
+});
+
+// --- Conditions d'affichage des sections ------------------------------------------------
+
+const whenCounterpartIs = (value) => ({
+  conditionGroups: [{ logic: 'all', conditions: [{ type: 'question', question: 'counterpart', operator: 'equals', value }] }]
+});
+
+test('une section du modèle ne s’affiche que si ses conditions sont remplies', () => {
+  const template = normalizeShowcaseTemplate({
+    id: 'don',
+    sections: [
+      { kind: 'builtin', id: 'team', displayCondition: whenCounterpartIs('aucune') },
+      { kind: 'block', id: 'terms', type: 'checklist', slots: { title: { text: 'Modalités' } }, displayCondition: whenCounterpartIs('mention') },
+      { kind: 'builtin', id: 'hero' }
+    ]
+  });
+  const conditions = getTemplateSectionDisplayConditions(template);
+  const blockId = buildTemplateBlockSectionId('don', 'terms');
+  assert.deepEqual(Object.keys(conditions).sort(), [blockId, 'team'].sort());
+
+  assert.deepEqual(Array.from(getSectionsHiddenByCondition(conditions, { counterpart: 'aucune' })), [blockId]);
+  assert.deepEqual(Array.from(getSectionsHiddenByCondition(conditions, { counterpart: 'mention' })), ['team']);
+  assert.deepEqual(Array.from(getSectionsHiddenByCondition(conditions, {})).sort(), [blockId, 'team'].sort());
+});
+
+test('une condition d’affichage vide ou incomplète ne masque rien', () => {
+  const template = normalizeShowcaseTemplate({
+    id: 'don',
+    sections: [
+      { kind: 'builtin', id: 'team', displayCondition: { conditionGroups: [] } },
+      { kind: 'builtin', id: 'timeline', displayCondition: { conditionGroups: [{ logic: 'all', conditions: [{ type: 'question', question: '', operator: 'equals', value: '' }] }] } },
+      { kind: 'builtin', id: 'notice', displayCondition: whenCounterpartIs('x') }
+    ]
+  });
+  assert.equal('displayCondition' in template.sections.find((entry) => entry.id === 'team'), false);
+  assert.equal(hasSectionDisplayCondition(template.sections.find((entry) => entry.id === 'timeline')), false);
+  // le bandeau de complétude ne peut pas être masqué par une condition
+  assert.equal('displayCondition' in template.sections.find((entry) => entry.id === 'notice'), false);
+  assert.deepEqual(getTemplateSectionDisplayConditions(template), {});
 });

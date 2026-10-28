@@ -311,6 +311,16 @@ activity-scope pseudo-question is deliberately excluded (`excludedQuestionIds`):
   section left with nothing to show disappears like an unanswered one. Everything that sits in the
   body of `renderSignatureSection` reads `isTemplatePartHidden`/`getBuiltInSectionLabel` — add a
   part there *and* in `BUILTIN_PART_FIELD_IDS`.
+- **Display conditions.** Any section of a template but `notice` may carry `displayCondition`
+  (`{conditionGroups}`, rules grammar, `ConditionGroupsEditor` in a collapsed panel of its row).
+  `getTemplateSectionDisplayConditions` keeps only complete ones — an empty or half-typed condition
+  hides nothing, the opposite of activation, where it applies nothing — keyed by showcase section
+  id, so like slots they follow the template even in a customised showcase. `ProjectShowcase`
+  evaluates them on the project's answers under their real question ids, draft included
+  (`sectionsHiddenByCondition`: raw answers overlaid with each editable field's draft, mapped back
+  through `fieldSources`). The reader and the preview (key `P`) get no node; the editor keeps the
+  section in its frame, greyed, with a « Masquée pour ce projet » badge (`SectionFrame`
+  `isHiddenByCondition`). The activity scope is excluded, as for activation.
 - **Back-office preview** renders the real `ProjectShowcase` (`forcedShowcaseTemplate` bypasses the
   activation) on demo answers stripped of their showcase structure, plus the per-template sample
   answers of `showcaseTemplatePreviewAnswers`, plus an invented answer per question the template

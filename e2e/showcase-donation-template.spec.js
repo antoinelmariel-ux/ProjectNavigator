@@ -3,10 +3,12 @@ import {
   collectConsoleErrors,
   gotoHome,
   grantAdminAccess,
+  patchStateOnBoot,
   proceedThroughMandatorySummary,
   readStoredState,
   walkQuestionnaireToShowcase
 } from './fixtures.js';
+import { initialShowcaseTemplates } from '../src/data/showcaseTemplates.js';
 
 // La vitrine d'un don se remplit d'office depuis le questionnaire : le montant devient le
 // chiffre clé, les choix deviennent des listes, une phrase du modèle cite les réponses.
@@ -68,10 +70,34 @@ const answerAsDonation = async (page) => {
   await proceedThroughMandatorySummary(page);
 };
 
+// L'équipe ne s'affiche que si un compte rendu est attendu du bénéficiaire : le don créé
+// ci-dessous n'en attend aucun.
+const templatesWithConditionalTeam = initialShowcaseTemplates.map((template) => (
+  template.id !== 'don-bourse-appel-a-projets'
+    ? template
+    : {
+        ...template,
+        sections: template.sections.map((entry) => (
+          entry.kind === 'builtin' && entry.id === 'team'
+            ? {
+                ...entry,
+                displayCondition: {
+                  conditionGroups: [{
+                    logic: 'all',
+                    conditions: [{ type: 'question', question: 'donationCounterpart', operator: 'equals', value: 'compte_rendu_utilisation' }]
+                  }]
+                }
+              }
+            : entry
+        ))
+      }
+));
+
 test('la vitrine d’un don se remplit depuis le questionnaire', async ({ page }) => {
   test.setTimeout(240000);
   const errors = collectConsoleErrors(page);
   await page.setViewportSize({ width: 1440, height: 900 });
+  await patchStateOnBoot(page, (state, templates) => ({ ...(state || {}), showcaseTemplates: templates }), templatesWithConditionalTeam);
   await gotoHome(page);
   await answerAsDonation(page);
 
@@ -101,10 +127,15 @@ test('la vitrine d’un don se remplit depuis le questionnaire', async ({ page }
   // le coût estimé du projet ferait doublon avec le montant : le modèle le retire
   await expect(page.locator('[data-showcase-section="timeline"]')).toContainText('Les étapes du soutien');
   await expect(page.locator('[data-tour-id="showcase-budget"]')).toHaveCount(0);
+  // condition d'affichage non remplie : le lecteur ne voit pas l'équipe
+  await expect(page.locator('[data-showcase-section="team"]')).toHaveCount(0);
 
   // En édition : le montant se modifie par sa question, et la phrase qui le cite suit.
   await page.getByRole('button', { name: 'Modifier' }).click();
   await expect(page.locator('.sge-topbar')).toBeVisible();
+  // en édition, le porteur la voit grisée, avec la raison
+  const teamFrame = page.locator('.sge-frame').filter({ has: page.locator('[data-showcase-section="team"]') });
+  await expect(teamFrame.getByTestId('showcase-section-hidden-by-condition')).toBeVisible();
   const figureFrame = page.locator('.sge-frame').filter({ has: page.locator('[data-showcase-section="figure"]') }).first();
   await figureFrame.scrollIntoViewIfNeeded();
   await figureFrame.hover();
@@ -153,6 +184,23 @@ test('le back-office masque un emplacement, renomme une section et prévisualise
   await accent.getByRole('combobox', { name: 'Citer une réponse' }).selectOption('donationBeneficiary');
   await expect(accent.getByRole('textbox', { name: 'Texte' })).toHaveValue('Soutien à {{donationBeneficiary}}');
 
+  // les modalités ne s'affichent que si un compte rendu est attendu du bénéficiaire
+  const termsCondition = section('terms').getByTestId('showcase-template-display-condition');
+  await expect(termsCondition.locator('summary')).toContainText('toujours affichée');
+  await termsCondition.locator('summary').click();
+  await termsCondition.getByRole('button', { name: 'Créer un groupe de conditions' }).click();
+  await termsCondition
+    .locator('select')
+    .filter({ has: page.locator('option[value="donationCounterpart"]') })
+    .first()
+    .selectOption('donationCounterpart');
+  await termsCondition
+    .locator('select')
+    .filter({ has: page.locator('option', { hasText: 'Compte rendu de l’utilisation des fonds' }) })
+    .first()
+    .selectOption({ label: 'Compte rendu de l’utilisation des fonds' });
+  await expect(termsCondition.locator('summary')).toContainText('affichée sous condition');
+
   await donation.getByRole('button', { name: 'Aperçu' }).click();
   const preview = page.getByTestId('showcase-template-preview');
   await expect(preview).toBeVisible();
@@ -162,6 +210,9 @@ test('le back-office masque un emplacement, renomme une section et prévisualise
   await expect(preview.locator('[data-showcase-section="highlight"]').first()).toContainText('Soutien à Association Hémophilie Solidaire');
   await expect(preview.locator('[data-showcase-section="timeline"]')).toContainText('Calendrier des versements');
   await expect(preview.locator('[data-showcase-section="problem"]')).toHaveCount(0);
+  // réponse fictive : aucune contrepartie, la condition des modalités n'est pas remplie
+  await expect(preview.locator('[data-showcase-section="checklist"]')).toHaveCount(0);
+  await expect(preview.locator('[data-showcase-section="stack"]')).toHaveCount(1);
 
   await page.getByRole('button', { name: 'Fermer l’aperçu' }).click();
   await expect(preview).toHaveCount(0);
