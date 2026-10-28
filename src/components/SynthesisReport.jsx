@@ -1054,6 +1054,14 @@ export const SynthesisReport = ({
       .map((committee) => committee.name);
     return [...teamNames, ...committeeNames].filter(Boolean);
   }, [isExpertViewer, relevantTeams, complianceTeamIdsForUser, validationCommittees, committeeIdsForUser, language]);
+  const hasOpenedOverviewForExpertRef = useRef(false);
+  useEffect(() => {
+    if (!isExpertViewer || hasOpenedOverviewForExpertRef.current) {
+      return;
+    }
+    hasOpenedOverviewForExpertRef.current = true;
+    setIsOverviewOpen(true);
+  }, [isExpertViewer]);
   const hasOpenedOwnCommitteesRef = useRef(false);
   useEffect(() => {
     if (!isExpertViewer || committeeIdsForUser.size === 0 || hasOpenedOwnCommitteesRef.current) {
