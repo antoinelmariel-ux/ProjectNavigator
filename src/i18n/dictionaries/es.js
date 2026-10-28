@@ -2465,6 +2465,18 @@ export default {
     addSharePointLinkHint: 'Suba un archivo para mostrar la vista previa aquí.',
     sharePointSourceTemplate: 'Documento subido · {{type}}',
     openInNewTabLink: 'Abrir en una nueva pestaña',
+    documentEditOnline: {
+      powerpoint: 'Editar en PowerPoint en línea',
+      word: 'Editar en Word en línea',
+      excel: 'Editar en Excel en línea'
+    },
+    documentEditDesktop: {
+      powerpoint: 'Abrir en la aplicación PowerPoint',
+      word: 'Abrir en la aplicación Word',
+      excel: 'Abrir en la aplicación Excel'
+    },
+    documentRefreshPreview: 'Actualizar la vista previa',
+    documentEditLiveNotice: 'El documento se edita donde está almacenado: los lectores ven los cambios de inmediato, sin publicar el escaparate.',
     documentAltTemplate: 'Documento {{title}}',
     customBlockFallback: 'Bloque personalizado',
     customSectionSubtitle: 'Sección personalizada',

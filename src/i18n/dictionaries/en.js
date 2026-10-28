@@ -2465,6 +2465,18 @@ export default {
     addSharePointLinkHint: 'Upload a file to display the preview here.',
     sharePointSourceTemplate: 'Uploaded document · {{type}}',
     openInNewTabLink: 'Open in a new tab',
+    documentEditOnline: {
+      powerpoint: 'Edit in PowerPoint online',
+      word: 'Edit in Word online',
+      excel: 'Edit in Excel online'
+    },
+    documentEditDesktop: {
+      powerpoint: 'Open in the PowerPoint app',
+      word: 'Open in the Word app',
+      excel: 'Open in the Excel app'
+    },
+    documentRefreshPreview: 'Refresh preview',
+    documentEditLiveNotice: 'The document is edited where it is stored: readers see the changes immediately, without publishing the showcase.',
     documentAltTemplate: 'Document {{title}}',
     customBlockFallback: 'Custom block',
     customSectionSubtitle: 'Custom section',

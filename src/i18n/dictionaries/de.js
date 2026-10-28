@@ -2475,6 +2475,18 @@ export default {
     addSharePointLinkHint: 'Laden Sie eine Datei hoch, um die Vorschau hier anzuzeigen.',
     sharePointSourceTemplate: 'Hochgeladenes Dokument · {{type}}',
     openInNewTabLink: 'In neuem Tab öffnen',
+    documentEditOnline: {
+      powerpoint: 'In PowerPoint online bearbeiten',
+      word: 'In Word online bearbeiten',
+      excel: 'In Excel online bearbeiten'
+    },
+    documentEditDesktop: {
+      powerpoint: 'In der PowerPoint-App öffnen',
+      word: 'In der Word-App öffnen',
+      excel: 'In der Excel-App öffnen'
+    },
+    documentRefreshPreview: 'Vorschau aktualisieren',
+    documentEditLiveNotice: 'Das Dokument wird an seinem Speicherort bearbeitet: Leser sehen die Änderungen sofort, ohne dass das Schaufenster veröffentlicht wird.',
     documentAltTemplate: 'Dokument {{title}}',
     customBlockFallback: 'Benutzerdefinierter Block',
     customSectionSubtitle: 'Benutzerdefinierter Abschnitt',

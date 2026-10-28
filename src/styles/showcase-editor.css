@@ -1830,6 +1830,57 @@
   font-size: 0.82rem;
 }
 
+.sge-doc-office {
+  margin-top: 0.75rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--sge-primary-line);
+  border-radius: var(--sge-r-sm);
+  background: var(--sge-primary-soft);
+  font-family: var(--sge-font);
+}
+
+.sge-doc-office__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.sge-doc-office__action {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--sge-line-strong);
+  border-radius: 999px;
+  background: var(--sge-surface);
+  color: var(--sge-primary-strong);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.sge-doc-office__action:hover,
+.sge-doc-office__action:focus-visible {
+  border-color: var(--sge-primary);
+}
+
+.sge-doc-office__action--primary {
+  border-color: var(--sge-primary);
+  background: var(--sge-primary);
+  color: #fff;
+}
+
+.sge-doc-office__action--primary:hover,
+.sge-doc-office__action--primary:focus-visible {
+  background: var(--sge-primary-strong);
+}
+
+.sge-doc-office__note {
+  margin: 0.55rem 0 0;
+  color: var(--sge-ink-soft);
+  font-size: 0.78rem;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sge-dropzone__veil {
     transition: none;
