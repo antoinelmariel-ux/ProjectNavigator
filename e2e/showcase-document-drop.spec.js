@@ -192,4 +192,22 @@ test.describe('Visionneuse documentaire — dépôt de fichier par glisser-dépo
     await dropFiles(canvasZone, page, [png('accepte.png')]);
     await expect(canvasZone.locator('img.sg-doc__image')).toBeVisible();
   });
+
+  // Hors mode SharePoint le fichier n'est qu'une data: URL : il n'existe nulle part où Office
+  // pourrait le réenregistrer, donc aucune action d'édition n'est proposée (le cas SharePoint
+  // est couvert par test/documentEmbed.test.mjs).
+  test('hors SharePoint, un PPTX déposé ne propose pas d’édition dans PowerPoint', async ({ page }) => {
+    test.setTimeout(180000);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openEditorWithDocumentViewer(page);
+
+    const section = page.locator('.sge-workspace__canvas [data-showcase-section="document-viewer"]');
+    await dropFiles(section.locator('.sg-doc .sge-dropzone'), page, [{
+      name: 'deck.pptx',
+      type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      base64: PNG_BASE64
+    }]);
+    await expect(section.locator('.sg-doc__bar')).toBeVisible();
+    await expect(section.locator('.sge-doc-office')).toHaveCount(0);
+  });
 });
