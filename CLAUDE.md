@@ -243,8 +243,9 @@ don't rename those chasing the copy. It is reached from the showcase's nav butto
 
 `src/utils/showcaseTemplates.js` (defaults in `src/data/showcaseTemplates.js`, back-office tab
 `showcaseTemplates`, `BackOfficeShowcaseTemplates.jsx`, admin-only like `faq`) lets an admin give a
-project type its own showcase structure: which built-in sections are kept and in what order, plus
-pre-titled custom blocks (title/starting text in the 4 languages). A template's activation is
+project type its own showcase structure: which built-in sections are kept and in what order, what
+they show and under which titles, plus blocks whose every slot says where its content comes from
+(see below). A template's activation is
 `{conditionGroups}` in the rules grammar, edited with the shared `ConditionGroupsEditor` and
 evaluated by `evaluateRule` — so it can never drift from the rules. The first template in list order
 that matches wins (the tab has up/down arrows for that). A template with no condition, or with a
@@ -280,8 +281,78 @@ activity-scope pseudo-question is deliberately excluded (`excludedQuestionIds`):
   use the synthetic key `buildLinkedBlockFieldId(questionId)` so they never collide with a
   built-in field. A linked question that disappears or changes type is ignored (the field
   falls back to its own question). Text fields only get the missing label outside edit chrome
-  (`fillMissingSourcedTextFields`), so the draft never captures it.
-- Tests: `test/showcaseTemplates.test.mjs`, `e2e/showcase-templates.spec.js`, `e2e/showcase-template-sources.spec.js`.
+  (`fillMissingSourcedTextFields`), so the draft never captures it. The impact figure also takes a
+  `number` question.
+- **Block slots.** A template block is `{kind: 'block', id, type, slots}`: one slot per element the
+  block's layout renders (`SHOWCASE_BLOCK_SLOTS` — `accent`/`title`/`subtitle`/`description`/
+  `figure` take a value, `items`/`columns` a list), each `{state: used|locked|hidden, source:
+  text|question, text, questionId}`. A text may quote answers with `{{questionId}}` (a *composed*
+  text). What the showcase does with a slot is `resolveSlotMode`: `owner` (plain text the owner
+  rewrites — the only content copied into the section, by `buildBlockSection`), `linked` (a
+  `text`/`long_text` answer, edited inline and written back to the questionnaire), `derived`
+  (number, choice, date or composed text — the owner changes the answers in the inspector, not the
+  slot), `locked`, `hidden` (neither rendered nor offered in the inspector). `formatSlotQuestionValue`
+  is the one formatter: a number in the reader's locale with its unit (the respondent's chosen unit
+  when there are several), a choice by its translated label, a multiple choice as one list item per
+  ticked option (sub-options included, via `formatAnswer`). Every question a slot reads goes
+  through the same alias mechanism as linked blocks (`resolveLinkedBlockFieldSources`, which skips
+  `SHOWCASE_FIELD_IDS` — those are already edited under their own id). Legacy blocks
+  (`title`/`description`/`sourceQuestionId`) are read as slots.
+- **The template stays authoritative for its blocks' slots.** A section copies its compact slots
+  (`compactBlockSlots`, kept by `sanitizeCustomSections`, which would otherwise drop a block whose
+  whole content comes from the questionnaire), but `resolveSectionSlots` prefers the template's
+  slots when the section id is one of its blocks (`getTemplateBlockSlots`): a slot fixed in the
+  back-office reaches showcases already customised. The copy only serves once no template applies.
+- **Built-in sections: hidden parts and titles.** A built-in entry may carry `hiddenParts`
+  (`SHOWCASE_BUILTIN_OPTIONAL_PARTS`: slogan, badges, hero button, objectives list, impact figure,
+  team lead/department/members, budget, launch countdown, compliance delays, milestones) and
+  `labels` (`{eyebrow, headline}` localized, `SHOWCASE_BUILTIN_LABEL_KEYS`). A hidden part's
+  inspector fields disappear too (`getTemplateHiddenFieldIds`), its `fieldSources` are ignored, and a
+  section left with nothing to show disappears like an unanswered one. Everything that sits in the
+  body of `renderSignatureSection` reads `isTemplatePartHidden`/`getBuiltInSectionLabel` — add a
+  part there *and* in `BUILTIN_PART_FIELD_IDS`.
+- **The block catalogue covers every built-in section.** Besides highlight/figure/columns/
+  document/story/checklist/stack, blocks can be `cover` (the hero's composition, but its title
+  is any slot — the hero's word-by-word FX rewrites the first `.sg-hero__title`, so the cover uses
+  its own `.sg-cover__title`), `steps` (the roadmap rail; one `« date — texte »` entry per item,
+  `STEP_LABEL_SEPARATOR`, which is exactly what `formatSlotQuestionValue` makes of a
+  `milestone_list` answer, sorted chronologically), `team` (lead + roster: `subtitle` = lead,
+  `description` = their role, `items` = « Nom — rôle » members) and `quote`. A slot definition
+  may carry `labelKey` when the field plays another role than its name; the inspector reads the
+  same mapping from `SECTION_TEMPLATE_CONFIG[type].labels`. Owners get the four new layouts in
+  their section picker too.
+- **Built-in sections are presets of that catalogue.** `getBuiltInBlockPreset`/
+  `convertBuiltInToBlock` turn any built-in but `notice` into the equivalent block, at the same
+  place: titles (the template's, else the app's in all 4 languages via `DICTIONARIES`) become
+  locked text, fields (or the questions `fieldSources` put there) become question slots, hidden
+  parts become hidden slots, the display condition is kept. What a block cannot recompute is
+  listed in `lost` and shown before the click (hero CTA and country/environment chips, the impact
+  figure — a showcase-only field, not a question —, the launch countdown, compliance delays and
+  budget). Built-ins themselves stay as they are: existing templates and every showcase without a
+  template render exactly as before.
+- **Display conditions.** Any section of a template but `notice` may carry `displayCondition`
+  (`{conditionGroups}`, rules grammar, `ConditionGroupsEditor` in a collapsed panel of its row).
+  `getTemplateSectionDisplayConditions` keeps only complete ones — an empty or half-typed condition
+  hides nothing, the opposite of activation, where it applies nothing — keyed by showcase section
+  id, so like slots they follow the template even in a customised showcase. `ProjectShowcase`
+  evaluates them on the project's answers under their real question ids, draft included
+  (`sectionsHiddenByCondition`: raw answers overlaid with each editable field's draft, mapped back
+  through `fieldSources`). The reader and the preview (key `P`) get no node; the editor keeps the
+  section in its frame, greyed, with a « Masquée pour ce projet » badge (`SectionFrame`
+  `isHiddenByCondition`). The activity scope is excluded, as for activation.
+- **Back-office preview** renders the real `ProjectShowcase` (`forcedShowcaseTemplate` bypasses the
+  activation) on demo answers stripped of their showcase structure, plus the per-template sample
+  answers of `showcaseTemplatePreviewAnswers`, plus an invented answer per question the template
+  still reads (`buildShowcaseTemplatePreviewAnswers`). Never saved. The showcase stylesheets come
+  from `src/styles/loadShowcaseStyles.js`, shared with `App.jsx`.
+- **The donation questions** (`donationAmount` — number in € —, `donationBeneficiary`,
+  `donationBeneficiaryCount`, `donationPurpose`, `donationCounterpart`, `donationPaymentSchedule`,
+  `donationSelectionCriteria`, all conditioned on `ProjectType = don_bourse_appel_a_projets`) feed
+  the default donation template. They are ordinary questions, not `showcase` ones
+  (`restoreShowcaseQuestions` does not re-inject them): a referential already published in
+  SharePoint (`questions.json`, `showcase-templates.json`) keeps what it holds, so neither these
+  questions nor the new donation template reach it by themselves.
+- Tests: `test/showcaseTemplates.test.mjs`, `e2e/showcase-templates.spec.js`, `e2e/showcase-template-sources.spec.js`, `e2e/showcase-donation-template.spec.js`.
 
 ## The showcase editor (live canvas)
 

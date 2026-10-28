@@ -25,6 +25,7 @@ export const SectionFrame = ({
   isCustom,
   isActive,
   isHiddenInLight,
+  isHiddenByCondition = false,
   isDragging,
   onSelect,
   onMove,
@@ -40,7 +41,7 @@ export const SectionFrame = ({
   const className = [
     'sge-frame',
     isActive ? 'sge-frame--active' : '',
-    isHiddenInLight ? 'sge-frame--hidden' : '',
+    isHiddenInLight || isHiddenByCondition ? 'sge-frame--hidden' : '',
     isDragging ? 'sge-frame--dragging' : ''
   ]
     .filter(Boolean)
@@ -114,6 +115,11 @@ export const SectionFrame = ({
           {isHiddenInLight && (
             <span className="sge-frame__badge sge-frame__badge--muted">
               {t('projectShowcase.editor.hiddenInLight')}
+            </span>
+          )}
+          {isHiddenByCondition && (
+            <span className="sge-frame__badge sge-frame__badge--muted" data-testid="showcase-section-hidden-by-condition">
+              {t('projectShowcase.editor.hiddenByCondition')}
             </span>
           )}
         </span>

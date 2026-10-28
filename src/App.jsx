@@ -183,6 +183,7 @@ import { resolveLocalizedText } from './utils/localizedContent.js';
 import { DEFAULT_LANGUAGE } from './i18n/languages.js';
 import HEADER_LOGO_PATH from './components/logo.png';
 import { injectStyles } from './styles/injectStyles.js';
+import { loadShowcaseStyles } from './styles/loadShowcaseStyles.js';
 import { scrollAppTo } from './utils/scrollContainer.js';
 import { openStaticPage, staticPageLinkProps } from './utils/staticPages.js';
 import { loadReportingHierarchy, normalizeTeamVisibility } from './utils/reportingHierarchy.js';
@@ -263,17 +264,6 @@ const ensureTourGuideAssets = async () => {
   injectStyles('tourguide', tourGuideCss);
   return typeof window.TourGuideClient === 'function';
 };
-
-const loadShowcaseStyles = () =>
-  Promise.all([
-    import(/* webpackChunkName: "showcase-styles" */ './styles/project-showcase.css?raw'),
-    import(/* webpackChunkName: "showcase-styles" */ './styles/project-showcase-theme-signature.css?raw'),
-    import(/* webpackChunkName: "showcase-styles" */ './styles/showcase-editor.css?raw')
-  ]).then(([showcase, themeSignature, editor]) => {
-    injectStyles('project-showcase', showcase.default);
-    injectStyles('project-showcase-theme-signature', themeSignature.default);
-    injectStyles('showcase-editor', editor.default);
-  });
 
 const ANNOTATION_COLORS = [
   '#2563eb',
