@@ -1789,6 +1789,24 @@
   cursor: progress;
 }
 
+.sge-dropzone__progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 0 0 inherit inherit;
+  background: var(--sge-primary-line);
+}
+
+.sge-dropzone__progress-fill {
+  display: block;
+  height: 100%;
+  background: var(--sge-primary);
+  transition: width 200ms ease;
+}
+
 .sge-dropzone__label {
   padding: 0.35rem 0.8rem;
   border-radius: 999px;

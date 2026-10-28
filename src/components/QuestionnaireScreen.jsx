@@ -25,6 +25,7 @@ import { normalizeRankingConfig } from '../utils/ranking.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { resolveLocalizedText } from '../utils/localizedContent.js';
 import { createAttachmentFromFile } from '../utils/documentStore.js';
+import { UploadProgressBar } from './UploadProgressBar.jsx';
 import { isAnswerProvided, isQuestionMandatory } from '../utils/mandatoryQuestions.js';
 import { canQuestionHaveDoubt, getQuestionDoubtText, hasQuestionDoubt } from '../utils/questionDoubts.js';
 import { scrollAppTo } from '../utils/scrollContainer.js';
@@ -278,6 +279,7 @@ export const QuestionnaireScreen = ({
   const [milestoneDrafts, setMilestoneDrafts] = useState(() => normalizeMilestoneDrafts(currentAnswer));
   const [fileUploadError, setFileUploadError] = useState('');
   const [isUploadingFileAnswer, setIsUploadingFileAnswer] = useState(false);
+  const [fileUploadProgress, setFileUploadProgress] = useState(0);
   const milestoneQuestionIdRef = useRef(questionType === 'milestone_list' ? currentQuestion.id : null);
   const questionTextId = `question-${currentQuestion.id}`;
   const outlineId = 'questionnaire-outline';
@@ -563,12 +565,18 @@ export const QuestionnaireScreen = ({
 
     setFileUploadError('');
     setIsUploadingFileAnswer(true);
+    setFileUploadProgress(0);
+    const progressByFile = fileList.map(() => 0);
     try {
       const uploads = await Promise.all(
-        fileList.map(async (file) => {
+        fileList.map(async (file, fileIndex) => {
           const attachment = await createAttachmentFromFile(file, {
             entityType: 'project-answer',
             entityId: projectId || 'nouveau-projet',
+            onProgress: (fraction) => {
+              progressByFile[fileIndex] = fraction;
+              setFileUploadProgress(progressByFile.reduce((sum, value) => sum + value, 0) / progressByFile.length);
+            },
             id: `${currentQuestion.id}-${Date.now()}-${Math.random().toString(36).slice(2)}`
           });
           return {
@@ -1275,7 +1283,7 @@ export const QuestionnaireScreen = ({
               className="w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             />
             {isUploadingFileAnswer && (
-              <p className="text-xs text-gray-500 mt-2">{t('questionnaire.fileUploadingLabel')}</p>
+              <UploadProgressBar value={fileUploadProgress} label={t('questionnaire.fileUploadingLabel')} />
             )}
             {fileUploadError && (
               <p className="text-xs text-red-600 mt-2">{fileUploadError}</p>

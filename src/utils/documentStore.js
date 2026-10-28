@@ -4,9 +4,12 @@ import { resolveLibraryServerRelativeUrl } from './spLibraryUrl.js';
 import { getCurrentUser } from './spContext.js';
 import { odataQuote, spDelete, spGet, spPost } from './spRestClient.js';
 
-// Files/add convient largement en deçà de cette taille ; au-delà il faudrait le découpage
-// StartUpload/ContinueUpload/FinishUpload. On préfère un refus explicite à un échec obscur.
-export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+export const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024;
+
+// Files/add ne tient pas de façon fiable au-delà de quelques Mo : les fichiers plus gros
+// partent en morceaux (StartUpload/ContinueUpload/FinishUpload).
+export const CHUNKED_UPLOAD_THRESHOLD_BYTES = 8 * 1024 * 1024;
+const UPLOAD_CHUNK_BYTES = 8 * 1024 * 1024;
 
 const ALLOWED_EXTENSIONS = new Set([
   'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
@@ -147,7 +150,53 @@ const readFileAsDataUrl = (file) =>
     reader.readAsDataURL(file);
   });
 
-export const uploadDocument = async (file, { entityType, entityId } = {}) => {
+const reportProgress = (onProgress, fraction) => {
+  if (typeof onProgress === 'function') {
+    onProgress(Math.max(0, Math.min(1, fraction)));
+  }
+};
+
+const newUploadId = () =>
+  typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (char) => {
+        const random = Math.floor(Math.random() * 16);
+        return (char === 'x' ? random : (random & 0x3) | 0x8).toString(16);
+      });
+
+const uploadInChunks = async (file, serverRelativePath, onProgress) => {
+  const fileUrl = `/_api/web/GetFileByServerRelativeUrl('${odataQuote(serverRelativePath)}')`;
+  const uploadId = newUploadId();
+  const total = Number(file.size) || 0;
+  let offset = 0;
+
+  try {
+    while (offset < total) {
+      const end = Math.min(offset + UPLOAD_CHUNK_BYTES, total);
+      const chunk = await readFileAsArrayBuffer(file.slice(offset, end));
+      const options = { rawBody: chunk, contentType: 'application/octet-stream' };
+      if (offset === 0) {
+        await spPost(`${fileUrl}/StartUpload(uploadId=guid'${uploadId}')`, undefined, options);
+      } else if (end < total) {
+        await spPost(`${fileUrl}/ContinueUpload(uploadId=guid'${uploadId}',fileOffset=${offset})`, undefined, options);
+      } else {
+        await spPost(`${fileUrl}/FinishUpload(uploadId=guid'${uploadId}',fileOffset=${offset})`, undefined, options);
+      }
+      offset = end;
+      reportProgress(onProgress, offset / total);
+    }
+  } catch (error) {
+    // Une session d'envoi restée ouverte verrouille le fichier : on la ferme avant sa suppression.
+    try {
+      await spPost(`${fileUrl}/CancelUpload(uploadId=guid'${uploadId}')`);
+    } catch {
+      // meilleur effort
+    }
+    throw error;
+  }
+};
+
+export const uploadDocument = async (file, { entityType, entityId, onProgress } = {}) => {
   const root = await documentsRoot();
   const relativePath = buildDocumentRelativePath({
     entityType,
@@ -163,13 +212,30 @@ export const uploadDocument = async (file, { entityType, entityId } = {}) => {
   const serverRelativePath = `${root}/${relativePath}`;
   const folderPath = serverRelativePath.slice(0, serverRelativePath.lastIndexOf('/'));
   const storedName = serverRelativePath.slice(serverRelativePath.lastIndexOf('/') + 1);
-  const content = await readFileAsArrayBuffer(file);
+  const contentType = file.type || 'application/octet-stream';
+  const addUrl = `/_api/web/GetFolderByServerRelativeUrl('${odataQuote(folderPath)}')/Files/add(url='${odataQuote(storedName)}',overwrite=true)`;
 
-  await spPost(
-    `/_api/web/GetFolderByServerRelativeUrl('${odataQuote(folderPath)}')/Files/add(url='${odataQuote(storedName)}',overwrite=true)`,
-    undefined,
-    { rawBody: content, contentType: file.type || 'application/octet-stream' }
-  );
+  reportProgress(onProgress, 0);
+  try {
+    if ((Number(file.size) || 0) > CHUNKED_UPLOAD_THRESHOLD_BYTES) {
+      await spPost(addUrl, undefined, { rawBody: new ArrayBuffer(0), contentType });
+      await uploadInChunks(file, serverRelativePath, onProgress);
+    } else {
+      const content = await readFileAsArrayBuffer(file);
+      await spPost(addUrl, undefined, { rawBody: content, contentType });
+    }
+  } catch (error) {
+    // Un envoi interrompu ne doit pas laisser un fichier vide ou tronqué dans la bibliothèque.
+    try {
+      await deleteDocument(serverRelativePath);
+    } catch (cleanupError) {
+      if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+        console.warn('[Documents] Nettoyage du fichier partiel impossible :', cleanupError);
+      }
+    }
+    throw error;
+  }
+  reportProgress(onProgress, 1);
 
   const fileId = `file-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
   const uploadedAt = new Date().toISOString();
@@ -225,7 +291,7 @@ export const deleteDocument = async (serverRelativePath) => {
 
 // Point d’entrée unique des pièces jointes. Hors SharePoint on conserve le comportement
 // historique (data URL en mémoire) pour que le mode simulé reste utilisable.
-export const createAttachmentFromFile = async (file, { entityType, entityId, id } = {}) => {
+export const createAttachmentFromFile = async (file, { entityType, entityId, id, onProgress } = {}) => {
   const validation = validateFile(file);
   if (!validation.ok) {
     throw new Error(validation.message);
@@ -248,6 +314,6 @@ export const createAttachmentFromFile = async (file, { entityType, entityId, id 
     };
   }
 
-  const attachment = await uploadDocument(file, { entityType, entityId });
+  const attachment = await uploadDocument(file, { entityType, entityId, onProgress });
   return id ? { ...attachment, id } : attachment;
 };

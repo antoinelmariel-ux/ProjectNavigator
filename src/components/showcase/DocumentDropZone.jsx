@@ -96,6 +96,7 @@ export const DocumentDropZone = ({
   isBusy = false,
   label,
   busyLabel,
+  progress = null,
   onFiles,
   className = '',
   children
@@ -181,7 +182,22 @@ export const DocumentDropZone = ({
         <div className="sge-dropzone__veil" aria-hidden={!isBusy}>
           <span className="sge-dropzone__label" role={isBusy ? 'status' : undefined}>
             {isBusy ? busyLabel : label}
+            {isBusy && progress !== null && ` ${Math.round(Math.max(0, Math.min(1, progress)) * 100)} %`}
           </span>
+          {isBusy && progress !== null && (
+            <span
+              className="sge-dropzone__progress"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(progress * 100)}
+            >
+              <span
+                className="sge-dropzone__progress-fill"
+                style={{ width: `${Math.round(Math.max(0, Math.min(1, progress)) * 100)}%` }}
+              />
+            </span>
+          )}
         </div>
       )}
     </div>

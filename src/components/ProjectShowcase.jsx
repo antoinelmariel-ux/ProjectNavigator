@@ -2167,6 +2167,7 @@ export const ProjectShowcase = ({
   const [isLightConfigOpen, setIsLightConfigOpen] = useState(false);
   const [documentUploadErrors, setDocumentUploadErrors] = useState({});
   const [documentUploadPending, setDocumentUploadPending] = useState({});
+  const [documentUploadProgress, setDocumentUploadProgress] = useState({});
   // Un document édité dans Office garde la même URL : seul un remontage de son iframe (clé
   // incrémentée) montre la nouvelle version, sans toucher au brouillon de la vitrine.
   const [documentFrameRevisions, setDocumentFrameRevisions] = useState({});
@@ -2228,11 +2229,13 @@ export const ProjectShowcase = ({
 
     setDocumentUploadErrors(previous => ({ ...previous, [uploadKey]: '' }));
     setDocumentUploadPending(previous => ({ ...previous, [uploadKey]: true }));
+    setDocumentUploadProgress(previous => ({ ...previous, [uploadKey]: 0 }));
 
     try {
       const attachment = await createAttachmentFromFile(file, {
         entityType: 'showcase',
-        entityId: projectId || 'sans-projet'
+        entityId: projectId || 'sans-projet',
+        onProgress: (fraction) => setDocumentUploadProgress(previous => ({ ...previous, [uploadKey]: fraction }))
       });
       const extension = getFileExtension(attachment.name).toLowerCase();
       // 'jpeg' -> 'jpg' pour matcher DOCUMENT_VIEWER_TYPES ; tout format non reconnu (docx,
@@ -2252,6 +2255,7 @@ export const ProjectShowcase = ({
       }));
     } finally {
       setDocumentUploadPending(previous => ({ ...previous, [uploadKey]: false }));
+      setDocumentUploadProgress(previous => ({ ...previous, [uploadKey]: null }));
     }
   }, [projectId, t]);
 
@@ -4165,6 +4169,7 @@ export const ProjectShowcase = ({
                 <DocumentDropZone
                   enabled={editable}
                   isBusy={Boolean(documentUploadPending[section.id])}
+                  progress={documentUploadProgress[section.id] ?? null}
                   label={t(section.documentUrl
                     ? 'projectShowcase.documentDropReplaceLabel'
                     : 'projectShowcase.documentDropLabel')}
@@ -4269,7 +4274,7 @@ export const ProjectShowcase = ({
         </div>
       </section>
     );
-  }, [accentFamilies, documentEmbedContext, documentFrameRevisions, documentUploadErrors, documentUploadPending, draftValues, fieldSources, handleCustomSectionColumnChange, handleCustomSectionFieldChange, handleCustomSectionItemChange, handleDocumentUpload, handleFieldChange, language, markDocumentOpenedForEdit, missingInfoLabel, previewAnswers, questions, refreshDocumentFrame, t]);
+  }, [accentFamilies, documentEmbedContext, documentFrameRevisions, documentUploadErrors, documentUploadPending, documentUploadProgress, draftValues, fieldSources, handleCustomSectionColumnChange, handleCustomSectionFieldChange, handleCustomSectionItemChange, handleDocumentUpload, handleFieldChange, language, markDocumentOpenedForEdit, missingInfoLabel, previewAnswers, questions, refreshDocumentFrame, t]);
 
   // Pendant l'édition, le canvas lit les sections *non assainies* : `sanitizeCustomSections`
   // supprime une section devenue entièrement vide, ce qui la ferait disparaître sous les
@@ -4926,6 +4931,7 @@ export const ProjectShowcase = ({
                       <DocumentDropZone
                         className="rounded-lg"
                         isBusy={Boolean(documentUploadPending[section.id])}
+                        progress={documentUploadProgress[section.id] ?? null}
                         label={t(section.documentUrl
                           ? 'projectShowcase.documentDropReplaceLabel'
                           : 'projectShowcase.documentDropLabel')}
