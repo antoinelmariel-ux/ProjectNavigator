@@ -13,6 +13,7 @@ export const SHOWCASE_TEMPLATE_BLOCK_TYPES = [
   'figure',
   'columns',
   'document-viewer',
+  'media-gallery',
   'story',
   'checklist',
   'stack'

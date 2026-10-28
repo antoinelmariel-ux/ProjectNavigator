@@ -2344,6 +2344,13 @@ export default {
         placeholderColumn2: 'Column 2: benefits for the teams to remember.',
         placeholderColumn3: 'Column 3: next priority steps.'
       },
+      mediaGallery: {
+        name: 'Media gallery',
+        description: 'Images, videos or sounds, as a carousel when there are several, with an optional caption.',
+        placeholderTitle: 'The project in pictures',
+        placeholderDescription: 'Add a caption to give your media some context.',
+        eyebrow: 'Gallery'
+      },
       documentViewer: {
         name: 'Document viewer',
         description: 'A title, a subtitle and an embedded viewer for a SharePoint document.',
@@ -2525,6 +2532,58 @@ export default {
     documentUploadedLabel: 'Document uploaded — open',
     chooseDocumentButton: 'Choose a file or drag it here',
     removeDocumentButton: 'Remove',
+    mediaGallery: {
+      emptyLabel: 'No media yet',
+      emptyHint: 'Drop images, videos or sounds here, or add them from the settings panel.',
+      dropLabel: 'Drop media here',
+      previous: 'Previous media',
+      next: 'Next media',
+      counter: '{{index}} / {{count}}',
+      goTo: 'Show media {{index}}',
+      resizeHandle: 'Media width',
+      streamNotEmbeddable: 'Microsoft Stream video',
+      openInStream: 'Open in Stream',
+      captionPlaceholder: 'Add a caption…',
+      sharedCaptionLabel: 'Shared caption',
+      mediaCaptionLabel: 'Caption of media {{index}}',
+      perMediaCaptionNeedsMedia: 'Add a media to give it a caption.',
+      unsupportedFile: '“{{name}}” is not an image, a video or a sound: it was not added.',
+      streamInvalid: 'This is not a Microsoft Stream link (https address on SharePoint or Stream).',
+      streamDefaultName: 'Microsoft Stream video',
+      mediaListLabel: 'Media ({{count}})',
+      noMediaYet: 'No media added yet.',
+      moveUp: 'Move media {{index}} up',
+      moveDown: 'Move media {{index}} down',
+      remove: 'Remove media {{index}}',
+      addFilesButton: 'Add images, videos or sounds',
+      formatsHint: 'Images (JPG, PNG, GIF, WebP, SVG), videos (MP4, WebM, MOV) or sounds (MP3, WAV, M4A). Several files at once. Outside SharePoint, videos and sounds are limited to 10 MB.',
+      streamLabel: 'Or a link to a Microsoft Stream video',
+      streamPlaceholder: 'Stream link or embed code',
+      streamAddButton: 'Add',
+      streamEmbedHint: 'To play the video right in the showcase, paste the embed code (in Stream: Share › Embed). A plain sharing link is shown as a button opening Stream.',
+      streamSharingWarning: 'Important: share the video in Stream with the showcase visitors (for instance “People in your organization”). Otherwise they will not be able to see it. Handy for videos too heavy to upload.',
+      captionModeLabel: 'Caption',
+      captionPositionLabel: 'Caption position',
+      captionNarrowHint: 'On a narrow screen, the caption moves under the media automatically.',
+      widthLabel: 'Media size ({{width}} %)',
+      widthHint: 'You can also drag the handle on the edge of the media. Proportions are kept.',
+      kind: {
+        image: 'Image',
+        video: 'Video',
+        audio: 'Sound',
+        stream: 'Stream'
+      },
+      captionMode: {
+        none: 'None',
+        shared: 'Shared',
+        'per-media': 'One per media'
+      },
+      captionPosition: {
+        left: 'Left',
+        right: 'Right',
+        below: 'Below'
+      }
+    },
     documentUploadFailedMessage: 'The file upload failed. Please try again.',
     documentDropLabel: 'Drop the file here',
     documentDropReplaceLabel: 'Drop to replace the document',

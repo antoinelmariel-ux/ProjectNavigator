@@ -571,6 +571,10 @@
   border-color: rgba(229,231,235, var(--tw-divide-opacity, 1));
 }
 
+.divide-x > :not([hidden]) ~ :not([hidden]) {
+  border-left-width: 1px;
+}
+
 .divide-y > :not([hidden]) ~ :not([hidden]) {
   border-top-width: 1px;
 }
@@ -1081,6 +1085,10 @@
 
 .object-contain {
   object-fit: contain;
+}
+
+.object-cover {
+  object-fit: cover;
 }
 
 .order-first {

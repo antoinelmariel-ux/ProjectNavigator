@@ -15,8 +15,15 @@ const ALLOWED_EXTENSIONS = new Set([
   'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
   'txt', 'csv', 'rtf', 'odt', 'ods', 'odp',
   'png', 'jpg', 'jpeg', 'gif', 'bmp', 'svg', 'webp',
+  'mp4', 'webm', 'mov', 'm4v', 'mp3', 'wav', 'm4a',
   'msg', 'eml', 'zip'
 ]);
+
+// Hors SharePoint, un fichier déposé est recopié en data: URL dans l'état sauvegardé de
+// l'application : une vidéo de taille ordinaire en saturerait le stockage. Sur SharePoint il
+// part dans une bibliothèque et seul son lien est conservé, la limite générale s'applique.
+const LOCAL_MEDIA_EXTENSIONS = new Set(['mp4', 'webm', 'mov', 'm4v', 'mp3', 'wav', 'm4a']);
+export const MAX_LOCAL_MEDIA_SIZE_BYTES = 10 * 1024 * 1024;
 
 export const formatFileSize = (bytes) => {
   const size = Number(bytes) || 0;
@@ -72,7 +79,13 @@ export const validateFile = (file) => {
   if (!ALLOWED_EXTENSIONS.has(extension)) {
     return {
       ok: false,
-      message: `Les fichiers « .${extension} » ne sont pas autorisés. Formats acceptés : documents bureautiques, images, PDF, archives ZIP.`
+      message: `Les fichiers « .${extension} » ne sont pas autorisés. Formats acceptés : documents bureautiques, images, vidéos, sons, PDF, archives ZIP.`
+    };
+  }
+  if (LOCAL_MEDIA_EXTENSIONS.has(extension) && !isSharePointMode() && size > MAX_LOCAL_MEDIA_SIZE_BYTES) {
+    return {
+      ok: false,
+      message: `Vidéo ou son trop volumineux pour le mode local (${formatFileSize(size)}). La taille maximale y est de ${formatFileSize(MAX_LOCAL_MEDIA_SIZE_BYTES)} ; sur SharePoint, elle est de ${formatFileSize(MAX_FILE_SIZE_BYTES)}.`
     };
   }
 

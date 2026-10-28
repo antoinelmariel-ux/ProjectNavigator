@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   MAX_FILE_SIZE_BYTES,
+  MAX_LOCAL_MEDIA_SIZE_BYTES,
   buildDocumentRelativePath,
   buildDownloadUrl,
   createAttachmentFromFile,
@@ -267,4 +268,18 @@ test('uploadDocument : un échec d’indexation ne perd pas le fichier déposé'
   } finally {
     console.warn = previousWarn;
   }
+});
+
+test('validateFile : accepte vidéos et sons', () => {
+  ['film.mp4', 'clip.webm', 'iphone.mov', 'podcast.mp3', 'voix.wav', 'memo.m4a'].forEach((name) => {
+    assert.equal(validateFile(fakeFile(name, 1000)).ok, true, name);
+  });
+});
+
+test('validateFile : hors SharePoint, une vidéo au-delà de 10 Mo est refusée, une image non', () => {
+  const big = MAX_LOCAL_MEDIA_SIZE_BYTES + 1;
+  const video = validateFile(fakeFile('film.mp4', big));
+  assert.equal(video.ok, false);
+  assert.match(video.message, /mode local/);
+  assert.equal(validateFile(fakeFile('photo.jpg', big)).ok, true);
 });

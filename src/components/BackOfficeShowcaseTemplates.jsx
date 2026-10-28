@@ -22,6 +22,7 @@ const BLOCK_TYPE_LABEL_KEYS = {
   figure: 'figure',
   columns: 'columns',
   'document-viewer': 'documentViewer',
+  'media-gallery': 'mediaGallery',
   story: 'story',
   checklist: 'checklist',
   stack: 'stack'
