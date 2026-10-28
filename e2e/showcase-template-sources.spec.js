@@ -17,12 +17,15 @@ const configureDonationTemplate = async (page) => {
   await page.getByRole('tab', { name: /Modèles de vitrine/ }).click();
   const donation = page.getByTestId('showcase-template-card').first();
 
-  const row = (title) => donation.locator('li').filter({ hasText: title }).first();
-  await row('Le bénéficiaire').getByLabel('Contenu issu de la question').selectOption('solutionDescription');
-  await row('Objet du soutien').getByLabel('Contenu issu de la question').selectOption('teamLeadTeam');
-  await row('Équipe & alliances').getByLabel('Membres clés').selectOption('q15');
-  // un bloc lié n'a plus de texte de départ : son contenu est la réponse
-  await expect(row('Le bénéficiaire').getByText('Texte de départ', { exact: true })).toHaveCount(0);
+  const section = (id) => donation.locator(`[data-testid="showcase-template-section"][data-section-id="${id}"]`);
+  const slot = (blockId, slotId) => section(blockId).locator(`[data-testid="showcase-template-slot"][data-slot-id="${slotId}"]`);
+  await slot('beneficiary', 'description').getByRole('combobox', { name: 'Contenu' }).selectOption('solutionDescription');
+  await slot('purpose', 'description').getByRole('combobox', { name: 'Contenu' }).selectOption('teamLeadTeam');
+  // un emplacement lié n'a plus de texte à saisir : son contenu est la réponse
+  await expect(slot('beneficiary', 'description').getByRole('textbox')).toHaveCount(0);
+  // le modèle « don » retire les membres clés : on les rétablit avant de les relier
+  await section('team').getByRole('checkbox', { name: 'Membres clés' }).check();
+  await section('team').getByRole('combobox', { name: 'Membres clés' }).selectOption('q15');
 };
 
 const createDonation = async (page) => {

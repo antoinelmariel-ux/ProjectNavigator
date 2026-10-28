@@ -10444,6 +10444,7 @@ export const BackOffice = ({
                 templates={showcaseTemplates}
                 setTemplates={setShowcaseTemplates}
                 questions={questions}
+                showcaseThemes={safeShowcaseThemes}
                 language={language}
                 publishControl={renderReferentialPublishControl('showcaseTemplates')}
                 t={t}
