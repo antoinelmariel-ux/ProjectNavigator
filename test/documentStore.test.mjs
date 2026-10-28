@@ -120,7 +120,7 @@ test('validateFile : refuse au-delà de la taille maximale, avec un message chif
   const result = validateFile(fakeFile('gros.pdf', MAX_FILE_SIZE_BYTES + 1));
   assert.equal(result.ok, false);
   assert.match(result.message, /trop volumineux/);
-  assert.match(result.message, /10 Mo/);
+  assert.match(result.message, /100 Mo/);
 });
 
 test('validateFile : refuse une extension non autorisée et l’explique', () => {
