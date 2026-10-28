@@ -5,20 +5,34 @@ import { initialShowcaseTemplates } from '../src/data/showcaseTemplates.js';
 import { initialQuestions } from '../src/data/questions.js';
 import { SHOWCASE_SECTION_IDS, normalizeSectionOrder } from '../src/utils/showcaseEditor.js';
 import {
+  SLOT_MODES,
   applyShowcaseFieldSources,
   applyShowcaseFieldSourcesToQuestions,
   applyShowcaseTemplate,
   buildLinkedBlockFieldId,
+  buildShowcaseTemplatePreviewAnswers,
+  buildSlotPlaceholder,
   buildTemplateBlockSectionId,
+  collectSlotQuestionIds,
+  composeSlotText,
   createShowcaseTemplate,
+  extractSlotPlaceholders,
   fillMissingSourcedTextFields,
+  formatSlotQuestionValue,
+  getTemplateBlockSlots,
   getTemplateBuiltInSectionIds,
+  getTemplateHiddenFieldIds,
   hasShowcaseTemplateActivation,
+  isBuiltInPartHidden,
   mapShowcaseUpdatesToSources,
   normalizeShowcaseTemplate,
+  resolveBuiltInSectionLabel,
   resolveLinkedBlockFieldSources,
+  resolveSectionSlots,
   resolveShowcaseTemplate,
-  resolveShowcaseTemplateFieldSources
+  resolveShowcaseTemplateFieldSources,
+  resolveSlotContent,
+  resolveSlotMode
 } from '../src/utils/showcaseTemplates.js';
 
 const FORMERLY_BLOCKED_TYPES = [
@@ -256,7 +270,7 @@ test('un bloc lié garde son lien une fois recopié dans la vitrine', () => {
   });
   const answers = applyShowcaseTemplate({}, template, 'fr');
   const story = answers.customShowcaseSections.find((section) => section.type === 'story');
-  assert.equal(story.sourceQuestionId, 'donationContext');
+  assert.equal(story.slots.description.questionId, 'donationContext');
   assert.equal(answers.customShowcaseSections.length, 3);
 
   const sources = resolveLinkedBlockFieldSources(answers.customShowcaseSections, SOURCE_QUESTIONS);
@@ -266,9 +280,303 @@ test('un bloc lié garde son lien une fois recopié dans la vitrine', () => {
   });
 });
 
-test('un bloc lié à une date n’est pas relié', () => {
+test('un bloc lié à des jalons n’est pas relié : aucun emplacement ne sait les afficher', () => {
+  const questions = [...SOURCE_QUESTIONS, { id: 'roadmapMilestones', type: 'milestone_list', question: 'Jalons' }];
   assert.deepEqual(
-    resolveLinkedBlockFieldSources([{ id: 'x', type: 'story', sourceQuestionId: 'launchDate' }], SOURCE_QUESTIONS),
+    resolveLinkedBlockFieldSources([{ id: 'x', type: 'story', sourceQuestionId: 'roadmapMilestones' }], questions),
     {}
   );
+});
+
+// --- Emplacements des blocs ---------------------------------------------------------------
+
+const SLOT_QUESTIONS = [
+  {
+    id: 'amount',
+    type: 'number',
+    question: { fr: 'Montant' },
+    numberUnit: { fr: '€', en: '€' },
+    numberUnitOptions: ['$']
+  },
+  {
+    id: 'kinds',
+    type: 'multi_choice',
+    question: { fr: 'Types' },
+    options: [
+      { value: 'fin', label: { fr: 'Don financier', en: 'Financial donation' }, subOptions: [{ value: 'projet', label: { fr: 'Pour un projet', en: 'For a project' } }] },
+      { value: 'nature', label: { fr: 'Don en nature', en: 'In-kind donation' } }
+    ]
+  },
+  {
+    id: 'schedule',
+    type: 'choice',
+    question: { fr: 'Versement' },
+    options: [{ value: 'unique', label: { fr: 'Versement unique', en: 'Single payment' } }]
+  },
+  { id: 'beneficiary', type: 'text', question: { fr: 'Bénéficiaire' } },
+  { id: 'milestones', type: 'milestone_list', question: { fr: 'Jalons' } }
+];
+
+const findSlotQuestion = (id) => SLOT_QUESTIONS.find((question) => question.id === id) || null;
+
+test('un nombre s’affiche dans la langue du lecteur, avec l’unité choisie au questionnaire', () => {
+  const amount = findSlotQuestion('amount');
+  assert.equal(formatSlotQuestionValue(amount, '25000', { language: 'fr' }).text, '25\u202f000\u00a0€');
+  assert.equal(formatSlotQuestionValue(amount, '25000', { language: 'en' }).text, '25,000\u00a0€');
+  assert.equal(formatSlotQuestionValue(amount, '1500.5', { language: 'en', unit: '$' }).text, '1,500.5\u00a0$');
+  assert.equal(formatSlotQuestionValue(amount, '12', { language: 'fr', unit: 'inconnue' }).text, '12\u00a0€');
+  const parts = formatSlotQuestionValue(amount, '25000', { language: 'en' });
+  assert.equal(parts.value, '25,000');
+  assert.equal(parts.unit, '€');
+  assert.deepEqual(formatSlotQuestionValue(amount, '', { language: 'fr' }), { text: '', items: [] });
+});
+
+test('un choix multiple donne un élément par option cochée, sous-options comprises', () => {
+  const kinds = findSlotQuestion('kinds');
+  assert.deepEqual(
+    formatSlotQuestionValue(kinds, ['fin', 'nature'], { language: 'fr' }).items,
+    ['Don financier', 'Don en nature']
+  );
+  assert.deepEqual(
+    formatSlotQuestionValue(kinds, { values: ['fin', 'nature'], children: { fin: ['projet'] } }, { language: 'en' }).items,
+    ['Financial donation (For a project)', 'In-kind donation']
+  );
+  assert.equal(formatSlotQuestionValue(kinds, ['fin', 'nature'], { language: 'fr' }).text, 'Don financier, Don en nature');
+});
+
+test('un choix simple affiche le libellé traduit de l’option', () => {
+  assert.equal(formatSlotQuestionValue(findSlotQuestion('schedule'), 'unique', { language: 'en' }).text, 'Single payment');
+});
+
+test('un texte composé cite les réponses du questionnaire', () => {
+  assert.deepEqual(extractSlotPlaceholders('Pour {{beneficiary}} : {{ amount }}, {{beneficiary}}'), ['beneficiary', 'amount']);
+  assert.equal(
+    composeSlotText('{{amount}} versés à {{beneficiary}}', (id) => ({ amount: '10 €', beneficiary: 'X' })[id]),
+    '10 € versés à X'
+  );
+  assert.equal(buildSlotPlaceholder('amount'), '{{amount}}');
+});
+
+test('le mode d’un emplacement dit ce que le porteur peut en faire', () => {
+  const text = { kind: 'text' };
+  const list = { kind: 'list' };
+  const options = { language: 'fr', findQuestion: findSlotQuestion };
+  assert.equal(resolveSlotMode({ state: 'used', source: 'text', text: 'Titre' }, text, options), SLOT_MODES.OWNER);
+  assert.equal(resolveSlotMode({ state: 'used', source: 'text', text: 'Pour {{beneficiary}}' }, text, options), SLOT_MODES.DERIVED);
+  assert.equal(resolveSlotMode({ state: 'locked', source: 'text', text: 'Fixe' }, text, options), SLOT_MODES.LOCKED);
+  assert.equal(resolveSlotMode({ state: 'hidden', source: 'question', questionId: 'amount' }, text, options), SLOT_MODES.HIDDEN);
+  assert.equal(resolveSlotMode({ state: 'used', source: 'question', questionId: 'beneficiary' }, text, options), SLOT_MODES.LINKED);
+  assert.equal(resolveSlotMode({ state: 'used', source: 'question', questionId: 'beneficiary' }, list, options), SLOT_MODES.DERIVED);
+  assert.equal(resolveSlotMode({ state: 'used', source: 'question', questionId: 'amount' }, text, options), SLOT_MODES.DERIVED);
+  // une question supprimée ou d'un type inaffichable rend l'emplacement à son texte
+  assert.equal(resolveSlotMode({ state: 'used', source: 'question', questionId: 'gone', text: 'Repli' }, text, options), SLOT_MODES.OWNER);
+  assert.equal(resolveSlotMode({ state: 'used', source: 'question', questionId: 'milestones' }, text, options), SLOT_MODES.OWNER);
+});
+
+test('le contenu d’un emplacement vient du questionnaire, « information manquante » s’il est vide', () => {
+  const answers = { amount: '5000', kinds: ['fin'], beneficiary: '' };
+  const context = {
+    language: 'fr',
+    findQuestion: findSlotQuestion,
+    readQuestion: (id) => formatSlotQuestionValue(findSlotQuestion(id), answers[id], { language: 'fr' }),
+    missing: () => 'Information manquante'
+  };
+  const resolve = (slot, definition) => resolveSlotContent(slot, definition, {
+    ...context,
+    mode: resolveSlotMode(slot, definition, context)
+  });
+
+  assert.equal(resolve({ state: 'used', source: 'question', questionId: 'amount' }, { kind: 'text' }).text, '5\u202f000\u00a0€');
+  assert.deepEqual(resolve({ state: 'used', source: 'question', questionId: 'kinds' }, { kind: 'list' }).items, ['Don financier']);
+  assert.equal(resolve({ state: 'used', source: 'question', questionId: 'beneficiary' }, { kind: 'text' }).text, 'Information manquante');
+  assert.equal(
+    resolve({ state: 'locked', source: 'text', text: { fr: '{{amount}} pour {{beneficiary}}' } }, { kind: 'text' }).text,
+    '5\u202f000\u00a0€ pour Information manquante'
+  );
+  assert.deepEqual(
+    resolve({ state: 'locked', source: 'text', text: 'Montant : {{amount}}\n\nType : {{kinds}}' }, { kind: 'list' }).items,
+    ['Montant : 5\u202f000\u00a0€', 'Type : Don financier']
+  );
+  assert.equal(resolve({ state: 'used', source: 'text', text: 'Écrit par le porteur' }, { kind: 'text' }), null);
+  assert.equal(resolve({ state: 'hidden', source: 'question', questionId: 'amount' }, { kind: 'text' }), null);
+});
+
+test('un bloc à emplacements devient une section dont seuls les textes du porteur sont recopiés', () => {
+  const template = normalizeShowcaseTemplate({
+    id: 'don',
+    sections: [{
+      kind: 'block',
+      id: 'amount',
+      type: 'figure',
+      slots: {
+        accent: { state: 'locked', source: 'text', text: { fr: 'Le soutien' } },
+        title: { state: 'used', source: 'text', text: { fr: 'Titre de départ', en: 'Starting title' } },
+        figure: { state: 'used', source: 'question', questionId: 'amount' },
+        description: { state: 'hidden', source: 'text', text: 'Jamais affiché' }
+      }
+    }]
+  });
+  const [section] = applyShowcaseTemplate({}, template, 'en').customShowcaseSections;
+  assert.equal(section.id, buildTemplateBlockSectionId('don', 'amount'));
+  assert.equal(section.title, 'Starting title');
+  assert.equal(section.accent, '');
+  assert.equal(section.figure, '');
+  assert.equal(section.description, '');
+  assert.deepEqual(Object.keys(section.slots).sort(), ['accent', 'description', 'figure']);
+});
+
+test('un bloc dont tous les emplacements sont vides ou masqués n’est pas proposé', () => {
+  const template = normalizeShowcaseTemplate({
+    id: 'don',
+    sections: [
+      { kind: 'block', id: 'empty', type: 'highlight', slots: { title: { state: 'hidden', source: 'question', questionId: 'amount' } } },
+      { kind: 'block', id: 'list', type: 'checklist', slots: { items: { state: 'used', source: 'text', text: 'Un\nDeux' } } }
+    ]
+  });
+  const sections = applyShowcaseTemplate({}, template, 'fr').customShowcaseSections;
+  assert.deepEqual(sections.map((section) => section.id), [buildTemplateBlockSectionId('don', 'list')]);
+  assert.deepEqual(sections[0].items, ['Un', 'Deux']);
+});
+
+test('les emplacements d’un bloc venu du modèle suivent le modèle, même une fois la vitrine enregistrée', () => {
+  const template = normalizeShowcaseTemplate({
+    id: 'don',
+    sections: [{ kind: 'block', id: 'amount', type: 'figure', slots: { figure: { state: 'used', source: 'question', questionId: 'amount' } } }]
+  });
+  const sectionId = buildTemplateBlockSectionId('don', 'amount');
+  const stored = { id: sectionId, type: 'figure', slots: { figure: { state: 'used', source: 'question', questionId: 'old' } } };
+  assert.equal(resolveSectionSlots(stored, getTemplateBlockSlots(template)).figure.questionId, 'amount');
+  assert.equal(resolveSectionSlots(stored, {}).figure.questionId, 'old');
+  assert.equal(resolveSectionSlots({ id: 'mine', type: 'highlight', title: 'x' }, {}), null);
+});
+
+test('les questions lues par les emplacements sont reliées, sauf masquées ou déjà éditées par la vitrine', () => {
+  const sections = [{
+    id: 's1',
+    type: 'checklist',
+    slots: {
+      title: { state: 'used', source: 'question', questionId: 'beneficiary' },
+      description: { state: 'hidden', source: 'question', questionId: 'schedule' },
+      items: { state: 'locked', source: 'text', text: { fr: '{{amount}}', en: '{{kinds}} {{projectName}}' } }
+    }
+  }];
+  const questions = [...SLOT_QUESTIONS, { id: 'projectName', type: 'text', question: 'Nom' }];
+  assert.deepEqual(
+    Object.values(resolveLinkedBlockFieldSources(sections, questions, { excludedIds: ['projectName'] })).sort(),
+    ['amount', 'beneficiary', 'kinds']
+  );
+  assert.deepEqual(collectSlotQuestionIds(sections[0].slots, { editableOnly: true }), ['beneficiary']);
+});
+
+test('un modèle enregistré avant les emplacements est relu sans perte', () => {
+  const template = normalizeShowcaseTemplate({
+    id: 'ancien',
+    sections: [
+      { kind: 'block', id: 'a', type: 'story', title: { fr: 'Titre' }, description: { fr: 'Consigne' } },
+      { kind: 'block', id: 'b', type: 'highlight', title: 'T', description: 'Repli', sourceQuestionId: 'beneficiary' }
+    ]
+  });
+  const [story, highlight] = template.sections.filter((entry) => entry.kind === 'block');
+  assert.deepEqual(story.slots.title, { state: 'used', source: 'text', text: { fr: 'Titre' } });
+  assert.deepEqual(story.slots.description, { state: 'used', source: 'text', text: { fr: 'Consigne' } });
+  assert.deepEqual(highlight.slots.description, { state: 'used', source: 'question', questionId: 'beneficiary', text: 'Repli' });
+  assert.deepEqual(highlight.slots.accent, { state: 'used', source: 'text', text: '' });
+});
+
+// --- Sections intégrées : éléments retirés et titres -----------------------------------
+
+test('un modèle retire des éléments d’une section intégrée et les champs qui vont avec', () => {
+  const template = normalizeShowcaseTemplate({
+    id: 'tpl',
+    sections: [
+      { kind: 'builtin', id: 'hero', hiddenParts: ['heroCta', 'heroHighlights', 'inconnu'], fieldSources: { targetAudience: 'kinds' } },
+      { kind: 'builtin', id: 'team', hiddenParts: ['teamCoreMembers'] },
+      { kind: 'builtin', id: 'problem', hiddenParts: ['problemPainPoints'] }
+    ]
+  });
+  assert.deepEqual(template.sections.find((entry) => entry.id === 'hero').hiddenParts, ['heroHighlights', 'heroCta']);
+  assert.equal('hiddenParts' in template.sections.find((entry) => entry.id === 'problem'), false);
+  assert.equal(isBuiltInPartHidden(template, 'hero', 'heroCta'), true);
+  assert.equal(isBuiltInPartHidden(template, 'hero', 'projectSlogan'), false);
+  assert.equal(isBuiltInPartHidden(null, 'hero', 'heroCta'), false);
+  assert.deepEqual(Array.from(getTemplateHiddenFieldIds(template)).sort(), ['targetAudience', 'teamCoreMembers']);
+  // un élément retiré n'est pas relié à une question
+  assert.deepEqual(resolveShowcaseTemplateFieldSources(template, SLOT_QUESTIONS), {});
+});
+
+test('un modèle renomme les titres d’une section intégrée, langue par langue', () => {
+  const template = normalizeShowcaseTemplate({
+    id: 'tpl',
+    sections: [
+      { kind: 'builtin', id: 'problem', labels: { eyebrow: { fr: 'Le besoin', en: 'The need' }, headline: { fr: '  ' } } },
+      { kind: 'builtin', id: 'hero', labels: { headline: { fr: 'Ignoré : le titre du hero est le nom du projet' } } }
+    ]
+  });
+  assert.equal(resolveBuiltInSectionLabel(template, 'problem', 'eyebrow', 'en'), 'The need');
+  // langue non traduite : repli sur la langue par défaut, comme tout contenu du référentiel
+  assert.equal(resolveBuiltInSectionLabel(template, 'problem', 'eyebrow', 'de'), 'The need');
+  assert.equal(resolveBuiltInSectionLabel(template, 'problem', 'headline', 'fr'), '');
+  assert.equal('labels' in template.sections.find((entry) => entry.id === 'hero'), false);
+});
+
+test('le chiffre d’impact peut lire une question numérique', () => {
+  const template = normalizeShowcaseTemplate({
+    id: 'tpl',
+    sections: [{ kind: 'builtin', id: 'objectives', fieldSources: { showcaseImpactFigure: 'amount', showcaseImpactFigureUnit: 'amount' } }]
+  });
+  assert.deepEqual(resolveShowcaseTemplateFieldSources(template, SLOT_QUESTIONS), { showcaseImpactFigure: 'amount' });
+});
+
+// --- Modèle « don » par défaut et aperçu -------------------------------------------------
+
+test('le modèle « don » par défaut ne lit que des questions qui existent et qu’il sait afficher', () => {
+  const template = resolveShowcaseTemplate({ ProjectType: 'don_bourse_appel_a_projets' }, initialShowcaseTemplates);
+  const blocks = template.sections.filter((entry) => entry.kind === 'block');
+  const ids = new Set(blocks.flatMap((entry) => collectSlotQuestionIds(entry.slots)));
+  assert.ok(ids.has('donationAmount'));
+  ids.forEach((id) => {
+    const question = initialQuestions.find((candidate) => candidate.id === id);
+    assert.ok(question, id);
+    assert.ok(['text', 'long_text', 'choice', 'multi_choice', 'number', 'date'].includes(question.type), id);
+  });
+  const amount = blocks.find((entry) => entry.id === 'amount');
+  assert.equal(amount.type, 'figure');
+  assert.deepEqual(amount.slots.figure, { state: 'used', source: 'question', questionId: 'donationAmount', text: '' });
+});
+
+test('les questions du don ne s’affichent que pour un don', () => {
+  const donationIds = initialQuestions.filter((question) => question.id.startsWith('donation')).map((question) => question.id);
+  assert.ok(donationIds.length >= 5);
+  initialQuestions
+    .filter((question) => donationIds.includes(question.id))
+    .forEach((question) => {
+      assert.deepEqual(question.conditionGroups, [{
+        logic: 'all',
+        conditions: [{ question: 'ProjectType', operator: 'equals', value: 'don_bourse_appel_a_projets' }]
+      }], question.id);
+    });
+});
+
+test('l’aperçu invente une réponse, selon son type, pour chaque question lue encore vide', () => {
+  const template = normalizeShowcaseTemplate({
+    id: 'tpl',
+    sections: [
+      { kind: 'builtin', id: 'problem', fieldSources: { problemPainPoints: 'beneficiary' } },
+      {
+        kind: 'block',
+        id: 'b',
+        type: 'checklist',
+        slots: {
+          title: { state: 'used', source: 'question', questionId: 'amount' },
+          items: { state: 'used', source: 'question', questionId: 'kinds' },
+          description: { state: 'locked', source: 'text', text: '{{schedule}}' }
+        }
+      }
+    ]
+  });
+  const answers = buildShowcaseTemplatePreviewAnswers(template, SLOT_QUESTIONS, { amount: '42' }, 'fr');
+  assert.equal(answers.amount, '42');
+  assert.deepEqual(answers.kinds, ['fin', 'nature']);
+  assert.equal(answers.schedule, 'unique');
+  assert.match(answers.beneficiary, /^Exemple de réponse/);
 });

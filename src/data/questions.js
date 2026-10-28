@@ -4027,6 +4027,397 @@ export const initialQuestions = [
     }
   },
   {
+    "id": "donationAmount",
+    "type": "number",
+    "question": {
+      "en": "What is the total amount of the support?",
+      "fr": "Quel est le montant total du soutien ?",
+      "de": "Wie hoch ist der Gesamtbetrag der Unterstützung?",
+      "es": "¿Cuál es el importe total del apoyo?"
+    },
+    "options": [],
+    "required": true,
+    "conditions": [
+      {
+        "question": "ProjectType",
+        "operator": "equals",
+        "value": "don_bourse_appel_a_projets"
+      }
+    ],
+    "conditionLogic": "all",
+    "conditionGroups": [
+      {
+        "logic": "all",
+        "conditions": [
+          {
+            "question": "ProjectType",
+            "operator": "equals",
+            "value": "don_bourse_appel_a_projets"
+          }
+        ]
+      }
+    ],
+    "placeholder": "",
+    "guidance": {
+      "objective": {
+        "en": "Size the support and the controls it calls for.",
+        "fr": "Dimensionner le soutien et les contrôles qu’il appelle.",
+        "de": "Die Unterstützung und die erforderlichen Kontrollen bemessen.",
+        "es": "Dimensionar el apoyo y los controles que requiere."
+      },
+      "details": {
+        "en": "Enter the full amount committed, all payments included. For in-kind support, give its estimated value.",
+        "fr": "Indiquez le montant total engagé, tous versements compris. Pour un soutien en nature, indiquez sa valeur estimée.",
+        "de": "Geben Sie den zugesagten Gesamtbetrag einschließlich aller Zahlungen an. Bei Sachleistungen deren geschätzten Wert.",
+        "es": "Indique el importe total comprometido, incluidos todos los pagos. Para un apoyo en especie, indique su valor estimado."
+      },
+      "tips": []
+    },
+    "numberUnit": {
+      "en": "€",
+      "fr": "€",
+      "de": "€",
+      "es": "€"
+    },
+    "requiredFromStage": "pre_launch"
+  },
+  {
+    "id": "donationBeneficiary",
+    "type": "text",
+    "question": {
+      "en": "Who is the beneficiary of the support?",
+      "fr": "Qui est le bénéficiaire du soutien ?",
+      "de": "Wer ist der Begünstigte der Unterstützung?",
+      "es": "¿Quién es el beneficiario del apoyo?"
+    },
+    "options": [],
+    "required": false,
+    "conditions": [
+      {
+        "question": "ProjectType",
+        "operator": "equals",
+        "value": "don_bourse_appel_a_projets"
+      }
+    ],
+    "conditionLogic": "all",
+    "conditionGroups": [
+      {
+        "logic": "all",
+        "conditions": [
+          {
+            "question": "ProjectType",
+            "operator": "equals",
+            "value": "don_bourse_appel_a_projets"
+          }
+        ]
+      }
+    ],
+    "placeholder": "",
+    "guidance": {
+      "objective": "",
+      "details": {
+        "en": "Name of the organisation or person supported. For a call for projects not yet awarded, describe the expected beneficiaries.",
+        "fr": "Nom de la structure ou de la personne soutenue. Pour un appel à projets non encore attribué, décrivez les bénéficiaires attendus.",
+        "de": "Name der unterstützten Organisation oder Person. Bei einer noch nicht vergebenen Ausschreibung die erwarteten Begünstigten beschreiben.",
+        "es": "Nombre de la organización o persona apoyada. Para una convocatoria aún no adjudicada, describa los beneficiarios esperados."
+      },
+      "tips": []
+    },
+    "numberUnit": ""
+  },
+  {
+    "id": "donationBeneficiaryCount",
+    "type": "number",
+    "question": {
+      "en": "How many organisations or people will benefit from it?",
+      "fr": "Combien de structures ou de personnes en bénéficieront ?",
+      "de": "Wie viele Organisationen oder Personen werden davon profitieren?",
+      "es": "¿Cuántas organizaciones o personas se beneficiarán?"
+    },
+    "options": [],
+    "required": false,
+    "conditions": [
+      {
+        "question": "ProjectType",
+        "operator": "equals",
+        "value": "don_bourse_appel_a_projets"
+      }
+    ],
+    "conditionLogic": "all",
+    "conditionGroups": [
+      {
+        "logic": "all",
+        "conditions": [
+          {
+            "question": "ProjectType",
+            "operator": "equals",
+            "value": "don_bourse_appel_a_projets"
+          }
+        ]
+      }
+    ],
+    "placeholder": "",
+    "guidance": {
+      "objective": "",
+      "details": "",
+      "tips": []
+    },
+    "numberUnit": {
+      "en": "beneficiaries",
+      "fr": "bénéficiaires",
+      "de": "Begünstigte",
+      "es": "beneficiarios"
+    }
+  },
+  {
+    "id": "donationPurpose",
+    "type": "long_text",
+    "question": {
+      "en": "What does the support actually fund?",
+      "fr": "Que finance concrètement ce soutien ?",
+      "de": "Was finanziert die Unterstützung konkret?",
+      "es": "¿Qué financia concretamente este apoyo?"
+    },
+    "options": [],
+    "required": false,
+    "conditions": [
+      {
+        "question": "ProjectType",
+        "operator": "equals",
+        "value": "don_bourse_appel_a_projets"
+      }
+    ],
+    "conditionLogic": "all",
+    "conditionGroups": [
+      {
+        "logic": "all",
+        "conditions": [
+          {
+            "question": "ProjectType",
+            "operator": "equals",
+            "value": "don_bourse_appel_a_projets"
+          }
+        ]
+      }
+    ],
+    "placeholder": "",
+    "guidance": {
+      "objective": "",
+      "details": "",
+      "tips": []
+    },
+    "numberUnit": ""
+  },
+  {
+    "id": "donationCounterpart",
+    "type": "choice",
+    "question": {
+      "en": "Is anything expected from the beneficiary in return?",
+      "fr": "Une contrepartie est-elle attendue du bénéficiaire ?",
+      "de": "Wird vom Begünstigten eine Gegenleistung erwartet?",
+      "es": "¿Se espera alguna contrapartida del beneficiario?"
+    },
+    "options": [
+      {
+        "label": {
+          "en": "No consideration",
+          "fr": "Aucune contrepartie",
+          "de": "Keine Gegenleistung",
+          "es": "Ninguna contrapartida"
+        },
+        "visibility": "always",
+        "subType": null,
+        "subOptions": [],
+        "conditionGroups": [],
+        "conditions": [],
+        "conditionLogic": "all",
+        "value": "aucune_contrepartie"
+      },
+      {
+        "label": {
+          "en": "Mention of LFB’s support",
+          "fr": "Mention du soutien de LFB",
+          "de": "Erwähnung der Unterstützung durch LFB",
+          "es": "Mención del apoyo de LFB"
+        },
+        "visibility": "always",
+        "subType": null,
+        "subOptions": [],
+        "conditionGroups": [],
+        "conditions": [],
+        "conditionLogic": "all",
+        "value": "mention_du_soutien"
+      },
+      {
+        "label": {
+          "en": "Report on the use of the funds",
+          "fr": "Compte rendu de l’utilisation des fonds",
+          "de": "Bericht über die Mittelverwendung",
+          "es": "Informe sobre el uso de los fondos"
+        },
+        "visibility": "always",
+        "subType": null,
+        "subOptions": [],
+        "conditionGroups": [],
+        "conditions": [],
+        "conditionLogic": "all",
+        "value": "compte_rendu_utilisation"
+      }
+    ],
+    "required": false,
+    "conditions": [
+      {
+        "question": "ProjectType",
+        "operator": "equals",
+        "value": "don_bourse_appel_a_projets"
+      }
+    ],
+    "conditionLogic": "all",
+    "conditionGroups": [
+      {
+        "logic": "all",
+        "conditions": [
+          {
+            "question": "ProjectType",
+            "operator": "equals",
+            "value": "don_bourse_appel_a_projets"
+          }
+        ]
+      }
+    ],
+    "placeholder": "",
+    "guidance": {
+      "objective": "",
+      "details": "",
+      "tips": []
+    },
+    "numberUnit": ""
+  },
+  {
+    "id": "donationPaymentSchedule",
+    "type": "choice",
+    "question": {
+      "en": "How will the support be paid?",
+      "fr": "Comment le soutien sera-t-il versé ?",
+      "de": "Wie wird die Unterstützung ausgezahlt?",
+      "es": "¿Cómo se abonará el apoyo?"
+    },
+    "options": [
+      {
+        "label": {
+          "en": "In a single payment",
+          "fr": "En un versement unique",
+          "de": "In einer einmaligen Zahlung",
+          "es": "En un pago único"
+        },
+        "visibility": "always",
+        "subType": null,
+        "subOptions": [],
+        "conditionGroups": [],
+        "conditions": [],
+        "conditionLogic": "all",
+        "value": "versement_unique"
+      },
+      {
+        "label": {
+          "en": "In several instalments",
+          "fr": "En plusieurs versements",
+          "de": "In mehreren Raten",
+          "es": "En varios pagos"
+        },
+        "visibility": "always",
+        "subType": null,
+        "subOptions": [],
+        "conditionGroups": [],
+        "conditions": [],
+        "conditionLogic": "all",
+        "value": "versements_echelonnes"
+      },
+      {
+        "label": {
+          "en": "In kind (equipment, services)",
+          "fr": "En nature (matériel, prestations)",
+          "de": "Als Sachleistung (Material, Leistungen)",
+          "es": "En especie (material, servicios)"
+        },
+        "visibility": "always",
+        "subType": null,
+        "subOptions": [],
+        "conditionGroups": [],
+        "conditions": [],
+        "conditionLogic": "all",
+        "value": "en_nature"
+      }
+    ],
+    "required": false,
+    "conditions": [
+      {
+        "question": "ProjectType",
+        "operator": "equals",
+        "value": "don_bourse_appel_a_projets"
+      }
+    ],
+    "conditionLogic": "all",
+    "conditionGroups": [
+      {
+        "logic": "all",
+        "conditions": [
+          {
+            "question": "ProjectType",
+            "operator": "equals",
+            "value": "don_bourse_appel_a_projets"
+          }
+        ]
+      }
+    ],
+    "placeholder": "",
+    "guidance": {
+      "objective": "",
+      "details": "",
+      "tips": []
+    },
+    "numberUnit": ""
+  },
+  {
+    "id": "donationSelectionCriteria",
+    "type": "long_text",
+    "question": {
+      "en": "On what criteria is (or will) the beneficiary (be) chosen?",
+      "fr": "Selon quels critères le bénéficiaire est-il (ou sera-t-il) choisi ?",
+      "de": "Nach welchen Kriterien wird der Begünstigte ausgewählt?",
+      "es": "¿Según qué criterios se elige (o se elegirá) al beneficiario?"
+    },
+    "options": [],
+    "required": false,
+    "conditions": [
+      {
+        "question": "ProjectType",
+        "operator": "equals",
+        "value": "don_bourse_appel_a_projets"
+      }
+    ],
+    "conditionLogic": "all",
+    "conditionGroups": [
+      {
+        "logic": "all",
+        "conditions": [
+          {
+            "question": "ProjectType",
+            "operator": "equals",
+            "value": "don_bourse_appel_a_projets"
+          }
+        ]
+      }
+    ],
+    "placeholder": "",
+    "guidance": {
+      "objective": "",
+      "details": "",
+      "tips": []
+    },
+    "numberUnit": ""
+  },
+  {
     "id": "q17",
     "type": "multi_choice",
     "question": {
