@@ -41,19 +41,61 @@ const toServerRelativeUrl = (documentUrl, origin) => {
 // variante documentée est l'identifiant unique du fichier entre accolades
 // (`sourcedoc={GUID}`) : il faudrait alors le récupérer à l'upload (UniqueId, via l'API REST)
 // et le stocker sur la section, le chemin seul ne permettant pas de le déduire.
-export const buildOfficeEmbedSrc = (documentUrl, { origin, webUrl, isSharePoint } = {}) => {
-  if (!documentUrl || !isSharePoint || !origin || !webUrl) {
-    return '';
-  }
+const isTenantDocument = (documentUrl, { origin, webUrl, isSharePoint } = {}) => (
+  Boolean(documentUrl && isSharePoint && origin && webUrl && documentUrl.startsWith(`${origin}/`))
+);
 
+const buildDocAspxUrl = (documentUrl, { origin, webUrl }, action) => {
+  const sourceDoc = toServerRelativeUrl(documentUrl, origin);
+  return `${webUrl}/_layouts/15/Doc.aspx?sourcedoc=${encodeURIComponent(sourceDoc)}&action=${action}`;
+};
+
+export const buildOfficeEmbedSrc = (documentUrl, context = {}) => {
   // Un fichier hors bibliothèque du tenant (data: URL, lien externe) n'est pas lisible par le
   // visualiseur du site : mieux vaut ne rien intégrer qu'afficher sa page d'erreur.
-  if (!documentUrl.startsWith(`${origin}/`)) {
+  if (!isTenantDocument(documentUrl, context)) {
     return '';
   }
 
-  const sourceDoc = toServerRelativeUrl(documentUrl, origin);
-  return `${webUrl}/_layouts/15/Doc.aspx?sourcedoc=${encodeURIComponent(sourceDoc)}&action=embedview`;
+  return buildDocAspxUrl(documentUrl, context, 'embedview');
+};
+
+const OFFICE_EDIT_APPS = {
+  pptx: { app: 'powerpoint', scheme: 'ms-powerpoint' },
+  ppt: { app: 'powerpoint', scheme: 'ms-powerpoint' },
+  docx: { app: 'word', scheme: 'ms-word' },
+  doc: { app: 'word', scheme: 'ms-word' },
+  xlsx: { app: 'excel', scheme: 'ms-excel' },
+  xls: { app: 'excel', scheme: 'ms-excel' }
+};
+
+// L'extension est lue sur l'URL et non sur `documentType` : à l'upload, tout format non
+// reconnu par la visionneuse (docx, xlsx...) y est rangé sous 'pptx'.
+const getDocumentExtension = (documentUrl) => {
+  const path = documentUrl.split(/[?#]/)[0];
+  const lastSegment = path.slice(path.lastIndexOf('/') + 1);
+  const dotIndex = lastSegment.lastIndexOf('.');
+  return dotIndex === -1 ? '' : lastSegment.slice(dotIndex + 1).toLowerCase();
+};
+
+// Édition du fichier lui-même, là où il est stocké : Office en ligne (Doc.aspx du tenant) ou
+// application de bureau (schéma d'URI Office `ofe|u|`, « open for edit »). Seul un document
+// de la bibliothèque du tenant s'y prête — une data: URL n'a nulle part où être réenregistrée.
+export const buildOfficeEditLinks = (documentUrl, context = {}) => {
+  if (!isTenantDocument(documentUrl, context)) {
+    return null;
+  }
+
+  const officeApp = OFFICE_EDIT_APPS[getDocumentExtension(documentUrl)];
+  if (!officeApp) {
+    return null;
+  }
+
+  return {
+    app: officeApp.app,
+    webEditUrl: buildDocAspxUrl(documentUrl, context, 'edit'),
+    desktopEditUrl: `${officeApp.scheme}:ofe|u|${documentUrl.replace(/ /g, '%20')}`
+  };
 };
 
 export const resolveDocumentEmbedSrc = (documentUrl, documentType, context = {}) => {

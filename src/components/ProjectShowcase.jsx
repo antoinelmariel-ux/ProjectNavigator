@@ -61,7 +61,8 @@ import {
 import { resolveLocalizedText } from '../utils/localizedContent.js';
 import { resolveThemeFromActivation } from '../utils/showcase.js';
 import { createAttachmentFromFile, getFileExtension } from '../utils/documentStore.js';
-import { IMAGE_DOCUMENT_TYPES, resolveDocumentEmbedSrc } from '../utils/documentEmbed.js';
+import { IMAGE_DOCUMENT_TYPES, buildOfficeEditLinks, resolveDocumentEmbedSrc } from '../utils/documentEmbed.js';
+import { NEW_TAB_LINK_ATTRIBUTES } from '../utils/newTabLinks.js';
 import { getOrigin, getWebUrl, isSharePointMode } from '../config/sharepointConfig.js';
 import { RichTextEditor } from './RichTextEditor.jsx';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
@@ -2167,6 +2168,41 @@ export const ProjectShowcase = ({
   const [documentUploadErrors, setDocumentUploadErrors] = useState({});
   const [documentUploadPending, setDocumentUploadPending] = useState({});
   const [documentUploadProgress, setDocumentUploadProgress] = useState({});
+  // Un document édité dans Office garde la même URL : seul un remontage de son iframe (clé
+  // incrémentée) montre la nouvelle version, sans toucher au brouillon de la vitrine.
+  const [documentFrameRevisions, setDocumentFrameRevisions] = useState({});
+  const pendingOfficeEditsRef = useRef(new Set());
+
+  const refreshDocumentFrame = useCallback((sectionId) => {
+    setDocumentFrameRevisions(previous => ({ ...previous, [sectionId]: (previous[sectionId] || 0) + 1 }));
+  }, []);
+
+  const markDocumentOpenedForEdit = useCallback((sectionId) => {
+    pendingOfficeEditsRef.current.add(sectionId);
+  }, []);
+
+  useEffect(() => {
+    const refreshPendingFrames = () => {
+      if (document.visibilityState === 'hidden' || pendingOfficeEditsRef.current.size === 0) {
+        return;
+      }
+      const sectionIds = Array.from(pendingOfficeEditsRef.current);
+      pendingOfficeEditsRef.current.clear();
+      setDocumentFrameRevisions(previous => {
+        const next = { ...previous };
+        sectionIds.forEach(id => {
+          next[id] = (next[id] || 0) + 1;
+        });
+        return next;
+      });
+    };
+    window.addEventListener('focus', refreshPendingFrames);
+    document.addEventListener('visibilitychange', refreshPendingFrames);
+    return () => {
+      window.removeEventListener('focus', refreshPendingFrames);
+      document.removeEventListener('visibilitychange', refreshPendingFrames);
+    };
+  }, []);
 
   const resetMilestoneDragState = useCallback(() => {
     setMilestoneDragState(createEmptyMilestoneDragState());
@@ -4091,6 +4127,9 @@ export const ProjectShowcase = ({
     const documentEmbedSrc = isImage
       ? ''
       : resolveDocumentEmbedSrc(section.documentUrl, section.documentType, documentEmbedContext);
+    const officeEditLinks = editable
+      ? buildOfficeEditLinks(section.documentUrl, documentEmbedContext)
+      : null;
     return (
       <section key={key} className="sg-band sg-band--cloud sg-band--pad" data-showcase-section={type}>
         <div className="sg-wrap">
@@ -4152,6 +4191,7 @@ export const ProjectShowcase = ({
                       />
                     ) : documentEmbedSrc ? (
                       <iframe
+                        key={documentFrameRevisions[section.id] || 0}
                         className="sg-doc__frame"
                         title={t('projectShowcase.documentAltTemplate', { title })}
                         src={documentEmbedSrc}
@@ -4183,6 +4223,38 @@ export const ProjectShowcase = ({
               {editable && documentUploadErrors[section.id] && (
                 <p className="sge-doc-error" role="alert">{documentUploadErrors[section.id]}</p>
               )}
+              {officeEditLinks && (
+                <div className="sge-doc-office">
+                  <div className="sge-doc-office__actions">
+                    <a
+                      className="sge-doc-office__action sge-doc-office__action--primary"
+                      href={officeEditLinks.webEditUrl}
+                      {...NEW_TAB_LINK_ATTRIBUTES}
+                      onClick={() => markDocumentOpenedForEdit(section.id)}
+                    >
+                      {t(`projectShowcase.documentEditOnline.${officeEditLinks.app}`)}
+                    </a>
+                    <a
+                      className="sge-doc-office__action"
+                      href={officeEditLinks.desktopEditUrl}
+                      data-interception="off"
+                      onClick={() => markDocumentOpenedForEdit(section.id)}
+                    >
+                      {t(`projectShowcase.documentEditDesktop.${officeEditLinks.app}`)}
+                    </a>
+                    {documentEmbedSrc && (
+                      <button
+                        type="button"
+                        className="sge-doc-office__action"
+                        onClick={() => refreshDocumentFrame(section.id)}
+                      >
+                        {t('projectShowcase.documentRefreshPreview')}
+                      </button>
+                    )}
+                  </div>
+                  <p className="sge-doc-office__note">{t('projectShowcase.documentEditLiveNotice')}</p>
+                </div>
+              )}
               {section.documentUrl && (
                 <div className="sg-doc__bar">
                   <span>{t('projectShowcase.sharePointSourceTemplate', { type: section.documentType?.toUpperCase() || 'DOC' })}</span>
@@ -4202,7 +4274,7 @@ export const ProjectShowcase = ({
         </div>
       </section>
     );
-  }, [accentFamilies, documentEmbedContext, documentUploadErrors, documentUploadPending, documentUploadProgress, draftValues, fieldSources, handleCustomSectionColumnChange, handleCustomSectionFieldChange, handleCustomSectionItemChange, handleDocumentUpload, handleFieldChange, language, missingInfoLabel, previewAnswers, questions, t]);
+  }, [accentFamilies, documentEmbedContext, documentFrameRevisions, documentUploadErrors, documentUploadPending, documentUploadProgress, draftValues, fieldSources, handleCustomSectionColumnChange, handleCustomSectionFieldChange, handleCustomSectionItemChange, handleDocumentUpload, handleFieldChange, language, markDocumentOpenedForEdit, missingInfoLabel, previewAnswers, questions, refreshDocumentFrame, t]);
 
   // Pendant l'édition, le canvas lit les sections *non assainies* : `sanitizeCustomSections`
   // supprime une section devenue entièrement vide, ce qui la ferait disparaître sous les

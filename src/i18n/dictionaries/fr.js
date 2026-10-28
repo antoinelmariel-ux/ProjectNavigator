@@ -2467,6 +2467,18 @@ export default {
     addSharePointLinkHint: 'Déposez un fichier pour afficher l’aperçu ici.',
     sharePointSourceTemplate: 'Document déposé · {{type}}',
     openInNewTabLink: 'Ouvrir dans un nouvel onglet',
+    documentEditOnline: {
+      powerpoint: 'Modifier dans PowerPoint en ligne',
+      word: 'Modifier dans Word en ligne',
+      excel: 'Modifier dans Excel en ligne'
+    },
+    documentEditDesktop: {
+      powerpoint: 'Ouvrir dans l’application PowerPoint',
+      word: 'Ouvrir dans l’application Word',
+      excel: 'Ouvrir dans l’application Excel'
+    },
+    documentRefreshPreview: 'Actualiser l’aperçu',
+    documentEditLiveNotice: 'Le document est modifié là où il est stocké : ses changements sont visibles immédiatement par les lecteurs, sans publier la vitrine.',
     documentAltTemplate: 'Document {{title}}',
     customBlockFallback: 'Bloc personnalisé',
     customSectionSubtitle: 'Section personnalisée',

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  buildOfficeEditLinks,
   buildOfficeEmbedSrc,
   buildPdfEmbedSrc,
   resolveDocumentEmbedSrc
@@ -67,4 +68,36 @@ test('resolveDocumentEmbedSrc : les images n’ont pas d’aperçu iframe, elles
 
 test('resolveDocumentEmbedSrc : sans document, rien à intégrer', () => {
   assert.equal(resolveDocumentEmbedSrc('', 'pdf', sharePointContext), '');
+});
+
+test('un PPTX du tenant s’édite dans PowerPoint en ligne ou dans l’application', () => {
+  const links = buildOfficeEditLinks(
+    'https://tenant.sharepoint.com/sites/ProjectNavigator/CN-Documents/showcase/p1/deck%20final.pptx',
+    sharePointContext
+  );
+
+  assert.deepEqual(links, {
+    app: 'powerpoint',
+    webEditUrl: 'https://tenant.sharepoint.com/sites/ProjectNavigator/_layouts/15/Doc.aspx'
+      + '?sourcedoc=%2Fsites%2FProjectNavigator%2FCN-Documents%2Fshowcase%2Fp1%2Fdeck%20final.pptx'
+      + '&action=edit',
+    desktopEditUrl: 'ms-powerpoint:ofe|u|https://tenant.sharepoint.com/sites/ProjectNavigator/CN-Documents/showcase/p1/deck%20final.pptx'
+  });
+});
+
+test('l’application d’édition se déduit de l’extension du fichier, pas du documentType', () => {
+  const base = 'https://tenant.sharepoint.com/sites/ProjectNavigator/CN-Documents/showcase/p1/';
+  assert.equal(buildOfficeEditLinks(`${base}note.docx`, sharePointContext).app, 'word');
+  assert.equal(buildOfficeEditLinks(`${base}budget.XLSX?web=1`, sharePointContext).app, 'excel');
+  assert.match(buildOfficeEditLinks(`${base}budget.xlsx`, sharePointContext).desktopEditUrl, /^ms-excel:ofe\|u\|/);
+  assert.match(buildOfficeEditLinks(`${base}note.docx`, sharePointContext).desktopEditUrl, /^ms-word:ofe\|u\|/);
+});
+
+test('ni PDF, ni image, ni document hors tenant ne proposent d’édition Office', () => {
+  const base = 'https://tenant.sharepoint.com/sites/ProjectNavigator/CN-Documents/showcase/p1/';
+  assert.equal(buildOfficeEditLinks(`${base}note.pdf`, sharePointContext), null);
+  assert.equal(buildOfficeEditLinks(`${base}photo.png`, sharePointContext), null);
+  assert.equal(buildOfficeEditLinks('https://autre-site.com/deck.pptx', sharePointContext), null);
+  assert.equal(buildOfficeEditLinks('data:application/vnd.ms-powerpoint;base64,AAAA', sharePointContext), null);
+  assert.equal(buildOfficeEditLinks(`${base}deck.pptx`, { ...sharePointContext, isSharePoint: false }), null);
 });
