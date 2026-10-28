@@ -1195,7 +1195,8 @@ export default {
         members: 'Membres',
         quote: 'Citation',
         author: 'Auteur',
-        authorRole: 'Fonction de l’auteur'
+        authorRole: 'Fonction de l’auteur',
+        caption: 'Légende'
       },
       slotStateLabel: 'Affichage',
       slotStates: {
@@ -2432,6 +2433,13 @@ export default {
         placeholderColumn2: 'Colonne 2 : bénéfices à retenir pour les équipes.',
         placeholderColumn3: 'Colonne 3 : prochaines étapes prioritaires.'
       },
+      mediaGallery: {
+        name: 'Galerie média',
+        description: 'Des images, vidéos ou sons, en carrousel s’il y en a plusieurs, avec une légende facultative.',
+        placeholderTitle: 'Le projet en images',
+        placeholderDescription: 'Ajoutez une légende pour donner du contexte à vos médias.',
+        eyebrow: 'Galerie'
+      },
       documentViewer: {
         name: 'Visionneuse documentaire',
         description: 'Un titre, un sous-titre et une visionneuse intégrée pour un document SharePoint.',
@@ -2648,6 +2656,58 @@ export default {
     documentUploadedLabel: 'Document déposé — ouvrir',
     chooseDocumentButton: 'Choisir un fichier ou le glisser ici',
     removeDocumentButton: 'Retirer',
+    mediaGallery: {
+      emptyLabel: 'Aucun média pour le moment',
+      emptyHint: 'Déposez ici des images, vidéos ou sons, ou ajoutez-les depuis le panneau de réglages.',
+      dropLabel: 'Déposer les médias ici',
+      previous: 'Média précédent',
+      next: 'Média suivant',
+      counter: '{{index}} / {{count}}',
+      goTo: 'Afficher le média {{index}}',
+      resizeHandle: 'Largeur du média',
+      streamNotEmbeddable: 'Vidéo Microsoft Stream',
+      openInStream: 'Ouvrir dans Stream',
+      captionPlaceholder: 'Ajoutez une légende…',
+      sharedCaptionLabel: 'Légende commune',
+      mediaCaptionLabel: 'Légende du média {{index}}',
+      perMediaCaptionNeedsMedia: 'Ajoutez un média pour lui donner une légende.',
+      unsupportedFile: '« {{name}} » n’est ni une image, ni une vidéo, ni un son : il n’a pas été ajouté.',
+      streamInvalid: 'Ce lien n’est pas un lien Microsoft Stream (adresse https sur SharePoint ou Stream).',
+      streamDefaultName: 'Vidéo Microsoft Stream',
+      mediaListLabel: 'Médias ({{count}})',
+      noMediaYet: 'Aucun média ajouté pour le moment.',
+      moveUp: 'Monter le média {{index}}',
+      moveDown: 'Descendre le média {{index}}',
+      remove: 'Retirer le média {{index}}',
+      addFilesButton: 'Ajouter des images, vidéos ou sons',
+      formatsHint: 'Images (JPG, PNG, GIF, WebP, SVG), vidéos (MP4, WebM, MOV) ou sons (MP3, WAV, M4A). Plusieurs fichiers à la fois possibles. Hors SharePoint, vidéos et sons sont limités à 10 Mo.',
+      streamLabel: 'Ou un lien vers une vidéo Microsoft Stream',
+      streamPlaceholder: 'Lien ou code d’intégration Stream',
+      streamAddButton: 'Ajouter',
+      streamEmbedHint: 'Pour lire la vidéo directement dans la vitrine, collez le code d’intégration (dans Stream : Partager › Incorporer). Un simple lien de partage s’affiche comme un bouton d’ouverture dans Stream.',
+      streamSharingWarning: 'Important : partagez la vidéo dans Stream avec les visiteurs de la vitrine (par exemple « Personnes de votre organisation »). Sinon, elle restera invisible pour eux. Pratique pour les vidéos trop lourdes à déposer.',
+      captionModeLabel: 'Légende',
+      captionPositionLabel: 'Position de la légende',
+      captionNarrowHint: 'Sur un écran étroit, la légende passe automatiquement sous le média.',
+      widthLabel: 'Taille du média ({{width}} %)',
+      widthHint: 'Vous pouvez aussi glisser la poignée sur le bord du média. Les proportions sont conservées.',
+      kind: {
+        image: 'Image',
+        video: 'Vidéo',
+        audio: 'Son',
+        stream: 'Stream'
+      },
+      captionMode: {
+        none: 'Aucune',
+        shared: 'Commune',
+        'per-media': 'Une par média'
+      },
+      captionPosition: {
+        left: 'À gauche',
+        right: 'À droite',
+        below: 'En dessous'
+      }
+    },
     documentUploadFailedMessage: 'Le dépôt du fichier a échoué. Merci de réessayer.',
     documentDropLabel: 'Déposer le fichier ici',
     documentDropReplaceLabel: 'Déposer pour remplacer le document',

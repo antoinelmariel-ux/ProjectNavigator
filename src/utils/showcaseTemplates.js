@@ -21,6 +21,7 @@ export const SHOWCASE_TEMPLATE_BLOCK_TYPES = [
   'figure',
   'columns',
   'document-viewer',
+  'media-gallery',
   'story',
   'checklist',
   'stack',
@@ -138,6 +139,12 @@ export const SHOWCASE_BLOCK_SLOTS = {
     { id: 'title', kind: 'text' },
     { id: 'subtitle', kind: 'text' },
     { id: 'description', kind: 'text' }
+  ],
+  // Les médias eux-mêmes sont déposés par le porteur ; le modèle règle le titre et la
+  // légende commune.
+  'media-gallery': [
+    { id: 'title', kind: 'text' },
+    { id: 'description', kind: 'text', labelKey: 'caption' }
   ],
   story: [
     { id: 'accent', kind: 'text' },

@@ -1188,7 +1188,8 @@ export default {
         members: 'Miembros',
         quote: 'Cita',
         author: 'Autor',
-        authorRole: 'Cargo del autor'
+        authorRole: 'Cargo del autor',
+        caption: 'Leyenda'
       },
       slotStateLabel: 'Visualización',
       slotStates: {
@@ -2423,6 +2424,13 @@ export default {
         placeholderColumn2: 'Columna 2: beneficios a recordar para los equipos.',
         placeholderColumn3: 'Columna 3: próximos pasos prioritarios.'
       },
+      mediaGallery: {
+        name: 'Galería multimedia',
+        description: 'Imágenes, vídeos o sonidos, en carrusel si hay varios, con una leyenda opcional.',
+        placeholderTitle: 'El proyecto en imágenes',
+        placeholderDescription: 'Añada una leyenda para dar contexto a sus medios.',
+        eyebrow: 'Galería'
+      },
       documentViewer: {
         name: 'Visor de documentos',
         description: 'Un título, un subtítulo y un visor integrado para un documento de SharePoint.',
@@ -2639,6 +2647,58 @@ export default {
     documentUploadedLabel: 'Documento subido — abrir',
     chooseDocumentButton: 'Elegir un archivo o arrastrarlo aquí',
     removeDocumentButton: 'Quitar',
+    mediaGallery: {
+      emptyLabel: 'Todavía no hay medios',
+      emptyHint: 'Suelte aquí imágenes, vídeos o sonidos, o añádalos desde el panel de ajustes.',
+      dropLabel: 'Suelte los medios aquí',
+      previous: 'Medio anterior',
+      next: 'Medio siguiente',
+      counter: '{{index}} / {{count}}',
+      goTo: 'Mostrar el medio {{index}}',
+      resizeHandle: 'Anchura del medio',
+      streamNotEmbeddable: 'Vídeo de Microsoft Stream',
+      openInStream: 'Abrir en Stream',
+      captionPlaceholder: 'Añada una leyenda…',
+      sharedCaptionLabel: 'Leyenda común',
+      mediaCaptionLabel: 'Leyenda del medio {{index}}',
+      perMediaCaptionNeedsMedia: 'Añada un medio para darle una leyenda.',
+      unsupportedFile: '«{{name}}» no es ni una imagen, ni un vídeo, ni un sonido: no se ha añadido.',
+      streamInvalid: 'Este enlace no es un enlace de Microsoft Stream (dirección https en SharePoint o Stream).',
+      streamDefaultName: 'Vídeo de Microsoft Stream',
+      mediaListLabel: 'Medios ({{count}})',
+      noMediaYet: 'Todavía no se ha añadido ningún medio.',
+      moveUp: 'Subir el medio {{index}}',
+      moveDown: 'Bajar el medio {{index}}',
+      remove: 'Quitar el medio {{index}}',
+      addFilesButton: 'Añadir imágenes, vídeos o sonidos',
+      formatsHint: 'Imágenes (JPG, PNG, GIF, WebP, SVG), vídeos (MP4, WebM, MOV) o sonidos (MP3, WAV, M4A). Se pueden añadir varios archivos a la vez. Fuera de SharePoint, los vídeos y sonidos están limitados a 10 MB.',
+      streamLabel: 'O un enlace a un vídeo de Microsoft Stream',
+      streamPlaceholder: 'Enlace o código de inserción de Stream',
+      streamAddButton: 'Añadir',
+      streamEmbedHint: 'Para reproducir el vídeo directamente en el escaparate, pegue el código de inserción (en Stream: Compartir › Insertar). Un simple enlace para compartir se muestra como un botón que abre Stream.',
+      streamSharingWarning: 'Importante: comparta el vídeo en Stream con los visitantes del escaparate (por ejemplo, «Personas de su organización»). Si no, no podrán verlo. Útil para vídeos demasiado pesados para subirlos.',
+      captionModeLabel: 'Leyenda',
+      captionPositionLabel: 'Posición de la leyenda',
+      captionNarrowHint: 'En una pantalla estrecha, la leyenda pasa automáticamente debajo del medio.',
+      widthLabel: 'Tamaño del medio ({{width}} %)',
+      widthHint: 'También puede arrastrar el tirador en el borde del medio. Se conservan las proporciones.',
+      kind: {
+        image: 'Imagen',
+        video: 'Vídeo',
+        audio: 'Sonido',
+        stream: 'Stream'
+      },
+      captionMode: {
+        none: 'Ninguna',
+        shared: 'Común',
+        'per-media': 'Una por medio'
+      },
+      captionPosition: {
+        left: 'A la izquierda',
+        right: 'A la derecha',
+        below: 'Debajo'
+      }
+    },
     documentUploadFailedMessage: 'No se pudo subir el archivo. Inténtelo de nuevo.',
     documentDropLabel: 'Suelte el archivo aquí',
     documentDropReplaceLabel: 'Suelte para reemplazar el documento',

@@ -1197,7 +1197,8 @@ export default {
         members: 'Mitglieder',
         quote: 'Zitat',
         author: 'Autor',
-        authorRole: 'Funktion des Autors'
+        authorRole: 'Funktion des Autors',
+        caption: 'Bildunterschrift'
       },
       slotStateLabel: 'Anzeige',
       slotStates: {
@@ -2433,6 +2434,13 @@ export default {
         placeholderColumn2: 'Spalte 2: Vorteile, die sich die Teams merken sollten.',
         placeholderColumn3: 'Spalte 3: nächste prioritäre Schritte.'
       },
+      mediaGallery: {
+        name: 'Mediengalerie',
+        description: 'Bilder, Videos oder Töne, bei mehreren als Karussell, mit optionaler Bildunterschrift.',
+        placeholderTitle: 'Das Projekt in Bildern',
+        placeholderDescription: 'Fügen Sie eine Bildunterschrift hinzu, um Ihren Medien Kontext zu geben.',
+        eyebrow: 'Galerie'
+      },
       documentViewer: {
         name: 'Dokumentenanzeige',
         description: 'Ein Titel, ein Untertitel und eine eingebettete Anzeige für ein SharePoint-Dokument.',
@@ -2649,6 +2657,58 @@ export default {
     documentUploadedLabel: 'Dokument hochgeladen — öffnen',
     chooseDocumentButton: 'Datei auswählen oder hierher ziehen',
     removeDocumentButton: 'Entfernen',
+    mediaGallery: {
+      emptyLabel: 'Noch keine Medien',
+      emptyHint: 'Legen Sie hier Bilder, Videos oder Töne ab oder fügen Sie sie über das Einstellungsfeld hinzu.',
+      dropLabel: 'Medien hier ablegen',
+      previous: 'Vorheriges Medium',
+      next: 'Nächstes Medium',
+      counter: '{{index}} / {{count}}',
+      goTo: 'Medium {{index}} anzeigen',
+      resizeHandle: 'Breite des Mediums',
+      streamNotEmbeddable: 'Microsoft-Stream-Video',
+      openInStream: 'In Stream öffnen',
+      captionPlaceholder: 'Bildunterschrift hinzufügen…',
+      sharedCaptionLabel: 'Gemeinsame Bildunterschrift',
+      mediaCaptionLabel: 'Bildunterschrift von Medium {{index}}',
+      perMediaCaptionNeedsMedia: 'Fügen Sie ein Medium hinzu, um ihm eine Bildunterschrift zu geben.',
+      unsupportedFile: '„{{name}}“ ist weder ein Bild noch ein Video noch ein Ton: Die Datei wurde nicht hinzugefügt.',
+      streamInvalid: 'Dies ist kein Microsoft-Stream-Link (https-Adresse auf SharePoint oder Stream).',
+      streamDefaultName: 'Microsoft-Stream-Video',
+      mediaListLabel: 'Medien ({{count}})',
+      noMediaYet: 'Noch keine Medien hinzugefügt.',
+      moveUp: 'Medium {{index}} nach oben',
+      moveDown: 'Medium {{index}} nach unten',
+      remove: 'Medium {{index}} entfernen',
+      addFilesButton: 'Bilder, Videos oder Töne hinzufügen',
+      formatsHint: 'Bilder (JPG, PNG, GIF, WebP, SVG), Videos (MP4, WebM, MOV) oder Töne (MP3, WAV, M4A). Mehrere Dateien gleichzeitig möglich. Außerhalb von SharePoint sind Videos und Töne auf 10 MB begrenzt.',
+      streamLabel: 'Oder ein Link zu einem Microsoft-Stream-Video',
+      streamPlaceholder: 'Stream-Link oder Einbettungscode',
+      streamAddButton: 'Hinzufügen',
+      streamEmbedHint: 'Um das Video direkt in der Projektvitrine abzuspielen, fügen Sie den Einbettungscode ein (in Stream: Teilen › Einbetten). Ein einfacher Freigabelink wird als Schaltfläche zum Öffnen in Stream angezeigt.',
+      streamSharingWarning: 'Wichtig: Teilen Sie das Video in Stream mit den Besuchern der Projektvitrine (z. B. „Personen in Ihrer Organisation“). Andernfalls bleibt es für sie unsichtbar. Praktisch für Videos, die zum Hochladen zu groß sind.',
+      captionModeLabel: 'Bildunterschrift',
+      captionPositionLabel: 'Position der Bildunterschrift',
+      captionNarrowHint: 'Auf einem schmalen Bildschirm wandert die Bildunterschrift automatisch unter das Medium.',
+      widthLabel: 'Größe des Mediums ({{width}} %)',
+      widthHint: 'Sie können auch den Griff am Rand des Mediums ziehen. Die Proportionen bleiben erhalten.',
+      kind: {
+        image: 'Bild',
+        video: 'Video',
+        audio: 'Ton',
+        stream: 'Stream'
+      },
+      captionMode: {
+        none: 'Keine',
+        shared: 'Gemeinsam',
+        'per-media': 'Je Medium'
+      },
+      captionPosition: {
+        left: 'Links',
+        right: 'Rechts',
+        below: 'Darunter'
+      }
+    },
     documentUploadFailedMessage: 'Das Hochladen der Datei ist fehlgeschlagen. Bitte versuchen Sie es erneut.',
     documentDropLabel: 'Datei hier ablegen',
     documentDropReplaceLabel: 'Ablegen, um das Dokument zu ersetzen',
