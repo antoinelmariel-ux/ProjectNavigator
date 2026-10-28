@@ -2166,6 +2166,7 @@ export const ProjectShowcase = ({
   const [isLightConfigOpen, setIsLightConfigOpen] = useState(false);
   const [documentUploadErrors, setDocumentUploadErrors] = useState({});
   const [documentUploadPending, setDocumentUploadPending] = useState({});
+  const [documentUploadProgress, setDocumentUploadProgress] = useState({});
 
   const resetMilestoneDragState = useCallback(() => {
     setMilestoneDragState(createEmptyMilestoneDragState());
@@ -2192,11 +2193,13 @@ export const ProjectShowcase = ({
 
     setDocumentUploadErrors(previous => ({ ...previous, [uploadKey]: '' }));
     setDocumentUploadPending(previous => ({ ...previous, [uploadKey]: true }));
+    setDocumentUploadProgress(previous => ({ ...previous, [uploadKey]: 0 }));
 
     try {
       const attachment = await createAttachmentFromFile(file, {
         entityType: 'showcase',
-        entityId: projectId || 'sans-projet'
+        entityId: projectId || 'sans-projet',
+        onProgress: (fraction) => setDocumentUploadProgress(previous => ({ ...previous, [uploadKey]: fraction }))
       });
       const extension = getFileExtension(attachment.name).toLowerCase();
       // 'jpeg' -> 'jpg' pour matcher DOCUMENT_VIEWER_TYPES ; tout format non reconnu (docx,
@@ -2216,6 +2219,7 @@ export const ProjectShowcase = ({
       }));
     } finally {
       setDocumentUploadPending(previous => ({ ...previous, [uploadKey]: false }));
+      setDocumentUploadProgress(previous => ({ ...previous, [uploadKey]: null }));
     }
   }, [projectId, t]);
 
@@ -4126,6 +4130,7 @@ export const ProjectShowcase = ({
                 <DocumentDropZone
                   enabled={editable}
                   isBusy={Boolean(documentUploadPending[section.id])}
+                  progress={documentUploadProgress[section.id] ?? null}
                   label={t(section.documentUrl
                     ? 'projectShowcase.documentDropReplaceLabel'
                     : 'projectShowcase.documentDropLabel')}
@@ -4197,7 +4202,7 @@ export const ProjectShowcase = ({
         </div>
       </section>
     );
-  }, [accentFamilies, documentEmbedContext, documentUploadErrors, documentUploadPending, draftValues, fieldSources, handleCustomSectionColumnChange, handleCustomSectionFieldChange, handleCustomSectionItemChange, handleDocumentUpload, handleFieldChange, language, missingInfoLabel, previewAnswers, questions, t]);
+  }, [accentFamilies, documentEmbedContext, documentUploadErrors, documentUploadPending, documentUploadProgress, draftValues, fieldSources, handleCustomSectionColumnChange, handleCustomSectionFieldChange, handleCustomSectionItemChange, handleDocumentUpload, handleFieldChange, language, missingInfoLabel, previewAnswers, questions, t]);
 
   // Pendant l'édition, le canvas lit les sections *non assainies* : `sanitizeCustomSections`
   // supprime une section devenue entièrement vide, ce qui la ferait disparaître sous les
@@ -4854,6 +4859,7 @@ export const ProjectShowcase = ({
                       <DocumentDropZone
                         className="rounded-lg"
                         isBusy={Boolean(documentUploadPending[section.id])}
+                        progress={documentUploadProgress[section.id] ?? null}
                         label={t(section.documentUrl
                           ? 'projectShowcase.documentDropReplaceLabel'
                           : 'projectShowcase.documentDropLabel')}

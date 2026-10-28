@@ -19,6 +19,7 @@ import { renderTextWithLinks } from '../utils/linkify.js';
 import { ProjectShowcase } from './ProjectShowcase.jsx';
 import { RichTextEditor } from './RichTextEditor.jsx';
 import { PeoplePicker } from './PeoplePicker.jsx';
+import { UploadProgressBar } from './UploadProgressBar.jsx';
 import { extractProjectName } from '../utils/projects.js';
 import { getTeamPriority } from '../utils/projectExport.js';
 import { normalizeAnalysis } from '../utils/rules.js';
@@ -1489,8 +1490,12 @@ export const SynthesisReport = ({
   // Sur SharePoint, le fichier part dans la bibliothèque CN-Documents et seul un lien est
   // conservé dans le commentaire ; hors SharePoint, createAttachmentFromFile retombe sur
   // une data URL comme auparavant.
+  const [commentUploadProgress, setCommentUploadProgress] = useState(null);
+
   const uploadCommentAttachments = useCallback(async (files, { entityType, feedbackTargetId }) => {
     const safeFiles = Array.isArray(files) ? files : Array.from(files || []);
+    const progressByFile = safeFiles.map(() => 0);
+    setCommentUploadProgress({ targetId: feedbackTargetId, value: 0 });
 
     const uploads = await Promise.all(
       safeFiles.map(async (file, index) => {
@@ -1498,7 +1503,14 @@ export const SynthesisReport = ({
           const attachment = await createAttachmentFromFile(file, {
             entityType,
             entityId: projectId || 'sans-projet',
-            id: `attachment-${Date.now()}-${index}`
+            id: `attachment-${Date.now()}-${index}`,
+            onProgress: (fraction) => {
+              progressByFile[index] = fraction;
+              setCommentUploadProgress({
+                targetId: feedbackTargetId,
+                value: progressByFile.reduce((sum, value) => sum + value, 0) / progressByFile.length
+              });
+            }
           });
           return {
             id: attachment.id,
@@ -1517,6 +1529,7 @@ export const SynthesisReport = ({
       })
     );
 
+    setCommentUploadProgress(null);
     return uploads.filter(Boolean);
   }, [projectId, t]);
 
@@ -2434,6 +2447,7 @@ export const SynthesisReport = ({
                   || JSON.stringify(normalizeCommentAttachments(draftEntry.attachments))
                     !== JSON.stringify(normalizeCommentAttachments(storedEntry.attachments));
                 const feedbackMessage = getComplianceFeedbackMessage(`team-${team.id}`);
+                const uploadProgress = commentUploadProgress?.targetId === `team-${team.id}` ? commentUploadProgress.value : null;
                 const canEditTeamComment = canBypassCompliancePerimeter || complianceTeamIdsForUser.has(team.id);
                 // Tant que l'expert n'a rien rendu, le porteur ne doit pas voir une case vide :
                 // une carte « avis » vide se lit comme un tampon manquant et transforme un
@@ -3182,6 +3196,9 @@ export const SynthesisReport = ({
                                     >
                                       {t('synthesisReport.saveCommentButton')}
                                     </button>
+                                    {uploadProgress !== null && (
+                                      <UploadProgressBar value={uploadProgress} label={t('synthesisReport.uploadingLabel')} />
+                                    )}
                                     {feedbackMessage && (
                                       <span className="text-xs font-medium text-emerald-700">
                                         {feedbackMessage}
@@ -3271,6 +3288,9 @@ export const SynthesisReport = ({
                                       >
                                         {t('synthesisReport.sendReplyButton')}
                                       </button>
+                                      {uploadProgress !== null && (
+                                        <UploadProgressBar value={uploadProgress} label={t('synthesisReport.uploadingLabel')} />
+                                      )}
                                       {feedbackMessage && (
                                         <span className="text-xs font-medium text-emerald-700">
                                           {feedbackMessage}
@@ -3504,6 +3524,7 @@ export const SynthesisReport = ({
                     const committeeCommentEntry = committeeCommentMap[committee.id] || normalizeCommentEntry();
                     const committeeDraft = complianceCommentDrafts.committees?.[committee.id] || committeeCommentEntry;
                     const feedbackMessage = getComplianceFeedbackMessage(`committee-${committee.id}`);
+                    const uploadProgress = commentUploadProgress?.targetId === `committee-${committee.id}` ? commentUploadProgress.value : null;
                     const canEditCommitteeOpinion = canBypassCompliancePerimeter || committeeIdsForUser.has(committee.id);
                     const canReplyCommitteeThread = canEditCommitteeOpinion || canReplyAsProjectContributor;
                     const committeeStatusMeta = getCommentStatusMeta(
@@ -3675,6 +3696,9 @@ export const SynthesisReport = ({
                                 >
                                   {t('synthesisReport.saveCommentButton')}
                                 </button>
+                                {uploadProgress !== null && (
+                                  <UploadProgressBar value={uploadProgress} label={t('synthesisReport.uploadingLabel')} />
+                                )}
                                 {feedbackMessage && (
                                   <span className="text-xs font-medium text-emerald-700">
                                     {feedbackMessage}
@@ -3800,6 +3824,9 @@ export const SynthesisReport = ({
                               >
                                 {t('synthesisReport.sendReplyButton')}
                               </button>
+                              {uploadProgress !== null && (
+                                <UploadProgressBar value={uploadProgress} label={t('synthesisReport.uploadingLabel')} />
+                              )}
                               {feedbackMessage && (
                                 <span className="text-xs font-medium text-emerald-700">
                                   {feedbackMessage}

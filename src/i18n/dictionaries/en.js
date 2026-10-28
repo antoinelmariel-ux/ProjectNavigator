@@ -333,6 +333,7 @@ export default {
     pendingSharePointUpload: 'Pending SharePoint upload',
     importedDocument: 'Imported document',
     uploadFailedMessage: 'The file upload failed. Please try again.',
+    uploadingLabel: 'Uploading file…',
     removeDocument: 'Remove',
     cancel: 'Cancel',
     save: 'Save'
@@ -2204,6 +2205,7 @@ export default {
     missingInfoLabel: 'Information to complete',
     attachmentDefaultName: 'Attachment',
     uploadFailedMessage: 'Could not upload the document.',
+    uploadingLabel: 'Uploading file…',
     commentSavedMessage: 'Comment saved.',
     teamAcceptedLanguagesNoticeTemplate: 'This team only replies in the following languages: {{languages}}. Please use one of them for your message.',
     committeeAcceptedLanguagesNoticeTemplate: 'This committee only replies in the following languages: {{languages}}. Please use one of them for your message.',
