@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from '../react.js';
 import { ShowcaseSignatureFx } from './ShowcaseSignatureFx.jsx';
 import {
+  ArrowDown,
+  ArrowUp,
   Edit,
   Plus,
   Trash2
@@ -11,6 +13,27 @@ import { ShowcaseEditorBar } from './showcase/ShowcaseEditorBar.jsx';
 import { ShowcaseOutline } from './showcase/ShowcaseOutline.jsx';
 import { InlineRichText } from './showcase/InlineRichText.jsx';
 import { DocumentDropZone, useBlockStrayFileDrops } from './showcase/DocumentDropZone.jsx';
+import { MediaGallery } from './showcase/MediaGallery.jsx';
+import {
+  CAPTION_MODES,
+  CAPTION_MODE_PER_MEDIA,
+  CAPTION_MODE_SHARED,
+  CAPTION_POSITIONS,
+  DEFAULT_MEDIA_WIDTH,
+  MAX_MEDIA_WIDTH,
+  MEDIA_GALLERY_TYPE,
+  MEDIA_KIND_IMAGE,
+  MEDIA_KIND_STREAM,
+  MIN_MEDIA_WIDTH,
+  clampMediaWidth,
+  createMediaId,
+  moveMediaItem,
+  normalizeCaptionMode,
+  normalizeCaptionPosition,
+  normalizeMediaList,
+  parseStreamLink,
+  resolveMediaKindFromFile
+} from '../utils/showcaseMediaGallery.js';
 import {
   SHOWCASE_SECTION_IDS,
   buildPreviewAnswers,
@@ -127,6 +150,15 @@ const getTemplateMeta = (t, templateId) => {
           subtitle: t('projectShowcase.templates.documentViewer.placeholderSubtitle'),
           description: t('projectShowcase.templates.documentViewer.placeholderDescription'),
           accent: 'SharePoint'
+        }
+      };
+    case MEDIA_GALLERY_TYPE:
+      return {
+        name: t('projectShowcase.templates.mediaGallery.name'),
+        description: t('projectShowcase.templates.mediaGallery.description'),
+        placeholder: {
+          title: t('projectShowcase.templates.mediaGallery.placeholderTitle'),
+          description: t('projectShowcase.templates.mediaGallery.placeholderDescription')
         }
       };
     case 'story':
@@ -251,6 +283,16 @@ const SECTION_TEMPLATE_CONFIG = {
     showDocument: true,
     showItems: false
   },
+  [MEDIA_GALLERY_TYPE]: {
+    showSubtitle: false,
+    showAccent: false,
+    showBadge: false,
+    showDescription: false,
+    showColumns: false,
+    showDocument: false,
+    showItems: false,
+    showMedia: true
+  },
   story: {
     showSubtitle: false,
     showAccent: false,
@@ -357,9 +399,26 @@ const buildSectionFromTemplate = (t, templateId, id) => {
     documentType: 'pdf',
     items: Array.isArray(placeholder.items) ? [...placeholder.items] : [],
     columnCount,
-    columns: normalizeCustomSectionColumns(placeholder.columns)
+    columns: normalizeCustomSectionColumns(placeholder.columns),
+    ...(template.id === MEDIA_GALLERY_TYPE ? buildMediaGalleryDefaults() : {})
   };
 };
+
+const buildMediaGalleryDefaults = () => ({
+  media: [],
+  captionMode: CAPTION_MODE_SHARED,
+  captionPosition: 'right',
+  mediaWidth: DEFAULT_MEDIA_WIDTH
+});
+
+// Les réglages de la galerie ne sont portés que par ce gabarit : les ajouter aux autres
+// blocs écrirait des champs morts dans chaque vitrine publiée.
+const sanitizeMediaGalleryFields = (section) => ({
+  media: normalizeMediaList(section.media),
+  captionMode: normalizeCaptionMode(section.captionMode),
+  captionPosition: normalizeCaptionPosition(section.captionPosition),
+  mediaWidth: clampMediaWidth(section.mediaWidth ?? DEFAULT_MEDIA_WIDTH)
+});
 
 const SIDE_INSPECTOR_MEDIA_QUERY = '(min-width: 1180px)';
 
@@ -406,8 +465,10 @@ const sanitizeCustomSections = (rawSections) => {
       const columns = normalizeCustomSectionColumns(section.columns).filter(Boolean);
       const hasColumnContent = columns.length > 0;
       const sourceQuestionId = typeof section.sourceQuestionId === 'string' ? section.sourceQuestionId.trim() : '';
+      const mediaGalleryFields = type === MEDIA_GALLERY_TYPE ? sanitizeMediaGalleryFields(section) : null;
+      const hasMedia = Boolean(mediaGalleryFields && mediaGalleryFields.media.length > 0);
 
-      if (!title && !subtitle && !description && !documentUrl && !figure && items.length === 0 && !hasColumnContent && !sourceQuestionId) {
+      if (!title && !subtitle && !description && !documentUrl && !figure && items.length === 0 && !hasColumnContent && !sourceQuestionId && !hasMedia) {
         return null;
       }
 
@@ -425,7 +486,8 @@ const sanitizeCustomSections = (rawSections) => {
         documentType,
         items,
         columnCount,
-        columns
+        columns,
+        ...(mediaGalleryFields || {})
       };
     })
     .filter(Boolean);
@@ -459,6 +521,10 @@ const areCustomSectionsEqual = (previous, next) => {
       && JSON.stringify(entry.items || []) === JSON.stringify(candidate.items || [])
       && entry.columnCount === candidate.columnCount
       && JSON.stringify(entry.columns || []) === JSON.stringify(candidate.columns || [])
+      && JSON.stringify(entry.media || []) === JSON.stringify(candidate.media || [])
+      && entry.captionMode === candidate.captionMode
+      && entry.captionPosition === candidate.captionPosition
+      && entry.mediaWidth === candidate.mediaWidth
       && entry.type === candidate.type;
   });
 };
@@ -2167,6 +2233,8 @@ export const ProjectShowcase = ({
   const [documentUploadErrors, setDocumentUploadErrors] = useState({});
   const [documentUploadPending, setDocumentUploadPending] = useState({});
   const [documentUploadProgress, setDocumentUploadProgress] = useState({});
+  const [streamLinkDrafts, setStreamLinkDrafts] = useState({});
+  const [streamLinkErrors, setStreamLinkErrors] = useState({});
 
   const resetMilestoneDragState = useCallback(() => {
     setMilestoneDragState(createEmptyMilestoneDragState());
@@ -2720,6 +2788,82 @@ export const ProjectShowcase = ({
       })
     );
   }, []);
+
+  const handleCustomSectionMediaUpdate = useCallback((sectionId, updater) => {
+    setCustomSections(prev =>
+      prev.map(section => (
+        section && section.id === sectionId
+          ? { ...section, media: updater(Array.isArray(section.media) ? section.media : []) }
+          : section
+      ))
+    );
+  }, []);
+
+  const handleMediaCaptionChange = useCallback((sectionId, mediaId, value) => {
+    handleCustomSectionMediaUpdate(sectionId, media =>
+      media.map(item => (item && item.id === mediaId ? { ...item, caption: value } : item))
+    );
+  }, [handleCustomSectionMediaUpdate]);
+
+  // Même voie que la visionneuse documentaire (createAttachmentFromFile : contrôles de taille
+  // et d'extension, bascule SharePoint/local), mais plusieurs fichiers à la fois, ajoutés dans
+  // l'ordre du dépôt. Un fichier refusé n'empêche pas les autres d'être ajoutés.
+  const handleMediaGalleryUpload = useCallback(async (sectionId, files) => {
+    const list = Array.from(files || []);
+    if (list.length === 0) {
+      return;
+    }
+
+    setDocumentUploadErrors(previous => ({ ...previous, [sectionId]: '' }));
+    setDocumentUploadPending(previous => ({ ...previous, [sectionId]: true }));
+    setDocumentUploadProgress(previous => ({ ...previous, [sectionId]: 0 }));
+    const failures = [];
+
+    try {
+      for (let fileIndex = 0; fileIndex < list.length; fileIndex += 1) {
+        const file = list[fileIndex];
+        const kind = resolveMediaKindFromFile({ name: file.name, mimeType: file.type });
+        if (!kind) {
+          failures.push(t('projectShowcase.mediaGallery.unsupportedFile', { name: file.name }));
+          continue;
+        }
+        try {
+          const attachment = await createAttachmentFromFile(file, {
+            entityType: 'showcase',
+            entityId: projectId || 'sans-projet',
+            onProgress: (fraction) => setDocumentUploadProgress(previous => ({
+              ...previous,
+              [sectionId]: (fileIndex + fraction) / list.length
+            }))
+          });
+          handleCustomSectionMediaUpdate(sectionId, media => [
+            ...media,
+            { id: createMediaId(), kind, url: attachment.url, name: attachment.name || file.name, caption: '' }
+          ]);
+        } catch (error) {
+          failures.push(`${file.name} : ${error?.message || t('projectShowcase.documentUploadFailedMessage')}`);
+        }
+      }
+    } finally {
+      setDocumentUploadErrors(previous => ({ ...previous, [sectionId]: failures.join(' ') }));
+      setDocumentUploadPending(previous => ({ ...previous, [sectionId]: false }));
+      setDocumentUploadProgress(previous => ({ ...previous, [sectionId]: null }));
+    }
+  }, [handleCustomSectionMediaUpdate, projectId, t]);
+
+  const handleAddStreamLink = useCallback((sectionId) => {
+    const url = parseStreamLink(streamLinkDrafts[sectionId]);
+    if (!url) {
+      setStreamLinkErrors(previous => ({ ...previous, [sectionId]: t('projectShowcase.mediaGallery.streamInvalid') }));
+      return;
+    }
+    handleCustomSectionMediaUpdate(sectionId, media => [
+      ...media,
+      { id: createMediaId(), kind: MEDIA_KIND_STREAM, url, name: t('projectShowcase.mediaGallery.streamDefaultName'), caption: '' }
+    ]);
+    setStreamLinkDrafts(previous => ({ ...previous, [sectionId]: '' }));
+    setStreamLinkErrors(previous => ({ ...previous, [sectionId]: '' }));
+  }, [handleCustomSectionMediaUpdate, streamLinkDrafts, t]);
 
   const handleRemoveCustomSection = useCallback((sectionId) => {
     setCustomSections(previous => previous.filter(section => section.id !== sectionId));
@@ -4086,6 +4230,56 @@ export const ProjectShowcase = ({
       );
     }
 
+    if (type === MEDIA_GALLERY_TYPE) {
+      const captionMode = normalizeCaptionMode(section.captionMode);
+      const renderGalleryCaption = (mediaIndex, caption) => {
+        if (!editable) {
+          return renderTextWithLinks(caption);
+        }
+        if (captionMode === CAPTION_MODE_PER_MEDIA) {
+          const item = normalizeMediaList(section.media)[mediaIndex];
+          if (!item) {
+            return <span className="sg-media__caption-hint">{t('projectShowcase.mediaGallery.perMediaCaptionNeedsMedia')}</span>;
+          }
+          return (
+            <InlineRichText
+              key={item.id}
+              value={item.caption}
+              onChange={(nextValue) => handleMediaCaptionChange(section.id, item.id, nextValue)}
+              placeholder={t('projectShowcase.mediaGallery.captionPlaceholder')}
+              ariaLabel={t('projectShowcase.mediaGallery.mediaCaptionLabel', { index: mediaIndex + 1 })}
+            />
+          );
+        }
+        return editText('description', section.description, {
+          placeholder: t('projectShowcase.mediaGallery.captionPlaceholder'),
+          ariaLabel: t('projectShowcase.mediaGallery.sharedCaptionLabel')
+        });
+      };
+      return (
+        <MediaGallery
+          key={key}
+          section={section}
+          family={family}
+          editable={editable}
+          titleNode={editText('title', section.title, {
+            placeholder: t('projectShowcase.titlePlaceholderFallback')
+          })}
+          renderCaption={renderGalleryCaption}
+          onWidthChange={(nextWidth) => handleCustomSectionFieldChange(section.id, 'mediaWidth', nextWidth)}
+          dropZone={{
+            isBusy: Boolean(documentUploadPending[section.id]),
+            progress: documentUploadProgress[section.id] ?? null,
+            label: t('projectShowcase.mediaGallery.dropLabel'),
+            busyLabel: t('projectShowcase.documentUploadingLabel'),
+            onFiles: (files) => handleMediaGalleryUpload(section.id, files)
+          }}
+          error={documentUploadErrors[section.id]}
+          t={t}
+        />
+      );
+    }
+
     // Visionneuse documentaire — seul gabarit à conserver une forme propre
     const isImage = IMAGE_DOCUMENT_TYPES.includes(section.documentType);
     const documentEmbedSrc = isImage
@@ -4202,7 +4396,7 @@ export const ProjectShowcase = ({
         </div>
       </section>
     );
-  }, [accentFamilies, documentEmbedContext, documentUploadErrors, documentUploadPending, documentUploadProgress, draftValues, fieldSources, handleCustomSectionColumnChange, handleCustomSectionFieldChange, handleCustomSectionItemChange, handleDocumentUpload, handleFieldChange, language, missingInfoLabel, previewAnswers, questions, t]);
+  }, [accentFamilies, documentEmbedContext, documentUploadErrors, documentUploadPending, documentUploadProgress, draftValues, fieldSources, handleCustomSectionColumnChange, handleCustomSectionFieldChange, handleCustomSectionItemChange, handleDocumentUpload, handleFieldChange, handleMediaCaptionChange, handleMediaGalleryUpload, language, missingInfoLabel, previewAnswers, questions, t]);
 
   // Pendant l'édition, le canvas lit les sections *non assainies* : `sanitizeCustomSections`
   // supprime une section devenue entièrement vide, ce qui la ferait disparaître sous les
@@ -4708,6 +4902,214 @@ export const ProjectShowcase = ({
     };
   }, [handleRedo, handleUndo, isLiveEditing]);
 
+  const renderMediaGalleryControls = (section) => {
+    const media = normalizeMediaList(section.media);
+    const captionMode = normalizeCaptionMode(section.captionMode);
+    const captionPosition = normalizeCaptionPosition(section.captionPosition);
+    const mediaWidth = clampMediaWidth(section.mediaWidth ?? DEFAULT_MEDIA_WIDTH);
+    const fieldId = (suffix) => `custom-section-${section.id}-${suffix}`;
+    const segmentClass = 'flex-1 px-2 py-1.5 text-xs font-medium';
+    const segmentStyle = (isActive) => (isActive ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50');
+
+    return (
+      <div className="mt-4 space-y-4" data-testid="media-gallery-controls">
+        <div className="space-y-2">
+          <label className="sge-field__label">
+            {t('projectShowcase.mediaGallery.mediaListLabel', { count: media.length })}
+          </label>
+          {media.length > 0 ? (
+            <ul className="space-y-2">
+              {media.map((item, mediaIndex) => (
+                <li key={item.id} className="space-y-2 rounded-lg border border-gray-200 bg-white p-2" data-testid="media-gallery-item">
+                  <div className="flex items-center gap-2">
+                    {item.kind === MEDIA_KIND_IMAGE ? (
+                      <img src={item.url} alt="" className="h-8 w-12 shrink-0 rounded object-cover" />
+                    ) : (
+                      <span className="flex h-8 w-12 shrink-0 items-center justify-center rounded bg-gray-100 text-xs font-semibold text-gray-600">
+                        {t(`projectShowcase.mediaGallery.kind.${item.kind}`)}
+                      </span>
+                    )}
+                    <span className="min-w-0 flex-1 truncate text-xs text-gray-700" title={item.name}>
+                      {item.name || t(`projectShowcase.mediaGallery.kind.${item.kind}`)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleCustomSectionMediaUpdate(section.id, list => moveMediaItem(list, mediaIndex, -1))}
+                      disabled={mediaIndex === 0}
+                      aria-label={t('projectShowcase.mediaGallery.moveUp', { index: mediaIndex + 1 })}
+                      className="rounded border border-gray-200 p-1 text-gray-600 hover:text-blue-700 disabled:opacity-40"
+                    >
+                      <ArrowUp className="h-3 w-3" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleCustomSectionMediaUpdate(section.id, list => moveMediaItem(list, mediaIndex, 1))}
+                      disabled={mediaIndex === media.length - 1}
+                      aria-label={t('projectShowcase.mediaGallery.moveDown', { index: mediaIndex + 1 })}
+                      className="rounded border border-gray-200 p-1 text-gray-600 hover:text-blue-700 disabled:opacity-40"
+                    >
+                      <ArrowDown className="h-3 w-3" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleCustomSectionMediaUpdate(section.id, list => list.filter(entry => entry && entry.id !== item.id))}
+                      aria-label={t('projectShowcase.mediaGallery.remove', { index: mediaIndex + 1 })}
+                      className="rounded border border-gray-200 p-1 text-gray-600 hover:border-red-200 hover:text-red-600"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
+                  {captionMode === CAPTION_MODE_PER_MEDIA && (
+                    <RichTextEditor
+                      id={fieldId(`media-caption-${item.id}`)}
+                      value={item.caption || ''}
+                      onChange={(nextValue) => handleMediaCaptionChange(section.id, item.id, nextValue)}
+                      placeholder={t('projectShowcase.mediaGallery.captionPlaceholder')}
+                      compact
+                      ariaLabel={t('projectShowcase.mediaGallery.mediaCaptionLabel', { index: mediaIndex + 1 })}
+                    />
+                  )}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-xs text-gray-500">{t('projectShowcase.mediaGallery.noMediaYet')}</p>
+          )}
+          {documentUploadErrors[section.id] && (
+            <p className="text-xs text-red-600" role="alert">{documentUploadErrors[section.id]}</p>
+          )}
+          <DocumentDropZone
+            className="rounded-lg"
+            isBusy={Boolean(documentUploadPending[section.id])}
+            progress={documentUploadProgress[section.id] ?? null}
+            label={t('projectShowcase.mediaGallery.dropLabel')}
+            busyLabel={t('projectShowcase.documentUploadingLabel')}
+            onFiles={(files) => handleMediaGalleryUpload(section.id, files)}
+          >
+            <label className="flex w-full cursor-pointer items-center justify-center rounded-lg border border-dashed border-blue-300 bg-blue-50 px-3 py-3 text-center text-sm font-medium text-blue-700 hover:bg-blue-100">
+              <input
+                type="file"
+                multiple
+                accept="image/*,video/*,audio/*,.mov,.m4a"
+                className="sr-only"
+                data-testid="media-gallery-file-input"
+                onChange={(event) => {
+                  handleMediaGalleryUpload(section.id, event.target.files);
+                  event.target.value = '';
+                }}
+              />
+              {t('projectShowcase.mediaGallery.addFilesButton')}
+            </label>
+          </DocumentDropZone>
+          <p className="text-xs text-gray-500">{t('projectShowcase.mediaGallery.formatsHint')}</p>
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor={fieldId('stream')} className="sge-field__label">
+            {t('projectShowcase.mediaGallery.streamLabel')}
+          </label>
+          <div className="flex gap-2">
+            <input
+              id={fieldId('stream')}
+              type="url"
+              value={streamLinkDrafts[section.id] || ''}
+              onChange={(event) => {
+                const { value } = event.target;
+                setStreamLinkDrafts(previous => ({ ...previous, [section.id]: value }));
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  handleAddStreamLink(section.id);
+                }
+              }}
+              placeholder={t('projectShowcase.mediaGallery.streamPlaceholder')}
+              className="sge-input"
+            />
+            <button
+              type="button"
+              onClick={() => handleAddStreamLink(section.id)}
+              className="shrink-0 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+            >
+              {t('projectShowcase.mediaGallery.streamAddButton')}
+            </button>
+          </div>
+          {streamLinkErrors[section.id] && (
+            <p className="text-xs text-red-600" role="alert">{streamLinkErrors[section.id]}</p>
+          )}
+          <p className="text-xs text-gray-500">{t('projectShowcase.mediaGallery.streamEmbedHint')}</p>
+          <p className="rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-xs text-orange-900" data-testid="media-gallery-stream-warning">
+            {t('projectShowcase.mediaGallery.streamSharingWarning')}
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <p className="sge-field__label">{t('projectShowcase.mediaGallery.captionModeLabel')}</p>
+          <div className="flex divide-x divide-gray-200 overflow-hidden rounded-lg border border-gray-200" role="group" aria-label={t('projectShowcase.mediaGallery.captionModeLabel')}>
+            {CAPTION_MODES.map(mode => (
+              <button
+                key={mode}
+                type="button"
+                aria-pressed={captionMode === mode}
+                onClick={() => handleCustomSectionFieldChange(section.id, 'captionMode', mode)}
+                className={`${segmentClass} ${segmentStyle(captionMode === mode)}`}
+              >
+                {t(`projectShowcase.mediaGallery.captionMode.${mode}`)}
+              </button>
+            ))}
+          </div>
+          {captionMode === CAPTION_MODE_SHARED && (
+            <RichTextEditor
+              id={fieldId('description')}
+              value={section.description || ''}
+              onChange={(nextValue) => handleCustomSectionFieldChange(section.id, 'description', nextValue)}
+              placeholder={t('projectShowcase.mediaGallery.captionPlaceholder')}
+              compact
+              ariaLabel={t('projectShowcase.mediaGallery.sharedCaptionLabel')}
+            />
+          )}
+        </div>
+
+        {captionMode !== 'none' && (
+          <div className="space-y-2">
+            <p className="sge-field__label">{t('projectShowcase.mediaGallery.captionPositionLabel')}</p>
+            <div className="flex divide-x divide-gray-200 overflow-hidden rounded-lg border border-gray-200" role="group" aria-label={t('projectShowcase.mediaGallery.captionPositionLabel')}>
+              {CAPTION_POSITIONS.map(position => (
+                <button
+                  key={position}
+                  type="button"
+                  aria-pressed={captionPosition === position}
+                  onClick={() => handleCustomSectionFieldChange(section.id, 'captionPosition', position)}
+                  className={`${segmentClass} ${segmentStyle(captionPosition === position)}`}
+                >
+                  {t(`projectShowcase.mediaGallery.captionPosition.${position}`)}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-gray-500">{t('projectShowcase.mediaGallery.captionNarrowHint')}</p>
+          </div>
+        )}
+
+        <div className="space-y-2">
+          <label htmlFor={fieldId('width')} className="sge-field__label">
+            {t('projectShowcase.mediaGallery.widthLabel', { width: mediaWidth })}
+          </label>
+          <input
+            id={fieldId('width')}
+            type="range"
+            min={MIN_MEDIA_WIDTH}
+            max={MAX_MEDIA_WIDTH}
+            step={1}
+            value={mediaWidth}
+            onChange={(event) => handleCustomSectionFieldChange(section.id, 'mediaWidth', clampMediaWidth(event.target.value))}
+            className="w-full"
+          />
+          <p className="text-xs text-gray-500">{t('projectShowcase.mediaGallery.widthHint')}</p>
+        </div>
+      </div>
+    );
+  };
+
   const renderCustomSectionControls = (section) => {
             const templateConfig = resolveTemplateConfig(section.type);
             const linkedFieldId = isLinkedBlockLinkable(section) ? buildLinkedBlockFieldId(section.sourceQuestionId) : null;
@@ -4912,6 +5314,7 @@ export const ProjectShowcase = ({
                     </div>
                   </>
                 )}
+                {templateConfig.showMedia && renderMediaGalleryControls(section)}
                 {templateConfig.showDescription && linkedField && (
                   <div className="mt-4 space-y-2" data-testid="showcase-linked-block-field">
                     <p className="text-xs text-gray-500">{t('projectShowcase.linkedBlockHint')}</p>
