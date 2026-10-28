@@ -2309,6 +2309,7 @@ export default {
     overviewTitleReader: 'Réponses du porteur',
     overviewHide: 'Masquer',
     overviewDoubtHeading: 'Doute signalé sur cette réponse',
+    overviewDoubtRaisedByOwner: 'Doute adressé par le porteur de projet.',
     overviewDoubtBlocksValidation: 'Tant qu’il est ouvert, la validation définitive n’est pas possible.',
     overviewShow: 'Afficher',
     editAnswerAriaLabelTemplate: 'Modifier la réponse pour « {{question}} »'

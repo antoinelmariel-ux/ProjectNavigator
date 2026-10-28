@@ -2300,6 +2300,7 @@ export default {
     overviewTitleReader: 'Project owner’s answers',
     overviewHide: 'Hide',
     overviewDoubtHeading: 'Doubt flagged on this answer',
+    overviewDoubtRaisedByOwner: 'Doubt raised by the project owner.',
     overviewDoubtBlocksValidation: 'While it stays open, a final validation is not possible.',
     overviewShow: 'Show',
     editAnswerAriaLabelTemplate: 'Edit the answer for “{{question}}”'

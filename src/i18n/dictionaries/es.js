@@ -2300,6 +2300,7 @@ export default {
     overviewTitleReader: 'Respuestas del responsable del proyecto',
     overviewHide: 'Ocultar',
     overviewDoubtHeading: 'Duda señalada en esta respuesta',
+    overviewDoubtRaisedByOwner: 'Duda planteada por el responsable del proyecto.',
     overviewDoubtBlocksValidation: 'Mientras siga abierta, la validación definitiva no es posible.',
     overviewShow: 'Mostrar',
     editAnswerAriaLabelTemplate: 'Modificar la respuesta para «{{question}}»'

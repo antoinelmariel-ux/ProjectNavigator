@@ -2310,6 +2310,7 @@ export default {
     overviewTitleReader: 'Antworten des Projektverantwortlichen',
     overviewHide: 'Ausblenden',
     overviewDoubtHeading: 'Zweifel bei dieser Antwort gemeldet',
+    overviewDoubtRaisedByOwner: 'Zweifel des Projektverantwortlichen.',
     overviewDoubtBlocksValidation: 'Solange er offen bleibt, ist eine endgültige Validierung nicht möglich.',
     overviewShow: 'Anzeigen',
     editAnswerAriaLabelTemplate: 'Antwort für „{{question}}“ bearbeiten'

@@ -4004,7 +4004,9 @@ export const SynthesisReport = ({
                                       là où le porteur relit ses réponses, plutôt qu'au moment où
                                       le bouton est grisé. */}
                                   <p className="mt-1 text-xs text-amber-700">
-                                    {t('synthesisReport.overviewDoubtBlocksValidation')}
+                                    {canReplyAsProjectContributor
+                                      ? t('synthesisReport.overviewDoubtBlocksValidation')
+                                      : t('synthesisReport.overviewDoubtRaisedByOwner')}
                                   </p>
                                 </div>
                               )}
