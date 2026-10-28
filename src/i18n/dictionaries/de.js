@@ -2214,6 +2214,7 @@ export default {
     missingInfoLabel: 'Zu vervollständigende Information',
     attachmentDefaultName: 'Anhang',
     uploadFailedMessage: 'Das Dokument konnte nicht hochgeladen werden.',
+    uploadingLabel: 'Datei wird hochgeladen…',
     commentSavedMessage: 'Kommentar gespeichert.',
     teamAcceptedLanguagesNoticeTemplate: 'Dieses Team antwortet nur in folgenden Sprachen: {{languages}}. Bitte verwenden Sie eine davon für Ihre Nachricht.',
     committeeAcceptedLanguagesNoticeTemplate: 'Dieser Ausschuss antwortet nur in folgenden Sprachen: {{languages}}. Bitte verwenden Sie eine davon für Ihre Nachricht.',

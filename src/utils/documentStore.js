@@ -150,6 +150,12 @@ const readFileAsDataUrl = (file) =>
     reader.readAsDataURL(file);
   });
 
+const reportProgress = (onProgress, fraction) => {
+  if (typeof onProgress === 'function') {
+    onProgress(Math.max(0, Math.min(1, fraction)));
+  }
+};
+
 const newUploadId = () =>
   typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
     ? crypto.randomUUID()
@@ -158,28 +164,39 @@ const newUploadId = () =>
         return (char === 'x' ? random : (random & 0x3) | 0x8).toString(16);
       });
 
-const uploadInChunks = async (file, serverRelativePath) => {
+const uploadInChunks = async (file, serverRelativePath, onProgress) => {
   const fileUrl = `/_api/web/GetFileByServerRelativeUrl('${odataQuote(serverRelativePath)}')`;
   const uploadId = newUploadId();
   const total = Number(file.size) || 0;
   let offset = 0;
 
-  while (offset < total) {
-    const end = Math.min(offset + UPLOAD_CHUNK_BYTES, total);
-    const chunk = await readFileAsArrayBuffer(file.slice(offset, end));
-    const options = { rawBody: chunk, contentType: 'application/octet-stream' };
-    if (offset === 0) {
-      await spPost(`${fileUrl}/StartUpload(uploadId=guid'${uploadId}')`, undefined, options);
-    } else if (end < total) {
-      await spPost(`${fileUrl}/ContinueUpload(uploadId=guid'${uploadId}',fileOffset=${offset})`, undefined, options);
-    } else {
-      await spPost(`${fileUrl}/FinishUpload(uploadId=guid'${uploadId}',fileOffset=${offset})`, undefined, options);
+  try {
+    while (offset < total) {
+      const end = Math.min(offset + UPLOAD_CHUNK_BYTES, total);
+      const chunk = await readFileAsArrayBuffer(file.slice(offset, end));
+      const options = { rawBody: chunk, contentType: 'application/octet-stream' };
+      if (offset === 0) {
+        await spPost(`${fileUrl}/StartUpload(uploadId=guid'${uploadId}')`, undefined, options);
+      } else if (end < total) {
+        await spPost(`${fileUrl}/ContinueUpload(uploadId=guid'${uploadId}',fileOffset=${offset})`, undefined, options);
+      } else {
+        await spPost(`${fileUrl}/FinishUpload(uploadId=guid'${uploadId}',fileOffset=${offset})`, undefined, options);
+      }
+      offset = end;
+      reportProgress(onProgress, offset / total);
     }
-    offset = end;
+  } catch (error) {
+    // Une session d'envoi restée ouverte verrouille le fichier : on la ferme avant sa suppression.
+    try {
+      await spPost(`${fileUrl}/CancelUpload(uploadId=guid'${uploadId}')`);
+    } catch {
+      // meilleur effort
+    }
+    throw error;
   }
 };
 
-export const uploadDocument = async (file, { entityType, entityId } = {}) => {
+export const uploadDocument = async (file, { entityType, entityId, onProgress } = {}) => {
   const root = await documentsRoot();
   const relativePath = buildDocumentRelativePath({
     entityType,
@@ -198,13 +215,27 @@ export const uploadDocument = async (file, { entityType, entityId } = {}) => {
   const contentType = file.type || 'application/octet-stream';
   const addUrl = `/_api/web/GetFolderByServerRelativeUrl('${odataQuote(folderPath)}')/Files/add(url='${odataQuote(storedName)}',overwrite=true)`;
 
-  if ((Number(file.size) || 0) > CHUNKED_UPLOAD_THRESHOLD_BYTES) {
-    await spPost(addUrl, undefined, { rawBody: new ArrayBuffer(0), contentType });
-    await uploadInChunks(file, serverRelativePath);
-  } else {
-    const content = await readFileAsArrayBuffer(file);
-    await spPost(addUrl, undefined, { rawBody: content, contentType });
+  reportProgress(onProgress, 0);
+  try {
+    if ((Number(file.size) || 0) > CHUNKED_UPLOAD_THRESHOLD_BYTES) {
+      await spPost(addUrl, undefined, { rawBody: new ArrayBuffer(0), contentType });
+      await uploadInChunks(file, serverRelativePath, onProgress);
+    } else {
+      const content = await readFileAsArrayBuffer(file);
+      await spPost(addUrl, undefined, { rawBody: content, contentType });
+    }
+  } catch (error) {
+    // Un envoi interrompu ne doit pas laisser un fichier vide ou tronqué dans la bibliothèque.
+    try {
+      await deleteDocument(serverRelativePath);
+    } catch (cleanupError) {
+      if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+        console.warn('[Documents] Nettoyage du fichier partiel impossible :', cleanupError);
+      }
+    }
+    throw error;
   }
+  reportProgress(onProgress, 1);
 
   const fileId = `file-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
   const uploadedAt = new Date().toISOString();
@@ -260,7 +291,7 @@ export const deleteDocument = async (serverRelativePath) => {
 
 // Point d’entrée unique des pièces jointes. Hors SharePoint on conserve le comportement
 // historique (data URL en mémoire) pour que le mode simulé reste utilisable.
-export const createAttachmentFromFile = async (file, { entityType, entityId, id } = {}) => {
+export const createAttachmentFromFile = async (file, { entityType, entityId, id, onProgress } = {}) => {
   const validation = validateFile(file);
   if (!validation.ok) {
     throw new Error(validation.message);
@@ -283,6 +314,6 @@ export const createAttachmentFromFile = async (file, { entityType, entityId, id 
     };
   }
 
-  const attachment = await uploadDocument(file, { entityType, entityId });
+  const attachment = await uploadDocument(file, { entityType, entityId, onProgress });
   return id ? { ...attachment, id } : attachment;
 };

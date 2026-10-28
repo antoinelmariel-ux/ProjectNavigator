@@ -2204,6 +2204,7 @@ export default {
     missingInfoLabel: 'Información por completar',
     attachmentDefaultName: 'Archivo adjunto',
     uploadFailedMessage: 'No se pudo subir el documento.',
+    uploadingLabel: 'Subiendo el archivo…',
     commentSavedMessage: 'Comentario guardado.',
     teamAcceptedLanguagesNoticeTemplate: 'Este equipo solo responde en los siguientes idiomas: {{languages}}. Utilice uno de ellos para su mensaje.',
     committeeAcceptedLanguagesNoticeTemplate: 'Este comité solo responde en los siguientes idiomas: {{languages}}. Utilice uno de ellos para su mensaje.',

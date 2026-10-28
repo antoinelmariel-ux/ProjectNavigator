@@ -2213,6 +2213,7 @@ export default {
     missingInfoLabel: 'Information à compléter',
     attachmentDefaultName: 'Pièce jointe',
     uploadFailedMessage: 'Dépôt du document impossible.',
+    uploadingLabel: 'Dépôt du fichier en cours…',
     commentSavedMessage: 'Commentaire enregistré.',
     teamAcceptedLanguagesNoticeTemplate: 'Cette équipe échange uniquement dans les langues suivantes : {{languages}}. Merci d’utiliser l’une d’elles pour votre message.',
     committeeAcceptedLanguagesNoticeTemplate: 'Ce comité échange uniquement dans les langues suivantes : {{languages}}. Merci d’utiliser l’une d’elles pour votre message.',
