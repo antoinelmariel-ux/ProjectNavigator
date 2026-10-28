@@ -3,6 +3,7 @@ import { Close } from './icons.js';
 import { RichTextEditor } from './RichTextEditor.jsx';
 import { normalizeInspirationFormConfig } from '../utils/inspirationConfig.js';
 import { createAttachmentFromFile } from '../utils/documentStore.js';
+import { UploadProgressBar } from './UploadProgressBar.jsx';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { getLocaleTag } from '../i18n/languages.js';
 import { resolveLocalizedText } from '../utils/localizedContent.js';
@@ -106,6 +107,7 @@ export const InspirationForm = ({
   const formTopRef = useRef(null);
   const [formState, setFormState] = useState(() => buildInitialFormState(normalizedConfig));
   const [documentUploadError, setDocumentUploadError] = useState('');
+  const [documentUploadProgress, setDocumentUploadProgress] = useState(null);
 
   const labSuggestions = useMemo(() => {
     const suggestions = new Set();
@@ -222,13 +224,19 @@ export const InspirationForm = ({
     }
 
     setDocumentUploadError('');
+    const progressByFile = uploadedFiles.map(() => 0);
+    setDocumentUploadProgress(0);
 
     const uploads = await Promise.all(
-      uploadedFiles.map(async (file) => {
+      uploadedFiles.map(async (file, fileIndex) => {
         try {
           const attachment = await createAttachmentFromFile(file, {
             entityType: 'inspiration',
-            entityId: project?.id || 'nouvelle-inspiration'
+            entityId: project?.id || 'nouvelle-inspiration',
+            onProgress: (fraction) => {
+              progressByFile[fileIndex] = fraction;
+              setDocumentUploadProgress(progressByFile.reduce((sum, value) => sum + value, 0) / progressByFile.length);
+            }
           });
           return {
             name: attachment.name,
@@ -246,6 +254,7 @@ export const InspirationForm = ({
       })
     );
 
+    setDocumentUploadProgress(null);
     const uploadedDocuments = uploads.filter(Boolean);
     if (uploadedDocuments.length === 0) {
       return;
@@ -474,6 +483,9 @@ export const InspirationForm = ({
                 </div>
                 {documentUploadError && (
                   <p className="text-xs text-red-600">{documentUploadError}</p>
+                )}
+                {documentUploadProgress !== null && (
+                  <UploadProgressBar value={documentUploadProgress} label={t('inspirationForm.uploadingLabel')} />
                 )}
                 <label className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-dashed border-blue-300 bg-blue-50 px-4 py-6 text-center text-sm font-medium text-blue-700 hover:bg-blue-100">
                   <input

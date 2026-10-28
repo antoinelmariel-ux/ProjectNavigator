@@ -333,6 +333,7 @@ export default {
     pendingSharePointUpload: 'Pending SharePoint upload',
     importedDocument: 'Imported document',
     uploadFailedMessage: 'The file upload failed. Please try again.',
+    uploadingLabel: 'Uploading file…',
     removeDocument: 'Remove',
     cancel: 'Cancel',
     save: 'Save'

@@ -334,6 +334,7 @@ export default {
     pendingSharePointUpload: 'Pendiente de carga en SharePoint',
     importedDocument: 'Documento importado',
     uploadFailedMessage: 'No se pudo subir el archivo. Inténtelo de nuevo.',
+    uploadingLabel: 'Subiendo el archivo…',
     removeDocument: 'Quitar',
     cancel: 'Cancelar',
     save: 'Guardar'

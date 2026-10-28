@@ -335,6 +335,7 @@ export default {
     pendingSharePointUpload: 'En attente de dépôt SharePoint',
     importedDocument: 'Document importé',
     uploadFailedMessage: 'Le dépôt du fichier a échoué. Merci de réessayer.',
+    uploadingLabel: 'Dépôt du fichier en cours…',
     removeDocument: 'Retirer',
     cancel: 'Annuler',
     save: 'Valider'

@@ -335,6 +335,7 @@ export default {
     pendingSharePointUpload: 'SharePoint-Upload ausstehend',
     importedDocument: 'Importiertes Dokument',
     uploadFailedMessage: 'Das Hochladen der Datei ist fehlgeschlagen. Bitte versuchen Sie es erneut.',
+    uploadingLabel: 'Datei wird hochgeladen…',
     removeDocument: 'Entfernen',
     cancel: 'Abbrechen',
     save: 'Speichern'
