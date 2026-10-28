@@ -15,10 +15,12 @@ import {
   buildTemplateBlockSectionId,
   collectSlotQuestionIds,
   composeSlotText,
+  convertBuiltInToBlock,
   createShowcaseTemplate,
   extractSlotPlaceholders,
   fillMissingSourcedTextFields,
   formatSlotQuestionValue,
+  getBuiltInBlockPreset,
   getTemplateBlockSlots,
   getTemplateBuiltInSectionIds,
   getSectionsHiddenByCondition,
@@ -28,6 +30,7 @@ import {
   hasShowcaseTemplateActivation,
   isBuiltInPartHidden,
   mapShowcaseUpdatesToSources,
+  normalizeBlockSlots,
   normalizeShowcaseTemplate,
   resolveBuiltInSectionLabel,
   resolveLinkedBlockFieldSources,
@@ -283,10 +286,10 @@ test('un bloc lié garde son lien une fois recopié dans la vitrine', () => {
   });
 });
 
-test('un bloc lié à des jalons n’est pas relié : aucun emplacement ne sait les afficher', () => {
-  const questions = [...SOURCE_QUESTIONS, { id: 'roadmapMilestones', type: 'milestone_list', question: 'Jalons' }];
+test('un bloc lié à un fichier n’est pas relié : aucun emplacement ne sait l’afficher', () => {
+  const questions = [...SOURCE_QUESTIONS, { id: 'attachment', type: 'file', question: 'Pièce jointe' }];
   assert.deepEqual(
-    resolveLinkedBlockFieldSources([{ id: 'x', type: 'story', sourceQuestionId: 'roadmapMilestones' }], questions),
+    resolveLinkedBlockFieldSources([{ id: 'x', type: 'story', sourceQuestionId: 'attachment' }], questions),
     {}
   );
 });
@@ -317,7 +320,8 @@ const SLOT_QUESTIONS = [
     options: [{ value: 'unique', label: { fr: 'Versement unique', en: 'Single payment' } }]
   },
   { id: 'beneficiary', type: 'text', question: { fr: 'Bénéficiaire' } },
-  { id: 'milestones', type: 'milestone_list', question: { fr: 'Jalons' } }
+  { id: 'milestones', type: 'milestone_list', question: { fr: 'Jalons' } },
+  { id: 'attachment', type: 'file', question: { fr: 'Pièce jointe' } }
 ];
 
 const findSlotQuestion = (id) => SLOT_QUESTIONS.find((question) => question.id === id) || null;
@@ -373,7 +377,8 @@ test('le mode d’un emplacement dit ce que le porteur peut en faire', () => {
   assert.equal(resolveSlotMode({ state: 'used', source: 'question', questionId: 'amount' }, text, options), SLOT_MODES.DERIVED);
   // une question supprimée ou d'un type inaffichable rend l'emplacement à son texte
   assert.equal(resolveSlotMode({ state: 'used', source: 'question', questionId: 'gone', text: 'Repli' }, text, options), SLOT_MODES.OWNER);
-  assert.equal(resolveSlotMode({ state: 'used', source: 'question', questionId: 'milestones' }, text, options), SLOT_MODES.OWNER);
+  assert.equal(resolveSlotMode({ state: 'used', source: 'question', questionId: 'attachment' }, text, options), SLOT_MODES.OWNER);
+  assert.equal(resolveSlotMode({ state: 'used', source: 'question', questionId: 'milestones' }, list, options), SLOT_MODES.DERIVED);
 });
 
 test('le contenu d’un emplacement vient du questionnaire, « information manquante » s’il est vide', () => {
@@ -622,4 +627,65 @@ test('une condition d’affichage vide ou incomplète ne masque rien', () => {
   // le bandeau de complétude ne peut pas être masqué par une condition
   assert.equal('displayCondition' in template.sections.find((entry) => entry.id === 'notice'), false);
   assert.deepEqual(getTemplateSectionDisplayConditions(template), {});
+});
+
+// --- Catalogue : nouvelles mises en page et sections intégrées comme préréglages ----------
+
+test('une liste de jalons donne une étape par jalon, dans l’ordre chronologique', () => {
+  const question = { id: 'roadmapMilestones', type: 'milestone_list' };
+  const value = formatSlotQuestionValue(question, [
+    { date: '2027-06-01', description: 'Second versement' },
+    { date: '2027-01-15', description: 'Premier versement' },
+    { date: '', description: '' }
+  ], { language: 'fr' });
+  assert.deepEqual(value.items, ['15/01/2027 — Premier versement', '01/06/2027 — Second versement']);
+});
+
+test('chaque section intégrée sauf le bandeau a un bloc équivalent', () => {
+  SHOWCASE_SECTION_IDS.filter((id) => id !== 'notice').forEach((sectionId) => {
+    assert.ok(getBuiltInBlockPreset(sectionId), sectionId);
+  });
+  assert.equal(getBuiltInBlockPreset('notice'), null);
+  assert.deepEqual(getBuiltInBlockPreset('timeline').lost, ['launchCountdown', 'complianceDelays', 'budget']);
+});
+
+test('convertir une section intégrée reprend ses titres, ses questions, ses éléments retirés et sa condition', () => {
+  const translate = (key) => ({ fr: `fr:${key}`, en: `en:${key}` });
+  const displayCondition = whenCounterpartIs('aucune');
+  const team = normalizeShowcaseTemplate({
+    id: 'tpl',
+    sections: [{
+      kind: 'builtin',
+      id: 'team',
+      hiddenParts: ['teamCoreMembers'],
+      labels: { headline: { fr: 'Qui porte ce soutien' } },
+      fieldSources: { teamLeadTeam: 'kinds' },
+      displayCondition
+    }]
+  }).sections.find((entry) => entry.id === 'team');
+
+  const block = convertBuiltInToBlock(team, ['from-team'], translate);
+  assert.equal(block.id, 'from-team-2');
+  assert.equal(block.type, 'team');
+  assert.deepEqual(block.slots.accent, { state: 'locked', source: 'text', text: translate('projectShowcase.sectionOptions.team') });
+  assert.deepEqual(block.slots.title, { state: 'locked', source: 'text', text: { fr: 'Qui porte ce soutien' } });
+  assert.deepEqual(block.slots.subtitle, { state: 'used', source: 'question', questionId: 'teamLead', text: '' });
+  assert.equal(block.slots.description.questionId, 'kinds');
+  assert.equal(block.slots.items.state, 'hidden');
+  assert.deepEqual(block.displayCondition, team.displayCondition);
+
+  // le bloc obtenu est un bloc de modèle comme un autre
+  const template = normalizeShowcaseTemplate({ id: 'tpl', sections: [block] });
+  assert.deepEqual(template.sections.find((entry) => entry.kind === 'block'), block);
+  assert.equal(convertBuiltInToBlock({ kind: 'builtin', id: 'notice' }), null);
+});
+
+test('les nouvelles mises en page ont leurs emplacements', () => {
+  ['cover', 'steps', 'team', 'quote'].forEach((type) => {
+    const template = normalizeShowcaseTemplate({ id: 'tpl', sections: [{ kind: 'block', id: 'b', type, slots: {} }] });
+    const block = template.sections.find((entry) => entry.kind === 'block');
+    assert.equal(block.type, type);
+    assert.ok(Object.keys(block.slots).length >= 3, type);
+  });
+  assert.deepEqual(Object.keys(normalizeBlockSlots('quote', {})), ['description', 'subtitle', 'accent']);
 });

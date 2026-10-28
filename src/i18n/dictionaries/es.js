@@ -1179,7 +1179,16 @@ export default {
         description: 'Texto',
         figure: 'Cifra',
         items: 'Elementos de la lista',
-        columns: 'Columnas'
+        columns: 'Columnas',
+        tagline: 'Lema',
+        badges: 'Insignias',
+        steps: 'Etapas',
+        lead: 'Responsable',
+        leadRole: 'Función del responsable',
+        members: 'Miembros',
+        quote: 'Cita',
+        author: 'Autor',
+        authorRole: 'Cargo del autor'
       },
       slotStateLabel: 'Visualización',
       slotStates: {
@@ -1208,7 +1217,8 @@ export default {
         choice: 'opción',
         multi_choice: 'selección múltiple',
         number: 'número',
-        date: 'fecha'
+        date: 'fecha',
+        milestone_list: 'hitos'
       },
       partsTitle: 'Elementos mostrados',
       partsHint: 'Un elemento desmarcado no aparece ni en la vitrina ni en su editor.',
@@ -1224,7 +1234,8 @@ export default {
         budget: 'Coste estimado del proyecto',
         launchCountdown: 'Cuenta atrás del lanzamiento',
         complianceDelays: 'Plazos de revisión de compliance',
-        roadmapMilestones: 'Hitos'
+        roadmapMilestones: 'Hitos',
+        heroContext: 'Insignias de países y entorno'
       },
       labelKeys: {
         eyebrow: 'Antetítulo',
@@ -1236,6 +1247,9 @@ export default {
       previewHint: 'Respuestas ficticias: no se guarda nada.',
       previewClose: 'Cerrar la vista previa',
       previewLoading: 'Cargando la vista previa…',
+      convertHint: 'Para ajustar cada elemento de esta sección (fuente, visualización), sustitúyala por el bloque equivalente del catálogo («{{layout}}»): mismos títulos, mismos datos.',
+      convertLost: 'El bloque no conserva: {{parts}}.',
+      convertButton: 'Sustituir por un bloque ajustable',
       displayConditionTitle: 'Condición de visualización',
       displayConditionNone: 'siempre visible',
       displayConditionActive: 'visible con condición',
@@ -2439,6 +2453,41 @@ export default {
         placeholderItem1: 'Primera etapa del dispositivo, descrita en una frase corta.',
         placeholderItem2: 'Segunda etapa, colocada junto a la anterior.',
         placeholderItem3: 'Tercera etapa, que cierra la secuencia.'
+      },
+      cover: {
+        name: 'Portada',
+        description: 'Un gran título sobre el fondo de la vitrina, un lema e insignias, como la parte superior de la vitrina.',
+        placeholderTitle: 'Un título que invite a leer',
+        placeholderSubtitle: 'Una frase sobre por qué importa este proyecto.',
+        placeholderBadge: 'En resumen',
+        placeholderItem1: 'Primer referente',
+        placeholderItem2: 'Segundo referente'
+      },
+      steps: {
+        name: 'Etapas',
+        description: 'Una línea de tiempo fechada, como la hoja de ruta: una etapa por línea, «fecha — texto».',
+        placeholderTitle: 'Las grandes etapas',
+        placeholderBadge: 'Calendario',
+        placeholderItem1: 'Marzo 2027 — Primera etapa',
+        placeholderItem2: 'Junio 2027 — Segunda etapa',
+        placeholderItem3: 'Diciembre 2027 — Balance'
+      },
+      team: {
+        name: 'Equipo',
+        description: 'Un responsable y su equipo, como la sección de equipo.',
+        placeholderTitle: 'Quién lleva este proyecto',
+        placeholderBadge: 'Equipo',
+        placeholderLead: 'Nombre Apellido',
+        placeholderLeadRole: 'Responsable del proyecto',
+        placeholderMember1: 'Nombre Apellido — Función',
+        placeholderMember2: 'Nombre Apellido — Función'
+      },
+      quote: {
+        name: 'Cita',
+        description: 'Una palabra destacada: el testimonio de un beneficiario, la opinión de un experto.',
+        placeholderQuote: 'Este apoyo nos permite acompañar a las familias desde el diagnóstico.',
+        placeholderAuthor: 'Nombre Apellido',
+        placeholderRole: 'Cargo, organización'
       }
     },
     templateOrigin: {
@@ -2677,6 +2726,17 @@ export default {
     multiFreeformHelper: 'Indique un valor por línea.',
     lineByLineHelper: 'Use una línea por elemento para un mejor formato.',
     linkedBlockHint: 'Este bloque muestra la respuesta a una pregunta del cuestionario: modificarla aquí también modifica el cuestionario y puede cambiar el análisis de riesgo.',
+    blockFieldLabels: {
+      tagline: 'Lema',
+      badges: 'Insignias',
+      steps: 'Etapas («fecha — texto»)',
+      lead: 'Responsable',
+      leadRole: 'Función del responsable',
+      members: 'Miembros («Nombre — función»)',
+      quote: 'Cita',
+      author: 'Autor',
+      authorRole: 'Cargo del autor'
+    },
     templateLockedSlotsHint: 'Algunos elementos de este bloque los fija la plantilla de vitrina.',
     noMilestoneYet: 'Aún no se ha añadido ningún hito.',
     dateLabel: 'Fecha',

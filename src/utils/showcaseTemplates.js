@@ -10,8 +10,12 @@ import { normalizeRuleConditionGroups } from './ruleConditions.js';
 import { SHOWCASE_SECTION_IDS } from './showcaseEditor.js';
 import { THEME_ACCENT_FAMILY_ID } from './showcaseAccents.js';
 import { formatAnswer, getNumberUnitOptions } from './questions.js';
+import { sortMilestonesChronologically } from './showcaseMilestones.js';
 import { getLocaleTag } from '../i18n/languages.js';
 
+// Catalogue des mises en page d'un bloc. Les quatre dernières reprennent la forme des
+// sections intégrées (hero, équipe, feuille de route) ou en ajoutent une (citation), pour
+// qu'une vitrine entière puisse se construire en blocs.
 export const SHOWCASE_TEMPLATE_BLOCK_TYPES = [
   'highlight',
   'figure',
@@ -19,7 +23,11 @@ export const SHOWCASE_TEMPLATE_BLOCK_TYPES = [
   'document-viewer',
   'story',
   'checklist',
-  'stack'
+  'stack',
+  'cover',
+  'steps',
+  'team',
+  'quote'
 ];
 
 // Le bandeau « réponses incomplètes » n'est pas une section du récit : il s'affiche de
@@ -105,7 +113,9 @@ export const SHOWCASE_TEMPLATE_LINKABLE_BLOCK_TYPES = ['highlight', 'story'];
 
 // Emplacements de chaque gabarit de bloc, dans l'ordre où la vitrine les affiche. Leur
 // identifiant est le champ de la section qui les porte. `text` reçoit une valeur, `list`
-// une suite d'éléments (un par option cochée, un par ligne de texte).
+// une suite d'éléments (un par option cochée, un par ligne de texte, un par jalon).
+// `labelKey` nomme l'emplacement quand le champ joue un autre rôle que son nom (le
+// sous-titre d'une équipe est son responsable).
 export const SHOWCASE_BLOCK_SLOTS = {
   highlight: [
     { id: 'accent', kind: 'text' },
@@ -144,8 +154,35 @@ export const SHOWCASE_BLOCK_SLOTS = {
     { id: 'subtitle', kind: 'text' },
     { id: 'title', kind: 'text' },
     { id: 'items', kind: 'list' }
+  ],
+  cover: [
+    { id: 'accent', kind: 'text' },
+    { id: 'title', kind: 'text' },
+    { id: 'subtitle', kind: 'text', labelKey: 'tagline' },
+    { id: 'items', kind: 'list', labelKey: 'badges' }
+  ],
+  steps: [
+    { id: 'accent', kind: 'text' },
+    { id: 'title', kind: 'text' },
+    { id: 'items', kind: 'list', labelKey: 'steps' }
+  ],
+  team: [
+    { id: 'accent', kind: 'text' },
+    { id: 'title', kind: 'text' },
+    { id: 'subtitle', kind: 'text', labelKey: 'lead' },
+    { id: 'description', kind: 'text', labelKey: 'leadRole' },
+    { id: 'items', kind: 'list', labelKey: 'members' }
+  ],
+  quote: [
+    { id: 'description', kind: 'text', labelKey: 'quote' },
+    { id: 'subtitle', kind: 'text', labelKey: 'author' },
+    { id: 'accent', kind: 'text', labelKey: 'authorRole' }
   ]
 };
+
+// Séparateur entre la date (ou l'étiquette) d'une étape et son texte : c'est celui que
+// produit un jalon du questionnaire, et celui qu'on tape naturellement dans un texte.
+export const STEP_LABEL_SEPARATOR = ' — ';
 
 export const getBlockSlotDefinitions = (type) => SHOWCASE_BLOCK_SLOTS[type] || SHOWCASE_BLOCK_SLOTS.highlight;
 
@@ -155,7 +192,7 @@ export const SHOWCASE_SLOT_STATES = ['used', 'locked', 'hidden'];
 
 // Types de question qu'un emplacement sait afficher. Les jalons, fichiers et classements
 // ont un rendu propre que ni un titre ni une liste ne restituent.
-export const SHOWCASE_SLOT_QUESTION_TYPES = ['text', 'long_text', 'choice', 'multi_choice', 'number', 'date'];
+export const SHOWCASE_SLOT_QUESTION_TYPES = ['text', 'long_text', 'choice', 'multi_choice', 'number', 'date', 'milestone_list'];
 
 // Ce que la vitrine fait d'un emplacement pour le porteur :
 // - owner   : il l'écrit lui-même (texte de départ du modèle) ;
@@ -343,6 +380,16 @@ export const formatSlotQuestionValue = (question, answer, { language, unit } = {
     const text = resolvedUnit ? `${formatted}\u00a0${resolvedUnit}` : formatted;
     // `value`/`unit` séparés : un grand chiffre porte son unité dans un style à part.
     return { text, items: [text], value: formatted, unit: resolvedUnit };
+  }
+
+  // Une liste de jalons donne une étape par jalon, dans l'ordre chronologique, sous la forme
+  // « date — texte » que la mise en page « Étapes » sait découper.
+  if (type === 'milestone_list') {
+    const items = sortMilestonesChronologically(Array.isArray(answer) ? answer : [])
+      .map((entry) => formatAnswer(question, [entry], language))
+      .map((label) => (typeof label === 'string' ? label.trim() : ''))
+      .filter(Boolean);
+    return { text: items.join('\n'), items };
   }
 
   if (type === 'multi_choice') {
@@ -1019,6 +1066,123 @@ export const fillMissingSourcedTextFields = (answers, fieldSources, missingLabel
     next[fieldId] = missingLabel;
   });
   return next;
+};
+
+// --- Sections intégrées comme préréglages ------------------------------------------------
+
+// Chaque section intégrée a un bloc équivalent dans le catalogue : mêmes données, mêmes
+// titres, mais des emplacements que le modèle règle un par un. `lost` nomme ce que le bloc
+// ne sait pas reprendre (calculs propres à la section), pour que le back-office le dise
+// avant la conversion.
+const BUILTIN_BLOCK_PRESETS = {
+  hero: {
+    type: 'cover',
+    eyebrow: { slot: 'accent', key: 'projectShowcase.heroEyebrow' },
+    fields: { title: 'projectName', subtitle: 'projectSlogan', items: 'targetAudience' },
+    parts: { subtitle: 'projectSlogan', items: 'heroHighlights' },
+    lost: ['heroCta', 'heroContext']
+  },
+  problem: {
+    type: 'story',
+    eyebrow: { slot: 'accent', key: 'projectShowcase.sectionOptions.problem' },
+    headline: { slot: 'title', key: 'projectShowcase.problemHeadline' },
+    fields: { description: 'problemPainPoints' }
+  },
+  solution: {
+    type: 'highlight',
+    eyebrow: { slot: 'accent', key: 'projectShowcase.solutionEyebrow' },
+    headline: { slot: 'title', key: 'projectShowcase.solutionHeadline' },
+    fields: { description: 'solutionDescription' }
+  },
+  benefits: {
+    type: 'stack',
+    eyebrow: { slot: 'subtitle', key: 'projectShowcase.solutionBenefitsEyebrow' },
+    headline: { slot: 'title', key: 'projectShowcase.solutionBenefitsHeadline' },
+    fields: { items: 'solutionBenefits' }
+  },
+  objectives: {
+    type: 'checklist',
+    eyebrow: { slot: 'accent', key: 'projectShowcase.sectionOptions.objectives' },
+    headline: { slot: 'title', key: 'projectShowcase.objectivesHeadline' },
+    fields: { items: 'innovationProcess' },
+    parts: { items: 'innovationProcess' },
+    lost: ['impactFigure']
+  },
+  indicators: {
+    type: 'columns',
+    eyebrow: { slot: 'subtitle', key: 'projectShowcase.valueIndicatorsEyebrow' },
+    headline: { slot: 'title', key: 'projectShowcase.valueIndicatorsHeadline' },
+    fields: { columns: 'visionStatement' }
+  },
+  team: {
+    type: 'team',
+    eyebrow: { slot: 'accent', key: 'projectShowcase.sectionOptions.team' },
+    headline: { slot: 'title', key: 'projectShowcase.teamHeadline' },
+    fields: { subtitle: 'teamLead', description: 'teamLeadTeam', items: 'teamCoreMembers' },
+    parts: { subtitle: 'teamLead', description: 'teamLeadTeam', items: 'teamCoreMembers' }
+  },
+  timeline: {
+    type: 'steps',
+    eyebrow: { slot: 'accent', key: 'projectShowcase.sectionOptions.timeline' },
+    headline: { slot: 'title', key: 'projectShowcase.roadmapHeadline' },
+    fields: { items: 'roadmapMilestones' },
+    parts: { items: 'roadmapMilestones' },
+    lost: ['launchCountdown', 'complianceDelays', 'budget']
+  }
+};
+
+export const getBuiltInBlockPreset = (sectionId) => {
+  const preset = BUILTIN_BLOCK_PRESETS[sectionId];
+  return preset ? { type: preset.type, lost: preset.lost || [] } : null;
+};
+
+/**
+ * Bloc du catalogue qui reprend une section intégrée du modèle : ses titres (ceux du modèle,
+ * sinon ceux de l'application, dans toutes les langues, via `translate(key)` qui renvoie un
+ * objet {en, fr, de, es}) en texte fixe, ses champs (ou les questions que le modèle leur a
+ * substituées) en réponses, ses éléments retirés en emplacements masqués, sa condition
+ * d'affichage telle quelle.
+ */
+export const convertBuiltInToBlock = (entry, existingBlockIds = [], translate = () => '') => {
+  const preset = entry && BUILTIN_BLOCK_PRESETS[entry.id];
+  if (!preset) {
+    return null;
+  }
+  const hiddenParts = Array.isArray(entry.hiddenParts) ? entry.hiddenParts : [];
+  const slots = {};
+  const lockedLabel = (descriptor, labelKey) => {
+    if (!descriptor) {
+      return;
+    }
+    const custom = entry.labels?.[labelKey];
+    slots[descriptor.slot] = { state: 'locked', source: 'text', text: custom || translate(descriptor.key) };
+  };
+  lockedLabel(preset.eyebrow, 'eyebrow');
+  lockedLabel(preset.headline, 'headline');
+  Object.entries(preset.fields).forEach(([slotId, fieldId]) => {
+    const part = preset.parts?.[slotId];
+    const questionId = entry.fieldSources?.[fieldId] || fieldId;
+    slots[slotId] = {
+      state: part && hiddenParts.includes(part) ? 'hidden' : 'used',
+      source: 'question',
+      questionId,
+      text: ''
+    };
+  });
+  const usedIds = new Set(existingBlockIds);
+  let id = `from-${entry.id}`;
+  let counter = 2;
+  while (usedIds.has(id)) {
+    id = `from-${entry.id}-${counter}`;
+    counter += 1;
+  }
+  return {
+    kind: 'block',
+    id,
+    type: preset.type,
+    slots: normalizeBlockSlots(preset.type, slots),
+    ...(entry.displayCondition ? { displayCondition: entry.displayCondition } : {})
+  };
 };
 
 // --- Aperçu du back-office -------------------------------------------------------------

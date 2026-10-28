@@ -1178,7 +1178,16 @@ export default {
         description: 'Text',
         figure: 'Figure',
         items: 'List items',
-        columns: 'Columns'
+        columns: 'Columns',
+        tagline: 'Tagline',
+        badges: 'Badges',
+        steps: 'Steps',
+        lead: 'Lead',
+        leadRole: 'Lead’s role',
+        members: 'Members',
+        quote: 'Quote',
+        author: 'Author',
+        authorRole: 'Author’s position'
       },
       slotStateLabel: 'Display',
       slotStates: {
@@ -1207,7 +1216,8 @@ export default {
         choice: 'choice',
         multi_choice: 'multiple choice',
         number: 'number',
-        date: 'date'
+        date: 'date',
+        milestone_list: 'milestones'
       },
       partsTitle: 'Elements shown',
       partsHint: 'An unticked element appears neither in the showcase nor in its editor.',
@@ -1223,7 +1233,8 @@ export default {
         budget: 'Estimated project cost',
         launchCountdown: 'Launch countdown',
         complianceDelays: 'Compliance review lead times',
-        roadmapMilestones: 'Milestones'
+        roadmapMilestones: 'Milestones',
+        heroContext: 'Country and environment badges'
       },
       labelKeys: {
         eyebrow: 'Eyebrow',
@@ -1235,6 +1246,9 @@ export default {
       previewHint: 'Sample answers: nothing is saved.',
       previewClose: 'Close the preview',
       previewLoading: 'Loading the preview…',
+      convertHint: 'To set each element of this section (source, display), replace it with the equivalent catalogue block (“{{layout}}”): same titles, same data.',
+      convertLost: 'The block does not carry over: {{parts}}.',
+      convertButton: 'Replace with a configurable block',
       displayConditionTitle: 'Display condition',
       displayConditionNone: 'always shown',
       displayConditionActive: 'shown on condition',
@@ -2439,6 +2453,41 @@ export default {
         placeholderItem1: 'First stage of the plan, described in one short sentence.',
         placeholderItem2: 'Second stage, placed next to the previous one.',
         placeholderItem3: 'Third stage, which closes the sequence.'
+      },
+      cover: {
+        name: 'Cover',
+        description: 'A large title on the showcase background, a tagline and badges, like the top of the showcase.',
+        placeholderTitle: 'A title that draws people in',
+        placeholderSubtitle: 'One sentence on why this project matters.',
+        placeholderBadge: 'At a glance',
+        placeholderItem1: 'First landmark',
+        placeholderItem2: 'Second landmark'
+      },
+      steps: {
+        name: 'Steps',
+        description: 'A dated timeline, like the roadmap: one step per line, “date — text”.',
+        placeholderTitle: 'The main steps',
+        placeholderBadge: 'Schedule',
+        placeholderItem1: 'March 2027 — First step',
+        placeholderItem2: 'June 2027 — Second step',
+        placeholderItem3: 'December 2027 — Review'
+      },
+      team: {
+        name: 'Team',
+        description: 'A lead and their team, like the team section.',
+        placeholderTitle: 'Who carries this project',
+        placeholderBadge: 'Team',
+        placeholderLead: 'First Last',
+        placeholderLeadRole: 'Project lead',
+        placeholderMember1: 'First Last — Role',
+        placeholderMember2: 'First Last — Role'
+      },
+      quote: {
+        name: 'Quote',
+        description: 'A highlighted statement: a beneficiary’s testimony, an expert’s word.',
+        placeholderQuote: 'This support lets us help families from the diagnosis onwards.',
+        placeholderAuthor: 'First Last',
+        placeholderRole: 'Position, organisation'
       }
     },
     templateOrigin: {
@@ -2677,6 +2726,17 @@ export default {
     multiFreeformHelper: 'Enter one value per line.',
     lineByLineHelper: 'Use one line per item for better formatting.',
     linkedBlockHint: 'This block shows the answer to a questionnaire question: editing it here also edits the questionnaire and may change the risk analysis.',
+    blockFieldLabels: {
+      tagline: 'Tagline',
+      badges: 'Badges',
+      steps: 'Steps (“date — text”)',
+      lead: 'Lead',
+      leadRole: 'Lead’s role',
+      members: 'Members (“Name — role”)',
+      quote: 'Quote',
+      author: 'Author',
+      authorRole: 'Author’s position'
+    },
     templateLockedSlotsHint: 'Some elements of this block are set by the showcase template.',
     noMilestoneYet: 'No milestone has been added yet.',
     dateLabel: 'Date',

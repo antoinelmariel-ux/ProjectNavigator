@@ -10,10 +10,12 @@ import {
   SHOWCASE_TEMPLATE_SOURCE_FIELDS,
   buildShowcaseTemplatePreviewAnswers,
   buildSlotPlaceholder,
+  convertBuiltInToBlock,
   createShowcaseTemplate,
   createShowcaseTemplateBlock,
   extractSlotPlaceholders,
   getBlockSlotDefinitions,
+  getBuiltInBlockPreset,
   hasSectionDisplayCondition,
   hasShowcaseTemplateActivation,
   isQuestionCompatibleWithSourceKind,
@@ -21,6 +23,7 @@ import {
   normalizeShowcaseTemplates
 } from '../utils/showcaseTemplates.js';
 import { ACTIVITY_SCOPE_QUESTION_ID } from '../utils/questions.js';
+import { DICTIONARIES } from '../i18n/dictionaries/index.js';
 import { demoProjectAnswersSnapshot } from '../data/demoProject.js';
 import { showcaseTemplatePreviewAnswers } from '../data/showcaseTemplates.js';
 import { loadShowcaseStyles } from '../styles/loadShowcaseStyles.js';
@@ -36,8 +39,22 @@ const BLOCK_TYPE_LABEL_KEYS = {
   'document-viewer': 'documentViewer',
   story: 'story',
   checklist: 'checklist',
-  stack: 'stack'
+  stack: 'stack',
+  cover: 'cover',
+  steps: 'steps',
+  team: 'team',
+  quote: 'quote'
 };
+
+// Un libellé de l'application dans les 4 langues : un bloc issu d'une section intégrée
+// garde ses titres dans toutes les langues, pas seulement dans celle de l'administrateur.
+const translateInAllLanguages = (key) => Object.entries(DICTIONARIES).reduce((accumulator, [language, dictionary]) => {
+  const value = key.split('.').reduce((node, part) => (node && typeof node === 'object' ? node[part] : undefined), dictionary);
+  if (typeof value === 'string') {
+    accumulator[language] = value;
+  }
+  return accumulator;
+}, {});
 
 // Titres par défaut des sections intégrées, montrés en exemple dans les champs de titre : le
 // modèle ne les remplace que s'il en saisit un.
@@ -123,7 +140,7 @@ const SlotEditor = ({ idPrefix, definition, slot, onChange, slotQuestions, quest
     >
       <div className="grid gap-3 md:grid-cols-3">
         <p className="text-sm font-semibold text-gray-800 md:pt-6">
-          {t(`backOffice.showcaseTemplates.slotLabels.${definition.id}`)}
+          {t(`backOffice.showcaseTemplates.slotLabels.${definition.labelKey || definition.id}`)}
         </p>
         <div>
           <label htmlFor={stateId} className={fieldLabelClassName}>{t('backOffice.showcaseTemplates.slotStateLabel')}</label>
@@ -466,6 +483,20 @@ export const BackOfficeShowcaseTemplates = ({
     }));
   };
 
+  // Une section intégrée devient le bloc équivalent du catalogue, à la même place : ses
+  // emplacements se règlent alors un par un.
+  const convertToBlock = (templateId, sectionId) => {
+    updateSections(templateId, (sections) => {
+      const blockIds = sections.filter((entry) => entry.kind === 'block').map((entry) => entry.id);
+      return sections.map((entry) => {
+        if (entry.kind !== 'builtin' || entry.id !== sectionId) {
+          return entry;
+        }
+        return convertBuiltInToBlock(entry, blockIds, translateInAllLanguages) || entry;
+      });
+    });
+  };
+
   const handleAddTemplate = () => {
     setTemplates((previous) => {
       const current = normalizeShowcaseTemplates(previous);
@@ -678,6 +709,32 @@ export const BackOfficeShowcaseTemplates = ({
                                   </button>
                                 )}
                               </div>
+                              {entry.kind === 'builtin' && getBuiltInBlockPreset(entry.id) && (
+                                <div className="mt-3 flex flex-col gap-2 rounded-lg border border-dashed border-blue-200 bg-white p-3 sm:flex-row sm:items-center sm:justify-between">
+                                  <p className="text-xs text-gray-600">
+                                    {t('backOffice.showcaseTemplates.convertHint', {
+                                      layout: t(`projectShowcase.templates.${BLOCK_TYPE_LABEL_KEYS[getBuiltInBlockPreset(entry.id).type]}.name`)
+                                    })}
+                                    {getBuiltInBlockPreset(entry.id).lost.length > 0 && (
+                                      <>
+                                        {' '}
+                                        {t('backOffice.showcaseTemplates.convertLost', {
+                                          parts: getBuiltInBlockPreset(entry.id).lost
+                                            .map((part) => t(`backOffice.showcaseTemplates.parts.${part}`))
+                                            .join(', ')
+                                        })}
+                                      </>
+                                    )}
+                                  </p>
+                                  <button
+                                    type="button"
+                                    onClick={() => convertToBlock(template.id, entry.id)}
+                                    className="shrink-0 rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50"
+                                  >
+                                    {t('backOffice.showcaseTemplates.convertButton')}
+                                  </button>
+                                </div>
+                              )}
                               {entry.kind === 'builtin' && (
                                 <BuiltInOptionsEditor
                                   templateId={template.id}

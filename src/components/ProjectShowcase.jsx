@@ -41,6 +41,7 @@ import { initialShowcaseTemplates } from '../data/showcaseTemplates.js';
 import {
   SHOWCASE_TEMPLATE_BLOCK_TYPES,
   SLOT_MODES,
+  STEP_LABEL_SEPARATOR,
   applyShowcaseFieldSources,
   applyShowcaseFieldSourcesToQuestions,
   applyShowcaseTemplate,
@@ -165,6 +166,60 @@ const getTemplateMeta = (t, templateId) => {
             t('projectShowcase.templates.checklist.placeholderItem2'),
             t('projectShowcase.templates.checklist.placeholderItem3')
           ]
+        }
+      };
+    case 'cover':
+      return {
+        name: t('projectShowcase.templates.cover.name'),
+        description: t('projectShowcase.templates.cover.description'),
+        placeholder: {
+          title: t('projectShowcase.templates.cover.placeholderTitle'),
+          subtitle: t('projectShowcase.templates.cover.placeholderSubtitle'),
+          badge: t('projectShowcase.templates.cover.placeholderBadge'),
+          items: [
+            t('projectShowcase.templates.cover.placeholderItem1'),
+            t('projectShowcase.templates.cover.placeholderItem2')
+          ]
+        }
+      };
+    case 'steps':
+      return {
+        name: t('projectShowcase.templates.steps.name'),
+        description: t('projectShowcase.templates.steps.description'),
+        placeholder: {
+          title: t('projectShowcase.templates.steps.placeholderTitle'),
+          badge: t('projectShowcase.templates.steps.placeholderBadge'),
+          items: [
+            t('projectShowcase.templates.steps.placeholderItem1'),
+            t('projectShowcase.templates.steps.placeholderItem2'),
+            t('projectShowcase.templates.steps.placeholderItem3')
+          ]
+        }
+      };
+    case 'team':
+      return {
+        name: t('projectShowcase.templates.team.name'),
+        description: t('projectShowcase.templates.team.description'),
+        placeholder: {
+          title: t('projectShowcase.templates.team.placeholderTitle'),
+          badge: t('projectShowcase.templates.team.placeholderBadge'),
+          subtitle: t('projectShowcase.templates.team.placeholderLead'),
+          description: t('projectShowcase.templates.team.placeholderLeadRole'),
+          items: [
+            t('projectShowcase.templates.team.placeholderMember1'),
+            t('projectShowcase.templates.team.placeholderMember2')
+          ]
+        }
+      };
+    case 'quote':
+      return {
+        name: t('projectShowcase.templates.quote.name'),
+        description: t('projectShowcase.templates.quote.description'),
+        placeholder: {
+          title: t('projectShowcase.templates.quote.name'),
+          description: t('projectShowcase.templates.quote.placeholderQuote'),
+          subtitle: t('projectShowcase.templates.quote.placeholderAuthor'),
+          badge: t('projectShowcase.templates.quote.placeholderRole')
         }
       };
     case 'stack':
@@ -292,7 +347,85 @@ const SECTION_TEMPLATE_CONFIG = {
     showColumns: false,
     showDocument: false,
     showItems: true
+  },
+  // `labels` : le champ de la section y joue un autre rôle que son nom (le sous-titre d'une
+  // équipe est son responsable) ; l'inspecteur le nomme donc par ce rôle.
+  cover: {
+    showSubtitle: true,
+    showAccent: false,
+    showBadge: true,
+    showDescription: false,
+    showColumns: false,
+    showDocument: false,
+    showItems: true,
+    labels: { subtitle: 'tagline', items: 'badges' }
+  },
+  steps: {
+    showSubtitle: false,
+    showAccent: false,
+    showBadge: true,
+    showDescription: false,
+    showColumns: false,
+    showDocument: false,
+    showItems: true,
+    labels: { items: 'steps' }
+  },
+  team: {
+    showSubtitle: true,
+    showAccent: false,
+    showBadge: true,
+    showDescription: true,
+    showColumns: false,
+    showDocument: false,
+    showItems: true,
+    labels: { subtitle: 'lead', description: 'leadRole', items: 'members' }
+  },
+  quote: {
+    hideTitle: true,
+    showSubtitle: true,
+    showAccent: false,
+    showBadge: true,
+    showDescription: true,
+    showColumns: false,
+    showDocument: false,
+    showItems: false,
+    labels: { description: 'quote', subtitle: 'author', accent: 'authorRole' }
   }
+};
+
+// « 15/03/2027 — Premier versement » : l'étiquette d'une étape (sa date le plus souvent)
+// et son texte. Sans séparateur, toute la ligne est le texte.
+const splitStepEntry = (value) => {
+  const raw = typeof value === 'string' ? value : '';
+  const separators = [STEP_LABEL_SEPARATOR, ' – '];
+  for (const separator of separators) {
+    const position = raw.indexOf(separator);
+    if (position > 0) {
+      return { label: raw.slice(0, position).trim(), text: raw.slice(position + separator.length).trim() };
+    }
+  }
+  return { label: '', text: raw.trim() };
+};
+
+const computeInitials = (value) => {
+  const initials = String(value ?? '')
+    .replace(/<[^>]*>/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(part => part[0]?.toUpperCase() || '')
+    .join('');
+  return initials.length > 0 ? initials : '•';
+};
+
+// « Marie Dupont — Coordination » : un membre et son rôle, comme dans la section équipe.
+const splitMemberEntry = (value) => {
+  const normalized = (typeof value === 'string' ? value : String(value ?? '')).trim();
+  const separatorIndex = normalized.search(/[-–—:•]/);
+  const name = separatorIndex > -1 ? normalized.slice(0, separatorIndex).trim() : normalized;
+  const details = separatorIndex > -1 ? normalized.slice(separatorIndex + 1).trim() : '';
+  return { name: name || normalized, details };
 };
 
 const buildLightVisibilityIds = (sectionIds = []) => {
@@ -4316,6 +4449,182 @@ export const ProjectShowcase = ({
       );
     }
 
+    const renderBlockEyebrow = (color) => (
+      isSlotShown('accent') && (isSlotWritable('accent') || section.accent) ? (
+        <p className="sg-eyebrow sg-rv" style={{ '--sg-c': color }}>
+          {editText('accent', section.accent, { placeholder: t('projectShowcase.badgeFieldLabel') })}
+        </p>
+      ) : null
+    );
+    const renderBlockHeadline = (className = 'sg-headline sg-rv') => (
+      isSlotShown('title') ? (
+        <h2 className={className} style={{ '--sg-d': '80ms' }}>
+          {editText('title', section.title, { placeholder: t('projectShowcase.titlePlaceholderFallback') })}
+        </h2>
+      ) : null
+    );
+
+    // « Couverture » — la composition du hero, pour une vitrine construite en blocs : le
+    // titre peut être autre chose que le nom du projet.
+    if (type === 'cover') {
+      return (
+        <header key={key} className="sg-hero sg-cover" data-showcase-section={type}>
+          <div className="sg-wrap">
+            {renderBlockEyebrow(family.onDark)}
+            {isSlotShown('title') && (
+              <h1 className="sg-cover__title sg-rv">
+                {editText('title', section.title, { placeholder: t('projectShowcase.titlePlaceholderFallback') })}
+              </h1>
+            )}
+            {isSlotShown('subtitle') && (isSlotWritable('subtitle') || section.subtitle) && (
+              <p className="sg-hero__sub sg-rv" style={{ '--sg-d': '220ms' }}>
+                {editText('subtitle', section.subtitle, { placeholder: t('projectShowcase.blockFieldLabels.tagline') })}
+              </p>
+            )}
+            {renderedItems.length > 0 && (
+              <div className="sg-chips sg-rv" style={{ '--sg-d': '340ms' }}>
+                {renderedItems.map((item, itemIndex) => (
+                  <div key={`${key}-chip-${itemIndex}`} className="sg-chip">
+                    <span className="sg-chip__value">
+                      {editListEntry('items', itemIndex, item, t('projectShowcase.itemPlaceholder'))}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </header>
+      );
+    }
+
+    // « Étapes » — la frise de la feuille de route ; chaque entrée « date — texte » (un jalon
+    // du questionnaire en donne une) porte sa pastille et son trait, comme les jalons.
+    if (type === 'steps') {
+      const isStepsWritable = isSlotWritable('items');
+      return (
+        <section key={key} className="sg-band sg-band--dark sg-band--pad" data-showcase-section={type}>
+          <div className="sg-wrap">
+            {renderBlockEyebrow(family.onDark)}
+            {renderBlockHeadline()}
+            {renderedItems.length > 0 && (
+              <ol className="sg-road">
+                {renderedItems.map((item, itemIndex) => {
+                  const step = splitStepEntry(item);
+                  return (
+                    <li key={`${key}-step-${itemIndex}`} className="sg-road__item">
+                      {isStepsWritable ? (
+                        <p className="sg-road__title">
+                          {editListEntry('items', itemIndex, item, t('projectShowcase.templates.steps.placeholderItem1'))}
+                        </p>
+                      ) : (
+                        <>
+                          {step.label && <p className="sg-road__date">{renderTextWithLinks(step.label)}</p>}
+                          {step.text && <p className="sg-road__title">{renderTextWithLinks(step.text)}</p>}
+                        </>
+                      )}
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+          </div>
+        </section>
+      );
+    }
+
+    // « Équipe » — le responsable et le collectif, comme la section équipe, mais tirés de
+    // n'importe quelles questions (ou écrits par le porteur).
+    if (type === 'team') {
+      const isMembersWritable = isSlotWritable('items');
+      const showLead = isSlotShown('subtitle') && (isSlotWritable('subtitle') || section.subtitle);
+      return (
+        <section key={key} className="sg-band sg-band--light sg-band--pad" data-showcase-section={type}>
+          <div className="sg-wrap">
+            {renderBlockEyebrow(family.c)}
+            {renderBlockHeadline()}
+            {showLead && (
+              <div
+                className="sg-lead sg-rv"
+                style={{ '--sg-d': '160ms', '--sg-g1': family.g1, '--sg-g2': family.g2, '--sg-p1': family.p1, '--sg-p2': family.p2 }}
+              >
+                <span className="sg-lead__ring">
+                  <span>{computeInitials(section.subtitle)}</span>
+                </span>
+                <span>
+                  <span className="sg-lead__name">
+                    {editText('subtitle', section.subtitle, { placeholder: t('projectShowcase.blockFieldLabels.lead') })}
+                  </span>
+                  {isSlotShown('description') && (isSlotWritable('description') || section.description) && (
+                    <span className="sg-lead__role">
+                      {editText('description', section.description, { placeholder: t('projectShowcase.blockFieldLabels.leadRole') })}
+                    </span>
+                  )}
+                </span>
+              </div>
+            )}
+            {renderedItems.length > 0 && (
+              <ul className="sg-rows sg-roster" style={{ '--sg-c': family.c, '--sg-g1': family.g1, '--sg-g2': family.g2 }}>
+                {renderedItems.map((item, itemIndex) => {
+                  const member = splitMemberEntry(item);
+                  return (
+                    <li key={`${key}-member-${itemIndex}`} className="sg-rv" style={{ '--sg-d': `${itemIndex * 70}ms` }}>
+                      <span className="sg-roster__seal" aria-hidden="true">{computeInitials(member.name)}</span>
+                      <span>
+                        {isMembersWritable ? (
+                          <span className="sg-roster__name">
+                            {editListEntry('items', itemIndex, item, t('projectShowcase.templates.team.placeholderMember1'))}
+                          </span>
+                        ) : (
+                          <>
+                            <span className="sg-roster__name">{renderTextWithLinks(member.name)}</span>
+                            {member.details && <span className="sg-roster__role">{renderTextWithLinks(member.details)}</span>}
+                          </>
+                        )}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        </section>
+      );
+    }
+
+    // « Citation » — une parole mise en avant : témoignage d'un bénéficiaire, mot d'un expert.
+    if (type === 'quote') {
+      const showAuthor = isSlotShown('subtitle') && (isSlotWritable('subtitle') || section.subtitle);
+      const showRole = isSlotShown('accent') && (isSlotWritable('accent') || section.accent);
+      return (
+        <section key={key} className="sg-band sg-band--cloud sg-band--pad" data-showcase-section={type}>
+          <div className="sg-wrap">
+            <figure className="sg-quote sg-rv" style={{ '--sg-c': family.c, '--sg-g1': family.g1, '--sg-g2': family.g2 }}>
+              <span className="sg-quote__mark" aria-hidden="true">“</span>
+              {isSlotShown('description') && (isSlotWritable('description') || section.description) && (
+                <blockquote className="sg-quote__text">
+                  {editText('description', section.description, { placeholder: t('projectShowcase.blockFieldLabels.quote') })}
+                </blockquote>
+              )}
+              {(showAuthor || showRole) && (
+                <figcaption className="sg-quote__caption">
+                  {showAuthor && (
+                    <span className="sg-quote__author">
+                      {editText('subtitle', section.subtitle, { placeholder: t('projectShowcase.blockFieldLabels.author') })}
+                    </span>
+                  )}
+                  {showRole && (
+                    <span className="sg-quote__role">
+                      {editText('accent', section.accent, { placeholder: t('projectShowcase.blockFieldLabels.authorRole') })}
+                    </span>
+                  )}
+                </figcaption>
+              )}
+            </figure>
+          </div>
+        </section>
+      );
+    }
+
     // Visionneuse documentaire — seul gabarit à conserver une forme propre
     const isImage = IMAGE_DOCUMENT_TYPES.includes(section.documentType);
     const documentEmbedSrc = isImage
@@ -5002,6 +5311,11 @@ export const ProjectShowcase = ({
               && !templateConfig.showAccent
               && getBlockSlotDefinitions(section.type).some(definition => definition.id === 'accent')
               && isOwnerSlot('accent');
+            const fieldLabel = (field, fallbackKey) => (
+              templateConfig.labels?.[field]
+                ? t(`projectShowcase.blockFieldLabels.${templateConfig.labels[field]}`)
+                : t(fallbackKey)
+            );
             const sectionTitle = section.title || t('projectShowcase.customBlockFallback');
             const annotationSectionId = section.type || 'custom';
 
@@ -5021,7 +5335,7 @@ export const ProjectShowcase = ({
                     {t('projectShowcase.templateLockedSlotsHint')}
                   </p>
                 )}
-                {isOwnerSlot('title') && (
+                {isOwnerSlot('title') && !templateConfig.hideTitle && (
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
                     <div className="space-y-1">
                       <label htmlFor={`custom-section-${section.id}-title`} className="text-sm font-medium text-gray-800">
@@ -5056,7 +5370,7 @@ export const ProjectShowcase = ({
                 {templateConfig.showSubtitle && isOwnerSlot('subtitle') && (
                   <div className="space-y-1">
                     <label htmlFor={`custom-section-${section.id}-subtitle`} className="text-sm font-medium text-gray-800">
-                      {t('projectShowcase.subtitleFieldLabel')}
+                      {fieldLabel('subtitle', 'projectShowcase.subtitleFieldLabel')}
                     </label>
                     <RichTextEditor
                       id={`custom-section-${section.id}-subtitle`}
@@ -5071,7 +5385,7 @@ export const ProjectShowcase = ({
                 {templateConfig.showBadge && isOwnerSlot('accent') && (
                   <div className="space-y-1">
                     <label htmlFor={`custom-section-${section.id}-badge`} className="text-sm font-medium text-gray-800">
-                      {t('projectShowcase.badgeFieldLabel')}
+                      {fieldLabel('accent', 'projectShowcase.badgeFieldLabel')}
                     </label>
                     <RichTextEditor
                       id={`custom-section-${section.id}-badge`}
@@ -5231,7 +5545,7 @@ export const ProjectShowcase = ({
                 {templateConfig.showDescription && isOwnerSlot('description') && (
                   <div className="mt-4 space-y-1">
                     <label htmlFor={`custom-section-${section.id}-description`} className="text-sm font-medium text-gray-800">
-                      {t('projectShowcase.descriptionFieldLabel')}
+                      {fieldLabel('description', 'projectShowcase.descriptionFieldLabel')}
                     </label>
                     <RichTextEditor
                       id={`custom-section-${section.id}-description`}
@@ -5291,9 +5605,9 @@ export const ProjectShowcase = ({
                 {templateConfig.showItems && isOwnerSlot('items') && (
                   <div className="mt-4 space-y-3">
                     <label className="sge-field__label">
-                      {section.type === 'stack'
-                        ? t('projectShowcase.stackItemsLabel')
-                        : t('projectShowcase.listItemsLabel')}
+                      {fieldLabel('items', section.type === 'stack'
+                        ? 'projectShowcase.stackItemsLabel'
+                        : 'projectShowcase.listItemsLabel')}
                     </label>
                     {Array.isArray(section.items) && section.items.length > 0 ? (
                       <div className="space-y-3">

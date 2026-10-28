@@ -311,6 +311,25 @@ activity-scope pseudo-question is deliberately excluded (`excludedQuestionIds`):
   section left with nothing to show disappears like an unanswered one. Everything that sits in the
   body of `renderSignatureSection` reads `isTemplatePartHidden`/`getBuiltInSectionLabel` — add a
   part there *and* in `BUILTIN_PART_FIELD_IDS`.
+- **The block catalogue covers every built-in section.** Besides highlight/figure/columns/
+  document/story/checklist/stack, blocks can be `cover` (the hero's composition, but its title
+  is any slot — the hero's word-by-word FX rewrites the first `.sg-hero__title`, so the cover uses
+  its own `.sg-cover__title`), `steps` (the roadmap rail; one `« date — texte »` entry per item,
+  `STEP_LABEL_SEPARATOR`, which is exactly what `formatSlotQuestionValue` makes of a
+  `milestone_list` answer, sorted chronologically), `team` (lead + roster: `subtitle` = lead,
+  `description` = their role, `items` = « Nom — rôle » members) and `quote`. A slot definition
+  may carry `labelKey` when the field plays another role than its name; the inspector reads the
+  same mapping from `SECTION_TEMPLATE_CONFIG[type].labels`. Owners get the four new layouts in
+  their section picker too.
+- **Built-in sections are presets of that catalogue.** `getBuiltInBlockPreset`/
+  `convertBuiltInToBlock` turn any built-in but `notice` into the equivalent block, at the same
+  place: titles (the template's, else the app's in all 4 languages via `DICTIONARIES`) become
+  locked text, fields (or the questions `fieldSources` put there) become question slots, hidden
+  parts become hidden slots, the display condition is kept. What a block cannot recompute is
+  listed in `lost` and shown before the click (hero CTA and country/environment chips, the impact
+  figure — a showcase-only field, not a question —, the launch countdown, compliance delays and
+  budget). Built-ins themselves stay as they are: existing templates and every showcase without a
+  template render exactly as before.
 - **Display conditions.** Any section of a template but `notice` may carry `displayCondition`
   (`{conditionGroups}`, rules grammar, `ConditionGroupsEditor` in a collapsed panel of its row).
   `getTemplateSectionDisplayConditions` keeps only complete ones — an empty or half-typed condition

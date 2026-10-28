@@ -1186,7 +1186,16 @@ export default {
         description: 'Texte',
         figure: 'Chiffre',
         items: 'Éléments de la liste',
-        columns: 'Colonnes'
+        columns: 'Colonnes',
+        tagline: 'Accroche',
+        badges: 'Badges',
+        steps: 'Étapes',
+        lead: 'Responsable',
+        leadRole: 'Rôle du responsable',
+        members: 'Membres',
+        quote: 'Citation',
+        author: 'Auteur',
+        authorRole: 'Fonction de l’auteur'
       },
       slotStateLabel: 'Affichage',
       slotStates: {
@@ -1215,7 +1224,8 @@ export default {
         choice: 'choix',
         multi_choice: 'choix multiple',
         number: 'nombre',
-        date: 'date'
+        date: 'date',
+        milestone_list: 'jalons'
       },
       partsTitle: 'Éléments affichés',
       partsHint: 'Un élément décoché n’apparaît ni dans la vitrine, ni dans son éditeur.',
@@ -1231,7 +1241,8 @@ export default {
         budget: 'Coût estimé du projet',
         launchCountdown: 'Compte à rebours du lancement',
         complianceDelays: 'Délais de revue compliance',
-        roadmapMilestones: 'Jalons'
+        roadmapMilestones: 'Jalons',
+        heroContext: 'Badges pays et environnement'
       },
       labelKeys: {
         eyebrow: 'Sur-titre',
@@ -1243,6 +1254,9 @@ export default {
       previewHint: 'Réponses fictives : rien n’est enregistré.',
       previewClose: 'Fermer l’aperçu',
       previewLoading: 'Chargement de l’aperçu…',
+      convertHint: 'Pour régler chaque élément de cette section (source, affichage), remplacez-la par le bloc équivalent du catalogue (« {{layout}} ») : mêmes titres, mêmes données.',
+      convertLost: 'Le bloc ne reprend pas : {{parts}}.',
+      convertButton: 'Remplacer par un bloc réglable',
       displayConditionTitle: 'Condition d’affichage',
       displayConditionNone: 'toujours affichée',
       displayConditionActive: 'affichée sous condition',
@@ -2448,6 +2462,41 @@ export default {
         placeholderItem1: 'Première étape du dispositif, décrite en une phrase courte.',
         placeholderItem2: 'Deuxième étape, rangée à côté de la précédente.',
         placeholderItem3: 'Troisième étape, qui referme la séquence.'
+      },
+      cover: {
+        name: 'Couverture',
+        description: 'Un grand titre sur le fond de la vitrine, une accroche et des badges, comme le haut de la vitrine.',
+        placeholderTitle: 'Un titre qui donne envie',
+        placeholderSubtitle: 'Une phrase qui dit pourquoi ce projet compte.',
+        placeholderBadge: 'En bref',
+        placeholderItem1: 'Premier repère',
+        placeholderItem2: 'Second repère'
+      },
+      steps: {
+        name: 'Étapes',
+        description: 'Une frise datée, comme la feuille de route : une étape par ligne, « date — texte ».',
+        placeholderTitle: 'Les grandes étapes',
+        placeholderBadge: 'Calendrier',
+        placeholderItem1: 'Mars 2027 — Première étape',
+        placeholderItem2: 'Juin 2027 — Deuxième étape',
+        placeholderItem3: 'Décembre 2027 — Bilan'
+      },
+      team: {
+        name: 'Équipe',
+        description: 'Un responsable et son collectif, comme la section équipe.',
+        placeholderTitle: 'Qui porte ce projet',
+        placeholderBadge: 'Équipe',
+        placeholderLead: 'Prénom Nom',
+        placeholderLeadRole: 'Responsable du projet',
+        placeholderMember1: 'Prénom Nom — Rôle',
+        placeholderMember2: 'Prénom Nom — Rôle'
+      },
+      quote: {
+        name: 'Citation',
+        description: 'Une parole mise en avant : témoignage d’un bénéficiaire, mot d’un expert.',
+        placeholderQuote: 'Ce soutien nous permet d’accompagner les familles dès le diagnostic.',
+        placeholderAuthor: 'Prénom Nom',
+        placeholderRole: 'Fonction, structure'
       }
     },
     templateOrigin: {
@@ -2686,6 +2735,17 @@ export default {
     multiFreeformHelper: 'Indiquez une valeur par ligne.',
     lineByLineHelper: 'Utilisez une ligne par élément pour une meilleure mise en forme.',
     linkedBlockHint: 'Ce bloc affiche la réponse à une question du questionnaire : la modifier ici modifie aussi le questionnaire et peut changer l’analyse de risque.',
+    blockFieldLabels: {
+      tagline: 'Accroche',
+      badges: 'Badges',
+      steps: 'Étapes (« date — texte »)',
+      lead: 'Responsable',
+      leadRole: 'Rôle du responsable',
+      members: 'Membres (« Nom — rôle »)',
+      quote: 'Citation',
+      author: 'Auteur',
+      authorRole: 'Fonction de l’auteur'
+    },
     templateLockedSlotsHint: 'Certains éléments de ce bloc sont fixés par le modèle de vitrine.',
     noMilestoneYet: 'Aucun jalon n’a encore été ajouté.',
     dateLabel: 'Date',

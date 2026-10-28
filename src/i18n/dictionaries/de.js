@@ -1188,7 +1188,16 @@ export default {
         description: 'Text',
         figure: 'Kennzahl',
         items: 'Listeneinträge',
-        columns: 'Spalten'
+        columns: 'Spalten',
+        tagline: 'Leitsatz',
+        badges: 'Badges',
+        steps: 'Etappen',
+        lead: 'Verantwortliche Person',
+        leadRole: 'Rolle der verantwortlichen Person',
+        members: 'Mitglieder',
+        quote: 'Zitat',
+        author: 'Autor',
+        authorRole: 'Funktion des Autors'
       },
       slotStateLabel: 'Anzeige',
       slotStates: {
@@ -1217,7 +1226,8 @@ export default {
         choice: 'Auswahl',
         multi_choice: 'Mehrfachauswahl',
         number: 'Zahl',
-        date: 'Datum'
+        date: 'Datum',
+        milestone_list: 'Meilensteine'
       },
       partsTitle: 'Angezeigte Elemente',
       partsHint: 'Ein nicht angekreuztes Element erscheint weder in der Vitrine noch in ihrem Editor.',
@@ -1233,7 +1243,8 @@ export default {
         budget: 'Geschätzte Projektkosten',
         launchCountdown: 'Countdown bis zum Start',
         complianceDelays: 'Fristen der Compliance-Prüfung',
-        roadmapMilestones: 'Meilensteine'
+        roadmapMilestones: 'Meilensteine',
+        heroContext: 'Badges zu Ländern und Umfeld'
       },
       labelKeys: {
         eyebrow: 'Überzeile',
@@ -1245,6 +1256,9 @@ export default {
       previewHint: 'Beispielantworten: Es wird nichts gespeichert.',
       previewClose: 'Vorschau schließen',
       previewLoading: 'Vorschau wird geladen…',
+      convertHint: 'Um jedes Element dieses Abschnitts einzustellen (Quelle, Anzeige), ersetzen Sie ihn durch den entsprechenden Katalogblock („{{layout}}“): gleiche Titel, gleiche Daten.',
+      convertLost: 'Der Block übernimmt nicht: {{parts}}.',
+      convertButton: 'Durch einen einstellbaren Block ersetzen',
       displayConditionTitle: 'Anzeigebedingung',
       displayConditionNone: 'immer angezeigt',
       displayConditionActive: 'unter Bedingung angezeigt',
@@ -2449,6 +2463,41 @@ export default {
         placeholderItem1: 'Erste Etappe des Vorhabens, in einem kurzen Satz beschrieben.',
         placeholderItem2: 'Zweite Etappe, neben der vorherigen platziert.',
         placeholderItem3: 'Dritte Etappe, die die Abfolge abschließt.'
+      },
+      cover: {
+        name: 'Titelseite',
+        description: 'Ein großer Titel auf dem Vitrinenhintergrund, ein Leitsatz und Badges, wie der Kopf der Vitrine.',
+        placeholderTitle: 'Ein Titel, der neugierig macht',
+        placeholderSubtitle: 'Ein Satz dazu, warum dieses Projekt zählt.',
+        placeholderBadge: 'Auf einen Blick',
+        placeholderItem1: 'Erster Anhaltspunkt',
+        placeholderItem2: 'Zweiter Anhaltspunkt'
+      },
+      steps: {
+        name: 'Etappen',
+        description: 'Eine datierte Zeitleiste wie die Roadmap: eine Etappe pro Zeile, „Datum — Text“.',
+        placeholderTitle: 'Die wichtigsten Etappen',
+        placeholderBadge: 'Zeitplan',
+        placeholderItem1: 'März 2027 — Erste Etappe',
+        placeholderItem2: 'Juni 2027 — Zweite Etappe',
+        placeholderItem3: 'Dezember 2027 — Bilanz'
+      },
+      team: {
+        name: 'Team',
+        description: 'Eine verantwortliche Person und ihr Team, wie der Teamabschnitt.',
+        placeholderTitle: 'Wer dieses Projekt trägt',
+        placeholderBadge: 'Team',
+        placeholderLead: 'Vorname Name',
+        placeholderLeadRole: 'Projektleitung',
+        placeholderMember1: 'Vorname Name — Rolle',
+        placeholderMember2: 'Vorname Name — Rolle'
+      },
+      quote: {
+        name: 'Zitat',
+        description: 'Eine hervorgehobene Aussage: das Zeugnis eines Begünstigten, das Wort einer Expertin.',
+        placeholderQuote: 'Diese Unterstützung ermöglicht es uns, Familien ab der Diagnose zu begleiten.',
+        placeholderAuthor: 'Vorname Name',
+        placeholderRole: 'Funktion, Organisation'
       }
     },
     templateOrigin: {
@@ -2687,6 +2736,17 @@ export default {
     multiFreeformHelper: 'Geben Sie einen Wert pro Zeile ein.',
     lineByLineHelper: 'Verwenden Sie eine Zeile pro Element für eine bessere Formatierung.',
     linkedBlockHint: 'Dieser Block zeigt die Antwort auf eine Frage des Fragebogens: Eine Änderung hier ändert auch den Fragebogen und kann die Risikoanalyse verändern.',
+    blockFieldLabels: {
+      tagline: 'Leitsatz',
+      badges: 'Badges',
+      steps: 'Etappen („Datum — Text“)',
+      lead: 'Verantwortliche Person',
+      leadRole: 'Rolle der verantwortlichen Person',
+      members: 'Mitglieder („Name — Rolle“)',
+      quote: 'Zitat',
+      author: 'Autor',
+      authorRole: 'Funktion des Autors'
+    },
     templateLockedSlotsHint: 'Einige Elemente dieses Blocks sind von der Vitrinenvorlage festgelegt.',
     noMilestoneYet: 'Es wurde noch kein Meilenstein hinzugefügt.',
     dateLabel: 'Datum',

@@ -201,6 +201,20 @@ test('le back-office masque un emplacement, renomme une section et prévisualise
     .selectOption({ label: 'Compte rendu de l’utilisation des fonds' });
   await expect(termsCondition.locator('summary')).toContainText('affichée sous condition');
 
+  // la feuille de route devient le bloc « Étapes » du catalogue, titre renommé compris
+  await section('timeline').getByRole('button', { name: 'Remplacer par un bloc réglable' }).click();
+  await expect(section('timeline')).toHaveCount(0);
+  const steps = section('from-timeline');
+  await expect(steps.locator('[data-slot-id="items"]').getByRole('combobox', { name: 'Contenu' })).toHaveValue('roadmapMilestones');
+  await expect(steps.locator('[data-slot-id="title"]').getByRole('textbox', { name: 'Texte' })).toHaveValue('Calendrier des versements');
+
+  // un bloc « Citation » ajouté au modèle
+  await donation.getByRole('button', { name: 'Ajouter un bloc' }).click();
+  const quote = donation.locator('[data-testid="showcase-template-section"][data-section-kind="block"]').last();
+  await quote.getByRole('combobox', { name: 'Gabarit' }).selectOption('quote');
+  await quote.locator('[data-slot-id="description"]').getByRole('textbox', { name: 'Texte' }).fill('Un soutien qui change le quotidien des familles.');
+  await quote.locator('[data-slot-id="subtitle"]').getByRole('textbox', { name: 'Texte' }).fill('Marie Martin');
+
   await donation.getByRole('button', { name: 'Aperçu' }).click();
   const preview = page.getByTestId('showcase-template-preview');
   await expect(preview).toBeVisible();
@@ -208,7 +222,15 @@ test('le back-office masque un emplacement, renomme une section et prévisualise
   await expect(figure).toContainText(/50\s000\s?€/);
   await expect(figure).not.toContainText('En plusieurs versements');
   await expect(preview.locator('[data-showcase-section="highlight"]').first()).toContainText('Soutien à Association Hémophilie Solidaire');
-  await expect(preview.locator('[data-showcase-section="timeline"]')).toContainText('Calendrier des versements');
+  const previewSteps = preview.locator('[data-showcase-section="steps"]');
+  await expect(previewSteps).toContainText('Calendrier des versements');
+  // les jalons du projet d'exemple, une étape par jalon, datée
+  await expect(previewSteps.locator('.sg-road__item').first()).toContainText('01/10/2025');
+  await expect(previewSteps).toContainText('Validation du concept et du budget');
+  await expect(preview.locator('[data-showcase-section="timeline"]')).toHaveCount(0);
+  const previewQuote = preview.locator('[data-showcase-section="quote"]');
+  await expect(previewQuote).toContainText('Un soutien qui change le quotidien des familles.');
+  await expect(previewQuote).toContainText('Marie Martin');
   await expect(preview.locator('[data-showcase-section="problem"]')).toHaveCount(0);
   // réponse fictive : aucune contrepartie, la condition des modalités n'est pas remplie
   await expect(preview.locator('[data-showcase-section="checklist"]')).toHaveCount(0);
