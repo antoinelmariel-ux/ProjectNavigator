@@ -983,6 +983,9 @@ export const SynthesisReport = ({
     const isCoOwner = normalizedSharedMembers.some((member) => normalizeEmail(member) === currentUserEmail);
     return isOwner || isCoOwner || (isProjectEditable && !projectId);
   }, [currentUserEmail, isProjectEditable, normalizedOwnerEmail, normalizedSharedMembers, projectId]);
+  const overviewTitleLabel = canReplyAsProjectContributor
+    ? t('synthesisReport.overviewTitle')
+    : t('synthesisReport.overviewTitleReader');
   // Un expert Compliance, ici, est un contact d'une équipe quelconque du référentiel — pas
   // seulement des équipes déjà pertinentes pour ce projet (`complianceTeamIdsForUser`) : c'est
   // justement lui qui peut repérer qu'une équipe absente de l'analyse devrait être sollicitée.
@@ -1028,6 +1031,37 @@ export const SynthesisReport = ({
     });
     return matched;
   }, [currentUserEmail, validationCommittees]);
+  // Expert = contact d'une équipe ou membre d'un comité qui n'est pas porteur du projet.
+  const isExpertViewer = !canReplyAsProjectContributor
+    && (isComplianceExpertUser || committeeIdsForUser.size > 0);
+  const orderedRelevantTeams = useMemo(() => {
+    if (!isExpertViewer) {
+      return sortedRelevantTeams;
+    }
+    const mine = sortedRelevantTeams.filter((team) => complianceTeamIdsForUser.has(team.id));
+    const others = sortedRelevantTeams.filter((team) => !complianceTeamIdsForUser.has(team.id));
+    return [...mine, ...others];
+  }, [isExpertViewer, sortedRelevantTeams, complianceTeamIdsForUser]);
+  const expertPerimeterNames = useMemo(() => {
+    if (!isExpertViewer) {
+      return [];
+    }
+    const teamNames = relevantTeams
+      .filter((team) => complianceTeamIdsForUser.has(team.id))
+      .map((team) => resolveLocalizedText(team.name, language));
+    const committeeNames = validationCommittees
+      .filter((committee) => committeeIdsForUser.has(committee.id))
+      .map((committee) => committee.name);
+    return [...teamNames, ...committeeNames].filter(Boolean);
+  }, [isExpertViewer, relevantTeams, complianceTeamIdsForUser, validationCommittees, committeeIdsForUser, language]);
+  const hasOpenedOwnCommitteesRef = useRef(false);
+  useEffect(() => {
+    if (!isExpertViewer || committeeIdsForUser.size === 0 || hasOpenedOwnCommitteesRef.current) {
+      return;
+    }
+    hasOpenedOwnCommitteesRef.current = true;
+    openSection('committees');
+  }, [isExpertViewer, committeeIdsForUser, openSection]);
   const reintegrableCommittees = useMemo(() => {
     if (!currentUserEmail || projectStatus !== 'submitted' || typeof onReintegrateInCommittee !== 'function') {
       return [];
@@ -1892,6 +1926,11 @@ export const SynthesisReport = ({
     const hasComment = committeeCommentMap[committee.id]?.comment?.trim().length > 0;
     return triggeredCommitteeIds.has(committee.id) || hasComment;
   });
+  if (isExpertViewer) {
+    committeesToDisplay.sort(
+      (a, b) => Number(committeeIdsForUser.has(b.id)) - Number(committeeIdsForUser.has(a.id))
+    );
+  }
   const shouldShowCommitteeSection = committeesToDisplay.length > 0;
   const shouldShowComplianceCommentsSection =
     canBypassCompliancePerimeter || relevantTeams.length > 0 || shouldShowCommitteeSection || hasLegacyComplianceComment;
@@ -2020,7 +2059,7 @@ export const SynthesisReport = ({
     items.push({
       key: 'overview',
       elementId: 'synthesis-section-overview',
-      label: t('synthesisReport.overviewTitle')
+      label: overviewTitleLabel
     });
 
     return items;
@@ -2031,6 +2070,7 @@ export const SynthesisReport = ({
     shouldShowCommitteeSection,
     teamsHeadingLabel,
     vigilanceAlerts.length,
+    overviewTitleLabel,
     t
   ]);
 
@@ -2062,7 +2102,11 @@ export const SynthesisReport = ({
             )}
             {!isProjectEditable && (
               <p className="text-sm text-gray-500">
-                {t('synthesisReport.notEditableNotice')}
+                {isExpertViewer
+                  ? (expertPerimeterNames.length > 0
+                    ? t('synthesisReport.expertViewNoticeTemplate', { perimeters: expertPerimeterNames.join(', ') })
+                    : t('synthesisReport.expertViewNoticeGeneric'))
+                  : t('synthesisReport.notEditableNotice')}
               </p>
             )}
           </div>
@@ -2318,7 +2362,7 @@ export const SynthesisReport = ({
                   )}
                 </div>
               ))}
-              {sortedRelevantTeams.map(team => {
+              {orderedRelevantTeams.map(team => {
                 const teamPriority = getTeamPriority(analysis, team.id);
                 const teamQuestions = analysis.questions?.[team.id];
                 // Les membres réellement sollicités pour ce projet : une équipe peut router
@@ -2420,7 +2464,7 @@ export const SynthesisReport = ({
                 const isReplyBoxOpen = Boolean(openTeamReplyBoxes[team.id]);
                 const isTeamCollapsed = teamCollapsedOverrides[team.id] !== undefined
                   ? teamCollapsedOverrides[team.id]
-                  : true;
+                  : !(isExpertViewer && complianceTeamIdsForUser.has(team.id));
                 const teamAccentColor = TEAM_STATUS_ACCENT_COLOR[storedEntry.status] ?? TEAM_STATUS_ACCENT_COLOR[''];
                 const teamPerimeterKey = buildPerimeterKey(PERIMETER_TYPE_TEAM, team.id);
                 const isTeamDeferred = deferredPerimeterKeys.has(teamPerimeterKey);
@@ -3854,7 +3898,7 @@ export const SynthesisReport = ({
                 </svg>
                 <FileText className="w-5 h-5 flex-shrink-0 text-blue-600" aria-hidden="true" />
                 <span className="text-lg font-bold text-gray-800">
-                  {t('synthesisReport.overviewTitle')}
+                  {overviewTitleLabel}
                 </span>
                 <span className="ml-auto text-sm font-medium text-blue-600">
                   {isOverviewOpen ? t('synthesisReport.overviewHide') : t('synthesisReport.overviewShow')}
