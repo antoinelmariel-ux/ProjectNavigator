@@ -236,10 +236,10 @@ export const initialOnboardingTourConfig = {
         "es": "El feedback en el lugar adecuado"
       },
       "content": {
-        "en": "You share the showcase via a link and collect feedback as sticky notes placed directly on the page. Centralised and in context, instead of scattered across ten separate emails.",
-        "fr": "Vous partagez la vitrine via un lien et récoltez les retours sous forme de post-its déposés directement sur la page. Centralisés et contextualisés, plus dans dix mails séparés.",
-        "de": "Sie teilen die Vitrine über einen Link und sammeln Rückmeldungen als Haftnotizen, die direkt auf der Seite platziert werden. Zentral und im Kontext statt verstreut über zehn einzelne E-Mails.",
-        "es": "Comparte la vitrina mediante un enlace y recoge los comentarios en forma de notas adhesivas colocadas directamente en la página. Centralizados y en contexto, en lugar de dispersos en diez correos distintos."
+        "en": "You share the showcase via a link and collect feedback as sticky notes dropped with a double-click directly on the page. Centralised and in context, instead of scattered across ten separate emails.",
+        "fr": "Vous partagez la vitrine via un lien et récoltez les retours sous forme de post-its, déposés d’un double-clic directement sur la page. Centralisés et contextualisés, plus dans dix mails séparés.",
+        "de": "Sie teilen die Vitrine über einen Link und sammeln Rückmeldungen als Haftnotizen, die per Doppelklick direkt auf der Seite platziert werden. Zentral und im Kontext statt verstreut über zehn einzelne E-Mails.",
+        "es": "Comparte la vitrina mediante un enlace y recoge los comentarios en forma de notas adhesivas colocadas con un doble clic directamente en la página. Centralizados y en contexto, en lugar de dispersos en diez correos distintos."
       },
       "placement": "right",
       "highlightScope": "target",
@@ -337,10 +337,10 @@ export const initialOnboardingTourConfig = {
         "es": "Comprender cada pregunta"
       },
       "content": {
-        "en": "“Understand this question” opens the contextual help: what is expected from you, practical tips, and the reason why this question is being asked.",
-        "fr": "« Comprendre cette question » ouvre l’aide contextuelle : ce qu’on attend de vous, des conseils pratiques, et la raison pour laquelle cette question vous est posée.",
-        "de": "„Diese Frage verstehen“ öffnet die kontextbezogene Hilfe: was von Ihnen erwartet wird, praktische Tipps und der Grund, warum Ihnen diese Frage gestellt wird.",
-        "es": "«Comprender esta pregunta» abre la ayuda contextual: qué se espera de usted, consejos prácticos y el motivo por el que se le plantea esta pregunta."
+        "en": "“Understand this question” opens the related explanation: what is expected from you and practical tips to answer it.",
+        "fr": "« Comprendre cette question » ouvre l’explication associée : ce qu’on attend de vous et des conseils pratiques pour y répondre.",
+        "de": "„Diese Frage verstehen“ öffnet die zugehörige Erläuterung: was von Ihnen erwartet wird und praktische Tipps zur Beantwortung.",
+        "es": "«Comprender esta pregunta» abre la explicación asociada: qué se espera de usted y consejos prácticos para responder."
       },
       "placement": "left",
       "highlightScope": "target",
@@ -522,10 +522,10 @@ export const initialOnboardingTourConfig = {
         "es": "Completar la información obligatoria"
       },
       "content": {
-        "en": "This screen takes stock of the mandatory questions. As long as some are missing, submission is refused and the tool tells you which ones: the experts cannot assess an incomplete file.",
-        "fr": "Cet écran fait le point sur les questions obligatoires. Tant qu’il en manque, la soumission est refusée et l’outil vous indique lesquelles : les experts ne peuvent pas évaluer un dossier incomplet.",
-        "de": "Dieser Bildschirm zeigt den Stand der Pflichtfragen. Solange welche fehlen, wird die Einreichung abgelehnt und das Tool nennt Ihnen die betroffenen: Die Experten können eine unvollständige Akte nicht bewerten.",
-        "es": "Esta pantalla hace balance de las preguntas obligatorias. Mientras falte alguna, el envío se rechaza y la herramienta le indica cuáles: los expertos no pueden evaluar un expediente incompleto."
+        "en": "This screen takes stock of the core mandatory questions. As long as some are missing, you cannot ask the experts, and the tool tells you which ones. You can still discover your project’s showcase right away.",
+        "fr": "Cet écran fait le point sur les questions obligatoires du socle. Tant qu’il en manque, vous ne pouvez pas solliciter les experts, et l’outil vous indique lesquelles. Rien ne vous empêche en revanche de découvrir dès maintenant la vitrine de votre projet.",
+        "de": "Dieser Bildschirm zeigt den Stand der Pflichtfragen des Basisbereichs. Solange welche fehlen, können Sie die Experten nicht einbinden, und das Tool nennt Ihnen die betroffenen. Die Vitrine Ihres Projekts können Sie dennoch schon jetzt entdecken.",
+        "es": "Esta pantalla hace balance de las preguntas obligatorias del núcleo. Mientras falte alguna, no puede solicitar a los expertos, y la herramienta le indica cuáles. Eso sí, puede descubrir ya la vitrina de su proyecto."
       },
       "placement": "bottom",
       "highlightScope": "target",
@@ -686,10 +686,10 @@ export const initialOnboardingTourConfig = {
         "es": "Su vitrina ya existe"
       },
       "content": {
-        "en": "With nothing to do, your project has a showcase built from your answers: problem, solution, benefits, objectives, indicators, team, roadmap, budget. Perfect for a presentation to your manager or a committee.",
-        "fr": "Sans rien faire, votre projet dispose d’une vitrine construite à partir de vos réponses : problème, réponse apportée, bénéfices, objectifs, indicateurs, équipe, feuille de route, budget. Parfait pour une présentation à votre manager ou en comité.",
-        "de": "Ohne Ihr Zutun verfügt Ihr Projekt über eine Vitrine, die aus Ihren Antworten aufgebaut ist: Problem, Lösung, Nutzen, Ziele, Indikatoren, Team, Fahrplan, Budget. Perfekt für eine Präsentation vor Ihrer Führungskraft oder einem Gremium.",
-        "es": "Sin hacer nada, su proyecto dispone de una vitrina construida a partir de sus respuestas: problema, respuesta aportada, beneficios, objetivos, indicadores, equipo, hoja de ruta, presupuesto. Perfecta para una presentación a su responsable o en comité."
+        "en": "With nothing to do, your project has a showcase built from your answers, whose structure adapts to the project type (for example: problem, solution, benefits, objectives, indicators, team, roadmap, budget). Perfect for a presentation to your manager or a committee.",
+        "fr": "Sans rien faire, votre projet dispose d’une vitrine construite à partir de vos réponses, dont la structure s’adapte au type de projet (par exemple : problème, réponse apportée, bénéfices, objectifs, indicateurs, équipe, feuille de route, budget). Parfait pour une présentation à votre manager ou en comité.",
+        "de": "Ohne Ihr Zutun verfügt Ihr Projekt über eine Vitrine, die aus Ihren Antworten aufgebaut ist und deren Struktur sich an die Projektart anpasst (zum Beispiel: Problem, Lösung, Nutzen, Ziele, Indikatoren, Team, Fahrplan, Budget). Perfekt für eine Präsentation vor Ihrer Führungskraft oder einem Gremium.",
+        "es": "Sin hacer nada, su proyecto dispone de una vitrina construida a partir de sus respuestas, cuya estructura se adapta al tipo de proyecto (por ejemplo: problema, respuesta aportada, beneficios, objetivos, indicadores, equipo, hoja de ruta, presupuesto). Perfecta para una presentación a su responsable o en comité."
       },
       "placement": "bottom",
       "highlightScope": "target",
@@ -872,10 +872,10 @@ export const initialOnboardingTourConfig = {
         "es": "Activar los comentarios"
       },
       "content": {
-        "en": "The “Comment” button opens the comments area and lets you add sticky notes directly on the showcase.",
-        "fr": "Le bouton « Commenter » permet d’ouvrir l’espace de commentaires et d’ajouter des post-its directement dans la vitrine.",
-        "de": "Die Schaltfläche „Kommentieren“ öffnet den Kommentarbereich und ermöglicht es, Haftnotizen direkt in der Vitrine hinzuzufügen.",
-        "es": "El botón «Comentar» permite abrir el espacio de comentarios y añadir notas adhesivas directamente en la vitrina."
+        "en": "The “Comment” button turns on comment mode: then double-click where you want on the showcase to drop a sticky note.",
+        "fr": "Le bouton « Commenter » active le mode commentaire : double-cliquez ensuite à l’endroit voulu de la vitrine pour y déposer un post-it.",
+        "de": "Die Schaltfläche „Kommentieren“ aktiviert den Kommentarmodus: Doppelklicken Sie anschließend an der gewünschten Stelle der Vitrine, um eine Haftnotiz zu platzieren.",
+        "es": "El botón «Comentar» activa el modo comentario: haga después doble clic en el lugar deseado de la vitrina para colocar una nota adhesiva."
       },
       "placement": "bottom",
       "highlightScope": "target",
@@ -892,10 +892,10 @@ export const initialOnboardingTourConfig = {
         "es": "El feedback llega en contexto"
       },
       "content": {
-        "en": "Everyone drops their sticky notes directly on the showcase, right where it matters. Your feedback arrives centralised and in context, instead of scattered across ten separate emails.",
-        "fr": "Chacun dépose ses post-its directement sur la vitrine, à l’endroit concerné. Vos retours arrivent centralisés et contextualisés, plus dans dix mails séparés.",
-        "de": "Jeder platziert seine Haftnotizen direkt auf der Vitrine, genau an der betreffenden Stelle. Ihre Rückmeldungen kommen zentral und im Kontext an, statt verstreut über zehn einzelne E-Mails.",
-        "es": "Cada persona coloca sus notas adhesivas directamente en la vitrina, en el punto concreto. Sus comentarios llegan centralizados y en contexto, no dispersos en diez correos distintos."
+        "en": "Everyone double-clicks on the showcase to drop their sticky note, right where it matters. Your feedback arrives centralised and in context, instead of scattered across ten separate emails.",
+        "fr": "Chacun double-clique sur la vitrine pour y déposer son post-it, à l’endroit concerné. Vos retours arrivent centralisés et contextualisés, plus dans dix mails séparés.",
+        "de": "Jeder doppelklickt auf die Vitrine, um seine Haftnotiz genau an der betreffenden Stelle zu platzieren. Ihre Rückmeldungen kommen zentral und im Kontext an, statt verstreut über zehn einzelne E-Mails.",
+        "es": "Cada persona hace doble clic en la vitrina para colocar su nota adhesiva, en el punto concreto. Sus comentarios llegan centralizados y en contexto, no dispersos en diez correos distintos."
       },
       "placement": "right",
       "highlightScope": "target",
