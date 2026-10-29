@@ -2706,7 +2706,7 @@ export default {
       moveDown: 'Bajar el medio {{index}}',
       remove: 'Quitar el medio {{index}}',
       addFilesButton: 'Añadir imágenes, vídeos o sonidos',
-      formatsHint: 'Imágenes (JPG, PNG, GIF, WebP, SVG), vídeos (MP4, WebM, MOV) o sonidos (MP3, WAV, M4A). Se pueden añadir varios archivos a la vez. Fuera de SharePoint, los vídeos y sonidos están limitados a 10 MB.',
+      formatsHint: 'Imágenes (JPG, PNG, GIF, WebP, SVG), vídeos (MP4, WebM, MOV) o sonidos (MP3, WAV, M4A). Se pueden añadir varios archivos a la vez.',
       streamLabel: 'O un enlace a un vídeo de Microsoft Stream',
       streamPlaceholder: 'Enlace o código de inserción de Stream',
       streamAddButton: 'Añadir',
