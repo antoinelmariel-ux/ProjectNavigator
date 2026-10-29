@@ -4942,7 +4942,9 @@ export const ProjectShowcase = ({
         <section key={key} className="sg-band sg-band--cloud sg-band--pad" data-showcase-section={type}>
           <div className="sg-wrap">
             <figure className="sg-quote sg-rv" style={{ '--sg-c': family.c, '--sg-g1': family.g1, '--sg-g2': family.g2 }}>
-              <span className="sg-quote__mark" aria-hidden="true">“</span>
+              <svg className="sg-quote__mark" viewBox="0 0 48 28" aria-hidden="true" focusable="false">
+                <path d="M4 0h14l-4 28H0zM30 0h14l-4 28H26z" />
+              </svg>
               {isSlotShown('description') && (isSlotWritable('description') || section.description) && (
                 <blockquote className="sg-quote__text">
                   {editText('description', section.description, { placeholder: t('projectShowcase.blockFieldLabels.quote') })}
