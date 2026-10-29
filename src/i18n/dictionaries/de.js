@@ -232,7 +232,7 @@ export default {
   profile: {
     claimCopySection: {
       heading: 'Kopien bei Übernahmen',
-      description: 'Standardmäßig deaktiviert. Aktiviert erhalten Sie eine Kopie, wenn ein Kollege ein Projekt für dieses Team übernimmt — nur diese Ankündigung, nicht den weiteren Austausch.',
+      description: 'Standardmäßig aktiviert. Übernimmt ein Kollege ein Projekt für dieses Team und waren auch Sie angefragt, werden Sie informiert: Sie müssen sich nicht darum kümmern. Nur diese Ankündigung, nicht den weiteren Austausch. Deaktivieren Sie das Kontrollkästchen, um sie nicht mehr zu erhalten.',
       teamLabel: 'Kopie für {{team}} erhalten'
     },
     absenceSection: {

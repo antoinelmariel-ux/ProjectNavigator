@@ -247,7 +247,7 @@ première connexion, et modifiable ensuite depuis la section « Mon profil » de
 | ActivityScopeJson | Texte long (périmètres choisis, ex. `["france","uk"]`) |
 | PreferredLanguage | Une ligne de texte — **valeur par défaut : `en`** |
 | HasCompletedOnboarding | Oui/Non |
-| TeamPreferencesJson | Texte long (copies souhaitées par équipe, ex. `{"controle_pub":{"claimCopy":true}}`) |
+| TeamPreferencesJson | Texte long (refus de copie par équipe, ex. `{"controle_pub":{"claimCopy":false}}` ; vide = copie reçue) |
 | AbsenceJson | Texte long (absence et suppléant, ex. `{"from":"2026-09-14","to":"2026-09-25","backupEmail":"queres@entreprise-demo.example"}`) |
 | UpdatedAt | Date et heure |
 

@@ -8292,7 +8292,7 @@ const updateProjectFilters = useCallback((updater) => {
                           <input
                             type="checkbox"
                             className="mt-1"
-                            checked={Boolean(normalizeTeamPreferences(profileDraftTeamPreferences)[team.id]?.claimCopy)}
+                            checked={normalizeTeamPreferences(profileDraftTeamPreferences)[team.id]?.claimCopy !== false}
                             onChange={(event) => handleToggleProfileTeamCopy(team.id, event.target.checked)}
                           />
                           <span>{t('profile.claimCopySection.teamLabel', { team: teamLabel })}</span>

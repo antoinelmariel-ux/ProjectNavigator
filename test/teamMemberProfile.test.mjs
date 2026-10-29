@@ -14,20 +14,22 @@ import {
 
 const TEAM = { id: 'quality', contacts: ['alice@lfb.fr', 'bob@lfb.fr'] };
 
-test('les copies sont désactivées par défaut et ne stockent que les cases cochées', () => {
+test('les copies sont activées par défaut et ne stockent que les refus explicites', () => {
   assert.deepEqual(normalizeTeamPreferences(undefined), {});
-  assert.deepEqual(normalizeTeamPreferences({ quality: { claimCopy: false } }), {});
-  assert.deepEqual(normalizeTeamPreferences({ quality: { claimCopy: true }, '': { claimCopy: true } }), {
-    quality: { claimCopy: true }
+  assert.deepEqual(normalizeTeamPreferences({ quality: { claimCopy: true } }), {});
+  assert.deepEqual(normalizeTeamPreferences({ quality: { claimCopy: false }, '': { claimCopy: false } }), {
+    quality: { claimCopy: false }
   });
 
-  assert.equal(wantsClaimCopy({ teamPreferences: { quality: { claimCopy: true } } }, 'quality'), true);
-  assert.equal(wantsClaimCopy({ teamPreferences: { quality: { claimCopy: true } } }, 'regulatory'), false);
-  assert.equal(wantsClaimCopy(null, 'quality'), false);
+  assert.equal(wantsClaimCopy({ teamPreferences: { quality: { claimCopy: false } } }, 'quality'), false);
+  assert.equal(wantsClaimCopy({ teamPreferences: { quality: { claimCopy: false } } }, 'regulatory'), true);
+  assert.equal(wantsClaimCopy({ teamPreferences: {} }, 'quality'), true);
+  assert.equal(wantsClaimCopy(null, 'quality'), true);
+  assert.equal(wantsClaimCopy(null, ''), false);
 
-  const enabled = setTeamPreference({}, 'quality', { claimCopy: true });
-  assert.deepEqual(enabled, { quality: { claimCopy: true } });
-  assert.deepEqual(setTeamPreference(enabled, 'quality', { claimCopy: false }), {});
+  const optedOut = setTeamPreference({}, 'quality', { claimCopy: false });
+  assert.deepEqual(optedOut, { quality: { claimCopy: false } });
+  assert.deepEqual(setTeamPreference(optedOut, 'quality', { claimCopy: true }), {});
 });
 
 test('une absence sans borne ni suppléant n’est pas une absence', () => {

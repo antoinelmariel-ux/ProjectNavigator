@@ -232,7 +232,7 @@ export default {
   profile: {
     claimCopySection: {
       heading: 'Copias de las tomas a cargo',
-      description: 'Desactivado por defecto. Al activarlo, recibirá una copia cuando un colega asuma un proyecto para ese equipo — solo ese aviso, no los intercambios posteriores.',
+      description: 'Activado por defecto. Cuando un colega asume un proyecto para ese equipo y usted también estaba solicitado, se le informa: no tiene que ocuparse de él. Solo ese aviso, no los intercambios posteriores. Desmarque la casilla para dejar de recibirlo.',
       teamLabel: 'Recibir una copia para {{team}}'
     },
     absenceSection: {
