@@ -233,7 +233,7 @@ export default {
     claimCopySection: {
       heading: 'Copies des prises en charge',
       description: 'Activé par défaut. Quand un collègue prend en charge un projet pour cette équipe et que vous étiez aussi sollicité, vous en êtes informé : vous n’avez pas à vous en occuper. Cette annonce uniquement, pas les échanges qui suivent. Décochez pour ne plus la recevoir.',
-      teamLabel: 'Recevoir une copie pour {{team}}'
+      teamLabel: 'Recevoir une notification en cas de prise en charge par un membre de l’équipe {{team}}'
     },
     absenceSection: {
       heading: 'Absence et suppléance',

@@ -233,7 +233,7 @@ export default {
     claimCopySection: {
       heading: 'Kopien bei Übernahmen',
       description: 'Standardmäßig aktiviert. Übernimmt ein Kollege ein Projekt für dieses Team und waren auch Sie angefragt, werden Sie informiert: Sie müssen sich nicht darum kümmern. Nur diese Ankündigung, nicht den weiteren Austausch. Deaktivieren Sie das Kontrollkästchen, um sie nicht mehr zu erhalten.',
-      teamLabel: 'Kopie für {{team}} erhalten'
+      teamLabel: 'Benachrichtigung erhalten, wenn ein Mitglied des Teams {{team}} ein Projekt übernimmt'
     },
     absenceSection: {
       heading: 'Abwesenheit und Vertretung',

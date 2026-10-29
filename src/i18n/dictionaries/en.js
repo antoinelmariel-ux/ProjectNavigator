@@ -233,7 +233,7 @@ export default {
     claimCopySection: {
       heading: 'Copies of take-over announcements',
       description: 'On by default. When a colleague takes charge of a project for that team and you were also solicited, you are told so: you do not need to handle it. That announcement only, not the exchanges that follow. Untick to stop receiving it.',
-      teamLabel: 'Receive a copy for {{team}}'
+      teamLabel: 'Receive a notification when a member of the {{team}} team takes a project in charge'
     },
     absenceSection: {
       heading: 'Absence and backup',
