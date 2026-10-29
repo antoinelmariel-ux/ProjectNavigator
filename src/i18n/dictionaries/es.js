@@ -235,9 +235,8 @@ export default {
   },
   profile: {
     claimCopySection: {
-      heading: 'Copias de las tomas a cargo',
-      description: 'Desactivado por defecto. Al activarlo, recibirá una copia cuando un colega asuma un proyecto para ese equipo — solo ese aviso, no los intercambios posteriores.',
-      teamLabel: 'Recibir una copia para {{team}}'
+      heading: 'Tomas a cargo',
+      teamLabel: 'Recibir una notificación cuando un miembro del equipo {{team}} asuma un proyecto'
     },
     absenceSection: {
       heading: 'Ausencia y suplencia',

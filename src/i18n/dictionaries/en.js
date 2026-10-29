@@ -235,9 +235,8 @@ export default {
   },
   profile: {
     claimCopySection: {
-      heading: 'Copies of take-over announcements',
-      description: 'Off by default. When enabled, you receive a copy when a colleague takes charge of a project for that team — that announcement only, not the exchanges that follow.',
-      teamLabel: 'Receive a copy for {{team}}'
+      heading: 'Take-overs',
+      teamLabel: 'Receive a notification when a member of the {{team}} team takes a project in charge'
     },
     absenceSection: {
       heading: 'Absence and backup',

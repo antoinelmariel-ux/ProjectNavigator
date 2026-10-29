@@ -766,9 +766,13 @@ per-person settings this feature needs.
   reason, an entry in `claimHistory`, and a **non-disableable** email to the dispossessed person and
   the team. Releasing (`CLAIM_ACTION_RELEASE`) mails the team, since the project becomes everyone's
   business again.
-- **Copies are opt-in per person, not per team** (`userProfiles.TeamPreferencesJson`), off by
-  default, and cover the take-in-charge announcement **only** — not the exchanges that follow, or the
-  checkbox brings back the very email volume the feature removes. They are sent in `to` and not `cc`
+- **Copies are opt-out per person and per team** (`userProfiles.TeamPreferencesJson`), **on by
+  default**: a contact routed on the project (the copy list is intersected with
+  `resolveTeamRecipients`) must learn that a colleague took it, so they know it is not theirs to
+  handle. Only an explicit refusal (`claimCopy: false`) is stored; an absent profile or entry means
+  "receives it". They cover the take-in-charge announcement **only** — not the exchanges that follow
+  (use followers for those), or the checkbox brings back the very email volume the feature removes.
+  They are sent in `to` and not `cc`
   because there is no primary recipient (the new owner is the actor, whom `notify` filters out).
 - **The first submission mail still goes to the whole team.** You cannot claim a project you never
   heard of; only absence substitution applies there (`resolveTeamMailRecipients`).

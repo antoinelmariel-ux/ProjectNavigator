@@ -4,8 +4,8 @@ import { normalizeTeamContacts } from './teamContacts.js';
 // Deux réglages que chaque personne porte dans son propre profil (CN_UserProfiles), et non
 // dans la configuration de l'équipe :
 //   - `teamPreferences[teamId].claimCopy` : recevoir en copie l'annonce de prise en charge d'un
-//     collègue sur cette équipe. Désactivé par défaut — c'est le volume d'e-mails que la prise
-//     en charge est censée supprimer.
+//     collègue sur cette équipe. Activé par défaut : un contact routé sur le projet doit savoir
+//     qu'il n'a pas à s'en occuper. Seul le refus explicite (`claimCopy: false`) est stocké.
 //   - `absence` : une période d'indisponibilité et un suppléant. Modifiable par un tiers
 //     (back-office), parce qu'une absence imprévue n'est jamais déclarée par l'absent.
 
@@ -32,11 +32,11 @@ export const normalizeTeamPreferences = (value) => {
     if (typeof teamId !== 'string' || teamId.trim().length === 0) {
       return accumulator;
     }
-    const claimCopy = Boolean(entry && typeof entry === 'object' ? entry.claimCopy : entry);
-    if (!claimCopy) {
+    const isOptedOut = (entry && typeof entry === 'object' ? entry.claimCopy : entry) === false;
+    if (!isOptedOut) {
       return accumulator;
     }
-    accumulator[teamId.trim()] = { claimCopy: true };
+    accumulator[teamId.trim()] = { claimCopy: false };
     return accumulator;
   }, {});
 };
@@ -55,7 +55,7 @@ export const wantsClaimCopy = (profile, teamId) => {
   if (!key) {
     return false;
   }
-  return Boolean(normalizeTeamPreferences(profile?.teamPreferences)[key]?.claimCopy);
+  return normalizeTeamPreferences(profile?.teamPreferences)[key]?.claimCopy !== false;
 };
 
 export const wantsClaimCopyForTeam = (profiles, email, teamId) =>

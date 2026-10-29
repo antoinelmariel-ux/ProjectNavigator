@@ -214,11 +214,11 @@ test('un référent absent voit ses e-mails partir à son suppléant', () => {
   );
 });
 
-test('les copies sont opt-in, excluent le référent et n’élargissent jamais le routage', () => {
+test('les copies sont par défaut, excluent le référent, respectent les refus et n’élargissent jamais le routage', () => {
   const profiles = new Map([
-    ['alice@lfb.fr', { teamPreferences: { quality: { claimCopy: true } } }],
-    ['bob@lfb.fr', { teamPreferences: { quality: { claimCopy: true } } }],
-    ['carla@lfb.fr', { teamPreferences: { quality: { claimCopy: true } } }]
+    ['alice@lfb.fr', { teamPreferences: {} }],
+    ['bob@lfb.fr', { teamPreferences: {} }],
+    ['carla@lfb.fr', { teamPreferences: {} }]
   ]);
 
   assert.deepEqual(
@@ -226,8 +226,20 @@ test('les copies sont opt-in, excluent le référent et n’élargissent jamais 
     ['bob@lfb.fr', 'carla@lfb.fr']
   );
 
-  assert.deepEqual(resolveClaimCopyRecipients(TEAM, {}, { assigneeEmail: 'alice@lfb.fr', profiles: new Map() }), []);
+  assert.deepEqual(
+    resolveClaimCopyRecipients(TEAM, {}, { assigneeEmail: 'alice@lfb.fr', profiles: new Map() }),
+    ['bob@lfb.fr', 'carla@lfb.fr']
+  );
   assert.deepEqual(resolveClaimCopyRecipients(TEAM, {}, { assigneeEmail: 'alice@lfb.fr' }), []);
+
+  const withOptOut = new Map([
+    ...profiles,
+    ['bob@lfb.fr', { teamPreferences: { quality: { claimCopy: false } } }]
+  ]);
+  assert.deepEqual(
+    resolveClaimCopyRecipients(TEAM, {}, { assigneeEmail: 'alice@lfb.fr', profiles: withOptOut }),
+    ['carla@lfb.fr']
+  );
 
   const routedTeam = {
     ...TEAM,
