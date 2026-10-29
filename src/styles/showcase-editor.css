@@ -2267,6 +2267,81 @@
   }
 }
 
+/* ==========================================================================
+   Atelier du modèle de vitrine (back-office) : chaque section du modèle dans un
+   cadre cliquable posé sur le vrai rendu. Les sections sans contenu pour ces
+   réponses gardent un cadre, sinon on ne pourrait pas les régler.
+   ========================================================================== */
+.sga-frame {
+  position: relative;
+  cursor: pointer;
+  outline: 2px dashed transparent;
+  outline-offset: -2px;
+  transition: outline-color 160ms ease;
+}
+
+.sga-frame:hover {
+  outline-color: var(--sge-primary-line);
+}
+
+.sga-frame--selected,
+.sga-frame--selected:hover {
+  outline: 3px solid var(--sge-primary);
+  outline-offset: -3px;
+}
+
+.sga-frame__chip {
+  position: absolute;
+  top: 0.6rem;
+  left: 0.6rem;
+  z-index: 6;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.sga-frame__select {
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--sge-primary-line);
+  background: var(--sge-surface);
+  color: var(--sge-primary-strong);
+  font: 600 0.75rem/1.2 system-ui, -apple-system, 'Segoe UI', sans-serif;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
+  cursor: pointer;
+}
+
+.sga-frame--selected .sga-frame__select {
+  background: var(--sge-primary);
+  border-color: var(--sge-primary);
+  color: #ffffff;
+}
+
+.sga-frame__badge {
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  background: var(--sge-ground-strong);
+  color: var(--sge-ink-soft);
+  font: 500 0.72rem/1.2 system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+.sga-frame--hidden .sga-frame__body {
+  opacity: 0.4;
+  filter: grayscale(0.85);
+}
+
+.sga-frame__empty {
+  margin: 1rem;
+  padding: 3.2rem 1.5rem 2.4rem;
+  border: 1px dashed var(--sge-line-strong);
+  border-radius: 16px;
+  background: var(--sge-ground);
+  color: var(--sge-ink-faint);
+  text-align: center;
+  font: 0.9rem/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
 .sge .sge-note,
 .sge .sge-listrow__label,
 .sge .sge-confirm__title,

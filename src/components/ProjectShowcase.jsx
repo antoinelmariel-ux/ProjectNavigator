@@ -70,6 +70,7 @@ import {
   applyShowcaseFieldSourcesToQuestions,
   applyShowcaseTemplate,
   buildLinkedBlockFieldId,
+  buildTemplateSectionKey,
   collectSlotQuestionIds,
   compactBlockSlots,
   fillMissingSourcedTextFields,
@@ -79,6 +80,7 @@ import {
   getSectionsHiddenByCondition,
   getTemplateBuiltInSectionIds,
   getTemplateHiddenFieldIds,
+  getTemplateEntrySectionId,
   getTemplateSectionDisplayConditions,
   isBuiltInPartHidden,
   mapShowcaseUpdatesToSources,
@@ -2327,7 +2329,12 @@ export const ProjectShowcase = ({
   canConfigureDisplayModes = true,
   // Aperçu d'un modèle dans le back-office : le modèle s'applique quelles que soient ses
   // conditions d'activation.
-  forcedShowcaseTemplate = null
+  forcedShowcaseTemplate = null,
+  // Atelier du modèle (back-office) : `{ selectedKey, onSelect, showChrome, labels }`. Chaque
+  // section du modèle est rendue dans un cadre cliquable — y compris celles qui n'ont rien à
+  // afficher avec ces réponses ou qu'une condition masque, sans quoi on ne pourrait pas les
+  // régler. `showChrome` à faux (touche P) rend la vitrine telle qu'un lecteur la voit.
+  authoring = null
 }) => {
   const { t, language } = useTranslation();
   // Tout le composant lit `answers` à travers le modèle de vitrine du projet : ses blocs et
@@ -5222,7 +5229,7 @@ export const ProjectShowcase = ({
           // en édition, elle reste dans son cadre, grisée, pour que le porteur comprenne
           // pourquoi elle ne s'affiche pas.
           isHiddenByCondition: sectionsHiddenByCondition.has(sectionId),
-          node: sectionsHiddenByCondition.has(sectionId) && !isEditorChromeVisible
+          node: sectionsHiddenByCondition.has(sectionId) && !isEditorChromeVisible && !authoring?.showChrome
             ? null
             : custom
               ? renderCustomSectionSignature(custom, index, { editable: isEditorChromeVisible })
@@ -5230,6 +5237,7 @@ export const ProjectShowcase = ({
         };
       }),
     [
+      authoring?.showChrome,
       canvasCustomSectionMap,
       isEditorChromeVisible,
       isSectionHiddenInLight,
@@ -5284,6 +5292,52 @@ export const ProjectShowcase = ({
   );
 
   const previewContent = useMemo(() => {
+    if (authoring?.showChrome && activeShowcaseTemplate) {
+      const entriesBySectionId = new Map(sectionEntries.map(entry => [entry.id, entry]));
+      return (
+        <div className="sg-sections" data-tour-id="showcase-preview">
+          {activeShowcaseTemplate.sections
+            .filter(templateEntry => !(templateEntry.kind === 'builtin' && templateEntry.id === 'notice'))
+            .map((templateEntry) => {
+              const key = buildTemplateSectionKey(templateEntry);
+              const sectionId = getTemplateEntrySectionId(activeShowcaseTemplate, templateEntry);
+              const node = entriesBySectionId.get(sectionId)?.node || null;
+              const isSelected = authoring.selectedKey === key;
+              const isHidden = sectionsHiddenByCondition.has(sectionId);
+              const label = authoring.labels?.[key] || sectionId;
+              return (
+                <div
+                  key={key}
+                  className={`sga-frame${isSelected ? ' sga-frame--selected' : ''}${isHidden ? ' sga-frame--hidden' : ''}`}
+                  data-authoring-key={key}
+                  onClick={() => authoring.onSelect?.(key)}
+                >
+                  <div className="sga-frame__chip">
+                    <button
+                      type="button"
+                      className="sga-frame__select"
+                      aria-pressed={isSelected}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        authoring.onSelect?.(key);
+                      }}
+                    >
+                      {label}
+                    </button>
+                    {isHidden && (
+                      <span className="sga-frame__badge">{t('projectShowcase.editor.hiddenByCondition')}</span>
+                    )}
+                  </div>
+                  <div className="sga-frame__body">
+                    {node || <div className="sga-frame__empty">{t('projectShowcase.authoring.emptySection')}</div>}
+                  </div>
+                </div>
+              );
+            })}
+        </div>
+      );
+    }
+
     if (!isEditorChromeVisible) {
       return (
         <div className="sg-sections" data-tour-id="showcase-preview">
@@ -5360,6 +5414,8 @@ export const ProjectShowcase = ({
     );
   }, [
     activeSectionId,
+    activeShowcaseTemplate,
+    authoring,
     canvasDragIndex,
     ghostSection,
     handleCanvasDragEnd,
@@ -5374,6 +5430,7 @@ export const ProjectShowcase = ({
     renderInserter,
     resolvedInserterIndex,
     sectionEntries,
+    sectionsHiddenByCondition,
     shouldDisplaySection,
     t
   ]);
@@ -7007,7 +7064,9 @@ export const ProjectShowcase = ({
   // `sg-shell--editing` neutralise les animations de révélation : sinon une section
   // fraîchement insérée resterait invisible (opacity 0) faute d'avoir été observée, et
   // l'utilisateur éditerait un bloc qu'il ne voit pas.
-  const shellClassName = `sg-shell${isEditorChromeVisible ? ' sg-shell--editing' : ''}`;
+  // L'atelier du modèle aussi, cadres masqués compris : une section qui change de gabarit
+  // sous ses yeux n'a jamais été observée.
+  const shellClassName = `sg-shell${isEditorChromeVisible || authoring ? ' sg-shell--editing' : ''}`;
   const shellStandaloneClassName = 'sg-shell--standalone';
 
   if (renderInStandalone) {

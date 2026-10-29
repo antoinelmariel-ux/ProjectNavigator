@@ -1256,7 +1256,28 @@ export default {
       displayConditionActive: 'visible con condición',
       displayConditionHint: 'La sección solo aparece en las vitrinas cuyas respuestas cumplen estas condiciones (misma gramática que las reglas). El promotor la ve atenuada al editar; los lectores no la ven.',
       displayConditionEmpty: 'Sin condición: la sección siempre se muestra.',
-      displayConditionIncomplete: 'Una condición aún no tiene pregunta: mientras no se complete, la sección se muestra siempre.'
+      displayConditionIncomplete: 'Una condición aún no tiene pregunta: mientras no se complete, la sección se muestra siempre.',
+      studio: {
+        openButton: 'Editar en la vitrina',
+        title: 'Taller de la plantilla «{{name}}»',
+        hint: 'Haga clic en una sección de la vitrina para ajustarla; cada cambio se muestra al instante y se aplica a la plantilla.',
+        dataLabel: 'Datos mostrados',
+        dataExample: 'Datos de ejemplo',
+        dataEmpty: 'Elementos vacíos',
+        exampleSourceLabel: 'Ejemplo mostrado',
+        exampleFictive: 'Respuestas ficticias',
+        exampleSampleGroup: 'Banco de pruebas de las reglas',
+        languageLabel: 'Idioma editado',
+        readerView: 'Vista del lector (P)',
+        close: 'Cerrar el taller',
+        outlineTitle: 'Secciones',
+        addBlock: 'Añadir un bloque…',
+        addBuiltIn: 'Añadir una sección integrada…',
+        addHint: 'La sección se añade después de la seleccionada.',
+        inspectorTitle: 'Ajustes de la sección',
+        inspectorEmpty: 'Seleccione una sección, en la vitrina o en la lista.',
+        emptyModeHint: 'Elementos vacíos: lo que ve un promotor cuyo cuestionario aún está vacío.'
+      }
     },
     faq: {
       title: 'FAQ de la aplicación',
@@ -2812,6 +2833,9 @@ export default {
       authorRole: 'Cargo del autor'
     },
     templateLockedSlotsHint: 'Algunos elementos de este bloque los fija la plantilla de vitrina.',
+    authoring: {
+      emptySection: 'Nada que mostrar con estas respuestas: haga clic para ajustar esta sección.'
+    },
     noMilestoneYet: 'Aún no se ha añadido ningún hito.',
     dateLabel: 'Fecha',
     addMilestoneButton: 'Añadir un hito',

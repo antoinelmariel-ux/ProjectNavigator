@@ -1255,7 +1255,28 @@ export default {
       displayConditionActive: 'shown on condition',
       displayConditionHint: 'The section only appears in showcases whose answers meet these conditions (same grammar as the rules). The owner sees it greyed out while editing; readers do not see it.',
       displayConditionEmpty: 'No condition: the section is always shown.',
-      displayConditionIncomplete: 'A condition has no question yet: until it is completed, the section stays always shown.'
+      displayConditionIncomplete: 'A condition has no question yet: until it is completed, the section stays always shown.',
+      studio: {
+        openButton: 'Edit on the showcase',
+        title: '“{{name}}” template workshop',
+        hint: 'Click a section of the showcase to set it up; every change shows at once and applies to the template.',
+        dataLabel: 'Data shown',
+        dataExample: 'Sample data',
+        dataEmpty: 'Empty slots',
+        exampleSourceLabel: 'Sample shown',
+        exampleFictive: 'Made-up answers',
+        exampleSampleGroup: 'Rule test bench',
+        languageLabel: 'Edited language',
+        readerView: 'Reader view (P)',
+        close: 'Close the workshop',
+        outlineTitle: 'Sections',
+        addBlock: 'Add a block…',
+        addBuiltIn: 'Add a built-in section…',
+        addHint: 'The section is added after the selected one.',
+        inspectorTitle: 'Section settings',
+        inspectorEmpty: 'Select a section, on the showcase or in the list.',
+        emptyModeHint: 'Empty slots: what an owner sees while their questionnaire is still blank.'
+      }
     },
     faq: {
       title: 'Application FAQ',
@@ -2812,6 +2833,9 @@ export default {
       authorRole: 'Author’s position'
     },
     templateLockedSlotsHint: 'Some elements of this block are set by the showcase template.',
+    authoring: {
+      emptySection: 'Nothing to show with these answers — click to set up this section.'
+    },
     noMilestoneYet: 'No milestone has been added yet.',
     dateLabel: 'Date',
     addMilestoneButton: 'Add a milestone',

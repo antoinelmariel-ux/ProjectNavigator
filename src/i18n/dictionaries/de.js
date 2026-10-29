@@ -1265,7 +1265,28 @@ export default {
       displayConditionActive: 'unter Bedingung angezeigt',
       displayConditionHint: 'Der Abschnitt erscheint nur in Vitrinen, deren Antworten diese Bedingungen erfüllen (gleiche Grammatik wie die Regeln). Der Projektträger sieht ihn beim Bearbeiten ausgegraut, Leser sehen ihn nicht.',
       displayConditionEmpty: 'Keine Bedingung: Der Abschnitt wird immer angezeigt.',
-      displayConditionIncomplete: 'Eine Bedingung hat noch keine Frage: Solange sie nicht vervollständigt ist, bleibt der Abschnitt immer angezeigt.'
+      displayConditionIncomplete: 'Eine Bedingung hat noch keine Frage: Solange sie nicht vervollständigt ist, bleibt der Abschnitt immer angezeigt.',
+      studio: {
+        openButton: 'In der Vitrine bearbeiten',
+        title: 'Werkstatt der Vorlage „{{name}}“',
+        hint: 'Klicken Sie auf einen Abschnitt der Vitrine, um ihn einzustellen; jede Änderung erscheint sofort und gilt für die Vorlage.',
+        dataLabel: 'Angezeigte Daten',
+        dataExample: 'Beispieldaten',
+        dataEmpty: 'Leere Felder',
+        exampleSourceLabel: 'Angezeigtes Beispiel',
+        exampleFictive: 'Erfundene Antworten',
+        exampleSampleGroup: 'Testumgebung der Regeln',
+        languageLabel: 'Bearbeitete Sprache',
+        readerView: 'Leseransicht (P)',
+        close: 'Werkstatt schließen',
+        outlineTitle: 'Abschnitte',
+        addBlock: 'Block hinzufügen…',
+        addBuiltIn: 'Integrierten Abschnitt hinzufügen…',
+        addHint: 'Der Abschnitt wird nach dem ausgewählten eingefügt.',
+        inspectorTitle: 'Einstellungen des Abschnitts',
+        inspectorEmpty: 'Wählen Sie einen Abschnitt in der Vitrine oder in der Liste.',
+        emptyModeHint: 'Leere Felder: was ein Projektträger sieht, solange sein Fragebogen noch leer ist.'
+      }
     },
     faq: {
       title: 'FAQ der Anwendung',
@@ -2822,6 +2843,9 @@ export default {
       authorRole: 'Funktion des Autors'
     },
     templateLockedSlotsHint: 'Einige Elemente dieses Blocks sind von der Vitrinenvorlage festgelegt.',
+    authoring: {
+      emptySection: 'Mit diesen Antworten gibt es nichts anzuzeigen — klicken Sie, um diesen Abschnitt einzustellen.'
+    },
     noMilestoneYet: 'Es wurde noch kein Meilenstein hinzugefügt.',
     dateLabel: 'Datum',
     addMilestoneButton: 'Meilenstein hinzufügen',

@@ -345,6 +345,24 @@ activity-scope pseudo-question is deliberately excluded (`excludedQuestionIds`):
   answers of `showcaseTemplatePreviewAnswers`, plus an invented answer per question the template
   still reads (`buildShowcaseTemplatePreviewAnswers`). Never saved. The showcase stylesheets come
   from `src/styles/loadShowcaseStyles.js`, shared with `App.jsx`.
+- **The template studio** (`ShowcaseTemplateStudio.jsx`, « Éditer sur la vitrine » on each card)
+  sets a template up on the real showcase: outline (order, add after the selection, remove),
+  `ProjectShowcase` in the middle with `authoring={{selectedKey, onSelect, showChrome, labels}}`,
+  and the selected section's settings on the right. Both the form and the studio render the same
+  editors from `showcaseTemplateEditors.jsx` (`TemplateSectionSettings` — `compact` for the narrow
+  inspector) and edit the template through the same pure helpers (`buildTemplateSectionKey` —
+  `kind:id`, since a built-in and a block may share an id —, `updateTemplateSection`,
+  `moveTemplateSection`, `addTemplateSection`, `removeTemplateSection`,
+  `convertTemplateSectionToBlock`). The studio **replaces** the card list instead of covering it:
+  both would render the same field ids and every label would point at the hidden copy. In
+  authoring mode `ProjectShowcase` walks the *template's* sections, not `sectionOrder`, so a block
+  with no content yet (which `applyShowcaseTemplate` leaves out) and a built-in that renders nothing
+  with these answers still get a clickable frame (`.sga-frame`, `showcase-editor.css`); a section
+  hidden by its condition is rendered greyed. The shell always carries `sg-shell--editing` there (a
+  section whose layout changes was never observed by the reveal pass). Data: sample answers
+  (`buildFictiveShowcaseAnswers`, or a test-bench sample project stripped of its own showcase
+  structure) or none at all (« Emplacements vides »: what an owner sees first); key `P` or « Vue
+  lecteur » drops the frames. Every change applies to the template at once, like the form.
 - **The donation questions** (`donationAmount` — number in € —, `donationBeneficiary`,
   `donationBeneficiaryCount`, `donationPurpose`, `donationCounterpart`, `donationPaymentSchedule`,
   `donationSelectionCriteria`, all conditioned on `ProjectType = don_bourse_appel_a_projets`) feed
@@ -352,7 +370,7 @@ activity-scope pseudo-question is deliberately excluded (`excludedQuestionIds`):
   (`restoreShowcaseQuestions` does not re-inject them): a referential already published in
   SharePoint (`questions.json`, `showcase-templates.json`) keeps what it holds, so neither these
   questions nor the new donation template reach it by themselves.
-- Tests: `test/showcaseTemplates.test.mjs`, `e2e/showcase-templates.spec.js`, `e2e/showcase-template-sources.spec.js`, `e2e/showcase-donation-template.spec.js`.
+- Tests: `test/showcaseTemplates.test.mjs`, `e2e/showcase-templates.spec.js`, `e2e/showcase-template-sources.spec.js`, `e2e/showcase-donation-template.spec.js`, `e2e/showcase-template-studio.spec.js`.
 
 ## The showcase editor (live canvas)
 
