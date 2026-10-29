@@ -222,6 +222,13 @@ export default {
     helpButton: 'Help',
     helpButtonAriaLabel: 'Open the FAQ (new tab)',
     demoPostItAuthor: 'Sample feedback',
+    expertTourDemo: {
+      ownerName: 'Léa Martin (project owner)',
+      ownerReply: 'Hello, here is our input on the points to prepare: the content will be reviewed by the medical department before release, and the supplier is already listed.',
+      expertQuestion: 'Thank you. Could you fill in the attached questionnaire about the supplier? We still need the list of data it will process.',
+      formName: 'supplier-questionnaire.txt',
+      opinion: 'Favourable opinion, provided the contract signed with the supplier is sent to us.'
+    },
     scopeStep: {
       description: 'To tailor the questionnaire to you, select your activity scope (you can pick several).',
       continueButton: 'Continue'

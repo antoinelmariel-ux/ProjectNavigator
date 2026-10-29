@@ -222,6 +222,13 @@ export default {
     helpButton: 'Hilfe',
     helpButtonAriaLabel: 'FAQ öffnen (neuer Tab)',
     demoPostItAuthor: 'Beispiel-Feedback',
+    expertTourDemo: {
+      ownerName: 'Léa Martin (Projektverantwortliche)',
+      ownerReply: 'Hallo, hier unsere Angaben zu den vorzubereitenden Punkten: Die Inhalte werden vor der Veröffentlichung von der medizinischen Abteilung geprüft, und der Dienstleister ist bereits gelistet.',
+      expertQuestion: 'Danke. Können Sie den beigefügten Fragebogen zum Dienstleister ausfüllen? Uns fehlt noch die Liste der Daten, die er verarbeiten wird.',
+      formName: 'fragebogen-dienstleister.txt',
+      opinion: 'Positive Stellungnahme, vorbehaltlich der Übermittlung des mit dem Dienstleister unterzeichneten Vertrags.'
+    },
     scopeStep: {
       description: 'Damit der Fragebogen zu Ihnen passt, wählen Sie Ihren Tätigkeitsbereich aus (Mehrfachauswahl möglich).',
       continueButton: 'Weiter'

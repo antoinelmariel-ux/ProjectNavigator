@@ -2525,6 +2525,7 @@ export const HomeScreen = ({
           <section
             aria-labelledby="compliance-projects-heading"
             className="bg-white border border-blue-100 rounded-3xl shadow-xl p-6 sm:p-8 space-y-5"
+            data-tour-id="home-compliance-projects"
           >
             <div>
               <h2 id="compliance-projects-heading" className="text-2xl font-bold text-gray-900">
@@ -2532,20 +2533,22 @@ export const HomeScreen = ({
               </h2>
               <p className="mt-1 text-sm text-gray-600">{t('home.triggeredSubtitle')}</p>
             </div>
-            <SegmentedTabs
-              ariaLabel={t('home.triggeredFilterAriaLabel')}
-              value={complianceProjectsView}
-              onChange={setComplianceProjectsView}
-              items={[
-                { id: 'pending', label: t('home.pendingTabLabel'), ariaLabel: t('home.pendingTab', { count: pendingComplianceProjects.length }), count: pendingComplianceProjects.length, urgent: true },
-                { id: 'teammate', label: t('home.teammateTabLabel'), ariaLabel: t('home.teammateTab', { count: teammateHandledComplianceProjects.length }), count: teammateHandledComplianceProjects.length },
-                { id: 'treated', label: t('home.treatedTabLabel'), ariaLabel: t('home.treatedTab', { count: treatedComplianceProjects.length }), count: treatedComplianceProjects.length },
-                ...(isValidationCommitteeMember
-                  ? [{ id: 'out_of_scope', label: t('home.outOfScopeTabLabel'), ariaLabel: t('home.outOfScopeTab', { count: outOfScopeCommitteeProjects.length }), count: outOfScopeCommitteeProjects.length }]
-                  : []),
-                { id: 'abandoned', label: t('home.abandonedTabLabel'), ariaLabel: t('home.abandonedTab', { count: abandonedComplianceProjects.length }), count: abandonedComplianceProjects.length, icon: Trash2 }
-              ]}
-            />
+            <div data-tour-id="home-compliance-tabs">
+              <SegmentedTabs
+                ariaLabel={t('home.triggeredFilterAriaLabel')}
+                value={complianceProjectsView}
+                onChange={setComplianceProjectsView}
+                items={[
+                  { id: 'pending', label: t('home.pendingTabLabel'), ariaLabel: t('home.pendingTab', { count: pendingComplianceProjects.length }), count: pendingComplianceProjects.length, urgent: true },
+                  { id: 'teammate', label: t('home.teammateTabLabel'), ariaLabel: t('home.teammateTab', { count: teammateHandledComplianceProjects.length }), count: teammateHandledComplianceProjects.length },
+                  { id: 'treated', label: t('home.treatedTabLabel'), ariaLabel: t('home.treatedTab', { count: treatedComplianceProjects.length }), count: treatedComplianceProjects.length },
+                  ...(isValidationCommitteeMember
+                    ? [{ id: 'out_of_scope', label: t('home.outOfScopeTabLabel'), ariaLabel: t('home.outOfScopeTab', { count: outOfScopeCommitteeProjects.length }), count: outOfScopeCommitteeProjects.length }]
+                    : []),
+                  { id: 'abandoned', label: t('home.abandonedTabLabel'), ariaLabel: t('home.abandonedTab', { count: abandonedComplianceProjects.length }), count: abandonedComplianceProjects.length, icon: Trash2 }
+                ]}
+              />
+            </div>
 
             {stableComplianceProjects.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-blue-200 bg-blue-50/40 p-5 text-sm text-gray-600">

@@ -1075,6 +1075,29 @@ export const SynthesisReport = ({
     hasOpenedOverviewForExpertRef.current = true;
     setIsOverviewOpen(true);
   }, [isExpertViewer]);
+  // Parcours expert du guide : les étapes qui montrent les réponses du porteur et l'éditeur
+  // d'avis pointeraient sinon une section repliée ou un formulaire fermé.
+  useEffect(() => {
+    if (!tourContext?.isActive) {
+      return;
+    }
+    if (tourContext.activeStep === 'expert-answers') {
+      setIsOverviewOpen(true);
+    }
+    if (tourContext.activeStep === 'expert-opinion' && complianceTeamIdsForUser.size > 0) {
+      setOpenTeamCommentEditors((previous) => {
+        const missing = Array.from(complianceTeamIdsForUser).filter((teamId) => !previous[teamId]);
+        if (missing.length === 0) {
+          return previous;
+        }
+        const next = { ...previous };
+        missing.forEach((teamId) => {
+          next[teamId] = true;
+        });
+        return next;
+      });
+    }
+  }, [tourContext, complianceTeamIdsForUser]);
   const hasOpenedOwnCommitteesRef = useRef(false);
   useEffect(() => {
     if (!isExpertViewer || committeeIdsForUser.size === 0 || hasOpenedOwnCommitteesRef.current) {
@@ -2538,6 +2561,7 @@ export const SynthesisReport = ({
                   <div
                     key={team.id}
                     id={`compliance-team-block-${team.id}`}
+                    data-tour-id={complianceTeamIdsForUser.has(team.id) ? 'synthesis-team-card' : undefined}
                     className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-200 transition-all overflow-hidden"
                     style={{ borderLeftWidth: '4px', borderLeftColor: teamAccentColor }}
                     role="article"
@@ -2658,7 +2682,10 @@ export const SynthesisReport = ({
                         )}
 
                         {(teamClaim || canActOnTeamClaim) && (
-                          <div className="mt-3 space-y-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-700">
+                          <div
+                            className="mt-3 space-y-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-700"
+                            data-tour-id="synthesis-team-claim"
+                          >
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="font-semibold text-gray-800">{t('synthesisReport.claim.label')}</span>
                               <span>
@@ -2812,6 +2839,7 @@ export const SynthesisReport = ({
                           <div
                             className="mt-3 space-y-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700"
                             data-testid={`team-followers-${team.id}`}
+                            data-tour-id="synthesis-team-followers"
                           >
                             <p className="font-semibold text-gray-800">{t('synthesisReport.followers.label')}</p>
                             {teamFollowerContacts.length === 0 ? (
@@ -2959,7 +2987,7 @@ export const SynthesisReport = ({
                             )}
 
                             {isTeamReviewPending && (
-                              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3" role="alert">
+                              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3" role="alert" data-tour-id="synthesis-team-review">
                                 <p className="flex items-center gap-2 text-sm font-semibold text-amber-900">
                                   <AlertTriangle className="w-4 h-4" />
                                   {t('synthesisReport.reviewPendingBadge')}
@@ -3074,7 +3102,7 @@ export const SynthesisReport = ({
                             )}
 
                             {replyMessages.length > 0 && (
-                              <div className="space-y-2">
+                              <div className="space-y-2" data-tour-id="synthesis-team-thread">
                                 <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
                                   <MessageSquare className="w-3.5 h-3.5" />
                                   {t('synthesisReport.discussionThreadLabel')}
@@ -3156,7 +3184,7 @@ export const SynthesisReport = ({
                             )}
 
                             {canEditTeamComment && isCommentEditorOpen && (
-                              <div className="border-t border-gray-200 pt-3">
+                              <div className="border-t border-gray-200 pt-3" data-tour-id="synthesis-team-opinion">
                                 <form
                                   onSubmit={(event) =>
                                     handleComplianceCommentSubmit({ event, targetId: team.id, targetType: 'team' })
@@ -3968,7 +3996,7 @@ export const SynthesisReport = ({
             aria-labelledby="overview-heading"
             style={{ scrollMarginTop: '1.5rem' }}
           >
-            <h2 id="overview-heading" style={{ margin: 0 }}>
+            <h2 id="overview-heading" style={{ margin: 0 }} data-tour-id="synthesis-overview">
               <button
                 type="button"
                 onClick={() => setIsOverviewOpen((previous) => !previous)}

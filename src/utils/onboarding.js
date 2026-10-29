@@ -1,9 +1,14 @@
-import { initialOnboardingTourConfig, SUPERSEDED_ONBOARDING_STEP_DEFAULTS } from '../data/onboardingTour.js';
+import {
+  initialOnboardingTourConfig,
+  ONBOARDING_AUDIENCE_COMPLIANCE,
+  SUPERSEDED_ONBOARDING_STEP_DEFAULTS
+} from '../data/onboardingTour.js';
 import { trimLocalizedValue, isLocalizedValueEmpty } from './localizedContent.js';
 
 const DEFAULT_ACTION_VARIANT = 'ghost';
 const ALLOWED_ACTIONS = new Set(['next', 'prev', 'close', 'finish', 'goTo']);
 const ALLOWED_HIGHLIGHT_SCOPES = new Set(['target', 'page']);
+const ALLOWED_AUDIENCES = new Set([ONBOARDING_AUDIENCE_COMPLIANCE]);
 
 const NEW_STEP_TITLE = { en: 'New step', fr: 'Nouvelle étape', de: 'Neuer Schritt', es: 'Nuevo paso' };
 const NEW_ACTION_LABEL = { en: 'New action', fr: 'Nouvelle action', de: 'Neue Aktion', es: 'Nueva acción' };
@@ -159,10 +164,36 @@ export const normalizeOnboardingConfig = (config, fallback = initialOnboardingTo
               label: sanitizeLocalizedText(upgradeLegacyLocalizedField(action.label, fallbackAction?.label), NEW_ACTION_LABEL),
               action: ALLOWED_ACTIONS.has(action.action) ? action.action : 'next',
               stepId: sanitizeString(action.stepId),
-              variant: sanitizeString(action.variant, DEFAULT_ACTION_VARIANT)
+              variant: sanitizeString(action.variant, DEFAULT_ACTION_VARIANT),
+              ...(ALLOWED_AUDIENCES.has(action.audience) ? { audience: action.audience } : {})
             };
           })
       };
     })
   };
+};
+
+// Retire les actions réservées à un public dont l'utilisateur ne fait pas partie. Si le bouton
+// retiré était le bouton principal d'un menu, le premier bouton restant reprend ce rôle : un menu
+// sans action mise en avant ne dit plus par où commencer.
+export const filterOnboardingStepsForAudience = (steps, { isComplianceActor = false } = {}) => {
+  const isAllowed = (action) => !action?.audience
+    || (action.audience === ONBOARDING_AUDIENCE_COMPLIANCE && isComplianceActor);
+
+  return (Array.isArray(steps) ? steps : []).map((step) => {
+    const actions = Array.isArray(step?.actions) ? step.actions : [];
+    const kept = actions.filter(isAllowed);
+    if (kept.length === actions.length) {
+      return step;
+    }
+    const hadPrimary = actions.some((action) => action?.variant === 'primary');
+    const hasPrimary = kept.some((action) => action?.variant === 'primary');
+    const promoteIndex = hadPrimary && !hasPrimary
+      ? kept.findIndex((action) => action?.action === 'goTo')
+      : -1;
+    return {
+      ...step,
+      actions: kept.map((action, index) => (index === promoteIndex ? { ...action, variant: 'primary' } : action))
+    };
+  });
 };

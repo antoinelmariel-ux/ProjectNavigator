@@ -222,6 +222,13 @@ export default {
     helpButton: 'Ayuda',
     helpButtonAriaLabel: 'Abrir las preguntas frecuentes (nueva pestaña)',
     demoPostItAuthor: 'Comentario de ejemplo',
+    expertTourDemo: {
+      ownerName: 'Léa Martin (responsable del proyecto)',
+      ownerReply: 'Hola, estos son nuestros elementos sobre los puntos que preparar: el servicio médico revisará los contenidos antes de su difusión y el proveedor ya está homologado.',
+      expertQuestion: 'Gracias. ¿Puede completar el cuestionario adjunto sobre el proveedor? Nos falta la lista de datos que tratará.',
+      formName: 'cuestionario-proveedor.txt',
+      opinion: 'Dictamen favorable, siempre que se nos envíe el contrato firmado con el proveedor.'
+    },
     scopeStep: {
       description: 'Para adaptar el cuestionario a su situación, seleccione su ámbito de actividad (puede elegir varios).',
       continueButton: 'Continuar'

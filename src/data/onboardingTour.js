@@ -1,15 +1,20 @@
-// Le tour est découpé en 5 séquences autonomes (tour rapide, créer, valider, présenter,
-// inspirer) reliées par des actions `goTo` : l'étape `welcome` sert de menu d'entrée et
-// chaque séquence se termine par une étape-menu qui renvoie vers les autres. L'ordre du
-// tableau `steps` reste significatif (le bouton « Suivant » avance d'un cran), donc les
-// étapes d'une même séquence doivent rester contiguës, et chaque étape-menu porte
-// `showDefaultButtons: false` pour ne pas déborder sur la séquence suivante.
+// Le tour est découpé en 6 séquences autonomes (tour rapide, revoir et valider un projet —
+// réservée aux experts Compliance —, créer, valider, présenter, inspirer) reliées par des
+// actions `goTo` : l'étape `welcome` sert de menu d'entrée et chaque séquence se termine par
+// une étape-menu qui renvoie vers les autres. L'ordre du tableau `steps` reste significatif
+// (le bouton « Suivant » avance d'un cran), donc les étapes d'une même séquence doivent rester
+// contiguës, et chaque étape-menu porte `showDefaultButtons: false` pour ne pas déborder sur la
+// séquence suivante.
 //
 // `version` gouverne la bascule : une config plus ancienne déjà persistée (localStorage ou
 // settings.json publié) est remplacée par celle-ci au démarrage — voir
 // normalizeOnboardingConfig dans src/utils/onboarding.js. L'incrémenter écrase donc les
 // personnalisations back-office du tour : à ne faire que pour une refonte assumée.
-export const ONBOARDING_TOUR_VERSION = 7;
+export const ONBOARDING_TOUR_VERSION = 8;
+
+// Une action réservée à un public (bouton d'entrée d'un parcours qui n'a de sens que pour lui)
+// est retirée du tour des autres au lancement, voir filterOnboardingStepsForAudience.
+export const ONBOARDING_AUDIENCE_COMPLIANCE = 'compliance';
 
 // Valeurs par défaut remplacées sans changer de version : une config persistée qui porte encore
 // l'ancienne valeur (donc jamais retouchée sur ce champ) reçoit la nouvelle, une valeur
@@ -29,15 +34,23 @@ const ACTION_LABELS = {
   present: { en: 'Present your project', fr: 'Présenter son projet', de: 'Projekt präsentieren', es: 'Presentar su proyecto' },
   inspiration: { en: 'Find inspiration', fr: 'Trouver l’inspiration', de: 'Inspiration finden', es: 'Encontrar inspiración' },
   quick: { en: 'Quick tour', fr: 'Tour rapide', de: 'Schnellrundgang', es: 'Recorrido rápido' },
+  expert: { en: 'Review and approve a project', fr: 'Revoir et valider un projet', de: 'Ein Projekt prüfen und freigeben', es: 'Revisar y validar un proyecto' },
   finish: { en: 'Finish the tour', fr: 'Terminer la visite', de: 'Rundgang beenden', es: 'Finalizar la visita' }
 };
 
 const SEQUENCE_ENTRY_STEPS = {
   quick: 'quick-intro',
+  expert: 'expert-intro',
   create: 'create-project',
   validate: 'compliance-report-top',
   present: 'showcase-top',
   inspiration: 'project-inspiration'
+};
+
+// Le parcours expert ne s'adresse qu'aux contacts d'une équipe d'experts et aux membres d'un
+// comité : son bouton est retiré du tour des autres (filterOnboardingStepsForAudience).
+const SEQUENCE_AUDIENCES = {
+  expert: ONBOARDING_AUDIENCE_COMPLIANCE
 };
 
 const goToSequence = (key, variant = 'ghost') => ({
@@ -45,7 +58,8 @@ const goToSequence = (key, variant = 'ghost') => ({
   label: ACTION_LABELS[key],
   action: 'goTo',
   stepId: SEQUENCE_ENTRY_STEPS[key],
-  variant
+  variant,
+  ...(SEQUENCE_AUDIENCES[key] ? { audience: SEQUENCE_AUDIENCES[key] } : {})
 });
 
 const finishAction = () => ({
@@ -94,6 +108,7 @@ export const initialOnboardingTourConfig = {
       "showDefaultButtons": false,
       "actions": [
         goToSequence('quick', 'primary'),
+        goToSequence('expert'),
         goToSequence('create'),
         goToSequence('validate'),
         goToSequence('present'),
@@ -264,7 +279,7 @@ export const initialOnboardingTourConfig = {
       "placement": "bottom",
       "highlightScope": "target",
       "showDefaultButtons": false,
-      "actions": sequenceMenuActions('create', 'validate', 'present', 'inspiration')
+      "actions": sequenceMenuActions('expert', 'create', 'validate', 'present', 'inspiration')
     },
 
     {
@@ -1064,6 +1079,351 @@ export const initialOnboardingTourConfig = {
       "highlightScope": "target",
       "showDefaultButtons": false,
       "actions": sequenceMenuActions('create', 'validate', 'present')
+    },
+
+    // Le parcours expert reste en fin de tableau : « Précédent » sur la première étape d'une
+    // séquence ramène à l'étape qui la précède dans le tableau, et quelqu'un qui n'est pas
+    // expert ne doit jamais retomber dans ce parcours-là.
+    {
+      "id": "expert-intro",
+      "target": "[data-tour-id=\"home-compliance-projects\"]",
+      "title": {
+        "en": "The projects that concern you",
+        "fr": "Les projets qui vous concernent",
+        "de": "Die Projekte, die Sie betreffen",
+        "es": "Los proyectos que le conciernen"
+      },
+      "content": {
+        "en": "This is where the projects that trigger the rules of your team or your committee arrive. There is nothing to look for: the tool brings them to you.",
+        "fr": "Ici arrivent les projets qui déclenchent les règles de votre équipe ou de votre comité. Vous n’avez rien à chercher : l’outil vous les apporte.",
+        "de": "Hier kommen die Projekte an, die die Regeln Ihres Teams oder Ihres Ausschusses auslösen. Sie müssen nichts suchen: Das Tool bringt sie Ihnen.",
+        "es": "Aquí llegan los proyectos que activan las reglas de su equipo o de su comité. No tiene nada que buscar: la herramienta se los trae."
+      },
+      "placement": "bottom",
+      "highlightScope": "target",
+      "showDefaultButtons": true,
+      "actions": []
+    },
+    {
+      "id": "expert-tabs",
+      "target": "[data-tour-id=\"home-compliance-tabs\"]",
+      "title": {
+        "en": "Your work queue",
+        "fr": "Votre file de travail",
+        "de": "Ihre Arbeitsliste",
+        "es": "Su cola de trabajo"
+      },
+      "content": {
+        "en": "“To review” holds what is waiting for your opinion. “Handled by the team”: a colleague is taking care of it. “Reviewed”: your opinion has been given. “Abandoned”: the owner deleted a project you had answered on, and your work remains available. Committee members also have “Out of committee scope”.",
+        "fr": "« À traiter » contient ce qui attend votre avis. « Pris en charge par l’équipe » : un collègue s’en occupe. « Traités » : votre avis est rendu. « Abandonnés » : le porteur a supprimé un projet sur lequel vous aviez répondu, et votre travail reste consultable. Les membres d’un comité ont aussi « Hors scope comité ».",
+        "de": "„Zu bearbeiten“ enthält, was auf Ihre Stellungnahme wartet. „Vom Team übernommen“: Ein Kollege kümmert sich darum. „Bearbeitet“: Ihre Stellungnahme ist abgegeben. „Aufgegeben“: Der Projektverantwortliche hat ein Projekt gelöscht, zu dem Sie geantwortet hatten, und Ihre Arbeit bleibt einsehbar. Ausschussmitglieder haben zusätzlich „Außerhalb des Ausschussbereichs“.",
+        "es": "«Por tratar» contiene lo que espera su opinión. «Asumidos por el equipo»: un compañero se encarga. «Tratados»: su opinión está emitida. «Abandonados»: el responsable eliminó un proyecto en el que usted había respondido, y su trabajo sigue disponible. Los miembros de un comité también tienen «Fuera del alcance del comité»."
+      },
+      "placement": "bottom",
+      "highlightScope": "target",
+      "showDefaultButtons": true,
+      "actions": []
+    },
+    {
+      "id": "expert-perimeter",
+      "target": "[data-tour-id=\"synthesis-team-card\"]",
+      "title": {
+        "en": "Your scope in the project",
+        "fr": "Votre périmètre dans le projet",
+        "de": "Ihr Bereich im Projekt",
+        "es": "Su ámbito en el proyecto"
+      },
+      "content": {
+        "en": "When you open a project, you land on its stakes. Your team's card comes first: it recalls why your team is involved and lists the points to prepare that the owner's answers triggered.",
+        "fr": "En ouvrant un projet, vous arrivez sur ses enjeux. La carte de votre équipe arrive en tête : elle rappelle pourquoi votre équipe est sollicitée et liste les points à préparer que les réponses du porteur ont déclenchés.",
+        "de": "Wenn Sie ein Projekt öffnen, landen Sie bei seinen Herausforderungen. Die Karte Ihres Teams steht oben: Sie erinnert daran, warum Ihr Team eingebunden ist, und listet die vorzubereitenden Punkte auf, die die Antworten des Projektverantwortlichen ausgelöst haben.",
+        "es": "Al abrir un proyecto, llega a sus retos. La tarjeta de su equipo aparece primero: recuerda por qué se solicita a su equipo y enumera los puntos que preparar que han activado las respuestas del responsable."
+      },
+      "placement": "top",
+      "highlightScope": "target",
+      "showDefaultButtons": true,
+      "actions": []
+    },
+    {
+      "id": "expert-showcase-button",
+      "target": "[data-tour-id=\"synthesis-showcase\"]",
+      "title": {
+        "en": "Start with the showcase",
+        "fr": "Commencez par la vitrine",
+        "de": "Beginnen Sie mit dem Showcase",
+        "es": "Empiece por la vitrina"
+      },
+      "content": {
+        "en": "Before going into the details, take a minute for the project showcase. It is how its owner presents it: the ambition, the audience, the team, the main milestones. It is the fastest way to understand what it is about.",
+        "fr": "Avant d’entrer dans le détail, prenez une minute pour la vitrine du projet. C’est la présentation qu’en fait son porteur : l’ambition, le public visé, l’équipe, les grandes étapes. C’est le moyen le plus rapide de comprendre de quoi il s’agit.",
+        "de": "Bevor Sie ins Detail gehen, nehmen Sie sich eine Minute für das Projekt-Showcase. So stellt der Projektverantwortliche es vor: das Ziel, die Zielgruppe, das Team, die wichtigsten Etappen. Das ist der schnellste Weg zu verstehen, worum es geht.",
+        "es": "Antes de entrar en el detalle, dedique un minuto a la vitrina del proyecto. Es la presentación que hace su responsable: la ambición, el público objetivo, el equipo, las grandes etapas. Es la forma más rápida de entender de qué se trata."
+      },
+      "placement": "bottom",
+      "highlightScope": "target",
+      "showDefaultButtons": true,
+      "actions": []
+    },
+    {
+      "id": "expert-showcase",
+      "target": "[data-tour-id=\"showcase-hero\"]",
+      "title": {
+        "en": "A first overview",
+        "fr": "Une première vue d’ensemble",
+        "de": "Ein erster Überblick",
+        "es": "Una primera visión de conjunto"
+      },
+      "content": {
+        "en": "At a glance, you see what the project wants to achieve and where it stands.",
+        "fr": "En un coup d’œil, vous voyez ce que le projet veut accomplir et où il en est.",
+        "de": "Auf einen Blick sehen Sie, was das Projekt erreichen will und wo es steht.",
+        "es": "De un vistazo, ve lo que el proyecto quiere lograr y en qué punto está."
+      },
+      "placement": "bottom",
+      "highlightScope": "target",
+      "scrollIntoViewOptions": { "behavior": "smooth", "block": "start", "inline": "nearest" },
+      "showDefaultButtons": true,
+      "actions": []
+    },
+    {
+      "id": "expert-back-to-report",
+      "target": "[data-tour-id=\"showcase-back-to-report\"]",
+      "title": {
+        "en": "Back to the stakes",
+        "fr": "Revenir aux enjeux",
+        "de": "Zurück zu den Herausforderungen",
+        "es": "Volver a los retos"
+      },
+      "content": {
+        "en": "Once you have the big picture in mind, this button takes you back to the summary and to your scope.",
+        "fr": "Une fois l’idée générale en tête, ce bouton vous ramène à la synthèse et à votre périmètre.",
+        "de": "Sobald Sie den Gesamtüberblick haben, bringt Sie diese Schaltfläche zurück zur Zusammenfassung und zu Ihrem Bereich.",
+        "es": "Una vez tenga la idea general, este botón le lleva de vuelta a la síntesis y a su ámbito."
+      },
+      "placement": "bottom",
+      "highlightScope": "target",
+      "showDefaultButtons": true,
+      "actions": []
+    },
+    {
+      "id": "expert-answers",
+      "target": "[data-tour-id=\"synthesis-overview\"]",
+      "title": {
+        "en": "All the owner's answers",
+        "fr": "Toutes les réponses du porteur",
+        "de": "Alle Antworten des Projektverantwortlichen",
+        "es": "Todas las respuestas del responsable"
+      },
+      "content": {
+        "en": "To get to the bottom of the file, the “Project owner’s answers” section holds the whole questionnaire; it opens already expanded for you. An item marked “I don't know yet” is not an answer, it is a question still open — it may well be addressed to you.",
+        "fr": "Pour aller au fond du dossier, la section « Réponses du porteur » reprend l’intégralité du questionnaire ; elle s’ouvre déjà dépliée pour vous. Un point marqué « je ne sais pas encore » n’est pas une réponse, c’est une question encore ouverte. Elle vous est peut-être adressée.",
+        "de": "Um der Akte auf den Grund zu gehen, enthält der Abschnitt „Antworten des Projektverantwortlichen“ den gesamten Fragebogen; er öffnet sich für Sie bereits aufgeklappt. Ein mit „Ich weiß es noch nicht“ markierter Punkt ist keine Antwort, sondern eine noch offene Frage. Vielleicht ist sie an Sie gerichtet.",
+        "es": "Para ir al fondo del expediente, la sección «Respuestas del responsable del proyecto» recoge todo el cuestionario; se abre ya desplegada para usted. Un punto marcado «todavía no lo sé» no es una respuesta, es una pregunta aún abierta. Quizá esté dirigida a usted."
+      },
+      "placement": "bottom",
+      "highlightScope": "target",
+      "showDefaultButtons": true,
+      "actions": []
+    },
+    {
+      "id": "expert-claim",
+      "target": "[data-tour-id=\"synthesis-team-claim\"]",
+      "title": {
+        "en": "Take charge of the project",
+        "fr": "Prendre le projet en charge",
+        "de": "Das Projekt übernehmen",
+        "es": "Hacerse cargo del proyecto"
+      },
+      "content": {
+        "en": "“I will handle it” makes you the referent of this project for your team. It then leaves your colleagues' “To review” queue, and the following exchanges are sent to you only. Publishing an opinion or setting a status also makes you the referent automatically.",
+        "fr": "« Je prends en charge » vous désigne référent de ce projet pour votre équipe. Il quitte alors la file « À traiter » de vos collègues, et les échanges suivants ne sont plus envoyés qu’à vous. Publier un avis ou poser un statut vous désigne aussi automatiquement comme référent.",
+        "de": "„Ich übernehme“ macht Sie für Ihr Team zum Ansprechpartner dieses Projekts. Es verschwindet dann aus der Liste „Zu bearbeiten“ Ihrer Kollegen, und der weitere Austausch geht nur noch an Sie. Auch das Veröffentlichen einer Stellungnahme oder das Setzen eines Status macht Sie automatisch zum Ansprechpartner.",
+        "es": "«Lo asumo» le designa referente de este proyecto para su equipo. El proyecto sale entonces de la cola «Por tratar» de sus compañeros, y los intercambios siguientes solo se le envían a usted. Publicar una opinión o fijar un estado también le designa automáticamente como referente."
+      },
+      "placement": "bottom",
+      "highlightScope": "target",
+      "showDefaultButtons": true,
+      "actions": []
+    },
+    {
+      "id": "expert-handover",
+      "target": "[data-tour-id=\"synthesis-team-claim\"]",
+      "title": {
+        "en": "Hand over",
+        "fr": "Passer la main",
+        "de": "Übergeben",
+        "es": "Pasar el relevo"
+      },
+      "content": {
+        "en": "You can no longer follow the project? “Transfer to…” hands it to a colleague from the team, who is notified by email. If the referent is away, any team member can “Take over” the project by giving a reason: nobody stays blocked.",
+        "fr": "Vous ne pouvez plus suivre le projet ? « Transférer à… » le confie à un collègue de l’équipe, qui est prévenu par e-mail. Si le référent est absent, n’importe quel membre de l’équipe peut « Reprendre » le projet en indiquant un motif : personne ne reste bloqué.",
+        "de": "Sie können das Projekt nicht mehr betreuen? „Übertragen an…“ übergibt es einem Kollegen aus dem Team, der per E-Mail benachrichtigt wird. Ist der Ansprechpartner abwesend, kann jedes Teammitglied das Projekt mit Angabe eines Grundes „Übernehmen“: Niemand bleibt blockiert.",
+        "es": "¿Ya no puede seguir el proyecto? «Transferir a…» lo confía a un compañero del equipo, que recibe un aviso por correo. Si el referente está ausente, cualquier miembro del equipo puede «Retomar» el proyecto indicando un motivo: nadie se queda bloqueado."
+      },
+      "placement": "bottom",
+      "highlightScope": "target",
+      "showDefaultButtons": true,
+      "actions": []
+    },
+    {
+      "id": "expert-followers",
+      "target": "[data-tour-id=\"synthesis-team-followers\"]",
+      "title": {
+        "en": "Keep a colleague in the loop",
+        "fr": "Garder un collègue dans la boucle",
+        "de": "Einen Kollegen auf dem Laufenden halten",
+        "es": "Mantener informado a un compañero"
+      },
+      "content": {
+        "en": "Add a team member as a follower: they also receive the project's notifications, even if someone else has taken it in charge, and they can reply or give the opinion.",
+        "fr": "Ajoutez un membre de l’équipe au suivi : il reçoit les notifications du projet même s’il est pris en charge par quelqu’un d’autre, et il peut répondre ou rendre l’avis.",
+        "de": "Fügen Sie ein Teammitglied als Beobachter hinzu: Es erhält ebenfalls die Benachrichtigungen des Projekts, auch wenn jemand anderes es übernommen hat, und kann antworten oder die Stellungnahme abgeben.",
+        "es": "Añada a un miembro del equipo al seguimiento: recibe las notificaciones del proyecto aunque otra persona se haya hecho cargo, y puede responder o emitir la opinión."
+      },
+      "placement": "bottom",
+      "highlightScope": "target",
+      "showDefaultButtons": true,
+      "actions": []
+    },
+    {
+      "id": "expert-exchange",
+      "target": "[data-tour-id=\"synthesis-team-thread\"]",
+      "title": {
+        "en": "Talk with the owner",
+        "fr": "Échanger avec le porteur",
+        "de": "Mit dem Projektverantwortlichen austauschen",
+        "es": "Intercambiar con el responsable"
+      },
+      "content": {
+        "en": "This is where the owner answers your team's points to prepare. On your side, you can ask them further questions and attach documents for them to fill in. Everything stays attached to the project, in one place, without going through email.",
+        "fr": "C’est ici que le porteur répond aux points à préparer de votre équipe. De votre côté, vous pouvez lui poser des questions supplémentaires et lui joindre des documents à compléter. Tout reste attaché au projet, au même endroit, sans passer par la messagerie.",
+        "de": "Hier beantwortet der Projektverantwortliche die vorzubereitenden Punkte Ihres Teams. Ihrerseits können Sie ihm weitere Fragen stellen und Dokumente zum Ausfüllen anhängen. Alles bleibt am Projekt, an einem Ort, ohne Umweg über E-Mails.",
+        "es": "Aquí el responsable responde a los puntos que preparar de su equipo. Por su parte, puede hacerle preguntas adicionales y adjuntarle documentos que completar. Todo queda vinculado al proyecto, en un mismo lugar, sin pasar por el correo."
+      },
+      "placement": "top",
+      "highlightScope": "target",
+      "showDefaultButtons": true,
+      "actions": []
+    },
+    {
+      "id": "expert-opinion",
+      "target": "[data-tour-id=\"synthesis-team-opinion\"]",
+      "title": {
+        "en": "Give your opinion",
+        "fr": "Rendre votre avis",
+        "de": "Ihre Stellungnahme abgeben",
+        "es": "Emitir su opinión"
+      },
+      "content": {
+        "en": "Once you have what you need, choose a status: Approved, Approved with conditions, Awaiting information, Not applicable or Rejected. Explain it in a few lines. The owner only sees your card once you have written something in it.",
+        "fr": "Une fois les éléments réunis, choisissez un statut : Validé, Validé sous conditions, En attente d’informations, Non concerné ou Refusé. Expliquez-le en quelques lignes. Le porteur ne voit votre carte qu’à partir du moment où vous y avez écrit quelque chose.",
+        "de": "Sobald Sie alles beisammen haben, wählen Sie einen Status: Genehmigt, Genehmigt unter Bedingungen, Warten auf Informationen, Nicht betroffen oder Abgelehnt. Begründen Sie ihn in wenigen Zeilen. Der Projektverantwortliche sieht Ihre Karte erst, wenn Sie etwas hineingeschrieben haben.",
+        "es": "Una vez reunidos los elementos, elija un estado: Validado, Validado con condiciones, A la espera de información, No aplica o Rechazado. Explíquelo en unas líneas. El responsable solo ve su tarjeta a partir del momento en que usted ha escrito algo en ella."
+      },
+      "placement": "top",
+      "highlightScope": "target",
+      "showDefaultButtons": true,
+      "actions": []
+    },
+    {
+      "id": "expert-preliminary-request",
+      "target": "#tour-onboarding-anchor",
+      "title": {
+        "en": "A request for a preliminary opinion",
+        "fr": "Une demande d’avis préliminaire",
+        "de": "Eine Anfrage nach einer vorläufigen Stellungnahme",
+        "es": "Una solicitud de opinión preliminar"
+      },
+      "content": {
+        "en": "An owner can call on you early, on a project still under construction: only the core questions are required, and some answers may still be “I don't know yet”. You can then give them a preliminary opinion or a first orientation: point out what to watch and the questions to prepare. It is not an approval: a favourable opinion shows as “Preliminary advice”, never as “Approved”.",
+        "fr": "Un porteur peut vous solliciter tôt, sur un projet encore en construction : seules les questions du socle sont exigées, et certaines réponses peuvent encore être « je ne sais pas encore ». Vous pouvez alors lui rendre un avis préliminaire ou une première orientation : signaler les points de vigilance et les questions à préparer. Ce n’est pas une validation : un avis favorable apparaît comme « Avis préliminaire », jamais comme « Validé ».",
+        "de": "Ein Projektverantwortlicher kann Sie früh hinzuziehen, bei einem Projekt, das noch im Aufbau ist: Nur die Kernfragen sind erforderlich, und manche Antworten können noch „Ich weiß es noch nicht“ lauten. Sie können ihm dann eine vorläufige Stellungnahme oder eine erste Orientierung geben: auf Punkte hinweisen, die Aufmerksamkeit verdienen, und auf vorzubereitende Fragen. Das ist keine Freigabe: Eine positive Stellungnahme erscheint als „Vorläufige Einschätzung“, nie als „Genehmigt“.",
+        "es": "Un responsable puede consultarle pronto, sobre un proyecto aún en construcción: solo se exigen las preguntas básicas, y algunas respuestas todavía pueden ser «todavía no lo sé». Puede entonces darle una opinión preliminar o una primera orientación: señalar los puntos de atención y las preguntas que preparar. No es una validación: una opinión favorable aparece como «Dictamen preliminar», nunca como «Validado»."
+      },
+      "placement": "bottom",
+      "highlightScope": "target",
+      "showDefaultButtons": true,
+      "actions": []
+    },
+    {
+      "id": "expert-final-request",
+      "target": "#tour-onboarding-anchor",
+      "title": {
+        "en": "A request for approval",
+        "fr": "Une demande de validation",
+        "de": "Eine Anfrage nach Freigabe",
+        "es": "Una solicitud de validación"
+      },
+      "content": {
+        "en": "Once the project is settled, the owner requests approval: every mandatory question then has a firm answer, with no “I don't know yet” left. You give a formal decision on your scope.",
+        "fr": "Quand le projet est arrêté, le porteur demande la validation : toutes les questions obligatoires ont alors une réponse ferme, sans plus aucun « je ne sais pas encore ». Vous vous prononcez formellement sur votre périmètre.",
+        "de": "Sobald das Projekt feststeht, beantragt der Projektverantwortliche die Freigabe: Alle Pflichtfragen haben dann eine feste Antwort, ohne ein einziges „Ich weiß es noch nicht“. Sie entscheiden formell über Ihren Bereich.",
+        "es": "Cuando el proyecto está cerrado, el responsable solicita la validación: todas las preguntas obligatorias tienen entonces una respuesta firme, sin ningún «todavía no lo sé». Usted se pronuncia formalmente sobre su ámbito."
+      },
+      "placement": "bottom",
+      "highlightScope": "target",
+      "showDefaultButtons": true,
+      "actions": []
+    },
+    {
+      "id": "expert-staged-consultation",
+      "target": "#tour-onboarding-anchor",
+      "title": {
+        "en": "A consultation in stages",
+        "fr": "Une consultation par étapes",
+        "de": "Eine Konsultation in Etappen",
+        "es": "Una consulta por etapas"
+      },
+      "content": {
+        "en": "For a preliminary opinion, the owner can start with some scopes only — for example the one the rest depends on — then call on the others with a corrected project. A team not yet called on receives nothing and does not see the project. As long as not every scope has been consulted, the project stays in “Partial consultation”.",
+        "fr": "Pour un avis préliminaire, le porteur peut commencer par certains périmètres seulement, par exemple celui dont dépend le reste, puis solliciter les autres sur un projet corrigé. Une équipe pas encore sollicitée ne reçoit rien et ne voit pas le projet. Tant que tous les périmètres n’ont pas été consultés, le projet reste en « Consultation partielle ».",
+        "de": "Für eine vorläufige Stellungnahme kann der Projektverantwortliche zunächst nur bestimmte Bereiche einbinden – etwa den, von dem der Rest abhängt – und die anderen dann mit einem überarbeiteten Projekt anfragen. Ein noch nicht angefragtes Team erhält nichts und sieht das Projekt nicht. Solange nicht alle Bereiche konsultiert wurden, bleibt das Projekt in „Teilweise Konsultation“.",
+        "es": "Para una opinión preliminar, el responsable puede empezar solo por algunos ámbitos, por ejemplo aquel del que depende el resto, y luego consultar a los demás con un proyecto corregido. Un equipo aún no consultado no recibe nada y no ve el proyecto. Mientras no se hayan consultado todos los ámbitos, el proyecto queda en «Consulta parcial»."
+      },
+      "placement": "bottom",
+      "highlightScope": "target",
+      "showDefaultButtons": true,
+      "actions": []
+    },
+    {
+      "id": "expert-project-evolves",
+      "target": "[data-tour-id=\"synthesis-team-review\"]",
+      "title": {
+        "en": "The project keeps evolving",
+        "fr": "Le projet continue d’évoluer",
+        "de": "Das Projekt entwickelt sich weiter",
+        "es": "El proyecto sigue evolucionando"
+      },
+      "content": {
+        "en": "After sending, the owner can still change their project. You are only notified if a change affects your scope; your opinion then shows “To review again”. Before launch, the owner can also ask you to confirm your opinion: one click on “I confirm my opinion” is enough. If you write a new opinion, it counts as a confirmation.",
+        "fr": "Après l’envoi, le porteur peut encore modifier son projet. Vous n’êtes prévenu que si une modification change ce qui concerne votre périmètre ; votre avis passe alors « À ré-examiner ». Avant le lancement, le porteur peut aussi vous demander de confirmer votre avis : un clic sur « Je confirme mon avis » suffit. Si vous rédigez un nouvel avis, il vaut confirmation.",
+        "de": "Nach dem Versand kann der Projektverantwortliche sein Projekt weiterhin ändern. Sie werden nur benachrichtigt, wenn eine Änderung Ihren Bereich betrifft; Ihre Stellungnahme steht dann auf „Erneut prüfen“. Vor dem Start kann er Sie außerdem bitten, Ihre Stellungnahme zu bestätigen: Ein Klick auf „Ich bestätige meine Stellungnahme“ genügt. Wenn Sie eine neue Stellungnahme verfassen, gilt sie als Bestätigung.",
+        "es": "Tras el envío, el responsable todavía puede modificar su proyecto. Solo recibe un aviso si una modificación cambia lo que concierne a su ámbito; su opinión pasa entonces a «Volver a examinar». Antes del lanzamiento, el responsable también puede pedirle que confirme su opinión: basta un clic en «Confirmo mi dictamen». Si redacta una nueva opinión, vale como confirmación."
+      },
+      "placement": "bottom",
+      "highlightScope": "target",
+      "showDefaultButtons": true,
+      "actions": []
+    },
+    {
+      "id": "expert-end",
+      "target": "#tour-onboarding-anchor",
+      "title": {
+        "en": "You are ready",
+        "fr": "Vous êtes prêt",
+        "de": "Sie sind bereit",
+        "es": "Está listo"
+      },
+      "content": {
+        "en": "A planned absence? Declare it in your profile (“Absence and backup”) with a backup, so that nothing stays pending. You can relaunch this tour at any time from “Interactive guide”.",
+        "fr": "Une absence prévue ? Déclarez-la dans votre profil (« Absence et suppléance ») avec un suppléant, pour que rien ne reste en attente. Vous pouvez relancer ce parcours à tout moment depuis « Guide interactif ».",
+        "de": "Eine geplante Abwesenheit? Tragen Sie sie in Ihrem Profil („Abwesenheit und Vertretung“) mit einer Vertretung ein, damit nichts liegen bleibt. Sie können diesen Rundgang jederzeit über „Interaktiver Leitfaden“ erneut starten.",
+        "es": "¿Una ausencia prevista? Declárela en su perfil («Ausencia y suplencia») con un suplente, para que nada quede pendiente. Puede volver a lanzar este recorrido en cualquier momento desde «Guía interactiva»."
+      },
+      "placement": "bottom",
+      "highlightScope": "target",
+      "showDefaultButtons": false,
+      "actions": sequenceMenuActions('create', 'validate')
     }
   ]
 };
