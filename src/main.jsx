@@ -20,6 +20,7 @@ import { installNewTabLinkRelay } from './utils/newTabLinks.js';
 import fontsCss from './styles/fonts.css?raw';
 import tailwindCss from './styles/tailwind-internal.css?raw';
 import appShellCss from './styles/app-shell.css?raw';
+import motionCss from './styles/cn-motion.css?raw';
 
 const mountedRoots = new Map();
 // Classe qui borne le reset CSS de base (voir scripts/generate-tailwind-lite.js) au conteneur.
@@ -300,6 +301,7 @@ export const mountApp = (rootElement, { webAbsoluteUrl, user, cultureName } = {}
   injectStyles('fonts', fontsCss);
   injectStyles('tailwind-internal', tailwindCss);
   injectStyles('app-shell', appShellCss);
+  injectStyles('cn-motion', motionCss);
 
   // L'état sauvegardé (IndexedDB) est lu avant le premier rendu : App.jsx et
   // applyImpersonationRequest le lisent de façon synchrone.

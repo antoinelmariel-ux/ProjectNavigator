@@ -49,6 +49,11 @@ import {
   isClaimedByOther
 } from '../utils/projectClaims.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
+import { useStableList } from '../hooks/useStableList.js';
+import { prefersReducedMotion } from '../utils/motionPreference.js';
+import { useTransientHighlight } from '../hooks/useTransientHighlight.js';
+import { CollapseItem } from './CollapseItem.jsx';
+import { ActionToast } from './ActionToast.jsx';
 import { resolveLocalizedText } from '../utils/localizedContent.js';
 import { getLocaleTag } from '../i18n/languages.js';
 import { stripRichTextToPlainText } from '../utils/richText.js';
@@ -229,6 +234,9 @@ const getProjectFilterValue = (field, project) => {
 
   return formatAnswerValue(directValue);
 };
+
+const getProjectId = (project) => project?.id;
+const getComplianceEntryId = (entry) => entry?.project?.id;
 
 const getProjectTimestamp = (project) => {
   if (!project) {
@@ -497,8 +505,13 @@ export const HomeScreen = ({
   const [inspirationFiltersState, setInspirationFiltersState] = useState(() =>
     buildInitialFiltersState(normalizedInspirationFilters)
   );
-  const [projectPage, setProjectPage] = useState(1);
   const [duplicationNotice, setDuplicationNotice] = useState(null);
+  const [highlightedProjectId, flashProject] = useTransientHighlight();
+  const [toast, setToast] = useState(null);
+  const showToast = useCallback((message, actions = []) => {
+    setToast({ id: `${Date.now()}-${Math.random()}`, message, actions });
+  }, []);
+  const dismissToast = useCallback(() => setToast(null), []);
   const [projectSearch, setProjectSearch] = useState('');
   const [inspirationPage, setInspirationPage] = useState(1);
   const [submittedProjectsPage, setSubmittedProjectsPage] = useState(1);
@@ -557,6 +570,11 @@ export const HomeScreen = ({
     setIsTrashOpen(false);
     setTrashPurgeTargetId(null);
   }, []);
+  const { items: stableTrashProjects, isLeaving: isTrashProjectLeaving } = useStableList(ownerTrashProjects, {
+    getId: getProjectId,
+    resetKey: 'trash',
+    animateLeave: true
+  });
 
   const teamProjectEntries = useMemo(
     () => selectTeamProjects(projects, reportingHierarchy?.people, currentUserEmail, teamVisibility),
@@ -893,6 +911,19 @@ export const HomeScreen = ({
         ? teammateHandledComplianceProjects
         : pendingComplianceProjects;
 
+  // Prendre en charge, libérer ou transférer un projet réécrit sa date de mise à jour : trié
+  // dessus, il bondirait en tête de liste, souvent hors de l'écran. L'ordre est donc figé
+  // tant qu'on reste sur l'onglet, et un projet qui change vraiment d'onglet se replie.
+  const { items: stableComplianceProjects, isLeaving: isComplianceProjectLeaving } = useStableList(
+    displayedComplianceProjects,
+    { getId: getComplianceEntryId, resetKey: complianceProjectsView, animateLeave: true }
+  );
+  // « Voir » d'une notification : on amène la carte à l'écran une fois qu'elle est rendue (après
+  // un changement d'onglet ou de page), puis on la signale d'un halo. Abandon au bout de 2,5 s
+  // pour ne pas faire défiler la page plus tard, sans rapport avec le clic.
+  const [pendingReveal, setPendingReveal] = useState(null);
+  const [projectPage, setProjectPage] = useState(1);
+
 
   // Revendiquer et libérer sont des gestes à un clic (réversibles, peu risqués) ; reprendre
   // passe par une modale, parce qu'une reprise notifie la personne dépossédée et doit dire
@@ -908,14 +939,16 @@ export const HomeScreen = ({
       return;
     }
     onPerimeterClaimAction(projectId, perimeter.id, CLAIM_ACTION_CLAIM);
-  }, [onPerimeterClaimAction]);
+    flashProject(projectId);
+  }, [flashProject, onPerimeterClaimAction]);
 
   const handleReleasePerimeter = useCallback((projectId, perimeter) => {
     if (typeof onPerimeterClaimAction !== 'function') {
       return;
     }
     onPerimeterClaimAction(projectId, perimeter.id, CLAIM_ACTION_RELEASE);
-  }, [onPerimeterClaimAction]);
+    flashProject(projectId);
+  }, [flashProject, onPerimeterClaimAction]);
 
   const handleOpenClaimTakeover = useCallback((projectEntry, perimeter) => {
     setClaimTakeoverReason(CLAIM_REASONS[0]);
@@ -935,12 +968,39 @@ export const HomeScreen = ({
       return;
     }
 
-    onPerimeterClaimAction(claimTakeoverTarget.projectId, claimTakeoverTarget.teamId, CLAIM_ACTION_TAKEOVER, {
+    const { projectId, projectName } = claimTakeoverTarget;
+    onPerimeterClaimAction(projectId, claimTakeoverTarget.teamId, CLAIM_ACTION_TAKEOVER, {
       reason: claimTakeoverReason,
       reasonNote: claimTakeoverNote.trim()
     });
     setClaimTakeoverTarget(null);
-  }, [claimTakeoverNote, claimTakeoverReason, claimTakeoverTarget, onPerimeterClaimAction]);
+
+    // Repris depuis « Pris en charge par un collègue », le projet change d'onglet : on le dit et
+    // on offre de l'y suivre plutôt que de laisser croire qu'il a disparu.
+    if (complianceProjectsView === 'pending') {
+      flashProject(projectId);
+      return;
+    }
+    showToast(
+      t('home.feedback.takenOver', { name: projectName || t('home.projectNameFallback') }),
+      [{
+        label: t('home.feedback.viewInPending'),
+        onClick: () => {
+          setComplianceProjectsView('pending');
+          setPendingReveal({ domId: `compliance-project-${projectId}`, projectId });
+        }
+      }]
+    );
+  }, [
+    claimTakeoverNote,
+    claimTakeoverReason,
+    claimTakeoverTarget,
+    complianceProjectsView,
+    flashProject,
+    onPerimeterClaimAction,
+    showToast,
+    t
+  ]);
 
   const handleReintegrateInCommittee = useCallback((projectEntry) => {
     if (!projectEntry || typeof onReintegrateProjectInCommittee !== 'function') {
@@ -1018,9 +1078,24 @@ export const HomeScreen = ({
       return;
     }
 
-    onDeleteProject(deleteDialogState.project.id);
+    const deletedProject = deleteDialogState.project;
+    onDeleteProject(deletedProject.id);
     closeDeleteDialog();
-  }, [closeDeleteDialog, deleteDialogState.project, onDeleteProject]);
+
+    // Le projet part dans la corbeille (rien n'est effacé) : on le dit et on rend le geste réversible.
+    const trashActions = [];
+    if (typeof onRestoreProject === 'function') {
+      trashActions.push({
+        label: t('home.feedback.undo'),
+        onClick: () => onRestoreProject(deletedProject.id)
+      });
+    }
+    trashActions.push({ label: t('home.feedback.openTrash'), onClick: () => setIsTrashOpen(true) });
+    showToast(
+      t('home.feedback.trashed', { name: stripRichTextToPlainText(deletedProject.projectName) || t('home.projectNameFallback') }),
+      trashActions
+    );
+  }, [closeDeleteDialog, deleteDialogState.project, onDeleteProject, onRestoreProject, showToast, t]);
 
   const closeCancelSubmissionDialog = useCallback(() => {
     setCancelSubmissionDialogState({ isOpen: false, project: null });
@@ -1053,9 +1128,14 @@ export const HomeScreen = ({
       return;
     }
 
-    onCancelProjectSubmission(cancelSubmissionDialogState.project.id);
+    const cancelledProject = cancelSubmissionDialogState.project;
+    onCancelProjectSubmission(cancelledProject.id);
     closeCancelSubmissionDialog();
-  }, [closeCancelSubmissionDialog, cancelSubmissionDialogState.project, onCancelProjectSubmission]);
+    flashProject(cancelledProject.id);
+    showToast(t('home.feedback.submissionCancelled', {
+      name: stripRichTextToPlainText(cancelledProject.projectName) || t('home.projectNameFallback')
+    }));
+  }, [cancelSubmissionDialogState.project, closeCancelSubmissionDialog, flashProject, onCancelProjectSubmission, showToast, t]);
 
   const handleDuplicateProjectWithFeedback = useCallback((projectId) => {
     if (typeof onDuplicateProject !== 'function') {
@@ -1596,16 +1676,76 @@ export const HomeScreen = ({
     () => filteredInspirationProjects.filter((project) => project?.visibility === 'shared'),
     [filteredInspirationProjects]
   );
+  // L'ordre calculé (brouillons d'abord, puis date) ne s'applique qu'à l'arrivée et quand le
+  // filtre, la recherche ou le tri changent : une carte sur laquelle on vient de cliquer ne
+  // saute ni en tête de liste ni sur une autre page.
+  const projectListResetKey = useMemo(
+    () => JSON.stringify([filtersState, projectSearch]),
+    [filtersState, projectSearch]
+  );
+  const { items: stableProjects, isLeaving: isProjectLeaving } = useStableList(filteredProjects, {
+    getId: getProjectId,
+    resetKey: projectListResetKey,
+    animateLeave: true
+  });
+  const { items: stableSubmittedProjects, isLeaving: isSubmittedProjectLeaving } = useStableList(submittedProjects, {
+    getId: getProjectId,
+    resetKey: 'submitted',
+    animateLeave: true
+  });
   const totalProjectPages = Math.max(1, Math.ceil(filteredProjects.length / PROJECTS_PAGE_SIZE));
   const paginatedProjects = useMemo(() => {
     const offset = (projectPage - 1) * PROJECTS_PAGE_SIZE;
-    return filteredProjects.slice(offset, offset + PROJECTS_PAGE_SIZE);
-  }, [filteredProjects, projectPage]);
+    return stableProjects.slice(offset, offset + PROJECTS_PAGE_SIZE);
+  }, [stableProjects, projectPage]);
   const totalSubmittedProjectPages = Math.max(1, Math.ceil(submittedProjects.length / PROJECTS_PAGE_SIZE));
   const paginatedSubmittedProjects = useMemo(() => {
     const offset = (submittedProjectsPage - 1) * PROJECTS_PAGE_SIZE;
-    return submittedProjects.slice(offset, offset + PROJECTS_PAGE_SIZE);
-  }, [submittedProjects, submittedProjectsPage]);
+    return stableSubmittedProjects.slice(offset, offset + PROJECTS_PAGE_SIZE);
+  }, [stableSubmittedProjects, submittedProjectsPage]);
+  useEffect(() => {
+    if (!pendingReveal) {
+      return undefined;
+    }
+    const element = typeof document !== 'undefined' ? document.getElementById(pendingReveal.domId) : null;
+    if (element) {
+      if (typeof element.scrollIntoView === 'function') {
+        element.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'center' });
+      }
+      flashProject(pendingReveal.projectId);
+      setPendingReveal(null);
+      return undefined;
+    }
+    const timerId = window.setTimeout(() => setPendingReveal(null), 2500);
+    return () => window.clearTimeout(timerId);
+  }, [flashProject, pendingReveal, complianceProjectsView, stableComplianceProjects, paginatedProjects]);
+
+  const revealProjectCard = useCallback((projectId) => {
+    const index = stableProjects.findIndex((project) => project?.id === projectId);
+    if (index >= 0) {
+      setProjectPage(Math.floor(index / PROJECTS_PAGE_SIZE) + 1);
+    }
+    setPendingReveal({ domId: `project-card-${projectId}`, projectId });
+  }, [stableProjects]);
+
+  const handleRestoreFromTrash = useCallback((project) => {
+    if (!project?.id || typeof onRestoreProject !== 'function') {
+      return;
+    }
+    onRestoreProject(project.id);
+    showToast(
+      t('home.feedback.restored', { name: stripRichTextToPlainText(project.projectName) || t('home.projectNameFallback') }),
+      [{
+        label: t('home.feedback.view'),
+        onClick: () => {
+          setIsTrashOpen(false);
+          setTrashPurgeTargetId(null);
+          revealProjectCard(project.id);
+        }
+      }]
+    );
+  }, [onRestoreProject, revealProjectCard, showToast, t]);
+
   const totalPublicProjectPages = Math.max(1, Math.ceil(otherPublicProjects.length / PROJECTS_PAGE_SIZE));
   const paginatedOtherPublicProjects = useMemo(() => {
     const offset = (publicProjectsPage - 1) * PROJECTS_PAGE_SIZE;
@@ -1891,7 +2031,7 @@ export const HomeScreen = ({
     setInspirationFiltersState(buildInitialFiltersState(normalizedInspirationFilters));
   };
 
-  const renderProjectCard = (project, { teamEntry = null } = {}) => {
+  const renderProjectCard = (project, { teamEntry = null, isLeaving = false } = {}) => {
     // Une carte « Mon équipe » est une carte de consultation : le manager n'est ni porteur ni
     // co-porteur, aucune action d'écriture n'a donc à y figurer, même pour un administrateur.
     const isTeamCard = Boolean(teamEntry);
@@ -1977,8 +2117,8 @@ export const HomeScreen = ({
       .join('');
 
     return (
+      <CollapseItem key={project.id} isLeaving={isLeaving}>
       <article
-        key={project.id}
         id={`project-card-${project.id}`}
         className={`border rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all ${
           isTeamCard
@@ -1986,8 +2126,7 @@ export const HomeScreen = ({
             : duplicationNotice?.id === project.id
               ? 'bg-blue-50 border-blue-200'
               : 'bg-white border-gray-200'
-        }`}
-        role="listitem"
+        }${highlightedProjectId === project.id ? ' cn-halo' : ''}`}
         aria-label={isTeamCard
           ? t('home.team.cardAriaLabel', { name: displayProjectName || t('home.projectNameFallback'), owner: teamOwnerName })
           : t('home.projectAriaLabel', { name: displayProjectName || t('home.projectNameFallback') })}
@@ -2093,7 +2232,10 @@ export const HomeScreen = ({
               {canToggleVisibility && (
                 <button
                   type="button"
-                  onClick={() => onToggleProjectVisibility(project.id)}
+                  onClick={() => {
+                    onToggleProjectVisibility(project.id);
+                    flashProject(project.id);
+                  }}
                   className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
                   aria-label={t(isPubliclyVisible ? 'home.hideFromAllAriaLabel' : 'home.makeVisibleToAllAriaLabel', { name: project.projectName || t('home.projectNameFallback') })}
                   title={t(isPubliclyVisible ? 'home.hideFromAllTitle' : 'home.makeVisibleToAllTitle')}
@@ -2255,6 +2397,7 @@ export const HomeScreen = ({
           )}
         </div>
       </article>
+      </CollapseItem>
     );
   };
 
@@ -2404,7 +2547,7 @@ export const HomeScreen = ({
               ]}
             />
 
-            {displayedComplianceProjects.length === 0 ? (
+            {stableComplianceProjects.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-blue-200 bg-blue-50/40 p-5 text-sm text-gray-600">
                 {complianceProjectsView === 'pending'
                   ? t('home.noPendingTriggered')
@@ -2418,7 +2561,7 @@ export const HomeScreen = ({
               </div>
             ) : (
               <div className="space-y-3" role="list" aria-label={t('home.triggeredListAriaLabel')}>
-                {displayedComplianceProjects.map((projectEntry) => {
+                {stableComplianceProjects.map((projectEntry) => {
                   const { project, triggeredPerimeters, allValidated } = projectEntry;
                   // Les actions de prise en charge ne portent que sur les périmètres « équipe »
                   // encore ouverts : un comité n'est pas revendicable, un périmètre déjà traité
@@ -2426,10 +2569,13 @@ export const HomeScreen = ({
                   const claimablePerimeters = (projectEntry.openPerimeters || [])
                     .filter((perimeter) => perimeter.type === 'team');
                   return (
-                    <article
+                    <CollapseItem
                       key={`compliance-trigger-${project.id}`}
-                      className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
-                      role="listitem"
+                      isLeaving={isComplianceProjectLeaving(project.id)}
+                    >
+                    <article
+                      id={`compliance-project-${project.id}`}
+                      className={`rounded-2xl border border-gray-200 bg-white p-4 shadow-sm${highlightedProjectId === project.id ? ' cn-halo' : ''}`}
                     >
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="space-y-2">
@@ -2579,6 +2725,7 @@ export const HomeScreen = ({
                         </div>
                       </div>
                     </article>
+                    </CollapseItem>
                   );
                 })}
               </div>
@@ -2883,7 +3030,7 @@ export const HomeScreen = ({
               {hasFilteredProjects ? (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6" role="list">
-                    {paginatedProjects.map(project => renderProjectCard(project))}
+                    {paginatedProjects.map(project => renderProjectCard(project, { isLeaving: isProjectLeaving(project.id) }))}
                   </div>
                   <PaginationControls
                     page={projectPage}
@@ -2928,7 +3075,7 @@ export const HomeScreen = ({
                 {hasSubmittedProjects ? (
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6" role="list">
-                      {paginatedSubmittedProjects.map((project) => renderProjectCard(project))}
+                      {paginatedSubmittedProjects.map((project) => renderProjectCard(project, { isLeaving: isSubmittedProjectLeaving(project.id) }))}
                     </div>
                     <PaginationControls
                       page={submittedProjectsPage}
@@ -3303,13 +3450,13 @@ export const HomeScreen = ({
               </button>
             </div>
 
-            {ownerTrashProjects.length === 0 ? (
+            {stableTrashProjects.length === 0 ? (
               <div className="mt-5 rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-5 text-sm text-gray-600">
                 {t('home.trash.empty')}
               </div>
             ) : (
-              <ul className="mt-5 space-y-3 overflow-y-auto" aria-label={t('home.trash.listAriaLabel')}>
-                {ownerTrashProjects.map((project) => {
+              <div className="mt-5 space-y-3 overflow-y-auto" role="list" aria-label={t('home.trash.listAriaLabel')}>
+                {stableTrashProjects.map((project) => {
                   const projectName = project.projectName || t('home.projectNameFallback');
                   const deletedAt = getProjectTrashEntry(project)?.deletedAt;
                   const isPurgeTarget = trashPurgeTargetId === project.id;
@@ -3317,8 +3464,8 @@ export const HomeScreen = ({
                     ? canPermanentlyDeleteProject(project)
                     : true;
                   return (
-                    <li
-                      key={`trash-${project.id}`}
+                    <CollapseItem key={`trash-${project.id}`} isLeaving={isTrashProjectLeaving(project.id)}>
+                    <div
                       className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
                       data-testid="home-trash-item"
                     >
@@ -3341,7 +3488,7 @@ export const HomeScreen = ({
                           <div className="flex shrink-0 flex-wrap items-center gap-2">
                             <button
                               type="button"
-                              onClick={() => onRestoreProject?.(project.id)}
+                              onClick={() => handleRestoreFromTrash(project)}
                               className="inline-flex items-center gap-1 rounded-lg border border-blue-200 px-3 py-1.5 text-sm font-semibold text-blue-700 hover:bg-blue-50"
                             >
                               <Undo className="h-4 w-4" aria-hidden="true" />
@@ -3387,10 +3534,11 @@ export const HomeScreen = ({
                           </div>
                         </div>
                       )}
-                    </li>
+                    </div>
+                    </CollapseItem>
                   );
                 })}
-              </ul>
+              </div>
             )}
           </div>
         </div>
@@ -3500,6 +3648,7 @@ export const HomeScreen = ({
           </div>
         </div>
       )}
+      <ActionToast toast={toast} onDismiss={dismissToast} />
     </div>
   );
 };

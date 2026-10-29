@@ -1,5 +1,9 @@
 export default {
   common: {
+    feedback: {
+      dismiss: 'Dismiss notification',
+      movedPosition: 'Moved to position {{position}} of {{total}}'
+    },
     peoplePicker: {
       searchPlaceholder: 'Search by name or email…',
       searching: 'Searching…',
@@ -339,6 +343,16 @@ export default {
     save: 'Save'
   },
   home: {
+    feedback: {
+      undo: 'Undo',
+      view: 'View',
+      viewInPending: 'View in “To review”',
+      openTrash: 'Open the trash',
+      takenOver: 'You took over “{{name}}”. It is now in “To review”.',
+      trashed: '“{{name}}” was moved to the trash.',
+      restored: '“{{name}}” was restored.',
+      submissionCancelled: 'The submission of “{{name}}” was cancelled. You will find it among your drafts.'
+    },
     team: {
       emptyBodyWithDrafts: 'Projects will show up here as soon as their owners create them.',
       draftsIncludedNotice: 'Drafts still being written are shown as well.',
@@ -2308,6 +2322,7 @@ export default {
     uploadFailedMessage: 'Could not upload the document.',
     uploadingLabel: 'Uploading file…',
     commentSavedMessage: 'Comment saved.',
+    projectTreatedMessage: 'You have given your position on your last open perimeter: the project now moves to “Reviewed” on your home screen.',
     teamAcceptedLanguagesNoticeTemplate: 'This team only replies in the following languages: {{languages}}. Please use one of them for your message.',
     committeeAcceptedLanguagesNoticeTemplate: 'This committee only replies in the following languages: {{languages}}. Please use one of them for your message.',
     commentClearedMessage: 'Comment cleared.',

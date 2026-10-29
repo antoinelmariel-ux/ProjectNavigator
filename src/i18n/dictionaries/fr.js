@@ -1,5 +1,9 @@
 export default {
   common: {
+    feedback: {
+      dismiss: 'Fermer la notification',
+      movedPosition: 'Déplacé en position {{position}} sur {{total}}'
+    },
     peoplePicker: {
       searchPlaceholder: 'Rechercher un nom ou un e-mail…',
       searching: 'Recherche en cours…',
@@ -341,6 +345,16 @@ export default {
     save: 'Valider'
   },
   home: {
+    feedback: {
+      undo: 'Annuler',
+      view: 'Voir',
+      viewInPending: 'Voir dans « À traiter »',
+      openTrash: 'Ouvrir la corbeille',
+      takenOver: 'Vous avez repris « {{name}} ». Il est maintenant dans « À traiter ».',
+      trashed: '« {{name}} » a été mis à la corbeille.',
+      restored: '« {{name}} » a été restauré.',
+      submissionCancelled: 'La soumission de « {{name}} » est annulée. Retrouvez-le parmi vos brouillons.'
+    },
     team: {
       emptyBodyWithDrafts: 'Les projets apparaîtront ici dès que leurs porteurs les auront créés.',
       draftsIncludedNotice: 'Les brouillons en cours de rédaction sont également affichés.',
@@ -2317,6 +2331,7 @@ export default {
     uploadFailedMessage: 'Dépôt du document impossible.',
     uploadingLabel: 'Dépôt du fichier en cours…',
     commentSavedMessage: 'Commentaire enregistré.',
+    projectTreatedMessage: 'Vous avez pris position sur votre dernier périmètre ouvert : le projet passe dans « Traités » sur votre accueil.',
     teamAcceptedLanguagesNoticeTemplate: 'Cette équipe échange uniquement dans les langues suivantes : {{languages}}. Merci d’utiliser l’une d’elles pour votre message.',
     committeeAcceptedLanguagesNoticeTemplate: 'Ce comité échange uniquement dans les langues suivantes : {{languages}}. Merci d’utiliser l’une d’elles pour votre message.',
     commentClearedMessage: 'Commentaire effacé.',

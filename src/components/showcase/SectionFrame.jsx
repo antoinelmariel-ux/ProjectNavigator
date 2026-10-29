@@ -57,6 +57,7 @@ export const SectionFrame = ({
       className={className}
       data-sge-section-id={sectionId}
       data-sge-section-index={index}
+      data-reorder-sge-key={sectionId}
       onClick={() => onSelect(sectionId)}
       onKeyDown={(event) => {
         if (event.target !== event.currentTarget) {
@@ -128,6 +129,7 @@ export const SectionFrame = ({
             type="button"
             className="sge-frame__tool"
             disabled={index === 0}
+            data-reorder-sge-action="up"
             aria-label={t('projectShowcase.editor.sectionMoveUp')}
             title={t('projectShowcase.editor.sectionMoveUp')}
             onClick={stop(() => onMove(index, index - 1))}
@@ -138,6 +140,7 @@ export const SectionFrame = ({
             type="button"
             className="sge-frame__tool"
             disabled={index >= total - 1}
+            data-reorder-sge-action="down"
             aria-label={t('projectShowcase.editor.sectionMoveDown')}
             title={t('projectShowcase.editor.sectionMoveDown')}
             onClick={stop(() => onMove(index, index + 2))}

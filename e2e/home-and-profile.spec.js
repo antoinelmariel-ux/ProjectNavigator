@@ -15,6 +15,8 @@ test.describe('HomeScreen : CRUD projet', () => {
     await page.locator('button[aria-label*="Dupliquer le projet"]').first().click();
     const projectCountAfterDuplicate = await page.getByText('Projet e2e Home CRUD').count();
     expect(projectCountAfterDuplicate).toBeGreaterThan(1);
+    const cardCountAfterDuplicate = await page.locator('article[id^="project-card-"]')
+      .filter({ hasText: 'Projet e2e Home CRUD' }).count();
 
     // Annuler une suppression ne doit rien changer.
     await page.locator('button[aria-label*="Supprimer le projet"]').first().click();
@@ -25,7 +27,10 @@ test.describe('HomeScreen : CRUD projet', () => {
     // Confirmer une suppression met le projet à la corbeille : il quitte la liste.
     await page.locator('button[aria-label*="Supprimer le projet"]').first().click();
     await page.getByRole('button', { name: 'Mettre à la corbeille' }).click();
-    expect(await page.getByText('Projet e2e Home CRUD').count()).toBe(projectCountAfterDuplicate - 1);
+    // La carte se replie en ~280 ms et la notification de corbeille cite le nom du projet : on
+    // compte donc les cartes, avec attente, et non le texte brut.
+    await expect(page.locator('article[id^="project-card-"]').filter({ hasText: 'Projet e2e Home CRUD' }))
+      .toHaveCount(cardCountAfterDuplicate - 1);
     expect(errors).toEqual([]);
   });
 });

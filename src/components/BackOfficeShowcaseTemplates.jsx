@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect, useMemo, useState } from '../react.js';
+import React, { Suspense, useCallback, useEffect, useMemo, useState } from '../react.js';
 import { getLocalizedRaw, resolveLocalizedText, setLocalizedText } from '../utils/localizedContent.js';
 import { SHOWCASE_SECTION_IDS } from '../utils/showcaseEditor.js';
 import {
@@ -17,6 +17,7 @@ import { LazyProjectShowcase, LoadingFallback } from '../lazyComponents.jsx';
 import { ConditionGroupsEditor } from './ConditionGroupsEditor.jsx';
 import { LanguageEditSwitcher } from './LocalizedFieldEditor.jsx';
 import { ShowcaseTemplateStudio } from './ShowcaseTemplateStudio.jsx';
+import { useReorderFeedback } from '../hooks/useReorderFeedback.js';
 import {
   TemplateSectionSettings,
   buildFictiveShowcaseAnswers,
@@ -114,6 +115,14 @@ export const BackOfficeShowcaseTemplates = ({
   const [previewTemplateId, setPreviewTemplateId] = useState(null);
   const [studioTemplateId, setStudioTemplateId] = useState(null);
   const normalizedTemplates = useMemo(() => normalizeShowcaseTemplates(templates), [templates]);
+  const templateReorder = useReorderFeedback('template');
+  const sectionReorder = useReorderFeedback('section');
+  const templateContainerRef = templateReorder.containerRef;
+  const sectionContainerRef = sectionReorder.containerRef;
+  const setReorderContainer = useCallback((element) => {
+    templateContainerRef.current = element;
+    sectionContainerRef.current = element;
+  }, [templateContainerRef, sectionContainerRef]);
   const helpers = buildTemplateQuestionHelpers(questions, language, t);
   const { conditionQuestions } = helpers;
   const previewTemplate = previewTemplateId
@@ -145,7 +154,26 @@ export const BackOfficeShowcaseTemplates = ({
   };
 
   const handleMoveTemplate = (index, delta) => {
+    const list = normalizedTemplates;
+    const moved = list[index];
+    const target = index + delta;
+    if (moved && target >= 0 && target < list.length) {
+      templateReorder.prepareMove(moved.id, {
+        announce: t('common.feedback.movedPosition', { position: target + 1, total: list.length })
+      });
+    }
     setTemplates((previous) => moveItem(normalizeShowcaseTemplates(previous), index, delta));
+  };
+
+  const handleMoveSection = (template, index, delta) => {
+    const moved = template.sections[index];
+    const target = index + delta;
+    if (moved && target >= 0 && target < template.sections.length) {
+      sectionReorder.prepareMove(`${template.id}:${moved.kind}-${moved.id}`, {
+        announce: t('common.feedback.movedPosition', { position: target + 1, total: template.sections.length })
+      });
+    }
+    updateSections(template.id, (sections) => moveItem(sections, index, delta));
   };
 
   // L'atelier remplace la liste plutôt que de la recouvrir : les deux rendraient les mêmes
@@ -201,7 +229,10 @@ export const BackOfficeShowcaseTemplates = ({
               {t('backOffice.showcaseTemplates.empty')}
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-4" ref={setReorderContainer}>
+              <span className="sr-only" role="status" aria-live="polite">
+                {templateReorder.announcement || sectionReorder.announcement}
+              </span>
               {normalizedTemplates.map((template, templateIndex) => {
                 const usedBuiltIns = new Set(
                   template.sections.filter((entry) => entry.kind === 'builtin').map((entry) => entry.id)
@@ -215,6 +246,7 @@ export const BackOfficeShowcaseTemplates = ({
                     key={template.id}
                     className="space-y-5 rounded-xl border border-gray-200 bg-gray-50 p-4 shadow-sm"
                     data-testid="showcase-template-card"
+                    data-reorder-template-key={template.id}
                   >
                     <div className="flex flex-col gap-3 md:flex-row md:items-end">
                       <div className="flex-1">
@@ -252,6 +284,7 @@ export const BackOfficeShowcaseTemplates = ({
                       <div className="flex gap-2">
                         <button
                           type="button"
+                          data-reorder-template-action="up"
                           onClick={() => handleMoveTemplate(templateIndex, -1)}
                           disabled={templateIndex === 0}
                           aria-label={t('backOffice.showcaseTemplates.moveTemplateUp')}
@@ -262,6 +295,7 @@ export const BackOfficeShowcaseTemplates = ({
                         </button>
                         <button
                           type="button"
+                          data-reorder-template-action="down"
                           onClick={() => handleMoveTemplate(templateIndex, 1)}
                           disabled={templateIndex === normalizedTemplates.length - 1}
                           aria-label={t('backOffice.showcaseTemplates.moveTemplateDown')}
@@ -319,6 +353,7 @@ export const BackOfficeShowcaseTemplates = ({
                               data-testid="showcase-template-section"
                               data-section-kind={entry.kind}
                               data-section-id={entry.id}
+                              data-reorder-section-key={`${template.id}:${rowKey}`}
                             >
                               <div className="flex flex-wrap items-center gap-2">
                                 <span
@@ -338,7 +373,8 @@ export const BackOfficeShowcaseTemplates = ({
                                 )}
                                 <button
                                   type="button"
-                                  onClick={() => updateSections(template.id, (sections) => moveItem(sections, index, -1))}
+                                  data-reorder-section-action="up"
+                                  onClick={() => handleMoveSection(template, index, -1)}
                                   disabled={index === 0}
                                   aria-label={t('backOffice.showcaseTemplates.moveUp')}
                                   title={t('backOffice.showcaseTemplates.moveUp')}
@@ -348,7 +384,8 @@ export const BackOfficeShowcaseTemplates = ({
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => updateSections(template.id, (sections) => moveItem(sections, index, 1))}
+                                  data-reorder-section-action="down"
+                                  onClick={() => handleMoveSection(template, index, 1)}
                                   disabled={index === template.sections.length - 1}
                                   aria-label={t('backOffice.showcaseTemplates.moveDown')}
                                   title={t('backOffice.showcaseTemplates.moveDown')}

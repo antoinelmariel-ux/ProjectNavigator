@@ -5,6 +5,7 @@ import { getLocalizedRaw, setLocalizedText } from '../utils/localizedContent.js'
 import { createFaqEntry, getFaqTranslationGaps } from '../utils/faqEntries.js';
 import { RichTextEditor } from './RichTextEditor.jsx';
 import { LanguageEditSwitcher } from './LocalizedFieldEditor.jsx';
+import { useReorderFeedback } from '../hooks/useReorderFeedback.js';
 
 const SAVE_DEBOUNCE_MS = 800;
 const ORDER_STEP = 1000;
@@ -23,6 +24,7 @@ export const BackOfficeFaq = ({
 }) => {
   const [editingLanguage, setEditingLanguage] = useState(DEFAULT_LANGUAGE);
   const entriesRef = useRef(entries);
+  const { containerRef: listRef, prepareMove, announcement } = useReorderFeedback();
   const timersRef = useRef(new Map());
   entriesRef.current = entries;
 
@@ -120,6 +122,9 @@ export const BackOfficeFaq = ({
     const next = list.slice();
     next[index] = neighbour;
     next[target] = current;
+    prepareMove(current.id, {
+      announce: t('common.feedback.movedPosition', { position: target + 1, total: list.length })
+    });
     entriesRef.current = next;
     setEntries(next);
     flushEntry(current.id);
@@ -171,7 +176,8 @@ export const BackOfficeFaq = ({
         {categorySuggestions.map((label) => <option key={label} value={label} />)}
       </datalist>
 
-      <ol className="space-y-4">
+      <span className="sr-only" role="status" aria-live="polite">{announcement}</span>
+      <ol className="space-y-4" ref={listRef}>
         {entries.map((entry, index) => {
           const gaps = getFaqTranslationGaps(entry);
           return (
@@ -179,6 +185,7 @@ export const BackOfficeFaq = ({
               key={entry.id}
               className="space-y-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
               data-faq-id={entry.id}
+              data-reorder-key={entry.id}
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
@@ -195,6 +202,7 @@ export const BackOfficeFaq = ({
                   </label>
                   <button
                     type="button"
+                    data-reorder-action="up"
                     onClick={() => handleMove(index, -1)}
                     disabled={index === 0}
                     aria-label={t('backOffice.faq.moveUp')}
@@ -204,6 +212,7 @@ export const BackOfficeFaq = ({
                   </button>
                   <button
                     type="button"
+                    data-reorder-action="down"
                     onClick={() => handleMove(index, 1)}
                     disabled={index === entries.length - 1}
                     aria-label={t('backOffice.faq.moveDown')}

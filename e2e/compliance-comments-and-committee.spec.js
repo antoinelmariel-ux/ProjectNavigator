@@ -80,6 +80,9 @@ test.describe('Commentaires experts, réponses et validation par équipe', () =>
     await page.locator('[id^="compliance-comment-"][contenteditable="true"]').first().click();
     await page.keyboard.type('RAS, validé.');
     await page.getByRole('button', { name: 'Enregistrer le commentaire' }).click();
+    // Là où l'expert vient de cliquer, on lui dit que le projet change de file : il ne doit pas le
+    // découvrir en revenant sur l'accueil.
+    await expect(page.getByText(/dernier périmètre ouvert : le projet passe dans « Traités »/)).toBeVisible();
     await page.waitForTimeout(300);
 
     await page.getByRole('button', { name: /Retourner à l.accueil des projets/ }).click();

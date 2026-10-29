@@ -108,8 +108,13 @@ test.describe('Feuille de route — remise en ordre chronologique', () => {
     await descriptionAt(1).fill('Généralisation');
 
     await addMilestone.click();
-    // Antérieur aux deux précédents : il doit remonter en tête, tout seul.
+    // Antérieur aux deux précédents : il remonte en tête, mais une fois la date validée seulement.
+    // Pendant la saisie il reste dans le champ qu'on tape : replacé à chaque frappe, il laisserait
+    // le focus dans le champ d'un autre jalon.
     await dateAt(2).fill('2025-11-20');
+    await expect(dateAt(2)).toHaveValue('2025-11-20');
+    await expect(dateAt(0)).toHaveValue('2026-04-01');
+    await dateAt(2).press('Enter');
     await expect(dateAt(0)).toHaveValue('2025-11-20');
     await descriptionAt(0).fill('Étude');
 
