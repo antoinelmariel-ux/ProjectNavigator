@@ -4,6 +4,7 @@ import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { normalizeEmail } from '../utils/normalizeEmail.js';
 import { stripRichTextToPlainText } from '../utils/richText.js';
 import { summarizeTeamBranches } from '../utils/reportingHierarchy.js';
+import { useStableList } from '../hooks/useStableList.js';
 
 const PAGE_SIZE = 12;
 const ATTENTION_VALIDATION_STATUSES = new Set(['rejected', 'outdated']);
@@ -14,6 +15,8 @@ const CHIP_ACTIVE = 'border-indigo-600 bg-indigo-600 text-white';
 const CHIP_IDLE = 'border-indigo-200 bg-white text-indigo-700 hover:bg-indigo-50';
 const ATTENTION_CHIP_ACTIVE = 'border-amber-600 bg-amber-600 text-white';
 const ATTENTION_CHIP_IDLE = 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100';
+
+const getEntryId = (entry) => entry?.project?.id;
 
 const getEntryTimestamp = (entry) => {
   const value = Date.parse(entry?.project?.lastUpdated || entry?.project?.submittedAt || '');
@@ -59,7 +62,7 @@ export const TeamProjectsPanel = ({
     }
   }, [branches, branchFilter]);
 
-  const filteredEntries = useMemo(() => {
+  const sortedEntries = useMemo(() => {
     const query = search.trim().toLowerCase();
     return entries
       .filter((entry) => !branchFilter || normalizeEmail(entry.branch?.email) === branchFilter)
@@ -79,6 +82,13 @@ export const TeamProjectsPanel = ({
       .slice()
       .sort((a, b) => getEntryTimestamp(b) - getEntryTimestamp(a));
   }, [entries, branchFilter, attentionOnly, needsAttention, search]);
+
+  // Lecture seule : si les données se rafraîchissent pendant la consultation, les cartes ne
+  // doivent pas changer de place sous les yeux du manager.
+  const { items: filteredEntries } = useStableList(sortedEntries, {
+    getId: getEntryId,
+    resetKey: JSON.stringify([search, branchFilter, attentionOnly])
+  });
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);

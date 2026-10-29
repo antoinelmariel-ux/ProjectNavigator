@@ -29,6 +29,7 @@ import {
   getQuestionRequirementLevel
 } from '../utils/projectStage.js';
 import { LanguageEditSwitcher } from './LocalizedFieldEditor.jsx';
+import { useReorderFeedback } from '../hooks/useReorderFeedback.js';
 
 // Symboles monétaires : identiques dans les 4 langues, donc appliqués à toutes d'un coup
 // plutôt que traduits individuellement comme les autres unités (jours, %, ...).
@@ -167,6 +168,10 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
 
   const [optionConditionModal, setOptionConditionModal] = useState({ index: null, groups: [] });
   const [expandedOptionIndex, setExpandedOptionIndex] = useState(null);
+  // Les options sont repérées par leur rang : après un déplacement, le focus et le halo suivent
+  // l'option déplacée (à son nouveau rang), pas le rang qu'elle vient de quitter.
+  const optionReorder = useReorderFeedback();
+  const subOptionReorder = useReorderFeedback('sub');
   const [showOptionIds, setShowOptionIds] = useState(false);
   const questionType = editedQuestion.type || 'choice';
   const typeUsesOptions = questionType === 'choice' || questionType === 'multi_choice';
@@ -286,6 +291,9 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
     if (index <= 0) {
       return;
     }
+    optionReorder.prepareMove(index - 1, {
+      announce: t('common.feedback.movedPosition', { position: index, total: editedQuestion.options.length })
+    });
     reorderOptions(index, index - 1);
   };
 
@@ -293,6 +301,9 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
     if (index >= editedQuestion.options.length - 1) {
       return;
     }
+    optionReorder.prepareMove(index + 1, {
+      announce: t('common.feedback.movedPosition', { position: index + 2, total: editedQuestion.options.length })
+    });
     reorderOptions(index, index + 1);
   };
 
@@ -322,6 +333,12 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
     if (subIndex <= 0) {
       return;
     }
+    subOptionReorder.prepareMove(`${index}-${subIndex - 1}`, {
+      announce: t('common.feedback.movedPosition', {
+        position: subIndex,
+        total: editedQuestion.options[index]?.subOptions?.length || 0
+      })
+    });
     reorderSubOptions(index, subIndex, subIndex - 1);
   };
 
@@ -329,6 +346,9 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
     if (subIndex >= subOptionsLength - 1) {
       return;
     }
+    subOptionReorder.prepareMove(`${index}-${subIndex + 1}`, {
+      announce: t('common.feedback.movedPosition', { position: subIndex + 2, total: subOptionsLength })
+    });
     reorderSubOptions(index, subIndex, subIndex + 1);
   };
 
@@ -1294,7 +1314,10 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
                   {questionType === 'multi_choice' && t('backOffice.questionEditor.multiChoiceHint')}
                 </p>
 
-                <div className="space-y-2">
+                <div className="space-y-2" ref={optionReorder.containerRef}>
+                  <span className="sr-only" role="status" aria-live="polite">
+                    {optionReorder.announcement || subOptionReorder.announcement}
+                  </span>
                   {editedQuestion.options.map((option, idx) => {
                     const optionLabel =
                       typeof option === 'string' || typeof option === 'number' || typeof option === 'boolean'
@@ -1321,10 +1344,12 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
                     <div key={idx} className="space-y-2">
                       <div
                         className="flex flex-wrap items-center gap-2 rounded-lg border border-transparent bg-white p-2 shadow-sm"
+                        data-reorder-key={idx}
                       >
                         <div className="flex flex-col gap-1">
                           <button
                             type="button"
+                            data-reorder-action="up"
                             onClick={() => moveOptionUp(idx)}
                             disabled={idx === 0}
                             className="rounded border border-gray-200 p-1 text-gray-500 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-30"
@@ -1335,6 +1360,7 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
                           </button>
                           <button
                             type="button"
+                            data-reorder-action="down"
                             onClick={() => moveOptionDown(idx)}
                             disabled={idx === editedQuestion.options.length - 1}
                             className="rounded border border-gray-200 p-1 text-gray-500 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-30"
@@ -1403,12 +1429,17 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
                               <option value="multi_choice">{t('backOffice.questionEditor.subTypeMulti')}</option>
                             </select>
                           </div>
-                          <div className="space-y-2">
+                          <div className="space-y-2" ref={subOptionReorder.containerRef}>
                             {(option?.subOptions || []).map((subOption, subIdx, subOptionsArray) => (
-                              <div key={`${idx}-sub-${subIdx}`} className="flex items-center gap-2">
+                              <div
+                                key={`${idx}-sub-${subIdx}`}
+                                className="flex items-center gap-2"
+                                data-reorder-sub-key={`${idx}-${subIdx}`}
+                              >
                                 <div className="flex flex-col gap-1">
                                   <button
                                     type="button"
+                                    data-reorder-sub-action="up"
                                     onClick={() => moveSubOptionUp(idx, subIdx)}
                                     disabled={subIdx === 0}
                                     className="rounded border border-gray-200 p-1 text-gray-500 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-30"
@@ -1419,6 +1450,7 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
                                   </button>
                                   <button
                                     type="button"
+                                    data-reorder-sub-action="down"
                                     onClick={() => moveSubOptionDown(idx, subIdx, subOptionsArray.length)}
                                     disabled={subIdx === subOptionsArray.length - 1}
                                     className="rounded border border-gray-200 p-1 text-gray-500 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-30"

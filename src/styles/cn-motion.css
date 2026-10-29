@@ -1,0 +1,121 @@
+/* Retours visuels quand un clic change la place d'un élément : il reste en place (halo), part
+   (repli animé + notification) ou glisse (déplacement voulu). Tout est neutralisé en mouvement
+   réduit. Préfixe `cn-` : classes du projet, pas du Tailwind. */
+
+.cn-collapse {
+  display: grid;
+  grid-template-rows: 1fr;
+}
+
+.cn-collapse__inner {
+  min-height: 0;
+}
+
+.cn-collapse--leaving {
+  pointer-events: none;
+  animation: cn-collapse-out 280ms ease forwards;
+}
+
+.cn-collapse--leaving > .cn-collapse__inner {
+  overflow: hidden;
+}
+
+@keyframes cn-collapse-out {
+  from {
+    grid-template-rows: 1fr;
+    opacity: 1;
+  }
+  to {
+    grid-template-rows: 0fr;
+    opacity: 0;
+    margin-top: 0;
+  }
+}
+
+.cn-halo {
+  animation: cn-halo 1.8s ease-out;
+}
+
+@keyframes cn-halo {
+  0% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.55);
+  }
+  35% {
+    box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.25);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
+  }
+}
+
+.cn-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 1.5rem;
+  z-index: 70;
+  display: flex;
+  max-width: min(36rem, calc(100vw - 2rem));
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 1rem;
+  background: #111827;
+  color: #f9fafb;
+  font-size: 0.875rem;
+  line-height: 1.35;
+  box-shadow: 0 12px 32px rgba(17, 24, 39, 0.35);
+  transform: translateX(-50%);
+  animation: cn-toast-in 200ms ease-out;
+}
+
+.cn-toast__message {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.cn-toast__action,
+.cn-toast__close {
+  flex: none;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: #93c5fd;
+  font: inherit;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+}
+
+.cn-toast__action:hover,
+.cn-toast__close:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.cn-toast__close {
+  color: #d1d5db;
+  font-weight: 400;
+}
+
+@keyframes cn-toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.cn-moved {
+  animation: cn-halo 1.2s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cn-collapse--leaving,
+  .cn-halo,
+  .cn-moved,
+  .cn-toast {
+    animation: none;
+  }
+}

@@ -1,4 +1,5 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from '../react.js';
+import { useReorderFeedback } from '../hooks/useReorderFeedback.js';
 import { resolveLocalizedText } from '../utils/localizedContent.js';
 import { SHOWCASE_SECTION_IDS } from '../utils/showcaseEditor.js';
 import {
@@ -171,6 +172,19 @@ export const ShowcaseTemplateStudio = ({
     setSelectedKey(result.key);
   };
 
+  const { containerRef: outlineRef, prepareMove, announcement } = useReorderFeedback();
+
+  const handleMoveSection = (key, delta) => {
+    const position = template.sections.findIndex((entry) => buildTemplateSectionKey(entry) === key);
+    const target = position + delta;
+    if (position >= 0 && target >= 0 && target < template.sections.length) {
+      prepareMove(key, {
+        announce: t('common.feedback.movedPosition', { position: target + 1, total: template.sections.length })
+      });
+    }
+    onChangeTemplate((current) => moveTemplateSection(current, key, delta));
+  };
+
   const handleRemove = (key) => {
     onChangeTemplate((current) => removeTemplateSection(current, key));
     if (selectedKey === key) {
@@ -260,7 +274,8 @@ export const ShowcaseTemplateStudio = ({
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
             {t('backOffice.showcaseTemplates.studio.outlineTitle')}
           </p>
-          <ol className="space-y-1">
+          <span className="sr-only" role="status" aria-live="polite">{announcement}</span>
+          <ol className="space-y-1" ref={outlineRef}>
             {template.sections.map((entry, index) => {
               const key = buildTemplateSectionKey(entry);
               const isNotice = entry.kind === 'builtin' && entry.id === SHOWCASE_TEMPLATE_MANDATORY_SECTION_ID;
@@ -269,7 +284,7 @@ export const ShowcaseTemplateStudio = ({
               }
               const isSelected = key === selectedKey;
               return (
-                <li key={key} className={`flex items-center gap-1 rounded-lg ${isSelected ? 'bg-blue-50' : ''}`}>
+                <li key={key} data-reorder-key={key} className={`flex items-center gap-1 rounded-lg ${isSelected ? 'bg-blue-50' : ''}`}>
                   <button
                     type="button"
                     onClick={() => selectFromOutline(key)}
@@ -282,7 +297,8 @@ export const ShowcaseTemplateStudio = ({
                   </button>
                   <button
                     type="button"
-                    onClick={() => onChangeTemplate((current) => moveTemplateSection(current, key, -1))}
+                    data-reorder-action="up"
+                    onClick={() => handleMoveSection(key, -1)}
                     disabled={index <= 1}
                     aria-label={t('backOffice.showcaseTemplates.moveUp')}
                     title={t('backOffice.showcaseTemplates.moveUp')}
@@ -292,7 +308,8 @@ export const ShowcaseTemplateStudio = ({
                   </button>
                   <button
                     type="button"
-                    onClick={() => onChangeTemplate((current) => moveTemplateSection(current, key, 1))}
+                    data-reorder-action="down"
+                    onClick={() => handleMoveSection(key, 1)}
                     disabled={index === template.sections.length - 1}
                     aria-label={t('backOffice.showcaseTemplates.moveDown')}
                     title={t('backOffice.showcaseTemplates.moveDown')}

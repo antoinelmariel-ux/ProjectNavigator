@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from '../react.js';
+import { useReorderFeedback } from '../hooks/useReorderFeedback.js';
 import { ShowcaseSignatureFx } from './ShowcaseSignatureFx.jsx';
 import {
   ArrowDown,
@@ -3285,9 +3286,30 @@ export const ProjectShowcase = ({
     setGhostTemplateId(null);
   }, []);
 
+  // Une section fait la hauteur d'un écran : une fois déplacée elle peut sortir du cadre. Le
+  // retour (glissement, section ramenée à l'écran, position annoncée) vit dans le hook.
+  const {
+    containerRef: canvasReorderRef,
+    prepareMove: prepareCanvasMove,
+    announcement: canvasMoveAnnouncement
+  } = useReorderFeedback('sge');
+
+  // Les jalons sont repérés par leur rang : le focus et le halo suivent le jalon une fois replacé.
+  const milestoneReorder = useReorderFeedback('ms');
+
   const handleMoveSection = useCallback((fromIndex, toIndex) => {
+    const canvas = canvasReorderRef.current;
+    const frame = canvas ? canvas.querySelector(`[data-sge-section-index="${fromIndex}"]`) : null;
+    const movedId = frame ? frame.getAttribute('data-sge-section-id') : null;
+    if (movedId) {
+      const total = canvas.querySelectorAll('[data-sge-section-id]').length;
+      const finalIndex = toIndex > fromIndex ? toIndex - 1 : toIndex;
+      prepareCanvasMove(movedId, {
+        announce: t('common.feedback.movedPosition', { position: Math.min(finalIndex, total - 1) + 1, total })
+      });
+    }
     setSectionOrder(previous => moveArrayItem(previous, fromIndex, toIndex));
-  }, []);
+  }, [canvasReorderRef, prepareCanvasMove, t]);
 
   const handleCanvasDragStart = useCallback((index) => {
     setCanvasDragIndex(index);
@@ -5408,8 +5430,9 @@ export const ProjectShowcase = ({
     });
 
     return (
-      <div className="sg-sections sge-canvas" data-tour-id="showcase-preview">
+      <div className="sg-sections sge-canvas" data-tour-id="showcase-preview" ref={canvasReorderRef}>
         {nodes}
+        <span className="sr-only" role="status" aria-live="polite">{canvasMoveAnnouncement}</span>
       </div>
     );
   }, [
@@ -5417,6 +5440,8 @@ export const ProjectShowcase = ({
     activeShowcaseTemplate,
     authoring,
     canvasDragIndex,
+    canvasMoveAnnouncement,
+    canvasReorderRef,
     ghostSection,
     handleCanvasDragEnd,
     handleCanvasDragStart,
@@ -6411,7 +6436,10 @@ export const ProjectShowcase = ({
 
           const milestoneDraftEntries = isMilestoneList && Array.isArray(fieldValue) ? fieldValue : [];
 
-          const updateMilestoneDraft = (updater) => {
+          // `shouldSort: false` pendant la frappe d'une date : le tri replace le jalon à un autre rang
+          // alors que le focus reste dans le champ de l'ancien rang, et les chiffres suivants
+          // tomberaient dans la date d'un autre jalon. Le tri se fait à la validation du champ.
+          const updateMilestoneDraft = (updater, { shouldSort = true } = {}) => {
             handleFieldChange(fieldId, previousValue => {
               const previousEntries = Array.isArray(previousValue)
                 ? previousValue.map(entry => ({
@@ -6422,7 +6450,10 @@ export const ProjectShowcase = ({
               const nextEntries = typeof updater === 'function' ? updater(previousEntries) : updater;
               // La frise est chronologique par construction : saisir une date replace
               // aussitôt le jalon au bon endroit, ici comme dans le canvas.
-              return Array.isArray(nextEntries) ? sortMilestonesChronologically(nextEntries) : [];
+              if (!Array.isArray(nextEntries)) {
+                return [];
+              }
+              return shouldSort ? sortMilestonesChronologically(nextEntries) : nextEntries;
             });
           };
 
@@ -6432,7 +6463,26 @@ export const ProjectShowcase = ({
                 entryIndex === index ? { ...entry, [fieldName]: value } : entry
               ));
               return nextEntries;
-            });
+            }, { shouldSort: fieldName !== 'date' });
+          };
+
+          // Date validée (sortie du champ ou Entrée) : le jalon glisse à sa place chronologique,
+          // et le halo le désigne à son nouveau rang.
+          const handleMilestoneDateCommit = (index) => {
+            const sortedEntries = sortMilestonesChronologically(milestoneDraftEntries);
+            const nextIndex = sortedEntries.indexOf(milestoneDraftEntries[index]);
+            if (nextIndex === -1 || sortedEntries === milestoneDraftEntries) {
+              return;
+            }
+            if (nextIndex !== index) {
+              milestoneReorder.prepareMove(nextIndex, {
+                announce: t('common.feedback.movedPosition', {
+                  position: nextIndex + 1,
+                  total: milestoneDraftEntries.length
+                })
+              });
+            }
+            updateMilestoneDraft(entries => entries);
           };
 
           const handleMilestoneDraftRemoval = (index) => {
@@ -6568,7 +6618,8 @@ export const ProjectShowcase = ({
                 {label}
               </label>
               {isMilestoneList ? (
-                <div className="sge-ms-list">
+                <div className="sge-ms-list" ref={milestoneReorder.containerRef}>
+                  <span className="sr-only" role="status" aria-live="polite">{milestoneReorder.announcement}</span>
                   {milestoneDraftEntries.length === 0 && (
                     <p className="sge-field__helper">{t('projectShowcase.noMilestoneYet')}</p>
                   )}
@@ -6605,6 +6656,7 @@ export const ProjectShowcase = ({
                         onDrop={event => handleMilestoneDrop(index, event)}
                         onDragEnd={handleMilestoneDragEnd}
                         aria-grabbed={isCurrentDragging ? 'true' : 'false'}
+                        data-reorder-ms-key={index}
                       >
                         <div className="sge-ms-row__date">
                           <label htmlFor={dateInputId} className="sge-ms-label">
@@ -6615,6 +6667,13 @@ export const ProjectShowcase = ({
                             type="date"
                             value={typeof entry?.date === 'string' ? entry.date : ''}
                             onChange={event => handleMilestoneDraftChange(index, 'date', event.target.value)}
+                            onBlur={() => handleMilestoneDateCommit(index)}
+                            onKeyDown={event => {
+                              if (event.key === 'Enter') {
+                                event.preventDefault();
+                                handleMilestoneDateCommit(index);
+                              }
+                            }}
                             className="sge-input"
                           />
                         </div>

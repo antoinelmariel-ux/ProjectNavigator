@@ -1,5 +1,9 @@
 export default {
   common: {
+    feedback: {
+      dismiss: 'Cerrar la notificación',
+      movedPosition: 'Movido a la posición {{position}} de {{total}}'
+    },
     peoplePicker: {
       searchPlaceholder: 'Buscar por nombre o correo electrónico…',
       searching: 'Buscando…',
@@ -340,6 +344,16 @@ export default {
     save: 'Guardar'
   },
   home: {
+    feedback: {
+      undo: 'Deshacer',
+      view: 'Ver',
+      viewInPending: 'Ver en «Por tratar»',
+      openTrash: 'Abrir la papelera',
+      takenOver: 'Ha asumido «{{name}}». Ahora está en «Por tratar».',
+      trashed: '«{{name}}» se ha movido a la papelera.',
+      restored: '«{{name}}» se ha restaurado.',
+      submissionCancelled: 'Se ha anulado el envío de «{{name}}». Lo encontrará entre sus borradores.'
+    },
     team: {
       emptyBodyWithDrafts: 'Los proyectos aparecerán aquí en cuanto sus responsables los creen.',
       draftsIncludedNotice: 'Los borradores en curso también se muestran.',
@@ -2308,6 +2322,7 @@ export default {
     uploadFailedMessage: 'No se pudo subir el documento.',
     uploadingLabel: 'Subiendo el archivo…',
     commentSavedMessage: 'Comentario guardado.',
+    projectTreatedMessage: 'Ha emitido su opinión sobre su último ámbito abierto: el proyecto pasa a «Tratados» en su página de inicio.',
     teamAcceptedLanguagesNoticeTemplate: 'Este equipo solo responde en los siguientes idiomas: {{languages}}. Utilice uno de ellos para su mensaje.',
     committeeAcceptedLanguagesNoticeTemplate: 'Este comité solo responde en los siguientes idiomas: {{languages}}. Utilice uno de ellos para su mensaje.',
     commentClearedMessage: 'Comentario eliminado.',

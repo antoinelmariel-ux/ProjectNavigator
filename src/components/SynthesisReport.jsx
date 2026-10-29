@@ -1,4 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from '../react.js';
+import { useStableList } from '../hooks/useStableList.js';
+import { isPerimeterStatusSettled } from '../utils/perimeterResolution.js';
 import {
   FileText,
   Users,
@@ -214,6 +216,8 @@ const COMMENT_STATUS_OPTIONS = [
     badgeClass: 'bg-red-100 text-red-800 border-red-200'
   }
 ];
+
+const getTeamId = (team) => team?.id;
 
 const TEAM_STATUS_RANK = {
   pending_information: 0,
@@ -831,7 +835,7 @@ export const SynthesisReport = ({
     ).status,
     [complianceComments, analysis, language]
   );
-  const sortedRelevantTeams = useMemo(() => {
+  const rankedRelevantTeams = useMemo(() => {
     return [...relevantTeams].sort((a, b) => {
       const statusRankA = TEAM_STATUS_RANK[getStoredTeamStatus(a.id)] ?? 1;
       const statusRankB = TEAM_STATUS_RANK[getStoredTeamStatus(b.id)] ?? 1;
@@ -843,6 +847,14 @@ export const SynthesisReport = ({
       return priorityRankA - priorityRankB;
     });
   }, [relevantTeams, getStoredTeamStatus, analysis]);
+  // Enregistrer un avis change le rang de la carte (un avis validé descend) : trié en direct,
+  // la carte que l'expert vient de traiter quitterait l'écran. L'ordre par urgence ne
+  // s'applique donc qu'à l'ouverture de la synthèse, les cartes restent en place ensuite ; le
+  // liseré et le résumé replié disent le nouveau statut.
+  const { items: sortedRelevantTeams } = useStableList(rankedRelevantTeams, {
+    getId: getTeamId,
+    resetKey: String(projectId ?? '')
+  });
   const teamStatusSummary = useMemo(() => {
     const counts = {};
     relevantTeams.forEach((team) => {
@@ -1338,7 +1350,7 @@ export const SynthesisReport = ({
     };
   }, []);
 
-  const scheduleComplianceFeedback = useCallback((targetId, message) => {
+  const scheduleComplianceFeedback = useCallback((targetId, message, durationMs = 4000) => {
     if (complianceCommentFeedbackTimeoutRef.current) {
       clearTimeout(complianceCommentFeedbackTimeoutRef.current);
     }
@@ -1347,7 +1359,7 @@ export const SynthesisReport = ({
 
     complianceCommentFeedbackTimeoutRef.current = setTimeout(() => {
       setComplianceCommentFeedback(null);
-    }, 4000);
+    }, durationMs);
   }, []);
 
   const handleComplianceCommentSubmit = useCallback(
@@ -1432,14 +1444,45 @@ export const SynthesisReport = ({
         setOpenTeamCommentEditors((prev) => ({ ...prev, [targetId]: false }));
       }
 
+      const savedMessage = (trimmedDraft.length > 0 || normalizeCommentAttachments(currentEntry.attachments).length > 0)
+        ? t('synthesisReport.commentSavedMessage')
+        : t('synthesisReport.commentClearedMessage');
+
+      // Prendre position sur son dernier périmètre ouvert fait quitter « À traiter » au projet :
+      // on le dit ici, là où l'expert vient de cliquer, plutôt que de le laisser le découvrir
+      // en revenant sur l'accueil.
+      const myPerimeters = [
+        ...Array.from(complianceTeamIdsForUser).map((id) => ({ type: 'team', id })),
+        ...triggeredValidationCommittees
+          .filter((committee) => committeeIdsForUser.has(committee.id))
+          .map((committee) => ({ type: 'committee', id: committee.id }))
+      ];
+      const closesLastOpenPerimeter = !adminProxy
+        && targetId
+        && isPerimeterStatusSettled(currentEntry.status)
+        && myPerimeters.some((perimeter) => perimeter.type === (isCommittee ? 'committee' : 'team') && perimeter.id === targetId)
+        && myPerimeters.every((perimeter) => {
+          if (perimeter.type === (isCommittee ? 'committee' : 'team') && perimeter.id === targetId) {
+            return true;
+          }
+          return isPerimeterStatusSettled(
+            perimeter.type === 'committee'
+              ? complianceComments?.committees?.[perimeter.id]?.status
+              : getStoredTeamStatus(perimeter.id)
+          );
+        });
+
       scheduleComplianceFeedback(
         `${targetType}-${targetId || 'committee'}`,
-        (trimmedDraft.length > 0 || normalizeCommentAttachments(currentEntry.attachments).length > 0)
-          ? t('synthesisReport.commentSavedMessage')
-          : t('synthesisReport.commentClearedMessage')
+        closesLastOpenPerimeter
+          ? `${savedMessage} ${t('synthesisReport.projectTreatedMessage')}`
+          : savedMessage,
+        closesLastOpenPerimeter ? 9000 : 4000
       );
     },
     [
+      getStoredTeamStatus,
+      triggeredValidationCommittees,
       canSaveComplianceComment,
       canBypassCompliancePerimeter,
       committeeIdsForUser,
@@ -2559,6 +2602,20 @@ export const SynthesisReport = ({
                         )}
                       </div>
                     </button>
+
+                    {/* Enregistrer referme l'éditeur et replie la carte : le message affiché à côté du
+                        bouton d'enregistrement disparaît avec eux. On le redit sous l'en-tête, qui reste
+                        visible, là où l'expert vient de cliquer. */}
+                    {feedbackMessage && !isCommentEditorOpen && (
+                      <p
+                        className="mx-6 mb-4 flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-800"
+                        role="status"
+                        aria-live="polite"
+                      >
+                        <CheckCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                        <span>{feedbackMessage}</span>
+                      </p>
+                    )}
 
                     {!isTeamCollapsed && (
                       <div className="border-t border-gray-100 px-6 pb-6 pt-5">

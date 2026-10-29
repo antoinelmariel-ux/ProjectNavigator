@@ -1,5 +1,9 @@
 export default {
   common: {
+    feedback: {
+      dismiss: 'Benachrichtigung schließen',
+      movedPosition: 'Auf Position {{position}} von {{total}} verschoben'
+    },
     peoplePicker: {
       searchPlaceholder: 'Nach Name oder E-Mail suchen…',
       searching: 'Suche läuft…',
@@ -341,6 +345,16 @@ export default {
     save: 'Speichern'
   },
   home: {
+    feedback: {
+      undo: 'Rückgängig',
+      view: 'Anzeigen',
+      viewInPending: 'In „Zu bearbeiten“ anzeigen',
+      openTrash: 'Papierkorb öffnen',
+      takenOver: 'Sie haben „{{name}}“ übernommen. Es befindet sich jetzt unter „Zu bearbeiten“.',
+      trashed: '„{{name}}“ wurde in den Papierkorb verschoben.',
+      restored: '„{{name}}“ wurde wiederhergestellt.',
+      submissionCancelled: 'Die Einreichung von „{{name}}“ wurde zurückgezogen. Sie finden es unter Ihren Entwürfen.'
+    },
     team: {
       emptyBodyWithDrafts: 'Projekte erscheinen hier, sobald ihre Verantwortlichen sie angelegt haben.',
       draftsIncludedNotice: 'Entwürfe in Bearbeitung werden ebenfalls angezeigt.',
@@ -2318,6 +2332,7 @@ export default {
     uploadFailedMessage: 'Das Dokument konnte nicht hochgeladen werden.',
     uploadingLabel: 'Datei wird hochgeladen…',
     commentSavedMessage: 'Kommentar gespeichert.',
+    projectTreatedMessage: 'Sie haben zu Ihrem letzten offenen Bereich Stellung genommen: Das Projekt wechselt auf Ihrer Startseite zu „Bearbeitet“.',
     teamAcceptedLanguagesNoticeTemplate: 'Dieses Team antwortet nur in folgenden Sprachen: {{languages}}. Bitte verwenden Sie eine davon für Ihre Nachricht.',
     committeeAcceptedLanguagesNoticeTemplate: 'Dieser Ausschuss antwortet nur in folgenden Sprachen: {{languages}}. Bitte verwenden Sie eine davon für Ihre Nachricht.',
     commentClearedMessage: 'Kommentar gelöscht.',
