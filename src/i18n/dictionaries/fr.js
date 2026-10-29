@@ -222,6 +222,13 @@ export default {
     helpButton: 'Aide',
     helpButtonAriaLabel: 'Consulter la FAQ (nouvel onglet)',
     demoPostItAuthor: 'Exemple de retour',
+    expertTourDemo: {
+      ownerName: 'Léa Martin (porteuse du projet)',
+      ownerReply: 'Bonjour, voici nos éléments sur les points à préparer : les contenus seront relus par le service médical avant diffusion, et le prestataire est déjà référencé.',
+      expertQuestion: 'Merci. Pouvez-vous compléter le questionnaire joint sur le prestataire ? Il nous manque la liste des données qu’il traitera.',
+      formName: 'questionnaire-prestataire.txt',
+      opinion: 'Avis favorable, sous réserve de transmettre le contrat signé avec le prestataire.'
+    },
     scopeStep: {
       description: 'Pour adapter le questionnaire à votre situation, sélectionnez votre périmètre d’activité (plusieurs choix possibles).',
       continueButton: 'Continuer'

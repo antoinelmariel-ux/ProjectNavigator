@@ -92,7 +92,17 @@ import {
   normalizeProjectFilterConfig,
   stripRetiredProjectFilterFields
 } from './utils/projectFilters.js';
-import { normalizeOnboardingConfig } from './utils/onboarding.js';
+import { filterOnboardingStepsForAudience, normalizeOnboardingConfig } from './utils/onboarding.js';
+import {
+  buildExpertTourAnswers,
+  buildExpertTourTeams,
+  EXPERT_TOUR_PROJECT_ID,
+  EXPERT_TOUR_STAGE_CLAIMED,
+  EXPERT_TOUR_STAGE_OPEN,
+  EXPERT_TOUR_STAGE_REVIEW,
+  isExpertTourStep,
+  pickExpertTourTeamId
+} from './utils/expertTourDemo.js';
 import {
   createDefaultInspirationFiltersConfig,
   createDefaultInspirationFormConfig,
@@ -2259,6 +2269,19 @@ const updateProjectFilters = useCallback((updater) => {
     return onboardingDemoDataRef.current;
   }, [computeDemoData]);
 
+  // Parcours « Revoir et valider un projet » : le temps de ses étapes, l'utilisateur est contact
+  // d'une équipe que le projet d'exemple déclenche, dans les props de l'accueil et de la synthèse
+  // seulement — le référentiel des équipes n'est jamais modifié.
+  const isExpertTourActive = isOnboardingActive && isExpertTourStep(onboardingStepId);
+  const expertTourTeamId = useMemo(
+    () => (isExpertTourActive ? pickExpertTourTeamId(getDemoData().relevantTeams, currentUserEmail) : ''),
+    [isExpertTourActive, getDemoData, currentUserEmail]
+  );
+  const screenTeams = useMemo(
+    () => (isExpertTourActive ? buildExpertTourTeams(teams, expertTourTeamId, currentUserEmail) : teams),
+    [isExpertTourActive, teams, expertTourTeamId, currentUserEmail]
+  );
+
   const buildOnboardingAnnotationNotes = useCallback((projectContext) => {
     if (!projectContext) {
       return [];
@@ -2613,6 +2636,30 @@ const updateProjectFilters = useCallback((updater) => {
       scrollToTop();
     };
 
+    const openExpertTourSynthesis = (stage) => {
+      setShowcaseProjectContext(null);
+      setActiveProjectId(EXPERT_TOUR_PROJECT_ID);
+      setAnswers(buildExpertTourAnswers(cloneDeep(demoData.answers), {
+        teamId: pickExpertTourTeamId(demoData.relevantTeams, currentUserEmail),
+        userEmail: currentUserEmail,
+        userName: currentUserDisplayName,
+        stage,
+        messages: {
+          ownerName: t('onboarding.expertTourDemo.ownerName'),
+          ownerReply: t('onboarding.expertTourDemo.ownerReply'),
+          expertQuestion: t('onboarding.expertTourDemo.expertQuestion'),
+          formName: t('onboarding.expertTourDemo.formName'),
+          opinion: t('onboarding.expertTourDemo.opinion')
+        }
+      }));
+      setAnalysis(demoData.analysis);
+      setCurrentQuestionIndex(0);
+      setValidationError(null);
+      setScreen('synthesis');
+      setSaveFeedback(null);
+      setHasUnsavedChanges(false);
+    };
+
     const shouldOpenShareModal = stepId === 'showcase-share-settings';
 
     if (!shouldOpenShareModal && isShowcaseShareOpen) {
@@ -2621,6 +2668,9 @@ const updateProjectFilters = useCallback((updater) => {
     }
 
     switch (stepId) {
+      case 'expert-intro':
+      case 'expert-tabs':
+      case 'expert-end':
       case 'welcome':
       case 'quick-intro':
       case 'create-project': {
@@ -2716,6 +2766,30 @@ const updateProjectFilters = useCallback((updater) => {
         setHasUnsavedChanges(false);
         break;
       }
+      case 'expert-perimeter':
+      case 'expert-showcase-button':
+      case 'expert-answers':
+      case 'expert-claim': {
+        openExpertTourSynthesis(EXPERT_TOUR_STAGE_OPEN);
+        break;
+      }
+      // Une fois le projet pris en charge, le bloc de prise en charge offre « Transférer à… ».
+      case 'expert-handover':
+      case 'expert-followers':
+      case 'expert-exchange':
+      case 'expert-opinion':
+      case 'expert-preliminary-request':
+      case 'expert-final-request':
+      case 'expert-staged-consultation': {
+        openExpertTourSynthesis(EXPERT_TOUR_STAGE_CLAIMED);
+        break;
+      }
+      // Un avis rendu puis rendu caduc par une mise à jour : c'est ce qu'affiche « à revoir ».
+      case 'expert-project-evolves': {
+        openExpertTourSynthesis(EXPERT_TOUR_STAGE_REVIEW);
+        break;
+      }
+      case 'expert-showcase':
       case 'showcase-top':
       case 'quick-showcase': {
         openDemoShowcase();
@@ -2730,6 +2804,7 @@ const updateProjectFilters = useCallback((updater) => {
       case 'showcase-save-edits':
       case 'showcase-usage-mode-selection':
       case 'showcase-back-to-report':
+      case 'expert-back-to-report':
       case 'quick-showcase-edit':
       case 'project-early-feedback': {
         openDemoShowcase();
@@ -2807,6 +2882,9 @@ const updateProjectFilters = useCallback((updater) => {
     openProjectShowcase,
     screen,
     questions,
+    currentUserEmail,
+    currentUserDisplayName,
+    t,
     setActiveProjectId,
     setAnalysis,
     setAnswers,
@@ -2926,7 +3004,9 @@ const updateProjectFilters = useCallback((updater) => {
       close: resolveLocalizedText(labels.close, language),
       finish: resolveLocalizedText(labels.finish, language)
     };
-    const resolvedSteps = steps.map((step) => ({
+    const resolvedSteps = filterOnboardingStepsForAudience(steps, {
+      isComplianceActor: hasScopedBackOfficeAccess
+    }).map((step) => ({
       ...step,
       title: resolveLocalizedText(step.title, language),
       content: resolveLocalizedText(step.content, language),
@@ -2994,6 +3074,7 @@ const updateProjectFilters = useCallback((updater) => {
     getDemoData,
     buildOnboardingProjects,
     normalizedOnboardingConfig,
+    hasScopedBackOfficeAccess,
     handleOnboardingStepEnter,
     finishOnboarding,
     setMode,
@@ -4121,6 +4202,9 @@ const updateProjectFilters = useCallback((updater) => {
     || (canManageProject(activeProject) && isProjectOpenForEditing(activeProject))
     || isAdminMode
     || isAdminConsole;
+  // Dans le parcours expert, la synthèse est lue comme par un expert : ni modifiable, ni le
+  // panneau du porteur.
+  const isSynthesisEditable = isActiveProjectEditable && !isExpertTourActive;
 
   const annotationOffsetClass = isAnnotationModeEnabled && screen === 'showcase'
     ? 'pt-20 lg:pt-24'
@@ -8677,7 +8761,7 @@ const updateProjectFilters = useCallback((updater) => {
             launchSignals={launchSignalsByProject}
             projectFilters={projectFilters}
             teamLeadOptions={teamLeadTeamOptions}
-            teams={teams}
+            teams={screenTeams}
             questions={questions}
             inspirationProjects={displayedInspirationProjects}
             inspirationFilters={inspirationFilters}
@@ -8773,18 +8857,18 @@ const updateProjectFilters = useCallback((updater) => {
             <LazySynthesisReport
               answers={answers}
               analysis={analysis}
-              teams={teams}
+              teams={screenTeams}
               questions={activeQuestions}
               projectStatus={activeProject?.status || null}
               projectId={activeProjectId}
               projectName={activeProjectName}
               onOpenProjectShowcase={handleOpenActiveProjectShowcase}
-              isProjectEditable={isActiveProjectEditable}
+              isProjectEditable={isSynthesisEditable}
               onRestart={handleRestart}
-              onBack={isActiveProjectEditable ? handleBackToQuestionnaire : undefined}
-              onUpdateAnswers={isActiveProjectEditable ? handleUpdateAnswers : undefined}
-              onUpdateComplianceComments={activeProjectId ? handleUpdateComplianceComments : undefined}
-              onComplianceReplyNotification={handleComplianceReplyNotification}
+              onBack={isSynthesisEditable ? handleBackToQuestionnaire : undefined}
+              onUpdateAnswers={isSynthesisEditable ? handleUpdateAnswers : undefined}
+              onUpdateComplianceComments={isExpertTourActive ? noop : activeProjectId ? handleUpdateComplianceComments : undefined}
+              onComplianceReplyNotification={isExpertTourActive ? undefined : handleComplianceReplyNotification}
               currentUser={currentUser}
               sharedMembers={activeProject?.sharedWith || []}
               ownerEmail={activeProject?.ownerEmail || ''}
@@ -8803,11 +8887,11 @@ const updateProjectFilters = useCallback((updater) => {
               adminEmails={normalizedAdminRightsEmails}
               focusPerimeter={synthesisFocusPerimeter}
               onFocusPerimeterHandled={() => setSynthesisFocusPerimeter(null)}
-              onPerimeterClaimAction={activeProjectId ? handlePerimeterClaimAction : undefined}
-              onPerimeterFollowerAction={activeProjectId ? handlePerimeterFollowerAction : undefined}
+              onPerimeterClaimAction={isExpertTourActive ? noop : activeProjectId ? handlePerimeterClaimAction : undefined}
+              onPerimeterFollowerAction={isExpertTourActive ? noop : activeProjectId ? handlePerimeterFollowerAction : undefined}
               isClaimActionAvailable={!isSimulatedSession}
-              onRequestAdditionalTeam={activeProjectId ? handleRequestAdditionalTeam : undefined}
-              onRemoveAdditionalTeam={activeProjectId ? handleRemoveAdditionalTeam : undefined}
+              onRequestAdditionalTeam={activeProjectId && !isExpertTourActive ? handleRequestAdditionalTeam : undefined}
+              onRemoveAdditionalTeam={activeProjectId && !isExpertTourActive ? handleRemoveAdditionalTeam : undefined}
               readiness={projectReadiness}
               openQuestionDoubts={openQuestionDoubts}
               submissionKind={getSubmissionKind(activeProject)}

@@ -144,9 +144,9 @@ The app is being migrated off mocks onto real SharePoint lists, using the **Shar
 
 ## The onboarding tour
 
-`src/data/onboardingTour.js` holds the default tour: an entry menu (`welcome`) offering five
-self-contained sequences — quick tour, create, get approved, present, find inspiration — wired
-together by `goTo` actions. Steps of one sequence must stay **contiguous** in the `steps` array
+`src/data/onboardingTour.js` holds the default tour: an entry menu (`welcome`) offering six
+self-contained sequences — quick tour, review and approve a project (experts only), create, get
+approved, present, find inspiration — wired together by `goTo` actions. Steps of one sequence must stay **contiguous** in the `steps` array
 (the "Next" button walks the array), and each sequence ends with a menu step carrying
 `showDefaultButtons: false` so it never spills into the next sequence.
 
@@ -163,6 +163,18 @@ Two things are load-bearing:
   deliberate rework. To fix one step's `target`/`placement` without a bump, list its old value
   in `SUPERSEDED_ONBOARDING_STEP_DEFAULTS` (same file): a stored step still carrying that exact
   value gets the new default, a customised one is left alone (`test/onboardingConfig.test.mjs`).
+
+**The expert sequence (« Revoir et valider un projet », `expert-*` steps) is for compliance actors
+only.** Its menu buttons carry `audience: 'compliance'`, and `handleStartOnboarding` drops them
+through `filterOnboardingStepsForAudience` (`src/utils/onboarding.js`) unless the user is a team
+contact or committee member (`hasScopedBackOfficeAccess`). Its steps sit at the very end of the
+array, because « Précédent » on a sequence's first step walks back one slot and a non-expert must
+never land in it. It plays the demo project *as an expert sees it*: while an `expert-*` step is
+active, `App.jsx` hands the home and the synthesis `screenTeams` — the referential with the user
+added as a contact of one team the demo triggers (`src/utils/expertTourDemo.js`) — and the
+synthesis gets demo answers per stage (open / claimed / opinion to re-examine), non-editable props
+and no-op write handlers. None of it reaches `teams` state or storage
+(`e2e/onboarding-expert-tour.spec.js`, `test/expertTour.test.mjs`).
 
 The tooltip carries a permanent « Aide » link to the FAQ (`helpLink` option of the vendored
 `tourguide.js`, passed from `App.jsx`, opening the in-app `StaticPageDialog`): launching the guide is already asking for help, and it
