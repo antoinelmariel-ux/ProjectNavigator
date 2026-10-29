@@ -215,10 +215,10 @@ export const initialOnboardingTourConfig = {
         "es": "Personalizable de principio a fin"
       },
       "content": {
-        "en": "Texts, colours, custom sections, embedded documents: you edit everything directly on the final rendering.",
-        "fr": "Textes, couleurs, sections sur mesure, documents intégrés : vous modifiez tout directement sur le rendu final.",
-        "de": "Texte, Farben, maßgeschneiderte Abschnitte, eingebettete Dokumente: Sie bearbeiten alles direkt in der endgültigen Darstellung.",
-        "es": "Textos, colores, secciones a medida, documentos integrados: lo modifica todo directamente sobre el resultado final."
+        "en": "Texts, colours, custom sections, embedded documents and media: you edit everything directly on the final rendering.",
+        "fr": "Textes, couleurs, sections sur mesure, documents et médias intégrés : vous modifiez tout directement sur le rendu final.",
+        "de": "Texte, Farben, maßgeschneiderte Abschnitte, eingebettete Dokumente und Medien: Sie bearbeiten alles direkt in der endgültigen Darstellung.",
+        "es": "Textos, colores, secciones a medida, documentos y medios integrados: lo modifica todo directamente sobre el resultado final."
       },
       "placement": "bottom",
       "highlightScope": "target",
