@@ -2724,6 +2724,7 @@ const updateProjectFilters = useCallback((updater) => {
       }
       case 'showcase-bottom':
       case 'showcase-edit-trigger':
+      case 'showcase-edit-topbar':
       case 'showcase-edit':
       case 'showcase-custom-sections':
       case 'showcase-save-edits':
