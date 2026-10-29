@@ -1365,6 +1365,386 @@
   color: var(--sge-ink-faint);
 }
 
+.sge-inspector__kind {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--sge-ink-soft);
+}
+
+/* Actions de la section : là où on les cherche une fois le bloc sélectionné, sans retourner
+   sur le canvas. */
+.sge-inspector__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--sge-line);
+  background: var(--sge-ground);
+}
+
+.sge-inspector__toolbar-spacer {
+  flex: 1 1 auto;
+}
+
+.sge-icon-btn--hit {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.sge-icon-btn--danger {
+  color: var(--sge-danger);
+}
+
+.sge-icon-btn--danger:hover:not(:disabled) {
+  border-color: var(--sge-danger-line);
+  background: var(--sge-danger-soft);
+  color: var(--sge-danger);
+}
+
+.sge-btn--hit {
+  min-height: 2.5rem;
+}
+
+.sge-btn--start {
+  align-self: flex-start;
+}
+
+.sge-btn--quiet-danger:hover:not(:disabled) {
+  border-color: var(--sge-danger-line);
+  background: var(--sge-danger-soft);
+  color: var(--sge-danger);
+}
+
+@media (pointer: coarse) {
+  .sge-icon-btn--hit {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  .sge-btn--hit {
+    min-height: 2.75rem;
+  }
+}
+
+.sge-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sge-inspector__groups {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* ---------- groupes repliables de l'inspecteur ---------- */
+.sge-acc {
+  border: 1px solid var(--sge-line);
+  border-radius: var(--sge-r-sm);
+  background: var(--sge-surface);
+}
+
+.sge-acc__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.7rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--sge-ink);
+  cursor: pointer;
+  list-style: none;
+}
+
+.sge-acc__summary::-webkit-details-marker {
+  display: none;
+}
+
+.sge-acc__summary::after {
+  content: '▾';
+  margin-left: auto;
+  color: var(--sge-ink-faint);
+  transition: transform 160ms ease;
+}
+
+.sge-acc:not([open]) > .sge-acc__summary::after {
+  transform: rotate(-90deg);
+}
+
+.sge-acc__value {
+  margin-left: 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--sge-ink-soft);
+}
+
+.sge-acc__body {
+  padding: 0.25rem 0.9rem 0.9rem;
+}
+
+/* ---------- lignes de liste (colonnes, éléments, médias) ---------- */
+.sge-listrow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.sge-listrow__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.sge-listrow__label {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--sge-ink-soft);
+}
+
+.sge-inline-form {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sge-inline-form .sge-btn {
+  flex: none;
+}
+
+.sge-media-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sge-media-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border: 1px solid var(--sge-line);
+  border-radius: var(--sge-r-sm);
+  background: var(--sge-surface);
+}
+
+.sge-media-item__head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.sge-media-item__thumb {
+  flex: none;
+  width: 3rem;
+  height: 2rem;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.sge-media-item__thumb--kind {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--sge-ground-strong);
+  color: var(--sge-ink-soft);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.sge-media-item__name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8rem;
+  color: var(--sge-ink);
+}
+
+/* ---------- contrôle segmenté ---------- */
+.sge-segmented {
+  display: flex;
+  overflow: hidden;
+  border: 1px solid var(--sge-line);
+  border-radius: var(--sge-r-sm);
+}
+
+.sge-segmented__btn {
+  flex: 1 1 0;
+  min-height: 2.5rem;
+  padding: 0.4rem 0.5rem;
+  border: 0;
+  border-left: 1px solid var(--sge-line);
+  background: var(--sge-surface);
+  color: var(--sge-ink-soft);
+  font-family: var(--sge-font);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sge-segmented__btn:first-child {
+  border-left: 0;
+}
+
+.sge-segmented__btn:hover {
+  background: var(--sge-ground);
+  color: var(--sge-ink);
+}
+
+.sge-segmented__btn[aria-pressed='true'] {
+  background: var(--sge-primary);
+  color: #ffffff;
+}
+
+.sge-range {
+  width: 100%;
+  accent-color: var(--sge-primary);
+}
+
+/* ---------- dépôt de fichier, document déposé ---------- */
+.sge-upload-zone {
+  border-radius: var(--sge-r-sm);
+}
+
+.sge-upload {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 3rem;
+  padding: 0.75rem;
+  border: 1px dashed var(--sge-primary-line);
+  border-radius: var(--sge-r-sm);
+  background: var(--sge-primary-soft);
+  color: var(--sge-primary-strong);
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+}
+
+.sge-upload:hover {
+  border-color: var(--sge-primary);
+}
+
+.sge-upload:focus-within {
+  outline: 2px solid var(--sge-primary);
+  outline-offset: 2px;
+}
+
+.sge-docrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--sge-line);
+  border-radius: var(--sge-r-sm);
+  background: var(--sge-surface);
+  font-size: 0.88rem;
+}
+
+.sge-docrow__link {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--sge-primary-strong);
+}
+
+/* ---------- notes ---------- */
+.sge-note {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--sge-ink-soft);
+}
+
+.sge-note--error {
+  color: var(--sge-danger);
+}
+
+.sge-note--warn {
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--sge-warn-line, #fed7aa);
+  border-radius: var(--sge-r-sm);
+  background: var(--sge-warn-soft, #fff7ed);
+  color: var(--sge-warn, #7c2d12);
+}
+
+/* ---------- confirmation d'un changement de gabarit ---------- */
+.sge-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--sge-warn-line, #fed7aa);
+  border-radius: var(--sge-r-sm);
+  background: var(--sge-warn-soft, #fff7ed);
+}
+
+.sge-confirm__title {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--sge-warn, #7c2d12);
+}
+
+.sge-confirm__text {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--sge-ink);
+}
+
+.sge-confirm__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* ---------- avis « annuler » après une suppression ---------- */
+.sge-toast {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  border-top: 1px solid var(--sge-line);
+  background: var(--sge-ink);
+  color: #ffffff;
+  font-size: 0.84rem;
+}
+
+.sge-toast__action {
+  flex: none;
+  min-height: 2.25rem;
+  padding: 0 0.75rem;
+  border: 0;
+  border-radius: var(--sge-r-sm);
+  background: transparent;
+  color: #bfdbfe;
+  font-family: var(--sge-font);
+  font-size: 0.84rem;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.sge-toast__action:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
 /* Sous 1180px il n'y a plus de colonne : l'inspecteur devient une feuille basse,
    la seule forme utilisable d'un seul pouce. */
 .sge-inspector__actions {
@@ -1960,4 +2340,27 @@
   color: var(--sge-ink-faint);
   text-align: center;
   font: 0.9rem/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+.sge .sge-note,
+.sge .sge-listrow__label,
+.sge .sge-confirm__title,
+.sge .sge-confirm__text {
+  margin: 0;
+  font-family: var(--sge-font);
+}
+
+.sge .sge-inspector__kind {
+  margin: 0.15rem 0 0;
+  font-family: var(--sge-font);
+}
+
+.sge .sge-media-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sge-toast__text {
+  min-width: 0;
 }

@@ -3,6 +3,7 @@ import { ShowcaseSignatureFx } from './ShowcaseSignatureFx.jsx';
 import {
   ArrowDown,
   ArrowUp,
+  Copy,
   Edit,
   Plus,
   Trash2
@@ -581,6 +582,71 @@ const prefersSideInspector = () => {
 
 const resolveTemplateConfig = (templateId) =>
   SECTION_TEMPLATE_CONFIG[templateId] || SECTION_TEMPLATE_CONFIG.highlight;
+
+// Les champs courts (badge, sous-titre) sont saisis en texte simple dans l'inspecteur ; le
+// canvas, lui, les édite en texte riche. Lire ce qui a été stocké en HTML sans en afficher les
+// balises, et réécrire en échappant, garde les deux vues compatibles.
+const toInputText = (value) => (typeof value === 'string'
+  ? value
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&amp;/gi, '&')
+  : '');
+
+const fromInputText = (value) => String(value ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;');
+
+// Champs de contenu rendus par chaque gabarit, et façon de savoir s'ils sont renseignés :
+// changer de gabarit masque ceux que le nouveau ne montre pas.
+const TEMPLATE_FIELD_LABEL_KEYS = {
+  subtitle: 'projectShowcase.subtitleFieldLabel',
+  accent: 'projectShowcase.badgeFieldLabel',
+  figure: 'projectShowcase.figureFieldLabel',
+  columns: 'projectShowcase.columnBlocksLabel',
+  document: 'projectShowcase.documentUrlLabel',
+  media: 'projectShowcase.editor.fieldMedia',
+  description: 'projectShowcase.descriptionFieldLabel',
+  items: 'projectShowcase.listItemsLabel'
+};
+
+const getTemplateVisibleFields = (type) => {
+  const config = resolveTemplateConfig(type);
+  return {
+    subtitle: Boolean(config.showSubtitle),
+    accent: Boolean(config.showBadge || config.showAccent),
+    figure: type === 'figure',
+    columns: Boolean(config.showColumns),
+    document: Boolean(config.showDocument),
+    media: Boolean(config.showMedia),
+    description: Boolean(config.showDescription),
+    items: Boolean(config.showItems)
+  };
+};
+
+const TEMPLATE_FIELD_HAS_CONTENT = {
+  subtitle: section => toInputText(section.subtitle).trim().length > 0,
+  accent: section => toInputText(section.accent).trim().length > 0,
+  figure: section => String(section.figure || '').trim().length > 0,
+  columns: section => (Array.isArray(section.columns) && section.columns.some(column => String(column || '').trim())),
+  document: section => Boolean(section.documentUrl),
+  media: section => Array.isArray(section.media) && section.media.length > 0,
+  description: section => toInputText(section.description).trim().length > 0,
+  items: section => (Array.isArray(section.items) && section.items.some(item => String(item || '').trim()))
+};
+
+const getFieldsHiddenByTemplateChange = (section, nextType) => {
+  const before = getTemplateVisibleFields(section.type || SECTION_TEMPLATES[0].id);
+  const after = getTemplateVisibleFields(nextType);
+  return Object.keys(TEMPLATE_FIELD_LABEL_KEYS).filter(field => (
+    before[field] && !after[field] && TEMPLATE_FIELD_HAS_CONTENT[field](section)
+  ));
+};
+
+const UNDO_NOTICE_DURATION_MS = 8000;
 
 const sanitizeCustomSections = (rawSections) => {
   if (!Array.isArray(rawSections)) {
@@ -2416,6 +2482,10 @@ export const ProjectShowcase = ({
   const [documentUploadProgress, setDocumentUploadProgress] = useState({});
   const [streamLinkDrafts, setStreamLinkDrafts] = useState({});
   const [streamLinkErrors, setStreamLinkErrors] = useState({});
+  const [pendingTemplateChange, setPendingTemplateChange] = useState(null);
+  const [isTemplateGroupOpen, setIsTemplateGroupOpen] = useState(false);
+  const [undoNotice, setUndoNotice] = useState(null);
+  const undoNoticeTimerRef = useRef(null);
   // Un document édité dans Office garde la même URL : seul un remontage de son iframe (clé
   // incrémentée) montre la nouvelle version, sans toucher au brouillon de la vitrine.
   const [documentFrameRevisions, setDocumentFrameRevisions] = useState({});
@@ -2877,6 +2947,41 @@ export const ProjectShowcase = ({
     });
   }, []);
 
+  const dismissUndoNotice = useCallback(() => {
+    if (undoNoticeTimerRef.current) {
+      clearTimeout(undoNoticeTimerRef.current);
+      undoNoticeTimerRef.current = null;
+    }
+    setUndoNotice(null);
+  }, []);
+
+  // Une suppression dans l'inspecteur est immédiate (pas de boîte de dialogue qui coupe la
+  // saisie) mais se défait en un geste : l'historique global regroupe les changements sur
+  // 600 ms, trop approximatif pour « rendre exactement ce qui vient de partir ».
+  const showUndoNotice = useCallback((message, restore) => {
+    if (undoNoticeTimerRef.current) {
+      clearTimeout(undoNoticeTimerRef.current);
+    }
+    setUndoNotice({ message, restore });
+    undoNoticeTimerRef.current = setTimeout(() => {
+      undoNoticeTimerRef.current = null;
+      setUndoNotice(null);
+    }, UNDO_NOTICE_DURATION_MS);
+  }, []);
+
+  useEffect(() => () => {
+    if (undoNoticeTimerRef.current) {
+      clearTimeout(undoNoticeTimerRef.current);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isLiveEditing) {
+      setUndoNotice(null);
+      setPendingTemplateChange(null);
+    }
+  }, [isLiveEditing]);
+
   const handleCustomSectionFieldChange = useCallback((sectionId, field, value) => {
     setCustomSections(prev =>
       prev.map(section => {
@@ -2942,6 +3047,9 @@ export const ProjectShowcase = ({
   }, []);
 
   const handleCustomSectionColumnRemove = useCallback((sectionId, index) => {
+    const source = customSections.find(section => section && section.id === sectionId);
+    const removedValue = Array.isArray(source?.columns) ? source.columns[index] : undefined;
+
     setCustomSections(prev =>
       prev.map(section => {
         if (!section || section.id !== sectionId) {
@@ -2957,7 +3065,22 @@ export const ProjectShowcase = ({
         };
       })
     );
-  }, []);
+
+    if (removedValue !== undefined) {
+      showUndoNotice(t('projectShowcase.editor.columnBlockRemoved', { index: index + 1 }), () => {
+        setCustomSections(prev =>
+          prev.map(section => {
+            if (!section || section.id !== sectionId) {
+              return section;
+            }
+            const columns = Array.isArray(section.columns) ? [...section.columns] : [];
+            columns.splice(Math.min(index, columns.length), 0, removedValue);
+            return { ...section, columns };
+          })
+        );
+      });
+    }
+  }, [customSections, showUndoNotice, t]);
 
   const handleCustomSectionItemChange = useCallback((sectionId, index, value) => {
     setCustomSections(prev =>
@@ -2988,6 +3111,9 @@ export const ProjectShowcase = ({
   }, []);
 
   const handleCustomSectionItemRemove = useCallback((sectionId, index) => {
+    const source = customSections.find(section => section && section.id === sectionId);
+    const removedValue = Array.isArray(source?.items) ? source.items[index] : undefined;
+
     setCustomSections(prev =>
       prev.map(section => {
         if (!section || section.id !== sectionId) {
@@ -3003,7 +3129,22 @@ export const ProjectShowcase = ({
         };
       })
     );
-  }, []);
+
+    if (removedValue !== undefined) {
+      showUndoNotice(t('projectShowcase.editor.itemRemoved', { index: index + 1 }), () => {
+        setCustomSections(prev =>
+          prev.map(section => {
+            if (!section || section.id !== sectionId) {
+              return section;
+            }
+            const items = Array.isArray(section.items) ? [...section.items] : [];
+            items.splice(Math.min(index, items.length), 0, removedValue);
+            return { ...section, items };
+          })
+        );
+      });
+    }
+  }, [customSections, showUndoNotice, t]);
 
   const handleCustomSectionMediaUpdate = useCallback((sectionId, updater) => {
     setCustomSections(prev =>
@@ -3082,10 +3223,60 @@ export const ProjectShowcase = ({
   }, [handleCustomSectionMediaUpdate, streamLinkDrafts, t]);
 
   const handleRemoveCustomSection = useCallback((sectionId) => {
+    const removedSection = customSections.find(section => section && section.id === sectionId);
+    const removedIndex = sectionOrder.indexOf(sectionId);
+
     setCustomSections(previous => previous.filter(section => section.id !== sectionId));
     setSectionOrder(previous => previous.filter(entry => entry !== sectionId));
     setActiveSectionId(previous => (previous === sectionId ? null : previous));
-  }, []);
+
+    if (removedSection) {
+      const title = toPlainText(removedSection.title) || t('projectShowcase.customBlockFallback');
+      showUndoNotice(t('projectShowcase.editor.sectionRemoved', { title }), () => {
+        setCustomSections(previous => (
+          previous.some(section => section && section.id === sectionId)
+            ? previous
+            : [...previous, removedSection]
+        ));
+        setSectionOrder(previous => {
+          if (previous.includes(sectionId)) {
+            return previous;
+          }
+          const base = [...previous];
+          base.splice(removedIndex === -1 ? base.length : Math.min(removedIndex, base.length), 0, sectionId);
+          return base;
+        });
+        setActiveSectionId(sectionId);
+      });
+    }
+  }, [customSections, sectionOrder, showUndoNotice, t]);
+
+  const applyTemplateChange = useCallback((sectionId, templateId) => {
+    const source = customSections.find(section => section && section.id === sectionId);
+    const previousType = source ? (source.type || SECTION_TEMPLATES[0].id) : null;
+    handleCustomSectionFieldChange(sectionId, 'type', templateId);
+    setPendingTemplateChange(null);
+
+    if (previousType && previousType !== templateId) {
+      showUndoNotice(
+        t('projectShowcase.editor.templateChanged', { name: getTemplateMeta(t, templateId).name }),
+        () => handleCustomSectionFieldChange(sectionId, 'type', previousType)
+      );
+    }
+  }, [customSections, handleCustomSectionFieldChange, showUndoNotice, t]);
+
+  const handleRequestTemplateChange = useCallback((sectionId, templateId) => {
+    const source = customSections.find(section => section && section.id === sectionId);
+    if (!source || (source.type || SECTION_TEMPLATES[0].id) === templateId) {
+      return;
+    }
+    const hiddenFields = getFieldsHiddenByTemplateChange(source, templateId);
+    if (hiddenFields.length === 0) {
+      applyTemplateChange(sectionId, templateId);
+      return;
+    }
+    setPendingTemplateChange({ sectionId, templateId, hiddenFields });
+  }, [applyTemplateChange, customSections]);
 
   const handleSelectSection = useCallback((sectionId) => {
     setActiveSectionId(sectionId);
@@ -5551,28 +5742,40 @@ export const ProjectShowcase = ({
     const captionPosition = normalizeCaptionPosition(section.captionPosition);
     const mediaWidth = clampMediaWidth(section.mediaWidth ?? DEFAULT_MEDIA_WIDTH);
     const fieldId = (suffix) => `custom-section-${section.id}-${suffix}`;
-    const segmentClass = 'flex-1 px-2 py-1.5 text-xs font-medium';
-    const segmentStyle = (isActive) => (isActive ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50');
+
+    const handleRemoveMedia = (item, mediaIndex) => {
+      handleCustomSectionMediaUpdate(section.id, list => list.filter(entry => entry && entry.id !== item.id));
+      showUndoNotice(t('projectShowcase.editor.mediaRemoved', { index: mediaIndex + 1 }), () => {
+        handleCustomSectionMediaUpdate(section.id, list => {
+          if (list.some(entry => entry && entry.id === item.id)) {
+            return list;
+          }
+          const next = [...list];
+          next.splice(Math.min(mediaIndex, next.length), 0, item);
+          return next;
+        });
+      });
+    };
 
     return (
-      <div className="mt-4 space-y-4" data-testid="media-gallery-controls">
-        <div className="space-y-2">
+      <div className="sge-stack" data-testid="media-gallery-controls">
+        <div className="sge-field">
           <label className="sge-field__label">
             {t('projectShowcase.mediaGallery.mediaListLabel', { count: media.length })}
           </label>
           {media.length > 0 ? (
-            <ul className="space-y-2">
+            <ul className="sge-media-list">
               {media.map((item, mediaIndex) => (
-                <li key={item.id} className="space-y-2 rounded-lg border border-gray-200 bg-white p-2" data-testid="media-gallery-item">
-                  <div className="flex items-center gap-2">
+                <li key={item.id} className="sge-media-item" data-testid="media-gallery-item">
+                  <div className="sge-media-item__head">
                     {item.kind === MEDIA_KIND_IMAGE ? (
-                      <img src={item.url} alt="" className="h-8 w-12 shrink-0 rounded object-cover" />
+                      <img src={item.url} alt="" className="sge-media-item__thumb" />
                     ) : (
-                      <span className="flex h-8 w-12 shrink-0 items-center justify-center rounded bg-gray-100 text-xs font-semibold text-gray-600">
+                      <span className="sge-media-item__thumb sge-media-item__thumb--kind">
                         {t(`projectShowcase.mediaGallery.kind.${item.kind}`)}
                       </span>
                     )}
-                    <span className="min-w-0 flex-1 truncate text-xs text-gray-700" title={item.name}>
+                    <span className="sge-media-item__name" title={item.name}>
                       {item.name || t(`projectShowcase.mediaGallery.kind.${item.kind}`)}
                     </span>
                     <button
@@ -5580,26 +5783,26 @@ export const ProjectShowcase = ({
                       onClick={() => handleCustomSectionMediaUpdate(section.id, list => moveMediaItem(list, mediaIndex, -1))}
                       disabled={mediaIndex === 0}
                       aria-label={t('projectShowcase.mediaGallery.moveUp', { index: mediaIndex + 1 })}
-                      className="rounded border border-gray-200 p-1 text-gray-600 hover:text-blue-700 disabled:opacity-40"
+                      className="sge-icon-btn sge-icon-btn--hit"
                     >
-                      <ArrowUp className="h-3 w-3" />
+                      <ArrowUp className="sge-icon-btn__icon" />
                     </button>
                     <button
                       type="button"
                       onClick={() => handleCustomSectionMediaUpdate(section.id, list => moveMediaItem(list, mediaIndex, 1))}
                       disabled={mediaIndex === media.length - 1}
                       aria-label={t('projectShowcase.mediaGallery.moveDown', { index: mediaIndex + 1 })}
-                      className="rounded border border-gray-200 p-1 text-gray-600 hover:text-blue-700 disabled:opacity-40"
+                      className="sge-icon-btn sge-icon-btn--hit"
                     >
-                      <ArrowDown className="h-3 w-3" />
+                      <ArrowDown className="sge-icon-btn__icon" />
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleCustomSectionMediaUpdate(section.id, list => list.filter(entry => entry && entry.id !== item.id))}
+                      onClick={() => handleRemoveMedia(item, mediaIndex)}
                       aria-label={t('projectShowcase.mediaGallery.remove', { index: mediaIndex + 1 })}
-                      className="rounded border border-gray-200 p-1 text-gray-600 hover:border-red-200 hover:text-red-600"
+                      className="sge-icon-btn sge-icon-btn--hit sge-icon-btn--danger"
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Trash2 className="sge-icon-btn__icon" />
                     </button>
                   </div>
                   {captionMode === CAPTION_MODE_PER_MEDIA && (
@@ -5616,20 +5819,20 @@ export const ProjectShowcase = ({
               ))}
             </ul>
           ) : (
-            <p className="text-xs text-gray-500">{t('projectShowcase.mediaGallery.noMediaYet')}</p>
+            <p className="sge-field__helper">{t('projectShowcase.mediaGallery.noMediaYet')}</p>
           )}
           {documentUploadErrors[section.id] && (
-            <p className="text-xs text-red-600" role="alert">{documentUploadErrors[section.id]}</p>
+            <p className="sge-note sge-note--error" role="alert">{documentUploadErrors[section.id]}</p>
           )}
           <DocumentDropZone
-            className="rounded-lg"
+            className="sge-upload-zone"
             isBusy={Boolean(documentUploadPending[section.id])}
             progress={documentUploadProgress[section.id] ?? null}
             label={t('projectShowcase.mediaGallery.dropLabel')}
             busyLabel={t('projectShowcase.documentUploadingLabel')}
             onFiles={(files) => handleMediaGalleryUpload(section.id, files)}
           >
-            <label className="flex w-full cursor-pointer items-center justify-center rounded-lg border border-dashed border-blue-300 bg-blue-50 px-3 py-3 text-center text-sm font-medium text-blue-700 hover:bg-blue-100">
+            <label className="sge-upload">
               <input
                 type="file"
                 multiple
@@ -5644,14 +5847,14 @@ export const ProjectShowcase = ({
               {t('projectShowcase.mediaGallery.addFilesButton')}
             </label>
           </DocumentDropZone>
-          <p className="text-xs text-gray-500">{t('projectShowcase.mediaGallery.formatsHint')}</p>
+          <p className="sge-field__helper">{t('projectShowcase.mediaGallery.formatsHint')}</p>
         </div>
 
-        <div className="space-y-2">
+        <div className="sge-field">
           <label htmlFor={fieldId('stream')} className="sge-field__label">
             {t('projectShowcase.mediaGallery.streamLabel')}
           </label>
-          <div className="flex gap-2">
+          <div className="sge-inline-form">
             <input
               id={fieldId('stream')}
               type="url"
@@ -5672,30 +5875,30 @@ export const ProjectShowcase = ({
             <button
               type="button"
               onClick={() => handleAddStreamLink(section.id)}
-              className="shrink-0 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+              className="sge-btn sge-btn--outline sge-btn--sm sge-btn--hit"
             >
               {t('projectShowcase.mediaGallery.streamAddButton')}
             </button>
           </div>
           {streamLinkErrors[section.id] && (
-            <p className="text-xs text-red-600" role="alert">{streamLinkErrors[section.id]}</p>
+            <p className="sge-note sge-note--error" role="alert">{streamLinkErrors[section.id]}</p>
           )}
-          <p className="text-xs text-gray-500">{t('projectShowcase.mediaGallery.streamEmbedHint')}</p>
-          <p className="rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-xs text-orange-900" data-testid="media-gallery-stream-warning">
+          <p className="sge-field__helper">{t('projectShowcase.mediaGallery.streamEmbedHint')}</p>
+          <p className="sge-note sge-note--warn" data-testid="media-gallery-stream-warning">
             {t('projectShowcase.mediaGallery.streamSharingWarning')}
           </p>
         </div>
 
-        <div className="space-y-2">
+        <div className="sge-field">
           <p className="sge-field__label">{t('projectShowcase.mediaGallery.captionModeLabel')}</p>
-          <div className="flex divide-x divide-gray-200 overflow-hidden rounded-lg border border-gray-200" role="group" aria-label={t('projectShowcase.mediaGallery.captionModeLabel')}>
+          <div className="sge-segmented" role="group" aria-label={t('projectShowcase.mediaGallery.captionModeLabel')}>
             {CAPTION_MODES.map(mode => (
               <button
                 key={mode}
                 type="button"
                 aria-pressed={captionMode === mode}
                 onClick={() => handleCustomSectionFieldChange(section.id, 'captionMode', mode)}
-                className={`${segmentClass} ${segmentStyle(captionMode === mode)}`}
+                className="sge-segmented__btn"
               >
                 {t(`projectShowcase.mediaGallery.captionMode.${mode}`)}
               </button>
@@ -5714,26 +5917,26 @@ export const ProjectShowcase = ({
         </div>
 
         {captionMode !== 'none' && (
-          <div className="space-y-2">
+          <div className="sge-field">
             <p className="sge-field__label">{t('projectShowcase.mediaGallery.captionPositionLabel')}</p>
-            <div className="flex divide-x divide-gray-200 overflow-hidden rounded-lg border border-gray-200" role="group" aria-label={t('projectShowcase.mediaGallery.captionPositionLabel')}>
+            <div className="sge-segmented" role="group" aria-label={t('projectShowcase.mediaGallery.captionPositionLabel')}>
               {CAPTION_POSITIONS.map(position => (
                 <button
                   key={position}
                   type="button"
                   aria-pressed={captionPosition === position}
                   onClick={() => handleCustomSectionFieldChange(section.id, 'captionPosition', position)}
-                  className={`${segmentClass} ${segmentStyle(captionPosition === position)}`}
+                  className="sge-segmented__btn"
                 >
                   {t(`projectShowcase.mediaGallery.captionPosition.${position}`)}
                 </button>
               ))}
             </div>
-            <p className="text-xs text-gray-500">{t('projectShowcase.mediaGallery.captionNarrowHint')}</p>
+            <p className="sge-field__helper">{t('projectShowcase.mediaGallery.captionNarrowHint')}</p>
           </div>
         )}
 
-        <div className="space-y-2">
+        <div className="sge-field">
           <label htmlFor={fieldId('width')} className="sge-field__label">
             {t('projectShowcase.mediaGallery.widthLabel', { width: mediaWidth })}
           </label>
@@ -5745,372 +5948,419 @@ export const ProjectShowcase = ({
             step={1}
             value={mediaWidth}
             onChange={(event) => handleCustomSectionFieldChange(section.id, 'mediaWidth', clampMediaWidth(event.target.value))}
-            className="w-full"
+            className="sge-range"
           />
-          <p className="text-xs text-gray-500">{t('projectShowcase.mediaGallery.widthHint')}</p>
+          <p className="sge-field__helper">{t('projectShowcase.mediaGallery.widthHint')}</p>
         </div>
       </div>
     );
   };
 
-  const renderCustomSectionControls = (section) => {
-            const templateConfig = resolveTemplateConfig(section.type);
-            // Seuls les emplacements que le porteur écrit lui-même ont leur éditeur ici ; ceux
-            // qui viennent du questionnaire se modifient par leur question, en bas du groupe.
-            const slotView = buildSectionSlotView(section);
-            const isOwnerSlot = (field) => !slotView || (slotView.modes[field] || SLOT_MODES.OWNER) === SLOT_MODES.OWNER;
-            const slotQuestionFields = slotView
-              ? collectSlotQuestionIds(slotView.slots, { editableOnly: true })
-                  .map(questionId => editableFields.find(field => field.id === resolveSlotFieldId(questionId) && field.question))
-                  .filter(Boolean)
-              : [];
-            const hasLockedSlots = Boolean(slotView)
-              && Object.values(slotView.modes).some(mode => mode === SLOT_MODES.LOCKED);
-            const hasTemplateEyebrow = Boolean(slotView)
-              && !templateConfig.showBadge
-              && !templateConfig.showAccent
-              && getBlockSlotDefinitions(section.type).some(definition => definition.id === 'accent')
-              && isOwnerSlot('accent');
-            const fieldLabel = (field, fallbackKey) => (
-              templateConfig.labels?.[field]
-                ? t(`projectShowcase.blockFieldLabels.${templateConfig.labels[field]}`)
-                : t(fallbackKey)
-            );
-            const sectionTitle = section.title || t('projectShowcase.customBlockFallback');
-            const annotationSectionId = section.type || 'custom';
+  const renderCustomSectionContent = (section) => {
+    const templateConfig = resolveTemplateConfig(section.type);
+    // Seuls les emplacements que le porteur écrit lui-même ont leur éditeur ici ; ceux
+    // qui viennent du questionnaire se modifient par leur question, en bas du groupe.
+    const slotView = buildSectionSlotView(section);
+    const isOwnerSlot = (field) => !slotView || (slotView.modes[field] || SLOT_MODES.OWNER) === SLOT_MODES.OWNER;
+    const slotQuestionFields = slotView
+      ? collectSlotQuestionIds(slotView.slots, { editableOnly: true })
+          .map(questionId => editableFields.find(field => field.id === resolveSlotFieldId(questionId) && field.question))
+          .filter(Boolean)
+      : [];
+    const hasLockedSlots = Boolean(slotView)
+      && Object.values(slotView.modes).some(mode => mode === SLOT_MODES.LOCKED);
+    const hasTemplateEyebrow = Boolean(slotView)
+      && !templateConfig.showBadge
+      && !templateConfig.showAccent
+      && getBlockSlotDefinitions(section.type).some(definition => definition.id === 'accent')
+      && isOwnerSlot('accent');
+    const fieldLabel = (field, fallbackKey) => (
+      templateConfig.labels?.[field]
+        ? t(`projectShowcase.blockFieldLabels.${templateConfig.labels[field]}`)
+        : t(fallbackKey)
+    );
+    const fieldId = (suffix) => `custom-section-${section.id}-${suffix}`;
+    const plainField = (suffix, field, label, placeholder) => (
+      <div className="sge-field">
+        <label htmlFor={fieldId(suffix)} className="sge-field__label">{label}</label>
+        <input
+          id={fieldId(suffix)}
+          type="text"
+          value={toInputText(section[field])}
+          onChange={(event) => handleCustomSectionFieldChange(section.id, field, fromInputText(event.target.value))}
+          placeholder={placeholder}
+          className="sge-input"
+        />
+      </div>
+    );
 
-            return (
-              <div
-                key={`custom-section-${section.id}`}
-                id={`sge-group-${section.id}`}
-                className="sge-field sge-field--wide"
-                data-annotation-target-section={annotationSectionId}
-              >
-                <div className="flex flex-col gap-1">
-                  <p className="sge-field__label">{renderTextWithLinks(sectionTitle)}</p>
-                  <p className="text-xs text-gray-500">{t('projectShowcase.customBlockFallback')}</p>
+    return (
+      <div className="sge-stack">
+        {hasLockedSlots && (
+          <p className="sge-note" data-testid="showcase-block-locked-hint">
+            {t('projectShowcase.templateLockedSlotsHint')}
+          </p>
+        )}
+        {isOwnerSlot('title') && !templateConfig.hideTitle && (
+          <div className="sge-field">
+            <label htmlFor={fieldId('title')} className="sge-field__label">
+              {t('projectShowcase.titleFieldLabel')}
+            </label>
+            <RichTextEditor
+              id={fieldId('title')}
+              value={section.title || ''}
+              onChange={(nextValue) => handleCustomSectionFieldChange(section.id, 'title', nextValue)}
+              placeholder={t('projectShowcase.titlePlaceholderFallback')}
+              compact
+              ariaLabel={t('projectShowcase.titleBlockAriaLabel')}
+            />
+          </div>
+        )}
+        {hasTemplateEyebrow
+          && plainField('eyebrow', 'accent', t('projectShowcase.badgeFieldLabel'), t('projectShowcase.badgeFieldLabel'))}
+        {templateConfig.showSubtitle && isOwnerSlot('subtitle')
+          && plainField('subtitle', 'subtitle', fieldLabel('subtitle', 'projectShowcase.subtitleFieldLabel'), t('projectShowcase.subtitlePlaceholderFallback'))}
+        {templateConfig.showBadge && isOwnerSlot('accent')
+          && plainField('badge', 'accent', fieldLabel('accent', 'projectShowcase.badgeFieldLabel'), t('projectShowcase.badgeFieldLabel'))}
+        {templateConfig.showAccent && isOwnerSlot('accent')
+          && plainField('accent', 'accent', t('projectShowcase.accentFieldLabel'), t('projectShowcase.accentPlaceholderFallback'))}
+        {section.type === 'figure' && isOwnerSlot('figure') && (
+          <div className="sge-field">
+            <label htmlFor={fieldId('figure')} className="sge-field__label">
+              {t('projectShowcase.figureFieldLabel')}
+            </label>
+            <input
+              id={fieldId('figure')}
+              type="text"
+              value={section.figure || ''}
+              onChange={(event) => handleCustomSectionFieldChange(section.id, 'figure', event.target.value)}
+              placeholder="87 %"
+              className="sge-input"
+            />
+          </div>
+        )}
+        {templateConfig.showDescription && isOwnerSlot('description') && (
+          <div className="sge-field">
+            <label htmlFor={fieldId('description')} className="sge-field__label">
+              {fieldLabel('description', 'projectShowcase.descriptionFieldLabel')}
+            </label>
+            <RichTextEditor
+              id={fieldId('description')}
+              value={section.description || ''}
+              onChange={(nextValue) => handleCustomSectionFieldChange(section.id, 'description', nextValue)}
+              placeholder={t('projectShowcase.descriptionPlaceholderFallback')}
+              ariaLabel={t('projectShowcase.descriptionSectionAriaLabel')}
+            />
+          </div>
+        )}
+        {templateConfig.showDocument && (
+          <div className="sge-field">
+            <label className="sge-field__label">{t('projectShowcase.documentUrlLabel')}</label>
+            {documentUploadErrors[section.id] && (
+              <p className="sge-note sge-note--error" role="alert">{documentUploadErrors[section.id]}</p>
+            )}
+            <DocumentDropZone
+              className="sge-upload-zone"
+              isBusy={Boolean(documentUploadPending[section.id])}
+              progress={documentUploadProgress[section.id] ?? null}
+              label={t(section.documentUrl
+                ? 'projectShowcase.documentDropReplaceLabel'
+                : 'projectShowcase.documentDropLabel')}
+              busyLabel={t('projectShowcase.documentUploadingLabel')}
+              onFiles={(files) => handleDocumentUpload(
+                section.id,
+                (field, value) => handleCustomSectionFieldChange(section.id, field, value),
+                files
+              )}
+            >
+              {section.documentUrl ? (
+                <div className="sge-docrow">
+                  <a
+                    href={section.documentUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="sge-docrow__link"
+                  >
+                    {t('projectShowcase.documentUploadedLabel')}
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleCustomSectionFieldChange(section.id, 'documentUrl', '');
+                      handleCustomSectionFieldChange(section.id, 'documentType', 'pdf');
+                    }}
+                    className="sge-btn sge-btn--outline sge-btn--sm sge-btn--hit"
+                  >
+                    {t('projectShowcase.removeDocumentButton')}
+                  </button>
                 </div>
-                {hasLockedSlots && (
-                  <p className="mt-2 text-xs text-gray-500" data-testid="showcase-block-locked-hint">
-                    {t('projectShowcase.templateLockedSlotsHint')}
-                  </p>
-                )}
-                {isOwnerSlot('title') && !templateConfig.hideTitle && (
-                  <div className="mt-4 grid gap-4 md:grid-cols-2">
-                    <div className="space-y-1">
-                      <label htmlFor={`custom-section-${section.id}-title`} className="text-sm font-medium text-gray-800">
-                        {t('projectShowcase.titleFieldLabel')}
-                      </label>
-                      <RichTextEditor
-                        id={`custom-section-${section.id}-title`}
-                        value={section.title || ''}
-                        onChange={(nextValue) => handleCustomSectionFieldChange(section.id, 'title', nextValue)}
-                        placeholder={t('projectShowcase.titlePlaceholderFallback')}
-                        compact
-                        ariaLabel={t('projectShowcase.titleBlockAriaLabel')}
-                      />
-                    </div>
-                  </div>
-                )}
-                {hasTemplateEyebrow && (
-                  <div className="space-y-1">
-                    <label htmlFor={`custom-section-${section.id}-eyebrow`} className="text-sm font-medium text-gray-800">
-                      {t('projectShowcase.badgeFieldLabel')}
-                    </label>
-                    <RichTextEditor
-                      id={`custom-section-${section.id}-eyebrow`}
-                      value={section.accent || ''}
-                      onChange={(nextValue) => handleCustomSectionFieldChange(section.id, 'accent', nextValue)}
-                      placeholder={t('projectShowcase.badgeFieldLabel')}
-                      compact
-                      ariaLabel={t('projectShowcase.badgeBlockAriaLabel')}
-                    />
-                  </div>
-                )}
-                {templateConfig.showSubtitle && isOwnerSlot('subtitle') && (
-                  <div className="space-y-1">
-                    <label htmlFor={`custom-section-${section.id}-subtitle`} className="text-sm font-medium text-gray-800">
-                      {fieldLabel('subtitle', 'projectShowcase.subtitleFieldLabel')}
-                    </label>
-                    <RichTextEditor
-                      id={`custom-section-${section.id}-subtitle`}
-                      value={section.subtitle || ''}
-                      onChange={(nextValue) => handleCustomSectionFieldChange(section.id, 'subtitle', nextValue)}
-                      placeholder={t('projectShowcase.subtitlePlaceholderFallback')}
-                      compact
-                      ariaLabel={t('projectShowcase.subtitleBlockAriaLabel')}
-                    />
-                  </div>
-                )}
-                {templateConfig.showBadge && isOwnerSlot('accent') && (
-                  <div className="space-y-1">
-                    <label htmlFor={`custom-section-${section.id}-badge`} className="text-sm font-medium text-gray-800">
-                      {fieldLabel('accent', 'projectShowcase.badgeFieldLabel')}
-                    </label>
-                    <RichTextEditor
-                      id={`custom-section-${section.id}-badge`}
-                      value={section.accent || ''}
-                      onChange={(nextValue) => handleCustomSectionFieldChange(section.id, 'accent', nextValue)}
-                      placeholder={t('projectShowcase.badgeFieldLabel')}
-                      compact
-                      ariaLabel={t('projectShowcase.badgeBlockAriaLabel')}
-                    />
-                  </div>
-                )}
-                {templateConfig.showAccent && isOwnerSlot('accent') && (
-                  <div className="space-y-1">
-                    <label htmlFor={`custom-section-${section.id}-accent`} className="text-sm font-medium text-gray-800">
-                      {t('projectShowcase.accentFieldLabel')}
-                    </label>
-                    <RichTextEditor
-                      id={`custom-section-${section.id}-accent`}
-                      value={section.accent || ''}
-                      onChange={(nextValue) => handleCustomSectionFieldChange(section.id, 'accent', nextValue)}
-                      placeholder={t('projectShowcase.accentPlaceholderFallback')}
-                      compact
-                      ariaLabel={t('projectShowcase.accentBlockAriaLabel')}
-                    />
-                  </div>
-                )}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-800">{t('projectShowcase.colorFamilyLabel')}</label>
-                  <div className="flex flex-wrap gap-2">
-                    {accentFamilies.map((family, familyIndex) => {
-                      const isActive =
-                        (normalizeAccentFamilyId(section.accentFamily) || THEME_ACCENT_FAMILY_ID) === family.id;
-                      return (
-                        <button
-                          key={`custom-section-${section.id}-family-${family.id}`}
-                          type="button"
-                          onClick={() => handleCustomSectionFieldChange(section.id, 'accentFamily', family.id)}
-                          aria-pressed={isActive}
-                          className="sge-swatch"
-                        >
-                          <span
-                            className="sge-swatch__dot"
-                            style={{ background: `linear-gradient(135deg, ${family.g1}, ${family.g2})` }}
-                          />
-                          {getColorFamilyLabel(t, family, familyIndex)}
-                        </button>
+              ) : (
+                <label className="sge-upload">
+                  <input
+                    type="file"
+                    className="sr-only"
+                    onChange={(event) => {
+                      handleDocumentUpload(
+                        section.id,
+                        (field, value) => handleCustomSectionFieldChange(section.id, field, value),
+                        event.target.files
                       );
-                    })}
-                  </div>
-                </div>
-                {section.type === 'figure' && isOwnerSlot('figure') && (
-                  <div className="space-y-1">
-                    <label htmlFor={`custom-section-${section.id}-figure`} className="text-sm font-medium text-gray-800">
-                      {t('projectShowcase.figureFieldLabel')}
-                    </label>
-                    <input
-                      id={`custom-section-${section.id}-figure`}
-                      type="text"
-                      value={section.figure || ''}
-                      onChange={(event) => handleCustomSectionFieldChange(section.id, 'figure', event.target.value)}
-                      placeholder="87 %"
-                      className="sge-input"
-                    />
-                  </div>
-                )}
-                {templateConfig.showColumns && isOwnerSlot('columns') && (
-                  <div className="space-y-1">
-                    <label htmlFor={`custom-section-${section.id}-column-count`} className="text-sm font-medium text-gray-800">
-                      {t('projectShowcase.columnCountLabel')}
-                    </label>
-                    <select
-                      id={`custom-section-${section.id}-column-count`}
-                      value={resolveCustomSectionColumnCount(section.columnCount, section.columns)}
-                      onChange={(event) => handleCustomSectionColumnCountChange(section.id, event.target.value)}
-                      className="sge-input"
-                    >
-                      {Array.from({ length: MAX_CUSTOM_SECTION_COLUMNS }, (_, index) => (
-                        <option key={`custom-section-${section.id}-column-${index + 1}`} value={index + 1}>
-                          {t(index + 1 > 1 ? 'projectShowcase.columnCountOptionPlural' : 'projectShowcase.columnCountOptionSingular', { count: index + 1 })}
-                        </option>
-                      ))}
-                    </select>
-                    <p className="text-xs text-gray-500">{t('projectShowcase.columnCountHint')}</p>
-                  </div>
-                )}
-                {templateConfig.showDocument && (
-                  <>
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium text-gray-800">
-                        {t('projectShowcase.documentUrlLabel')}
-                      </label>
-                      {documentUploadErrors[section.id] && (
-                        <p className="text-xs text-red-600">{documentUploadErrors[section.id]}</p>
-                      )}
-                      <DocumentDropZone
-                        className="rounded-lg"
-                        isBusy={Boolean(documentUploadPending[section.id])}
-                        progress={documentUploadProgress[section.id] ?? null}
-                        label={t(section.documentUrl
-                          ? 'projectShowcase.documentDropReplaceLabel'
-                          : 'projectShowcase.documentDropLabel')}
-                        busyLabel={t('projectShowcase.documentUploadingLabel')}
-                        onFiles={(files) => handleDocumentUpload(
-                          section.id,
-                          (field, value) => handleCustomSectionFieldChange(section.id, field, value),
-                          files
-                        )}
-                      >
-                        {section.documentUrl ? (
-                          <div className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm">
-                            <a
-                              href={section.documentUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="truncate text-blue-600 hover:underline"
-                            >
-                              {t('projectShowcase.documentUploadedLabel')}
-                            </a>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                handleCustomSectionFieldChange(section.id, 'documentUrl', '');
-                                handleCustomSectionFieldChange(section.id, 'documentType', 'pdf');
-                              }}
-                              className="shrink-0 text-xs font-semibold text-gray-500 hover:text-gray-700"
-                            >
-                              {t('projectShowcase.removeDocumentButton')}
-                            </button>
-                          </div>
-                        ) : (
-                          <label className="flex w-full cursor-pointer items-center justify-center rounded-lg border border-dashed border-blue-300 bg-blue-50 px-3 py-3 text-center text-sm font-medium text-blue-700 hover:bg-blue-100">
-                            <input
-                              type="file"
-                              className="sr-only"
-                              onChange={(event) => {
-                                handleDocumentUpload(
-                                  section.id,
-                                  (field, value) => handleCustomSectionFieldChange(section.id, field, value),
-                                  event.target.files
-                                );
-                                event.target.value = '';
-                              }}
-                            />
-                            {t('projectShowcase.chooseDocumentButton')}
-                          </label>
-                        )}
-                      </DocumentDropZone>
-                    </div>
-                  </>
-                )}
-                {templateConfig.showMedia && renderMediaGalleryControls(section)}
-                {slotQuestionFields.length > 0 && (
-                  <div className="mt-4 space-y-2" data-testid="showcase-linked-block-field">
-                    <p className="text-xs text-gray-500">{t('projectShowcase.linkedBlockHint')}</p>
-                    {slotQuestionFields.map(field => renderStandardFieldControl(field))}
-                  </div>
-                )}
-                {templateConfig.showDescription && isOwnerSlot('description') && (
-                  <div className="mt-4 space-y-1">
-                    <label htmlFor={`custom-section-${section.id}-description`} className="text-sm font-medium text-gray-800">
-                      {fieldLabel('description', 'projectShowcase.descriptionFieldLabel')}
-                    </label>
-                    <RichTextEditor
-                      id={`custom-section-${section.id}-description`}
-                      value={section.description || ''}
-                      onChange={(nextValue) => handleCustomSectionFieldChange(section.id, 'description', nextValue)}
-                      placeholder={t('projectShowcase.descriptionPlaceholderFallback')}
-                      ariaLabel={t('projectShowcase.descriptionSectionAriaLabel')}
-                    />
-                  </div>
-                )}
-                {templateConfig.showColumns && isOwnerSlot('columns') && (() => {
-                  const storedBlocks = normalizeCustomSectionColumns(section.columns);
-                  // même repli que le canvas : toujours un bloc où écrire
-                  const columnBlocks = storedBlocks.length > 0 ? storedBlocks : [''];
+                      event.target.value = '';
+                    }}
+                  />
+                  {t('projectShowcase.chooseDocumentButton')}
+                </label>
+              )}
+            </DocumentDropZone>
+          </div>
+        )}
+        {templateConfig.showMedia && renderMediaGalleryControls(section)}
+        {slotQuestionFields.length > 0 && (
+          <div className="sge-field" data-testid="showcase-linked-block-field">
+            <p className="sge-note">{t('projectShowcase.linkedBlockHint')}</p>
+            {slotQuestionFields.map(field => renderStandardFieldControl(field))}
+          </div>
+        )}
+        {templateConfig.showColumns && isOwnerSlot('columns') && (() => {
+          const storedBlocks = normalizeCustomSectionColumns(section.columns);
+          // même repli que le canvas : toujours un bloc où écrire
+          const columnBlocks = storedBlocks.length > 0 ? storedBlocks : [''];
 
-                  return (
-                    <div className="mt-4 space-y-3">
-                      <label className="sge-field__label">{t('projectShowcase.columnBlocksLabel')}</label>
-                      <div className="space-y-3">
-                        {columnBlocks.map((column, columnIndex) => (
-                          <div key={`${section.id}-column-${columnIndex}`} className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <p className="text-xs font-semibold text-gray-500">
-                                {t('projectShowcase.columnBlockNumberLabel', { index: columnIndex + 1 })}
-                              </p>
-                              <button
-                                type="button"
-                                onClick={() => handleCustomSectionColumnRemove(section.id, columnIndex)}
-                                className="inline-flex items-center gap-1 rounded-full border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:border-red-200 hover:text-red-600"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                                {t('projectShowcase.removeButton')}
-                              </button>
-                            </div>
-                            <RichTextEditor
-                              id={`custom-section-${section.id}-column-${columnIndex}`}
-                              value={column}
-                              onChange={(nextValue) => handleCustomSectionColumnChange(section.id, columnIndex, nextValue)}
-                              placeholder={t('projectShowcase.columnBlockPlaceholderTemplate', { index: columnIndex + 1 })}
-                              compact
-                              ariaLabel={t('projectShowcase.columnBlockNumberLabel', { index: columnIndex + 1 })}
-                            />
-                          </div>
-                        ))}
-                      </div>
+          return (
+            <div className="sge-field">
+              <p className="sge-field__label">{t('projectShowcase.columnBlocksLabel')}</p>
+              <div className="sge-stack">
+                {columnBlocks.map((column, columnIndex) => (
+                  <div key={`${section.id}-column-${columnIndex}`} className="sge-listrow">
+                    <div className="sge-listrow__head">
+                      <p className="sge-listrow__label">
+                        {t('projectShowcase.columnBlockNumberLabel', { index: columnIndex + 1 })}
+                      </p>
                       <button
                         type="button"
-                        onClick={() => handleCustomSectionColumnAdd(section.id)}
-                        className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700 transition hover:border-blue-200 hover:text-blue-700"
+                        onClick={() => handleCustomSectionColumnRemove(section.id, columnIndex)}
+                        className="sge-btn sge-btn--outline sge-btn--sm sge-btn--hit sge-btn--quiet-danger"
                       >
-                        <Plus className="h-4 w-4" />
-                        {t('projectShowcase.addColumnBlockButton')}
+                        <Trash2 className="sge-btn__icon" />
+                        {t('projectShowcase.removeButton')}
                       </button>
                     </div>
-                  );
-                })()}
-                {templateConfig.showItems && isOwnerSlot('items') && (
-                  <div className="mt-4 space-y-3">
-                    <label className="sge-field__label">
-                      {fieldLabel('items', section.type === 'stack'
-                        ? 'projectShowcase.stackItemsLabel'
-                        : 'projectShowcase.listItemsLabel')}
-                    </label>
-                    {Array.isArray(section.items) && section.items.length > 0 ? (
-                      <div className="space-y-3">
-                        {section.items.map((item, itemIndex) => (
-                          <div key={`${section.id}-item-${itemIndex}`} className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <p className="text-xs font-semibold text-gray-500">{t('projectShowcase.itemNumberLabel', { index: itemIndex + 1 })}</p>
-                              <button
-                                type="button"
-                                onClick={() => handleCustomSectionItemRemove(section.id, itemIndex)}
-                                className="inline-flex items-center gap-1 rounded-full border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:border-red-200 hover:text-red-600"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                                {t('projectShowcase.removeButton')}
-                              </button>
-                            </div>
-                            <RichTextEditor
-                              id={`custom-section-${section.id}-items-${itemIndex}`}
-                              value={item}
-                              onChange={(nextValue) => handleCustomSectionItemChange(section.id, itemIndex, nextValue)}
-                              placeholder={t('projectShowcase.itemPlaceholder')}
-                              compact
-                              ariaLabel={t('projectShowcase.itemAriaLabelTemplate', { index: itemIndex + 1 })}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-gray-500">{t('projectShowcase.noItemAddedYet')}</p>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => handleCustomSectionItemAdd(section.id)}
-                      className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700 transition hover:border-blue-200 hover:text-blue-700"
-                    >
-                      <Plus className="h-4 w-4" />
-                      {t('projectShowcase.addItemButton')}
-                    </button>
+                    <RichTextEditor
+                      id={fieldId(`column-${columnIndex}`)}
+                      value={column}
+                      onChange={(nextValue) => handleCustomSectionColumnChange(section.id, columnIndex, nextValue)}
+                      placeholder={t('projectShowcase.columnBlockPlaceholderTemplate', { index: columnIndex + 1 })}
+                      compact
+                      ariaLabel={t('projectShowcase.columnBlockNumberLabel', { index: columnIndex + 1 })}
+                    />
                   </div>
-                )}
+                ))}
               </div>
-            );
+              <button
+                type="button"
+                onClick={() => handleCustomSectionColumnAdd(section.id)}
+                className="sge-btn sge-btn--outline sge-btn--sm sge-btn--hit sge-btn--start"
+              >
+                <Plus className="sge-btn__icon" />
+                {t('projectShowcase.addColumnBlockButton')}
+              </button>
+            </div>
+          );
+        })()}
+        {templateConfig.showItems && isOwnerSlot('items') && (
+          <div className="sge-field">
+            <p className="sge-field__label">
+              {fieldLabel('items', section.type === 'stack'
+                ? 'projectShowcase.stackItemsLabel'
+                : 'projectShowcase.listItemsLabel')}
+            </p>
+            {Array.isArray(section.items) && section.items.length > 0 ? (
+              <div className="sge-stack">
+                {section.items.map((item, itemIndex) => (
+                  <div key={`${section.id}-item-${itemIndex}`} className="sge-listrow">
+                    <div className="sge-listrow__head">
+                      <p className="sge-listrow__label">{t('projectShowcase.itemNumberLabel', { index: itemIndex + 1 })}</p>
+                      <button
+                        type="button"
+                        onClick={() => handleCustomSectionItemRemove(section.id, itemIndex)}
+                        className="sge-btn sge-btn--outline sge-btn--sm sge-btn--hit sge-btn--quiet-danger"
+                      >
+                        <Trash2 className="sge-btn__icon" />
+                        {t('projectShowcase.removeButton')}
+                      </button>
+                    </div>
+                    <RichTextEditor
+                      id={fieldId(`items-${itemIndex}`)}
+                      value={item}
+                      onChange={(nextValue) => handleCustomSectionItemChange(section.id, itemIndex, nextValue)}
+                      placeholder={t('projectShowcase.itemPlaceholder')}
+                      compact
+                      ariaLabel={t('projectShowcase.itemAriaLabelTemplate', { index: itemIndex + 1 })}
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="sge-field__helper">{t('projectShowcase.noItemAddedYet')}</p>
+            )}
+            <button
+              type="button"
+              onClick={() => handleCustomSectionItemAdd(section.id)}
+              className="sge-btn sge-btn--outline sge-btn--sm sge-btn--hit sge-btn--start"
+            >
+              <Plus className="sge-btn__icon" />
+              {t('projectShowcase.addItemButton')}
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderCustomSectionFormat = (section) => {
+    const templateConfig = resolveTemplateConfig(section.type);
+    const slotView = buildSectionSlotView(section);
+    const isOwnerSlot = (field) => !slotView || (slotView.modes[field] || SLOT_MODES.OWNER) === SLOT_MODES.OWNER;
+    const activeFamilyId = normalizeAccentFamilyId(section.accentFamily) || THEME_ACCENT_FAMILY_ID;
+
+    return (
+      <div className="sge-stack">
+        <div className="sge-field">
+          <p className="sge-field__label">{t('projectShowcase.colorFamilyLabel')}</p>
+          <div className="sge-swatches">
+            {accentFamilies.map((family, familyIndex) => (
+              <button
+                key={`custom-section-${section.id}-family-${family.id}`}
+                type="button"
+                onClick={() => handleCustomSectionFieldChange(section.id, 'accentFamily', family.id)}
+                aria-pressed={activeFamilyId === family.id}
+                className="sge-swatch"
+              >
+                <span
+                  className="sge-swatch__dot"
+                  style={{ background: `linear-gradient(135deg, ${family.g1}, ${family.g2})` }}
+                />
+                {getColorFamilyLabel(t, family, familyIndex)}
+              </button>
+            ))}
+          </div>
+        </div>
+        {templateConfig.showColumns && isOwnerSlot('columns') && (
+          <div className="sge-field">
+            <label htmlFor={`custom-section-${section.id}-column-count`} className="sge-field__label">
+              {t('projectShowcase.columnCountLabel')}
+            </label>
+            <select
+              id={`custom-section-${section.id}-column-count`}
+              value={resolveCustomSectionColumnCount(section.columnCount, section.columns)}
+              onChange={(event) => handleCustomSectionColumnCountChange(section.id, event.target.value)}
+              className="sge-input"
+            >
+              {Array.from({ length: MAX_CUSTOM_SECTION_COLUMNS }, (_, index) => (
+                <option key={`custom-section-${section.id}-column-${index + 1}`} value={index + 1}>
+                  {t(index + 1 > 1 ? 'projectShowcase.columnCountOptionPlural' : 'projectShowcase.columnCountOptionSingular', { count: index + 1 })}
+                </option>
+              ))}
+            </select>
+            <p className="sge-field__helper">{t('projectShowcase.columnCountHint')}</p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderCustomSectionControls = (section) => {
+    const currentType = section.type || SECTION_TEMPLATES[0].id;
+    const annotationSectionId = section.type || 'custom';
+    const pending = pendingTemplateChange && pendingTemplateChange.sectionId === section.id
+      ? pendingTemplateChange
+      : null;
+
+    return (
+      <div
+        key={`custom-section-${section.id}`}
+        id={`sge-group-${section.id}`}
+        className="sge-inspector__groups"
+        data-annotation-target-section={annotationSectionId}
+      >
+        {pending && (
+          <div className="sge-confirm" role="alertdialog" aria-labelledby={`sge-confirm-${section.id}`}>
+            <p id={`sge-confirm-${section.id}`} className="sge-confirm__title">
+              {t('projectShowcase.editor.templateChangeConfirmTitle', {
+                name: getTemplateMeta(t, pending.templateId).name
+              })}
+            </p>
+            <p className="sge-confirm__text">
+              {t('projectShowcase.editor.templateChangeConfirmText', {
+                fields: pending.hiddenFields.map(field => t(TEMPLATE_FIELD_LABEL_KEYS[field])).join(', ')
+              })}
+            </p>
+            <div className="sge-confirm__actions">
+              <button
+                type="button"
+                className="sge-btn sge-btn--primary sge-btn--sm sge-btn--hit"
+                onClick={() => applyTemplateChange(pending.sectionId, pending.templateId)}
+              >
+                {t('projectShowcase.editor.templateChangeConfirm')}
+              </button>
+              <button
+                type="button"
+                className="sge-btn sge-btn--outline sge-btn--sm sge-btn--hit"
+                onClick={() => setPendingTemplateChange(null)}
+              >
+                {t('projectShowcase.editor.templateChangeCancel')}
+              </button>
+            </div>
+          </div>
+        )}
+
+        <details className="sge-acc" open>
+          <summary className="sge-acc__summary">{t('projectShowcase.editor.groupContent')}</summary>
+          <div className="sge-acc__body">{renderCustomSectionContent(section)}</div>
+        </details>
+
+        <details className="sge-acc" open>
+          <summary className="sge-acc__summary">{t('projectShowcase.editor.groupAppearance')}</summary>
+          <div className="sge-acc__body">{renderCustomSectionFormat(section)}</div>
+        </details>
+
+        <details
+          className="sge-acc"
+          open={isTemplateGroupOpen}
+          onToggle={(event) => setIsTemplateGroupOpen(event.currentTarget.open)}
+        >
+          <summary className="sge-acc__summary">
+            {t('projectShowcase.editor.changeTemplate')}
+            <span className="sge-acc__value">{getTemplateMeta(t, currentType).name}</span>
+          </summary>
+          <div className="sge-acc__body">
+            {isTemplateGroupOpen && (
+              <div className="sge-tplswitch" role="group" aria-label={t('projectShowcase.editor.changeTemplate')}>
+                {SECTION_TEMPLATES.map(template => {
+                  const isCurrent = currentType === template.id;
+                  return (
+                    <button
+                      key={`tpl-switch-${template.id}`}
+                      type="button"
+                      className={`sge-tplswitch__item${isCurrent ? ' sge-tplswitch__item--on' : ''}`}
+                      aria-pressed={isCurrent}
+                      onClick={() => handleRequestTemplateChange(section.id, template.id)}
+                    >
+                      <span className="sge-tplswitch__thumb" aria-hidden="true">
+                        <span className="sge-tplswitch__thumb-inner">
+                          {renderTemplatePreview(template.id)}
+                        </span>
+                      </span>
+                      <span className="sge-tplswitch__name">{getTemplateMeta(t, template.id).name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </details>
+      </div>
+    );
   };
 
   const renderStandardFieldControl = (field) => {
@@ -6512,15 +6762,15 @@ export const ProjectShowcase = ({
     <div className="sge-inspector__group">
       <p className="sge-field__label">{t('projectShowcase.sectionAccentsTitle')}</p>
       <p className="sge-field__helper">{t('projectShowcase.sectionAccentsHint')}</p>
-      <div className="flex flex-col gap-3">
+      <div className="sge-stack">
         {activeAccentGroupIds.map((sectionId) => (
-          <div key={`accent-${sectionId}`} className="flex flex-col gap-1.5">
+          <div key={`accent-${sectionId}`} className="sge-field">
             {activeAccentGroupIds.length > 1 && (
-              <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+              <span className="sge-eyebrow">
                 {getSectionOptionLabel(t, sectionId)}
               </span>
             )}
-            <div className="flex flex-wrap gap-2">
+            <div className="sge-swatches">
               {accentFamilies.map((family, familyIndex) => {
                 const activeId = sectionAccentsDraft[sectionId] || THEME_ACCENT_FAMILY_ID;
                 return (
@@ -6561,6 +6811,13 @@ export const ProjectShowcase = ({
                 ? activeSectionEntry.plainTitle
                 : t('projectShowcase.editor.inspectorEmptyTitle')}
             </h3>
+            {activeSectionEntry && (
+              <p className="sge-inspector__kind">
+                {activeSectionEntry.isCustom
+                  ? activeSectionEntry.templateLabel
+                  : t('projectShowcase.editor.builtInSection')}
+              </p>
+            )}
           </div>
           <div className="sge-inspector__actions">
             {/* Ne sert qu'en feuille basse (sous 1180px), où l'inspecteur recouvre le
@@ -6598,40 +6855,60 @@ export const ProjectShowcase = ({
           </div>
         </div>
 
+        {activeSectionEntry && (
+          <div className="sge-inspector__toolbar" role="toolbar" aria-label={t('projectShowcase.editor.sectionActions')}>
+            <button
+              type="button"
+              className="sge-icon-btn sge-icon-btn--hit"
+              disabled={activeSectionEntry.index === 0}
+              aria-label={t('projectShowcase.editor.sectionMoveUp')}
+              title={t('projectShowcase.editor.sectionMoveUp')}
+              onClick={() => handleMoveSection(activeSectionEntry.index, activeSectionEntry.index - 1)}
+            >
+              <ArrowUp className="sge-icon-btn__icon" />
+            </button>
+            <button
+              type="button"
+              className="sge-icon-btn sge-icon-btn--hit"
+              disabled={activeSectionEntry.index >= sectionEntries.length - 1}
+              aria-label={t('projectShowcase.editor.sectionMoveDown')}
+              title={t('projectShowcase.editor.sectionMoveDown')}
+              onClick={() => handleMoveSection(activeSectionEntry.index, activeSectionEntry.index + 2)}
+            >
+              <ArrowDown className="sge-icon-btn__icon" />
+            </button>
+            {activeSectionEntry.isCustom && (
+              <button
+                type="button"
+                className="sge-icon-btn sge-icon-btn--hit"
+                aria-label={t('projectShowcase.editor.sectionDuplicate')}
+                title={t('projectShowcase.editor.sectionDuplicate')}
+                onClick={() => handleDuplicateCustomSection(activeSectionEntry.id)}
+              >
+                <Copy className="sge-icon-btn__icon" />
+              </button>
+            )}
+            <span className="sge-inspector__toolbar-spacer" />
+            {activeSectionEntry.isCustom && (
+              <button
+                type="button"
+                className="sge-icon-btn sge-icon-btn--hit sge-icon-btn--danger"
+                aria-label={t('projectShowcase.editor.sectionDelete')}
+                title={t('projectShowcase.editor.sectionDelete')}
+                onClick={() => handleRemoveCustomSection(activeSectionEntry.id)}
+              >
+                <Trash2 className="sge-icon-btn__icon" />
+              </button>
+            )}
+          </div>
+        )}
+
         <div className="sge-inspector__body">
           {!activeSectionEntry && (
             <p className="sge-inspector__empty">{t('projectShowcase.editor.inspectorEmptyHint')}</p>
           )}
 
-          {activeSectionEntry && activeCustomSection && (
-            <React.Fragment>
-              <div className="sge-inspector__group">
-                <p className="sge-field__label">{t('projectShowcase.editor.changeTemplate')}</p>
-                <div className="sge-tplswitch" role="group" aria-label={t('projectShowcase.editor.changeTemplate')}>
-                  {SECTION_TEMPLATES.map(template => {
-                    const isCurrent = (activeCustomSection.type || SECTION_TEMPLATES[0].id) === template.id;
-                    return (
-                      <button
-                        key={`tpl-switch-${template.id}`}
-                        type="button"
-                        className={`sge-tplswitch__item${isCurrent ? ' sge-tplswitch__item--on' : ''}`}
-                        aria-pressed={isCurrent}
-                        onClick={() => handleCustomSectionFieldChange(activeCustomSection.id, 'type', template.id)}
-                      >
-                        <span className="sge-tplswitch__thumb" aria-hidden="true">
-                          <span className="sge-tplswitch__thumb-inner">
-                            {renderTemplatePreview(template.id)}
-                          </span>
-                        </span>
-                        <span className="sge-tplswitch__name">{getTemplateMeta(t, template.id).name}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-              {renderCustomSectionControls(activeCustomSection)}
-            </React.Fragment>
-          )}
+          {activeSectionEntry && activeCustomSection && renderCustomSectionControls(activeCustomSection)}
 
           {activeSectionEntry && !activeCustomSection && (
             <React.Fragment>
@@ -6649,7 +6926,26 @@ export const ProjectShowcase = ({
           )}
         </div>
 
-        <p className="sge-inspector__hint">{t('projectShowcase.editor.inlineHint')}</p>
+        {undoNotice && (
+          <div className="sge-toast" role="status" aria-live="polite">
+            <span className="sge-toast__text">{undoNotice.message}</span>
+            <button
+              type="button"
+              className="sge-toast__action"
+              onClick={() => {
+                const { restore } = undoNotice;
+                dismissUndoNotice();
+                restore();
+              }}
+            >
+              {t('projectShowcase.editor.undo')}
+            </button>
+          </div>
+        )}
+
+        {!activeSectionEntry && (
+          <p className="sge-inspector__hint">{t('projectShowcase.editor.inlineHint')}</p>
+        )}
       </form>
     </aside>
   ) : null;
