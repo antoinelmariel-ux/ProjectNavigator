@@ -2234,7 +2234,7 @@ export const HomeScreen = ({
               </>
             )}
           </button>
-          {canEditNonDraftProject && (
+          {(canEditNonDraftProject || (isDraft && !isTeamCard)) && (
             <button
               type="button"
               onClick={() => onOpenProject(project.id, { view: 'synthesis' })}
