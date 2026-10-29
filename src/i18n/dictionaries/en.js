@@ -231,8 +231,7 @@ export default {
   },
   profile: {
     claimCopySection: {
-      heading: 'Copies of take-over announcements',
-      description: 'On by default. When a colleague takes charge of a project for that team and you were also solicited, you are told so: you do not need to handle it. That announcement only, not the exchanges that follow. Untick to stop receiving it.',
+      heading: 'Take-overs',
       teamLabel: 'Receive a notification when a member of the {{team}} team takes a project in charge'
     },
     absenceSection: {

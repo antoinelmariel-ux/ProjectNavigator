@@ -8279,10 +8279,7 @@ const updateProjectFilters = useCallback((updater) => {
             </div>
             {currentUserTeams.length > 0 && (
               <div className="space-y-3 border-t border-gray-100 pt-5">
-                <div>
-                  <p className="text-sm font-medium text-gray-700">{t('profile.claimCopySection.heading')}</p>
-                  <p className="mt-1 text-xs text-gray-500">{t('profile.claimCopySection.description')}</p>
-                </div>
+                <p className="text-sm font-medium text-gray-700">{t('profile.claimCopySection.heading')}</p>
                 <div className="space-y-2" role="list">
                   {currentUserTeams.map((team) => {
                     const teamLabel = resolveLocalizedText(team.name, language) || team.id;
