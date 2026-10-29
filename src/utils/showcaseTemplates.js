@@ -1276,3 +1276,86 @@ export const createShowcaseTemplateBlock = (template) => {
   }
   return { kind: 'block', id: `block-${counter}`, type: 'highlight', slots: normalizeBlockSlots('highlight', {}) };
 };
+
+// --- Édition de la structure d'un modèle (formulaire et atelier) --------------------------
+
+// Clé d'une section du modèle, unique dans le modèle : une section intégrée et un bloc
+// peuvent porter le même identifiant (« team »).
+export const buildTemplateSectionKey = (entry) => (entry ? `${entry.kind}:${entry.id}` : '');
+
+export const findTemplateSection = (template, key) => (
+  template && Array.isArray(template.sections)
+    ? template.sections.find((entry) => buildTemplateSectionKey(entry) === key) || null
+    : null
+);
+
+const withSections = (template, sections) => ({ ...template, sections });
+
+export const updateTemplateSection = (template, key, updater) => withSections(
+  template,
+  template.sections.map((entry) => (buildTemplateSectionKey(entry) === key ? updater(entry) : entry))
+);
+
+// Le bandeau de complétude ne se déplace pas sous une autre section ni ne se retire : il
+// s'affiche de lui-même, en tête, quand des réponses manquent.
+export const moveTemplateSection = (template, key, delta) => {
+  const index = template.sections.findIndex((entry) => buildTemplateSectionKey(entry) === key);
+  const target = index + delta;
+  if (index < 0 || target < 0 || target >= template.sections.length) {
+    return template;
+  }
+  const next = template.sections.slice();
+  const [moved] = next.splice(index, 1);
+  next.splice(target, 0, moved);
+  return withSections(template, next);
+};
+
+export const removeTemplateSection = (template, key) => withSections(
+  template,
+  template.sections.filter((entry) => (
+    buildTemplateSectionKey(entry) !== key
+    || (entry.kind === 'builtin' && entry.id === SHOWCASE_TEMPLATE_MANDATORY_SECTION_ID)
+  ))
+);
+
+// Ajoute une section après `afterKey` (en fin de modèle sans repère) et renvoie sa clé, pour
+// que l'atelier la sélectionne aussitôt. Une section intégrée déjà présente n'est pas doublée.
+export const addTemplateSection = (template, { kind, id, type } = {}, afterKey = null) => {
+  let entry = null;
+  if (kind === 'builtin') {
+    if (!SHOWCASE_SECTION_IDS.includes(id) || template.sections.some((candidate) => candidate.kind === 'builtin' && candidate.id === id)) {
+      return { template, key: null };
+    }
+    entry = { kind: 'builtin', id };
+  } else {
+    const block = createShowcaseTemplateBlock(template);
+    const blockType = SHOWCASE_TEMPLATE_BLOCK_TYPES.includes(type) ? type : block.type;
+    entry = { ...block, type: blockType, slots: normalizeBlockSlots(blockType, {}) };
+  }
+  const anchorIndex = afterKey ? template.sections.findIndex((candidate) => buildTemplateSectionKey(candidate) === afterKey) : -1;
+  const insertAt = anchorIndex >= 0 ? anchorIndex + 1 : template.sections.length;
+  const next = template.sections.slice();
+  next.splice(insertAt, 0, entry);
+  return { template: withSections(template, next), key: buildTemplateSectionKey(entry) };
+};
+
+export const convertTemplateSectionToBlock = (template, key, translate) => {
+  const entry = findTemplateSection(template, key);
+  if (!entry || entry.kind !== 'builtin') {
+    return { template, key };
+  }
+  const blockIds = template.sections.filter((candidate) => candidate.kind === 'block').map((candidate) => candidate.id);
+  const block = convertBuiltInToBlock(entry, blockIds, translate);
+  if (!block) {
+    return { template, key };
+  }
+  return {
+    template: updateTemplateSection(template, key, () => block),
+    key: buildTemplateSectionKey(block)
+  };
+};
+
+// Identifiant, dans la vitrine, de la section qu'une entrée du modèle produit.
+export const getTemplateEntrySectionId = (template, entry) => (
+  entry.kind === 'block' ? buildTemplateBlockSectionId(template.id, entry.id) : entry.id
+);

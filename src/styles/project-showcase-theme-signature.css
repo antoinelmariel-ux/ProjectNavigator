@@ -1371,8 +1371,15 @@
   margin-left: 0.18em;
 }
 
+/* Le chiffre d'un bloc vient souvent du questionnaire (« 50 000 € ») : sa taille suit aussi la
+   largeur de sa colonne, pas seulement celle de la fenêtre, sinon il déborde et le dégradé le
+   rogne dans une vitrine plus étroite que l'écran (page SharePoint, atelier du modèle). */
+.sg-impact > * {
+  container-type: inline-size;
+}
+
 .sg-impact__value--sm {
-  font-size: clamp(3.6rem, 10vw, 7rem);
+  font-size: min(clamp(3.6rem, 10vw, 7rem), 21cqi);
   margin-top: 1.2rem;
 }
 

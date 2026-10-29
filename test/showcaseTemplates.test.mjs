@@ -6,6 +6,13 @@ import { initialQuestions } from '../src/data/questions.js';
 import { SHOWCASE_SECTION_IDS, normalizeSectionOrder } from '../src/utils/showcaseEditor.js';
 import {
   SLOT_MODES,
+  addTemplateSection,
+  buildTemplateSectionKey,
+  convertTemplateSectionToBlock,
+  findTemplateSection,
+  getTemplateEntrySectionId,
+  moveTemplateSection,
+  removeTemplateSection,
   applyShowcaseFieldSources,
   applyShowcaseFieldSourcesToQuestions,
   applyShowcaseTemplate,
@@ -688,4 +695,35 @@ test('les nouvelles mises en page ont leurs emplacements', () => {
     assert.ok(Object.keys(block.slots).length >= 3, type);
   });
   assert.deepEqual(Object.keys(normalizeBlockSlots('quote', {})), ['description', 'subtitle', 'accent']);
+});
+
+// --- Édition de la structure d'un modèle ---------------------------------------------------
+
+test('l’atelier déplace, ajoute, retire et convertit les sections par leur clé', () => {
+  let template = normalizeShowcaseTemplate({
+    id: 'tpl',
+    sections: [{ kind: 'builtin', id: 'hero' }, { kind: 'builtin', id: 'team' }]
+  });
+  assert.deepEqual(template.sections.map(buildTemplateSectionKey), ['builtin:notice', 'builtin:hero', 'builtin:team']);
+
+  const added = addTemplateSection(template, { kind: 'block', type: 'quote' }, 'builtin:hero');
+  template = added.template;
+  assert.equal(added.key, 'block:block-1');
+  assert.deepEqual(template.sections.map(buildTemplateSectionKey), ['builtin:notice', 'builtin:hero', 'block:block-1', 'builtin:team']);
+  assert.equal(findTemplateSection(template, 'block:block-1').type, 'quote');
+  assert.equal(addTemplateSection(template, { kind: 'builtin', id: 'hero' }).key, null);
+
+  template = moveTemplateSection(template, 'block:block-1', 1);
+  assert.deepEqual(template.sections.map(buildTemplateSectionKey), ['builtin:notice', 'builtin:hero', 'builtin:team', 'block:block-1']);
+  assert.equal(moveTemplateSection(template, 'block:block-1', 1), template);
+
+  const converted = convertTemplateSectionToBlock(template, 'builtin:team', (key) => ({ fr: key }));
+  assert.equal(converted.key, 'block:from-team');
+  assert.equal(findTemplateSection(converted.template, 'block:from-team').type, 'team');
+  assert.equal(findTemplateSection(converted.template, 'builtin:team'), null);
+
+  // le bandeau de complétude ne se retire pas
+  assert.equal(removeTemplateSection(template, 'builtin:notice').sections.length, template.sections.length);
+  assert.equal(removeTemplateSection(template, 'builtin:hero').sections.length, template.sections.length - 1);
+  assert.equal(getTemplateEntrySectionId(template, findTemplateSection(template, 'block:block-1')), buildTemplateBlockSectionId('tpl', 'block-1'));
 });

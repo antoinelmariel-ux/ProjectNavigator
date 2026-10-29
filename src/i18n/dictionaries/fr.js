@@ -1263,7 +1263,28 @@ export default {
       displayConditionActive: 'affichée sous condition',
       displayConditionHint: 'La section n’apparaît que dans les vitrines dont les réponses remplissent ces conditions (même grammaire que les règles). Le porteur la voit grisée en édition, le lecteur ne la voit pas.',
       displayConditionEmpty: 'Sans condition, la section est toujours affichée.',
-      displayConditionIncomplete: 'Une condition n’a pas encore de question : tant qu’elle n’est pas complétée, la section reste toujours affichée.'
+      displayConditionIncomplete: 'Une condition n’a pas encore de question : tant qu’elle n’est pas complétée, la section reste toujours affichée.',
+      studio: {
+        openButton: 'Éditer sur la vitrine',
+        title: 'Atelier du modèle « {{name}} »',
+        hint: 'Cliquez une section de la vitrine pour la régler ; chaque changement s’affiche aussitôt et s’applique au modèle.',
+        dataLabel: 'Données affichées',
+        dataExample: 'Données d’exemple',
+        dataEmpty: 'Emplacements vides',
+        exampleSourceLabel: 'Exemple affiché',
+        exampleFictive: 'Réponses fictives',
+        exampleSampleGroup: 'Banc d’essai des règles',
+        languageLabel: 'Langue éditée',
+        readerView: 'Vue lecteur (P)',
+        close: 'Fermer l’atelier',
+        outlineTitle: 'Sections',
+        addBlock: 'Ajouter un bloc…',
+        addBuiltIn: 'Ajouter une section intégrée…',
+        addHint: 'La section s’ajoute après celle qui est sélectionnée.',
+        inspectorTitle: 'Réglages de la section',
+        inspectorEmpty: 'Sélectionnez une section, sur la vitrine ou dans la liste.',
+        emptyModeHint: 'Emplacements vides : ce que voit un porteur dont le questionnaire n’est pas encore rempli.'
+      }
     },
     faq: {
       title: 'FAQ de l\'application',
@@ -2807,6 +2828,9 @@ export default {
       authorRole: 'Fonction de l’auteur'
     },
     templateLockedSlotsHint: 'Certains éléments de ce bloc sont fixés par le modèle de vitrine.',
+    authoring: {
+      emptySection: 'Rien à afficher avec ces réponses — cliquez pour régler cette section.'
+    },
     noMilestoneYet: 'Aucun jalon n’a encore été ajouté.',
     dateLabel: 'Date',
     addMilestoneButton: 'Ajouter un jalon',
