@@ -69,7 +69,13 @@ calendrier.
 - **Demander plus de temps**, avec une justification obligatoire. Durée demandée par défaut :
   **20 min de plus, ou le temps restant s'il y en a moins**. Ce temps est **mis en option** sur
   la séance en attendant la décision ; la demande est envoyée au président et au co-président.
-- Un projet a **au plus un passage à venir par comité**.
+- **Un projet peut passer plusieurs fois devant le même comité**, typiquement quand le comité
+  lui demande de revoir des points et de revenir présenter. Les passages sont numérotés
+  (« 1er passage », « 2e passage »…) et l'historique est conservé.
+- Le chef de projet ne peut avoir qu'**un passage à venir à la fois** par comité : il se
+  réinscrit une fois le passage précédent tenu. Le président, lui, n'a pas cette limite.
+- **Comité « à solliciter ensuite »** (consultation par vagues) : l'inscription à ce comité est
+  bloquée tant qu'il n'a pas été sollicité ; le bloc du comité l'explique.
 
 ## 6. Ce que fait le président / co-président
 
@@ -82,6 +88,9 @@ Sur **tous** les projets de ses séances :
 - **Accepter ou refuser** une demande de temps.
 - **Annuler** un passage, avec un motif transmis au chef de projet.
 - **Saisir les présences** (§8).
+- **Demander un nouveau passage** à l'issue d'un passage : le chef de projet est prévenu et
+  invité à se réinscrire ; le bloc du comité de la synthèse l'affiche tant qu'aucun nouveau
+  passage n'est pris.
 
 Chaque action qui touche un passage prévient le chef de projet. Une action qui fait dépasser
 la séance suit la règle du §4.
@@ -126,6 +135,9 @@ Une page par séance, ouverte par un **lien permanent** placé dans l'invitation
 - Il reste saisi dans le projet, comme aujourd'hui (statut + commentaire du comité).
 - Il est daté au moment où il est rendu (voir la correction de la date des avis).
 - Il est **rattaché à la séance** où le projet est passé : « Avis rendu en séance du 12/11 ».
+- Avec plusieurs passages, le bloc du comité affiche l'avis en cours et, repliée, la liste des
+  passages précédents : date, présences, et l'avis rendu à l'issue de chacun (statut et
+  commentaire tels qu'ils étaient alors), pour que le comité retrouve ce qu'il avait demandé.
 
 ## 10. Quand le projet ou la séance change
 
@@ -203,10 +215,12 @@ n'écrivent que cette liste, ce qui évite qu'un flux et un président écrivent
 
 ### Dans le projet (`answers.__compliance_team_comments__.committees[id]`)
 
-`sessionId` de la séance où l'avis a été rendu, et `attendance`
-(`{sessionId, members: {email: state}, recordedBy, recordedAt}`) quand les présences du projet
-diffèrent de celles de la séance. Côté SharePoint, ces deux champs voyagent dans `ClaimJson`,
-comme la date de l'avis.
+`sessionId` de la séance où l'avis en cours a été rendu ; `passages` : un élément par passage
+tenu, `{sessionId, passageId, attendance: {email: state} | null, outcome: {status, comment,
+renderedAt} | null, recordedBy, recordedAt}` — `attendance` n'est renseigné que lorsque les
+présences du projet diffèrent de celles de la séance ; `outcome` fige l'avis rendu à l'issue du
+passage. `representationRequestedAt` quand le président demande un nouveau passage. Côté
+SharePoint, ces champs voyagent dans `ClaimJson`, comme la date de l'avis.
 
 ### Mode local
 
@@ -225,13 +239,11 @@ invitations ne sont pas produites (pas de flux).
 
 ## 14. Points ouverts
 
-1. **Consultation par vagues** : un comité « à solliciter ensuite » ne doit rien recevoir ni
-   voir. Faut-il bloquer l'inscription à ce comité tant qu'il n'est pas sollicité, ou
-   l'inscription suffit-elle à le faire apparaître sur l'ordre du jour ?
+1. ~~Consultation par vagues~~ — tranché : inscription bloquée tant que le comité n'est pas
+   sollicité (§5).
 2. **Lecture des brouillons par les membres** : c'est une règle d'affichage ; vérifier que les
    droits de la liste des projets dans SharePoint permettent bien aux membres de lire ces
    éléments.
 3. **Lien Teams partagé** entre l'invitation des membres et celle du chef de projet : à tester.
-4. **Rappels avant l'étape 3** : sans serveur, les rappels J-7 / J-1 et le rappel au président
-   ne peuvent partir que lorsqu'un utilisateur concerné ouvre l'application (même principe que
-   les relances existantes). Acceptable jusqu'au flux planifié ?
+4. ~~Rappels avant l'étape 3~~ — tranché : en attendant le flux planifié, ils partent quand un
+   utilisateur concerné ouvre l'application, comme les relances existantes.
