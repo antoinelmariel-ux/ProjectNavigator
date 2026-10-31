@@ -561,6 +561,47 @@ reads `undefined`.
 A memo placed above `activeProject` therefore computed an empty submission history on every
 render, with no error anywhere. Keep derived memos below the state they read.
 
+## Committee sessions (calendar, registration, agenda, attendance)
+
+Spec: `docs/specs/calendrier-comites.md` (step 1 — the app — is done; Outlook invitations by
+Power Automate, steps 2–3, are not). Pure logic in `src/utils/committeeSessions.js`
+(`test/committeeSessions.test.mjs`), writes in `src/hooks/useCommitteeSessionActions.js`, UI in
+`src/components/committee/` (planner in the back-office committee card, `CommitteeSessionPanel`
+in the synthesis committee block, `CommitteeAgendaScreen` = screen `committee-agenda`, link
+`?committeeSession=<id>`). Strings in `src/i18n/dictionaries/committeeSessions/*.js`.
+
+- **A session is a time budget, not a grid.** Passages chain from `startAt` in agenda order; the
+  sum of their minutes (plus a pending time request's `heldMinutes`) is what "full" means. Owners
+  book a session, never a time — their slot is indicative and they block the whole session.
+  Owners only see published sessions ≥ J-3 with ≥ the committee's default passage length left;
+  chairs (`presidentEmail`/`vicePresidentEmail` on the committee, or any admin) bypass both. A
+  chair action that overruns is refused with `error: 'overrun'` until re-sent with
+  `allowOverrun: true`, which extends the session.
+- **The whole agenda lives on the session row** (`CN_CommitteeSessions.AgendaJson`). In SharePoint
+  mode every action goes through `mutateSession`: re-read the row, re-apply the pure
+  `applySessionAction`, write under IF-MATCH, replay on 412 — so a booking is judged on the time
+  actually left. Deliberately **not** a `retryQueue`: a full session is an answer to show the
+  owner now, not a write to replay later. Local mode keeps sessions in the `committeeSessions`
+  slice of `complianceNavigatorState`.
+- **Per-project data stays in the session**, not the project: attendance overrides
+  (`passage.attendanceOverride`, only differences with the session's `attendance`), the
+  « present again » request, reminders sent. The only thing written on the project is on the
+  committee's compliance entry: `sessionId` + `sessionOutcomes` (opinion frozen per session),
+  stamped by `stampCommitteeOpinionSessions` in `handleUpdateComplianceComments` when the opinion
+  is rendered after a passage started; they travel in `ClaimJson.review` and are carried over by
+  `perimeterReview.js`/`mergeComplianceComments.js` like the opinion date.
+- **Several passages per project and committee** (numbered, history in the synthesis); an owner
+  has at most one *upcoming* passage per committee. A committee deferred by staged consultation
+  cannot be booked. Trashing a project releases its upcoming passages; a project that stops
+  triggering a booked committee gets a banner (`orphanCommitteePassages` in `App.jsx`) — the
+  passage is never dropped silently.
+- **Mails** (English, `CN_NotificationsQueue`) via `handleCommitteeSessionEvent`: chairs hear what
+  owners do, owners hear what chairs do, every registered owner hears a session move/extend/
+  cancel; reordering and guest changes notify nobody. Reminders (owner J-7/J-1, chair 4 weeks
+  before the last published session) run in-app in **both** modes: the marker is written on the
+  session first (`markReminderSent` fails with `alreadySent` on a re-read row), then the mail goes.
+- Tests: `test/committeeSessions*.test.mjs`, `e2e/committee-sessions.spec.js`.
+
 ## The final round before launch (and why it cannot block anything)
 
 There is no formal gate in the organisation: nothing can technically stop a launch. The whole

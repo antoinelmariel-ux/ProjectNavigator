@@ -1,6 +1,7 @@
 # Calendrier des comités — spécification
 
-Statut : **à valider** avant développement. Les points ouverts sont listés au §12.
+Statut : **étape 1 livrée** (application) — voir §13. Les invitations Outlook (étapes 2 et 3)
+restent à construire côté Power Automate. Points ouverts : §14.
 
 ## 1. Objectif
 
@@ -143,7 +144,7 @@ Une page par séance, ouverte par un **lien permanent** placé dans l'invitation
 
 | Événement | Effet |
 |---|---|
-| Une modification du projet fait que le comité n'est plus déclenché | **Confirmation demandée** au chef de projet avant d'appliquer la modification ; s'il confirme, le passage est retiré |
+| Une modification du projet fait que le comité n'est plus déclenché | Le passage **n'est pas retiré en silence** : un bandeau le signale au chef de projet (questionnaire et enjeux), qui choisit de retirer son passage ou de corriger sa réponse. La confirmation vient juste après la modification, pas avant : intercepter chaque réponse du questionnaire avant son enregistrement automatique aurait touché tout le formulaire |
 | Projet mis à la corbeille ou supprimé | Passage retiré automatiquement |
 | Séance déplacée | Les inscrits sont prévenus ; leurs passages suivent la séance |
 | Séance prolongée | Les inscrits et les membres sont prévenus |
@@ -206,7 +207,7 @@ ligne versionnée (`RowVersion`, `ConflictError` comme pour les projets), la sec
 refusée, l'application relit et revérifie le temps restant. Volume faible (quelques passages par
 séance), donc pas de contention réelle.
 
-### `CN_CommitteeInvitations` — une ligne par invitation à produire (flux)
+### `CN_CommitteeInvitations` — une ligne par invitation à produire (flux, étape 2 — pas encore créée)
 
 `InvitationId`, `SessionId`, `PassageId` (vide pour l'invitation des membres), `Action`
 (`create`/`update`/`cancel`), `AttendeesJson`, `StartAt`, `EndAt`, `OutlookEventId` (écrit par le
@@ -215,12 +216,16 @@ n'écrivent que cette liste, ce qui évite qu'un flux et un président écrivent
 
 ### Dans le projet (`answers.__compliance_team_comments__.committees[id]`)
 
-`sessionId` de la séance où l'avis en cours a été rendu ; `passages` : un élément par passage
-tenu, `{sessionId, passageId, attendance: {email: state} | null, outcome: {status, comment,
-renderedAt} | null, recordedBy, recordedAt}` — `attendance` n'est renseigné que lorsque les
-présences du projet diffèrent de celles de la séance ; `outcome` fige l'avis rendu à l'issue du
-passage. `representationRequestedAt` quand le président demande un nouveau passage. Côté
-SharePoint, ces champs voyagent dans `ClaimJson`, comme la date de l'avis.
+`sessionId` de la séance où l'avis en cours a été rendu, et `sessionOutcomes`
+(`{[sessionId]: {status, comment, renderedAt}}`), l'avis figé à l'issue de chaque séance. Ils sont
+posés quand l'avis est rendu ou repris pendant ou après un passage du projet
+(`stampCommitteeOpinionSessions`). Côté SharePoint, ils voyagent dans `ClaimJson`, comme la date
+de l'avis.
+
+Tout le reste d'un passage vit dans la séance (`AgendaJson`), pas dans le projet : les
+présences propres à un projet (`attendanceOverride`, seulement les écarts avec la séance) et la
+demande de nouveau passage (`representationRequest`). L'historique des passages d'un projet est
+donc relu sur les séances, et une seule écriture (celle de la séance) suffit au président.
 
 ### Mode local
 

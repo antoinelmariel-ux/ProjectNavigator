@@ -209,6 +209,33 @@ export const LIST_SCHEMAS = {
     numbers: ['SortOrder', 'RowVersion'],
     booleans: ['IsPublished']
   },
+  // Une ligne par séance de comité (committeeSessions.js). L'ordre du jour entier voyage dans
+  // `AgendaJson` sur la ligne de la séance : c'est ce qui permet de départager deux inscriptions
+  // simultanées sur le temps restant de la séance (écriture verrouillée par etag, relue et
+  // rejouée en cas de conflit — voir committeeSessionsProvider.js).
+  committeeSessions: {
+    keyField: 'SessionId',
+    columns: [
+      'Title',
+      'SessionId',
+      'CommitteeId',
+      'StartAt',
+      'DurationMinutes',
+      'Location',
+      'Status',
+      'AgendaJson',
+      'AttendanceJson',
+      'PlanningReminderSentAt',
+      'OutlookEventId',
+      'RowVersion',
+      'CreatedByEmail',
+      'UpdatedByEmail',
+      'UpdatedAt'
+    ],
+    json: { AgendaJson: ARRAY, AttendanceJson: OBJECT },
+    numbers: ['DurationMinutes', 'RowVersion'],
+    booleans: []
+  },
   // Une ligne par règle : la structure (conditions imbriquées, questions par équipe, risques
   // i18n) est trop profonde pour un mapping colonne par colonne, donc l'objet entier voyage
   // dans PayloadJson — RuleId/Title n'existent que pour l'indexation et la lecture dans SharePoint.

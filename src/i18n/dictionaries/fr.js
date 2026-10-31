@@ -1,3 +1,5 @@
+import committeeSessions from './committeeSessions/fr.js';
+
 export default {
   common: {
     feedback: {
@@ -2923,5 +2925,6 @@ export default {
     editModeActivatedTitle: 'Mode édition activé',
     editModeActivatedHint: 'Le rendu est temporairement masqué pendant vos ajustements.',
     marketingShowcaseAriaLabel: 'Vitrine marketing du projet'
-  }
+  },
+  committeeSessions
 };

@@ -100,6 +100,8 @@ import {
 import { ConditionGroupsEditor } from './ConditionGroupsEditor.jsx';
 import { ACTIVITY_SCOPE_LABELS, ACTIVITY_SCOPE_VALUES } from '../utils/activityScope.js';
 import { PeoplePicker } from './PeoplePicker.jsx';
+import { CommitteeSessionsPlanner } from './committee/CommitteeSessionsPlanner.jsx';
+import { isCommitteeChair } from '../utils/committeeSessions.js';
 import { buildImpersonationUrl, isImpersonating } from '../utils/impersonation.js';
 import { buildAdminConsoleUrl, isAdminConsoleActive } from '../utils/adminConsole.js';
 import {
@@ -797,7 +799,13 @@ export const BackOffice = ({
   teamServerMetaRef,
   userProfilesByEmail = null,
   onSaveMemberAbsence,
-  onPerimeterClaimAction
+  onPerimeterClaimAction,
+  committeeSessions = [],
+  committeeDemandById = {},
+  onCreateCommitteeSessions,
+  onCommitteeSessionAction,
+  onDeleteCommitteeDraftSession,
+  onOpenCommitteeAgenda
 }) => {
   const { t, language } = useTranslation();
 
@@ -8434,6 +8442,21 @@ export const BackOffice = ({
                             </div>
                           </div>
                         </div>
+
+                        {typeof onCommitteeSessionAction === 'function' && (
+                          <CommitteeSessionsPlanner
+                            committee={committee}
+                            sessions={committeeSessions}
+                            canManage={isCurrentUserAdmin || isCommitteeChair(committee, currentUserEmail)}
+                            unbookedCount={committeeDemandById[committee.id]?.unbooked || 0}
+                            freeMinutes={committeeDemandById[committee.id]?.freeMinutes || 0}
+                            onUpdateCommittee={(patch) => updateCommitteeEntry(committee.id, (prev) => ({ ...prev, ...patch }))}
+                            onCreateSessions={onCreateCommitteeSessions}
+                            onRunAction={onCommitteeSessionAction}
+                            onDeleteDraft={onDeleteCommitteeDraftSession}
+                            onOpenAgenda={onOpenCommitteeAgenda}
+                          />
+                        )}
                       </article>
                     ))}
                   </div>

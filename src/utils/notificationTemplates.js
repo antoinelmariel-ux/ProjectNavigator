@@ -31,7 +31,13 @@ export const NOTIFICATION_TYPES = {
   PERIMETER_TRANSFERRED: 'perimeter-transferred',
   PERIMETER_STALE_REMINDER: 'perimeter-stale-reminder',
   PERIMETER_UNCLAIMED_REMINDER: 'perimeter-unclaimed-reminder',
-  TEAM_MANUALLY_REQUESTED: 'team-manually-requested'
+  TEAM_MANUALLY_REQUESTED: 'team-manually-requested',
+  COMMITTEE_PASSAGE_CHANGED_CHAIRS: 'committee-passage-changed-chairs',
+  COMMITTEE_TIME_REQUESTED: 'committee-time-requested',
+  COMMITTEE_PASSAGE_CHANGED_OWNER: 'committee-passage-changed-owner',
+  COMMITTEE_SESSION_CHANGED: 'committee-session-changed',
+  COMMITTEE_PASSAGE_REMINDER: 'committee-passage-reminder',
+  COMMITTEE_PLANNING_REMINDER: 'committee-planning-reminder'
 };
 
 const quoted = (value) => `"${value}"`;
@@ -326,6 +332,77 @@ export const NOTIFICATION_CATALOG = {
       'Release the project from Project Navigator if it should go back to the team queue.'
     ],
     reason: () => 'a colleague from your expert team handed this project over to you.'
+  },
+
+  // Calendrier des comités (committeeSessions.js). Le détail de la séance et du changement
+  // voyage dans l'extrait : ces messages décrivent tous un passage dans une séance datée.
+  [NOTIFICATION_TYPES.COMMITTEE_PASSAGE_CHANGED_CHAIRS]: {
+    actionType: 'Committee agenda updated',
+    intro: (ctx) =>
+      ctx.teamNames.length > 0
+        ? `${ctx.actorName} changed the registration of the project ${quoted(ctx.projectName)} for ${ctx.teamNames.join(', ')}.`
+        : `${ctx.actorName} changed the registration of the project ${quoted(ctx.projectName)} for a committee session.`,
+    expected: () => [
+      'Check the agenda of the session in Project Navigator.',
+      'Adjust the running order or the time given to each project if needed.'
+    ],
+    reason: () => 'you chair this committee.'
+  },
+
+  [NOTIFICATION_TYPES.COMMITTEE_TIME_REQUESTED]: {
+    actionType: 'More time requested for a committee session',
+    intro: (ctx) =>
+      `${ctx.actorName} asks for more time to present the project ${quoted(ctx.projectName)}${ctx.teamNames.length > 0 ? ` to ${ctx.teamNames.join(', ')}` : ''}.`,
+    expected: () => [
+      'Read the justification below.',
+      'Accept or refuse the request from the agenda of the session in Project Navigator.'
+    ],
+    reason: () => 'you chair this committee.'
+  },
+
+  [NOTIFICATION_TYPES.COMMITTEE_PASSAGE_CHANGED_OWNER]: {
+    actionType: 'Your committee session was updated',
+    intro: (ctx) =>
+      `${ctx.actorName} updated the presentation of your project ${quoted(ctx.projectName)}${ctx.teamNames.length > 0 ? ` to ${ctx.teamNames.join(', ')}` : ''}.`,
+    expected: () => [
+      'Read the change below.',
+      'Open the project’s stakes page in Project Navigator to see your registration.'
+    ],
+    reason: () => 'you own this project.'
+  },
+
+  [NOTIFICATION_TYPES.COMMITTEE_SESSION_CHANGED]: {
+    actionType: 'Committee session changed',
+    intro: (ctx) =>
+      `A committee session where your project ${quoted(ctx.projectName)} is registered has changed${ctx.teamNames.length > 0 ? ` (${ctx.teamNames.join(', ')})` : ''}.`,
+    expected: () => [
+      'Read the change below and update your calendar.',
+      'If the session was cancelled, register your project for another session from its stakes page in Project Navigator.'
+    ],
+    reason: () => 'your project is registered for this session.'
+  },
+
+  [NOTIFICATION_TYPES.COMMITTEE_PASSAGE_REMINDER]: {
+    actionType: 'Committee session reminder',
+    intro: (ctx) =>
+      `Your project ${quoted(ctx.projectName)} is to be presented${ctx.teamNames.length > 0 ? ` to ${ctx.teamNames.join(', ')}` : ''} soon.`,
+    expected: () => [
+      'Finalise the project showcase: it is the presentation support used during the session.',
+      'Answer the questions still open in the questionnaire.',
+      'Keep the whole session slot free: the running order may change.'
+    ],
+    reason: () => 'your project is registered for this committee session.'
+  },
+
+  [NOTIFICATION_TYPES.COMMITTEE_PLANNING_REMINDER]: {
+    actionType: 'Plan the next committee sessions',
+    intro: (ctx) =>
+      `The last published session${ctx.teamNames.length > 0 ? ` of ${ctx.teamNames.join(', ')}` : ''} is coming up and no later session is planned.`,
+    expected: () => [
+      'Plan the next sessions from the committee tab of the back-office.',
+      'Publish them: project owners can only register for published sessions.'
+    ],
+    reason: () => 'you chair this committee.'
   },
 
   [NOTIFICATION_TYPES.PERIMETER_TAKEN_OVER]: {

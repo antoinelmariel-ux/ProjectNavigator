@@ -13,7 +13,8 @@ import { getAdminProxy, normalizeAdminProxy } from './adminProxyOpinion.js';
 // racine — réponse dans le fil, prise en charge, relance — et ne dit donc pas quand l'avis a
 // été rendu. Sans elle, la version de l'avis (« à ré-examiner ») et la confirmation du round
 // final disparaissaient aussi au rechargement depuis SharePoint.
-const REVIEW_FIELDS = ['statusUpdatedAt', 'reviewedAt', 'reviewedVersion', 'needsReviewSince', 'confirmation'];
+const REVIEW_FIELDS = ['statusUpdatedAt', 'reviewedAt', 'reviewedVersion', 'needsReviewSince', 'confirmation', 'sessionId', 'sessionOutcomes'];
+const OBJECT_REVIEW_FIELDS = ['confirmation', 'sessionOutcomes'];
 
 const toReviewPayload = (entry) => {
   const review = {};
@@ -23,7 +24,7 @@ const toReviewPayload = (entry) => {
       review[key] = value;
     } else if (Number.isInteger(value) && value > 0) {
       review[key] = value;
-    } else if (key === 'confirmation' && value && typeof value === 'object' && !Array.isArray(value)) {
+    } else if (OBJECT_REVIEW_FIELDS.includes(key) && value && typeof value === 'object' && !Array.isArray(value)) {
       review[key] = value;
     }
   });

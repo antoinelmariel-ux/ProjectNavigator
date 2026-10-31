@@ -26,7 +26,9 @@ const mergeEntry = (localEntry, serverEntry) => {
   const merged = { ...serverEntry };
   const isSameOpinion = readOpinion(localEntry) === readOpinion(serverEntry);
   // La date et la version locales ne décrivent l'avis serveur que si c'est le même avis.
-  const carriedKeys = isSameOpinion ? ['reviewedAt', 'reviewedVersion', 'confirmation'] : ['confirmation'];
+  const carriedKeys = isSameOpinion
+    ? ['reviewedAt', 'reviewedVersion', 'confirmation', 'sessionId', 'sessionOutcomes']
+    : ['confirmation', 'sessionOutcomes'];
   carriedKeys.forEach((key) => {
     if (!hasValue(merged[key]) && hasValue(localEntry[key])) {
       merged[key] = localEntry[key];

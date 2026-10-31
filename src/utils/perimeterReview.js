@@ -43,7 +43,8 @@ const readOpinionFingerprint = (entry) => JSON.stringify({
 // reconstruisent l'entrée à partir de ce qu'ils affichent et ne connaissent pas ces champs :
 // sans les reporter, un simple « Enregistrer » sans changement ou une réponse dans le fil
 // effaçait la date de l'avis, sa version, le signal « à ré-examiner » et la confirmation finale.
-const REVIEW_META_KEYS = ['reviewedAt', 'reviewedVersion', 'needsReviewSince', 'confirmation'];
+// `sessionId`/`sessionOutcomes` : séance de comité où l'avis a été rendu (committeeSessions.js).
+const REVIEW_META_KEYS = ['reviewedAt', 'reviewedVersion', 'needsReviewSince', 'confirmation', 'sessionId', 'sessionOutcomes'];
 
 const hasMetaValue = (value) => value !== undefined && value !== null && value !== '' && value !== 0;
 

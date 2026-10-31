@@ -15,7 +15,8 @@ export const sharepointConfig = {
     rules: 'CN_Rules',
     teams: 'CN_Teams',
     sampleProjects: 'CN_SampleProjects',
-    faq: 'CN_Faq'
+    faq: 'CN_Faq',
+    committeeSessions: 'CN_CommitteeSessions'
   },
   libraries: {
     app: 'CN-App',

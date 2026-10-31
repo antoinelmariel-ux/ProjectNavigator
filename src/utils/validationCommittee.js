@@ -69,6 +69,14 @@ const normalizeTeamTriggers = (value) => {
 
 const normalizeCommentRequirement = (value) => value !== false;
 
+const normalizeDefaultPassageMinutes = (value) => {
+  const minutes = Number(value);
+  if (!Number.isFinite(minutes) || minutes <= 0) {
+    return 20;
+  }
+  return Math.max(10, Math.round(minutes / 5) * 5);
+};
+
 const normalizeCommittee = (value = {}, index = 0) => {
   const id = sanitizeTextValue(value?.id) || `committee-${index + 1}`;
   // Ne pas trim() la valeur brute ici : cette normalisation tourne à chaque frappe (via
@@ -86,6 +94,11 @@ const normalizeCommittee = (value = {}, index = 0) => {
       name,
       emails,
       commentRequired: normalizeCommentRequirement(value?.commentRequired),
+      // Calendrier des séances (committeeSessions.js) : qui anime, et la durée par défaut d'un
+      // passage. Le président et le co-président sont choisis parmi les membres.
+      presidentEmail: sanitizeTextValue(value?.presidentEmail).toLowerCase(),
+      vicePresidentEmail: sanitizeTextValue(value?.vicePresidentEmail).toLowerCase(),
+      defaultPassageMinutes: normalizeDefaultPassageMinutes(value?.defaultPassageMinutes),
       acceptedLanguages: sanitizeAcceptedLanguages(value?.acceptedLanguages),
       ruleTriggers: normalizeRuleTriggers(value?.ruleTriggers),
       riskTriggers: normalizeRiskTriggers(value?.riskTriggers),

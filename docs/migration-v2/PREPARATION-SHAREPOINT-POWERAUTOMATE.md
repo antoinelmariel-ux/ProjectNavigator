@@ -384,6 +384,52 @@ traduit dans les 4 langues de l'application ; une langue manquante retombe sur l
 
 Aucun flux Power Automate n'est associé à cette liste.
 
+### `CN_CommitteeSessions` — le calendrier des comités (une ligne par séance)
+
+Les séances de chaque comité de validation, et l'ordre du jour de chacune (spécification :
+`docs/specs/calendrier-comites.md`). Le président et le co-président d'un comité (choisis dans
+l'onglet **Comités de validation** du back-office, puis publiés avec la configuration) planifient
+les séances ; les chefs de projet y inscrivent leur projet depuis « Enjeux du projet ».
+
+- **L'ordre du jour entier est dans `AgendaJson`**, sur la ligne de la séance : c'est ce qui
+  permet de départager deux inscriptions simultanées sur le temps qui reste réellement. Chaque
+  écriture relit la ligne et l'écrit sous contrôle de version ; si quelqu'un a écrit entre-temps,
+  l'application rejoue l'action sur la nouvelle version (et refuse l'inscription si la séance est
+  devenue pleine).
+- **Liste absente ou illisible** : l'application garde les séances locales, sans erreur bloquante.
+  Une liste vide est un calendrier vide.
+- **Droits** : lecture et écriture pour tous les membres du site (un chef de projet écrit sur la
+  ligne de la séance quand il s'inscrit). Les règles « seul le président peut… » sont appliquées
+  par l'application, comme toutes les autres règles d'accès.
+- `OutlookEventId` est réservée aux futurs flux d'invitations Outlook (étapes 2 et 3 de la
+  spécification) ; l'application ne l'écrit pas.
+
+| Colonne | Type |
+|---|---|
+| Title | (existante — « comité — date », dérivé automatiquement) |
+| SessionId 📌 | Une ligne de texte |
+| CommitteeId | Une ligne de texte (indexée) |
+| StartAt | Une ligne de texte (date ISO, ex. `2026-11-10T13:00:00.000Z`) |
+| DurationMinutes | Nombre |
+| Location | Une ligne de texte (lien Teams ou salle) |
+| Status | Une ligne de texte (`draft`, `published`, `cancelled`) |
+| AgendaJson | Texte long (passages ordonnés : projet, durée, invités, demande de temps, présences propres au passage, rappels envoyés) |
+| AttendanceJson | Texte long (présences de la séance, ex. `{"prenom.nom@lfb.fr":"present"}`) |
+| PlanningReminderSentAt | Une ligne de texte |
+| OutlookEventId | Une ligne de texte |
+| RowVersion | Nombre |
+| CreatedByEmail | Une ligne de texte |
+| UpdatedByEmail | Une ligne de texte |
+| UpdatedAt | Date et heure |
+
+Les mails (inscription, demande de temps, actions du président, séance déplacée ou annulée,
+rappels J-7 et J-1, rappel de planification) passent par `CN_NotificationsQueue` et le flux de
+notifications existant : **aucun nouveau flux n'est nécessaire** pour cette étape. Les invitations
+Outlook restent pour l'instant gérées à la main.
+
+`ClaimJson` de `CN_ComplianceComments` porte aussi, sous `review`, la séance où l'avis d'un comité
+a été rendu (`sessionId`) et l'avis tel qu'il était à l'issue de chaque séance (`sessionOutcomes`).
+
 💡 **Astuce de vérification** : une fois les listes créées, l'application dispose d'un écran de
 diagnostic (voir étape 6) qui te dira précisément quelle liste ou quelle colonne manque. Inutile
 de tout relire à la main.
