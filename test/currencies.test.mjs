@@ -11,7 +11,7 @@ import {
   setCurrencyTable
 } from '../src/utils/currencies.js';
 import { evaluateRule } from '../src/utils/rules.js';
-import { shouldShowQuestion } from '../src/utils/questions.js';
+import { shouldShowOption, shouldShowQuestion } from '../src/utils/questions.js';
 import { sanitizeRuleCondition } from '../src/utils/ruleConditions.js';
 import { recordSubmission } from '../src/utils/submissionHistory.js';
 
@@ -132,4 +132,19 @@ test('équivalents du seuil dans les autres unités et unités sans taux', () =>
   assert.equal(converted[0].unit, 'K$');
   assert.ok(Math.abs(converted[0].amount - 100 / 0.9) < 1e-9);
   assert.deepEqual(findUnitsWithoutRate([budgetQuestion], TABLE), ['MXN']);
+});
+
+test('la visibilité d\'une option utilise la même conversion', () => {
+  setup();
+  const option = {
+    label: 'Gros budget',
+    visibility: 'conditional',
+    conditionGroups: [{
+      logic: 'all',
+      conditions: [{ question: 'budget', operator: 'gt', value: 100, valueUnit: 'K€' }]
+    }]
+  };
+  assert.equal(shouldShowOption(option, { budget: '120', budget__number_unit: 'K$' }), true);
+  assert.equal(shouldShowOption(option, { budget: '80', budget__number_unit: 'K$' }), false);
+  assert.equal(shouldShowOption(option, { budget: '500', budget__number_unit: 'MXN' }), false);
 });
