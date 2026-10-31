@@ -165,7 +165,16 @@ export default {
       legalTitle: 'Legal notice',
       close: 'Close',
       faqHeading: 'Frequently asked questions',
-      faqIntro: 'Find answers to the most common questions about using Project Navigator.'
+      faqIntro: 'Find answers to the most common questions about using Project Navigator.',
+      manualsHeading: 'Manuals:',
+      manualsNavLabel: 'Manuals',
+      backToHelp: '← Back to help',
+      manuals: {
+        projectManager: 'Project Manager manual',
+        sme: 'SME manual'
+      },
+      manualNoViewer: 'This manual cannot be displayed inside the application here. You can open it in a new tab.',
+      manualOpenExternal: 'Open the manual'
     },
     beforeUnload: {
       message: 'Have you saved your project before leaving?'
@@ -1296,6 +1305,23 @@ export default {
         inspectorTitle: 'Section settings',
         inspectorEmpty: 'Select a section, on the showcase or in the list.',
         emptyModeHint: 'Empty slots: what an owner sees while their questionnaire is still blank.'
+      }
+    },
+    helpManuals: {
+      title: 'Help window manuals',
+      description: 'For each language, paste the link of the manual hosted on SharePoint (file address, sharing link or the Office "Embed" code). It is shown in a read-only viewer. With no link for the user\'s language, French then any other filled language is used; with no link at all, the manual does not appear. Saved with the general settings: remember to publish them.',
+      placeholder: 'https://… (PowerPoint or PDF on SharePoint)',
+      invalidLink: 'Unrecognised link: it must start with https://. It will be ignored.',
+      readOnlyNote: 'Read-only: downloading is hidden in the viewer, but anyone with access to the file on SharePoint can still download it. SharePoint permissions apply: a user without access to the library will see an empty viewer.',
+      manuals: {
+        projectManager: {
+          label: 'Project Manager manual',
+          audience: 'Visible to all users.'
+        },
+        sme: {
+          label: 'SME manual',
+          audience: 'Visible only to experts: team contacts and validation committee members.'
+        }
       }
     },
     faq: {

@@ -142,6 +142,19 @@ The app is being migrated off mocks onto real SharePoint lists, using the **Shar
 - Never seed `createDemoProject()` when `isSharePointMode()` is true (see the `isSharePointMode()` guards around it in `App.jsx`, and the demo-project filter in `syncMerge.js`). The demo project only makes sense as first-run local filler; in SharePoint mode it raced the autosave effect and got written to the real `CN_Projects` list as a fake row before the server hydration had a chance to reconcile it away.
 - **The top-level `AppErrorBoundary` (`src/main.jsx`) reports every crash to `CN_NotificationsQueue` automatically**, in `componentDidCatch` — the maintenance team must hear about a crash even if the user closes the tab without clicking anything. The "send a report" button on screen is a second, optional step: with an empty comment it does nothing beyond confirming to the user that their incident is already known (no second network call); with a comment, it queues a follow-up notification (`buildErrorReportEmail({..., isFollowUp: true})`, subject prefixed "Error report - details added") carrying that context, so the technical team doesn't mistake it for a second, unrelated crash. `src/utils/notificationTemplates.js#buildErrorReportEmail` formats message/stack/component-stack/screen/user/comment into the same HTML-email shape `buildNotification()` uses elsewhere, and `queueNotification(...)` puts it on the existing notifications queue/Power Automate flow — no new list, no new flow. Recipients are read directly from `loadPersistedState().adminEmails` (falling back to `initialAdminEmails`) rather than from `App.jsx` state, since the boundary wraps `App` and can't assume it mounted.
 
+## Manuals in the help window (SME / Chef de projet)
+
+The help window (`StaticPageDialog`, FAQ page) offers two **fixed** manuals as read-only viewers:
+`projectManager` (everyone) and `sme` (only `hasScopedBackOfficeAccess`: team contact or committee
+member). Links are admin-edited in the back-office `faq` tab (`BackOfficeHelpManuals.jsx`), one per
+language, stored as the `helpManuals` slice of `settings.json` (`SETTINGS_KEYS`; `complianceNavigatorState`
+in local mode). `src/utils/helpManuals.js` holds the pure logic: language fallback (language → fr → any),
+https-only link normalisation (a pasted Office « Incorporer » `<iframe src>` is accepted), and the
+viewer URL (`embedview` for Office files/sharing links, `#toolbar=0` for PDF). The iframe has **no
+`allow-downloads`**. Hiding the download is cosmetic: SharePoint permissions still apply, and outside
+SharePoint mode an Office file cannot be embedded, so the dialog offers an « open in a new tab » link.
+Tests: `test/helpManuals.test.mjs`, `e2e/help-manuals.spec.js`.
+
 ## The onboarding tour
 
 `src/data/onboardingTour.js` holds the default tour: an entry menu (`welcome`) offering six

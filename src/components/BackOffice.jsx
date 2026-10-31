@@ -137,6 +137,7 @@ import { collectTranslationItems } from '../utils/translationAudit.js';
 import { LanguageEditSwitcher } from './LocalizedFieldEditor.jsx';
 import { BackOfficeTranslations } from './BackOfficeTranslations.jsx';
 import { BackOfficeFaq } from './BackOfficeFaq.jsx';
+import { BackOfficeHelpManuals } from './BackOfficeHelpManuals.jsx';
 import { BackOfficeCurrencies } from './BackOfficeCurrencies.jsx';
 import { ConditionValueUnit } from './ConditionValueUnit.jsx';
 import { applyConditionFieldChange } from '../utils/conditionValueUnit.js';
@@ -770,6 +771,8 @@ export const BackOffice = ({
   setComplianceSampleProjects,
   sampleProjectsQueueRef,
   sampleProjectServerMetaRef,
+  helpManuals,
+  setHelpManuals,
   faqEntries,
   setFaqEntries,
   faqQueueRef,
@@ -10499,7 +10502,10 @@ export const BackOffice = ({
           )}
 
           {activeTab === 'faq' && (
-            <section id="backoffice-tabpanel-faq" role="tabpanel" aria-labelledby="backoffice-tab-faq">
+            <section id="backoffice-tabpanel-faq" role="tabpanel" aria-labelledby="backoffice-tab-faq" className="space-y-6">
+              {typeof setHelpManuals === 'function' && (
+                <BackOfficeHelpManuals manuals={helpManuals} setManuals={setHelpManuals} t={t} />
+              )}
               <BackOfficeFaq
                 entries={Array.isArray(faqEntries) ? faqEntries : []}
                 setEntries={setFaqEntries}

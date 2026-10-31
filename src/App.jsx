@@ -183,6 +183,7 @@ import { sampleProjectsProvider } from './utils/sampleProjectsProvider.js';
 import { teamsProvider } from './utils/teamsProvider.js';
 import { faqProvider } from './utils/faqProvider.js';
 import { normalizeFaqEntries } from './utils/faqEntries.js';
+import { normalizeHelpManuals } from './utils/helpManuals.js';
 import { mergeComplianceComments } from './utils/mergeComplianceComments.js';
 import { createAutosaveQueue } from './utils/autosaveQueue.js';
 import { createRetryQueue } from './utils/retryQueue.js';
@@ -858,6 +859,8 @@ const buildInitialAdminEmailsState = () => {
 
 const buildInitialTeamVisibility = () => normalizeTeamVisibility(loadPersistedState()?.teamVisibility);
 
+const buildInitialHelpManuals = () => normalizeHelpManuals(loadPersistedState()?.helpManuals);
+
 const buildInitialTechnicalContactEmailsState = () => {
   const savedState = loadPersistedState();
   if (savedState && Array.isArray(savedState.technicalContactEmails)) {
@@ -972,6 +975,7 @@ export const App = () => {
   const [adminEmails, setAdminEmails] = useState(buildInitialAdminEmailsState);
   const [technicalContactEmails, setTechnicalContactEmails] = useState(buildInitialTechnicalContactEmailsState);
   const [teamVisibility, setTeamVisibility] = useState(buildInitialTeamVisibility);
+  const [helpManuals, setHelpManualsState] = useState(buildInitialHelpManuals);
   const [complianceSampleProjects, setComplianceSampleProjects] = useState(buildInitialComplianceSampleProjectsState);
   const [faqEntries, setFaqEntries] = useState(buildInitialFaqEntriesState);
   const [isBackOfficeUnlocked, setIsBackOfficeUnlocked] = useState(false);
@@ -1453,7 +1457,8 @@ export const App = () => {
       inspirationFormFields,
       projectFilters,
       inspirationFilters,
-      teamVisibility
+      teamVisibility,
+      helpManuals
     })
   }), [
     questions,
@@ -1470,7 +1475,8 @@ export const App = () => {
     inspirationFormFields,
     projectFilters,
     inspirationFilters,
-    teamVisibility
+    teamVisibility,
+    helpManuals
   ]);
 
   useEffect(() => {
@@ -1844,6 +1850,9 @@ const updateProjectFilters = useCallback((updater) => {
       if (slices.teamVisibility && typeof slices.teamVisibility === 'object') {
         setTeamVisibility(normalizeTeamVisibility(slices.teamVisibility));
       }
+      if (slices.helpManuals && typeof slices.helpManuals === 'object') {
+        setHelpManualsState(normalizeHelpManuals(slices.helpManuals));
+      }
       if (Array.isArray(slices.complianceSampleProjects)) setComplianceSampleProjects(slices.complianceSampleProjects);
       if (slices.projectFilters && typeof slices.projectFilters === 'object') {
         setProjectFiltersState(normalizeProjectFilterConfig(stripRetiredProjectFilterFields(slices.projectFilters)));
@@ -2101,6 +2110,7 @@ const updateProjectFilters = useCallback((updater) => {
       adminEmails,
       technicalContactEmails,
       teamVisibility,
+      helpManuals,
       complianceSampleProjects,
       faqEntries
     };
@@ -2147,6 +2157,7 @@ const updateProjectFilters = useCallback((updater) => {
     adminEmails,
     technicalContactEmails,
     teamVisibility,
+    helpManuals,
     complianceSampleProjects,
     faqEntries,
     persistDefaults
@@ -8757,6 +8768,8 @@ const updateProjectFilters = useCallback((updater) => {
                 teamsQueueRef={teamsQueueRef}
                 ruleServerMetaRef={ruleServerMetaRef}
                 teamServerMetaRef={teamServerMetaRef}
+                helpManuals={helpManuals}
+                setHelpManuals={(next) => setHelpManualsState(normalizeHelpManuals(next))}
                 faqEntries={faqEntries}
                 setFaqEntries={setFaqEntries}
                 faqQueueRef={faqQueueRef}
@@ -9037,7 +9050,7 @@ const updateProjectFilters = useCallback((updater) => {
         </a>
       </p>
     </footer>
-    <StaticPageDialog faqEntries={faqEntries} />
+    <StaticPageDialog faqEntries={faqEntries} helpManuals={helpManuals} isExpert={hasScopedBackOfficeAccess} />
     </div>
   );
 };
