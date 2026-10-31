@@ -12,7 +12,8 @@ const SETTINGS_KEYS = [
   'inspirationFormFields',
   'projectFilters',
   'inspirationFilters',
-  'teamVisibility'
+  'teamVisibility',
+  'helpManuals'
 ];
 
 // `rules` et `teams` ne sont plus des référentiels-fichiers : ils vivent dans les listes

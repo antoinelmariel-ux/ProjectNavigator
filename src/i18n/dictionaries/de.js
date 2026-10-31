@@ -165,7 +165,16 @@ export default {
       legalTitle: 'Impressum',
       close: 'Schließen',
       faqHeading: 'Häufig gestellte Fragen',
-      faqIntro: 'Hier finden Sie Antworten auf die häufigsten Fragen zur Nutzung von Project Navigator.'
+      faqIntro: 'Hier finden Sie Antworten auf die häufigsten Fragen zur Nutzung von Project Navigator.',
+      manualsHeading: 'Handbücher:',
+      manualsNavLabel: 'Handbücher',
+      backToHelp: '← Zurück zur Hilfe',
+      manuals: {
+        projectManager: 'Handbuch Projektleiter',
+        sme: 'SME-Handbuch'
+      },
+      manualNoViewer: 'Dieses Handbuch kann hier nicht in der Anwendung angezeigt werden. Sie können es in einem neuen Tab öffnen.',
+      manualOpenExternal: 'Handbuch öffnen'
     },
     beforeUnload: {
       message: 'Haben Sie Ihr Projekt vor dem Verlassen gespeichert?'
@@ -1306,6 +1315,25 @@ export default {
         inspectorTitle: 'Einstellungen des Abschnitts',
         inspectorEmpty: 'Wählen Sie einen Abschnitt in der Vitrine oder in der Liste.',
         emptyModeHint: 'Leere Felder: was ein Projektträger sieht, solange sein Fragebogen noch leer ist.'
+      }
+    },
+    helpManuals: {
+      nameLabel: 'Name der Schaltfläche',
+      linkLabel: 'Link',
+      title: 'Handbücher des Hilfefensters',
+      description: 'Der Name der Schaltfläche kann pro Sprache bearbeitet werden; bleibt er leer, wird der Standardname verwendet. Fügen Sie für jede Sprache den Link zum auf SharePoint gehosteten Handbuch ein (Dateiadresse, Freigabelink oder Office-Einbettungscode). Es wird in einer schreibgeschützten Ansicht angezeigt. Ohne Link für die Sprache des Benutzers werden Französisch, dann eine andere ausgefüllte Sprache verwendet; ohne jeden Link erscheint das Handbuch nicht. Wird mit den allgemeinen Einstellungen gespeichert: denken Sie an das Veröffentlichen.',
+      placeholder: 'https://… (PowerPoint oder PDF auf SharePoint)',
+      invalidLink: 'Link nicht erkannt: Er muss mit https:// beginnen. Er wird ignoriert.',
+      readOnlyNote: 'Schreibgeschützt: Der Download wird in der Ansicht ausgeblendet, aber jede Person mit Zugriff auf die Datei in SharePoint kann sie weiterhin herunterladen. Es gelten die SharePoint-Berechtigungen: Ohne Zugriff auf die Bibliothek bleibt die Ansicht leer.',
+      manuals: {
+        projectManager: {
+          label: 'Handbuch Projektleiter',
+          audience: 'Für alle Benutzer sichtbar.'
+        },
+        sme: {
+          label: 'SME-Handbuch',
+          audience: 'Nur für Experten sichtbar: Teamkontakte und Mitglieder eines Validierungsausschusses.'
+        }
       }
     },
     faq: {

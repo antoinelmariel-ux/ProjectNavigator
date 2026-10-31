@@ -165,7 +165,16 @@ export default {
       legalTitle: 'Aviso legal',
       close: 'Cerrar',
       faqHeading: 'Preguntas frecuentes',
-      faqIntro: 'Encuentre aquí las respuestas a las preguntas más habituales sobre el uso de Project Navigator.'
+      faqIntro: 'Encuentre aquí las respuestas a las preguntas más habituales sobre el uso de Project Navigator.',
+      manualsHeading: 'Manuales:',
+      manualsNavLabel: 'Manuales',
+      backToHelp: '← Volver a la ayuda',
+      manuals: {
+        projectManager: 'Manual del jefe de proyecto',
+        sme: 'Manual SME'
+      },
+      manualNoViewer: 'Este manual no se puede mostrar aquí dentro de la aplicación. Puede abrirlo en una pestaña nueva.',
+      manualOpenExternal: 'Abrir el manual'
     },
     beforeUnload: {
       message: '¿Ha guardado bien su proyecto antes de salir?'
@@ -1297,6 +1306,25 @@ export default {
         inspectorTitle: 'Ajustes de la sección',
         inspectorEmpty: 'Seleccione una sección, en la vitrina o en la lista.',
         emptyModeHint: 'Elementos vacíos: lo que ve un promotor cuyo cuestionario aún está vacío.'
+      }
+    },
+    helpManuals: {
+      nameLabel: 'Nombre del botón',
+      linkLabel: 'Enlace',
+      title: 'Manuales de la ventana de ayuda',
+      description: 'El nombre del botón se puede editar por idioma; si se deja vacío, se usa el nombre por defecto. Pegue, para cada idioma, el enlace del manual alojado en SharePoint (dirección del archivo, enlace para compartir o código « Insertar » de Office). Se muestra en un visor de solo lectura. Sin enlace para el idioma del usuario se usa el francés y luego otro idioma rellenado; sin ningún enlace, el manual no aparece. Se guarda con los ajustes generales: recuerde publicarlos.',
+      placeholder: 'https://… (PowerPoint o PDF en SharePoint)',
+      invalidLink: 'Enlace no reconocido: debe empezar por https://. Se ignorará.',
+      readOnlyNote: 'Solo lectura: la descarga se oculta en el visor, pero quien tenga acceso al archivo en SharePoint puede seguir descargándolo. Se aplican los permisos de SharePoint: un usuario sin acceso a la biblioteca verá un visor vacío.',
+      manuals: {
+        projectManager: {
+          label: 'Manual del jefe de proyecto',
+          audience: 'Visible para todos los usuarios.'
+        },
+        sme: {
+          label: 'Manual SME',
+          audience: 'Visible solo para los expertos: contactos de un equipo y miembros de un comité de validación.'
+        }
       }
     },
     faq: {

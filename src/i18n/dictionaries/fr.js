@@ -165,7 +165,16 @@ export default {
       legalTitle: 'Mentions légales',
       close: 'Fermer',
       faqHeading: 'Questions fréquentes',
-      faqIntro: 'Retrouvez ici les réponses aux questions les plus courantes sur l\'utilisation de Project Navigator.'
+      faqIntro: 'Retrouvez ici les réponses aux questions les plus courantes sur l\'utilisation de Project Navigator.',
+      manualsHeading: 'Manuels :',
+      manualsNavLabel: 'Manuels',
+      backToHelp: '← Retour à l\'aide',
+      manuals: {
+        projectManager: 'Manuel Chef de projet',
+        sme: 'Manuel SME'
+      },
+      manualNoViewer: 'Ce manuel ne peut pas être affiché dans l\'application ici. Vous pouvez l\'ouvrir dans un nouvel onglet.',
+      manualOpenExternal: 'Ouvrir le manuel'
     },
     beforeUnload: {
       message: 'Avez-vous bien sauvegardé votre projet avant de quitter ?'
@@ -1304,6 +1313,25 @@ export default {
         inspectorTitle: 'Réglages de la section',
         inspectorEmpty: 'Sélectionnez une section, sur la vitrine ou dans la liste.',
         emptyModeHint: 'Emplacements vides : ce que voit un porteur dont le questionnaire n’est pas encore rempli.'
+      }
+    },
+    helpManuals: {
+      nameLabel: 'Nom du bouton',
+      linkLabel: 'Lien',
+      title: 'Manuels de la fenêtre d\'aide',
+      description: 'Le nom du bouton est modifiable par langue ; laissé vide, le nom par défaut est utilisé. Collez, pour chaque langue, le lien du manuel hébergé sur SharePoint (adresse du fichier, lien de partage ou code « Incorporer » d\'Office). Il s\'affiche dans une visionneuse en lecture seule. Sans lien pour la langue de l\'utilisateur, le français puis une autre langue renseignée sont utilisés ; sans aucun lien, le manuel n\'apparaît pas. Enregistré avec les réglages généraux : pensez à les publier.',
+      placeholder: 'https://… (PowerPoint ou PDF sur SharePoint)',
+      invalidLink: 'Lien non reconnu : il doit commencer par https://. Il sera ignoré.',
+      readOnlyNote: 'Lecture seule : le téléchargement est masqué dans la visionneuse, mais toute personne ayant accès au fichier sur SharePoint peut toujours le télécharger. Les droits SharePoint s\'appliquent : un utilisateur sans accès à la bibliothèque verra une visionneuse vide.',
+      manuals: {
+        projectManager: {
+          label: 'Manuel Chef de projet',
+          audience: 'Visible par tous les utilisateurs.'
+        },
+        sme: {
+          label: 'Manuel SME',
+          audience: 'Visible uniquement par les experts : contacts d\'une équipe et membres d\'un comité de validation.'
+        }
       }
     },
     faq: {
