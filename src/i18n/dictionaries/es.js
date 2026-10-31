@@ -1309,8 +1309,10 @@ export default {
       }
     },
     helpManuals: {
+      nameLabel: 'Nombre del botón',
+      linkLabel: 'Enlace',
       title: 'Manuales de la ventana de ayuda',
-      description: 'Pegue, para cada idioma, el enlace del manual alojado en SharePoint (dirección del archivo, enlace para compartir o código « Insertar » de Office). Se muestra en un visor de solo lectura. Sin enlace para el idioma del usuario se usa el francés y luego otro idioma rellenado; sin ningún enlace, el manual no aparece. Se guarda con los ajustes generales: recuerde publicarlos.',
+      description: 'El nombre del botón se puede editar por idioma; si se deja vacío, se usa el nombre por defecto. Pegue, para cada idioma, el enlace del manual alojado en SharePoint (dirección del archivo, enlace para compartir o código « Insertar » de Office). Se muestra en un visor de solo lectura. Sin enlace para el idioma del usuario se usa el francés y luego otro idioma rellenado; sin ningún enlace, el manual no aparece. Se guarda con los ajustes generales: recuerde publicarlos.',
       placeholder: 'https://… (PowerPoint o PDF en SharePoint)',
       invalidLink: 'Enlace no reconocido: debe empezar por https://. Se ignorará.',
       readOnlyNote: 'Solo lectura: la descarga se oculta en el visor, pero quien tenga acceso al archivo en SharePoint puede seguir descargándolo. Se aplican los permisos de SharePoint: un usuario sin acceso a la biblioteca verá un visor vacío.',

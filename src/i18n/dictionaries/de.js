@@ -1318,8 +1318,10 @@ export default {
       }
     },
     helpManuals: {
+      nameLabel: 'Name der Schaltfläche',
+      linkLabel: 'Link',
       title: 'Handbücher des Hilfefensters',
-      description: 'Fügen Sie für jede Sprache den Link zum auf SharePoint gehosteten Handbuch ein (Dateiadresse, Freigabelink oder Office-Einbettungscode). Es wird in einer schreibgeschützten Ansicht angezeigt. Ohne Link für die Sprache des Benutzers werden Französisch, dann eine andere ausgefüllte Sprache verwendet; ohne jeden Link erscheint das Handbuch nicht. Wird mit den allgemeinen Einstellungen gespeichert: denken Sie an das Veröffentlichen.',
+      description: 'Der Name der Schaltfläche kann pro Sprache bearbeitet werden; bleibt er leer, wird der Standardname verwendet. Fügen Sie für jede Sprache den Link zum auf SharePoint gehosteten Handbuch ein (Dateiadresse, Freigabelink oder Office-Einbettungscode). Es wird in einer schreibgeschützten Ansicht angezeigt. Ohne Link für die Sprache des Benutzers werden Französisch, dann eine andere ausgefüllte Sprache verwendet; ohne jeden Link erscheint das Handbuch nicht. Wird mit den allgemeinen Einstellungen gespeichert: denken Sie an das Veröffentlichen.',
       placeholder: 'https://… (PowerPoint oder PDF auf SharePoint)',
       invalidLink: 'Link nicht erkannt: Er muss mit https:// beginnen. Er wird ignoriert.',
       readOnlyNote: 'Schreibgeschützt: Der Download wird in der Ansicht ausgeblendet, aber jede Person mit Zugriff auf die Datei in SharePoint kann sie weiterhin herunterladen. Es gelten die SharePoint-Berechtigungen: Ohne Zugriff auf die Bibliothek bleibt die Ansicht leer.',

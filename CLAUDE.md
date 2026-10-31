@@ -153,6 +153,8 @@ https-only link normalisation (a pasted Office « Incorporer » `<iframe src>` i
 viewer URL (`embedview` for Office files/sharing links, `#toolbar=0` for PDF). The iframe has **no
 `allow-downloads`**. Hiding the download is cosmetic: SharePoint permissions still apply, and outside
 SharePoint mode an Office file cannot be embedded, so the dialog offers an « open in a new tab » link.
+The button names are editable per language too (`helpManuals.names[manualId][lang]`, same fallback;
+empty = the dictionary label `app.staticPages.manuals.*`).
 Tests: `test/helpManuals.test.mjs`, `e2e/help-manuals.spec.js`.
 
 ## The onboarding tour

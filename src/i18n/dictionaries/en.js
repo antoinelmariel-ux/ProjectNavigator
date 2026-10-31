@@ -1308,8 +1308,10 @@ export default {
       }
     },
     helpManuals: {
+      nameLabel: 'Button name',
+      linkLabel: 'Link',
       title: 'Help window manuals',
-      description: 'For each language, paste the link of the manual hosted on SharePoint (file address, sharing link or the Office "Embed" code). It is shown in a read-only viewer. With no link for the user\'s language, French then any other filled language is used; with no link at all, the manual does not appear. Saved with the general settings: remember to publish them.',
+      description: 'The button name can be edited per language; left empty, the default name is used. For each language, paste the link of the manual hosted on SharePoint (file address, sharing link or the Office "Embed" code). It is shown in a read-only viewer. With no link for the user\'s language, French then any other filled language is used; with no link at all, the manual does not appear. Saved with the general settings: remember to publish them.',
       placeholder: 'https://… (PowerPoint or PDF on SharePoint)',
       invalidLink: 'Unrecognised link: it must start with https://. It will be ignored.',
       readOnlyNote: 'Read-only: downloading is hidden in the viewer, but anyone with access to the file on SharePoint can still download it. SharePoint permissions apply: a user without access to the library will see an empty viewer.',

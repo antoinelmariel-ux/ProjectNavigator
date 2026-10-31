@@ -7,10 +7,13 @@ export const HELP_MANUAL_IDS = ['projectManager', 'sme'];
 
 const FALLBACK_LANGUAGE = 'fr';
 
-export const createEmptyHelpManuals = () =>
-  Object.fromEntries(
-    HELP_MANUAL_IDS.map((id) => [id, Object.fromEntries(SUPPORTED_LANGUAGES.map((code) => [code, '']))])
-  );
+const createEmptyLanguageMap = () => Object.fromEntries(SUPPORTED_LANGUAGES.map((code) => [code, '']));
+
+// `names` : intitulé du bouton, par manuel et par langue. Vide = intitulé par défaut du dictionnaire.
+export const createEmptyHelpManuals = () => ({
+  ...Object.fromEntries(HELP_MANUAL_IDS.map((id) => [id, createEmptyLanguageMap()])),
+  names: Object.fromEntries(HELP_MANUAL_IDS.map((id) => [id, createEmptyLanguageMap()]))
+});
 
 export const normalizeHelpManuals = (value) => {
   const normalized = createEmptyHelpManuals();
@@ -18,14 +21,15 @@ export const normalizeHelpManuals = (value) => {
     return normalized;
   }
   HELP_MANUAL_IDS.forEach((id) => {
-    const links = value[id];
-    if (!links || typeof links !== 'object') {
-      return;
-    }
-    SUPPORTED_LANGUAGES.forEach((code) => {
-      if (typeof links[code] === 'string') {
-        normalized[id][code] = links[code].trim();
+    [[value[id], normalized[id]], [value.names?.[id], normalized.names[id]]].forEach(([source, target]) => {
+      if (!source || typeof source !== 'object') {
+        return;
       }
+      SUPPORTED_LANGUAGES.forEach((code) => {
+        if (typeof source[code] === 'string') {
+          target[code] = source[code].trim();
+        }
+      });
     });
   });
   return normalized;
@@ -62,12 +66,26 @@ export const resolveHelpManualUrl = (manuals, manualId, language) => {
   return '';
 };
 
+// Intitulé saisi dans le back-office : langue demandée, sinon français, sinon toute langue
+// renseignée. '' = aucun intitulé saisi, l'appelant retombe sur le libellé par défaut.
+export const resolveHelpManualName = (manuals, manualId, language) => {
+  const names = normalizeHelpManuals(manuals).names[manualId];
+  if (!names) {
+    return '';
+  }
+  return [language, FALLBACK_LANGUAGE, ...SUPPORTED_LANGUAGES].map((code) => names[code]).find(Boolean) || '';
+};
+
 // Le manuel SME n'est destiné qu'aux experts (contact d'équipe ou membre de comité) ; celui du
 // chef de projet est ouvert à tous. Un manuel sans aucun lien valide n'apparaît pas.
 export const getVisibleHelpManuals = (manuals, language, { isExpert = false } = {}) =>
   HELP_MANUAL_IDS
     .filter((id) => id !== 'sme' || isExpert)
-    .map((id) => ({ id, url: resolveHelpManualUrl(manuals, id, language) }))
+    .map((id) => ({
+      id,
+      url: resolveHelpManualUrl(manuals, id, language),
+      name: resolveHelpManualName(manuals, id, language)
+    }))
     .filter((manual) => manual.url !== '');
 
 const getPathname = (url) => {

@@ -1316,8 +1316,10 @@ export default {
       }
     },
     helpManuals: {
+      nameLabel: 'Nom du bouton',
+      linkLabel: 'Lien',
       title: 'Manuels de la fenêtre d\'aide',
-      description: 'Collez, pour chaque langue, le lien du manuel hébergé sur SharePoint (adresse du fichier, lien de partage ou code « Incorporer » d\'Office). Il s\'affiche dans une visionneuse en lecture seule. Sans lien pour la langue de l\'utilisateur, le français puis une autre langue renseignée sont utilisés ; sans aucun lien, le manuel n\'apparaît pas. Enregistré avec les réglages généraux : pensez à les publier.',
+      description: 'Le nom du bouton est modifiable par langue ; laissé vide, le nom par défaut est utilisé. Collez, pour chaque langue, le lien du manuel hébergé sur SharePoint (adresse du fichier, lien de partage ou code « Incorporer » d\'Office). Il s\'affiche dans une visionneuse en lecture seule. Sans lien pour la langue de l\'utilisateur, le français puis une autre langue renseignée sont utilisés ; sans aucun lien, le manuel n\'apparaît pas. Enregistré avec les réglages généraux : pensez à les publier.',
       placeholder: 'https://… (PowerPoint ou PDF sur SharePoint)',
       invalidLink: 'Lien non reconnu : il doit commencer par https://. Il sera ignoré.',
       readOnlyNote: 'Lecture seule : le téléchargement est masqué dans la visionneuse, mais toute personne ayant accès au fichier sur SharePoint peut toujours le télécharger. Les droits SharePoint s\'appliquent : un utilisateur sans accès à la bibliothèque verra une visionneuse vide.',

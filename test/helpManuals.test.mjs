@@ -5,6 +5,7 @@ import {
   getVisibleHelpManuals,
   normalizeHelpManualLink,
   normalizeHelpManuals,
+  resolveHelpManualName,
   resolveHelpManualUrl
 } from '../src/utils/helpManuals.js';
 
@@ -13,7 +14,7 @@ const context = { origin: 'https://t.sharepoint.com', webUrl: 'https://t.sharepo
 test('normalizeHelpManuals complète les 4 langues des 2 manuels', () => {
   const result = normalizeHelpManuals({ sme: { fr: ' https://a ' }, junk: 1 });
   assert.equal(result.sme.fr, 'https://a');
-  assert.deepEqual(Object.keys(result), ['projectManager', 'sme']);
+  assert.deepEqual(Object.keys(result), ['projectManager', 'sme', 'names']);
   assert.equal(result.projectManager.de, '');
 });
 
@@ -56,4 +57,13 @@ test('buildHelpManualViewerSrc : visionneuse lecture seule selon le type de lien
     'https://t.sharepoint.com/:p:/s/cn/Abc?e=xyz&action=embedview'
   );
   assert.equal(buildHelpManualViewerSrc('https://t.sharepoint.com/sites/cn/Docs/m.pptx', { isSharePoint: false }), '');
+});
+
+test('resolveHelpManualName : intitulé saisi par langue, repli fr puis toute langue, sinon vide', () => {
+  const manuals = { names: { sme: { fr: ' Guide expert ', es: 'Guía' } } };
+  assert.equal(resolveHelpManualName(manuals, 'sme', 'es'), 'Guía');
+  assert.equal(resolveHelpManualName(manuals, 'sme', 'de'), 'Guide expert');
+  assert.equal(resolveHelpManualName({ names: { sme: { en: 'Guide' } } }, 'sme', 'de'), 'Guide');
+  assert.equal(resolveHelpManualName({}, 'sme', 'fr'), '');
+  assert.equal(resolveHelpManualName(manuals, 'projectManager', 'fr'), '');
 });

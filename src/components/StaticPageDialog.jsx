@@ -72,7 +72,8 @@ export const StaticPageDialog = ({ faqEntries = [], helpManuals = null, isExpert
 
   const page = PAGES[pageId];
   const activeManual = pageId === 'faq' ? visibleManuals.find((manual) => manual.id === manualId) : null;
-  const manualLabel = activeManual ? t(`app.staticPages.manuals.${activeManual.id}`) : '';
+  const getManualLabel = (manual) => manual.name || t(`app.staticPages.manuals.${manual.id}`);
+  const manualLabel = activeManual ? getManualLabel(activeManual) : '';
   const manualSrc = activeManual
     ? buildHelpManualViewerSrc(activeManual.url, {
       origin: getOrigin(),
@@ -129,7 +130,7 @@ export const StaticPageDialog = ({ faqEntries = [], helpManuals = null, isExpert
                   onClick={() => setManualId(manual.id)}
                   className="rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-50"
                 >
-                  {t(`app.staticPages.manuals.${manual.id}`)}
+                  {getManualLabel(manual)}
                 </button>
               ))}
             </>
