@@ -32,6 +32,7 @@ test.describe('Back-office : table de devises', () => {
     }).toBe(0.9);
 
     await page.reload();
+    await page.getByRole('button', { name: /Accéder au Back-office/ }).click();
     await page.getByRole('tab', { name: /Devises/ }).click();
     await expect(
       page.getByTestId('currencies-table').locator('tr[data-currency-unit="K$"] input[type="number"]').nth(1)
