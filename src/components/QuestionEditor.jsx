@@ -734,7 +734,11 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
       const condition = { ...conditions[conditionIndex] };
 
       if (field === 'question') {
-        condition.question = value;
+        const changed = applyConditionFieldChange(condition, 'question', value, allQuestions, editingLanguage);
+        Object.assign(condition, changed);
+        if (!('valueUnit' in changed)) {
+          delete condition.valueUnit;
+        }
       } else if (field === 'operator') {
         condition.operator = value;
       } else {
@@ -2328,25 +2332,37 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
                                           ))}
                                         </select>
                                       ) : (
-                                        <input
-                                          type={selectedType === 'number' ? 'number' : 'text'}
-                                          value={condition.value}
-                                          onChange={(e) =>
-                                            updateOptionConditionInGroup(
-                                              groupIdx,
-                                              idx,
-                                              'value',
-                                              e.target.value
-                                            )}
-                                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                                          placeholder={
-                                            selectedType === 'date'
-                                              ? t('backOffice.questionEditor.datePlaceholder')
-                                              : selectedType === 'url'
-                                                ? t('backOffice.questionEditor.urlPlaceholder')
-                                                : t('backOffice.questionEditor.valuePlaceholder')
-                                          }
-                                        />
+                                        <>
+                                          <input
+                                            type={selectedType === 'number' ? 'number' : 'text'}
+                                            value={condition.value}
+                                            onChange={(e) =>
+                                              updateOptionConditionInGroup(
+                                                groupIdx,
+                                                idx,
+                                                'value',
+                                                e.target.value
+                                              )}
+                                            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                                            placeholder={
+                                              selectedType === 'date'
+                                                ? t('backOffice.questionEditor.datePlaceholder')
+                                                : selectedType === 'url'
+                                                  ? t('backOffice.questionEditor.urlPlaceholder')
+                                                  : t('backOffice.questionEditor.valuePlaceholder')
+                                            }
+                                          />
+                                          <ConditionValueUnit
+                                            question={selectedQuestion}
+                                            operator={condition.operator}
+                                            value={condition.valueUnit}
+                                            threshold={condition.value}
+                                            language={editingLanguage}
+                                            t={t}
+                                            onChange={(unit) =>
+                                              updateOptionConditionInGroup(groupIdx, idx, 'valueUnit', unit)}
+                                          />
+                                        </>
                                       )}
                                     </div>
                                   </div>
