@@ -287,6 +287,7 @@ export const ShowcaseTemplateStudio = ({
                 <li key={key} data-reorder-key={key} className={`flex items-center gap-1 rounded-lg ${isSelected ? 'bg-blue-50' : ''}`}>
                   <button
                     type="button"
+                    data-outline-key={key}
                     onClick={() => selectFromOutline(key)}
                     aria-current={isSelected ? 'true' : undefined}
                     className={`min-w-0 flex-1 truncate rounded-lg px-2 py-1.5 text-left text-sm ${
