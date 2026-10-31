@@ -170,21 +170,33 @@ test('le back-office masque un emplacement, renomme une section et prévisualise
   await page.getByRole('tab', { name: /Modèles de vitrine/ }).click();
 
   const donation = page.getByTestId('showcase-template-card').first();
-  const section = (id) => donation.locator(`[data-testid="showcase-template-section"][data-section-id="${id}"]`);
+  await donation.getByRole('button', { name: 'Éditer sur la vitrine' }).click();
+  const studio = page.getByTestId('showcase-template-studio');
+  const outline = studio.getByTestId('showcase-template-studio-outline');
+  const inspector = studio.getByTestId('showcase-template-studio-inspector');
+  const section = (id) => inspector.locator(`[data-testid="showcase-template-section"][data-section-id="${id}"]`);
+  const select = async (id, kind = 'block') => {
+    await outline.locator(`[data-outline-key="${kind}:${id}"]`).click();
+    return section(id);
+  };
   const slot = (blockId, slotId) => section(blockId).locator(`[data-testid="showcase-template-slot"][data-slot-id="${slotId}"]`);
 
+  await select('amount');
   await slot('amount', 'description').getByRole('combobox', { name: 'Affichage' }).selectOption('hidden');
   // un emplacement masqué ne propose plus de contenu
   await expect(slot('amount', 'description').getByRole('combobox', { name: 'Contenu' })).toHaveCount(0);
+  await select('timeline', 'builtin');
   await section('timeline').getByRole('textbox', { name: 'Titre', exact: true }).fill('Calendrier des versements');
 
   // une phrase composée cite une réponse choisie dans la liste
+  await select('purpose');
   const accent = slot('purpose', 'accent');
   await accent.getByRole('textbox', { name: 'Texte' }).fill('Soutien à');
   await accent.getByRole('combobox', { name: 'Citer une réponse' }).selectOption('donationBeneficiary');
   await expect(accent.getByRole('textbox', { name: 'Texte' })).toHaveValue('Soutien à {{donationBeneficiary}}');
 
   // les modalités ne s'affichent que si un compte rendu est attendu du bénéficiaire
+  await select('terms');
   const termsCondition = section('terms').getByTestId('showcase-template-display-condition');
   await expect(termsCondition.locator('summary')).toContainText('toujours affichée');
   await termsCondition.locator('summary').click();
@@ -209,12 +221,13 @@ test('le back-office masque un emplacement, renomme une section et prévisualise
   await expect(steps.locator('[data-slot-id="title"]').getByRole('textbox', { name: 'Texte' })).toHaveValue('Calendrier des versements');
 
   // un bloc « Citation » ajouté au modèle
-  await donation.getByRole('button', { name: 'Ajouter un bloc' }).click();
-  const quote = donation.locator('[data-testid="showcase-template-section"][data-section-kind="block"]').last();
+  await studio.getByRole('combobox', { name: 'Ajouter un bloc…' }).selectOption('quote');
+  const quote = inspector.locator('[data-testid="showcase-template-section"][data-section-kind="block"]');
   await quote.getByRole('combobox', { name: 'Gabarit' }).selectOption('quote');
   await quote.locator('[data-slot-id="description"]').getByRole('textbox', { name: 'Texte' }).fill('Un soutien qui change le quotidien des familles.');
   await quote.locator('[data-slot-id="subtitle"]').getByRole('textbox', { name: 'Texte' }).fill('Marie Martin');
 
+  await studio.getByRole('button', { name: 'Fermer l’atelier' }).click();
   await donation.getByRole('button', { name: 'Aperçu' }).click();
   const preview = page.getByTestId('showcase-template-preview');
   await expect(preview).toBeVisible();

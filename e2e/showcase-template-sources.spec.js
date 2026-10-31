@@ -15,17 +15,28 @@ const DESCRIPTION = 'Le don finance une chaire de recherche.';
 const configureDonationTemplate = async (page) => {
   await grantAdminAccess(page);
   await page.getByRole('tab', { name: /Modèles de vitrine/ }).click();
-  const donation = page.getByTestId('showcase-template-card').first();
+  await page.getByTestId('showcase-template-card').first().getByRole('button', { name: 'Éditer sur la vitrine' }).click();
+  const studio = page.getByTestId('showcase-template-studio');
+  const outline = studio.getByTestId('showcase-template-studio-outline');
+  const inspector = studio.getByTestId('showcase-template-studio-inspector');
 
-  const section = (id) => donation.locator(`[data-testid="showcase-template-section"][data-section-id="${id}"]`);
+  const section = (id) => inspector.locator(`[data-testid="showcase-template-section"][data-section-id="${id}"]`);
+  const select = async (id, kind = 'block') => {
+    await outline.locator(`[data-outline-key="${kind}:${id}"]`).click();
+    return section(id);
+  };
   const slot = (blockId, slotId) => section(blockId).locator(`[data-testid="showcase-template-slot"][data-slot-id="${slotId}"]`);
+  await select('beneficiary');
   await slot('beneficiary', 'description').getByRole('combobox', { name: 'Contenu' }).selectOption('solutionDescription');
+  await select('purpose');
   await slot('purpose', 'description').getByRole('combobox', { name: 'Contenu' }).selectOption('teamLeadTeam');
   // un emplacement lié n'a plus de texte à saisir : son contenu est la réponse
   await expect(slot('beneficiary', 'description').getByRole('textbox')).toHaveCount(0);
   // le modèle « don » retire les membres clés : on les rétablit avant de les relier
+  await select('team', 'builtin');
   await section('team').getByRole('checkbox', { name: 'Membres clés' }).check();
   await section('team').getByRole('combobox', { name: 'Membres clés' }).selectOption('q15');
+  await studio.getByRole('button', { name: 'Fermer l’atelier' }).click();
 };
 
 const createDonation = async (page) => {

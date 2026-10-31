@@ -1,15 +1,9 @@
-import React, { Suspense, useCallback, useEffect, useMemo, useState } from '../react.js';
+import React, { Suspense, useEffect, useMemo, useState } from '../react.js';
 import { getLocalizedRaw, resolveLocalizedText, setLocalizedText } from '../utils/localizedContent.js';
-import { SHOWCASE_SECTION_IDS } from '../utils/showcaseEditor.js';
 import {
-  SHOWCASE_TEMPLATE_MANDATORY_SECTION_ID,
-  buildTemplateSectionKey,
-  convertTemplateSectionToBlock,
   createShowcaseTemplate,
-  createShowcaseTemplateBlock,
   hasShowcaseTemplateActivation,
-  normalizeShowcaseTemplates,
-  updateTemplateSection
+  normalizeShowcaseTemplates
 } from '../utils/showcaseTemplates.js';
 import { ACTIVITY_SCOPE_QUESTION_ID } from '../utils/questions.js';
 import { loadShowcaseStyles } from '../styles/loadShowcaseStyles.js';
@@ -19,12 +13,9 @@ import { LanguageEditSwitcher } from './LocalizedFieldEditor.jsx';
 import { ShowcaseTemplateStudio } from './ShowcaseTemplateStudio.jsx';
 import { useReorderFeedback } from '../hooks/useReorderFeedback.js';
 import {
-  TemplateSectionSettings,
   buildFictiveShowcaseAnswers,
   buildTemplateQuestionHelpers,
-  getTemplateSectionLabel,
-  moveItem,
-  translateInAllLanguages
+  moveItem
 } from './showcaseTemplateEditors.jsx';
 import { ArrowDown, ArrowUp, Edit, Eye, Plus, Trash2 } from './icons.js';
 
@@ -116,13 +107,6 @@ export const BackOfficeShowcaseTemplates = ({
   const [studioTemplateId, setStudioTemplateId] = useState(null);
   const normalizedTemplates = useMemo(() => normalizeShowcaseTemplates(templates), [templates]);
   const templateReorder = useReorderFeedback('template');
-  const sectionReorder = useReorderFeedback('section');
-  const templateContainerRef = templateReorder.containerRef;
-  const sectionContainerRef = sectionReorder.containerRef;
-  const setReorderContainer = useCallback((element) => {
-    templateContainerRef.current = element;
-    sectionContainerRef.current = element;
-  }, [templateContainerRef, sectionContainerRef]);
   const helpers = buildTemplateQuestionHelpers(questions, language, t);
   const { conditionQuestions } = helpers;
   const previewTemplate = previewTemplateId
@@ -136,10 +120,6 @@ export const BackOfficeShowcaseTemplates = ({
     setTemplates((previous) => normalizeShowcaseTemplates(previous).map((template) => (
       template.id === templateId ? updater(template) : template
     )));
-  };
-
-  const updateSections = (templateId, updater) => {
-    updateTemplate(templateId, (template) => ({ ...template, sections: updater(template.sections) }));
   };
 
   const handleAddTemplate = () => {
@@ -163,17 +143,6 @@ export const BackOfficeShowcaseTemplates = ({
       });
     }
     setTemplates((previous) => moveItem(normalizeShowcaseTemplates(previous), index, delta));
-  };
-
-  const handleMoveSection = (template, index, delta) => {
-    const moved = template.sections[index];
-    const target = index + delta;
-    if (moved && target >= 0 && target < template.sections.length) {
-      sectionReorder.prepareMove(`${template.id}:${moved.kind}-${moved.id}`, {
-        announce: t('common.feedback.movedPosition', { position: target + 1, total: template.sections.length })
-      });
-    }
-    updateSections(template.id, (sections) => moveItem(sections, index, delta));
   };
 
   // L'atelier remplace la liste plutôt que de la recouvrir : les deux rendraient les mêmes
@@ -229,17 +198,12 @@ export const BackOfficeShowcaseTemplates = ({
               {t('backOffice.showcaseTemplates.empty')}
             </div>
           ) : (
-            <div className="space-y-4" ref={setReorderContainer}>
+            <div className="space-y-4" ref={templateReorder.containerRef}>
               <span className="sr-only" role="status" aria-live="polite">
-                {templateReorder.announcement || sectionReorder.announcement}
+                {templateReorder.announcement}
               </span>
               {normalizedTemplates.map((template, templateIndex) => {
-                const usedBuiltIns = new Set(
-                  template.sections.filter((entry) => entry.kind === 'builtin').map((entry) => entry.id)
-                );
-                const availableBuiltIns = SHOWCASE_SECTION_IDS.filter((id) => !usedBuiltIns.has(id));
                 const nameId = `${template.id}-name`;
-                const addBuiltInId = `${template.id}-add-builtin`;
 
                 return (
                   <article
@@ -335,127 +299,6 @@ export const BackOfficeShowcaseTemplates = ({
                       {template.activation.conditionGroups.length > 0 && !hasShowcaseTemplateActivation(template) && (
                         <p className="text-xs text-amber-700">{t('backOffice.showcaseTemplates.activationIncompleteHint')}</p>
                       )}
-                    </fieldset>
-
-                    <fieldset className="space-y-3 rounded-lg border border-gray-200 bg-white p-4">
-                      <legend className="px-1 text-sm font-semibold text-gray-800">
-                        {t('backOffice.showcaseTemplates.sectionsTitle')}
-                      </legend>
-                      <p className="text-xs text-gray-600">{t('backOffice.showcaseTemplates.sectionsHint')}</p>
-                      <ol className="space-y-2">
-                        {template.sections.map((entry, index) => {
-                          const isLocked = entry.kind === 'builtin' && entry.id === SHOWCASE_TEMPLATE_MANDATORY_SECTION_ID;
-                          const rowKey = `${entry.kind}-${entry.id}`;
-                          return (
-                            <li
-                              key={rowKey}
-                              className="rounded-lg border border-gray-200 bg-gray-50 p-3"
-                              data-testid="showcase-template-section"
-                              data-section-kind={entry.kind}
-                              data-section-id={entry.id}
-                              data-reorder-section-key={`${template.id}:${rowKey}`}
-                            >
-                              <div className="flex flex-wrap items-center gap-2">
-                                <span
-                                  className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                                    entry.kind === 'builtin' ? 'bg-gray-200 text-gray-700' : 'bg-blue-100 text-blue-700'
-                                  }`}
-                                >
-                                  {entry.kind === 'builtin'
-                                    ? t('backOffice.showcaseTemplates.builtInBadge')
-                                    : t('backOffice.showcaseTemplates.blockBadge')}
-                                </span>
-                                <span className="flex-1 text-sm font-medium text-gray-800">
-                                  {getTemplateSectionLabel(entry, t, editingLanguage)}
-                                </span>
-                                {isLocked && (
-                                  <span className="text-xs text-gray-500">{t('backOffice.showcaseTemplates.noticeLocked')}</span>
-                                )}
-                                <button
-                                  type="button"
-                                  data-reorder-section-action="up"
-                                  onClick={() => handleMoveSection(template, index, -1)}
-                                  disabled={index === 0}
-                                  aria-label={t('backOffice.showcaseTemplates.moveUp')}
-                                  title={t('backOffice.showcaseTemplates.moveUp')}
-                                  className="rounded-md border border-gray-200 bg-white p-1 text-gray-600 hover:bg-gray-100 disabled:opacity-40"
-                                >
-                                  <ArrowUp className="w-4 h-4" />
-                                </button>
-                                <button
-                                  type="button"
-                                  data-reorder-section-action="down"
-                                  onClick={() => handleMoveSection(template, index, 1)}
-                                  disabled={index === template.sections.length - 1}
-                                  aria-label={t('backOffice.showcaseTemplates.moveDown')}
-                                  title={t('backOffice.showcaseTemplates.moveDown')}
-                                  className="rounded-md border border-gray-200 bg-white p-1 text-gray-600 hover:bg-gray-100 disabled:opacity-40"
-                                >
-                                  <ArrowDown className="w-4 h-4" />
-                                </button>
-                                {!isLocked && (
-                                  <button
-                                    type="button"
-                                    onClick={() => updateSections(template.id, (sections) => sections.filter((_, position) => position !== index))}
-                                    aria-label={t('backOffice.showcaseTemplates.remove')}
-                                    title={t('backOffice.showcaseTemplates.remove')}
-                                    className="rounded-md border border-red-200 bg-white p-1 text-red-600 hover:bg-red-50"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                )}
-                              </div>
-                              <TemplateSectionSettings
-                                template={template}
-                                entry={entry}
-                                onChange={(nextEntry) => updateTemplate(template.id, (current) => (
-                                  updateTemplateSection(current, buildTemplateSectionKey(entry), () => nextEntry)
-                                ))}
-                                onConvert={() => updateTemplate(template.id, (current) => (
-                                  convertTemplateSectionToBlock(current, buildTemplateSectionKey(entry), translateInAllLanguages).template
-                                ))}
-                                helpers={helpers}
-                                editingLanguage={editingLanguage}
-                                language={language}
-                                t={t}
-                              />
-                            </li>
-                          );
-                        })}
-                      </ol>
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-                        {availableBuiltIns.length > 0 && (
-                          <div className="flex-1">
-                            <label htmlFor={addBuiltInId} className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-600">
-                              {t('backOffice.showcaseTemplates.addBuiltInLabel')}
-                            </label>
-                            <select
-                              id={addBuiltInId}
-                              value=""
-                              onChange={(event) => {
-                                const sectionId = event.target.value;
-                                if (sectionId) {
-                                  updateSections(template.id, (sections) => [...sections, { kind: 'builtin', id: sectionId }]);
-                                }
-                              }}
-                              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                            >
-                              <option value="">{t('backOffice.showcaseTemplates.addBuiltInPlaceholder')}</option>
-                              {availableBuiltIns.map((id) => (
-                                <option key={id} value={id}>{t(`projectShowcase.sectionOptions.${id}`)}</option>
-                              ))}
-                            </select>
-                          </div>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => updateSections(template.id, (sections) => [...sections, createShowcaseTemplateBlock(template)])}
-                          className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-50"
-                        >
-                          <Plus className="w-4 h-4" />
-                          {t('backOffice.showcaseTemplates.addBlockButton')}
-                        </button>
-                      </div>
                     </fieldset>
                   </article>
                 );
