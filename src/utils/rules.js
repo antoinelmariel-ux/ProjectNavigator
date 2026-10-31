@@ -1,6 +1,7 @@
 import { normalizeAnswerForComparison, normalizeConditionValueForAnswer } from './questions.js';
 import { normalizeConditionGroups } from './conditionGroups.js';
 import { sanitizeRuleCondition } from './ruleConditions.js';
+import { convertAnswerToConditionUnit } from './currencies.js';
 import { getRiskWeightKey, normalizeRiskWeighting } from './risk.js';
 import { DEFAULT_LANGUAGE } from '../i18n/languages.js';
 import { resolveLocalizedText } from './localizedContent.js';
@@ -219,10 +220,15 @@ const matchesCondition = (condition, answers) => {
         return false;
       }
 
-      const answerNumber = toNumber(answer);
+      const rawNumber = toNumber(answer);
       const expectedNumber = toNumber(expected);
 
-      if (answerNumber === null || expectedNumber === null) {
+      if (rawNumber === null || expectedNumber === null) {
+        return false;
+      }
+
+      const answerNumber = convertAnswerToConditionUnit(condition, answers, rawNumber);
+      if (answerNumber === null) {
         return false;
       }
 

@@ -73,6 +73,7 @@ test('buildReferentialPayload : un fichier par référentiel, réglages regroup�
     riskWeights: { a: 1 },
     showcaseThemes: [],
     showcaseTemplates: [],
+    currencies: [],
     adminEmails: ['a@b.fr'],
     onboardingTourConfig: { steps: [] },
     validationCommitteeConfig: {},
@@ -107,6 +108,7 @@ test('aller-retour build → flatten', () => {
     riskWeights: {},
     showcaseThemes: [],
     showcaseTemplates: [],
+    currencies: [],
     adminEmails: ['x@y.fr'],
     onboardingTourConfig: { a: 1 },
     validationCommitteeConfig: { b: 2 },
@@ -182,6 +184,7 @@ test('publishAllReferentials : crée les fichiers absents via Files/add', async 
         riskWeights: {},
         showcaseThemes: [],
         showcaseTemplates: [],
+        currencies: [],
         adminEmails: ['a@b.fr']
       });
 
@@ -266,6 +269,7 @@ test('publishAllReferentials : une sélection restreint les fichiers publiés', 
           riskWeights: {},
           showcaseThemes: [],
           showcaseTemplates: [],
+          currencies: [],
           adminEmails: ['a@b.fr']
         },
         new Set(['questions'])

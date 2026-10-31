@@ -137,6 +137,9 @@ import { collectTranslationItems } from '../utils/translationAudit.js';
 import { LanguageEditSwitcher } from './LocalizedFieldEditor.jsx';
 import { BackOfficeTranslations } from './BackOfficeTranslations.jsx';
 import { BackOfficeFaq } from './BackOfficeFaq.jsx';
+import { BackOfficeCurrencies } from './BackOfficeCurrencies.jsx';
+import { ConditionValueUnit } from './ConditionValueUnit.jsx';
+import { applyConditionFieldChange } from '../utils/conditionValueUnit.js';
 import { BackOfficeShowcaseTemplates } from './BackOfficeShowcaseTemplates.jsx';
 import { isSharePointMode } from '../config/sharepointConfig.js';
 import { scrollAppTo } from '../utils/scrollContainer.js';
@@ -514,6 +517,7 @@ const REFERENTIAL_SELECTION_ITEMS = [
   { key: 'riskWeights', labelKey: 'referentialItemRiskWeights' },
   { key: 'showcaseThemes', labelKey: 'referentialItemShowcaseThemes' },
   { key: 'showcaseTemplates', labelKey: 'referentialItemShowcaseTemplates' },
+  { key: 'currencies', labelKey: 'referentialItemCurrencies' },
   { key: 'settings', labelKey: 'referentialItemSettings' }
 ];
 
@@ -744,6 +748,8 @@ export const BackOffice = ({
   setShowcaseThemes,
   showcaseTemplates = [],
   setShowcaseTemplates,
+  currencies = [],
+  setCurrencies,
   projectFilters,
   setProjectFilters,
   inspirationFilters,
@@ -1499,13 +1505,12 @@ export const BackOffice = ({
   const updateCommitteeConditionField = useCallback(
     (committeeId, groupIndex, conditionIndex, field, value) => {
       updateCommitteeConditionGroups(committeeId, (groups) =>
-        withUpdatedCommitteeCondition(groups, groupIndex, conditionIndex, (condition) => ({
-          ...condition,
-          [field]: value
-        }))
+        withUpdatedCommitteeCondition(groups, groupIndex, conditionIndex, (condition) =>
+          applyConditionFieldChange(condition, field, value, questions, language)
+        )
       );
     },
-    [updateCommitteeConditionGroups, withUpdatedCommitteeCondition]
+    [language, questions, updateCommitteeConditionGroups, withUpdatedCommitteeCondition]
   );
   const deleteCommitteeCondition = useCallback(
     (committeeId, groupIndex, conditionIndex) => {
@@ -4010,6 +4015,11 @@ export const BackOffice = ({
         count: Array.isArray(showcaseTemplates) ? showcaseTemplates.length : 0
       }),
       panelId: 'backoffice-tabpanel-showcaseTemplates'
+    },
+    {
+      id: 'currencies',
+      label: t('backOffice.main.tabCurrenciesTemplate', { count: Array.isArray(currencies) ? currencies.length : 0 }),
+      panelId: 'backoffice-tabpanel-currencies'
     },
     {
       id: 'onboarding',
@@ -8234,21 +8244,40 @@ export const BackOffice = ({
                                                             }
 
                                                             return (
-                                                              <input
-                                                                type={inputType}
-                                                                value={condition.value}
-                                                                onChange={(event) =>
-                                                                  updateCommitteeConditionField(
-                                                                    committee.id,
-                                                                    groupIdx,
-                                                                    conditionIdx,
-                                                                    'value',
-                                                                    event.target.value
-                                                                  )
-                                                                }
-                                                                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
-                                                                placeholder={placeholder}
-                                                              />
+                                                              <>
+                                                                <input
+                                                                  type={inputType}
+                                                                  value={condition.value}
+                                                                  onChange={(event) =>
+                                                                    updateCommitteeConditionField(
+                                                                      committee.id,
+                                                                      groupIdx,
+                                                                      conditionIdx,
+                                                                      'value',
+                                                                      event.target.value
+                                                                    )
+                                                                  }
+                                                                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                                                                  placeholder={placeholder}
+                                                                />
+                                                                <ConditionValueUnit
+                                                                  question={selectedQuestion}
+                                                                  operator={condition.operator}
+                                                                  value={condition.valueUnit}
+                                                                  threshold={condition.value}
+                                                                  language={language}
+                                                                  t={t}
+                                                                  onChange={(unit) =>
+                                                                    updateCommitteeConditionField(
+                                                                      committee.id,
+                                                                      groupIdx,
+                                                                      conditionIdx,
+                                                                      'valueUnit',
+                                                                      unit
+                                                                    )
+                                                                  }
+                                                                />
+                                                              </>
                                                             );
                                                           })()}
                                                         </div>
@@ -10448,6 +10477,22 @@ export const BackOffice = ({
                 sampleProjects={complianceSampleProjects}
                 language={language}
                 publishControl={renderReferentialPublishControl('showcaseTemplates')}
+                t={t}
+              />
+            </section>
+          )}
+
+          {activeTab === 'currencies' && (
+            <section
+              id="backoffice-tabpanel-currencies"
+              role="tabpanel"
+              aria-labelledby="backoffice-tab-currencies"
+            >
+              <BackOfficeCurrencies
+                currencies={currencies}
+                setCurrencies={setCurrencies}
+                questions={questions}
+                publishControl={renderReferentialPublishControl('currencies')}
                 t={t}
               />
             </section>

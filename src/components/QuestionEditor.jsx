@@ -16,6 +16,7 @@ import { ensureOperatorForType, getOperatorOptionsForType } from '../utils/opera
 import {
   buildExtraCheckboxQuestionId,
   getConditionQuestionEntries,
+  getNumberUnitOptions,
   getQuestionOptionEntries,
   normalizeOtherOptionForEditing,
   normalizeQuestionOptionsForEditing
@@ -30,6 +31,9 @@ import {
 } from '../utils/projectStage.js';
 import { LanguageEditSwitcher } from './LocalizedFieldEditor.jsx';
 import { useReorderFeedback } from '../hooks/useReorderFeedback.js';
+import { findUnitsWithoutRate, getCurrencyTable } from '../utils/currencies.js';
+import { ConditionValueUnit } from './ConditionValueUnit.jsx';
+import { applyConditionFieldChange } from '../utils/conditionValueUnit.js';
 
 // Symboles monétaires : identiques dans les 4 langues, donc appliqués à toutes d'un coup
 // plutôt que traduits individuellement comme les autres unités (jours, %, ...).
@@ -174,6 +178,15 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
   const subOptionReorder = useReorderFeedback('sub');
   const [showOptionIds, setShowOptionIds] = useState(false);
   const questionType = editedQuestion.type || 'choice';
+  // Les devises proposées viennent de la table administrable (onglet « Devises »), pour que le
+  // libellé choisi ici ait toujours un taux de conversion ; les anciens préréglages ne servent
+  // qu'à défaut de table.
+  const currencyTableUnits = getCurrencyTable().map((entry) => entry.unit);
+  const currencyUnitChoices = currencyTableUnits.length > 0 ? currencyTableUnits : CURRENCY_UNIT_PRESETS;
+  const unitsMissingFromTable = questionType === 'number'
+    && getNumberUnitOptions(editedQuestion, editingLanguage).length >= 2
+    ? findUnitsWithoutRate([editedQuestion])
+    : [];
   const typeUsesOptions = questionType === 'choice' || questionType === 'multi_choice';
   const normalizedGuidance = ensureGuidance(editedQuestion.guidance);
 
@@ -538,7 +551,11 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
       const condition = { ...conditions[conditionIndex] };
 
       if (field === 'question') {
-        condition.question = value;
+        const changed = applyConditionFieldChange(condition, 'question', value, allQuestions, editingLanguage);
+        Object.assign(condition, changed);
+        if (!('valueUnit' in changed)) {
+          delete condition.valueUnit;
+        }
       } else if (field === 'operator') {
         condition.operator = value;
       } else {
@@ -1054,7 +1071,7 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t('backOffice.questionEditor.numberUnitLabel')}</label>
                   <div className="flex flex-wrap gap-2 mb-2">
-                    {CURRENCY_UNIT_PRESETS.map((preset) => {
+                    {currencyUnitChoices.map((preset) => {
                       const isActive = getLocalizedRaw(editedQuestion.numberUnit, editingLanguage) === preset;
                       return (
                         <button
@@ -1090,7 +1107,7 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
                   </label>
                   <p className="text-xs text-gray-500 mb-2">{t('backOffice.questionEditor.numberUnitOptionsHint')}</p>
                   <div className="flex flex-wrap gap-2">
-                    {CURRENCY_UNIT_PRESETS.map((preset) => {
+                    {currencyUnitChoices.map((preset) => {
                       const isActive = editedQuestion.numberUnitOptions.includes(preset);
                       return (
                         <button
@@ -1113,6 +1130,11 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
                       );
                     })}
                   </div>
+                  {unitsMissingFromTable.length > 0 && (
+                    <p role="alert" className="mt-2 text-xs text-amber-700">
+                      {t('backOffice.main.currencies.unitsWithoutRate', { units: unitsMissingFromTable.join(', ') })}
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -2057,13 +2079,24 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
                                               : t('backOffice.questionEditor.valuePlaceholder');
 
                                         return (
-                                          <input
-                                            type={inputType}
-                                            value={condition.value}
-                                            onChange={(e) => updateConditionInGroup(groupIdx, idx, 'value', e.target.value)}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500"
-                                            placeholder={placeholder}
-                                          />
+                                          <>
+                                            <input
+                                              type={inputType}
+                                              value={condition.value}
+                                              onChange={(e) => updateConditionInGroup(groupIdx, idx, 'value', e.target.value)}
+                                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500"
+                                              placeholder={placeholder}
+                                            />
+                                            <ConditionValueUnit
+                                              question={selectedQuestion}
+                                              operator={condition.operator}
+                                              value={condition.valueUnit}
+                                              threshold={condition.value}
+                                              language={editingLanguage}
+                                              t={t}
+                                              onChange={(unit) => updateConditionInGroup(groupIdx, idx, 'valueUnit', unit)}
+                                            />
+                                          </>
                                         );
                                       })()}
                                     </div>

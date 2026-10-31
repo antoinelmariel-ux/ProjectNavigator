@@ -1,5 +1,6 @@
 import { applyConditionGroups, normalizeConditionGroups } from './conditionGroups.js';
 import { formatRankingAnswer } from './ranking.js';
+import { buildNumberUnitAnswerId, convertAnswerToConditionUnit } from './currencies.js';
 import { DEFAULT_LANGUAGE, getLocaleTag } from '../i18n/languages.js';
 import { resolveLocalizedText, isLocalizedValueEmpty } from './localizedContent.js';
 import {
@@ -30,19 +31,10 @@ export const buildExtraCheckboxQuestionId = (questionId) => {
   return `${questionId}${EXTRA_CHECKBOX_SUFFIX}`;
 };
 
-const NUMBER_UNIT_CHOICE_SUFFIX = '__number_unit';
-
 // Devise/unité choisie par le répondant, stockée à part de la réponse numérique elle-même
 // (clé sœur, même principe que buildExtraCheckboxQuestionId) pour ne jamais transformer une
-// réponse "number" en objet composite : le moteur de règles (toNumber) continue de comparer
-// un nombre brut, indépendamment de la devise sélectionnée.
-export const buildNumberUnitAnswerId = (questionId) => {
-  if (!questionId || typeof questionId !== 'string') {
-    return '';
-  }
-
-  return `${questionId}${NUMBER_UNIT_CHOICE_SUFFIX}`;
-};
+// réponse "number" en objet composite. Définie dans currencies.js, qui convertit les montants.
+export { buildNumberUnitAnswerId };
 
 // Liste combinée et dédupliquée des unités/devises disponibles pour une question "number" :
 // l'unité par défaut (numberUnit) suivie des devises additionnelles configurées dans le
@@ -195,10 +187,15 @@ const evaluateQuestionCondition = (condition, answers) => {
         return false;
       }
 
-      const answerNumber = toNumber(answer);
+      const rawNumber = toNumber(answer);
       const expectedNumber = toNumber(condition.value);
 
-      if (answerNumber === null || expectedNumber === null) {
+      if (rawNumber === null || expectedNumber === null) {
+        return false;
+      }
+
+      const answerNumber = convertAnswerToConditionUnit(condition, answers, rawNumber);
+      if (answerNumber === null) {
         return false;
       }
 

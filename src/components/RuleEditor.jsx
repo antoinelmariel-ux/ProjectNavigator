@@ -28,6 +28,8 @@ import { RichTextEditor } from './RichTextEditor.jsx';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { resolveLocalizedText, getLocalizedRaw, setLocalizedText } from '../utils/localizedContent.js';
 import { LanguageEditSwitcher } from './LocalizedFieldEditor.jsx';
+import { ConditionValueUnit } from './ConditionValueUnit.jsx';
+import { applyConditionFieldChange } from '../utils/conditionValueUnit.js';
 
 const RISK_PRIORITY_OPTIONS = [
   'standard',
@@ -238,10 +240,9 @@ export const RuleEditor = ({ rule, onSave, onCancel, questions, teams }) => {
 
   const updateConditionField = (groupIndex, conditionIndex, field, value) => {
     updateConditionGroupsState(groups =>
-      withUpdatedCondition(groups, groupIndex, conditionIndex, condition => ({
-        ...condition,
-        [field]: value
-      }))
+      withUpdatedCondition(groups, groupIndex, conditionIndex, condition =>
+        applyConditionFieldChange(condition, field, value, conditionQuestionEntries, editingLanguage)
+      )
     );
   };
 
@@ -890,13 +891,24 @@ export const RuleEditor = ({ rule, onSave, onCancel, questions, teams }) => {
                                             }
 
                                             return (
-                                              <input
-                                                type={inputType}
-                                                value={condition.value}
-                                                onChange={(e) => updateConditionField(groupIdx, conditionIdx, 'value', e.target.value)}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                                                placeholder={placeholder}
-                                              />
+                                              <>
+                                                <input
+                                                  type={inputType}
+                                                  value={condition.value}
+                                                  onChange={(e) => updateConditionField(groupIdx, conditionIdx, 'value', e.target.value)}
+                                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                                                  placeholder={placeholder}
+                                                />
+                                                <ConditionValueUnit
+                                                  question={selectedQuestion}
+                                                  operator={condition.operator}
+                                                  value={condition.valueUnit}
+                                                  threshold={condition.value}
+                                                  language={editingLanguage}
+                                                  t={t}
+                                                  onChange={(unit) => updateConditionField(groupIdx, conditionIdx, 'valueUnit', unit)}
+                                                />
+                                              </>
                                             );
                                           })()}
                                         </div>
