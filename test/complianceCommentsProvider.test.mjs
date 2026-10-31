@@ -266,3 +266,48 @@ test('upsertComment : seul « pending_information » est considéré non résolu
     );
   }
 });
+
+test('la date où l’avis a été rendu et sa version font l’aller-retour par ClaimJson', async () => {
+  const writes = [];
+  const renderedAt = '2026-03-02T10:00:00.000Z';
+
+  await withFetch(
+    (url, init) => {
+      if (url.endsWith('/_api/contextinfo')) {
+        return digestResponse();
+      }
+      if (init.method === 'POST' && url.includes('/items') && !url.includes('?')) {
+        writes.push(JSON.parse(init.body));
+        return makeResponse(201, { Id: writes.length });
+      }
+      return makeResponse(200, { value: [] });
+    },
+    async () => {
+      const provider = new SharePointComplianceCommentsProvider();
+      await provider.upsertComment('proj-1', 'committee', 'committee-default', {
+        comment: 'Favorable',
+        status: 'validated',
+        statusUpdatedAt: renderedAt,
+        reviewedAt: renderedAt,
+        reviewedVersion: 2,
+        needsReviewSince: 2,
+        attachments: [],
+        replies: []
+      }, { userEmail: 'comite@b.fr' });
+    }
+  );
+
+  const [root] = writes;
+  assert.notEqual(root.UpdatedAt, renderedAt);
+
+  const listed = await withFetch(
+    () => makeResponse(200, { value: [{ ...root, UpdatedAt: '2026-03-09T08:00:00.000Z' }] }),
+    async () => new SharePointComplianceCommentsProvider().listComments('proj-1')
+  );
+
+  const entry = listed.committees['committee-default'];
+  assert.equal(entry.statusUpdatedAt, renderedAt);
+  assert.equal(entry.reviewedAt, renderedAt);
+  assert.equal(entry.reviewedVersion, 2);
+  assert.equal(entry.needsReviewSince, 2);
+});

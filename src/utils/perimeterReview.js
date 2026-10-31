@@ -39,13 +39,37 @@ const readOpinionFingerprint = (entry) => JSON.stringify({
   attachments: Array.isArray(entry?.attachments) ? entry.attachments : []
 });
 
+// Ce qui date un avis et le rattache à une version. Les éditeurs (synthèse, fil d'échange)
+// reconstruisent l'entrée à partir de ce qu'ils affichent et ne connaissent pas ces champs :
+// sans les reporter, un simple « Enregistrer » sans changement ou une réponse dans le fil
+// effaçait la date de l'avis, sa version, le signal « à ré-examiner » et la confirmation finale.
+const REVIEW_META_KEYS = ['reviewedAt', 'reviewedVersion', 'needsReviewSince', 'confirmation'];
+
+const hasMetaValue = (value) => value !== undefined && value !== null && value !== '' && value !== 0;
+
+const carryReviewMeta = (entry, previousEntry) => {
+  if (!previousEntry || typeof previousEntry !== 'object') {
+    return entry;
+  }
+  const carried = { ...entry };
+  REVIEW_META_KEYS.forEach((key) => {
+    if (!hasMetaValue(carried[key]) && hasMetaValue(previousEntry[key])) {
+      carried[key] = previousEntry[key];
+    }
+  });
+  return carried;
+};
+
 // Date un avis dès qu'il est posé ou repris. Une simple réponse dans le fil n'en est pas un :
 // répondre à une question n'est pas re-valider, et compter les réponses ferait disparaître le
-// signal « à ré-examiner » au premier échange.
+// signal « à ré-examiner » au premier échange. Un avis inchangé garde la date où il a été rendu,
+// même si l'éditeur l'a ré-enregistré.
 export const stampReviewedVersions = (nextComments, previousComments, version, at) => {
   if (!nextComments || typeof nextComments !== 'object' || Array.isArray(nextComments)) {
     return nextComments;
   }
+
+  const stampedAt = typeof at === 'string' && at.length > 0 ? at : new Date().toISOString();
 
   const stampSection = (section, previousSection) => {
     if (!section || typeof section !== 'object' || Array.isArray(section)) {
@@ -57,9 +81,21 @@ export const stampReviewedVersions = (nextComments, previousComments, version, a
         ? previousSection[targetId]
         : null;
 
-      acc[targetId] = readOpinionFingerprint(entry) === readOpinionFingerprint(previousEntry)
-        ? entry
-        : withReviewedVersion(entry, version, at);
+      if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+        acc[targetId] = entry;
+        return acc;
+      }
+
+      const withMeta = carryReviewMeta(entry, previousEntry);
+
+      if (readOpinionFingerprint(entry) === readOpinionFingerprint(previousEntry)) {
+        const previousRenderedAt = typeof previousEntry?.statusUpdatedAt === 'string'
+          ? previousEntry.statusUpdatedAt
+          : '';
+        acc[targetId] = previousRenderedAt ? { ...withMeta, statusUpdatedAt: previousRenderedAt } : withMeta;
+      } else {
+        acc[targetId] = { ...withReviewedVersion(withMeta, version, stampedAt), statusUpdatedAt: stampedAt };
+      }
 
       return acc;
     }, {});

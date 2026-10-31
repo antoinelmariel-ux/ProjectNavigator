@@ -153,6 +153,13 @@ est volontairement une colonne à part, plate, pour rester lisible dans une vue 
 dont l'historique des reprises. Les deux colonnes vides = personne ne suit ce périmètre, ce qui
 est l'état d'avant cette fonctionnalité : aucune reprise de données n'est nécessaire.
 
+`ClaimJson` porte aussi, sous `review`, la **date de l'avis** de l'expert ou du comité
+(`{"review":{"statusUpdatedAt":"…","reviewedAt":"…","reviewedVersion":2,"needsReviewSince":2,"confirmation":{…}}}`).
+`UpdatedAt` ne convient pas pour cela : il est réécrit à chaque écriture de la ligne racine
+(réponse dans le fil, prise en charge, relance). Une ligne écrite avant ce champ retombe sur
+`UpdatedAt`, sans reprise de données ; dans un flux, lire la date de l'avis dans
+`ClaimJson.review.statusUpdatedAt` quand elle est présente.
+
 ### `CN_ProjectMembers` — qui est co-porteur de quel projet
 | Colonne | Type |
 |---|---|
