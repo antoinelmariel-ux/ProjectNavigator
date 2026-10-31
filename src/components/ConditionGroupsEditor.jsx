@@ -10,6 +10,8 @@ import { ensureOperatorForType, getOperatorOptionsForType } from '../utils/opera
 import { getConditionQuestionEntries, getQuestionOptionLabels } from '../utils/questions.js';
 import { resolveLocalizedText } from '../utils/localizedContent.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
+import { ConditionValueUnit } from './ConditionValueUnit.jsx';
+import { applyConditionFieldChange } from '../utils/conditionValueUnit.js';
 
 // Panneau de critères partagé : même grammaire que les règles (groupes ET entre eux, logique
 // ET/OU à l'intérieur d'un groupe, conditions « réponse » ou « comparaison de dates »). Le
@@ -101,7 +103,9 @@ export const ConditionGroupsEditor = ({
       const currentCondition = sanitizeRuleCondition(
         conditions[conditionIndex] || createEmptyQuestionCondition()
       );
-      const updatedCondition = sanitizeRuleCondition({ ...currentCondition, [field]: value });
+      const updatedCondition = sanitizeRuleCondition(
+        applyConditionFieldChange(currentCondition, field, value, conditionQuestionEntries, language)
+      );
       const question = conditionQuestionEntries.find((entry) => entry.id === updatedCondition.question);
       const questionType = question?.type || 'choice';
       conditions[conditionIndex] = updatedCondition.type === 'timing'
@@ -432,15 +436,28 @@ export const ConditionGroupsEditor = ({
                                     ))}
                                   </select>
                                 ) : (
-                                  <input
-                                    type={inputType}
-                                    value={condition.value}
-                                    onChange={(event) =>
-                                      updateConditionField(groupIdx, conditionIdx, 'value', event.target.value)
-                                    }
-                                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
-                                    placeholder={placeholder}
-                                  />
+                                  <>
+                                    <input
+                                      type={inputType}
+                                      value={condition.value}
+                                      onChange={(event) =>
+                                        updateConditionField(groupIdx, conditionIdx, 'value', event.target.value)
+                                      }
+                                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                                      placeholder={placeholder}
+                                    />
+                                    <ConditionValueUnit
+                                      question={selectedQuestion}
+                                      operator={condition.operator}
+                                      value={condition.valueUnit}
+                                      threshold={condition.value}
+                                      language={language}
+                                      t={t}
+                                      onChange={(unit) =>
+                                        updateConditionField(groupIdx, conditionIdx, 'valueUnit', unit)
+                                      }
+                                    />
+                                  </>
                                 )}
                               </div>
                             </div>

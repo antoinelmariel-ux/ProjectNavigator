@@ -2,7 +2,10 @@ export const sanitizeCondition = (condition = {}) => {
   return {
     question: condition.question || '',
     operator: condition.operator || 'equals',
-    value: condition.value ?? ''
+    value: condition.value ?? '',
+    ...(typeof condition.valueUnit === 'string' && condition.valueUnit.trim()
+      ? { valueUnit: condition.valueUnit.trim() }
+      : {})
   };
 };
 

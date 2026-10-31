@@ -27,6 +27,13 @@ import { initialRiskWeights } from './data/riskWeights.js';
 import { initialTeams } from './data/teams.js';
 import { initialShowcaseThemes } from './data/showcaseThemes.js';
 import { initialShowcaseTemplates } from './data/showcaseTemplates.js';
+import { initialCurrencies } from './data/currencies.js';
+import {
+  buildCurrencyRatesSnapshot,
+  normalizeCurrencyTable,
+  setCurrencyQuestionDefaults,
+  setCurrencyTable
+} from './utils/currencies.js';
 import { initialOnboardingTourConfig } from './data/onboardingTour.js';
 import { initialValidationCommitteeConfig } from './data/validationCommitteeConfig.js';
 import { initialAdminEmails } from './data/adminEmails.js';
@@ -950,6 +957,7 @@ export const App = () => {
   const [teams, setTeams] = useState(initialTeams);
   const [showcaseThemes, setShowcaseThemes] = useState(initialShowcaseThemes);
   const [showcaseTemplates, setShowcaseTemplates] = useState(initialShowcaseTemplates);
+  const [currencies, setCurrencies] = useState(initialCurrencies);
   const [projectFilters, setProjectFiltersState] = useState(() => createDefaultProjectFiltersConfig());
   const [inspirationFilters, setInspirationFilters] = useState(() => createDefaultInspirationFiltersConfig());
   const [inspirationFormFields, setInspirationFormFields] = useState(() => createDefaultInspirationFormConfig());
@@ -1108,10 +1116,18 @@ export const App = () => {
 
   // Injecte le périmètre d'activité de la personne connectée dans les réponses avant toute
   // évaluation de condition, sans jamais le persister dans les réponses réelles d'un projet.
+  // Le moteur de conditions convertit les montants avec la table de devises courante : elle lui
+  // est confiée avant toute évaluation, et les deux fonctions ci-dessous changent d'identité
+  // quand elle bouge pour que les analyses en aval se recalculent.
+  const currencyContextKey = useMemo(() => {
+    setCurrencyTable(currencies);
+    setCurrencyQuestionDefaults(questions);
+    return {};
+  }, [currencies, questions]);
   const shouldShowQuestion = useCallback(
     (question, answersForEvaluation) =>
       shouldShowQuestionBase(question, withActivityScope(answersForEvaluation, activityScope)),
-    [activityScope]
+    [activityScope, currencyContextKey]
   );
   const analyzeAnswers = useCallback(
     (answersForEvaluation, rulesArg, riskLevelRulesArg, riskWeightsArg) =>
@@ -1121,7 +1137,7 @@ export const App = () => {
         riskLevelRulesArg,
         riskWeightsArg
       ),
-    [activityScope]
+    [activityScope, currencyContextKey]
   );
 
   const backOfficePromptResolverRef = useRef(null);
@@ -1427,6 +1443,7 @@ export const App = () => {
     riskWeights: JSON.stringify(riskWeights),
     showcaseThemes: JSON.stringify(showcaseThemes),
     showcaseTemplates: JSON.stringify(showcaseTemplates),
+    currencies: JSON.stringify(currencies),
     settings: JSON.stringify({
       adminEmails,
       technicalContactEmails,
@@ -1444,6 +1461,7 @@ export const App = () => {
     riskWeights,
     showcaseThemes,
     showcaseTemplates,
+    currencies,
     adminEmails,
     technicalContactEmails,
     onboardingTourConfig,
@@ -1781,6 +1799,7 @@ const updateProjectFilters = useCallback((updater) => {
       if (Array.isArray(savedState.teams)) setTeams(savedState.teams);
       if (Array.isArray(savedState.showcaseThemes)) setShowcaseThemes(savedState.showcaseThemes);
       if (Array.isArray(savedState.showcaseTemplates)) setShowcaseTemplates(savedState.showcaseTemplates);
+      if (Array.isArray(savedState.currencies)) setCurrencies(normalizeCurrencyTable(savedState.currencies));
       if (savedState && typeof savedState.projectFilters === 'object') {
         setProjectFiltersState(normalizeProjectFilterConfig(stripRetiredProjectFilterFields(savedState.projectFilters)));
       }
@@ -1819,6 +1838,7 @@ const updateProjectFilters = useCallback((updater) => {
       }
       if (Array.isArray(slices.showcaseThemes)) setShowcaseThemes(slices.showcaseThemes);
       if (Array.isArray(slices.showcaseTemplates)) setShowcaseTemplates(slices.showcaseTemplates);
+      if (Array.isArray(slices.currencies)) setCurrencies(normalizeCurrencyTable(slices.currencies));
       if (Array.isArray(slices.adminEmails)) setAdminEmails(slices.adminEmails);
       if (Array.isArray(slices.technicalContactEmails)) setTechnicalContactEmails(slices.technicalContactEmails);
       if (slices.teamVisibility && typeof slices.teamVisibility === 'object') {
@@ -2060,7 +2080,8 @@ const updateProjectFilters = useCallback((updater) => {
     riskWeights: JSON.stringify(normalizeRiskWeighting(initialRiskWeights)),
     teams: JSON.stringify(initialTeams),
     showcaseThemes: JSON.stringify(initialShowcaseThemes),
-    showcaseTemplates: JSON.stringify(initialShowcaseTemplates)
+    showcaseTemplates: JSON.stringify(initialShowcaseTemplates),
+    currencies: JSON.stringify(initialCurrencies)
   }), []);
 
   const buildPersistPayload = useCallback(() => {
@@ -2093,7 +2114,8 @@ const updateProjectFilters = useCallback((updater) => {
       riskWeights,
       teams,
       showcaseThemes,
-      showcaseTemplates
+      showcaseTemplates,
+      currencies
     };
     Object.entries(referentials).forEach(([key, value]) => {
       if (JSON.stringify(value) !== persistDefaults[key]) {
@@ -2115,6 +2137,7 @@ const updateProjectFilters = useCallback((updater) => {
     teams,
     showcaseThemes,
     showcaseTemplates,
+    currencies,
     projectFilters,
     inspirationFilters,
     inspirationFormFields,
@@ -6729,7 +6752,8 @@ const updateProjectFilters = useCallback((updater) => {
       ? recordSubmission(withSubmissionKind(baseAnswers || {}, payload.submissionKind), {
         kind: normalizeSubmissionKind(payload.submissionKind),
         narrativeQuestionIds: Array.isArray(payload.narrativeQuestionIds) ? payload.narrativeQuestionIds : [],
-        changes: Array.isArray(payload.changes) ? payload.changes : []
+        changes: Array.isArray(payload.changes) ? payload.changes : [],
+        currencyRates: buildCurrencyRatesSnapshot()
       })
       : (baseAnswers || {});
     const projectId = activeProjectId || payload.id || `project-${Date.now()}`;
@@ -7769,6 +7793,7 @@ const updateProjectFilters = useCallback((updater) => {
           launchReminderDays,
           showcaseThemes,
           showcaseTemplates,
+          currencies,
           adminEmails,
           technicalContactEmails,
           teamVisibility,
@@ -7818,6 +7843,7 @@ const updateProjectFilters = useCallback((updater) => {
     sharePointReinitSelection,
     showcaseThemes,
     showcaseTemplates,
+    currencies,
     t,
     teams,
     validationCommitteeConfig
@@ -7892,6 +7918,7 @@ const updateProjectFilters = useCallback((updater) => {
           launchReminderDays,
           showcaseThemes,
           showcaseTemplates,
+          currencies,
           adminEmails,
           technicalContactEmails,
           teamVisibility
@@ -7938,6 +7965,7 @@ const updateProjectFilters = useCallback((updater) => {
     riskWeights,
     showcaseThemes,
     showcaseTemplates,
+    currencies,
     t,
     validationCommitteeConfig
   ]);
@@ -7972,6 +8000,7 @@ const updateProjectFilters = useCallback((updater) => {
           launchReminderDays,
           showcaseThemes,
           showcaseTemplates,
+          currencies,
           adminEmails,
           technicalContactEmails,
           teamVisibility
@@ -8012,6 +8041,7 @@ const updateProjectFilters = useCallback((updater) => {
     riskWeights,
     showcaseThemes,
     showcaseTemplates,
+    currencies,
     t,
     validationCommitteeConfig
   ]);
@@ -8687,6 +8717,8 @@ const updateProjectFilters = useCallback((updater) => {
                 setShowcaseThemes={setShowcaseThemes}
                 showcaseTemplates={showcaseTemplates}
                 setShowcaseTemplates={setShowcaseTemplates}
+                currencies={currencies}
+                setCurrencies={setCurrencies}
                 projectFilters={projectFilters}
                 setProjectFilters={updateProjectFilters}
                 inspirationFilters={inspirationFilters}

@@ -28,6 +28,7 @@ export const normalizeSubmissionHistory = (value) => {
       lastSentAt: '',
       lastKind: '',
       snapshot: null,
+      currencyRates: {},
       entries: [],
       lastChanges: [],
       narrativeChanges: []
@@ -41,6 +42,9 @@ export const normalizeSubmissionHistory = (value) => {
     snapshot: value.snapshot && typeof value.snapshot === 'object' && !Array.isArray(value.snapshot)
       ? value.snapshot
       : null,
+    currencyRates: value.currencyRates && typeof value.currencyRates === 'object' && !Array.isArray(value.currencyRates)
+      ? value.currencyRates
+      : {},
     entries: Array.isArray(value.entries)
       ? value.entries
         .filter((entry) => toPositiveInteger(entry?.version) > 0)
@@ -111,7 +115,7 @@ export const buildSubmissionSnapshot = (answers) => {
 // passage, combien de fois la description a bougé depuis son avis.
 const MAX_STORED_CHANGES = 20;
 
-export const recordSubmission = (answers, { kind = '', narrativeQuestionIds = [], changes = [], at } = {}) => {
+export const recordSubmission = (answers, { kind = '', narrativeQuestionIds = [], changes = [], at, currencyRates } = {}) => {
   const previous = getSubmissionHistory(answers);
   const version = previous.version + 1;
   const sentAt = typeof at === 'string' && at.length > 0 ? at : new Date().toISOString();
@@ -130,6 +134,7 @@ export const recordSubmission = (answers, { kind = '', narrativeQuestionIds = []
       lastSentAt: sentAt,
       lastKind: kind,
       snapshot: buildSubmissionSnapshot(answers),
+      currencyRates: currencyRates && typeof currencyRates === 'object' ? { ...currencyRates } : {},
       entries: [...previous.entries, { version, sentAt, kind }],
       lastChanges: (Array.isArray(changes) ? changes : []).slice(0, MAX_STORED_CHANGES).map((change) => ({
         questionId: change?.questionId || '',
