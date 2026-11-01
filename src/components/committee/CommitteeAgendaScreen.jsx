@@ -538,8 +538,8 @@ export const CommitteeAgendaScreen = ({
             <h2 id="committee-agenda-topic" className="text-sm font-semibold text-gray-800">{t('committeeSessions.agenda.topicTitle')}</h2>
             <p className="text-xs text-gray-500">{t('committeeSessions.agenda.topicHint')}</p>
           </div>
-          <div className="grid gap-3 sm:grid-cols-4">
-            <div className="sm:col-span-2">
+          <div className="grid gap-3 sm:grid-cols-4 items-start">
+            <div className="sm:col-span-3">
               <label htmlFor="committee-agenda-topic-title" className="block text-xs font-medium text-gray-700 mb-1">{t('committeeSessions.agenda.topicLabel')}</label>
               <input
                 id="committee-agenda-topic-title"
@@ -550,19 +550,7 @@ export const CommitteeAgendaScreen = ({
                 className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
               />
             </div>
-            <div>
-              <label htmlFor="committee-agenda-topic-presenter" className="block text-xs font-medium text-gray-700 mb-1">{t('committeeSessions.agenda.topicPresenterLabel')}</label>
-              <PeoplePicker
-                id="committee-agenda-topic-presenter"
-                value={topicDraft.presenterEmails}
-                ariaLabel={t('committeeSessions.agenda.topicPresenterLabel')}
-                placeholder={t('committeeSessions.panel.guestsPlaceholder')}
-                context="committee-session-guest"
-                requestSiteAccess={false}
-                onChange={(next) => setTopicDraft((prev) => ({ ...prev, presenterEmails: next }))}
-              />
-            </div>
-            <div>
+            <div className="sm:col-span-1">
               <label htmlFor="committee-agenda-topic-minutes" className="block text-xs font-medium text-gray-700 mb-1">{t('committeeSessions.agenda.durationLabel')}</label>
               <input
                 id="committee-agenda-topic-minutes"
@@ -574,7 +562,19 @@ export const CommitteeAgendaScreen = ({
                 className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
               />
             </div>
-            <div className="sm:col-span-4">
+            <div className="sm:col-span-2">
+              <label htmlFor="committee-agenda-topic-presenter" className="block text-xs font-medium text-gray-700 mb-1">{t('committeeSessions.agenda.topicPresenterLabel')}</label>
+              <PeoplePicker
+                id="committee-agenda-topic-presenter"
+                value={topicDraft.presenterEmails}
+                ariaLabel={t('committeeSessions.agenda.topicPresenterLabel')}
+                placeholder={t('committeeSessions.panel.guestsPlaceholder')}
+                context="committee-session-guest"
+                requestSiteAccess={false}
+                onChange={(next) => setTopicDraft((prev) => ({ ...prev, presenterEmails: next }))}
+              />
+            </div>
+            <div className="sm:col-span-2">
               <label htmlFor="committee-agenda-topic-note" className="block text-xs font-medium text-gray-700 mb-1">{t('committeeSessions.agenda.topicNoteLabel')}</label>
               <input
                 id="committee-agenda-topic-note"
