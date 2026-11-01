@@ -734,6 +734,8 @@ const buildShowcaseThemePaletteFieldGroups = (t) =>
 const TEAM_VISIBILITY_OPTION_SELECTED = 'border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200';
 const TEAM_VISIBILITY_OPTION_IDLE = 'border-gray-200 bg-white hover:bg-gray-50';
 
+let rememberedBackOfficeTab = 'dashboard';
+
 export const BackOffice = ({
   launchSignals = {},
   launchReminderDays,
@@ -962,7 +964,11 @@ export const BackOffice = ({
       ),
     [benchEffectiveScope]
   );
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTabState] = useState(rememberedBackOfficeTab);
+  const setActiveTab = useCallback((tabId) => {
+    rememberedBackOfficeTab = tabId;
+    setActiveTabState(tabId);
+  }, []);
   const [isCommitteeConfigOpen, setIsCommitteeConfigOpen] = useState(false);
   const [focusedCommitteeSession, setFocusedCommitteeSession] = useState(null);
   const [editingRule, setEditingRule] = useState(null);
@@ -4105,7 +4111,7 @@ export const BackOffice = ({
     if (fallbackTab !== activeTab) {
       setActiveTab(fallbackTab);
     }
-  }, [activeTab, tabDefinitions]);
+  }, [activeTab, tabDefinitions, setActiveTab]);
 
   // Les onglets ont des hauteurs très différentes (Tableau de bord vs. Équipes vs.
   // Questions) : sans ce reset, changer d'onglet depuis le bas d'un onglet long peut ouvrir
