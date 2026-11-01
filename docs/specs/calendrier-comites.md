@@ -28,8 +28,10 @@ calendrier.
 ## 3. Les séances
 
 - **Chaque comité a ses propres séances.**
-- Une séance a : date et heure de début, durée totale (1 h par défaut), lieu (lien Teams
-  aujourd'hui ; salle ou hybride possible), statut **brouillon → publiée → annulée**.
+- Une séance a : date et heure de début, durée totale (1 h par défaut), statut
+  **brouillon → publiée → annulée**. **Ni lieu ni lien Teams à saisir** : la réunion Teams est
+  créée automatiquement avec l'invitation Outlook des membres (§11), et son lien est repris
+  partout ailleurs.
 - **Planification** par le président : génération à partir d'une règle (« 2e mardi du mois,
   14h–15h ») sur une période libre — un trimestre ou davantage, **sans limite d'horizon** —,
   puis retouches séance par séance (déplacer, annuler, ajouter une séance supplémentaire).
@@ -205,7 +207,7 @@ Ajouts sur chaque comité : `presidentEmail`, `vicePresidentEmail`, `defaultPass
 | CommitteeId | Texte | Comité |
 | StartAt | Date et heure | Début |
 | DurationMinutes | Nombre | Durée totale (prolongée en cas de dépassement) |
-| Location | Texte | Lien Teams ou salle |
+| Location | Texte long | Plus saisi (réunion Teams créée par le flux) ; lu pour les séances anciennes |
 | Status | Texte | `draft` / `published` / `cancelled` |
 | AgendaJson | Texte long (JSON) | Passages ordonnés (ci-dessous) |
 | AttendanceJson | Texte long (JSON) | `{email: present|excused|absent}` de la séance |
@@ -259,7 +261,7 @@ invitations ne sont pas produites (pas de flux).
    Invitations Outlook encore manuelles.
 2. **Flux des passages** : invitations des chefs de projet, mises à jour, annulations.
 3. **Flux des séances** : invitations des membres (abandon de la série récurrente), réunion Teams
-   créée par le flux quand la séance n'a pas de lieu — **fait côté application**, même liste et même
+   créée par le flux pour chaque séance — **fait côté application**, même liste et même
    flux que l'étape 2 (`Kind = members`). Les rappels planifiés côté serveur n'ont **pas** été faits :
    les rappels J-7/J-1 et de planification restent calculés dans l'application (ils partent quand
    une personne concernée l'ouvre), ce qui marche dans les deux modes et a été jugé suffisant.
@@ -271,6 +273,8 @@ invitations ne sont pas produites (pas de flux).
 2. **Lecture des brouillons par les membres** : c'est une règle d'affichage ; vérifier que les
    droits de la liste des projets dans SharePoint permettent bien aux membres de lire ces
    éléments.
-3. **Lien Teams partagé** entre l'invitation des membres et celle du chef de projet : à tester.
+3. ~~Lien Teams partagé~~ — tranché : le flux crée la réunion Teams avec l'invitation des membres et
+   l'application reprend son lien dans les invitations des chefs de projet. Reste à vérifier que
+   Graph accepte de créer une réunion Teams dans le calendrier de la boîte partagée.
 4. ~~Rappels avant l'étape 3~~ — tranché : en attendant le flux planifié, ils partent quand un
    utilisateur concerné ouvre l'application, comme les relances existantes.

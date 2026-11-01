@@ -625,9 +625,10 @@ in the synthesis committee block, `CommitteeAgendaScreen` = screen `committee-ag
   flow's result on the agenda and in the synthesis panel.
 - **Members' invitation (step 3)**: same list and flow, `Kind = members`, id `<session>::members`,
   committee members as attendees, the agenda **link** but never the agenda itself — so bookings
-  never re-send it. With no `location`, the flow creates a Teams meeting and writes
-  `OnlineMeetingUrl`; `getEffectiveSessionLocation` makes every passage invitation and the UI use
-  it. A **reconciliation pass** in `App.jsx` (after load, and again whenever the committees'
+  never re-send it. Chairs enter **no location or Teams link** (the planner doesn't offer it): the
+  flow creates the Teams meeting with the members' invitation and writes `OnlineMeetingUrl`;
+  `getEffectiveSessionLocation` makes every passage invitation and the UI use it (a `location`
+  stored on an older session still wins). A **reconciliation pass** in `App.jsx` (after load, and again whenever the committees'
   members/names change) recomputes every upcoming session's invitations and enqueues only what
   `selectInvitationsToSync` finds different from the records in memory — that is how a new member,
   a renamed project or a flow-created Teams link reach Outlook without any session action.
