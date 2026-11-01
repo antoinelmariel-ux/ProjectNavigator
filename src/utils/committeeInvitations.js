@@ -16,6 +16,7 @@ import {
   isSessionPast,
   normalizeSession
 } from './committeeSessions.js';
+import { splitTextWithLinks } from './textLinks.js';
 
 export const INVITATION_STATUS_ACTIVE = 'active';
 export const INVITATION_STATUS_CANCELLED = 'cancelled';
@@ -54,6 +55,12 @@ const escapeHtml = (value) => String(value ?? '')
   .replace(/</g, '&lt;')
   .replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;');
+
+const linkifyEscaped = (value) => splitTextWithLinks(value)
+  .map((segment) => (segment.type === 'link'
+    ? `<a href="${escapeHtml(segment.value)}">${escapeHtml(segment.value)}</a>`
+    : escapeHtml(segment.value)))
+  .join('');
 
 const isHttpUrl = (value) => /^https?:\/\//i.test(String(value || '').trim());
 
@@ -133,7 +140,7 @@ export const buildTopicInvitation = ({ session, passage, committee, location: ef
     '<p>Please keep the whole session free: the running order may change until the last moment, and the chair will call you in.</p>'
   ];
   if (passage.note) {
-    lines.push(`<p>${escapeHtml(passage.note)}</p>`);
+    lines.push(`<p>${linkifyEscaped(passage.note)}</p>`);
   }
   if (isHttpUrl(location)) {
     lines.push(`<p><a href="${escapeHtml(location)}">Join the meeting</a></p>`);
