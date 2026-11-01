@@ -184,6 +184,12 @@ export const CommitteeSessionsPlanner = ({
         </div>
       </div>
 
+      {!canManage && (
+        <p className="rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs text-gray-700" data-testid={`${idPrefix}-readonly`}>
+          {t('committeeSessions.planner.readOnlyHint')}
+        </p>
+      )}
+
       {canManage && (
         <details className="rounded-lg border border-blue-200 bg-white p-3" open={committeeSessions.length === 0}>
           <summary className="cursor-pointer text-sm font-semibold text-gray-800">{t('committeeSessions.planner.generateTitle')}</summary>

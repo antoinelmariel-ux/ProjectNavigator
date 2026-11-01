@@ -8447,7 +8447,7 @@ export const BackOffice = ({
                           <CommitteeSessionsPlanner
                             committee={committee}
                             sessions={committeeSessions}
-                            canManage={isCurrentUserAdmin || isCommitteeChair(committee, currentUserEmail)}
+                            canManage={isCurrentUserAdmin || !allowedTabIds || isCommitteeChair(committee, currentUserEmail)}
                             unbookedCount={committeeDemandById[committee.id]?.unbooked || 0}
                             freeMinutes={committeeDemandById[committee.id]?.freeMinutes || 0}
                             onUpdateCommittee={(patch) => updateCommitteeEntry(committee.id, (prev) => ({ ...prev, ...patch }))}

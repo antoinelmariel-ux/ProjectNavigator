@@ -1122,6 +1122,14 @@ export const App = () => {
     ));
   }, [currentUserEmail, teams, validationCommitteeConfig]);
 
+  // Droits pleins sur le back-office, au sens où BackOffice.jsx les entend (pas de vue restreinte,
+  // `allowedTabIds` nul) : un administrateur désigné, ou — hors SharePoint seulement — une
+  // personne entrée par le mot de passe partagé sans être contact d'équipe ni membre de comité.
+  // Le calendrier des comités s'aligne dessus : sinon le back-office affichait l'onglet du comité
+  // sans permettre de planifier une séance ni de désigner un président.
+  const hasFullBackOfficeRights = isCurrentUserAdmin
+    || (isSharedPasswordEntryAvailable && isBackOfficeUnlocked && !hasScopedBackOfficeAccess);
+
   // Profil personnel (périmètre d'activité + langue préférée), chargé une fois depuis
   // SharePoint (ou le mock en dev). `userProfileLoadFailed` évite de bloquer toute l'app
   // derrière l'onboarding si le profil est simplement injoignable (coupure réseau).
@@ -1569,7 +1577,7 @@ export const App = () => {
     setSessions: setCommitteeSessions,
     committeesById,
     currentUserEmail,
-    isAdmin: isCurrentUserAdmin,
+    isAdmin: hasFullBackOfficeRights,
     onEvent: isSimulatedSession ? null : handleCommitteeSessionEvent,
     onSessionChanged: isSimulatedSession ? null : handleCommitteeSessionChanged
   });
@@ -9493,7 +9501,7 @@ const updateProjectFilters = useCallback((updater) => {
           (() => {
             const agendaSession = committeeSessions.find((session) => session.id === committeeAgendaSessionId) || null;
             const agendaCommittee = agendaSession ? committeesById[agendaSession.committeeId] || null : null;
-            const isAgendaChair = isCurrentUserAdmin || isCommitteeChair(agendaCommittee, currentUserEmail);
+            const isAgendaChair = hasFullBackOfficeRights || isCommitteeChair(agendaCommittee, currentUserEmail);
             const isAgendaMember = (agendaCommittee?.emails || []).map(normalizeEmail).includes(currentUserEmail);
             return (
               <CommitteeAgendaScreen

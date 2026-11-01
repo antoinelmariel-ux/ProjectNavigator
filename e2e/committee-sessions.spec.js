@@ -76,6 +76,17 @@ test.describe('Calendrier des comités', () => {
       .toEqual(['published']);
   });
 
+  test('un simple membre du comité voit pourquoi il ne peut pas planifier', async ({ page }) => {
+    await seedCommittee(page, { president: 'president@lfb.fr', members: ['president@lfb.fr', MOCK_USER] });
+    await gotoHome(page);
+    await page.getByRole('button', { name: /Accéder au Back-office/ }).click();
+    await page.getByRole('tab', { name: /Comités de validation/ }).click();
+
+    const planner = page.getByTestId(`committee-planner-${COMMITTEE_ID}`);
+    await expect(planner.getByTestId(`committee-planner-${COMMITTEE_ID}-readonly`)).toContainText('Seuls un administrateur');
+    await expect(planner.getByText('Planifier des séances')).toHaveCount(0);
+  });
+
   test('le chef de projet ne voit que les séances ouvertes, s’inscrit et demande plus de temps', async ({ page }) => {
     test.slow();
     await seedCommittee(page, {

@@ -140,6 +140,7 @@ export default {
     }
   },
   planner: {
+    readOnlyHint: 'Seuls un administrateur, le président ou le co-président du comité peuvent planifier les séances et désigner la présidence.',
     title: 'Calendrier des séances',
     hint: 'Le président et le co-président préparent les séances : une séance générée reste en brouillon tant qu’elle n’est pas publiée.',
     demand: '{{unbooked}} projet(s) déclenchant ce comité sans passage prévu · {{minutes}} min libres sur les séances publiées',
