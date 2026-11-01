@@ -171,6 +171,7 @@ export default {
     chairMustBeMember: 'The chair and vice-chair must be members of the committee.'
   },
   planner: {
+    readOnlyHint: 'Only an administrator, the committee chair or vice-chair can plan sessions and appoint the chair.',
     title: 'Session calendar',
     hint: 'The chair and vice-chair prepare the sessions: a generated session stays a draft until it is published.',
     demand: '{{unbooked}} project(s) triggering this committee with no planned presentation · {{minutes}} min free in published sessions',

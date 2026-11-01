@@ -574,7 +574,11 @@ in the synthesis committee block, `CommitteeAgendaScreen` = screen `committee-ag
   sum of their minutes (plus a pending time request's `heldMinutes`) is what "full" means. Owners
   book a session, never a time — their slot is indicative and they block the whole session.
   Owners only see published sessions ≥ J-3 with ≥ the committee's default passage length left;
-  chairs (`presidentEmail`/`vicePresidentEmail` on the committee, or any admin) bypass both. A
+  chairs (`presidentEmail`/`vicePresidentEmail` on the committee, or anyone with full back-office
+  rights — `hasFullBackOfficeRights` in `App.jsx`, `!allowedTabIds` in `BackOffice.jsx`: an admin,
+  or outside SharePoint someone unlocked by the shared password without a scoped role) bypass both
+  and are the only ones who plan sessions; a plain member gets a read-only planner with a sentence
+  saying who can. A
   chair action that overruns is refused with `error: 'overrun'` until re-sent with
   `allowOverrun: true`, which extends the session.
 - **The whole agenda lives on the session row** (`CN_CommitteeSessions.AgendaJson`). In SharePoint
