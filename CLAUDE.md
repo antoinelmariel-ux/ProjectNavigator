@@ -566,7 +566,7 @@ render, with no error anywhere. Keep derived memos below the state they read.
 Spec: `docs/specs/calendrier-comites.md` (step 1 — the app — is done; Outlook invitations by
 Power Automate, steps 2–3, are not). Pure logic in `src/utils/committeeSessions.js`
 (`test/committeeSessions.test.mjs`), writes in `src/hooks/useCommitteeSessionActions.js`, UI in
-`src/components/committee/` (planner in the back-office committee card, `CommitteeSessionPanel`
+`src/components/committee/` (month calendar + session generator + chair settings in the back-office « Comités de validation » tab (`CommitteeCalendar`, `CommitteeSessionsGenerator`, `CommitteeChairSettings`; the committee configuration sits in a section collapsed by default under them), `CommitteeSessionPanel`
 in the synthesis committee block, `CommitteeAgendaScreen` = screen `committee-agenda`, link
 `?committeeSession=<id>`). Strings in `src/i18n/dictionaries/committeeSessions/*.js`.
 

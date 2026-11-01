@@ -780,8 +780,16 @@
   grid-template-columns: repeat(1, minmax(0, 1fr));
 }
 
+.grid-cols-7 {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
 .h-1 {
   height: 0.25rem;
+}
+
+.h-1\.5 {
+  height: 0.375rem;
 }
 
 .h-10 {
@@ -798,6 +806,10 @@
 
 .h-2 {
   height: 0.5rem;
+}
+
+.h-2\.5 {
+  height: 0.625rem;
 }
 
 .h-3 {
@@ -840,6 +852,10 @@
   height: 100%;
 }
 
+.inline-block {
+  display: inline-block;
+}
+
 .inline-flex {
   display: inline-flex;
 }
@@ -879,6 +895,10 @@
 
 .items-start {
   align-items: flex-start;
+}
+
+.items-stretch {
+  align-items: stretch;
 }
 
 .justify-between {
@@ -1003,6 +1023,10 @@
 
 .max-w-none {
   max-width: none;
+}
+
+.max-w-sm {
+  max-width: 24rem;
 }
 
 .max-w-xl {
@@ -1213,6 +1237,10 @@
   padding: 0.25rem;
 }
 
+.p-1\.5 {
+  padding: 0.375rem;
+}
+
 .p-2 {
   padding: 0.5rem;
 }
@@ -1235,6 +1263,10 @@
 
 .p-8 {
   padding: 2rem;
+}
+
+.pb-1 {
+  padding-bottom: 0.25rem;
 }
 
 .pb-2 {
@@ -2082,6 +2114,10 @@
 
 .w-2 {
   width: 0.5rem;
+}
+
+.w-2\.5 {
+  width: 0.625rem;
 }
 
 .w-20 {
@@ -2941,6 +2977,10 @@
 .hover\:from-pink-600:hover {
   --tw-gradient-from: rgb(219,39,119);
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(255, 255, 255, 0));
+}
+
+.hover\:opacity-90:hover {
+  opacity: 0.9;
 }
 
 .hover\:shadow-lg:hover {

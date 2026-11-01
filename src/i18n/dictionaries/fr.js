@@ -1622,7 +1622,7 @@ export default {
       noDetailProvided: 'Aucun détail renseigné',
       noRiskDocumented: 'Aucun risque documenté.',
       validationCommitteeTitle: 'Comité de validation',
-      validationCommitteeSubtitle: 'Définissez plusieurs comités avec leurs contacts et leurs règles de déclenchement.',
+      validationCommitteeSubtitle: 'Planifiez les séances et consultez leur ordre du jour. La configuration des comités (membres, présidence, règles de déclenchement) se trouve plus bas.',
       launchRemindersTitle: 'E-mails au porteur avant la date de lancement',
       launchRemindersHint: 'Quand la date de lancement déclarée approche et qu’aucune confirmation finale n’a été demandée, le porteur du projet (et ses co-porteurs en copie) reçoit un e-mail. 0 désactive l’e-mail correspondant.',
       launchReminderFirstLabel: '1er e-mail (jours avant la date de lancement)',

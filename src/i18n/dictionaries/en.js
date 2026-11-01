@@ -1614,7 +1614,7 @@ export default {
       noDetailProvided: 'No detail provided',
       noRiskDocumented: 'No risk documented.',
       validationCommitteeTitle: 'Validation committee',
-      validationCommitteeSubtitle: 'Define several committees with their contacts and trigger rules.',
+      validationCommitteeSubtitle: 'Plan sessions and review their agenda. Committee settings (members, chair, trigger rules) are further down.',
       launchRemindersTitle: 'Emails to the owner before the launch date',
       launchRemindersHint: 'When the declared launch date approaches and no final confirmation has been requested, the project owner (co-owners in copy) gets an email. 0 disables that email.',
       launchReminderFirstLabel: '1st email (days before the launch date)',

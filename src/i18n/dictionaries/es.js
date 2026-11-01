@@ -1615,7 +1615,7 @@ export default {
       noDetailProvided: 'Ningún detalle indicado',
       noRiskDocumented: 'Ningún riesgo documentado.',
       validationCommitteeTitle: 'Comité de validación',
-      validationCommitteeSubtitle: 'Defina varios comités con sus contactos y reglas de activación.',
+      validationCommitteeSubtitle: 'Planifique las sesiones y consulte su orden del día. La configuración de los comités (miembros, presidencia, reglas de activación) está más abajo.',
       launchRemindersTitle: 'Correos al responsable del proyecto antes del lanzamiento',
       launchRemindersHint: 'Cuando se acerca la fecha de lanzamiento declarada y no se ha solicitado la confirmación final, el responsable del proyecto (y los corresponsables en copia) recibe un correo. 0 desactiva el correo correspondiente.',
       launchReminderFirstLabel: '1.er correo (días antes de la fecha de lanzamiento)',

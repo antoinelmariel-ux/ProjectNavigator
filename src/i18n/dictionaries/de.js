@@ -1624,7 +1624,7 @@ export default {
       noDetailProvided: 'Keine Angabe',
       noRiskDocumented: 'Kein Risiko dokumentiert.',
       validationCommitteeTitle: 'Validierungsausschuss',
-      validationCommitteeSubtitle: 'Definieren Sie mehrere Ausschüsse mit ihren Kontakten und Auslöseregeln.',
+      validationCommitteeSubtitle: 'Planen Sie Sitzungen und sehen Sie ihre Tagesordnung ein. Die Einstellungen der Ausschüsse (Mitglieder, Vorsitz, Auslöseregeln) finden Sie weiter unten.',
       launchRemindersTitle: 'E-Mails an den Projektverantwortlichen vor dem Startdatum',
       launchRemindersHint: 'Wenn das angegebene Startdatum näher rückt und keine endgültige Bestätigung angefragt wurde, erhält der Projektverantwortliche (Mitverantwortliche in Kopie) eine E-Mail. 0 deaktiviert die jeweilige E-Mail.',
       launchReminderFirstLabel: '1. E-Mail (Tage vor dem Startdatum)',
