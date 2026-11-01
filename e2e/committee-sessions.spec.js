@@ -23,7 +23,11 @@ const seedCommittee = (page, { president, members, sessions = [] }) => patchStat
   page,
   (stored, seed) => {
     const state = stored || {};
-    if (!state.__committeeSeeded) {
+    // Le marqueur ne survit pas à l'enregistrement de l'application : c'est la présence du comité
+    // qui dit si l'on a déjà semé, sinon un rechargement effacerait ce que le test vient de régler.
+    const alreadySeeded = Array.isArray(state.validationCommitteeConfig?.committees)
+      && state.validationCommitteeConfig.committees.some((committee) => committee?.id === seed.committeeId);
+    if (!alreadySeeded) {
       state.validationCommitteeConfig = {
         enabled: true,
         committees: [{
@@ -36,7 +40,6 @@ const seedCommittee = (page, { president, members, sessions = [] }) => patchStat
         }]
       };
       state.committeeSessions = seed.sessions;
-      state.__committeeSeeded = true;
     }
     return state;
   },
@@ -85,6 +88,54 @@ test.describe('Calendrier des comités', () => {
     await expect
       .poll(async () => (await readStoredState(page)).committeeSessions?.map((session) => session.status))
       .toEqual(['published']);
+  });
+
+  test('un administrateur désigne le président et le co-président, et cela persiste', async ({ page }) => {
+    test.slow();
+    await seedCommittee(page, { president: '', members: [MOCK_USER, 'membre@lfb.fr', 'autre.membre@lfb.fr'] });
+    await gotoHome(page);
+    await grantAdminAccess(page);
+
+    await page.getByRole('tab', { name: /Comités de validation/ }).click();
+    await page.getByRole('button', { name: /Configuration des comités/ }).click();
+
+    const chairs = page.getByTestId(`committee-chairs-${COMMITTEE_ID}`);
+    const president = chairs.getByLabel('Président(e)', { exact: true });
+    const vicePresident = chairs.getByLabel('Co-président(e)', { exact: true });
+    await expect(president).toBeEnabled();
+    await expect(president).toHaveValue('');
+    await president.selectOption('membre@lfb.fr');
+    await vicePresident.selectOption('autre.membre@lfb.fr');
+    await expect(president).toHaveValue('membre@lfb.fr');
+    await expect(vicePresident).toHaveValue('autre.membre@lfb.fr');
+
+    await expect
+      .poll(async () => {
+        const committee = (await readStoredState(page)).validationCommitteeConfig?.committees?.find((entry) => entry.id === COMMITTEE_ID);
+        return [committee?.presidentEmail, committee?.vicePresidentEmail];
+      })
+      .toEqual(['membre@lfb.fr', 'autre.membre@lfb.fr']);
+
+    // Après rechargement, la présidence est toujours là.
+    await page.reload();
+    await page.getByRole('button', { name: /Accéder au Back-office/ }).click();
+    await page.getByRole('tab', { name: /Comités de validation/ }).click();
+    await page.getByRole('button', { name: /Configuration des comités/ }).click();
+    await expect(page.getByTestId(`committee-chairs-${COMMITTEE_ID}`).getByLabel('Président(e)', { exact: true })).toHaveValue('membre@lfb.fr');
+    await expect(page.getByTestId(`committee-chairs-${COMMITTEE_ID}`).getByLabel('Co-président(e)', { exact: true })).toHaveValue('autre.membre@lfb.fr');
+  });
+
+  test('un simple membre du comité voit la présidence sans pouvoir la changer, et sait pourquoi', async ({ page }) => {
+    await seedCommittee(page, { president: 'president@lfb.fr', members: ['president@lfb.fr', MOCK_USER] });
+    await gotoHome(page);
+    await page.getByRole('button', { name: /Accéder au Back-office/ }).click();
+    await page.getByRole('tab', { name: /Comités de validation/ }).click();
+    await page.getByRole('button', { name: /Configuration des comités/ }).click();
+
+    const chairs = page.getByTestId(`committee-chairs-${COMMITTEE_ID}`);
+    await expect(chairs.getByTestId(`committee-chairs-${COMMITTEE_ID}-readonly`)).toContainText('Seuls un administrateur');
+    await expect(chairs.getByLabel('Président(e)', { exact: true })).toBeDisabled();
+    await expect(page.getByTestId('committee-generator')).toHaveCount(0);
   });
 
   test('le président planifie une séance en cliquant sur une case vide du calendrier', async ({ page }) => {

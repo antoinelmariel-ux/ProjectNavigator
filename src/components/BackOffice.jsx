@@ -1129,6 +1129,14 @@ export const BackOffice = ({
     return ids;
   }, [hasComplianceTeamScopedAccess, hasScopedBackOfficeAccess, hasValidationCommitteeScopedAccess, isCurrentUserAdmin]);
 
+  // Planifier les séances d'un comité et en désigner la présidence : la présidence elle-même, ou
+  // quiconque a les droits pleins sur le back-office (`allowedTabIds` nul : administrateur, ou hors
+  // SharePoint personne entrée par le mot de passe partagé sans rôle restreint). Sans ce second
+  // cas, cette personne voyait l'onglet du comité sans pouvoir créer de séance ni nommer de
+  // président — et un comité sans président ne pouvait plus en avoir.
+  const canManageCommitteeSessions = (committee) =>
+    isCurrentUserAdmin || !allowedTabIds || isCommitteeChair(committee, currentUserEmail);
+
   // Consultation par vagues : un périmètre que le porteur n'a pas encore sollicité ne doit pas
   // découvrir le projet par le tableau de bord. Les administrateurs, eux, voient ce qui attend.
   const deferredPerimetersByProject = useMemo(() => (Array.isArray(projects) ? projects : [])
@@ -7616,7 +7624,7 @@ export const BackOffice = ({
                     committees={visibleCommittees}
                     sessions={committeeSessions}
                     projects={projects}
-                    canManageCommittee={(committee) => Boolean(committee) && (isCurrentUserAdmin || isCommitteeChair(committee, currentUserEmail))}
+                    canManageCommittee={(committee) => Boolean(committee) && canManageCommitteeSessions(committee)}
                     unbookedByCommittee={Object.fromEntries(Object.entries(committeeDemandById || {}).map(([id, demand]) => [id, demand?.unbooked || 0]))}
                     onRunAction={onCommitteeSessionAction}
                     onDeleteDraft={onDeleteCommitteeDraftSession}
@@ -7625,7 +7633,7 @@ export const BackOffice = ({
                     focusSession={focusedCommitteeSession}
                   />
                   <CommitteeSessionsGenerator
-                    committees={visibleCommittees.filter((committee) => isCurrentUserAdmin || isCommitteeChair(committee, currentUserEmail))}
+                    committees={visibleCommittees.filter((committee) => canManageCommitteeSessions(committee))}
                     sessions={committeeSessions}
                     defaultOpen={committeeSessions.length === 0}
                     onCreateSessions={onCreateCommitteeSessions}
@@ -8489,7 +8497,7 @@ export const BackOffice = ({
 
                         <CommitteeChairSettings
                           committee={committee}
-                          canManage={isCurrentUserAdmin || isCommitteeChair(committee, currentUserEmail)}
+                          canManage={canManageCommitteeSessions(committee)}
                           onUpdateCommittee={(patch) => updateCommitteeEntry(committee.id, (prev) => ({ ...prev, ...patch }))}
                         />
                       </article>

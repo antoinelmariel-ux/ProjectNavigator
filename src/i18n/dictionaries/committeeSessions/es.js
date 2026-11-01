@@ -171,6 +171,7 @@ export default {
     chairMustBeMember: 'El presidente y el copresidente deben ser miembros del comité.'
   },
   planner: {
+    readOnlyHint: 'Solo un administrador, el presidente o el copresidente del comité pueden planificar las sesiones y designar la presidencia.',
     title: 'Calendario de sesiones',
     hint: 'El presidente y el copresidente preparan las sesiones: una sesión generada sigue en borrador hasta que se publica.',
     demand: '{{unbooked}} proyecto(s) que activan este comité sin presentación prevista · {{minutes}} min libres en las sesiones publicadas',

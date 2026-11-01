@@ -171,6 +171,7 @@ export default {
     chairMustBeMember: 'Vorsitz und stellvertretender Vorsitz müssen Mitglieder des Ausschusses sein.'
   },
   planner: {
+    readOnlyHint: 'Nur ein Administrator, der Vorsitz oder der stellvertretende Vorsitz des Ausschusses können Sitzungen planen und den Vorsitz bestimmen.',
     title: 'Sitzungskalender',
     hint: 'Vorsitz und stellvertretender Vorsitz bereiten die Sitzungen vor: Eine erzeugte Sitzung bleibt Entwurf, bis sie veröffentlicht wird.',
     demand: '{{unbooked}} Projekt(e), die diesen Ausschuss auslösen, ohne geplante Präsentation · {{minutes}} Min. frei in veröffentlichten Sitzungen',

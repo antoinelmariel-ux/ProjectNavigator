@@ -49,7 +49,12 @@ export const CommitteeChairSettings = ({ committee, canManage = false, onUpdateC
 
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-3" data-testid={`committee-chairs-${committee.id}`}>
-      {renderChair('presidentEmail', 'committeeSessions.planner.president')}
+      {!canManage && (
+        <p className="lg:col-span-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-gray-700" data-testid={`committee-chairs-${committee.id}-readonly`}>
+          {t('committeeSessions.planner.readOnlyHint')}
+        </p>
+      )}
+            {renderChair('presidentEmail', 'committeeSessions.planner.president')}
       {renderChair('vicePresidentEmail', 'committeeSessions.planner.vicePresident')}
       <div>
         <label htmlFor={`${idPrefix}-default-minutes`} className="block text-sm font-medium text-gray-700">
