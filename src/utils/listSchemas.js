@@ -209,6 +209,71 @@ export const LIST_SCHEMAS = {
     numbers: ['SortOrder', 'RowVersion'],
     booleans: ['IsPublished']
   },
+  // Une ligne par séance de comité (committeeSessions.js). L'ordre du jour entier voyage dans
+  // `AgendaJson` sur la ligne de la séance : c'est ce qui permet de départager deux inscriptions
+  // simultanées sur le temps restant de la séance (écriture verrouillée par etag, relue et
+  // rejouée en cas de conflit — voir committeeSessionsProvider.js).
+  committeeSessions: {
+    keyField: 'SessionId',
+    columns: [
+      'Title',
+      'SessionId',
+      'CommitteeId',
+      'StartAt',
+      'DurationMinutes',
+      'Location',
+      'Status',
+      'AgendaJson',
+      'AttendanceJson',
+      'PlanningReminderSentAt',
+      'OutlookEventId',
+      'RowVersion',
+      'CreatedByEmail',
+      'UpdatedByEmail',
+      'UpdatedAt'
+    ],
+    json: { AgendaJson: ARRAY, AttendanceJson: OBJECT },
+    numbers: ['DurationMinutes', 'RowVersion'],
+    booleans: []
+  },
+  // Une ligne par invitation Outlook d'un chef de projet à une séance de comité
+  // (committeeInvitations.js) : l'invitation telle qu'elle doit être. L'application écrit les
+  // colonnes de description et incrémente `Revision` ; le flux Power Automate n'écrit que
+  // `OutlookEventId`, `OnlineMeetingUrl`, `ProcessedRevision`, `SyncState`, `ErrorMessage` et
+  // `ProcessedAt`. `Kind` distingue l'invitation d'un passage de celle des membres. Les deux
+  // n'écrivent jamais la même colonne, et le flux ne se redéclenche pas sur sa propre écriture
+  // (condition de déclenchement Revision ≠ ProcessedRevision).
+  committeeInvitations: {
+    keyField: 'InvitationId',
+    columns: [
+      'Title',
+      'InvitationId',
+      'SessionId',
+      'PassageId',
+      'ProjectId',
+      'CommitteeId',
+      'Kind',
+      'Status',
+      'Subject',
+      'BodyHtml',
+      'StartAt',
+      'EndAt',
+      'Location',
+      'Attendees',
+      'Revision',
+      'ProcessedRevision',
+      'OutlookEventId',
+      'OnlineMeetingUrl',
+      'SyncState',
+      'ErrorMessage',
+      'ProcessedAt',
+      'UpdatedByEmail',
+      'UpdatedAt'
+    ],
+    json: {},
+    numbers: ['Revision', 'ProcessedRevision'],
+    booleans: []
+  },
   // Une ligne par règle : la structure (conditions imbriquées, questions par équipe, risques
   // i18n) est trop profonde pour un mapping colonne par colonne, donc l'objet entier voyage
   // dans PayloadJson — RuleId/Title n'existent que pour l'indexation et la lecture dans SharePoint.

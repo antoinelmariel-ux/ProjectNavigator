@@ -46,3 +46,45 @@ test('les deux vides : objet cohérent, sans planter', () => {
   assert.deepEqual(mergeComplianceComments(undefined, undefined), {});
   assert.deepEqual(mergeComplianceComments(null, {}), { teams: {}, committees: {} });
 });
+
+test('même avis : la date où il a été rendu et sa version survivent au rechargement depuis SharePoint', () => {
+  const local = {
+    teams: {
+      legal: {
+        status: 'validated',
+        comment: 'RAS',
+        statusUpdatedAt: '2026-03-02T10:00:00.000Z',
+        reviewedAt: '2026-03-02T10:00:00.000Z',
+        reviewedVersion: 2,
+        needsReviewSince: 3
+      }
+    }
+  };
+  // Ligne écrite avant que la date voyage dans ClaimJson : seule UpdatedAt, avancée par une réponse.
+  const server = { teams: { legal: { status: 'validated', comment: 'RAS', statusUpdatedAt: '2026-03-09T08:00:00.000Z' } } };
+
+  const merged = mergeComplianceComments(local, server).teams.legal;
+
+  assert.equal(merged.statusUpdatedAt, '2026-03-02T10:00:00.000Z');
+  assert.equal(merged.reviewedAt, '2026-03-02T10:00:00.000Z');
+  assert.equal(merged.reviewedVersion, 2);
+  assert.equal(merged.needsReviewSince, 3);
+});
+
+test('avis différent côté serveur : sa date fait foi, la version locale ne lui est pas prêtée', () => {
+  const local = {
+    committees: {
+      'committee-default': { status: 'pending_information', comment: 'À préciser', statusUpdatedAt: '2026-03-02T10:00:00.000Z', reviewedVersion: 1 }
+    }
+  };
+  const server = {
+    committees: {
+      'committee-default': { status: 'validated', comment: 'OK en séance', statusUpdatedAt: '2026-03-12T15:00:00.000Z' }
+    }
+  };
+
+  const merged = mergeComplianceComments(local, server).committees['committee-default'];
+
+  assert.equal(merged.statusUpdatedAt, '2026-03-12T15:00:00.000Z');
+  assert.equal(merged.reviewedVersion, undefined);
+});

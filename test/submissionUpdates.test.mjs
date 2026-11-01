@@ -200,3 +200,65 @@ test('un avis est daté quand il est posé ou repris, pas quand on répond dans 
   // Un périmètre que personne n'a touché garde sa version.
   assert.equal(replied.teams.legal.reviewedVersion, 1);
 });
+
+test('la date d’un avis est celle où il a été rendu, même quand l’éditeur réécrit l’entrée sans ses métadonnées', async () => {
+  const { isPerimeterReviewPending, stampReviewedVersions } = await import('../src/utils/perimeterReview.js');
+
+  const renderedAt = '2026-03-02T10:00:00.000Z';
+  const previous = {
+    teams: {
+      quality: {
+        status: 'validated',
+        comment: 'RAS',
+        statusUpdatedAt: renderedAt,
+        reviewedAt: renderedAt,
+        reviewedVersion: 1,
+        needsReviewSince: 2,
+        confirmation: { round: 1, state: 'confirmed', by: 'x@lfb.fr', at: renderedAt }
+      }
+    },
+    committees: {
+      'committee-default': { status: 'validated', comment: 'OK', statusUpdatedAt: renderedAt, reviewedAt: renderedAt, reviewedVersion: 1 }
+    }
+  };
+
+  // Ce que reconstruit l'éditeur de la synthèse : statut, commentaire, réponses, date du jour.
+  const rewritten = (entry, extra = {}) => ({
+    comment: entry.comment,
+    status: entry.status,
+    statusUpdatedAt: '2026-03-20T09:00:00.000Z',
+    replies: [],
+    attachments: [],
+    ...extra
+  });
+
+  const unchanged = stampReviewedVersions(
+    {
+      teams: { quality: rewritten(previous.teams.quality, { replies: [{ message: 'merci' }] }) },
+      committees: { 'committee-default': rewritten(previous.committees['committee-default']) }
+    },
+    previous,
+    2,
+    '2026-03-20T09:00:00.000Z'
+  );
+
+  assert.equal(unchanged.teams.quality.statusUpdatedAt, renderedAt);
+  assert.equal(unchanged.teams.quality.reviewedAt, renderedAt);
+  assert.equal(unchanged.teams.quality.reviewedVersion, 1);
+  assert.equal(unchanged.teams.quality.needsReviewSince, 2);
+  assert.deepEqual(unchanged.teams.quality.confirmation, previous.teams.quality.confirmation);
+  assert.equal(isPerimeterReviewPending(unchanged.teams.quality), true);
+  assert.equal(unchanged.committees['committee-default'].statusUpdatedAt, renderedAt);
+
+  const reissued = stampReviewedVersions(
+    { teams: { quality: rewritten({ ...previous.teams.quality, comment: 'Revu' }) }, committees: previous.committees },
+    previous,
+    2,
+    '2026-03-21T11:00:00.000Z'
+  );
+
+  assert.equal(reissued.teams.quality.statusUpdatedAt, '2026-03-21T11:00:00.000Z');
+  assert.equal(reissued.teams.quality.reviewedAt, '2026-03-21T11:00:00.000Z');
+  assert.equal(reissued.teams.quality.reviewedVersion, 2);
+  assert.equal(isPerimeterReviewPending(reissued.teams.quality), false);
+});

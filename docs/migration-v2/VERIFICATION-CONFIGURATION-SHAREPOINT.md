@@ -1,7 +1,7 @@
 # Vérification de la configuration SharePoint
 
 Ce document sert à **vérifier que le site SharePoint est correctement configuré** (les 3
-bibliothèques et les 12 listes attendues par l'application, avec toutes leurs colonnes), et à
+bibliothèques et les 15 listes attendues par l'application, avec toutes leurs colonnes), et à
 **créer automatiquement ce qui manque**, sans avoir à cliquer liste par liste, colonne par colonne.
 
 La configuration de référence ci-dessous est extraite de
@@ -81,7 +81,7 @@ colonnes utilisées par le code — c'est la source de vérité. Le document jum
 | `CN-Config` | Fichiers de paramètres JSON (remplie par l'app) |
 | `CN-Documents` | Pièces jointes ajoutées par les utilisateurs |
 
-### 12 listes
+### 15 listes
 
 `Title` existe par défaut sur toute liste et n'est jamais recréée. 📌 = colonne indexée par le
 script (nécessaire au-delà de 5 000 éléments).
@@ -101,6 +101,8 @@ script (nécessaire au-delà de 5 000 éléments).
 | `CN_Teams` | TeamId📌, ContactsJson (texte long), NameJson (texte long), Expertise (texte long), AcceptedLanguagesJson (texte long), MemberRulesJson (texte long), ClaimStaleDays (nombre), ClaimReminderDays (nombre), SortOrder (nombre), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
 | `CN_SampleProjects` | SampleId📌, AnswersJson (texte long), SortOrder (nombre), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
 | `CN_Faq` | FaqId📌, QuestionJson (texte long), AnswerJson (texte long), CategoryJson (texte long), IsPublished (oui/non, défaut oui), SortOrder (nombre), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
+| `CN_CommitteeSessions` | SessionId📌, CommitteeId📌, StartAt, DurationMinutes (nombre), Location (texte long), Status, AgendaJson (texte long), AttendanceJson (texte long), PlanningReminderSentAt, OutlookEventId, RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
+| `CN_CommitteeInvitations` | InvitationId📌, SessionId, PassageId, ProjectId, CommitteeId, Kind, Status, Subject, BodyHtml (texte long, texte brut), StartAt, EndAt, Location (texte long), Attendees (texte long), Revision (nombre), ProcessedRevision (nombre), OutlookEventId, OnlineMeetingUrl (texte long), SyncState, ErrorMessage (texte long), ProcessedAt, UpdatedByEmail, UpdatedAt (date) |
 
 (Les colonnes en **gras** sont celles corrigées le 29/08/2026, voir l'encart d'avertissement en
 haut de ce document. `AssigneeEmail`/`ClaimJson` sur `CN_ComplianceComments`,
@@ -403,6 +405,52 @@ existaient auparavant dans `CN-Config` — une ligne par règle/équipe plutôt 
         { name: 'SortOrder', type: 'Number' },
         { name: 'RowVersion', type: 'Number' },
         { name: 'CreatedByEmail', type: 'Text' },
+        { name: 'UpdatedByEmail', type: 'Text' },
+        { name: 'UpdatedAt', type: 'DateTime' }
+      ]
+    },
+    {
+      title: 'CN_CommitteeSessions',
+      fields: [
+        { name: 'SessionId', type: 'Text', indexed: true },
+        { name: 'CommitteeId', type: 'Text', indexed: true },
+        { name: 'StartAt', type: 'Text' },
+        { name: 'DurationMinutes', type: 'Number' },
+        { name: 'Location', type: 'Note' },
+        { name: 'Status', type: 'Text' },
+        { name: 'AgendaJson', type: 'Note' },
+        { name: 'AttendanceJson', type: 'Note' },
+        { name: 'PlanningReminderSentAt', type: 'Text' },
+        { name: 'OutlookEventId', type: 'Text' },
+        { name: 'RowVersion', type: 'Number' },
+        { name: 'CreatedByEmail', type: 'Text' },
+        { name: 'UpdatedByEmail', type: 'Text' },
+        { name: 'UpdatedAt', type: 'DateTime' }
+      ]
+    },
+    {
+      title: 'CN_CommitteeInvitations',
+      fields: [
+        { name: 'InvitationId', type: 'Text', indexed: true },
+        { name: 'SessionId', type: 'Text' },
+        { name: 'PassageId', type: 'Text' },
+        { name: 'ProjectId', type: 'Text' },
+        { name: 'CommitteeId', type: 'Text' },
+        { name: 'Kind', type: 'Text' },
+        { name: 'Status', type: 'Text' },
+        { name: 'Subject', type: 'Text' },
+        { name: 'BodyHtml', type: 'Note' },
+        { name: 'StartAt', type: 'Text' },
+        { name: 'EndAt', type: 'Text' },
+        { name: 'Location', type: 'Note' },
+        { name: 'Attendees', type: 'Note' },
+        { name: 'Revision', type: 'Number' },
+        { name: 'ProcessedRevision', type: 'Number' },
+        { name: 'OutlookEventId', type: 'Text' },
+        { name: 'OnlineMeetingUrl', type: 'Note' },
+        { name: 'SyncState', type: 'Text' },
+        { name: 'ErrorMessage', type: 'Note' },
+        { name: 'ProcessedAt', type: 'Text' },
         { name: 'UpdatedByEmail', type: 'Text' },
         { name: 'UpdatedAt', type: 'DateTime' }
       ]

@@ -153,6 +153,13 @@ est volontairement une colonne à part, plate, pour rester lisible dans une vue 
 dont l'historique des reprises. Les deux colonnes vides = personne ne suit ce périmètre, ce qui
 est l'état d'avant cette fonctionnalité : aucune reprise de données n'est nécessaire.
 
+`ClaimJson` porte aussi, sous `review`, la **date de l'avis** de l'expert ou du comité
+(`{"review":{"statusUpdatedAt":"…","reviewedAt":"…","reviewedVersion":2,"needsReviewSince":2,"confirmation":{…}}}`).
+`UpdatedAt` ne convient pas pour cela : il est réécrit à chaque écriture de la ligne racine
+(réponse dans le fil, prise en charge, relance). Une ligne écrite avant ce champ retombe sur
+`UpdatedAt`, sans reprise de données ; dans un flux, lire la date de l'avis dans
+`ClaimJson.review.statusUpdatedAt` quand elle est présente.
+
 ### `CN_ProjectMembers` — qui est co-porteur de quel projet
 | Colonne | Type |
 |---|---|
@@ -377,6 +384,53 @@ traduit dans les 4 langues de l'application ; une langue manquante retombe sur l
 
 Aucun flux Power Automate n'est associé à cette liste.
 
+### `CN_CommitteeSessions` — le calendrier des comités (une ligne par séance)
+
+Les séances de chaque comité de validation, et l'ordre du jour de chacune (spécification :
+`docs/specs/calendrier-comites.md`). Le président et le co-président d'un comité (choisis dans
+l'onglet **Comités de validation** du back-office, puis publiés avec la configuration) planifient
+les séances ; les chefs de projet y inscrivent leur projet depuis « Enjeux du projet ».
+
+- **L'ordre du jour entier est dans `AgendaJson`**, sur la ligne de la séance : c'est ce qui
+  permet de départager deux inscriptions simultanées sur le temps qui reste réellement. Chaque
+  écriture relit la ligne et l'écrit sous contrôle de version ; si quelqu'un a écrit entre-temps,
+  l'application rejoue l'action sur la nouvelle version (et refuse l'inscription si la séance est
+  devenue pleine).
+- **Liste absente ou illisible** : l'application garde les séances locales, sans erreur bloquante.
+  Une liste vide est un calendrier vide.
+- **Droits** : lecture et écriture pour tous les membres du site (un chef de projet écrit sur la
+  ligne de la séance quand il s'inscrit). Les règles « seul le président peut… » sont appliquées
+  par l'application, comme toutes les autres règles d'accès.
+- `OutlookEventId` est réservée aux futurs flux d'invitations Outlook (étapes 2 et 3 de la
+  spécification) ; l'application ne l'écrit pas.
+
+| Colonne | Type |
+|---|---|
+| Title | (existante — « comité — date », dérivé automatiquement) |
+| SessionId 📌 | Une ligne de texte |
+| CommitteeId | Une ligne de texte (indexée) |
+| StartAt | Une ligne de texte (date ISO, ex. `2026-11-10T13:00:00.000Z`) |
+| DurationMinutes | Nombre |
+| Location | Texte long (lien Teams ou salle — un lien Teams dépasse souvent les 255 caractères d'une ligne de texte) |
+| Status | Une ligne de texte (`draft`, `published`, `cancelled`) |
+| AgendaJson | Texte long (passages ordonnés : projet ou sujet hors projet, durée, invités, demande de temps, présences propres au passage, rappels envoyés) |
+| AttendanceJson | Texte long (présences de la séance, ex. `{"prenom.nom@lfb.fr":"present"}`) |
+| PlanningReminderSentAt | Une ligne de texte |
+| OutlookEventId | Une ligne de texte |
+| RowVersion | Nombre |
+| CreatedByEmail | Une ligne de texte |
+| UpdatedByEmail | Une ligne de texte |
+| UpdatedAt | Date et heure |
+
+Les mails (inscription, demande de temps, actions du président, séance déplacée ou annulée,
+rappels J-7 et J-1, rappel de planification) passent par `CN_NotificationsQueue` et le flux de
+notifications existant : **aucun nouveau flux n'est nécessaire** pour ces mails. Les invitations
+Outlook des chefs de projet passent par la liste `CN_CommitteeInvitations` et leur propre flux
+(étape 5 quater) ; celles des membres restent pour l'instant gérées à la main.
+
+`ClaimJson` de `CN_ComplianceComments` porte aussi, sous `review`, la séance où l'avis d'un comité
+a été rendu (`sessionId`) et l'avis tel qu'il était à l'issue de chaque séance (`sessionOutcomes`).
+
 💡 **Astuce de vérification** : une fois les listes créées, l'application dispose d'un écran de
 diagnostic (voir étape 6) qui te dira précisément quelle liste ou quelle colonne manque. Inutile
 de tout relire à la main.
@@ -499,6 +553,192 @@ avec un 403, et toutes les demandes finissent en `Error`.
 
 Aucune colonne supplémentaire à créer : tout ce dont ce flux a besoin (`AssigneeEmail`,
 `ClaimJson`, `ClaimReminderDays`) existe déjà dans les listes de l'étape 4.
+
+---
+
+## Étape 5 quater — Power Automate : les invitations Outlook des comités (chefs de projet et membres)
+
+Étape 2 de la spécification du calendrier des comités (`docs/specs/calendrier-comites.md`).
+Quand un chef de projet (ou le président) inscrit un projet à une séance publiée, le chef de
+projet, ses co-porteurs et ses invités reçoivent une invitation Outlook **sur toute la durée de
+la séance**, envoyée par la boîte partagée des comités. Les intervenants d'un sujet hors projet
+ajouté par le président la reçoivent aussi (même flux, même liste : rien de plus à configurer). Elle est mise à jour si la séance est
+déplacée ou prolongée ou si les invités changent, et annulée si le passage est retiré ou la séance
+annulée. Changer l'ordre de passage ou la durée d'un passage ne renvoie **rien** : l'invitation
+ne mentionne ni l'un ni l'autre.
+
+Étape 3 : le **même flux** envoie aussi l'invitation des **membres du comité** pour chaque séance
+publiée (`Kind = members`), avec le lien vers la page « Ordre du jour ». Elle remplace la série
+récurrente corrigée à la main : elle suit la séance (déplacée, prolongée, annulée, nouveau membre
+du comité) mais **n'est jamais modifiée quand un projet est inscrit ou retiré** — l'ordre du jour
+à jour est derrière le lien. Si la séance n'a pas de lieu, le flux crée la réunion Teams avec
+cette invitation, et l'application reprend son lien dans les invitations des chefs de projet.
+
+**Sans ce flux**, l'application fonctionne comme avant : les lignes s'accumulent dans
+`CN_CommitteeInvitations` avec l'état « en cours d'envoi », et les invitations restent à faire à
+la main.
+
+### Comment l'application et le flux se partagent le travail
+
+L'application n'envoie rien. Pour chaque passage, elle tient **une ligne** qui décrit l'invitation
+telle qu'elle doit être (destinataires, créneau, objet, texte, active ou annulée) et incrémente
+`Revision` à chaque changement réel. Le flux compare Outlook à cette ligne et la réconcilie :
+
+| État de la ligne | Ce que fait le flux |
+|---|---|
+| `Status = active`, `OutlookEventId` vide | Crée l'événement, note son identifiant dans `OutlookEventId` |
+| `Status = active`, `OutlookEventId` rempli | Met l'événement à jour (les participants reçoivent la mise à jour) |
+| `Status = cancelled`, `OutlookEventId` rempli | Annule l'événement (les participants reçoivent l'annulation) |
+| `Status = cancelled`, `OutlookEventId` vide | Rien à faire |
+
+Dans tous les cas, le flux termine en écrivant `ProcessedRevision = Revision` (la révision qu'il
+vient de traiter), `SyncState = done` et `ProcessedAt`. En cas d'échec : `SyncState = error` et
+`ErrorMessage`, que le président voit sur la page « Ordre du jour » (badge « Invitation Outlook en
+erreur »). Les deux côtés n'écrivent jamais la même colonne.
+
+### La liste `CN_CommitteeInvitations`
+
+**Droits** : lecture et écriture pour tous les membres du site (l'inscription est écrite depuis la
+session du chef de projet).
+
+| Colonne | Type | Écrite par |
+|---|---|---|
+| Title | (existante — objet de l'invitation) | application |
+| InvitationId 📌 | Une ligne de texte (`<séance>::<passage>`) | application |
+| SessionId | Une ligne de texte | application |
+| PassageId | Une ligne de texte | application |
+| ProjectId | Une ligne de texte | application |
+| CommitteeId | Une ligne de texte | application |
+| Kind | Une ligne de texte (`presentation` : chef de projet ou intervenants d'un sujet ; `members` : membres du comité) | application |
+| Status | Une ligne de texte (`active` / `cancelled`) | application |
+| Subject | Une ligne de texte | application |
+| BodyHtml | Texte long (**texte brut**, pas « texte enrichi » : le HTML doit arriver tel quel) | application |
+| StartAt | Une ligne de texte (date ISO en UTC, ex. `2026-11-10T13:00:00.000Z`) | application |
+| EndAt | Une ligne de texte (idem) | application |
+| Location | Texte long (lien Teams ou salle — un lien Teams dépasse souvent les 255 caractères d'une ligne de texte) | application |
+| Attendees | Texte long (adresses séparées par `;`) | application |
+| Revision | Nombre | application |
+| ProcessedRevision | Nombre | flux |
+| OutlookEventId | Une ligne de texte | flux |
+| OnlineMeetingUrl | Texte long (lien de la réunion Teams créée pour l'invitation des membres) | flux |
+| SyncState | Une ligne de texte (`pending` / `done` / `error`) | flux (l'application écrit `pending` à la création) |
+| ErrorMessage | Texte long | flux |
+| ProcessedAt | Une ligne de texte | flux |
+| UpdatedByEmail | Une ligne de texte | application |
+| UpdatedAt | Date et heure | application |
+
+### Le lien Teams
+
+Deux façons de faire, au choix du président, séance par séance :
+
+- **Il colle un lien** dans « Lieu ou lien Teams » (back-office, onglet Comités de validation) :
+  toutes les invitations de la séance — membres, chefs de projet, intervenants — portent ce lien.
+- **Il laisse le champ vide** : en créant l'invitation des membres, le flux crée aussi la réunion
+  Teams et note son lien dans `OnlineMeetingUrl`. L'application le reprend ensuite (page
+  « Ordre du jour », bloc du comité, invitations des chefs de projet). Les chefs de projet déjà
+  inscrits reçoivent alors **une** mise à jour de leur invitation avec le lien, au prochain
+  chargement de l'application par n'importe quel utilisateur.
+
+> ⚠️ **À vérifier avant de compter dessus** : je ne sais pas si Microsoft Graph accepte de créer une
+> réunion Teams dans le calendrier d'une **boîte partagée** (une boîte partagée n'a en général pas
+> de licence Teams). Si l'étape « créer » échoue sur ce point (badge « Invitation Outlook en
+> erreur », message dans `ErrorMessage`), restez sur la première façon : un lien collé par le
+> président.
+
+### Flux « CN – Invitations des comités »
+
+> ⚠️ **Ce que je n'ai pas pu vérifier** : les noms exacts des actions et la possibilité d'écrire
+> dans le calendrier d'une boîte partagée dépendent de votre tenant et de vos droits. Le parcours
+> ci-dessous passe par l'action « Envoyer une requête HTTP » du connecteur **Office 365 Outlook**
+> (requêtes Microsoft Graph sur le calendrier de la boîte partagée), qui permet les trois
+> opérations dont on a besoin, dont l'annulation. Faites d'abord le **test** décrit plus bas
+> avec une adresse de test avant de l'ouvrir à tous.
+
+**Prérequis** : une boîte partagée (ex. `comites@…`) ; le compte propriétaire du flux a un accès
+complet à cette boîte (droits « Accès total » et « Envoyer en tant que », donnés par un
+administrateur Exchange).
+
+1. **Déclencheur** : SharePoint → « Lorsqu'un élément est créé ou modifié », liste
+   `CN_CommitteeInvitations`.
+   - Paramètres du déclencheur → **Conditions de déclenchement** :
+     `@not(equals(triggerOutputs()?['body/Revision'], triggerOutputs()?['body/ProcessedRevision']))`
+     — sans elle, l'écriture de la réponse du flux le redéclencherait sans fin.
+   - Paramètres → **Contrôle de la concurrence** : activé, degré de parallélisme **1** (deux
+     modifications rapprochées d'une même invitation ne doivent pas être traitées en même temps).
+2. **Initialiser une variable** `revisionTraitee` (entier) = `Revision` du déclencheur. C'est cette
+   valeur qui sera écrite dans `ProcessedRevision`, pas celle relue plus tard : si l'application
+   a modifié l'invitation pendant que le flux tournait, le flux repartira tout seul.
+3. **Étendue « Traiter »** contenant :
+   - **Composer** `participants` :
+     `split(triggerOutputs()?['body/Attendees'], ';')`, puis une action **Sélectionner** sur ce
+     tableau qui produit pour chaque adresse
+     `{"emailAddress": {"address": item()}, "type": "required"}`.
+   - **Condition** `Status` est égal à `cancelled` :
+     - **Si oui** — si `OutlookEventId` n'est pas vide : « Envoyer une requête HTTP » (Office 365
+       Outlook), méthode **POST**, URI
+       `https://graph.microsoft.com/v1.0/users/comites@…/events/<OutlookEventId>/cancel`,
+       corps `{"comment": "This presentation slot has been cancelled. See Project Navigator for details."}`.
+     - **Si non** — Composer `evenement` :
+       ```json
+       {
+         "subject": "<Subject>",
+         "body": { "contentType": "HTML", "content": "<BodyHtml>" },
+         "start": { "dateTime": "<formatDateTime(StartAt, 'yyyy-MM-ddTHH:mm:ss')>", "timeZone": "UTC" },
+         "end": { "dateTime": "<formatDateTime(EndAt, 'yyyy-MM-ddTHH:mm:ss')>", "timeZone": "UTC" },
+         "location": { "displayName": "<Location>" },
+         "attendees": <sortie de Sélectionner>,
+         "allowNewTimeProposals": false
+       }
+       ```
+       puis **Condition** `OutlookEventId` est vide :
+       - **Si oui** : « Envoyer une requête HTTP », **POST**
+         `https://graph.microsoft.com/v1.0/users/comites@…/events`, corps = `evenement` — et,
+         **seulement si** `Kind` est `members` **et** `Location` est vide, le même corps complété
+         de `"isOnlineMeeting": true, "onlineMeetingProvider": "teamsForBusiness"` (deux branches
+         d'une condition, ou une expression `if(...)` sur le corps) ; puis SharePoint « Mettre à
+         jour l'élément » : `OutlookEventId` = `id` de la réponse, et `OnlineMeetingUrl` =
+         `onlineMeeting.joinUrl` de la réponse (vide si aucune réunion n'a été créée).
+       - **Si non** : « Envoyer une requête HTTP », **PATCH**
+         `https://graph.microsoft.com/v1.0/users/comites@…/events/<OutlookEventId>`, corps =
+         `evenement`.
+   - SharePoint « Mettre à jour l'élément » : `ProcessedRevision` = `revisionTraitee`,
+     `SyncState` = `done`, `ProcessedAt` = `utcNow()`, `ErrorMessage` vide.
+4. **Étendue « En cas d'erreur »**, configurée pour s'exécuter **après** « Traiter » si elle a
+   **échoué** ou **expiré** : SharePoint « Mettre à jour l'élément » : `ProcessedRevision` =
+   `revisionTraitee`, `SyncState` = `error`, `ErrorMessage` = `string(result('Traiter'))`
+   (tronqué si besoin).
+
+> 💡 Dans « Mettre à jour l'élément », ne renseignez que les colonnes du flux : laisser vides les
+> autres champs peut, selon la version de l'action, les effacer. Si c'est le cas chez vous,
+> recopiez-y les valeurs du déclencheur.
+
+### Le test (avant ouverture)
+
+1. Dans le back-office, sur un comité de test dont vous êtes président, créez et publiez une
+   séance à J+10, avec le lien d'une réunion Teams de test.
+2. Depuis un projet de test qui déclenche ce comité, inscrivez-le avec un collègue en invité.
+   → Vous et le collègue recevez une invitation de la boîte partagée, sur toute la durée de la
+   séance. La page « Ordre du jour » affiche « Invitation Outlook envoyée ».
+3. Changez la durée du passage sur l'ordre du jour. → **Aucun** e-mail.
+4. Déplacez la séance d'une heure dans le back-office. → Mise à jour reçue.
+5. Désinscrivez le projet. → Annulation reçue.
+6. Vérifiez au passage que l'invitation de la réunion Teams des membres n'a pas bougé.
+
+Puis pour les membres (étape 3) :
+
+7. Ajoutez un collègue comme membre du comité de test et publiez la configuration ; rechargez
+   l'application. → Une invitation « Committee session » part vers les membres pour chaque
+   séance publiée à venir, avec le lien « Open the agenda in Project Navigator ».
+8. Inscrivez puis désinscrivez un projet. → Les membres ne reçoivent **rien**.
+9. Créez une séance **sans lieu** et publiez-la. → L'invitation des membres contient une réunion
+   Teams ; la page « Ordre du jour » affiche « Rejoindre la réunion » ; un projet inscrit reçoit
+   le même lien. (Si l'étape échoue, voir l'avertissement de la section « Le lien Teams ».)
+10. Annulez la séance depuis la page « Ordre du jour ». → Membres et chefs de projet reçoivent
+    l'annulation.
+
+**Une fois ces tests passés**, supprimez de vos calendriers les occurrences futures de l'ancienne
+série récurrente (depuis l'organisateur actuel) : les invitations des membres viennent désormais
+de la boîte partagée, séance par séance.
 
 ---
 

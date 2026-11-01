@@ -182,6 +182,26 @@ import { rulesProvider } from './utils/rulesProvider.js';
 import { sampleProjectsProvider } from './utils/sampleProjectsProvider.js';
 import { teamsProvider } from './utils/teamsProvider.js';
 import { faqProvider } from './utils/faqProvider.js';
+import {
+  normalizeSessions as normalizeCommitteeSessions,
+  countUnbookedTriggeredProjects,
+  getFreeMinutesAhead,
+  isCommitteeChair,
+  buildSessionTimeline,
+  getCommitteeChairEmails,
+  getCurrentPassageSessionId,
+  getDueOwnerReminder,
+  getPlanningReminderSession,
+  isSessionPast,
+  removeUpcomingProjectPassages,
+  stampCommitteeOpinionSessions
+} from './utils/committeeSessions.js';
+import { committeeSessionsProvider } from './utils/committeeSessionsProvider.js';
+import { committeeInvitationsProvider } from './utils/committeeInvitationsProvider.js';
+import { computeSessionInvitations, selectInvitationsToSync } from './utils/committeeInvitations.js';
+import { describeCommitteeSessionForEmail } from './utils/committeeSessionEmails.js';
+import { useCommitteeSessionActions } from './hooks/useCommitteeSessionActions.js';
+import { CommitteeAgendaScreen } from './components/committee/CommitteeAgendaScreen.jsx';
 import { normalizeFaqEntries } from './utils/faqEntries.js';
 import { normalizeHelpManuals } from './utils/helpManuals.js';
 import { mergeComplianceComments } from './utils/mergeComplianceComments.js';
@@ -881,6 +901,13 @@ const buildInitialComplianceSampleProjectsState = () => {
   return [];
 };
 
+// Séances des comités (committeeSessions.js). En mode SharePoint elles viennent de la liste
+// CN_CommitteeSessions (hydratation) ; en local elles vivent dans cette tranche.
+const buildInitialCommitteeSessionsState = () => {
+  const savedState = loadPersistedState();
+  return savedState ? normalizeCommitteeSessions(savedState.committeeSessions) : [];
+};
+
 // FAQ de la fenêtre d'aide, éditée dans le back-office. En mode SharePoint elle vient de la
 // liste CN_Faq (hydratation) ; en local elle vit dans cette tranche de complianceNavigatorState.
 const buildInitialFaqEntriesState = () => {
@@ -978,6 +1005,13 @@ export const App = () => {
   const [helpManuals, setHelpManualsState] = useState(buildInitialHelpManuals);
   const [complianceSampleProjects, setComplianceSampleProjects] = useState(buildInitialComplianceSampleProjectsState);
   const [faqEntries, setFaqEntries] = useState(buildInitialFaqEntriesState);
+  const [committeeSessions, setCommitteeSessions] = useState(buildInitialCommitteeSessionsState);
+  // État des invitations Outlook (CN_CommitteeInvitations), par id d'invitation : ce que le flux
+  // en a fait. Vide hors mode SharePoint, où aucun flux n'envoie quoi que ce soit.
+  const [committeeInvitationRecords, setCommitteeInvitationRecords] = useState({});
+  const [areCommitteeInvitationsLoaded, setAreCommitteeInvitationsLoaded] = useState(false);
+  const committeeInvitationRecordsRef = useRef(committeeInvitationRecords);
+  committeeInvitationRecordsRef.current = committeeInvitationRecords;
   const [isBackOfficeUnlocked, setIsBackOfficeUnlocked] = useState(false);
   const [backOfficeAuthError, setBackOfficeAuthError] = useState(null);
   const [isBackOfficePromptOpen, setIsBackOfficePromptOpen] = useState(false);
@@ -1186,6 +1220,9 @@ export const App = () => {
   }));
   const annotationNotesRef = useRef(annotationNotes);
   const pendingShowcaseProjectIdRef = useRef(null);
+  const pendingCommitteeAgendaRef = useRef(null);
+  const committeeAgendaReturnRef = useRef(null);
+  const [committeeAgendaSessionId, setCommitteeAgendaSessionId] = useState(null);
   const pendingProjectViewRef = useRef(null);
   const pendingShowcaseSharedRef = useRef(false);
   const pendingShowcaseCommentsRef = useRef(false);
@@ -1200,6 +1237,7 @@ export const App = () => {
   const userProfileQueueRef = useRef(null);
   const rulesQueueRef = useRef(null);
   const sampleProjectsQueueRef = useRef(null);
+  const committeeInvitationsQueueRef = useRef(null);
   const teamsQueueRef = useRef(null);
   const faqQueueRef = useRef(null);
   const inspirationsQueueRef = useRef(null);
@@ -1299,6 +1337,21 @@ export const App = () => {
     }
   }, []);
 
+  const buildCommitteeSessionUrl = useCallback((sessionId) => {
+    if (typeof window === 'undefined' || !window.location || !sessionId) {
+      return '';
+    }
+    try {
+      const url = new URL(window.location.href);
+      url.hash = '';
+      url.search = '';
+      url.searchParams.set('committeeSession', sessionId);
+      return withWebViewEnv(url.toString());
+    } catch {
+      return '';
+    }
+  }, []);
+
   // Point d’entrée unique de toutes les notifications. L’app n’envoie jamais d’e-mail :
   // elle dépose une demande dans CN_NotificationsQueue, traitée par un flux Power Automate.
   const notify = useCallback((descriptor = {}) => {
@@ -1328,7 +1381,7 @@ export const App = () => {
         ownerEmail: project.ownerEmail,
         teamNames: descriptor.teamNames,
         excerpt: descriptor.excerpt,
-        appUrl: buildProjectUrl(project.id, descriptor.view),
+        appUrl: descriptor.appUrl || buildProjectUrl(project.id, descriptor.view),
         occurredAt: new Date().toISOString()
       });
     } catch (error) {
@@ -1375,6 +1428,162 @@ export const App = () => {
       ...options
     });
   }, [buildOwnerNotificationRecipients, notify]);
+
+  const committeesById = useMemo(
+    () => normalizeValidationCommitteeConfig(validationCommitteeConfig).committees.reduce((acc, committee) => {
+      acc[committee.id] = committee;
+      return acc;
+    }, {}),
+    [validationCommitteeConfig]
+  );
+
+  // Qui est prévenu de quoi (docs/specs/calendrier-comites.md §11) : le président et le
+  // co-président de ce que fait un chef de projet, le chef de projet de ce que fait le
+  // président, tous les inscrits d'une séance qui bouge. Réordonner ou changer les invités ne
+  // prévient personne : le chef de projet bloque de toute façon toute la séance.
+  const handleCommitteeSessionEvent = useCallback(({ action, before, after, result, committee }) => {
+    const findProject = (projectId) => projectsRef.current.find((project) => project?.id === projectId) || null;
+    const chairs = getCommitteeChairEmails(committee);
+    const teamNames = committee?.name ? [committee.name] : [];
+    const sessionText = describeCommitteeSessionForEmail(after || before);
+    const passage = (after?.agenda || []).find((entry) => entry.id === action.passageId)
+      || (before?.agenda || []).find((entry) => entry.id === action.passageId)
+      || (action.type === 'book' ? (after?.agenda || [])[after.agenda.length - 1] : null);
+    const project = passage ? findProject(passage.projectId) : null;
+    const isOwnerSide = project
+      ? [project.ownerEmail, ...(Array.isArray(project.sharedWith) ? project.sharedWith : [])]
+        .map(normalizeEmail)
+        .includes(currentUserEmail)
+      : false;
+
+    const toChairs = (excerpt, type = NOTIFICATION_TYPES.COMMITTEE_PASSAGE_CHANGED_CHAIRS) => {
+      if (!project || chairs.length === 0) {
+        return;
+      }
+      notify({ type, project, to: chairs, teamNames, excerpt, appUrl: buildCommitteeSessionUrl(after?.id || before?.id) });
+    };
+    const toOwner = (excerpt, targetProject = project, type = NOTIFICATION_TYPES.COMMITTEE_PASSAGE_CHANGED_OWNER) => {
+      if (!targetProject) {
+        return;
+      }
+      const recipients = buildOwnerNotificationRecipients(targetProject);
+      notify({ type, project: targetProject, ...recipients, teamNames, excerpt, view: 'synthesis' });
+    };
+    const toAllRegistered = (excerpt) => {
+      (after?.agenda || before?.agenda || []).forEach((entry) => {
+        toOwner(excerpt, findProject(entry.projectId), NOTIFICATION_TYPES.COMMITTEE_SESSION_CHANGED);
+      });
+    };
+    const extension = result?.extendedBy > 0
+      ? ` The session now lasts ${after.durationMinutes} minutes (extended by ${result.extendedBy}).`
+      : '';
+
+    switch (action.type) {
+      case 'book': {
+        const text = action.isMove
+          ? `Moved to another session. ${sessionText}`
+          : `Registered for a committee session. ${sessionText}`;
+        if (isOwnerSide) {
+          toChairs(text);
+        } else {
+          toOwner(`${text} Keep the whole session slot free: the running order may change.`);
+        }
+        break;
+      }
+      case 'unbook':
+        if (action.isMove) {
+          break;
+        }
+        if (isOwnerSide) {
+          toChairs(`Withdrawn from the session. ${sessionText}`);
+        } else {
+          toOwner(`Your presentation was cancelled. ${sessionText}${action.reason ? ` Reason: ${action.reason}` : ''}`);
+        }
+        break;
+      case 'setMinutes':
+        toOwner(`Time given to your presentation: ${passage?.minutes || action.minutes} minutes. ${sessionText}`);
+        break;
+      case 'requestTime':
+        toChairs(`${passage?.timeRequest?.minutes || action.minutes} more minutes requested. ${sessionText}\n${action.note || ''}`, NOTIFICATION_TYPES.COMMITTEE_TIME_REQUESTED);
+        break;
+      case 'decideTimeRequest':
+        toOwner(action.accept
+          ? `Your request for more time was accepted: your presentation now lasts ${passage?.minutes} minutes. ${sessionText}`
+          : `Your request for more time was refused. ${sessionText}`);
+        break;
+      case 'requestRepresentation':
+        toOwner(`The committee asks you to present the project again once you have reviewed the points raised. Register for a new session from the project’s stakes page. ${sessionText}`);
+        break;
+      case 'update': {
+        const moved = before?.startAt !== after?.startAt || before?.location !== after?.location;
+        const resized = before?.durationMinutes !== after?.durationMinutes;
+        if (after?.status !== 'draft' && (moved || resized)) {
+          toAllRegistered(`The session was ${moved ? 'moved' : 'changed'}. ${sessionText}`);
+        }
+        break;
+      }
+      case 'cancel':
+        if (before?.status === 'published') {
+          toAllRegistered(`The session was cancelled. Register your project for another session. ${describeCommitteeSessionForEmail(before, { withJoinHint: false })}`);
+        }
+        break;
+      default:
+        break;
+    }
+
+    if (extension && action.type !== 'update') {
+      toAllRegistered(`${extension.trim()} ${sessionText}`);
+    }
+  }, [buildCommitteeSessionUrl, buildOwnerNotificationRecipients, currentUserEmail, notify]);
+
+  // Invitations Outlook des chefs de projet (étape 2) : après chaque changement de séance, on décrit
+  // dans CN_CommitteeInvitations les invitations telles qu'elles doivent être ; le flux Power
+  // Automate fait le reste. Rien n'est écrit hors mode SharePoint ni en simulation d'identité.
+  const handleCommitteeSessionChanged = useCallback(({ before, after, committee }) => {
+    const queue = committeeInvitationsQueueRef.current;
+    if (!queue) {
+      return;
+    }
+    const projectsById = new Map(projectsRef.current
+      .filter((project) => project?.id && !isProjectTrashed(project))
+      .map((project) => [project.id, project]));
+    selectInvitationsToSync(computeSessionInvitations({
+      before,
+      after,
+      committee,
+      projectsById,
+      buildProjectUrl: (projectId) => buildProjectUrl(projectId, 'synthesis'),
+      buildAgendaUrl: buildCommitteeSessionUrl,
+      recordsById: committeeInvitationRecordsRef.current
+    }), committeeInvitationRecordsRef.current).forEach((invitation) => queue.enqueue(invitation));
+  }, [buildCommitteeSessionUrl, buildProjectUrl]);
+
+  const {
+    runAction: runCommitteeSessionAction,
+    createSessions: createCommitteeSessions,
+    deleteDraftSession: deleteCommitteeDraftSession,
+    movePassage: moveCommitteePassage,
+    sessionsRef: committeeSessionsRef
+  } = useCommitteeSessionActions({
+    sessions: committeeSessions,
+    setSessions: setCommitteeSessions,
+    committeesById,
+    currentUserEmail,
+    isAdmin: isCurrentUserAdmin,
+    onEvent: isSimulatedSession ? null : handleCommitteeSessionEvent,
+    onSessionChanged: isSimulatedSession ? null : handleCommitteeSessionChanged
+  });
+
+  // Un projet mis à la corbeille ou dont le comité n'est plus déclenché libère ses passages à
+  // venir ; le président et le co-président en sont prévenus comme d'une désinscription.
+  const releaseProjectCommitteePassages = useCallback(async (projectId, committeeId = '') => {
+    const targets = removeUpcomingProjectPassages(committeeSessionsRef.current, projectId, { committeeId });
+    for (const { session, passageIds } of targets) {
+      for (const passageId of passageIds) {
+        await runCommitteeSessionAction(session.id, { type: 'unbook', passageId });
+      }
+    }
+  }, [committeeSessionsRef, runCommitteeSessionAction]);
 
   const notifyThreadLastAuthor = useCallback((payload = {}) => {
     const targetEmail = normalizeEmail(payload.targetEmail);
@@ -1565,6 +1774,11 @@ export const App = () => {
       } else if (normalizedHash.startsWith('showcase:')) {
         projectId = normalizedHash.replace(/^showcase:/, '');
       }
+    }
+
+    const committeeSessionParam = params.get('committeeSession');
+    if (committeeSessionParam) {
+      pendingCommitteeAgendaRef.current = committeeSessionParam;
     }
 
     if (projectId) {
@@ -1886,7 +2100,9 @@ const updateProjectFilters = useCallback((updater) => {
           ruleEntries,
           teamEntries,
           sampleEntries,
-          faqServerEntries
+          faqServerEntries,
+          serverCommitteeSessions,
+          serverCommitteeInvitations
         ] =
           await Promise.all([
             dataProvider.listProjects(),
@@ -1905,7 +2121,10 @@ const updateProjectFilters = useCallback((updater) => {
             }),
             sampleProjectsProvider.listAllSampleProjects().catch(() => []),
             // Échec de lecture = on garde la FAQ locale ; une liste vide est, elle, une FAQ vide.
-            faqProvider.listAllFaqEntries().catch(() => null)
+            faqProvider.listAllFaqEntries().catch(() => null),
+            // Échec de lecture (liste pas encore créée) = on garde les séances locales.
+            committeeSessionsProvider ? committeeSessionsProvider.listAllSessions().catch(() => null) : null,
+            committeeInvitationsProvider ? committeeInvitationsProvider.listAllInvitations().catch(() => null) : null
           ]);
 
         if (cancelled) {
@@ -1931,6 +2150,17 @@ const updateProjectFilters = useCallback((updater) => {
         // règles/équipes dont un tableau vide signifierait « référentiel jamais publié ».
         sampleProjectServerMetaRef.current = new Map(sampleEntries.map(({ sample, meta }) => [sample.id, meta]));
         setComplianceSampleProjects(sampleEntries.map(({ sample }) => sample));
+
+        if (Array.isArray(serverCommitteeSessions)) {
+          setCommitteeSessions(normalizeCommitteeSessions(serverCommitteeSessions));
+        }
+        if (Array.isArray(serverCommitteeInvitations)) {
+          setCommitteeInvitationRecords(serverCommitteeInvitations.reduce((acc, record) => {
+            acc[record.id] = record;
+            return acc;
+          }, {}));
+          setAreCommitteeInvitationsLoaded(true);
+        }
 
         if (Array.isArray(faqServerEntries)) {
           faqServerMetaRef.current = new Map(faqServerEntries.map(({ entry, meta }) => [entry.id, meta]));
@@ -2112,7 +2342,8 @@ const updateProjectFilters = useCallback((updater) => {
       teamVisibility,
       helpManuals,
       complianceSampleProjects,
-      faqEntries
+      faqEntries,
+      committeeSessions
     };
 
     // Référentiels volumineux : persistés seulement s’ils diffèrent du défaut
@@ -2160,6 +2391,7 @@ const updateProjectFilters = useCallback((updater) => {
     helpManuals,
     complianceSampleProjects,
     faqEntries,
+    committeeSessions,
     persistDefaults
   ]);
 
@@ -3270,6 +3502,18 @@ const updateProjectFilters = useCallback((updater) => {
       getItemKey: (payload) => (payload.action === 'remove' ? payload.ruleId : payload.rule.id)
     });
 
+    committeeInvitationsQueueRef.current = committeeInvitationsProvider
+      ? createRetryQueue({
+        processItem: async (invitation) => {
+          const { record } = await committeeInvitationsProvider.syncInvitation(invitation, { userEmail: currentUserEmail });
+          if (record) {
+            setCommitteeInvitationRecords((prev) => ({ ...prev, [invitation.id]: record }));
+          }
+        },
+        getItemKey: (invitation) => invitation.id
+      })
+      : null;
+
     sampleProjectsQueueRef.current = createRetryQueue({
       processItem: async (payload) => {
         if (payload.action === 'remove') {
@@ -3428,6 +3672,7 @@ const updateProjectFilters = useCallback((updater) => {
       rulesQueueRef.current?.flush();
       teamsQueueRef.current?.flush();
       sampleProjectsQueueRef.current?.flush();
+      committeeInvitationsQueueRef.current?.flush();
       faqQueueRef.current?.flush();
       inspirationsQueueRef.current?.flush();
     };
@@ -3501,6 +3746,26 @@ const updateProjectFilters = useCallback((updater) => {
     hasOpinion: Boolean(perimeter.entry?.status),
     entry: perimeter.entry
   })), [teams, validationCommitteeConfig]);
+
+  // Une modification qui fait que le projet ne déclenche plus un comité où il est inscrit : le
+  // passage n'est pas retiré en silence, le chef de projet confirme (ou corrige sa réponse).
+  const orphanCommitteePassages = useMemo(() => {
+    if (!activeProjectId || !analysis || committeeSessions.length === 0) {
+      return [];
+    }
+    const triggeredCommitteeIds = new Set(
+      getProjectCompliancePerimeters({ answers, analysis }, { teams, validationCommitteeConfig })
+        .filter((perimeter) => perimeter.type === 'committee')
+        .map((perimeter) => perimeter.id)
+    );
+    const now = new Date();
+    return committeeSessions
+      .filter((session) => session.status !== 'cancelled' && !isSessionPast(session, now)
+        && !triggeredCommitteeIds.has(session.committeeId))
+      .flatMap((session) => session.agenda
+        .filter((passage) => passage.projectId === activeProjectId)
+        .map((passage) => ({ session, passage, committee: committeesById[session.committeeId] || null })));
+  }, [activeProjectId, analysis, answers, committeeSessions, committeesById, teams, validationCommitteeConfig]);
 
   const projectReadiness = useMemo(
     () => getProjectReadiness(activeQuestions, answers),
@@ -5222,6 +5487,149 @@ const updateProjectFilters = useCallback((updater) => {
     projects
   ]);
 
+  // Rappels du calendrier des comités : J-7 et J-1 au chef de projet, et au président quand la
+  // dernière séance publiée approche. Pas de serveur avant le flux planifié (spec §13, étape 3) :
+  // la passe tourne dans la session de la personne concernée, et le marqueur est posé sur la
+  // séance *avant* l'envoi — relu sur le serveur en mode SharePoint, il empêche deux sessions
+  // d'envoyer le même rappel.
+  const committeeRemindersInFlightRef = useRef(new Set());
+
+  useEffect(() => {
+    if (!isHydrated || !currentUserEmail || isSimulatedSession || committeeSessions.length === 0) {
+      return;
+    }
+
+    const now = new Date();
+    const inFlight = committeeRemindersInFlightRef.current;
+    const tasks = [];
+
+    committeeSessions.forEach((session) => {
+      if (session.status !== 'published' || isSessionPast(session, now)) {
+        return;
+      }
+      const committee = committeesById[session.committeeId];
+      buildSessionTimeline(session).forEach(({ passage }) => {
+        const project = projects.find((entry) => entry?.id === passage.projectId);
+        if (!project || isProjectTrashed(project) || !canManageProject(project)) {
+          return;
+        }
+        const reminder = getDueOwnerReminder(session, passage, now);
+        const guardKey = `${session.id}:${passage.id}:${reminder}`;
+        if (!reminder || inFlight.has(guardKey)) {
+          return;
+        }
+        inFlight.add(guardKey);
+        tasks.push(async () => {
+          const result = await runCommitteeSessionAction(session.id, { type: 'markReminderSent', passageId: passage.id, reminder });
+          if (!result.ok) {
+            return;
+          }
+          const owners = buildOwnerNotificationRecipients(project);
+          notify({
+            type: NOTIFICATION_TYPES.COMMITTEE_PASSAGE_REMINDER,
+            project,
+            ...owners,
+            teamNames: committee?.name ? [committee.name] : [],
+            excerpt: describeCommitteeSessionForEmail(session),
+            view: 'synthesis',
+            includeActor: true
+          });
+        });
+      });
+    });
+
+    Object.values(committeesById).forEach((committee) => {
+      const chairs = getCommitteeChairEmails(committee);
+      if (!chairs.includes(currentUserEmail)) {
+        return;
+      }
+      const lastSession = getPlanningReminderSession(committeeSessions, committee.id, now);
+      const guardKey = lastSession ? `planning:${lastSession.id}` : '';
+      if (!lastSession || inFlight.has(guardKey)) {
+        return;
+      }
+      inFlight.add(guardKey);
+      tasks.push(async () => {
+        const result = await runCommitteeSessionAction(lastSession.id, { type: 'markPlanningReminderSent' });
+        if (!result.ok) {
+          return;
+        }
+        notify({
+          type: NOTIFICATION_TYPES.COMMITTEE_PLANNING_REMINDER,
+          project: { projectName: committee.name || committee.id },
+          to: chairs,
+          teamNames: committee.name ? [committee.name] : [],
+          excerpt: `Last published session. ${describeCommitteeSessionForEmail(lastSession, { withJoinHint: false })}`,
+          appUrl: buildCommitteeSessionUrl(lastSession.id),
+          includeActor: true
+        });
+      });
+    });
+
+    tasks.reduce((chain, task) => chain.then(task), Promise.resolve()).catch((error) => {
+      console.warn('[Comités] Rappels impossibles :', error);
+    });
+  }, [
+    buildCommitteeSessionUrl,
+    buildOwnerNotificationRecipients,
+    canManageProject,
+    committeeSessions,
+    committeesById,
+    currentUserEmail,
+    isHydrated,
+    isSimulatedSession,
+    notify,
+    projects,
+    runCommitteeSessionAction
+  ]);
+
+  // Réconciliation des invitations Outlook (étapes 2 et 3) après le chargement, puis à chaque
+  // changement de la configuration des comités : une invitation peut devoir changer sans qu'aucune
+  // séance n'ait bougé (membre ajouté au comité, projet renommé, co-porteur ajouté, réunion Teams
+  // créée par le flux dont le lien doit rejoindre les invitations des chefs de projet). On ne
+  // compare qu'à ce qui est en mémoire et l'on n'écrit que les différences : la passe peut tourner
+  // dans la session de n'importe qui sans multiplier les écritures.
+  const committeeInvitationsReconciledRef = useRef('');
+
+  useEffect(() => {
+    const queue = committeeInvitationsQueueRef.current;
+    if (!queue || !areCommitteeInvitationsLoaded || isSimulatedSession
+      || !['synced', 'partial'].includes(sharePointSync.state)) {
+      return;
+    }
+    const signature = JSON.stringify(Object.values(committeesById).map((committee) => [committee.id, committee.name, committee.emails]));
+    if (committeeInvitationsReconciledRef.current === signature) {
+      return;
+    }
+    committeeInvitationsReconciledRef.current = signature;
+
+    const now = new Date();
+    const projectsById = new Map(projectsRef.current
+      .filter((project) => project?.id && !isProjectTrashed(project))
+      .map((project) => [project.id, project]));
+    committeeSessionsRef.current
+      .filter((session) => !isSessionPast(session, now))
+      .forEach((session) => {
+        selectInvitationsToSync(computeSessionInvitations({
+          after: session,
+          committee: committeesById[session.committeeId] || null,
+          projectsById,
+          buildProjectUrl: (projectId) => buildProjectUrl(projectId, 'synthesis'),
+          buildAgendaUrl: buildCommitteeSessionUrl,
+          recordsById: committeeInvitationRecordsRef.current,
+          now
+        }), committeeInvitationRecordsRef.current).forEach((invitation) => queue.enqueue(invitation));
+      });
+  }, [
+    areCommitteeInvitationsLoaded,
+    buildCommitteeSessionUrl,
+    buildProjectUrl,
+    committeeSessionsRef,
+    committeesById,
+    isSimulatedSession,
+    sharePointSync.state
+  ]);
+
   const handleUpdateComplianceComments = useCallback((updates) => {
     if (!activeProjectId || !updates || typeof updates !== 'object') {
       return;
@@ -5238,8 +5646,14 @@ const updateProjectFilters = useCallback((updater) => {
       projectBeforeUpdate?.answers?.[COMPLIANCE_COMMENTS_KEY],
       getSubmissionVersion(projectBeforeUpdate)
     );
+    // Un avis de comité rendu pendant ou après un passage du projet est rattaché à cette séance.
+    const sessionLinkedComments = stampCommitteeOpinionSessions(
+      versionedComments,
+      projectBeforeUpdate?.answers?.[COMPLIANCE_COMMENTS_KEY],
+      (committeeId) => getCurrentPassageSessionId(committeeSessionsRef.current, activeProjectId, committeeId)
+    );
     const effectiveUpdates = COMPLIANCE_COMMENTS_KEY in updates
-      ? { ...updates, [COMPLIANCE_COMMENTS_KEY]: versionedComments }
+      ? { ...updates, [COMPLIANCE_COMMENTS_KEY]: sessionLinkedComments }
       : updates;
 
     let sanitizedResult = null;
@@ -5402,6 +5816,7 @@ const updateProjectFilters = useCallback((updater) => {
     }
   }, [
     activeProjectId,
+    committeeSessionsRef,
     currentUserEmail,
     injectImplicitClaims,
     isSimulatedSession,
@@ -6145,7 +6560,8 @@ const updateProjectFilters = useCallback((updater) => {
 
     persistProjectAnswersPatch(targetProject, withProjectTrashed(targetProject.answers, { by: currentUserEmail }));
     setActiveProjectId(prev => (prev === projectId ? null : prev));
-  }, [canManageProject, currentUserEmail, persistProjectAnswersPatch]);
+    releaseProjectCommitteePassages(projectId);
+  }, [canManageProject, currentUserEmail, persistProjectAnswersPatch, releaseProjectCommitteePassages]);
 
   // La console d'administration voit toute la corbeille, y compris les projets que leur porteur
   // en a déjà retirés parce qu'un expert y avait répondu (« Abandonnés »).
@@ -6532,6 +6948,76 @@ const updateProjectFilters = useCallback((updater) => {
 
     openProjectShowcase({ projectId });
   }, [openProjectShowcase]);
+
+  // Page « Ordre du jour » d'une séance de comité (docs/specs/calendrier-comites.md §7).
+  const handleOpenCommitteeAgenda = useCallback((sessionId) => {
+    if (!sessionId) {
+      return;
+    }
+    committeeAgendaReturnRef.current = mode === 'admin' && adminView === 'back-office'
+      ? { kind: 'back-office' }
+      : { kind: 'screen', screen: screen === 'committee-agenda' ? 'home' : screen };
+    setCommitteeAgendaSessionId(sessionId);
+    setMode('user');
+    setAdminView('home');
+    setScreen('committee-agenda');
+  }, [adminView, mode, screen]);
+
+  const handleCloseCommitteeAgenda = useCallback(() => {
+    const target = committeeAgendaReturnRef.current;
+    committeeAgendaReturnRef.current = null;
+    if (target?.kind === 'back-office') {
+      setMode('admin');
+      setAdminView('back-office');
+      setScreen('home');
+      return;
+    }
+    setScreen(target?.screen && target.screen !== 'committee-agenda' ? target.screen : 'home');
+  }, []);
+
+  useEffect(() => {
+    const pendingSessionId = pendingCommitteeAgendaRef.current;
+    if (!isHydrated || !pendingSessionId || !['local-only', 'synced', 'partial'].includes(sharePointSync.state)) {
+      return;
+    }
+    pendingCommitteeAgendaRef.current = null;
+    committeeAgendaReturnRef.current = { kind: 'screen', screen: 'home' };
+    setCommitteeAgendaSessionId(pendingSessionId);
+    setScreen('committee-agenda');
+  }, [isHydrated, sharePointSync.state]);
+
+  // Projets qui déclenchent chaque comité : la demande que le président compare au temps libre,
+  // et les projets qu'il peut inscrire lui-même depuis l'ordre du jour.
+  const committeeTriggeredProjectsById = useMemo(() => {
+    const byCommittee = {};
+    liveProjects.forEach((project) => {
+      if (!project?.id || project.status === 'cancelled') {
+        return;
+      }
+      getProjectCompliancePerimeters(project, { teams, validationCommitteeConfig })
+        .filter((perimeter) => perimeter.type === 'committee')
+        .forEach((perimeter) => {
+          byCommittee[perimeter.id] = [...(byCommittee[perimeter.id] || []), project];
+        });
+    });
+    return byCommittee;
+  }, [liveProjects, teams, validationCommitteeConfig]);
+
+  const committeeDemandById = useMemo(() => {
+    const now = new Date();
+    return Object.keys(committeesById).reduce((acc, committeeId) => {
+      acc[committeeId] = {
+        unbooked: countUnbookedTriggeredProjects(
+          (committeeTriggeredProjectsById[committeeId] || []).map((project) => project.id),
+          committeeSessions,
+          committeeId,
+          now
+        ),
+        freeMinutes: getFreeMinutesAhead(committeeSessions, committeeId, now)
+      };
+      return acc;
+    }, {});
+  }, [committeeSessions, committeeTriggeredProjectsById, committeesById]);
 
   const handleOpenActiveProjectShowcase = useCallback((payload = {}) => {
     const projectId = payload?.projectId || activeProjectId || null;
@@ -8140,6 +8626,30 @@ const updateProjectFilters = useCallback((updater) => {
           </div>
         </div>
       )}
+      {orphanCommitteePassages.length > 0 && activeProject && canManageProject(activeProject)
+        && (screen === 'questionnaire' || screen === 'synthesis') && (
+        <div role="alert" className="w-full border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" data-testid="committee-orphan-passages">
+          <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3">
+            <span>
+              {t('committeeSessions.orphan.message', {
+                committees: Array.from(new Set(orphanCommitteePassages.map((entry) => entry.committee?.name || entry.session.committeeId))).join(', ')
+              })}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                orphanCommitteePassages.forEach(({ session, passage }) => {
+                  runCommitteeSessionAction(session.id, { type: 'unbook', passageId: passage.id });
+                });
+              }}
+              className="whitespace-nowrap rounded-lg border border-amber-300 bg-white px-3 py-1 text-xs font-semibold hover:bg-amber-100"
+            >
+              {t('committeeSessions.orphan.release')}
+            </button>
+          </div>
+          <p className="mx-auto mt-1 max-w-3xl text-xs text-amber-800">{t('committeeSessions.orphan.hint')}</p>
+        </div>
+      )}
       <AnnotationLayer
         isActive={isAnnotationModeEnabled && screen === 'showcase'}
         suppressIntro={isOnboardingActive}
@@ -8777,6 +9287,12 @@ const updateProjectFilters = useCallback((updater) => {
                 userProfilesByEmail={userProfilesByEmail}
                 onSaveMemberAbsence={handleSaveMemberAbsence}
                 onPerimeterClaimAction={handlePerimeterClaimAction}
+                committeeSessions={committeeSessions}
+                committeeDemandById={committeeDemandById}
+                onCreateCommitteeSessions={createCommitteeSessions}
+                onCommitteeSessionAction={runCommitteeSessionAction}
+                onDeleteCommitteeDraftSession={deleteCommitteeDraftSession}
+                onOpenCommitteeAgenda={handleOpenCommitteeAgenda}
               />
             </Suspense>
           </AdminBackOfficeErrorBoundary>
@@ -8956,8 +9472,43 @@ const updateProjectFilters = useCallback((updater) => {
               canDeclareLaunch={canDeclareProjectLaunch(activeProject)}
               onDeclareLaunch={activeProjectId ? handleDeclareProjectLaunch : undefined}
               onReintegrateInCommittee={activeProjectId && !isSimulatedSession ? handleReintegrateActiveProjectInCommittee : undefined}
+              committeeSessions={isOnboardingActive ? [] : committeeSessions}
+              committeeInvitationRecords={committeeInvitationRecords}
+              canBookCommitteeSessions={Boolean(activeProject) && canManageProject(activeProject) && !isOnboardingActive}
+              onCommitteeSessionAction={activeProjectId && !isOnboardingActive ? runCommitteeSessionAction : undefined}
+              onMoveCommitteePassage={moveCommitteePassage}
+              onOpenCommitteeAgenda={handleOpenCommitteeAgenda}
             />
           </Suspense>
+        ) : screen === 'committee-agenda' ? (
+          (() => {
+            const agendaSession = committeeSessions.find((session) => session.id === committeeAgendaSessionId) || null;
+            const agendaCommittee = agendaSession ? committeesById[agendaSession.committeeId] || null : null;
+            const isAgendaChair = isCurrentUserAdmin || isCommitteeChair(agendaCommittee, currentUserEmail);
+            const isAgendaMember = (agendaCommittee?.emails || []).map(normalizeEmail).includes(currentUserEmail);
+            return (
+              <CommitteeAgendaScreen
+                session={agendaSession}
+                committee={agendaCommittee}
+                sessions={committeeSessions}
+                projects={liveProjects}
+                teams={teams}
+                validationCommitteeConfig={validationCommitteeConfig}
+                candidateProjects={agendaCommittee ? committeeTriggeredProjectsById[agendaCommittee.id] || [] : []}
+                invitationRecords={committeeInvitationRecords}
+                isChair={isAgendaChair}
+                canView={isAgendaChair || isAgendaMember}
+                onRunAction={runCommitteeSessionAction}
+                onMovePassage={moveCommitteePassage}
+                onOpenSynthesis={(projectId) => handleOpenProject(projectId, {
+                  view: 'synthesis',
+                  focusPerimeter: agendaCommittee ? { type: 'committee', id: agendaCommittee.id } : null
+                })}
+                onOpenShowcase={handleShowProjectShowcase}
+                onBack={handleCloseCommitteeAgenda}
+              />
+            );
+          })()
         ) : screen === 'showcase' ? (
           showcaseProjectContext ? (
             <div className="space-y-4">

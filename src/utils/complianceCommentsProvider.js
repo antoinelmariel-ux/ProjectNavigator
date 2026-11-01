@@ -9,13 +9,43 @@ import { getAdminProxy, normalizeAdminProxy } from './adminProxyOpinion.js';
 // `AssigneeEmail` reste lisible dans les vues SharePoint natives, `ClaimJson` porte le détail
 // (date, auteur de l'attribution, motif, relance envoyée) et l'historique. Les personnes ajoutées
 // au suivi du périmètre (perimeterFollowers.js) y voyagent aussi, sans colonne dédiée.
+// La date de l'avis aussi (`review`) : `UpdatedAt` est réécrit à chaque écriture de la ligne
+// racine — réponse dans le fil, prise en charge, relance — et ne dit donc pas quand l'avis a
+// été rendu. Sans elle, la version de l'avis (« à ré-examiner ») et la confirmation du round
+// final disparaissaient aussi au rechargement depuis SharePoint.
+const REVIEW_FIELDS = ['statusUpdatedAt', 'reviewedAt', 'reviewedVersion', 'needsReviewSince', 'confirmation', 'sessionId', 'sessionOutcomes'];
+const OBJECT_REVIEW_FIELDS = ['confirmation', 'sessionOutcomes'];
+
+const toReviewPayload = (entry) => {
+  const review = {};
+  REVIEW_FIELDS.forEach((key) => {
+    const value = entry?.[key];
+    if (typeof value === 'string' && value.length > 0) {
+      review[key] = value;
+    } else if (Number.isInteger(value) && value > 0) {
+      review[key] = value;
+    } else if (OBJECT_REVIEW_FIELDS.includes(key) && value && typeof value === 'object' && !Array.isArray(value)) {
+      review[key] = value;
+    }
+  });
+  return Object.keys(review).length > 0 ? review : null;
+};
+
+const fromReviewPayload = (payload) => {
+  const review = payload?.review && typeof payload.review === 'object' && !Array.isArray(payload.review)
+    ? payload.review
+    : {};
+  return toReviewPayload(review) || {};
+};
+
 const toClaimColumns = (entry) => {
   const claim = normalizeClaim(entry?.claim);
   const history = normalizeClaimHistory(entry?.claimHistory);
   const followers = normalizePerimeterFollowers(entry?.followers);
   const adminProxy = getAdminProxy(entry);
+  const review = toReviewPayload(entry);
 
-  if (!claim && history.length === 0 && followers.length === 0 && !adminProxy) {
+  if (!claim && history.length === 0 && followers.length === 0 && !adminProxy && !review) {
     return { AssigneeEmail: '', ClaimJson: {} };
   }
 
@@ -25,7 +55,8 @@ const toClaimColumns = (entry) => {
       claim: claim || null,
       history,
       ...(followers.length > 0 ? { followers } : {}),
-      ...(adminProxy ? { adminProxy } : {})
+      ...(adminProxy ? { adminProxy } : {}),
+      ...(review ? { review } : {})
     }
   };
 };
@@ -40,7 +71,8 @@ const fromClaimColumns = (row) => {
     ...(claim ? { claim } : {}),
     ...(claimHistory.length > 0 ? { claimHistory } : {}),
     ...(followers.length > 0 ? { followers } : {}),
-    ...(adminProxy ? { adminProxy } : {})
+    ...(adminProxy ? { adminProxy } : {}),
+    ...fromReviewPayload(payload)
   };
 };
 
@@ -100,6 +132,7 @@ const reconstructFromRows = (rows) => {
     .filter((row) => row.CommentType !== 'reply')
     .forEach((row) => {
       const [kind, id] = String(row.SectionKey || '').split(':');
+      // Une ligne écrite avant que la date de l'avis voyage dans ClaimJson n'a que UpdatedAt.
       const entry = {
         comment: row.Message || '',
         status: row.Status || '',

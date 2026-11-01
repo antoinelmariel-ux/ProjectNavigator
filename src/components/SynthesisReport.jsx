@@ -21,6 +21,8 @@ import { renderTextWithLinks } from '../utils/linkify.js';
 import { ProjectShowcase } from './ProjectShowcase.jsx';
 import { RichTextEditor } from './RichTextEditor.jsx';
 import { PeoplePicker } from './PeoplePicker.jsx';
+import { CommitteeSessionPanel } from './committee/CommitteeSessionPanel.jsx';
+import { isCommitteeChair } from '../utils/committeeSessions.js';
 import { UploadProgressBar } from './UploadProgressBar.jsx';
 import { extractProjectName } from '../utils/projects.js';
 import { getTeamPriority } from '../utils/projectExport.js';
@@ -667,6 +669,12 @@ export const SynthesisReport = ({
   hasIncompleteAnswers = false,
   validationCommitteeConfig = null,
   focusPerimeter = null,
+  committeeSessions = [],
+  committeeInvitationRecords = {},
+  canBookCommitteeSessions = false,
+  onCommitteeSessionAction,
+  onMoveCommitteePassage,
+  onOpenCommitteeAgenda,
   onFocusPerimeterHandled,
   onPerimeterClaimAction,
   onPerimeterFollowerAction,
@@ -3658,6 +3666,28 @@ export const SynthesisReport = ({
                         {renderPerimeterStage(
                           buildPerimeterKey(PERIMETER_TYPE_COMMITTEE, committee.id),
                           committeeCommentEntry.status.length > 0 || committeeCommentEntry.comment.trim().length > 0
+                        )}
+
+                        {projectId && typeof onCommitteeSessionAction === 'function' && (
+                          triggeredCommitteeIds.has(committee.id)
+                          || committeeSessions.some((session) => session.committeeId === committee.id
+                            && session.agenda.some((passage) => passage.projectId === projectId))
+                        ) && (
+                          <CommitteeSessionPanel
+                            committee={committee}
+                            projectId={projectId}
+                            sessions={committeeSessions}
+                            committeeEntry={complianceComments.committees?.[committee.id] || null}
+                            invitationRecords={committeeInvitationRecords}
+                            isDeferred={deferredPerimeterKeys.has(buildPerimeterKey(PERIMETER_TYPE_COMMITTEE, committee.id))}
+                            canBook={canBookCommitteeSessions || canBypassCompliancePerimeter || isCommitteeChair(committee, currentUserEmail)}
+                            isChair={canBypassCompliancePerimeter || isCommitteeChair(committee, currentUserEmail)}
+                            canViewAgenda={canBypassCompliancePerimeter || committeeIdsForUser.has(committee.id)}
+                            onRunAction={onCommitteeSessionAction}
+                            onMovePassage={onMoveCommitteePassage}
+                            onOpenAgenda={onOpenCommitteeAgenda}
+                            renderStatusLabel={(status) => getCommentStatusMeta(status, t)?.label || status}
+                          />
                         )}
 
                         {!isLanguageAcceptedBy(committee.acceptedLanguages, language) && (
