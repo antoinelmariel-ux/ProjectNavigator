@@ -169,10 +169,26 @@ test('un passage dont le projet est introuvable n’est ni invité ni annulé', 
   assert.deepEqual(compute(before, after).map((entry) => entry.passageId), ['x1', 'x2']);
 });
 
-test('un sujet hors projet n’envoie aucune invitation', () => {
+test('un sujet hors projet invite ses intervenants, et seulement s’il en a', () => {
   const before = session();
-  const after = applySessionAction(before, { type: 'addTopic', passageId: 't1', title: 'Point RGPD', minutes: 10 }, { isChair: true, now }).session;
-  assert.deepEqual(compute(before, after).map((entry) => entry.passageId), ['x1', 'x2']);
-  const removed = applySessionAction(after, { type: 'unbook', passageId: 't1' }, { isChair: true, now }).session;
-  assert.deepEqual(compute(after, removed).map((entry) => entry.passageId), ['x1', 'x2']);
+  const withoutPresenter = applySessionAction(before, { type: 'addTopic', passageId: 't1', title: 'Point RGPD', minutes: 10 }, { isChair: true, now }).session;
+  assert.deepEqual(compute(before, withoutPresenter).map((entry) => entry.passageId), ['x1', 'x2']);
+
+  const withPresenter = applySessionAction(withoutPresenter, {
+    type: 'updateTopic',
+    passageId: 't1',
+    patch: { presenterEmails: ['DPO@lfb.fr'] }
+  }, { isChair: true, now }).session;
+  const topicInvitation = compute(withoutPresenter, withPresenter).find((entry) => entry.passageId === 't1');
+  assert.equal(topicInvitation.status, 'active');
+  assert.deepEqual(topicInvitation.attendees, ['dpo@lfb.fr']);
+  assert.equal(topicInvitation.subject, '[Comité Éthique] Agenda item: Point RGPD');
+  assert.equal(topicInvitation.startAt, '2026-11-10T13:00:00.000Z');
+  assert.equal(topicInvitation.projectId, '');
+
+  const presenterRemoved = applySessionAction(withPresenter, { type: 'updateTopic', passageId: 't1', patch: { presenterEmails: [] } }, { isChair: true, now }).session;
+  assert.equal(compute(withPresenter, presenterRemoved).find((entry) => entry.passageId === 't1').status, 'cancelled');
+
+  const topicRemoved = applySessionAction(withPresenter, { type: 'unbook', passageId: 't1' }, { isChair: true, now }).session;
+  assert.equal(compute(withPresenter, topicRemoved).find((entry) => entry.passageId === 't1').status, 'cancelled');
 });

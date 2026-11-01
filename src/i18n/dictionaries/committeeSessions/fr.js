@@ -88,7 +88,8 @@ export default {
     topicTitle: 'Ajouter un sujet à l’ordre du jour',
     topicHint: 'Un point qui n’est pas un projet (information, retour d’expérience, point divers). Il prend du temps de séance comme un projet.',
     topicLabel: 'Sujet',
-    topicPresenterLabel: 'Présenté par (facultatif)',
+    topicPresenterLabel: 'Intervenant(s) — reçoivent l’invitation Outlook',
+    editPresenters: 'Intervenants',
     topicNoteLabel: 'Précision (facultatif)',
     topicButton: 'Ajouter le sujet',
     eyebrow: 'Ordre du jour',
@@ -124,6 +125,7 @@ export default {
     addButton: 'Inscrire',
     overrunConfirm: 'La séance dépassera sa durée de {{minutes}} min. Prolonger la séance d’autant ?',
     feedback: {
+      presentersSaved: 'Intervenants enregistrés.',
       topicAdded: 'Sujet ajouté à l’ordre du jour.',
       topicRemoved: 'Sujet retiré.',
       sessionCancelled: 'Séance annulée, les inscrits sont prévenus.',

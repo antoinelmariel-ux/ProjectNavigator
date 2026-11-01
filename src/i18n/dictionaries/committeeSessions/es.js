@@ -88,7 +88,8 @@ export default {
     topicTitle: 'Añadir un tema al orden del día',
     topicHint: 'Un punto que no es un proyecto (información, retorno de experiencia, varios). Ocupa tiempo de sesión como un proyecto.',
     topicLabel: 'Tema',
-    topicPresenterLabel: 'Presentado por (opcional)',
+    topicPresenterLabel: 'Ponente(s) — reciben la invitación de Outlook',
+    editPresenters: 'Ponentes',
     topicNoteLabel: 'Precisión (opcional)',
     topicButton: 'Añadir el tema',
     eyebrow: 'Orden del día',
@@ -124,6 +125,7 @@ export default {
     addButton: 'Inscribir',
     overrunConfirm: 'La sesión excederá su duración en {{minutes}} min. ¿Prolongar la sesión en consecuencia?',
     feedback: {
+      presentersSaved: 'Ponentes guardados.',
       topicAdded: 'Tema añadido al orden del día.',
       topicRemoved: 'Tema retirado.',
       sessionCancelled: 'Sesión cancelada, se ha avisado a los inscritos.',

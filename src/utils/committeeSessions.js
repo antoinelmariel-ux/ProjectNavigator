@@ -119,6 +119,9 @@ export const normalizePassage = (value = {}) => {
     projectId: kind === PASSAGE_KIND_TOPIC ? '' : toText(value?.projectId),
     title: kind === PASSAGE_KIND_TOPIC ? toText(value?.title) : '',
     presenter: kind === PASSAGE_KIND_TOPIC ? toText(value?.presenter) : '',
+    // Intervenants d'un sujet : ils reçoivent l'invitation Outlook de la séance comme un chef de
+    // projet (committeeInvitations.js). `presenter` reste lu pour les sujets saisis en texte libre.
+    presenterEmails: kind === PASSAGE_KIND_TOPIC ? normalizeEmails(value?.presenterEmails) : [],
     note: kind === PASSAGE_KIND_TOPIC ? toText(value?.note) : '',
     minutes: normalizePassageMinutes(value?.minutes),
     guests: normalizeEmails(value?.guests),
@@ -374,6 +377,7 @@ export const applySessionAction = (rawSession, action = {}, context = {}) => {
         kind: PASSAGE_KIND_TOPIC,
         title,
         presenter: action.presenter,
+        presenterEmails: action.presenterEmails,
         note: action.note,
         minutes: normalizePassageMinutes(action.minutes, MIN_PASSAGE_MINUTES),
         bookedBy: actor,
@@ -397,6 +401,7 @@ export const applySessionAction = (rawSession, action = {}, context = {}) => {
         ...passage,
         ...('title' in patch ? { title: patch.title } : {}),
         ...('presenter' in patch ? { presenter: patch.presenter } : {}),
+        ...('presenterEmails' in patch ? { presenterEmails: patch.presenterEmails } : {}),
         ...('note' in patch ? { note: patch.note } : {})
       }));
       return done({ ok: true, session: next });

@@ -157,8 +157,15 @@ test.describe('Calendrier des comités', () => {
     // Un sujet hors projet prend du temps de séance, comme un projet.
     const topicForm = agenda.getByTestId('committee-agenda-topic-form');
     await topicForm.getByLabel('Sujet', { exact: true }).fill('Point RGPD');
-    await topicForm.getByLabel('Présenté par (facultatif)').fill('DPO');
+    const presenterField = topicForm.getByRole('textbox', { name: /Intervenant/ }).first();
+    await presenterField.fill('dpo@lfb.fr');
+    await presenterField.press('Enter');
     await topicForm.getByRole('button', { name: 'Ajouter le sujet' }).click();
+    await expect(agenda.getByText('Présenté par Dpo')).toBeVisible();
+    await expect
+      .poll(async () => (await readStoredState(page)).committeeSessions
+        ?.find((entry) => entry.id === 'session-chair')?.agenda?.find((passage) => passage.kind === 'topic')?.presenterEmails)
+      .toEqual(['dpo@lfb.fr']);
     await expect(agenda.getByTestId('committee-agenda-passage')).toHaveCount(2);
     await expect(agenda.getByRole('heading', { name: 'Point RGPD' })).toBeVisible();
     await expect(agenda.getByText('40 min attribuées sur 60 min')).toBeVisible();

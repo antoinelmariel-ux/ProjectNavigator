@@ -88,7 +88,8 @@ export default {
     topicTitle: 'Add a topic to the agenda',
     topicHint: 'An item that is not a project (information, feedback, any other business). It takes session time like a project.',
     topicLabel: 'Topic',
-    topicPresenterLabel: 'Presented by (optional)',
+    topicPresenterLabel: 'Speaker(s) — receive the Outlook invitation',
+    editPresenters: 'Speakers',
     topicNoteLabel: 'Details (optional)',
     topicButton: 'Add the topic',
     eyebrow: 'Agenda',
@@ -124,6 +125,7 @@ export default {
     addButton: 'Register',
     overrunConfirm: 'The session will run {{minutes}} min over. Extend the session accordingly?',
     feedback: {
+      presentersSaved: 'Speakers saved.',
       topicAdded: 'Topic added to the agenda.',
       topicRemoved: 'Topic removed.',
       sessionCancelled: 'Session cancelled, registered projects have been notified.',

@@ -561,7 +561,8 @@ Aucune colonne supplémentaire à créer : tout ce dont ce flux a besoin (`Assig
 Étape 2 de la spécification du calendrier des comités (`docs/specs/calendrier-comites.md`).
 Quand un chef de projet (ou le président) inscrit un projet à une séance publiée, le chef de
 projet, ses co-porteurs et ses invités reçoivent une invitation Outlook **sur toute la durée de
-la séance**, envoyée par la boîte partagée des comités. Elle est mise à jour si la séance est
+la séance**, envoyée par la boîte partagée des comités. Les intervenants d'un sujet hors projet
+ajouté par le président la reçoivent aussi (même flux, même liste : rien de plus à configurer). Elle est mise à jour si la séance est
 déplacée ou prolongée ou si les invités changent, et annulée si le passage est retiré ou la séance
 annulée. Changer l'ordre de passage ou la durée d'un passage ne renvoie **rien** : l'invitation
 ne mentionne ni l'un ni l'autre.

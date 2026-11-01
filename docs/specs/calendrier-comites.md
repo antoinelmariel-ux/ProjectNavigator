@@ -91,10 +91,11 @@ Sur **tous** les projets de ses séances :
 - **Annuler** un passage, avec un motif transmis au chef de projet.
 - **Saisir les présences** (§8).
 - **Ajouter un sujet hors projet** à l'ordre du jour (point d'information, retour d'expérience,
-  point divers) : un intitulé, une durée (10 min par défaut), un intervenant et une précision
+  point divers) : un intitulé, une durée (10 min par défaut), des intervenants et une précision
   facultatifs. Il prend du temps de séance comme un projet, se réordonne, se redimensionne et se
-  retire de la même façon, mais n'a ni porteur, ni invitation Outlook, ni présences propres, et ne
-  prévient personne.
+  retire de la même façon, mais n'a ni porteur ni présences propres. Ses **intervenants reçoivent
+  l'invitation Outlook** de la séance (étape 2), comme un chef de projet ; un sujet sans
+  intervenant n'invite personne. Aucun mail n'est envoyé pour un sujet.
 - **Annuler la séance**, depuis le back-office ou directement depuis la page « Ordre du jour » :
   les inscrits sont prévenus et leurs invitations Outlook annulées (étape 2).
 - **Demander un nouveau passage** à l'issue d'un passage : le chef de projet est prévenu et

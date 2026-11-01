@@ -88,7 +88,8 @@ export default {
     topicTitle: 'Thema zur Tagesordnung hinzufügen',
     topicHint: 'Ein Punkt, der kein Projekt ist (Information, Erfahrungsbericht, Verschiedenes). Er belegt Sitzungszeit wie ein Projekt.',
     topicLabel: 'Thema',
-    topicPresenterLabel: 'Vorgestellt von (optional)',
+    topicPresenterLabel: 'Vortragende — erhalten die Outlook-Einladung',
+    editPresenters: 'Vortragende',
     topicNoteLabel: 'Details (optional)',
     topicButton: 'Thema hinzufügen',
     eyebrow: 'Tagesordnung',
@@ -124,6 +125,7 @@ export default {
     addButton: 'Anmelden',
     overrunConfirm: 'Die Sitzung wird um {{minutes}} Min. überzogen. Sitzung entsprechend verlängern?',
     feedback: {
+      presentersSaved: 'Vortragende gespeichert.',
       topicAdded: 'Thema zur Tagesordnung hinzugefügt.',
       topicRemoved: 'Thema entfernt.',
       sessionCancelled: 'Sitzung abgesagt, die Angemeldeten wurden informiert.',

@@ -591,8 +591,11 @@ in the synthesis committee block, `CommitteeAgendaScreen` = screen `committee-ag
   is rendered after a passage started; they travel in `ClaimJson.review` and are carried over by
   `perimeterReview.js`/`mergeComplianceComments.js` like the opinion date.
 - **Agenda topics**: a passage is `kind: 'project'` (default) or `'topic'` — a chair-only free
-  item (`addTopic`/`updateTopic`, `title`/`presenter`/`note`) that takes session time like a
-  project but has no `projectId`, no invitation, no attendance and notifies nobody. Every pass that
+  item (`addTopic`/`updateTopic`, `title`/`presenterEmails`/`note`; legacy free-text `presenter`
+  still displayed) that takes session time like a project but has no `projectId`, no attendance
+  and sends no mail. Its `presenterEmails` get the session's Outlook invitation
+  (`buildTopicInvitation`); a topic without presenters invites nobody, and clearing them cancels
+  the invitation already sent. Every pass that
   looks for a project's passages filters on `projectId`, so topics fall out by construction; count
   « projects » with `kind !== 'topic'`. The chair can also cancel the session from the agenda page.
 - **Several passages per project and committee** (numbered, history in the synthesis); an owner

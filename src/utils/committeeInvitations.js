@@ -99,6 +99,41 @@ export const buildPassageInvitation = ({ session, passage, committee, project, p
   };
 };
 
+// Un sujet hors projet invite ses intervenants (pas de porteur, pas de lien vers un projet).
+export const buildTopicInvitation = ({ session, passage, committee }) => {
+  const normalizedSession = normalizeSession(session);
+  const committeeName = committee?.name || normalizedSession.committeeId;
+  const location = normalizedSession.location;
+  const lines = [
+    `<p>You are presenting the agenda item <strong>${escapeHtml(passage.title)}</strong> at a session of <strong>${escapeHtml(committeeName)}</strong>.</p>`,
+    `<p>Session: ${escapeHtml(formatEnglishWindow(normalizedSession))}.</p>`,
+    '<p>Please keep the whole session free: the running order may change until the last moment, and the chair will call you in.</p>'
+  ];
+  if (passage.note) {
+    lines.push(`<p>${escapeHtml(passage.note)}</p>`);
+  }
+  if (isHttpUrl(location)) {
+    lines.push(`<p><a href="${escapeHtml(location)}">Join the meeting</a></p>`);
+  }
+  return {
+    id: buildInvitationId(normalizedSession.id, passage.id),
+    sessionId: normalizedSession.id,
+    passageId: passage.id,
+    projectId: '',
+    committeeId: normalizedSession.committeeId,
+    status: INVITATION_STATUS_ACTIVE,
+    subject: `[${committeeName}] Agenda item: ${passage.title}`,
+    bodyHtml: lines.join(''),
+    startAt: normalizedSession.startAt,
+    endAt: getSessionEndAt(normalizedSession),
+    location,
+    attendees: getInvitationAttendees(null, { guests: passage.presenterEmails })
+  };
+};
+
+const isTopic = (passage) => passage.kind === PASSAGE_KIND_TOPIC;
+const hasPresenters = (passage) => Array.isArray(passage.presenterEmails) && passage.presenterEmails.length > 0;
+
 const cancelledFrom = (invitation) => ({ ...invitation, status: INVITATION_STATUS_CANCELLED });
 
 // Ce qui change dans Outlook quand une séance passe de `before` à `after` : une invitation active
@@ -120,20 +155,30 @@ export const computeSessionInvitations = ({
     return [];
   }
 
-  const build = (session, passage) => buildPassageInvitation({
+  const build = (session, passage) => (isTopic(passage) ? buildTopicInvitation({ session, passage, committee }) : buildPassageInvitation({
     session,
     passage,
     committee,
     project: projectsById.get(passage.projectId) || null,
     projectUrl: buildProjectUrl(passage.projectId)
-  });
+  }));
 
   const nextInvitable = next ? isSessionInvitable(next, now) : false;
   const activeIds = new Set();
   const invitations = [];
 
   if (next && nextInvitable) {
-    next.agenda.filter((passage) => passage.kind !== PASSAGE_KIND_TOPIC).forEach((passage) => {
+    next.agenda.forEach((passage) => {
+      if (isTopic(passage)) {
+        // Un sujet n'invite que s'il a des intervenants ; sans eux, une invitation déjà envoyée
+        // est annulée plus bas.
+        if (hasPresenters(passage)) {
+          const invitation = build(next, passage);
+          activeIds.add(invitation.id);
+          invitations.push(invitation);
+        }
+        return;
+      }
       const invitation = build(next, passage);
       // Projet introuvable (pas encore chargé, supprimé) : on ne décide rien pour lui, ni
       // invitation ni annulation.
@@ -148,7 +193,7 @@ export const computeSessionInvitations = ({
   const formerPassages = [
     ...(previous ? previous.agenda.map((passage) => ({ session: previous, passage })) : []),
     ...(next && !nextInvitable ? next.agenda.map((passage) => ({ session: next, passage })) : [])
-  ].filter(({ passage }) => passage.kind !== PASSAGE_KIND_TOPIC);
+  ].filter(({ passage }) => !isTopic(passage) || hasPresenters(passage));
   const cancelled = new Set();
   formerPassages.forEach(({ session, passage }) => {
     const id = buildInvitationId(session.id, passage.id);

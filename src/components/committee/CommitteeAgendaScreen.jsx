@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from '../../react.js';
 import { useTranslation } from '../../i18n/LanguageContext.jsx';
 import { CommitteeAttendance } from './CommitteeAttendance.jsx';
+import { PeoplePicker } from '../PeoplePicker.jsx';
 import { InvitationBadge } from './InvitationBadge.jsx';
 import { buildInvitationId } from '../../utils/committeeInvitations.js';
 import {
@@ -75,7 +76,8 @@ export const CommitteeAgendaScreen = ({
   const [minutesDrafts, setMinutesDrafts] = useState({});
   const [moveTargets, setMoveTargets] = useState({});
   const [candidateId, setCandidateId] = useState('');
-  const [topicDraft, setTopicDraft] = useState({ title: '', minutes: '10', presenter: '', note: '' });
+  const [topicDraft, setTopicDraft] = useState({ title: '', minutes: '10', presenterEmails: [], note: '' });
+  const [openTopicEditor, setOpenTopicEditor] = useState('');
 
   const members = useMemo(() => getCommitteeMemberEmails(committee), [committee]);
   const chairs = useMemo(() => getCommitteeChairEmails(committee), [committee]);
@@ -267,14 +269,44 @@ export const CommitteeAgendaScreen = ({
                     <h3 className="text-base font-semibold text-gray-900">
                       {isTopic ? passage.title : project?.projectName || t('committeeSessions.agenda.unknownProject')}
                     </h3>
-                    {isTopic && (passage.presenter || passage.note) && (
-                      <p className="text-xs text-gray-600">
-                        {passage.presenter && t('committeeSessions.agenda.topicPresenter', { presenter: passage.presenter })}
-                        {passage.presenter && passage.note && ' · '}
-                        {passage.note}
-                      </p>
+                    {isTopic && (() => {
+                      const presenterLabel = passage.presenterEmails.length > 0
+                        ? passage.presenterEmails.map(getDisplayNameFromEmail).join(', ')
+                        : passage.presenter;
+                      return (presenterLabel || passage.note) ? (
+                        <p className="text-xs text-gray-600">
+                          {presenterLabel && t('committeeSessions.agenda.topicPresenter', { presenter: presenterLabel })}
+                          {presenterLabel && passage.note && ' · '}
+                          {passage.note}
+                        </p>
+                      ) : null;
+                    })()}
+                    <InvitationBadge record={invitationRecords[buildInvitationId(session.id, passage.id)]} />
+                    {isTopic && isChair && !isCancelled && (
+                      <div className="mt-2">
+                        <button
+                          type="button"
+                          aria-expanded={openTopicEditor === passage.id}
+                          onClick={() => setOpenTopicEditor((value) => (value === passage.id ? '' : passage.id))}
+                          className="text-xs font-semibold text-blue-700 hover:text-blue-800"
+                        >
+                          {t('committeeSessions.agenda.editPresenters')}
+                        </button>
+                        {openTopicEditor === passage.id && (
+                          <div className="mt-2 max-w-md">
+                            <PeoplePicker
+                              id={`agenda-topic-presenters-${passage.id}`}
+                              value={passage.presenterEmails}
+                              ariaLabel={t('committeeSessions.agenda.topicPresenterLabel')}
+                              placeholder={t('committeeSessions.panel.guestsPlaceholder')}
+                              context="committee-session-guest"
+                              requestSiteAccess={false}
+                              onChange={(next) => run({ type: 'updateTopic', passageId: passage.id, patch: { presenterEmails: next } }, 'presentersSaved')}
+                            />
+                          </div>
+                        )}
+                      </div>
                     )}
-                    {!isTopic && <InvitationBadge record={invitationRecords[buildInvitationId(session.id, passage.id)]} />}
                     {project?.ownerEmail && (
                       <p className="text-xs text-gray-600">
                         {t('committeeSessions.agenda.owner', { owner: getDisplayNameFromEmail(project.ownerEmail) })}
@@ -492,11 +524,11 @@ export const CommitteeAgendaScreen = ({
               type: 'addTopic',
               title: topicDraft.title,
               minutes: Number(topicDraft.minutes) || MIN_PASSAGE_MINUTES,
-              presenter: topicDraft.presenter,
+              presenterEmails: topicDraft.presenterEmails,
               note: topicDraft.note
             }, 'topicAdded').then((result) => {
               if (result?.ok) {
-                setTopicDraft({ title: '', minutes: '10', presenter: '', note: '' });
+                setTopicDraft({ title: '', minutes: '10', presenterEmails: [], note: '' });
               }
             });
           }}
@@ -519,12 +551,14 @@ export const CommitteeAgendaScreen = ({
             </div>
             <div>
               <label htmlFor="committee-agenda-topic-presenter" className="block text-xs font-medium text-gray-700 mb-1">{t('committeeSessions.agenda.topicPresenterLabel')}</label>
-              <input
+              <PeoplePicker
                 id="committee-agenda-topic-presenter"
-                type="text"
-                value={topicDraft.presenter}
-                onChange={(event) => setTopicDraft((prev) => ({ ...prev, presenter: event.target.value }))}
-                className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
+                value={topicDraft.presenterEmails}
+                ariaLabel={t('committeeSessions.agenda.topicPresenterLabel')}
+                placeholder={t('committeeSessions.panel.guestsPlaceholder')}
+                context="committee-session-guest"
+                requestSiteAccess={false}
+                onChange={(next) => setTopicDraft((prev) => ({ ...prev, presenterEmails: next }))}
               />
             </div>
             <div>
