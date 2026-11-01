@@ -142,6 +142,10 @@ export default {
   calendar: {
     title: 'Calendario de sesiones',
     subtitle: 'Haga clic en una fecha para ver el orden del día de la sesión.',
+    planHere: 'Planificar una sesión este día',
+    planAnother: 'Añadir otra sesión este día',
+    planButton: 'Crear como borrador',
+    planDuplicate: 'Ya existe una sesión a esta hora para este comité.',
     generatorTitle: 'Planificar sesiones',
     generatorHint: 'Generar sesiones a partir de una regla o añadir una sola.',
     generatorCommittee: 'Comité',

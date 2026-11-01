@@ -142,6 +142,10 @@ export default {
   calendar: {
     title: 'Calendrier des séances',
     subtitle: 'Cliquez sur une date pour voir l’ordre du jour de la séance.',
+    planHere: 'Planifier une séance ce jour',
+    planAnother: 'Ajouter une autre séance ce jour',
+    planButton: 'Créer en brouillon',
+    planDuplicate: 'Une séance existe déjà à cette heure pour ce comité.',
     generatorTitle: 'Planifier des séances',
     generatorHint: 'Générer des séances à partir d’une règle, ou en ajouter une isolée.',
     generatorCommittee: 'Comité',

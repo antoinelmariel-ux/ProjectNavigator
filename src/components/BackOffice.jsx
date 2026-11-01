@@ -7621,6 +7621,7 @@ export const BackOffice = ({
                     onRunAction={onCommitteeSessionAction}
                     onDeleteDraft={onDeleteCommitteeDraftSession}
                     onOpenAgenda={onOpenCommitteeAgenda}
+                    onCreateSessions={onCreateCommitteeSessions}
                     focusSession={focusedCommitteeSession}
                   />
                   <CommitteeSessionsGenerator

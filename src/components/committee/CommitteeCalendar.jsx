@@ -2,10 +2,12 @@ import React, { useMemo, useState } from '../../react.js';
 import { useTranslation } from '../../i18n/LanguageContext.jsx';
 import { getLocaleTag } from '../../i18n/languages.js';
 import {
+  DEFAULT_SESSION_MINUTES,
   PASSAGE_KIND_TOPIC,
   SESSION_STATUS_CANCELLED,
   SESSION_STATUS_DRAFT,
   SESSION_STATUS_PUBLISHED,
+  buildDraftSessions,
   buildSessionTimeline,
   getAllocatedMinutes,
   getRemainingMinutes,
@@ -54,6 +56,89 @@ const getWeekdayLabels = (language) => {
   return Array.from({ length: 7 }, (_, index) => formatter.format(new Date(2026, 0, 5 + index)));
 };
 
+// Création d'une séance en brouillon à la date cliquée : seul le comité, l'heure, la durée et le
+// lieu restent à saisir. La séance n'ouvre les inscriptions qu'une fois publiée.
+const PlanOnDayForm = ({ dayKey, committees, sessions, onCreate }) => {
+  const { t } = useTranslation();
+  const [committeeId, setCommitteeId] = useState(committees[0]?.id || '');
+  const [time, setTime] = useState('14:00');
+  const [durationMinutes, setDurationMinutes] = useState(DEFAULT_SESSION_MINUTES);
+  const [location, setLocation] = useState('');
+  const selectedId = committees.some((committee) => committee.id === committeeId) ? committeeId : (committees[0]?.id || '');
+  const day = fromDayKey(dayKey);
+  const [hours, minutes] = time.split(':').map(Number);
+  const startAt = day && Number.isFinite(hours) && Number.isFinite(minutes)
+    ? new Date(day.getFullYear(), day.getMonth(), day.getDate(), hours, minutes).toISOString()
+    : '';
+  const drafts = startAt
+    ? buildDraftSessions({
+      committeeId: selectedId,
+      dates: [startAt],
+      durationMinutes,
+      location,
+      existingSessions: sessions.filter((session) => session.committeeId === selectedId)
+    })
+    : [];
+  const fieldClass = 'w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-sm';
+  const idPrefix = `committee-plan-${dayKey}`;
+
+  return (
+    <div className="space-y-3" data-testid="committee-plan-here">
+      <p className="text-sm font-semibold text-gray-800">{t('committeeSessions.calendar.planHere')}</p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {committees.length > 1 && (
+          <div className="sm:col-span-2">
+            <label htmlFor={`${idPrefix}-committee`} className="mb-1 block text-xs font-medium text-gray-700">{t('committeeSessions.calendar.generatorCommittee')}</label>
+            <select id={`${idPrefix}-committee`} value={selectedId} onChange={(event) => setCommitteeId(event.target.value)} className={fieldClass}>
+              {committees.map((committee) => (
+                <option key={committee.id} value={committee.id}>{committee.name || committee.id}</option>
+              ))}
+            </select>
+          </div>
+        )}
+        <div>
+          <label htmlFor={`${idPrefix}-time`} className="mb-1 block text-xs font-medium text-gray-700">{t('committeeSessions.planner.time')}</label>
+          <input id={`${idPrefix}-time`} type="time" value={time} onChange={(event) => setTime(event.target.value)} className={fieldClass} />
+        </div>
+        <div>
+          <label htmlFor={`${idPrefix}-duration`} className="mb-1 block text-xs font-medium text-gray-700">{t('committeeSessions.planner.duration')}</label>
+          <input
+            id={`${idPrefix}-duration`}
+            type="number"
+            min="10"
+            step="5"
+            value={durationMinutes}
+            onChange={(event) => setDurationMinutes(Number(event.target.value))}
+            className={fieldClass}
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <label htmlFor={`${idPrefix}-location`} className="mb-1 block text-xs font-medium text-gray-700">{t('committeeSessions.planner.location')}</label>
+          <input
+            id={`${idPrefix}-location`}
+            type="text"
+            value={location}
+            placeholder={t('committeeSessions.planner.locationPlaceholder')}
+            onChange={(event) => setLocation(event.target.value)}
+            className={fieldClass}
+          />
+        </div>
+      </div>
+      <button
+        type="button"
+        disabled={drafts.length === 0}
+        onClick={() => onCreate(drafts)}
+        className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+      >
+        {t('committeeSessions.calendar.planButton')}
+      </button>
+      {drafts.length === 0 && startAt && (
+        <p className="text-xs text-gray-500">{t('committeeSessions.calendar.planDuplicate')}</p>
+      )}
+    </div>
+  );
+};
+
 // Calendrier des séances de tous les comités (vue mensuelle, centrée sur aujourd'hui). Un clic sur
 // un jour affiche, à côté, l'ordre du jour de chaque séance de ce jour ; le président, le
 // co-président et les administrateurs y publient, modifient ou annulent la séance.
@@ -66,6 +151,7 @@ export const CommitteeCalendar = ({
   onRunAction,
   onDeleteDraft,
   onOpenAgenda,
+  onCreateSessions,
   focusSession = null
 }) => {
   const { t, language } = useTranslation();
@@ -320,6 +406,21 @@ export const CommitteeCalendar = ({
     );
   };
 
+  const plannableCommittees = committees.filter((committee) => canManageCommittee(committee));
+  const canPlanOnSelectedDay = typeof onCreateSessions === 'function'
+    && plannableCommittees.length > 0
+    && Boolean(selectedDate)
+    && selectedDay >= todayKey;
+  const planOnDay = canPlanOnSelectedDay ? (
+    <PlanOnDayForm
+      key={selectedDay}
+      dayKey={selectedDay}
+      committees={plannableCommittees}
+      sessions={sessions}
+      onCreate={(drafts) => onCreateSessions(drafts).then((result) => report(result, 'added'))}
+    />
+  ) : null;
+
   const unbookedTotal = committees.reduce((total, committee) => total + (unbookedByCommittee[committee.id] || 0), 0);
 
   return (
@@ -469,11 +570,22 @@ export const CommitteeCalendar = ({
             <>
               <h4 className="text-sm font-semibold text-gray-900">{capitalize(formatSessionDay(selectedDate.toISOString(), language))}</h4>
               {selectedSessions.length === 0 ? (
-                <p className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
-                  {t('committeeSessions.calendar.noSessionThisDay')}
-                </p>
+                <>
+                  <p className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
+                    {t('committeeSessions.calendar.noSessionThisDay')}
+                  </p>
+                  {planOnDay && <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">{planOnDay}</div>}
+                </>
               ) : (
-                selectedSessions.map(renderSession)
+                <>
+                  {selectedSessions.map(renderSession)}
+                  {planOnDay && (
+                    <details className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+                      <summary className="cursor-pointer text-xs font-semibold text-blue-800">{t('committeeSessions.calendar.planAnother')}</summary>
+                      <div className="mt-3">{planOnDay}</div>
+                    </details>
+                  )}
+                </>
               )}
             </>
           ) : (

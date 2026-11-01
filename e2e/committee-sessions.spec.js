@@ -87,6 +87,34 @@ test.describe('Calendrier des comités', () => {
       .toEqual(['published']);
   });
 
+  test('le président planifie une séance en cliquant sur une case vide du calendrier', async ({ page }) => {
+    test.slow();
+    await seedCommittee(page, { president: MOCK_USER, members: [MOCK_USER, 'membre@lfb.fr'] });
+    await gotoHome(page);
+    await grantAdminAccess(page);
+
+    await page.getByRole('tab', { name: /Comités de validation/ }).click();
+    const target = new Date(daysFromNow(2));
+    if (target.getMonth() !== new Date().getMonth()) {
+      await page.getByRole('button', { name: 'Mois suivant' }).click();
+    }
+    const pad = (value) => String(value).padStart(2, '0');
+    const dayKey = `${target.getFullYear()}-${pad(target.getMonth() + 1)}-${pad(target.getDate())}`;
+    await page.locator(`button[data-day="${dayKey}"]`).click();
+
+    const day = page.getByTestId('committee-calendar-day');
+    await expect(day.getByText('Aucune séance ce jour.')).toBeVisible();
+    await day.getByRole('button', { name: 'Créer en brouillon' }).click();
+
+    await expect(day.getByTestId('committee-planner-session')).toHaveCount(1);
+    await expect(day.getByText('Brouillon', { exact: true })).toBeVisible();
+    await expect(page.locator(`button[data-day="${dayKey}"]`)).toContainText('14:00');
+
+    await expect
+      .poll(async () => (await readStoredState(page)).committeeSessions?.map((session) => session.status))
+      .toEqual(['draft']);
+  });
+
   test('le chef de projet ne voit que les séances ouvertes, s’inscrit et demande plus de temps', async ({ page }) => {
     test.slow();
     await seedCommittee(page, {

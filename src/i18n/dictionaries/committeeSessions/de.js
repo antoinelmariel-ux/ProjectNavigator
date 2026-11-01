@@ -142,6 +142,10 @@ export default {
   calendar: {
     title: 'Sitzungskalender',
     subtitle: 'Klicken Sie auf ein Datum, um die Tagesordnung der Sitzung zu sehen.',
+    planHere: 'Sitzung an diesem Tag planen',
+    planAnother: 'Weitere Sitzung an diesem Tag hinzufügen',
+    planButton: 'Als Entwurf anlegen',
+    planDuplicate: 'Für diesen Ausschuss gibt es zu dieser Uhrzeit bereits eine Sitzung.',
     generatorTitle: 'Sitzungen planen',
     generatorHint: 'Sitzungen aus einer Regel erzeugen oder eine einzelne hinzufügen.',
     generatorCommittee: 'Ausschuss',

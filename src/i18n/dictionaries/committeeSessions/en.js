@@ -142,6 +142,10 @@ export default {
   calendar: {
     title: 'Session calendar',
     subtitle: 'Click a date to see the session agenda.',
+    planHere: 'Plan a session on this day',
+    planAnother: 'Add another session on this day',
+    planButton: 'Create as draft',
+    planDuplicate: 'A session already exists at this time for this committee.',
     generatorTitle: 'Plan sessions',
     generatorHint: 'Generate sessions from a rule, or add a single one.',
     generatorCommittee: 'Committee',
