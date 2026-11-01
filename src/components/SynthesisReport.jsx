@@ -670,6 +670,7 @@ export const SynthesisReport = ({
   validationCommitteeConfig = null,
   focusPerimeter = null,
   committeeSessions = [],
+  committeeInvitationRecords = {},
   canBookCommitteeSessions = false,
   onCommitteeSessionAction,
   onMoveCommitteePassage,
@@ -3677,6 +3678,7 @@ export const SynthesisReport = ({
                             projectId={projectId}
                             sessions={committeeSessions}
                             committeeEntry={complianceComments.committees?.[committee.id] || null}
+                            invitationRecords={committeeInvitationRecords}
                             isDeferred={deferredPerimeterKeys.has(buildPerimeterKey(PERIMETER_TYPE_COMMITTEE, committee.id))}
                             canBook={canBookCommitteeSessions || canBypassCompliancePerimeter || isCommitteeChair(committee, currentUserEmail)}
                             isChair={canBypassCompliancePerimeter || isCommitteeChair(committee, currentUserEmail)}

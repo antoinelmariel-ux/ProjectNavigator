@@ -236,6 +236,41 @@ export const LIST_SCHEMAS = {
     numbers: ['DurationMinutes', 'RowVersion'],
     booleans: []
   },
+  // Une ligne par invitation Outlook d'un chef de projet à une séance de comité
+  // (committeeInvitations.js) : l'invitation telle qu'elle doit être. L'application écrit les
+  // colonnes de description et incrémente `Revision` ; le flux Power Automate n'écrit que
+  // `OutlookEventId`, `ProcessedRevision`, `SyncState`, `ErrorMessage` et `ProcessedAt`. Les deux
+  // n'écrivent jamais la même colonne, et le flux ne se redéclenche pas sur sa propre écriture
+  // (condition de déclenchement Revision ≠ ProcessedRevision).
+  committeeInvitations: {
+    keyField: 'InvitationId',
+    columns: [
+      'Title',
+      'InvitationId',
+      'SessionId',
+      'PassageId',
+      'ProjectId',
+      'CommitteeId',
+      'Status',
+      'Subject',
+      'BodyHtml',
+      'StartAt',
+      'EndAt',
+      'Location',
+      'Attendees',
+      'Revision',
+      'ProcessedRevision',
+      'OutlookEventId',
+      'SyncState',
+      'ErrorMessage',
+      'ProcessedAt',
+      'UpdatedByEmail',
+      'UpdatedAt'
+    ],
+    json: {},
+    numbers: ['Revision', 'ProcessedRevision'],
+    booleans: []
+  },
   // Une ligne par règle : la structure (conditions imbriquées, questions par équipe, risques
   // i18n) est trop profonde pour un mapping colonne par colonne, donc l'objet entier voyage
   // dans PayloadJson — RuleId/Title n'existent que pour l'indexation et la lecture dans SharePoint.

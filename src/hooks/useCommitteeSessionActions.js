@@ -19,7 +19,8 @@ export const useCommitteeSessionActions = ({
   committeesById,
   currentUserEmail,
   isAdmin,
-  onEvent
+  onEvent,
+  onSessionChanged
 }) => {
   const sessionsRef = useRef(sessions);
   useEffect(() => {
@@ -73,8 +74,11 @@ export const useCommitteeSessionActions = ({
     if (result?.ok && typeof onEvent === 'function') {
       onEvent({ action, before: current, after: result.session, result, committee });
     }
+    if (result?.ok && typeof onSessionChanged === 'function') {
+      onSessionChanged({ before: current, after: result.session, committee });
+    }
     return result || { ok: false, error: 'unknown' };
-  }, [buildContext, committeesById, currentUserEmail, onEvent, replaceSessions]);
+  }, [buildContext, committeesById, currentUserEmail, onEvent, onSessionChanged, replaceSessions]);
 
   const createSessions = useCallback(async (drafts) => {
     const list = (Array.isArray(drafts) ? drafts : []).map(normalizeSession);

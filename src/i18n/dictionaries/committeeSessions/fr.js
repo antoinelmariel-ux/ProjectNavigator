@@ -1,6 +1,7 @@
 // Calendrier des comités (docs/specs/calendrier-comites.md).
 export default {
   status: { draft: 'Brouillon', published: 'Publiée', cancelled: 'Annulée' },
+  invitation: { pending: 'Invitation Outlook en cours d’envoi', done: 'Invitation Outlook envoyée', error: 'Invitation Outlook en erreur' },
   errors: {
     full: 'Cette séance n’a plus assez de temps libre. Choisissez-en une autre.',
     closed: 'Les inscriptions à cette séance sont closes (moins de 3 jours avant la séance, ou séance non publiée).',

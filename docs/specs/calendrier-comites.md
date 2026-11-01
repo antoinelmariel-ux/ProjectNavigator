@@ -1,7 +1,8 @@
 # Calendrier des comités — spécification
 
-Statut : **étape 1 livrée** (application) — voir §13. Les invitations Outlook (étapes 2 et 3)
-restent à construire côté Power Automate. Points ouverts : §14.
+Statut : **étape 1 livrée** (application) ; **étape 2 livrée côté application** (`CN_CommitteeInvitations`),
+le flux Power Automate est décrit dans `PREPARATION-SHAREPOINT-POWERAUTOMATE.md` (étape 5 quater) et
+reste à construire et tester. Étape 3 à faire. Points ouverts : §14.
 
 ## 1. Objectif
 
@@ -207,12 +208,16 @@ ligne versionnée (`RowVersion`, `ConflictError` comme pour les projets), la sec
 refusée, l'application relit et revérifie le temps restant. Volume faible (quelques passages par
 séance), donc pas de contention réelle.
 
-### `CN_CommitteeInvitations` — une ligne par invitation à produire (flux, étape 2 — pas encore créée)
+### `CN_CommitteeInvitations` — l'invitation Outlook de chaque passage (étape 2)
 
-`InvitationId`, `SessionId`, `PassageId` (vide pour l'invitation des membres), `Action`
-(`create`/`update`/`cancel`), `AttendeesJson`, `StartAt`, `EndAt`, `OutlookEventId` (écrit par le
-flux), `ProcessedAt`. L'application est seule à écrire `CN_CommitteeSessions` ; les flux
-n'écrivent que cette liste, ce qui évite qu'un flux et un président écrivent la même ligne.
+Une ligne par passage (`InvitationId` = `<séance>::<passage>`), qui décrit l'invitation **telle
+qu'elle doit être** plutôt qu'une suite d'ordres : `Status` (`active`/`cancelled`), objet, texte,
+`StartAt`/`EndAt` (toute la séance), `Location`, `Attendees` (porteur, co-porteurs, invités).
+L'application incrémente `Revision` à chaque changement réel ; le flux réconcilie Outlook et écrit
+`OutlookEventId`, `ProcessedRevision`, `SyncState`, `ErrorMessage`, `ProcessedAt`. Un état plutôt
+qu'un ordre rend le flux rejouable sans dégât. L'application est seule à écrire
+`CN_CommitteeSessions` ; le flux n'écrit que ses colonnes de cette liste. Logique :
+`src/utils/committeeInvitations.js`.
 
 ### Dans le projet (`answers.__compliance_team_comments__.committees[id]`)
 

@@ -600,7 +600,20 @@ in the synthesis committee block, `CommitteeAgendaScreen` = screen `committee-ag
   cancel; reordering and guest changes notify nobody. Reminders (owner J-7/J-1, chair 4 weeks
   before the last published session) run in-app in **both** modes: the marker is written on the
   session first (`markReminderSent` fails with `alreadySent` on a re-read row), then the mail goes.
-- Tests: `test/committeeSessions*.test.mjs`, `e2e/committee-sessions.spec.js`.
+- **Outlook invitations for owners (step 2)** — `src/utils/committeeInvitations.js` +
+  `committeeInvitationsProvider.js`, list `CN_CommitteeInvitations`. After every successful
+  session action, `onSessionChanged` → `computeSessionInvitations(before, after)` describes each
+  passage's invitation **as it should be** (whole session window, owner + co-owners + guests,
+  `active`/`cancelled`) and `committeeInvitationsQueueRef` (a `retryQueue`, SharePoint mode only,
+  never in simulation) writes it only when its fingerprint changed, bumping `Revision`. The Power
+  Automate flow (PREPARATION doc, étape 5 quater) reconciles Outlook and writes back only its own
+  columns (`ProcessedRevision`, `OutlookEventId`, `SyncState`…); its trigger condition
+  `Revision ≠ ProcessedRevision` stops it re-triggering on itself. The invitation body carries
+  neither the running order nor the passage length, so reordering/resizing sends nothing. A
+  passage whose project isn't loaded is neither invited nor cancelled. `InvitationBadge` shows the
+  flow's result on the agenda and in the synthesis panel.
+- Tests: `test/committeeSessions*.test.mjs`, `test/committeeInvitations.test.mjs`,
+  `e2e/committee-sessions.spec.js`.
 
 ## The final round before launch (and why it cannot block anything)
 

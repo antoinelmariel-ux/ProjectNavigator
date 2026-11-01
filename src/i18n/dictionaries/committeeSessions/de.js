@@ -1,6 +1,7 @@
 // Sitzungskalender der Ausschüsse (docs/specs/calendrier-comites.md).
 export default {
   status: { draft: 'Entwurf', published: 'Veröffentlicht', cancelled: 'Abgesagt' },
+  invitation: { pending: 'Outlook-Einladung wird gesendet', done: 'Outlook-Einladung gesendet', error: 'Outlook-Einladung fehlgeschlagen' },
   errors: {
     full: 'Diese Sitzung hat nicht mehr genug freie Zeit. Wählen Sie eine andere.',
     closed: 'Die Anmeldung zu dieser Sitzung ist geschlossen (weniger als 3 Tage vorher oder Sitzung nicht veröffentlicht).',

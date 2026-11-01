@@ -1,6 +1,7 @@
 // Committee calendar (docs/specs/calendrier-comites.md).
 export default {
   status: { draft: 'Draft', published: 'Published', cancelled: 'Cancelled' },
+  invitation: { pending: 'Outlook invitation being sent', done: 'Outlook invitation sent', error: 'Outlook invitation failed' },
   errors: {
     full: 'This session no longer has enough free time. Choose another one.',
     closed: 'Registration for this session is closed (less than 3 days before the session, or session not published).',

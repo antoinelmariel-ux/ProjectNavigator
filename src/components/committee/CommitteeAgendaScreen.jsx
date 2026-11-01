@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from '../../react.js';
 import { useTranslation } from '../../i18n/LanguageContext.jsx';
 import { CommitteeAttendance } from './CommitteeAttendance.jsx';
+import { InvitationBadge } from './InvitationBadge.jsx';
+import { buildInvitationId } from '../../utils/committeeInvitations.js';
 import {
   MIN_PASSAGE_MINUTES,
   PASSAGE_STEP_MINUTES,
@@ -57,6 +59,7 @@ export const CommitteeAgendaScreen = ({
   teams = [],
   validationCommitteeConfig,
   candidateProjects = [],
+  invitationRecords = {},
   isChair = false,
   canView = false,
   onRunAction,
@@ -234,6 +237,7 @@ export const CommitteeAgendaScreen = ({
                     <h3 className="text-base font-semibold text-gray-900">
                       {project?.projectName || t('committeeSessions.agenda.unknownProject')}
                     </h3>
+                    <InvitationBadge record={invitationRecords[buildInvitationId(session.id, passage.id)]} />
                     {project?.ownerEmail && (
                       <p className="text-xs text-gray-600">
                         {t('committeeSessions.agenda.owner', { owner: getDisplayNameFromEmail(project.ownerEmail) })}

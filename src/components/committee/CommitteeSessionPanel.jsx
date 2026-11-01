@@ -2,6 +2,8 @@ import React, { useMemo, useState } from '../../react.js';
 import { useTranslation } from '../../i18n/LanguageContext.jsx';
 import { PeoplePicker } from '../PeoplePicker.jsx';
 import { CommitteeAttendance } from './CommitteeAttendance.jsx';
+import { InvitationBadge } from './InvitationBadge.jsx';
+import { buildInvitationId } from '../../utils/committeeInvitations.js';
 import {
   DEFAULT_PASSAGE_MINUTES,
   SESSION_STATUS_CANCELLED,
@@ -27,6 +29,7 @@ export const CommitteeSessionPanel = ({
   projectId,
   sessions = [],
   committeeEntry = null,
+  invitationRecords = {},
   isDeferred = false,
   canBook = false,
   isChair = false,
@@ -187,8 +190,9 @@ export const CommitteeSessionPanel = ({
 
       {upcoming ? (
         <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-3 text-sm text-blue-900 space-y-2" data-testid={`${idPrefix}-upcoming`}>
-          <p className="font-semibold">
+          <p className="flex flex-wrap items-center gap-2 font-semibold">
             {t('committeeSessions.panel.upcomingTitle', { number: upcoming.passageNumber })}
+            <InvitationBadge record={invitationRecords[buildInvitationId(upcoming.session.id, upcoming.passage.id)]} />
           </p>
           <p>
             {formatSessionDay(upcoming.session.startAt, language)} · {formatSessionWindow(upcoming.session, language)}

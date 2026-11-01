@@ -198,6 +198,8 @@ import {
   stampCommitteeOpinionSessions
 } from './utils/committeeSessions.js';
 import { committeeSessionsProvider } from './utils/committeeSessionsProvider.js';
+import { committeeInvitationsProvider } from './utils/committeeInvitationsProvider.js';
+import { computeSessionInvitations } from './utils/committeeInvitations.js';
 import { useCommitteeSessionActions } from './hooks/useCommitteeSessionActions.js';
 import { CommitteeAgendaScreen } from './components/committee/CommitteeAgendaScreen.jsx';
 import { normalizeFaqEntries } from './utils/faqEntries.js';
@@ -1019,6 +1021,9 @@ export const App = () => {
   const [complianceSampleProjects, setComplianceSampleProjects] = useState(buildInitialComplianceSampleProjectsState);
   const [faqEntries, setFaqEntries] = useState(buildInitialFaqEntriesState);
   const [committeeSessions, setCommitteeSessions] = useState(buildInitialCommitteeSessionsState);
+  // État des invitations Outlook (CN_CommitteeInvitations), par id d'invitation : ce que le flux
+  // en a fait. Vide hors mode SharePoint, où aucun flux n'envoie quoi que ce soit.
+  const [committeeInvitationRecords, setCommitteeInvitationRecords] = useState({});
   const [isBackOfficeUnlocked, setIsBackOfficeUnlocked] = useState(false);
   const [backOfficeAuthError, setBackOfficeAuthError] = useState(null);
   const [isBackOfficePromptOpen, setIsBackOfficePromptOpen] = useState(false);
@@ -1244,6 +1249,7 @@ export const App = () => {
   const userProfileQueueRef = useRef(null);
   const rulesQueueRef = useRef(null);
   const sampleProjectsQueueRef = useRef(null);
+  const committeeInvitationsQueueRef = useRef(null);
   const teamsQueueRef = useRef(null);
   const faqQueueRef = useRef(null);
   const inspirationsQueueRef = useRef(null);
@@ -1542,6 +1548,26 @@ export const App = () => {
     }
   }, [buildCommitteeSessionUrl, buildOwnerNotificationRecipients, currentUserEmail, notify]);
 
+  // Invitations Outlook des chefs de projet (étape 2) : après chaque changement de séance, on décrit
+  // dans CN_CommitteeInvitations les invitations telles qu'elles doivent être ; le flux Power
+  // Automate fait le reste. Rien n'est écrit hors mode SharePoint ni en simulation d'identité.
+  const handleCommitteeSessionChanged = useCallback(({ before, after, committee }) => {
+    const queue = committeeInvitationsQueueRef.current;
+    if (!queue) {
+      return;
+    }
+    const projectsById = new Map(projectsRef.current
+      .filter((project) => project?.id && !isProjectTrashed(project))
+      .map((project) => [project.id, project]));
+    computeSessionInvitations({
+      before,
+      after,
+      committee,
+      projectsById,
+      buildProjectUrl: (projectId) => buildProjectUrl(projectId, 'synthesis')
+    }).forEach((invitation) => queue.enqueue(invitation));
+  }, [buildProjectUrl]);
+
   const {
     runAction: runCommitteeSessionAction,
     createSessions: createCommitteeSessions,
@@ -1554,7 +1580,8 @@ export const App = () => {
     committeesById,
     currentUserEmail,
     isAdmin: isCurrentUserAdmin,
-    onEvent: isSimulatedSession ? null : handleCommitteeSessionEvent
+    onEvent: isSimulatedSession ? null : handleCommitteeSessionEvent,
+    onSessionChanged: isSimulatedSession ? null : handleCommitteeSessionChanged
   });
 
   // Un projet mis à la corbeille ou dont le comité n'est plus déclenché libère ses passages à
@@ -2084,7 +2111,8 @@ const updateProjectFilters = useCallback((updater) => {
           teamEntries,
           sampleEntries,
           faqServerEntries,
-          serverCommitteeSessions
+          serverCommitteeSessions,
+          serverCommitteeInvitations
         ] =
           await Promise.all([
             dataProvider.listProjects(),
@@ -2105,7 +2133,8 @@ const updateProjectFilters = useCallback((updater) => {
             // Échec de lecture = on garde la FAQ locale ; une liste vide est, elle, une FAQ vide.
             faqProvider.listAllFaqEntries().catch(() => null),
             // Échec de lecture (liste pas encore créée) = on garde les séances locales.
-            committeeSessionsProvider ? committeeSessionsProvider.listAllSessions().catch(() => null) : null
+            committeeSessionsProvider ? committeeSessionsProvider.listAllSessions().catch(() => null) : null,
+            committeeInvitationsProvider ? committeeInvitationsProvider.listAllInvitations().catch(() => null) : null
           ]);
 
         if (cancelled) {
@@ -2134,6 +2163,12 @@ const updateProjectFilters = useCallback((updater) => {
 
         if (Array.isArray(serverCommitteeSessions)) {
           setCommitteeSessions(normalizeCommitteeSessions(serverCommitteeSessions));
+        }
+        if (Array.isArray(serverCommitteeInvitations)) {
+          setCommitteeInvitationRecords(serverCommitteeInvitations.reduce((acc, record) => {
+            acc[record.id] = record;
+            return acc;
+          }, {}));
         }
 
         if (Array.isArray(faqServerEntries)) {
@@ -3476,6 +3511,18 @@ const updateProjectFilters = useCallback((updater) => {
       getItemKey: (payload) => (payload.action === 'remove' ? payload.ruleId : payload.rule.id)
     });
 
+    committeeInvitationsQueueRef.current = committeeInvitationsProvider
+      ? createRetryQueue({
+        processItem: async (invitation) => {
+          const { record } = await committeeInvitationsProvider.syncInvitation(invitation, { userEmail: currentUserEmail });
+          if (record) {
+            setCommitteeInvitationRecords((prev) => ({ ...prev, [invitation.id]: record }));
+          }
+        },
+        getItemKey: (invitation) => invitation.id
+      })
+      : null;
+
     sampleProjectsQueueRef.current = createRetryQueue({
       processItem: async (payload) => {
         if (payload.action === 'remove') {
@@ -3634,6 +3681,7 @@ const updateProjectFilters = useCallback((updater) => {
       rulesQueueRef.current?.flush();
       teamsQueueRef.current?.flush();
       sampleProjectsQueueRef.current?.flush();
+      committeeInvitationsQueueRef.current?.flush();
       faqQueueRef.current?.flush();
       inspirationsQueueRef.current?.flush();
     };
@@ -9387,6 +9435,7 @@ const updateProjectFilters = useCallback((updater) => {
               onDeclareLaunch={activeProjectId ? handleDeclareProjectLaunch : undefined}
               onReintegrateInCommittee={activeProjectId && !isSimulatedSession ? handleReintegrateActiveProjectInCommittee : undefined}
               committeeSessions={isOnboardingActive ? [] : committeeSessions}
+              committeeInvitationRecords={committeeInvitationRecords}
               canBookCommitteeSessions={Boolean(activeProject) && canManageProject(activeProject) && !isOnboardingActive}
               onCommitteeSessionAction={activeProjectId && !isOnboardingActive ? runCommitteeSessionAction : undefined}
               onMoveCommitteePassage={moveCommitteePassage}
@@ -9408,6 +9457,7 @@ const updateProjectFilters = useCallback((updater) => {
                 teams={teams}
                 validationCommitteeConfig={validationCommitteeConfig}
                 candidateProjects={agendaCommittee ? committeeTriggeredProjectsById[agendaCommittee.id] || [] : []}
+                invitationRecords={committeeInvitationRecords}
                 isChair={isAgendaChair}
                 canView={isAgendaChair || isAgendaMember}
                 onRunAction={runCommitteeSessionAction}
