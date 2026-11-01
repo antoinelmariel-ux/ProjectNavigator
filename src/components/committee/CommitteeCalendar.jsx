@@ -63,7 +63,6 @@ const PlanOnDayForm = ({ dayKey, committees, sessions, onCreate }) => {
   const [committeeId, setCommitteeId] = useState(committees[0]?.id || '');
   const [time, setTime] = useState('14:00');
   const [durationMinutes, setDurationMinutes] = useState(DEFAULT_SESSION_MINUTES);
-  const [location, setLocation] = useState('');
   const selectedId = committees.some((committee) => committee.id === committeeId) ? committeeId : (committees[0]?.id || '');
   const day = fromDayKey(dayKey);
   const [hours, minutes] = time.split(':').map(Number);
@@ -75,7 +74,6 @@ const PlanOnDayForm = ({ dayKey, committees, sessions, onCreate }) => {
       committeeId: selectedId,
       dates: [startAt],
       durationMinutes,
-      location,
       existingSessions: sessions.filter((session) => session.committeeId === selectedId)
     })
     : [];
@@ -112,17 +110,7 @@ const PlanOnDayForm = ({ dayKey, committees, sessions, onCreate }) => {
             className={fieldClass}
           />
         </div>
-        <div className="sm:col-span-2">
-          <label htmlFor={`${idPrefix}-location`} className="mb-1 block text-xs font-medium text-gray-700">{t('committeeSessions.planner.location')}</label>
-          <input
-            id={`${idPrefix}-location`}
-            type="text"
-            value={location}
-            placeholder={t('committeeSessions.planner.locationPlaceholder')}
-            onChange={(event) => setLocation(event.target.value)}
-            className={fieldClass}
-          />
-        </div>
+        <p className="sm:col-span-2 text-xs text-gray-600">{t('committeeSessions.planner.teamsHint')}</p>
       </div>
       <button
         type="button"
@@ -227,9 +215,6 @@ export const CommitteeCalendar = ({
     }
     if (draft.durationMinutes !== undefined) {
       patch.durationMinutes = Number(draft.durationMinutes);
-    }
-    if (draft.location !== undefined) {
-      patch.location = draft.location;
     }
     runWithOverrun(session.id, { type: 'update', patch }, 'updated').then((result) => {
       if (result?.ok) {
@@ -378,16 +363,6 @@ export const CommitteeCalendar = ({
                     value={draft.durationMinutes ?? session.durationMinutes}
                     onChange={(event) => setDrafts((prev) => ({ ...prev, [session.id]: { ...draft, durationMinutes: event.target.value } }))}
                     className="w-20 rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs"
-                  />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <label htmlFor={`${idPrefix}-location`} className="block text-xs text-gray-600">{t('committeeSessions.planner.location')}</label>
-                  <input
-                    id={`${idPrefix}-location`}
-                    type="text"
-                    value={draft.location ?? session.location}
-                    onChange={(event) => setDrafts((prev) => ({ ...prev, [session.id]: { ...draft, location: event.target.value } }))}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs"
                   />
                 </div>
                 <button

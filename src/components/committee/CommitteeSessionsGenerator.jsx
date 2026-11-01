@@ -35,7 +35,6 @@ export const CommitteeSessionsGenerator = ({
     nth: 2,
     time: '14:00',
     durationMinutes: DEFAULT_SESSION_MINUTES,
-    location: '',
     from: toDateInputValue(today),
     to: toDateInputValue(new Date(today.getFullYear(), today.getMonth() + 3, today.getDate()))
   }));
@@ -54,7 +53,6 @@ export const CommitteeSessionsGenerator = ({
       to: rule.to ? new Date(`${rule.to}T23:59:59`) : null
     }),
     durationMinutes: rule.durationMinutes,
-    location: rule.location,
     existingSessions: committeeSessions
   });
 
@@ -151,17 +149,7 @@ export const CommitteeSessionsGenerator = ({
               <label htmlFor="committee-generator-to" className="mb-1 block text-xs font-medium text-gray-700">{t('committeeSessions.planner.to')}</label>
               <input id="committee-generator-to" type="date" value={rule.to} onChange={(event) => setRuleField('to', event.target.value)} className={fieldClass} />
             </div>
-            <div className="sm:col-span-3">
-              <label htmlFor="committee-generator-location" className="mb-1 block text-xs font-medium text-gray-700">{t('committeeSessions.planner.location')}</label>
-              <input
-                id="committee-generator-location"
-                type="text"
-                value={rule.location}
-                placeholder={t('committeeSessions.planner.locationPlaceholder')}
-                onChange={(event) => setRuleField('location', event.target.value)}
-                className={fieldClass}
-              />
-            </div>
+            <p className="sm:col-span-3 text-xs text-gray-600">{t('committeeSessions.planner.teamsHint')}</p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
@@ -194,7 +182,6 @@ export const CommitteeSessionsGenerator = ({
                 committeeId: selectedId,
                 dates: [fromDateTimeLocalValue(singleStart)],
                 durationMinutes: rule.durationMinutes,
-                location: rule.location,
                 existingSessions: committeeSessions
               })).then((result) => {
                 report(result, 'added');
