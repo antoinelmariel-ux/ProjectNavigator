@@ -27,6 +27,7 @@ import {
   formatSessionDay,
   formatSessionWindow,
   formatTime,
+  getDisplayNameFromEmail,
   fromDateTimeLocalValue,
   toDateTimeLocalValue
 } from './committeeFormat.js';
@@ -136,6 +137,7 @@ export const CommitteeCalendar = ({
   projects = [],
   canManageCommittee = () => false,
   unbookedByCommittee = {},
+  unbookedProjectsByCommittee = {},
   onRunAction,
   onDeleteDraft,
   onOpenAgenda,
@@ -397,6 +399,37 @@ export const CommitteeCalendar = ({
   ) : null;
 
   const unbookedTotal = committees.reduce((total, committee) => total + (unbookedByCommittee[committee.id] || 0), 0);
+  const unbookedRows = committees.flatMap((committee) =>
+    (unbookedProjectsByCommittee[committee.id] || []).map((project) => ({
+      ...project,
+      committeeName: committee.name || committee.id
+    })));
+  const unbookedSubmitted = unbookedRows.filter((row) => !row.isDraft);
+  const unbookedDrafts = unbookedRows.filter((row) => row.isDraft);
+
+  const renderUnbookedRow = (row) => (
+    <li
+      key={`${row.committeeName}-${row.id}`}
+      className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-1.5 text-sm"
+      data-testid="committee-unbooked-project"
+    >
+      {row.url ? (
+        <a href={row.url} target="_blank" rel="noopener noreferrer" className="font-semibold text-blue-700 hover:underline">
+          {row.name}
+        </a>
+      ) : (
+        <span className="font-semibold text-gray-800">{row.name}</span>
+      )}
+      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700">
+        {t('committeeSessions.calendar.unbookedCommittee', { committee: row.committeeName })}
+      </span>
+      <span className="text-xs text-gray-600">
+        {row.ownerEmail
+          ? t('committeeSessions.calendar.unbookedOwner', { owner: getDisplayNameFromEmail(row.ownerEmail) })
+          : t('committeeSessions.calendar.unbookedNoOwner')}
+      </span>
+    </li>
+  );
 
   return (
     <section
@@ -412,9 +445,37 @@ export const CommitteeCalendar = ({
         {unbookedTotal > 0 && (
           <p className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800" data-testid="committee-calendar-demand">
             {t('committeeSessions.calendar.unbooked', { count: unbookedTotal })}
+            {` (${t('committeeSessions.calendar.unbookedSplit', { submitted: unbookedSubmitted.length, drafts: unbookedDrafts.length })})`}
           </p>
         )}
       </div>
+
+      {unbookedRows.length > 0 && (
+        <details className="rounded-xl border border-amber-200 bg-amber-50/40 px-4 py-2" data-testid="committee-unbooked-details">
+          <summary className="cursor-pointer text-sm font-semibold text-amber-900">
+            {t('committeeSessions.calendar.unbookedListTitle')}
+          </summary>
+          <div className="mt-2 space-y-3">
+            {unbookedSubmitted.length > 0 && (
+              <div>
+                <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-600">
+                  {t('committeeSessions.calendar.unbookedSubmitted', { count: unbookedSubmitted.length })}
+                </h4>
+                <ul className="divide-y divide-amber-100">{unbookedSubmitted.map(renderUnbookedRow)}</ul>
+              </div>
+            )}
+            {unbookedDrafts.length > 0 && (
+              <div>
+                <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-600">
+                  {t('committeeSessions.calendar.unbookedDrafts', { count: unbookedDrafts.length })}
+                </h4>
+                <p className="text-xs text-gray-500">{t('committeeSessions.calendar.unbookedDraftsHint')}</p>
+                <ul className="divide-y divide-amber-100">{unbookedDrafts.map(renderUnbookedRow)}</ul>
+              </div>
+            )}
+          </div>
+        </details>
+      )}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">

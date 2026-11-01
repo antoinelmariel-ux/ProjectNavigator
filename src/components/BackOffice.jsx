@@ -7632,6 +7632,7 @@ export const BackOffice = ({
                     projects={projects}
                     canManageCommittee={(committee) => Boolean(committee) && canManageCommitteeSessions(committee)}
                     unbookedByCommittee={Object.fromEntries(Object.entries(committeeDemandById || {}).map(([id, demand]) => [id, demand?.unbooked || 0]))}
+                    unbookedProjectsByCommittee={Object.fromEntries(Object.entries(committeeDemandById || {}).map(([id, demand]) => [id, demand?.unbookedProjects || []]))}
                     onRunAction={onCommitteeSessionAction}
                     onDeleteDraft={onDeleteCommitteeDraftSession}
                     onOpenAgenda={onOpenCommitteeAgenda}
