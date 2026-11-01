@@ -164,6 +164,11 @@ Une page par séance, ouverte par un **lien permanent** placé dans l'invitation
 
 ### Mails (file `CN_NotificationsQueue` existante)
 
+Les mails donnent la date et l'heure de la séance, **jamais le lien Teams ni la salle** : un mail
+se transfère et son texte est conservé dans `CN_NotificationsQueue`. Ils renvoient à
+l'invitation Outlook et à l'application pour savoir comment rejoindre. La vraie protection d'une
+réunion reste ses options Teams (salle d'attente, qui peut la contourner).
+
 | Destinataire | Quand |
 |---|---|
 | Président + co-président | Chaque inscription, désinscription, changement de séance, demande de temps |

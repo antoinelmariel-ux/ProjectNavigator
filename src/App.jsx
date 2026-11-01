@@ -192,14 +192,14 @@ import {
   getCurrentPassageSessionId,
   getDueOwnerReminder,
   getPlanningReminderSession,
-  getSessionEndAt,
   isSessionPast,
   removeUpcomingProjectPassages,
   stampCommitteeOpinionSessions
 } from './utils/committeeSessions.js';
 import { committeeSessionsProvider } from './utils/committeeSessionsProvider.js';
 import { committeeInvitationsProvider } from './utils/committeeInvitationsProvider.js';
-import { computeSessionInvitations, getEffectiveSessionLocation, selectInvitationsToSync } from './utils/committeeInvitations.js';
+import { computeSessionInvitations, selectInvitationsToSync } from './utils/committeeInvitations.js';
+import { describeCommitteeSessionForEmail } from './utils/committeeSessionEmails.js';
 import { useCommitteeSessionActions } from './hooks/useCommitteeSessionActions.js';
 import { CommitteeAgendaScreen } from './components/committee/CommitteeAgendaScreen.jsx';
 import { normalizeFaqEntries } from './utils/faqEntries.js';
@@ -901,25 +901,6 @@ const buildInitialComplianceSampleProjectsState = () => {
   return [];
 };
 
-// FAQ de la fenêtre d'aide, éditée dans le back-office. En mode SharePoint elle vient de la
-// liste CN_Faq (hydratation) ; en local elle vit dans cette tranche de complianceNavigatorState.
-// Les e-mails sont rédigés en anglais (contrainte Power Automate) : la séance y est décrite en
-// toutes lettres, avec son lieu, pour qu'un chef de projet puisse bloquer son agenda sans
-// ouvrir l'application.
-// `location` : le lieu effectif, qui peut être le lien Teams créé par le flux quand la séance
-// n'a pas de lieu saisi (voir getEffectiveSessionLocation).
-const describeCommitteeSessionForEmail = (session, location = session?.location) => {
-  const start = new Date(session?.startAt || '');
-  const end = new Date(getSessionEndAt(session) || '');
-  if (Number.isNaN(start.getTime())) {
-    return '';
-  }
-  const day = new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(start);
-  const time = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' });
-  const slot = Number.isNaN(end.getTime()) ? time.format(start) : `${time.format(start)}–${time.format(end)}`;
-  return `Session: ${day}, ${slot}${location ? ` (${location})` : ''}.`;
-};
-
 // Séances des comités (committeeSessions.js). En mode SharePoint elles viennent de la liste
 // CN_CommitteeSessions (hydratation) ; en local elles vivent dans cette tranche.
 const buildInitialCommitteeSessionsState = () => {
@@ -927,6 +908,8 @@ const buildInitialCommitteeSessionsState = () => {
   return savedState ? normalizeCommitteeSessions(savedState.committeeSessions) : [];
 };
 
+// FAQ de la fenêtre d'aide, éditée dans le back-office. En mode SharePoint elle vient de la
+// liste CN_Faq (hydratation) ; en local elle vit dans cette tranche de complianceNavigatorState.
 const buildInitialFaqEntriesState = () => {
   const savedState = loadPersistedState();
   return savedState ? normalizeFaqEntries(savedState.faqEntries) : [];
@@ -1029,10 +1012,6 @@ export const App = () => {
   const [areCommitteeInvitationsLoaded, setAreCommitteeInvitationsLoaded] = useState(false);
   const committeeInvitationRecordsRef = useRef(committeeInvitationRecords);
   committeeInvitationRecordsRef.current = committeeInvitationRecords;
-  const describeSessionForEmail = useCallback(
-    (session) => describeCommitteeSessionForEmail(session, getEffectiveSessionLocation(session, committeeInvitationRecordsRef.current)),
-    []
-  );
   const [isBackOfficeUnlocked, setIsBackOfficeUnlocked] = useState(false);
   const [backOfficeAuthError, setBackOfficeAuthError] = useState(null);
   const [isBackOfficePromptOpen, setIsBackOfficePromptOpen] = useState(false);
@@ -1466,7 +1445,7 @@ export const App = () => {
     const findProject = (projectId) => projectsRef.current.find((project) => project?.id === projectId) || null;
     const chairs = getCommitteeChairEmails(committee);
     const teamNames = committee?.name ? [committee.name] : [];
-    const sessionText = describeSessionForEmail(after || before);
+    const sessionText = describeCommitteeSessionForEmail(after || before);
     const passage = (after?.agenda || []).find((entry) => entry.id === action.passageId)
       || (before?.agenda || []).find((entry) => entry.id === action.passageId)
       || (action.type === 'book' ? (after?.agenda || [])[after.agenda.length - 1] : null);
@@ -1545,7 +1524,7 @@ export const App = () => {
       }
       case 'cancel':
         if (before?.status === 'published') {
-          toAllRegistered(`The session was cancelled. Register your project for another session. ${describeSessionForEmail(before)}`);
+          toAllRegistered(`The session was cancelled. Register your project for another session. ${describeCommitteeSessionForEmail(before, { withJoinHint: false })}`);
         }
         break;
       default:
@@ -1555,7 +1534,7 @@ export const App = () => {
     if (extension && action.type !== 'update') {
       toAllRegistered(`${extension.trim()} ${sessionText}`);
     }
-  }, [buildCommitteeSessionUrl, buildOwnerNotificationRecipients, currentUserEmail, describeSessionForEmail, notify]);
+  }, [buildCommitteeSessionUrl, buildOwnerNotificationRecipients, currentUserEmail, notify]);
 
   // Invitations Outlook des chefs de projet (étape 2) : après chaque changement de séance, on décrit
   // dans CN_CommitteeInvitations les invitations telles qu'elles doivent être ; le flux Power
@@ -5551,7 +5530,7 @@ const updateProjectFilters = useCallback((updater) => {
             project,
             ...owners,
             teamNames: committee?.name ? [committee.name] : [],
-            excerpt: describeSessionForEmail(session),
+            excerpt: describeCommitteeSessionForEmail(session),
             view: 'synthesis',
             includeActor: true
           });
@@ -5580,7 +5559,7 @@ const updateProjectFilters = useCallback((updater) => {
           project: { projectName: committee.name || committee.id },
           to: chairs,
           teamNames: committee.name ? [committee.name] : [],
-          excerpt: `Last published session. ${describeSessionForEmail(lastSession)}`,
+          excerpt: `Last published session. ${describeCommitteeSessionForEmail(lastSession, { withJoinHint: false })}`,
           appUrl: buildCommitteeSessionUrl(lastSession.id),
           includeActor: true
         });
@@ -5597,7 +5576,6 @@ const updateProjectFilters = useCallback((updater) => {
     committeeSessions,
     committeesById,
     currentUserEmail,
-    describeSessionForEmail,
     isHydrated,
     isSimulatedSession,
     notify,

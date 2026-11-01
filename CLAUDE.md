@@ -605,7 +605,10 @@ in the synthesis committee block, `CommitteeAgendaScreen` = screen `committee-ag
   passage is never dropped silently.
 - **Mails** (English, `CN_NotificationsQueue`) via `handleCommitteeSessionEvent`: chairs hear what
   owners do, owners hear what chairs do, every registered owner hears a session move/extend/
-  cancel; reordering and guest changes notify nobody. Reminders (owner J-7/J-1, chair 4 weeks
+  cancel; reordering and guest changes notify nobody. **Mails never carry the Teams link nor the
+  room** (`committeeSessionEmails.js`, pinned by `test/committeeSessionEmails.test.mjs`): a mail
+  gets forwarded and its body is kept in `CN_NotificationsQueue`; how to join lives only in the
+  Outlook invitation and in the app. Reminders (owner J-7/J-1, chair 4 weeks
   before the last published session) run in-app in **both** modes: the marker is written on the
   session first (`markReminderSent` fails with `alreadySent` on a re-read row), then the mail goes.
 - **Outlook invitations for owners (step 2)** — `src/utils/committeeInvitations.js` +
