@@ -2447,7 +2447,7 @@ export default {
     saveCommentButton: 'Enregistrer le commentaire',
     replyToggle: 'Répondre',
     reintegrateInCommittee: 'Intégrer au comité',
-    reintegrateInCommitteeNamed: 'Intégrer au {{name}}',
+    reintegrateInCommitteeNamed: 'Intégrer au comité « {{name}} »',
     replyPlaceholder: 'Votre réponse (texte riche et liens)...',
     removeButton: 'Supprimer',
     sendReplyButton: 'Envoyer la réponse',
