@@ -3,6 +3,7 @@ import {
   gotoHome,
   createAndSubmitProject,
   goToProjectsHome,
+  patchStateOnBoot,
   grantSelfComplianceExpertAndCommitteeAccess,
   openTriggeredProjectAndExpandTeam,
   collectConsoleErrors,
@@ -104,12 +105,38 @@ test.describe('Repêchage par un comité (réintégration)', () => {
     await goToProjectsHome(page);
 
     await page.getByRole('button', { name: /Hors scope comité \(1\)/ }).click();
-    const reintegrateBtn = page.getByRole('button', { name: 'Réintégrer en comité' });
+    const reintegrateBtn = page.getByRole('button', { name: 'Intégrer au comité' });
     await expect(reintegrateBtn).toBeVisible();
     await reintegrateBtn.click();
 
     await expect(page.getByRole('button', { name: /Hors scope comité \(0\)/ })).toBeVisible();
     await expect(page.getByRole('button', { name: /À traiter \(1\)/ })).toBeVisible();
     expect(errors).toEqual([]);
+  });
+
+  test('le porteur est prévenu par mail quand un expert intègre son projet au comité', async ({ page }) => {
+    const mails = [];
+    page.on('console', async (message) => {
+      if (message.type() !== 'info' || !message.text().includes('[Notification]')) return;
+      mails.push(await message.args()[1].jsonValue());
+    });
+    await gotoHome(page);
+    await grantSelfComplianceExpertAndCommitteeAccess(page);
+    await createAndSubmitProject(page);
+    await patchStateOnBoot(page, (state) => ({
+      ...state,
+      projects: (state.projects || []).map((project) => (
+        project?.status === 'submitted' && String(project.id).startsWith('project-')
+          ? { ...project, ownerEmail: 'porteur.autre@lfb.fr' }
+          : project
+      ))
+    }));
+    await page.reload();
+
+    await page.getByRole('button', { name: /Hors scope comité \(1\)/ }).click();
+    await page.getByRole('button', { name: 'Intégrer au comité' }).click();
+    await expect.poll(() => mails.find((mail) => mail.actionType.includes('book a validation committee slot'))).toBeTruthy();
+    const mail = mails.find((entry) => entry.actionType.includes('book a validation committee slot'));
+    expect(mail.to).toEqual(['porteur.autre@lfb.fr']);
   });
 });

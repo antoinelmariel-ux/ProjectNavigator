@@ -6446,6 +6446,19 @@ const updateProjectFilters = useCallback((updater) => {
       return;
     }
 
+    const currentProject = projectsRef.current.find((project) => project?.id === projectId) || null;
+    const currentComments = currentProject?.answers?.[COMPLIANCE_COMMENTS_KEY];
+    const alreadyForced = Array.isArray(currentComments?.forcedCommitteeIds)
+      && currentComments.forcedCommitteeIds.includes(committeeId);
+
+    if (currentProject && !alreadyForced) {
+      const committee = committeesById[committeeId];
+      notifyOwnerAndCoOwners(currentProject, NOTIFICATION_TYPES.COMMITTEE_REINTEGRATION, {
+        teamNames: [committee?.name || committeeId],
+        view: 'synthesis'
+      });
+    }
+
     setProjects(prevProjects => prevProjects.map((project) => {
       if (!project || project.id !== projectId) {
         return project;
@@ -6464,10 +6477,6 @@ const updateProjectFilters = useCallback((updater) => {
         ? forcedCommitteeIds
         : [...forcedCommitteeIds, committeeId];
 
-      notifyOwnerAndCoOwners(project, NOTIFICATION_TYPES.COMMITTEE_REINTEGRATION, {
-        excerpt: `Comité concerné : ${committeeId}.`
-      });
-
       return {
         ...project,
         answers: {
@@ -6480,7 +6489,7 @@ const updateProjectFilters = useCallback((updater) => {
         lastUpdated: new Date().toISOString()
       };
     }));
-  }, [currentUserDisplayName, notifyOwnerAndCoOwners]);
+  }, [committeesById, notifyOwnerAndCoOwners]);
 
   // Depuis la synthèse, `answers` est la copie de travail du projet ouvert : le handler ci-dessus
   // ne met à jour que `projects`, il faut donc aussi refléter le comité forcé ici pour que le
