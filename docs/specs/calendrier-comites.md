@@ -1,8 +1,9 @@
 # Calendrier des comités — spécification
 
-Statut : **étape 1 livrée** (application) ; **étape 2 livrée côté application** (`CN_CommitteeInvitations`),
-le flux Power Automate est décrit dans `PREPARATION-SHAREPOINT-POWERAUTOMATE.md` (étape 5 quater) et
-reste à construire et tester. Étape 3 à faire. Points ouverts : §14.
+Statut : **étape 1 livrée** (application) ; **étapes 2 et 3 livrées côté application**
+(`CN_CommitteeInvitations` : invitations des chefs de projet et des membres). Le flux Power
+Automate est décrit dans `PREPARATION-SHAREPOINT-POWERAUTOMATE.md` (étape 5 quater) et reste à
+construire et tester. Les rappels restent calculés dans l'application (voir §13). Points ouverts : §14.
 
 ## 1. Objectif
 
@@ -252,8 +253,11 @@ invitations ne sont pas produites (pas de flux).
    « Ordre du jour », présences, rattachement de l'avis à la séance, notifications par mail.
    Invitations Outlook encore manuelles.
 2. **Flux des passages** : invitations des chefs de projet, mises à jour, annulations.
-3. **Flux des séances** : invitations des membres (abandon de la série récurrente), rappels
-   planifiés côté serveur.
+3. **Flux des séances** : invitations des membres (abandon de la série récurrente), réunion Teams
+   créée par le flux quand la séance n'a pas de lieu — **fait côté application**, même liste et même
+   flux que l'étape 2 (`Kind = members`). Les rappels planifiés côté serveur n'ont **pas** été faits :
+   les rappels J-7/J-1 et de planification restent calculés dans l'application (ils partent quand
+   une personne concernée l'ouvre), ce qui marche dans les deux modes et a été jugé suffisant.
 
 ## 14. Points ouverts
 

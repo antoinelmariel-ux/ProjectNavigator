@@ -192,3 +192,61 @@ test('un sujet hors projet invite ses intervenants, et seulement s’il en a', (
   const topicRemoved = applySessionAction(withPresenter, { type: 'unbook', passageId: 't1' }, { isChair: true, now }).session;
   assert.equal(compute(withPresenter, topicRemoved).find((entry) => entry.passageId === 't1').status, 'cancelled');
 });
+
+test('étape 3 : une invitation des membres par séance publiée, avec le lien vers l’ordre du jour', async () => {
+  const { buildMembersInvitationId } = await import('../src/utils/committeeInvitations.js');
+  const withMembers = { ...committee, emails: ['p@lfb.fr', 'Membre@lfb.fr'] };
+  const computeFor = (before, after) => computeSessionInvitations({
+    before,
+    after,
+    committee: withMembers,
+    projectsById,
+    buildAgendaUrl: (id) => `https://app/?committeeSession=${id}`,
+    now
+  });
+
+  const [members] = computeFor(null, session());
+  assert.equal(members.id, buildMembersInvitationId('s1'));
+  assert.equal(members.kind, 'members');
+  assert.deepEqual(members.attendees, ['p@lfb.fr', 'membre@lfb.fr']);
+  assert.equal(members.subject, '[Comité Éthique] Committee session');
+  assert.match(members.bodyHtml, /committeeSession=s1/);
+  assert.match(members.bodyHtml, /not updated when a project is added or removed/);
+
+  // Inscrire ou retirer un projet ne change pas l'invitation des membres.
+  const unbooked = applySessionAction(session(), { type: 'unbook', passageId: 'x2' }, { now }).session;
+  const membersAfter = computeFor(session(), unbooked).find((entry) => entry.kind === 'members');
+  assert.equal(getInvitationFingerprint(membersAfter), getInvitationFingerprint(members));
+
+  // Annuler la séance annule aussi l'invitation des membres.
+  const cancelled = applySessionAction(session(), { type: 'cancel' }, { isChair: true, now }).session;
+  assert.equal(computeFor(session(), cancelled).find((entry) => entry.kind === 'members').status, 'cancelled');
+});
+
+test('étape 3 : sans lieu saisi, les passages reprennent le lien de la réunion Teams créée par le flux', async () => {
+  const { buildMembersInvitationId, getEffectiveSessionLocation } = await import('../src/utils/committeeInvitations.js');
+  const recordsById = { [buildMembersInvitationId('s1')]: { onlineMeetingUrl: 'https://teams.microsoft.com/l/meetup-join/created-by-flow' } };
+  const withoutLocation = session({ location: '' });
+  assert.equal(getEffectiveSessionLocation(withoutLocation, recordsById), 'https://teams.microsoft.com/l/meetup-join/created-by-flow');
+  assert.equal(getEffectiveSessionLocation(session(), recordsById), 'https://teams.microsoft.com/l/meetup-join/abc');
+
+  const [passage] = computeSessionInvitations({ after: withoutLocation, committee, projectsById, recordsById, now });
+  assert.equal(passage.location, 'https://teams.microsoft.com/l/meetup-join/created-by-flow');
+  assert.match(passage.bodyHtml, /created-by-flow/);
+});
+
+test('réconciliation : seules les invitations qui diffèrent de ce qui est enregistré sont réécrites', async () => {
+  const { selectInvitationsToSync } = await import('../src/utils/committeeInvitations.js');
+  const [first, second] = compute(null, session());
+  const recordsById = {
+    [first.id]: { ...first, revision: 1, processedRevision: 1 },
+    [second.id]: { ...second, attendees: ['b@lfb.fr', 'ancien@lfb.fr'] }
+  };
+  assert.deepEqual(selectInvitationsToSync([first, second], recordsById).map((entry) => entry.id), [second.id]);
+
+  const cancelledNeverCreated = { ...first, id: 's1::ghost', status: 'cancelled' };
+  const cancelledAlready = { ...first, status: 'cancelled' };
+  assert.deepEqual(selectInvitationsToSync([cancelledNeverCreated], recordsById), []);
+  assert.deepEqual(selectInvitationsToSync([cancelledAlready], { [first.id]: { ...first, status: 'cancelled' } }), []);
+  assert.deepEqual(selectInvitationsToSync([cancelledAlready], recordsById).map((entry) => entry.status), ['cancelled']);
+});

@@ -3,7 +3,7 @@ import { useTranslation } from '../../i18n/LanguageContext.jsx';
 import { PeoplePicker } from '../PeoplePicker.jsx';
 import { CommitteeAttendance } from './CommitteeAttendance.jsx';
 import { InvitationBadge } from './InvitationBadge.jsx';
-import { buildInvitationId } from '../../utils/committeeInvitations.js';
+import { buildInvitationId, getEffectiveSessionLocation } from '../../utils/committeeInvitations.js';
 import {
   DEFAULT_PASSAGE_MINUTES,
   SESSION_STATUS_CANCELLED,
@@ -158,6 +158,7 @@ export const CommitteeSessionPanel = ({
     `${formatSessionDay(session.startAt, language)} · ${formatSessionWindow(session, language)}${session.status === 'draft' ? ` (${t('committeeSessions.status.draft')})` : ''}`;
 
   const timeRequest = upcoming?.passage.timeRequest;
+  const upcomingLocation = upcoming ? getEffectiveSessionLocation(upcoming.session, invitationRecords) : '';
 
   return (
     <section className="mt-4 space-y-3" aria-labelledby={`${idPrefix}-title`} data-testid={`${idPrefix}-panel`}>
@@ -196,14 +197,14 @@ export const CommitteeSessionPanel = ({
           </p>
           <p>
             {formatSessionDay(upcoming.session.startAt, language)} · {formatSessionWindow(upcoming.session, language)}
-            {upcoming.session.location && (
+            {upcomingLocation && (
               <>
                 {' · '}
-                {/^https?:\/\//i.test(upcoming.session.location) ? (
-                  <a href={upcoming.session.location} target="_blank" rel="noopener noreferrer" className="underline">
+                {/^https?:\/\//i.test(upcomingLocation) ? (
+                  <a href={upcomingLocation} target="_blank" rel="noopener noreferrer" className="underline">
                     {t('committeeSessions.panel.joinLink')}
                   </a>
-                ) : upcoming.session.location}
+                ) : upcomingLocation}
               </>
             )}
           </p>

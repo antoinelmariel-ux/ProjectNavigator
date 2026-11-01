@@ -199,7 +199,7 @@ import {
 } from './utils/committeeSessions.js';
 import { committeeSessionsProvider } from './utils/committeeSessionsProvider.js';
 import { committeeInvitationsProvider } from './utils/committeeInvitationsProvider.js';
-import { computeSessionInvitations } from './utils/committeeInvitations.js';
+import { computeSessionInvitations, getEffectiveSessionLocation, selectInvitationsToSync } from './utils/committeeInvitations.js';
 import { useCommitteeSessionActions } from './hooks/useCommitteeSessionActions.js';
 import { CommitteeAgendaScreen } from './components/committee/CommitteeAgendaScreen.jsx';
 import { normalizeFaqEntries } from './utils/faqEntries.js';
@@ -1024,6 +1024,9 @@ export const App = () => {
   // État des invitations Outlook (CN_CommitteeInvitations), par id d'invitation : ce que le flux
   // en a fait. Vide hors mode SharePoint, où aucun flux n'envoie quoi que ce soit.
   const [committeeInvitationRecords, setCommitteeInvitationRecords] = useState({});
+  const [areCommitteeInvitationsLoaded, setAreCommitteeInvitationsLoaded] = useState(false);
+  const committeeInvitationRecordsRef = useRef(committeeInvitationRecords);
+  committeeInvitationRecordsRef.current = committeeInvitationRecords;
   const [isBackOfficeUnlocked, setIsBackOfficeUnlocked] = useState(false);
   const [backOfficeAuthError, setBackOfficeAuthError] = useState(null);
   const [isBackOfficePromptOpen, setIsBackOfficePromptOpen] = useState(false);
@@ -1559,14 +1562,16 @@ export const App = () => {
     const projectsById = new Map(projectsRef.current
       .filter((project) => project?.id && !isProjectTrashed(project))
       .map((project) => [project.id, project]));
-    computeSessionInvitations({
+    selectInvitationsToSync(computeSessionInvitations({
       before,
       after,
       committee,
       projectsById,
-      buildProjectUrl: (projectId) => buildProjectUrl(projectId, 'synthesis')
-    }).forEach((invitation) => queue.enqueue(invitation));
-  }, [buildProjectUrl]);
+      buildProjectUrl: (projectId) => buildProjectUrl(projectId, 'synthesis'),
+      buildAgendaUrl: buildCommitteeSessionUrl,
+      recordsById: committeeInvitationRecordsRef.current
+    }), committeeInvitationRecordsRef.current).forEach((invitation) => queue.enqueue(invitation));
+  }, [buildCommitteeSessionUrl, buildProjectUrl]);
 
   const {
     runAction: runCommitteeSessionAction,
@@ -2169,6 +2174,7 @@ const updateProjectFilters = useCallback((updater) => {
             acc[record.id] = record;
             return acc;
           }, {}));
+          setAreCommitteeInvitationsLoaded(true);
         }
 
         if (Array.isArray(faqServerEntries)) {
@@ -5590,6 +5596,53 @@ const updateProjectFilters = useCallback((updater) => {
     notify,
     projects,
     runCommitteeSessionAction
+  ]);
+
+  // Réconciliation des invitations Outlook (étapes 2 et 3) après le chargement, puis à chaque
+  // changement de la configuration des comités : une invitation peut devoir changer sans qu'aucune
+  // séance n'ait bougé (membre ajouté au comité, projet renommé, co-porteur ajouté, réunion Teams
+  // créée par le flux dont le lien doit rejoindre les invitations des chefs de projet). On ne
+  // compare qu'à ce qui est en mémoire et l'on n'écrit que les différences : la passe peut tourner
+  // dans la session de n'importe qui sans multiplier les écritures.
+  const committeeInvitationsReconciledRef = useRef('');
+
+  useEffect(() => {
+    const queue = committeeInvitationsQueueRef.current;
+    if (!queue || !areCommitteeInvitationsLoaded || isSimulatedSession
+      || !['synced', 'partial'].includes(sharePointSync.state)) {
+      return;
+    }
+    const signature = JSON.stringify(Object.values(committeesById).map((committee) => [committee.id, committee.name, committee.emails]));
+    if (committeeInvitationsReconciledRef.current === signature) {
+      return;
+    }
+    committeeInvitationsReconciledRef.current = signature;
+
+    const now = new Date();
+    const projectsById = new Map(projectsRef.current
+      .filter((project) => project?.id && !isProjectTrashed(project))
+      .map((project) => [project.id, project]));
+    committeeSessionsRef.current
+      .filter((session) => !isSessionPast(session, now))
+      .forEach((session) => {
+        selectInvitationsToSync(computeSessionInvitations({
+          after: session,
+          committee: committeesById[session.committeeId] || null,
+          projectsById,
+          buildProjectUrl: (projectId) => buildProjectUrl(projectId, 'synthesis'),
+          buildAgendaUrl: buildCommitteeSessionUrl,
+          recordsById: committeeInvitationRecordsRef.current,
+          now
+        }), committeeInvitationRecordsRef.current).forEach((invitation) => queue.enqueue(invitation));
+      });
+  }, [
+    areCommitteeInvitationsLoaded,
+    buildCommitteeSessionUrl,
+    buildProjectUrl,
+    committeeSessionsRef,
+    committeesById,
+    isSimulatedSession,
+    sharePointSync.state
   ]);
 
   const handleUpdateComplianceComments = useCallback((updates) => {

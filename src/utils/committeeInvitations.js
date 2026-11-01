@@ -11,6 +11,7 @@
 import {
   PASSAGE_KIND_TOPIC,
   SESSION_STATUS_PUBLISHED,
+  getCommitteeMemberEmails,
   getSessionEndAt,
   isSessionPast,
   normalizeSession
@@ -24,6 +25,27 @@ export const INVITATION_SYNC_DONE = 'done';
 export const INVITATION_SYNC_ERROR = 'error';
 
 export const buildInvitationId = (sessionId, passageId) => `${sessionId}::${passageId}`;
+
+// Deux sortes d'invitations dans la même liste : celle d'un passage (chef de projet ou
+// intervenants d'un sujet, étape 2) et celle des membres du comité pour la séance (étape 3), qui
+// remplace la série récurrente corrigée à la main. Le flux ne crée une réunion Teams que pour
+// l'invitation des membres, et seulement quand la séance n'a pas de lieu.
+export const INVITATION_KIND_PRESENTATION = 'presentation';
+export const INVITATION_KIND_MEMBERS = 'members';
+export const MEMBERS_INVITATION_SUFFIX = 'members';
+
+export const buildMembersInvitationId = (sessionId) => buildInvitationId(sessionId, MEMBERS_INVITATION_SUFFIX);
+
+// Lieu réel d'une séance : celui saisi par le président, sinon le lien de la réunion Teams que
+// le flux a créée avec l'invitation des membres (colonne OnlineMeetingUrl).
+export const getEffectiveSessionLocation = (session, recordsById = {}) => {
+  const location = typeof session?.location === 'string' ? session.location.trim() : '';
+  if (location) {
+    return location;
+  }
+  const record = recordsById?.[buildMembersInvitationId(session?.id)];
+  return typeof record?.onlineMeetingUrl === 'string' ? record.onlineMeetingUrl : '';
+};
 
 const normalizeEmail = (value) => (typeof value === 'string' ? value.trim().toLowerCase() : '');
 
@@ -65,11 +87,11 @@ const formatEnglishWindow = (session) => {
 };
 
 // Texte en anglais, comme les e-mails de notification (contrainte du flux Power Automate).
-export const buildPassageInvitation = ({ session, passage, committee, project, projectUrl = '' }) => {
+export const buildPassageInvitation = ({ session, passage, committee, project, projectUrl = '', location: effectiveLocation }) => {
   const normalizedSession = normalizeSession(session);
   const committeeName = committee?.name || normalizedSession.committeeId;
   const projectName = project?.projectName || passage.projectId;
-  const location = normalizedSession.location;
+  const location = effectiveLocation ?? normalizedSession.location;
   const lines = [
     `<p>Your project <strong>${escapeHtml(projectName)}</strong> is registered for a session of <strong>${escapeHtml(committeeName)}</strong>.</p>`,
     `<p>Session: ${escapeHtml(formatEnglishWindow(normalizedSession))}.</p>`,
@@ -89,6 +111,7 @@ export const buildPassageInvitation = ({ session, passage, committee, project, p
     passageId: passage.id,
     projectId: passage.projectId,
     committeeId: normalizedSession.committeeId,
+    kind: INVITATION_KIND_PRESENTATION,
     status: INVITATION_STATUS_ACTIVE,
     subject: `[${committeeName}] Presentation of ${projectName}`,
     bodyHtml: lines.join(''),
@@ -100,10 +123,10 @@ export const buildPassageInvitation = ({ session, passage, committee, project, p
 };
 
 // Un sujet hors projet invite ses intervenants (pas de porteur, pas de lien vers un projet).
-export const buildTopicInvitation = ({ session, passage, committee }) => {
+export const buildTopicInvitation = ({ session, passage, committee, location: effectiveLocation }) => {
   const normalizedSession = normalizeSession(session);
   const committeeName = committee?.name || normalizedSession.committeeId;
-  const location = normalizedSession.location;
+  const location = effectiveLocation ?? normalizedSession.location;
   const lines = [
     `<p>You are presenting the agenda item <strong>${escapeHtml(passage.title)}</strong> at a session of <strong>${escapeHtml(committeeName)}</strong>.</p>`,
     `<p>Session: ${escapeHtml(formatEnglishWindow(normalizedSession))}.</p>`,
@@ -121,6 +144,7 @@ export const buildTopicInvitation = ({ session, passage, committee }) => {
     passageId: passage.id,
     projectId: '',
     committeeId: normalizedSession.committeeId,
+    kind: INVITATION_KIND_PRESENTATION,
     status: INVITATION_STATUS_ACTIVE,
     subject: `[${committeeName}] Agenda item: ${passage.title}`,
     bodyHtml: lines.join(''),
@@ -128,6 +152,40 @@ export const buildTopicInvitation = ({ session, passage, committee }) => {
     endAt: getSessionEndAt(normalizedSession),
     location,
     attendees: getInvitationAttendees(null, { guests: passage.presenterEmails })
+  };
+};
+
+// Invitation des membres : toute la séance, tous les membres du comité, et le lien vers l'ordre
+// du jour — jamais l'ordre du jour lui-même, pour qu'inscrire ou retirer un projet ne renvoie
+// aucune mise à jour aux membres (spec §11, option A).
+export const buildMembersInvitation = ({ session, committee, agendaUrl = '' }) => {
+  const normalizedSession = normalizeSession(session);
+  const committeeName = committee?.name || normalizedSession.committeeId;
+  const location = normalizedSession.location;
+  const lines = [
+    `<p>Session of <strong>${escapeHtml(committeeName)}</strong>: ${escapeHtml(formatEnglishWindow(normalizedSession))}.</p>`,
+    '<p>The agenda — projects, running order, project stakes and showcases — is kept up to date in Project Navigator. This invitation is not updated when a project is added or removed.</p>'
+  ];
+  if (agendaUrl) {
+    lines.push(`<p><a href="${escapeHtml(agendaUrl)}">Open the agenda in Project Navigator</a></p>`);
+  }
+  if (isHttpUrl(location)) {
+    lines.push(`<p><a href="${escapeHtml(location)}">Join the meeting</a></p>`);
+  }
+  return {
+    id: buildMembersInvitationId(normalizedSession.id),
+    sessionId: normalizedSession.id,
+    passageId: '',
+    projectId: '',
+    committeeId: normalizedSession.committeeId,
+    kind: INVITATION_KIND_MEMBERS,
+    status: INVITATION_STATUS_ACTIVE,
+    subject: `[${committeeName}] Committee session`,
+    bodyHtml: lines.join(''),
+    startAt: normalizedSession.startAt,
+    endAt: getSessionEndAt(normalizedSession),
+    location,
+    attendees: getInvitationAttendees(null, { guests: getCommitteeMemberEmails(committee) })
   };
 };
 
@@ -146,6 +204,8 @@ export const computeSessionInvitations = ({
   committee = null,
   projectsById = new Map(),
   buildProjectUrl = () => '',
+  buildAgendaUrl = () => '',
+  recordsById = {},
   now = new Date()
 } = {}) => {
   const previous = before ? normalizeSession(before) : null;
@@ -155,17 +215,30 @@ export const computeSessionInvitations = ({
     return [];
   }
 
-  const build = (session, passage) => (isTopic(passage) ? buildTopicInvitation({ session, passage, committee }) : buildPassageInvitation({
-    session,
-    passage,
-    committee,
-    project: projectsById.get(passage.projectId) || null,
-    projectUrl: buildProjectUrl(passage.projectId)
-  }));
+  const build = (session, passage) => {
+    const location = getEffectiveSessionLocation(session, recordsById);
+    return isTopic(passage)
+      ? buildTopicInvitation({ session, passage, committee, location })
+      : buildPassageInvitation({
+        session,
+        passage,
+        committee,
+        location,
+        project: projectsById.get(passage.projectId) || null,
+        projectUrl: buildProjectUrl(passage.projectId)
+      });
+  };
 
   const nextInvitable = next ? isSessionInvitable(next, now) : false;
   const activeIds = new Set();
   const invitations = [];
+
+  const membersInvitation = committee && getCommitteeMemberEmails(committee).length > 0
+    ? buildMembersInvitation({ session: reference, committee, agendaUrl: buildAgendaUrl(reference.id) })
+    : null;
+  if (membersInvitation) {
+    invitations.push(nextInvitable ? membersInvitation : cancelledFrom(membersInvitation));
+  }
 
   if (next && nextInvitable) {
     next.agenda.forEach((passage) => {
@@ -210,6 +283,7 @@ export const computeSessionInvitations = ({
 // Seuls ces champs comptent : une invitation dont ils n'ont pas bougé n'est pas réécrite, donc
 // le flux ne renvoie aucune mise à jour Outlook.
 export const getInvitationFingerprint = (invitation) => JSON.stringify({
+  kind: invitation?.kind || INVITATION_KIND_PRESENTATION,
   status: invitation?.status || '',
   subject: invitation?.subject || '',
   bodyHtml: invitation?.bodyHtml || '',
@@ -231,3 +305,16 @@ export const getInvitationSyncState = (record) => {
     ? INVITATION_SYNC_DONE
     : INVITATION_SYNC_PENDING;
 };
+
+// Ce qu'il reste à écrire pour qu'Outlook reflète les séances : on écarte ce qui est déjà à jour
+// et les annulations d'invitations jamais créées (ou déjà annulées). C'est ce qui rend bon marché
+// la passe de réconciliation lancée après le chargement : elle ne compare qu'à ce qui est en
+// mémoire, sans relire la liste invitation par invitation.
+export const selectInvitationsToSync = (invitations, recordsById = {}) =>
+  (Array.isArray(invitations) ? invitations : []).filter((invitation) => {
+    const record = recordsById[invitation.id];
+    if (invitation.status !== INVITATION_STATUS_ACTIVE) {
+      return Boolean(record) && record.status === INVITATION_STATUS_ACTIVE;
+    }
+    return !record || getInvitationFingerprint(record) !== getInvitationFingerprint(invitation);
+  });

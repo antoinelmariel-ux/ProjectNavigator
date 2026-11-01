@@ -101,8 +101,8 @@ script (nécessaire au-delà de 5 000 éléments).
 | `CN_Teams` | TeamId📌, ContactsJson (texte long), NameJson (texte long), Expertise (texte long), AcceptedLanguagesJson (texte long), MemberRulesJson (texte long), ClaimStaleDays (nombre), ClaimReminderDays (nombre), SortOrder (nombre), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
 | `CN_SampleProjects` | SampleId📌, AnswersJson (texte long), SortOrder (nombre), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
 | `CN_Faq` | FaqId📌, QuestionJson (texte long), AnswerJson (texte long), CategoryJson (texte long), IsPublished (oui/non, défaut oui), SortOrder (nombre), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
-| `CN_CommitteeSessions` | SessionId📌, CommitteeId📌, StartAt, DurationMinutes (nombre), Location, Status, AgendaJson (texte long), AttendanceJson (texte long), PlanningReminderSentAt, OutlookEventId, RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
-| `CN_CommitteeInvitations` | InvitationId📌, SessionId, PassageId, ProjectId, CommitteeId, Status, Subject, BodyHtml (texte long, texte brut), StartAt, EndAt, Location, Attendees (texte long), Revision (nombre), ProcessedRevision (nombre), OutlookEventId, SyncState, ErrorMessage (texte long), ProcessedAt, UpdatedByEmail, UpdatedAt (date) |
+| `CN_CommitteeSessions` | SessionId📌, CommitteeId📌, StartAt, DurationMinutes (nombre), Location (texte long), Status, AgendaJson (texte long), AttendanceJson (texte long), PlanningReminderSentAt, OutlookEventId, RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
+| `CN_CommitteeInvitations` | InvitationId📌, SessionId, PassageId, ProjectId, CommitteeId, Kind, Status, Subject, BodyHtml (texte long, texte brut), StartAt, EndAt, Location (texte long), Attendees (texte long), Revision (nombre), ProcessedRevision (nombre), OutlookEventId, OnlineMeetingUrl (texte long), SyncState, ErrorMessage (texte long), ProcessedAt, UpdatedByEmail, UpdatedAt (date) |
 
 (Les colonnes en **gras** sont celles corrigées le 29/08/2026, voir l'encart d'avertissement en
 haut de ce document. `AssigneeEmail`/`ClaimJson` sur `CN_ComplianceComments`,
@@ -416,7 +416,7 @@ existaient auparavant dans `CN-Config` — une ligne par règle/équipe plutôt 
         { name: 'CommitteeId', type: 'Text', indexed: true },
         { name: 'StartAt', type: 'Text' },
         { name: 'DurationMinutes', type: 'Number' },
-        { name: 'Location', type: 'Text' },
+        { name: 'Location', type: 'Note' },
         { name: 'Status', type: 'Text' },
         { name: 'AgendaJson', type: 'Note' },
         { name: 'AttendanceJson', type: 'Note' },
@@ -436,16 +436,18 @@ existaient auparavant dans `CN-Config` — une ligne par règle/équipe plutôt 
         { name: 'PassageId', type: 'Text' },
         { name: 'ProjectId', type: 'Text' },
         { name: 'CommitteeId', type: 'Text' },
+        { name: 'Kind', type: 'Text' },
         { name: 'Status', type: 'Text' },
         { name: 'Subject', type: 'Text' },
         { name: 'BodyHtml', type: 'Note' },
         { name: 'StartAt', type: 'Text' },
         { name: 'EndAt', type: 'Text' },
-        { name: 'Location', type: 'Text' },
+        { name: 'Location', type: 'Note' },
         { name: 'Attendees', type: 'Note' },
         { name: 'Revision', type: 'Number' },
         { name: 'ProcessedRevision', type: 'Number' },
         { name: 'OutlookEventId', type: 'Text' },
+        { name: 'OnlineMeetingUrl', type: 'Note' },
         { name: 'SyncState', type: 'Text' },
         { name: 'ErrorMessage', type: 'Note' },
         { name: 'ProcessedAt', type: 'Text' },

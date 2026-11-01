@@ -16,6 +16,7 @@ const fromRecord = (record) => ({
   passageId: record.PassageId || '',
   projectId: record.ProjectId || '',
   committeeId: record.CommitteeId || '',
+  kind: record.Kind || 'presentation',
   status: record.Status || '',
   subject: record.Subject || '',
   bodyHtml: record.BodyHtml || '',
@@ -26,6 +27,7 @@ const fromRecord = (record) => ({
   revision: Number(record.Revision) || 0,
   processedRevision: Number(record.ProcessedRevision) || 0,
   outlookEventId: record.OutlookEventId || '',
+  onlineMeetingUrl: record.OnlineMeetingUrl || '',
   syncState: record.SyncState || '',
   errorMessage: record.ErrorMessage || '',
   processedAt: record.ProcessedAt || ''
@@ -39,6 +41,7 @@ const toAppFields = (invitation, { revision, userEmail }) => ({
   PassageId: invitation.passageId,
   ProjectId: invitation.projectId,
   CommitteeId: invitation.committeeId,
+  Kind: invitation.kind || 'presentation',
   Status: invitation.status,
   Subject: invitation.subject,
   BodyHtml: invitation.bodyHtml,

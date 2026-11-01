@@ -411,7 +411,7 @@ les séances ; les chefs de projet y inscrivent leur projet depuis « Enjeux du 
 | CommitteeId | Une ligne de texte (indexée) |
 | StartAt | Une ligne de texte (date ISO, ex. `2026-11-10T13:00:00.000Z`) |
 | DurationMinutes | Nombre |
-| Location | Une ligne de texte (lien Teams ou salle) |
+| Location | Texte long (lien Teams ou salle — un lien Teams dépasse souvent les 255 caractères d'une ligne de texte) |
 | Status | Une ligne de texte (`draft`, `published`, `cancelled`) |
 | AgendaJson | Texte long (passages ordonnés : projet ou sujet hors projet, durée, invités, demande de temps, présences propres au passage, rappels envoyés) |
 | AttendanceJson | Texte long (présences de la séance, ex. `{"prenom.nom@lfb.fr":"present"}`) |
@@ -556,7 +556,7 @@ Aucune colonne supplémentaire à créer : tout ce dont ce flux a besoin (`Assig
 
 ---
 
-## Étape 5 quater — Power Automate : les invitations Outlook des chefs de projet (calendrier des comités)
+## Étape 5 quater — Power Automate : les invitations Outlook des comités (chefs de projet et membres)
 
 Étape 2 de la spécification du calendrier des comités (`docs/specs/calendrier-comites.md`).
 Quand un chef de projet (ou le président) inscrit un projet à une séance publiée, le chef de
@@ -566,6 +566,13 @@ ajouté par le président la reçoivent aussi (même flux, même liste : rien de
 déplacée ou prolongée ou si les invités changent, et annulée si le passage est retiré ou la séance
 annulée. Changer l'ordre de passage ou la durée d'un passage ne renvoie **rien** : l'invitation
 ne mentionne ni l'un ni l'autre.
+
+Étape 3 : le **même flux** envoie aussi l'invitation des **membres du comité** pour chaque séance
+publiée (`Kind = members`), avec le lien vers la page « Ordre du jour ». Elle remplace la série
+récurrente corrigée à la main : elle suit la séance (déplacée, prolongée, annulée, nouveau membre
+du comité) mais **n'est jamais modifiée quand un projet est inscrit ou retiré** — l'ordre du jour
+à jour est derrière le lien. Si la séance n'a pas de lieu, le flux crée la réunion Teams avec
+cette invitation, et l'application reprend son lien dans les invitations des chefs de projet.
 
 **Sans ce flux**, l'application fonctionne comme avant : les lignes s'accumulent dans
 `CN_CommitteeInvitations` avec l'état « en cours d'envoi », et les invitations restent à faire à
@@ -602,16 +609,18 @@ session du chef de projet).
 | PassageId | Une ligne de texte | application |
 | ProjectId | Une ligne de texte | application |
 | CommitteeId | Une ligne de texte | application |
+| Kind | Une ligne de texte (`presentation` : chef de projet ou intervenants d'un sujet ; `members` : membres du comité) | application |
 | Status | Une ligne de texte (`active` / `cancelled`) | application |
 | Subject | Une ligne de texte | application |
 | BodyHtml | Texte long (**texte brut**, pas « texte enrichi » : le HTML doit arriver tel quel) | application |
 | StartAt | Une ligne de texte (date ISO en UTC, ex. `2026-11-10T13:00:00.000Z`) | application |
 | EndAt | Une ligne de texte (idem) | application |
-| Location | Une ligne de texte (lien Teams ou salle) | application |
+| Location | Texte long (lien Teams ou salle — un lien Teams dépasse souvent les 255 caractères d'une ligne de texte) | application |
 | Attendees | Texte long (adresses séparées par `;`) | application |
 | Revision | Nombre | application |
 | ProcessedRevision | Nombre | flux |
 | OutlookEventId | Une ligne de texte | flux |
+| OnlineMeetingUrl | Texte long (lien de la réunion Teams créée pour l'invitation des membres) | flux |
 | SyncState | Une ligne de texte (`pending` / `done` / `error`) | flux (l'application écrit `pending` à la création) |
 | ErrorMessage | Texte long | flux |
 | ProcessedAt | Une ligne de texte | flux |
@@ -620,13 +629,23 @@ session du chef de projet).
 
 ### Le lien Teams
 
-Le flux ne crée **pas** de réunion Teams : il reprend le lien saisi par le président dans le champ
-« Lieu ou lien Teams » de la séance (back-office, onglet Comités de validation). Pour que le chef
-de projet rejoigne la même réunion que les membres, il suffit d'y coller le lien de la réunion des
-membres (celle de l'invitation actuelle). La création automatique de la réunion des membres est
-l'étape 3.
+Deux façons de faire, au choix du président, séance par séance :
 
-### Flux « CN – Invitations des chefs de projet en comité »
+- **Il colle un lien** dans « Lieu ou lien Teams » (back-office, onglet Comités de validation) :
+  toutes les invitations de la séance — membres, chefs de projet, intervenants — portent ce lien.
+- **Il laisse le champ vide** : en créant l'invitation des membres, le flux crée aussi la réunion
+  Teams et note son lien dans `OnlineMeetingUrl`. L'application le reprend ensuite (page
+  « Ordre du jour », bloc du comité, invitations des chefs de projet). Les chefs de projet déjà
+  inscrits reçoivent alors **une** mise à jour de leur invitation avec le lien, au prochain
+  chargement de l'application par n'importe quel utilisateur.
+
+> ⚠️ **À vérifier avant de compter dessus** : je ne sais pas si Microsoft Graph accepte de créer une
+> réunion Teams dans le calendrier d'une **boîte partagée** (une boîte partagée n'a en général pas
+> de licence Teams). Si l'étape « créer » échoue sur ce point (badge « Invitation Outlook en
+> erreur », message dans `ErrorMessage`), restez sur la première façon : un lien collé par le
+> président.
+
+### Flux « CN – Invitations des comités »
 
 > ⚠️ **Ce que je n'ai pas pu vérifier** : les noms exacts des actions et la possibilité d'écrire
 > dans le calendrier d'une boîte partagée dépendent de votre tenant et de vos droits. Le parcours
@@ -673,8 +692,12 @@ administrateur Exchange).
        ```
        puis **Condition** `OutlookEventId` est vide :
        - **Si oui** : « Envoyer une requête HTTP », **POST**
-         `https://graph.microsoft.com/v1.0/users/comites@…/events`, corps = `evenement` ; puis
-         SharePoint « Mettre à jour l'élément » : `OutlookEventId` = `id` de la réponse.
+         `https://graph.microsoft.com/v1.0/users/comites@…/events`, corps = `evenement` — et,
+         **seulement si** `Kind` est `members` **et** `Location` est vide, le même corps complété
+         de `"isOnlineMeeting": true, "onlineMeetingProvider": "teamsForBusiness"` (deux branches
+         d'une condition, ou une expression `if(...)` sur le corps) ; puis SharePoint « Mettre à
+         jour l'élément » : `OutlookEventId` = `id` de la réponse, et `OnlineMeetingUrl` =
+         `onlineMeeting.joinUrl` de la réponse (vide si aucune réunion n'a été créée).
        - **Si non** : « Envoyer une requête HTTP », **PATCH**
          `https://graph.microsoft.com/v1.0/users/comites@…/events/<OutlookEventId>`, corps =
          `evenement`.
@@ -700,6 +723,22 @@ administrateur Exchange).
 4. Déplacez la séance d'une heure dans le back-office. → Mise à jour reçue.
 5. Désinscrivez le projet. → Annulation reçue.
 6. Vérifiez au passage que l'invitation de la réunion Teams des membres n'a pas bougé.
+
+Puis pour les membres (étape 3) :
+
+7. Ajoutez un collègue comme membre du comité de test et publiez la configuration ; rechargez
+   l'application. → Une invitation « Committee session » part vers les membres pour chaque
+   séance publiée à venir, avec le lien « Open the agenda in Project Navigator ».
+8. Inscrivez puis désinscrivez un projet. → Les membres ne reçoivent **rien**.
+9. Créez une séance **sans lieu** et publiez-la. → L'invitation des membres contient une réunion
+   Teams ; la page « Ordre du jour » affiche « Rejoindre la réunion » ; un projet inscrit reçoit
+   le même lien. (Si l'étape échoue, voir l'avertissement de la section « Le lien Teams ».)
+10. Annulez la séance depuis la page « Ordre du jour ». → Membres et chefs de projet reçoivent
+    l'annulation.
+
+**Une fois ces tests passés**, supprimez de vos calendriers les occurrences futures de l'ancienne
+série récurrente (depuis l'organisateur actuel) : les invitations des membres viennent désormais
+de la boîte partagée, séance par séance.
 
 ---
 

@@ -239,7 +239,8 @@ export const LIST_SCHEMAS = {
   // Une ligne par invitation Outlook d'un chef de projet à une séance de comité
   // (committeeInvitations.js) : l'invitation telle qu'elle doit être. L'application écrit les
   // colonnes de description et incrémente `Revision` ; le flux Power Automate n'écrit que
-  // `OutlookEventId`, `ProcessedRevision`, `SyncState`, `ErrorMessage` et `ProcessedAt`. Les deux
+  // `OutlookEventId`, `OnlineMeetingUrl`, `ProcessedRevision`, `SyncState`, `ErrorMessage` et
+  // `ProcessedAt`. `Kind` distingue l'invitation d'un passage de celle des membres. Les deux
   // n'écrivent jamais la même colonne, et le flux ne se redéclenche pas sur sa propre écriture
   // (condition de déclenchement Revision ≠ ProcessedRevision).
   committeeInvitations: {
@@ -251,6 +252,7 @@ export const LIST_SCHEMAS = {
       'PassageId',
       'ProjectId',
       'CommitteeId',
+      'Kind',
       'Status',
       'Subject',
       'BodyHtml',
@@ -261,6 +263,7 @@ export const LIST_SCHEMAS = {
       'Revision',
       'ProcessedRevision',
       'OutlookEventId',
+      'OnlineMeetingUrl',
       'SyncState',
       'ErrorMessage',
       'ProcessedAt',

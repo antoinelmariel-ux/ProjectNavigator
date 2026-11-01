@@ -620,6 +620,14 @@ in the synthesis committee block, `CommitteeAgendaScreen` = screen `committee-ag
   neither the running order nor the passage length, so reordering/resizing sends nothing. A
   passage whose project isn't loaded is neither invited nor cancelled. `InvitationBadge` shows the
   flow's result on the agenda and in the synthesis panel.
+- **Members' invitation (step 3)**: same list and flow, `Kind = members`, id `<session>::members`,
+  committee members as attendees, the agenda **link** but never the agenda itself — so bookings
+  never re-send it. With no `location`, the flow creates a Teams meeting and writes
+  `OnlineMeetingUrl`; `getEffectiveSessionLocation` makes every passage invitation and the UI use
+  it. A **reconciliation pass** in `App.jsx` (after load, and again whenever the committees'
+  members/names change) recomputes every upcoming session's invitations and enqueues only what
+  `selectInvitationsToSync` finds different from the records in memory — that is how a new member,
+  a renamed project or a flow-created Teams link reach Outlook without any session action.
 - Tests: `test/committeeSessions*.test.mjs`, `test/committeeInvitations.test.mjs`,
   `e2e/committee-sessions.spec.js`.
 

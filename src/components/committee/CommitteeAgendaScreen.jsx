@@ -3,7 +3,7 @@ import { useTranslation } from '../../i18n/LanguageContext.jsx';
 import { CommitteeAttendance } from './CommitteeAttendance.jsx';
 import { PeoplePicker } from '../PeoplePicker.jsx';
 import { InvitationBadge } from './InvitationBadge.jsx';
-import { buildInvitationId } from '../../utils/committeeInvitations.js';
+import { buildInvitationId, getEffectiveSessionLocation } from '../../utils/committeeInvitations.js';
 import {
   PASSAGE_KIND_TOPIC,
   MIN_PASSAGE_MINUTES,
@@ -102,6 +102,7 @@ export const CommitteeAgendaScreen = ({
   }
 
   const timeline = buildSessionTimeline(session);
+  const meetingLocation = getEffectiveSessionLocation(session, invitationRecords);
   const allocated = getAllocatedMinutes(session);
   const remaining = getRemainingMinutes(session);
   const isCancelled = session.status === SESSION_STATUS_CANCELLED;
@@ -173,14 +174,14 @@ export const CommitteeAgendaScreen = ({
             <p className="mt-1 text-sm text-gray-700">
               {formatSessionDay(session.startAt, language)} · {formatSessionWindow(session, language)}
             </p>
-            {session.location && (
+            {meetingLocation && (
               <p className="mt-1 text-sm">
-                {/^https?:\/\//i.test(session.location) ? (
-                  <a href={session.location} target="_blank" rel="noopener noreferrer" className="font-semibold text-blue-700 underline">
+                {/^https?:\/\//i.test(meetingLocation) ? (
+                  <a href={meetingLocation} target="_blank" rel="noopener noreferrer" className="font-semibold text-blue-700 underline">
                     {t('committeeSessions.panel.joinLink')}
                   </a>
                 ) : (
-                  <span className="text-gray-700">{session.location}</span>
+                  <span className="text-gray-700">{meetingLocation}</span>
                 )}
               </p>
             )}
