@@ -55,7 +55,6 @@ export const CommitteeSessionsPlanner = ({
     nth: 2,
     time: '14:00',
     durationMinutes: DEFAULT_SESSION_MINUTES,
-    location: '',
     from: toDateInputValue(today),
     to: toDateInputValue(new Date(today.getFullYear(), today.getMonth() + 3, today.getDate()))
   }));
@@ -78,7 +77,6 @@ export const CommitteeSessionsPlanner = ({
     committeeId: committee.id,
     dates: generatedDates,
     durationMinutes: rule.durationMinutes,
-    location: rule.location,
     existingSessions: committeeSessions
   });
 
@@ -109,9 +107,6 @@ export const CommitteeSessionsPlanner = ({
     }
     if (draft.durationMinutes !== undefined) {
       patch.durationMinutes = Number(draft.durationMinutes);
-    }
-    if (draft.location !== undefined) {
-      patch.location = draft.location;
     }
     runWithOverrun(session.id, { type: 'update', patch }, 'updated').then((result) => {
       if (result?.ok) {
@@ -261,17 +256,7 @@ export const CommitteeSessionsPlanner = ({
                 className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
               />
             </div>
-            <div className="sm:col-span-3">
-              <label htmlFor={`${idPrefix}-location`} className="block text-xs font-medium text-gray-700 mb-1">{t('committeeSessions.planner.location')}</label>
-              <input
-                id={`${idPrefix}-location`}
-                type="text"
-                value={rule.location}
-                placeholder={t('committeeSessions.planner.locationPlaceholder')}
-                onChange={(event) => setRule((prev) => ({ ...prev, location: event.target.value }))}
-                className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
-              />
-            </div>
+            <p className="sm:col-span-3 text-xs text-gray-600">{t('committeeSessions.planner.teamsHint')}</p>
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <button
@@ -302,7 +287,6 @@ export const CommitteeSessionsPlanner = ({
                 committeeId: committee.id,
                 dates: [fromDateTimeLocalValue(singleStart)],
                 durationMinutes: rule.durationMinutes,
-                location: rule.location,
                 existingSessions: committeeSessions
               })).then((result) => {
                 report(result, 'added');
@@ -425,16 +409,6 @@ export const CommitteeSessionsPlanner = ({
                           value={draft.durationMinutes ?? session.durationMinutes}
                           onChange={(event) => setDrafts((prev) => ({ ...prev, [session.id]: { ...draft, durationMinutes: event.target.value } }))}
                           className="w-20 rounded-lg border border-gray-300 px-2 py-1 text-xs"
-                        />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <label htmlFor={`${idPrefix}-${session.id}-location`} className="block text-xs text-gray-600">{t('committeeSessions.planner.location')}</label>
-                        <input
-                          id={`${idPrefix}-${session.id}-location`}
-                          type="text"
-                          value={draft.location ?? session.location}
-                          onChange={(event) => setDrafts((prev) => ({ ...prev, [session.id]: { ...draft, location: event.target.value } }))}
-                          className="w-full rounded-lg border border-gray-300 px-2 py-1 text-xs"
                         />
                       </div>
                       <button
