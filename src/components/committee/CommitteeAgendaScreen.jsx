@@ -21,8 +21,25 @@ import {
 } from '../../utils/committeeSessions.js';
 import { getProjectCompliancePerimeters } from '../../utils/projectValidationStatus.js';
 import { normalizeTeamContacts } from '../../utils/teamContacts.js';
+import { splitTextWithLinks } from '../../utils/textLinks.js';
+import { NEW_TAB_LINK_ATTRIBUTES } from '../../utils/newTabLinks.js';
 import { resolveLocalizedText } from '../../utils/localizedContent.js';
 import { formatSessionDay, formatSessionWindow, formatTime, getDisplayNameFromEmail } from './committeeFormat.js';
+
+const renderNoteWithLinks = (note) => splitTextWithLinks(note).map((segment, index) => (
+  segment.type === 'link'
+    ? (
+      <a
+        key={index}
+        href={segment.value}
+        className="text-blue-600 underline break-all"
+        {...NEW_TAB_LINK_ATTRIBUTES}
+      >
+        {segment.value}
+      </a>
+    )
+    : <React.Fragment key={index}>{segment.value}</React.Fragment>
+));
 
 const STATUS_LABEL_KEYS = {
   validated: 'synthesisReport.statusValidated',
@@ -278,7 +295,7 @@ export const CommitteeAgendaScreen = ({
                         <p className="text-xs text-gray-600">
                           {presenterLabel && t('committeeSessions.agenda.topicPresenter', { presenter: presenterLabel })}
                           {presenterLabel && passage.note && ' · '}
-                          {passage.note}
+                          {renderNoteWithLinks(passage.note)}
                         </p>
                       ) : null;
                     })()}
