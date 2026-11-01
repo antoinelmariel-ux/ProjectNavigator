@@ -139,6 +139,33 @@ export default {
       attendanceSaved: 'Asistencia guardada.'
     }
   },
+  calendar: {
+    title: 'Calendario de sesiones',
+    subtitle: 'Haga clic en una fecha para ver el orden del día de la sesión.',
+    generatorTitle: 'Planificar sesiones',
+    generatorHint: 'Generar sesiones a partir de una regla o añadir una sola.',
+    generatorCommittee: 'Comité',
+    unbooked: '{{count}} proyecto(s) sin turno previsto',
+    previousMonth: 'Mes anterior',
+    nextMonth: 'Mes siguiente',
+    today: 'Hoy',
+    legendLabel: 'Comités mostrados',
+    sessionCount: '{{count}} sesión(es)',
+    emptyMonth: 'Ninguna sesión este mes.',
+    dayPanelLabel: 'Sesiones del día seleccionado',
+    noSessionThisDay: 'Ninguna sesión este día.',
+    pickADay: 'Elija una fecha para mostrar el orden del día.',
+    emptyAgenda: 'Aún no hay ningún proyecto inscrito.',
+    agendaLabel: 'Orden del día',
+    topicBadge: 'Tema',
+    minutes: '{{minutes}} min',
+    openFullAgenda: 'Abrir el orden del día',
+    editSession: 'Modificar la sesión',
+    configTitle: 'Configuración de los comités',
+    configHint: 'Miembros, presidente, duración de un turno, recordatorios: ajustes que rara vez cambian.',
+    notAMember: 'ya no es miembro',
+    chairMustBeMember: 'El presidente y el copresidente deben ser miembros del comité.'
+  },
   planner: {
     title: 'Calendario de sesiones',
     hint: 'El presidente y el copresidente preparan las sesiones: una sesión generada sigue en borrador hasta que se publica.',

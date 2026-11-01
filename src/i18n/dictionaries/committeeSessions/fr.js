@@ -139,6 +139,33 @@ export default {
       attendanceSaved: 'Présences enregistrées.'
     }
   },
+  calendar: {
+    title: 'Calendrier des séances',
+    subtitle: 'Cliquez sur une date pour voir l’ordre du jour de la séance.',
+    generatorTitle: 'Planifier des séances',
+    generatorHint: 'Générer des séances à partir d’une règle, ou en ajouter une isolée.',
+    generatorCommittee: 'Comité',
+    unbooked: '{{count}} projet(s) sans passage prévu',
+    previousMonth: 'Mois précédent',
+    nextMonth: 'Mois suivant',
+    today: 'Aujourd’hui',
+    legendLabel: 'Comités affichés',
+    sessionCount: '{{count}} séance(s)',
+    emptyMonth: 'Aucune séance ce mois-ci.',
+    dayPanelLabel: 'Séances du jour sélectionné',
+    noSessionThisDay: 'Aucune séance ce jour.',
+    pickADay: 'Choisissez une date pour afficher l’ordre du jour.',
+    emptyAgenda: 'Aucun passage inscrit pour le moment.',
+    agendaLabel: 'Ordre du jour',
+    topicBadge: 'Sujet',
+    minutes: '{{minutes}} min',
+    openFullAgenda: 'Ouvrir l’ordre du jour',
+    editSession: 'Modifier la séance',
+    configTitle: 'Configuration des comités',
+    configHint: 'Membres, président, durée d’un passage, rappels : réglages rarement modifiés.',
+    notAMember: 'n’est plus membre',
+    chairMustBeMember: 'Le président et le co-président doivent faire partie des membres du comité.'
+  },
   planner: {
     title: 'Calendrier des séances',
     hint: 'Le président et le co-président préparent les séances : une séance générée reste en brouillon tant qu’elle n’est pas publiée.',

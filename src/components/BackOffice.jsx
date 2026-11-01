@@ -100,7 +100,9 @@ import {
 import { ConditionGroupsEditor } from './ConditionGroupsEditor.jsx';
 import { ACTIVITY_SCOPE_LABELS, ACTIVITY_SCOPE_VALUES } from '../utils/activityScope.js';
 import { PeoplePicker } from './PeoplePicker.jsx';
-import { CommitteeSessionsPlanner } from './committee/CommitteeSessionsPlanner.jsx';
+import { CommitteeCalendar } from './committee/CommitteeCalendar.jsx';
+import { CommitteeSessionsGenerator } from './committee/CommitteeSessionsGenerator.jsx';
+import { CommitteeChairSettings } from './committee/CommitteeChairSettings.jsx';
 import { isCommitteeChair } from '../utils/committeeSessions.js';
 import { buildImpersonationUrl, isImpersonating } from '../utils/impersonation.js';
 import { buildAdminConsoleUrl, isAdminConsoleActive } from '../utils/adminConsole.js';
@@ -961,6 +963,8 @@ export const BackOffice = ({
     [benchEffectiveScope]
   );
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [isCommitteeConfigOpen, setIsCommitteeConfigOpen] = useState(false);
+  const [focusedCommitteeSession, setFocusedCommitteeSession] = useState(null);
   const [editingRule, setEditingRule] = useState(null);
   const [editingQuestion, setEditingQuestion] = useState(null);
   // Id de la question/règle tout juste créée (ou dupliquée) et pas encore confirmée par un
@@ -7599,14 +7603,53 @@ export const BackOffice = ({
               aria-labelledby="backoffice-tab-validationCommittee"
               className="space-y-6"
             >
-              <article className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm space-y-6">
-                <header className="space-y-2">
-                  <h2 className="text-2xl font-bold text-gray-800">{t('backOffice.main.validationCommitteeTitle')}</h2>
-                  <p className="text-sm text-gray-600">
-                    {t('backOffice.main.validationCommitteeSubtitle')}
-                  </p>
-                </header>
+              <header className="space-y-2">
+                <h2 className="text-2xl font-bold text-gray-800">{t('backOffice.main.validationCommitteeTitle')}</h2>
+                <p className="text-sm text-gray-600">
+                  {t('backOffice.main.validationCommitteeSubtitle')}
+                </p>
+              </header>
 
+              {visibleCommittees.length > 0 && typeof onCommitteeSessionAction === 'function' && (
+                <>
+                  <CommitteeCalendar
+                    committees={visibleCommittees}
+                    sessions={committeeSessions}
+                    projects={projects}
+                    canManageCommittee={(committee) => Boolean(committee) && (isCurrentUserAdmin || isCommitteeChair(committee, currentUserEmail))}
+                    unbookedByCommittee={Object.fromEntries(Object.entries(committeeDemandById || {}).map(([id, demand]) => [id, demand?.unbooked || 0]))}
+                    onRunAction={onCommitteeSessionAction}
+                    onDeleteDraft={onDeleteCommitteeDraftSession}
+                    onOpenAgenda={onOpenCommitteeAgenda}
+                    focusSession={focusedCommitteeSession}
+                  />
+                  <CommitteeSessionsGenerator
+                    committees={visibleCommittees.filter((committee) => isCurrentUserAdmin || isCommitteeChair(committee, currentUserEmail))}
+                    sessions={committeeSessions}
+                    defaultOpen={committeeSessions.length === 0}
+                    onCreateSessions={onCreateCommitteeSessions}
+                    onCreated={setFocusedCommitteeSession}
+                  />
+                </>
+              )}
+
+              <section className="rounded-2xl border border-gray-200 bg-white shadow-sm" aria-labelledby="committee-config-title">
+                <button
+                  type="button"
+                  id="committee-config-title"
+                  aria-expanded={isCommitteeConfigOpen || visibleCommittees.length === 0}
+                  aria-controls="committee-config-body"
+                  onClick={() => setIsCommitteeConfigOpen((prev) => !prev)}
+                  className="flex w-full items-center justify-between gap-3 rounded-2xl px-6 py-4 text-left"
+                >
+                  <span>
+                    <span className="block text-lg font-semibold text-gray-800">{t('committeeSessions.calendar.configTitle')}</span>
+                    <span className="block text-xs text-gray-500">{t('committeeSessions.calendar.configHint')}</span>
+                  </span>
+                  <span aria-hidden="true" className={`text-gray-500 transition-transform ${isCommitteeConfigOpen || visibleCommittees.length === 0 ? 'rotate-180' : ''}`}>▾</span>
+                </button>
+              {(isCommitteeConfigOpen || visibleCommittees.length === 0) && (
+              <div id="committee-config-body" className="border-t border-gray-100 p-6 space-y-6">
                 {renderReferentialPublishControl('settings', { noteKey: 'referentialSettingsSharedNote' })}
 
                 <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900">
@@ -8443,25 +8486,18 @@ export const BackOffice = ({
                           </div>
                         </div>
 
-                        {typeof onCommitteeSessionAction === 'function' && (
-                          <CommitteeSessionsPlanner
-                            committee={committee}
-                            sessions={committeeSessions}
-                            canManage={isCurrentUserAdmin || isCommitteeChair(committee, currentUserEmail)}
-                            unbookedCount={committeeDemandById[committee.id]?.unbooked || 0}
-                            freeMinutes={committeeDemandById[committee.id]?.freeMinutes || 0}
-                            onUpdateCommittee={(patch) => updateCommitteeEntry(committee.id, (prev) => ({ ...prev, ...patch }))}
-                            onCreateSessions={onCreateCommitteeSessions}
-                            onRunAction={onCommitteeSessionAction}
-                            onDeleteDraft={onDeleteCommitteeDraftSession}
-                            onOpenAgenda={onOpenCommitteeAgenda}
-                          />
-                        )}
+                        <CommitteeChairSettings
+                          committee={committee}
+                          canManage={isCurrentUserAdmin || isCommitteeChair(committee, currentUserEmail)}
+                          onUpdateCommittee={(patch) => updateCommitteeEntry(committee.id, (prev) => ({ ...prev, ...patch }))}
+                        />
                       </article>
                     ))}
                   </div>
                 )}
-              </article>
+              </div>
+              )}
+              </section>
             </section>
           )}
 

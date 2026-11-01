@@ -294,6 +294,10 @@ export async function grantSelfComplianceExpertAndCommitteeAccess(page) {
   await contactsField.press('Enter');
 
   await page.getByRole('tab', { name: /Comités de validation/ }).click();
+  const committeeConfigToggle = page.getByRole('button', { name: /Configuration des comités/ });
+  if ((await committeeConfigToggle.getAttribute('aria-expanded')) !== 'true') {
+    await committeeConfigToggle.click();
+  }
   const committeeEmailsField = page.getByPlaceholder('Rechercher un membre du comité…').first();
   await committeeEmailsField.fill('bertrand.darieux@lfb.fr');
   await committeeEmailsField.press('Enter');

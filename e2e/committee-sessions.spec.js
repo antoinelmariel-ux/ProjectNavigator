@@ -59,17 +59,28 @@ test.describe('Calendrier des comités', () => {
     await grantAdminAccess(page);
 
     await page.getByRole('tab', { name: /Comités de validation/ }).click();
-    const planner = page.getByTestId(`committee-planner-${COMMITTEE_ID}`);
-    await expect(planner).toBeVisible();
+    const calendar = page.getByTestId('committee-calendar');
+    await expect(calendar).toBeVisible();
+    await expect(page.getByRole('button', { name: /Configuration des comités/ })).toHaveAttribute('aria-expanded', 'false');
 
     const start = daysFromNow(12);
-    await planner.getByLabel('Séance supplémentaire').fill(toDateTimeLocal(start));
-    await planner.getByRole('button', { name: 'Ajouter' }).click();
-    await expect(planner.getByTestId('committee-planner-session')).toHaveCount(1);
-    await expect(planner.getByTestId('committee-planner-session').getByText('Brouillon', { exact: true })).toBeVisible();
+    const generator = page.getByTestId('committee-generator');
+    const generatorToggle = generator.getByRole('button', { name: 'Planifier des séances' });
+    if ((await generatorToggle.getAttribute('aria-expanded')) !== 'true') {
+      await generatorToggle.click();
+    }
+    await generator.getByLabel('Séance supplémentaire').fill(toDateTimeLocal(start));
+    await generator.getByRole('button', { name: 'Ajouter', exact: true }).click();
 
-    await planner.getByRole('button', { name: 'Publier' }).click();
-    await expect(planner.getByText('Séance publiée : les inscriptions sont ouvertes.')).toBeVisible();
+    const day = page.getByTestId('committee-calendar-day');
+    await expect(day.getByTestId('committee-planner-session')).toHaveCount(1);
+    await expect(day.getByTestId('committee-planner-session').getByText('Brouillon', { exact: true })).toBeVisible();
+
+    await day.getByRole('button', { name: 'Publier' }).click();
+    await expect(day.getByText('Séance publiée : les inscriptions sont ouvertes.')).toBeVisible();
+
+    await page.getByRole('button', { name: /Configuration des comités/ }).click();
+    await expect(page.getByLabel('Président(e)', { exact: true })).toHaveValue(MOCK_USER);
 
     await expect
       .poll(async () => (await readStoredState(page)).committeeSessions?.map((session) => session.status))

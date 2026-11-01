@@ -139,6 +139,33 @@ export default {
       attendanceSaved: 'Anwesenheit gespeichert.'
     }
   },
+  calendar: {
+    title: 'Sitzungskalender',
+    subtitle: 'Klicken Sie auf ein Datum, um die Tagesordnung der Sitzung zu sehen.',
+    generatorTitle: 'Sitzungen planen',
+    generatorHint: 'Sitzungen aus einer Regel erzeugen oder eine einzelne hinzufügen.',
+    generatorCommittee: 'Ausschuss',
+    unbooked: '{{count}} Projekt(e) ohne geplanten Termin',
+    previousMonth: 'Vorheriger Monat',
+    nextMonth: 'Nächster Monat',
+    today: 'Heute',
+    legendLabel: 'Angezeigte Ausschüsse',
+    sessionCount: '{{count}} Sitzung(en)',
+    emptyMonth: 'Keine Sitzung in diesem Monat.',
+    dayPanelLabel: 'Sitzungen des gewählten Tages',
+    noSessionThisDay: 'Keine Sitzung an diesem Tag.',
+    pickADay: 'Wählen Sie ein Datum, um die Tagesordnung anzuzeigen.',
+    emptyAgenda: 'Noch kein Projekt eingetragen.',
+    agendaLabel: 'Tagesordnung',
+    topicBadge: 'Thema',
+    minutes: '{{minutes}} Min.',
+    openFullAgenda: 'Tagesordnung öffnen',
+    editSession: 'Sitzung bearbeiten',
+    configTitle: 'Einstellungen der Ausschüsse',
+    configHint: 'Mitglieder, Vorsitz, Dauer eines Termins, Erinnerungen: selten geänderte Einstellungen.',
+    notAMember: 'ist kein Mitglied mehr',
+    chairMustBeMember: 'Vorsitz und stellvertretender Vorsitz müssen Mitglieder des Ausschusses sein.'
+  },
   planner: {
     title: 'Sitzungskalender',
     hint: 'Vorsitz und stellvertretender Vorsitz bereiten die Sitzungen vor: Eine erzeugte Sitzung bleibt Entwurf, bis sie veröffentlicht wird.',
