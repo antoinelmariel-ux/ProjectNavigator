@@ -651,12 +651,15 @@ export const getPlanningReminderSession = (sessions, committeeId, now = new Date
 
 // Projets qui déclenchent le comité sans passage à venir : la demande que le président doit
 // pouvoir comparer au temps libre.
-export const countUnbookedTriggeredProjects = (triggeredProjectIds, sessions, committeeId, now = new Date()) => {
+export const listUnbookedTriggeredProjectIds = (triggeredProjectIds, sessions, committeeId, now = new Date()) => {
   const booked = new Set(normalizeSessions(sessions)
     .filter((session) => session.committeeId === committeeId && session.status !== SESSION_STATUS_CANCELLED && !isSessionPast(session, now))
     .flatMap((session) => session.agenda.map((passage) => passage.projectId)));
-  return (Array.isArray(triggeredProjectIds) ? triggeredProjectIds : []).filter((id) => !booked.has(id)).length;
+  return (Array.isArray(triggeredProjectIds) ? triggeredProjectIds : []).filter((id) => !booked.has(id));
 };
+
+export const countUnbookedTriggeredProjects = (triggeredProjectIds, sessions, committeeId, now = new Date()) =>
+  listUnbookedTriggeredProjectIds(triggeredProjectIds, sessions, committeeId, now).length;
 
 export const getFreeMinutesAhead = (sessions, committeeId, now = new Date()) =>
   normalizeSessions(sessions)

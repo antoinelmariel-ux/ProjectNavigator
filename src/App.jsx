@@ -184,7 +184,7 @@ import { teamsProvider } from './utils/teamsProvider.js';
 import { faqProvider } from './utils/faqProvider.js';
 import {
   normalizeSessions as normalizeCommitteeSessions,
-  countUnbookedTriggeredProjects,
+  listUnbookedTriggeredProjectIds,
   getFreeMinutesAhead,
   isCommitteeChair,
   buildSessionTimeline,
@@ -7023,18 +7023,33 @@ const updateProjectFilters = useCallback((updater) => {
   const committeeDemandById = useMemo(() => {
     const now = new Date();
     return Object.keys(committeesById).reduce((acc, committeeId) => {
+      const triggered = committeeTriggeredProjectsById[committeeId] || [];
+      const unbookedIds = new Set(listUnbookedTriggeredProjectIds(
+        triggered.map((project) => project.id),
+        committeeSessions,
+        committeeId,
+        now
+      ));
+      const unbookedProjects = triggered
+        .filter((project) => unbookedIds.has(project.id))
+        .map((project) => {
+          const isDraft = project.status === 'draft';
+          return {
+            id: project.id,
+            name: project.projectName || project.id,
+            ownerEmail: project.ownerEmail || '',
+            isDraft,
+            url: isDraft ? '' : buildProjectUrl(project.id, 'synthesis')
+          };
+        });
       acc[committeeId] = {
-        unbooked: countUnbookedTriggeredProjects(
-          (committeeTriggeredProjectsById[committeeId] || []).map((project) => project.id),
-          committeeSessions,
-          committeeId,
-          now
-        ),
+        unbooked: unbookedProjects.length,
+        unbookedProjects,
         freeMinutes: getFreeMinutesAhead(committeeSessions, committeeId, now)
       };
       return acc;
     }, {});
-  }, [committeeSessions, committeeTriggeredProjectsById, committeesById]);
+  }, [buildProjectUrl, committeeSessions, committeeTriggeredProjectsById, committeesById]);
 
   const handleOpenActiveProjectShowcase = useCallback((payload = {}) => {
     const projectId = payload?.projectId || activeProjectId || null;
