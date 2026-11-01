@@ -590,6 +590,11 @@ in the synthesis committee block, `CommitteeAgendaScreen` = screen `committee-ag
   stamped by `stampCommitteeOpinionSessions` in `handleUpdateComplianceComments` when the opinion
   is rendered after a passage started; they travel in `ClaimJson.review` and are carried over by
   `perimeterReview.js`/`mergeComplianceComments.js` like the opinion date.
+- **Agenda topics**: a passage is `kind: 'project'` (default) or `'topic'` — a chair-only free
+  item (`addTopic`/`updateTopic`, `title`/`presenter`/`note`) that takes session time like a
+  project but has no `projectId`, no invitation, no attendance and notifies nobody. Every pass that
+  looks for a project's passages filters on `projectId`, so topics fall out by construction; count
+  « projects » with `kind !== 'topic'`. The chair can also cancel the session from the agenda page.
 - **Several passages per project and committee** (numbered, history in the synthesis); an owner
   has at most one *upcoming* passage per committee. A committee deferred by staged consultation
   cannot be booked. Trashing a project releases its upcoming passages; a project that stops

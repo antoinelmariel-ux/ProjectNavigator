@@ -2,6 +2,7 @@ import React, { useMemo, useState } from '../../react.js';
 import { useTranslation } from '../../i18n/LanguageContext.jsx';
 import {
   DEFAULT_SESSION_MINUTES,
+  PASSAGE_KIND_TOPIC,
   SESSION_STATUS_CANCELLED,
   SESSION_STATUS_DRAFT,
   SESSION_STATUS_PUBLISHED,
@@ -341,6 +342,7 @@ export const CommitteeSessionsPlanner = ({
               const draft = drafts[session.id] || {};
               const isEditable = canManage && session.status !== SESSION_STATUS_CANCELLED && !isSessionPast(session, today);
               const remaining = getRemainingMinutes(session);
+              const projectCount = session.agenda.filter((passage) => passage.kind !== PASSAGE_KIND_TOPIC).length;
               return (
                 <li key={session.id} className="rounded-lg border border-gray-200 bg-white p-3 text-sm" data-testid="committee-planner-session">
                   <div className="flex flex-wrap items-center justify-between gap-2">
@@ -350,7 +352,7 @@ export const CommitteeSessionsPlanner = ({
                       </p>
                       <p className="text-xs text-gray-600">
                         {t('committeeSessions.planner.sessionStats', {
-                          count: session.agenda.length,
+                          count: projectCount,
                           allocated: getAllocatedMinutes(session),
                           remaining: Math.max(0, remaining)
                         })}
@@ -389,7 +391,7 @@ export const CommitteeSessionsPlanner = ({
                         <button
                           type="button"
                           onClick={() => {
-                            if (typeof window !== 'undefined' && !window.confirm(t('committeeSessions.planner.cancelConfirm', { count: session.agenda.length }))) {
+                            if (typeof window !== 'undefined' && !window.confirm(t('committeeSessions.planner.cancelConfirm', { count: projectCount }))) {
                               return;
                             }
                             onRunAction(session.id, { type: 'cancel' }).then((result) => report(result, 'cancelled'));

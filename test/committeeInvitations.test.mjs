@@ -168,3 +168,11 @@ test('un passage dont le projet est introuvable n’est ni invité ni annulé', 
   const after = applySessionAction(before, { type: 'setGuests', passageId: 'x1', guests: ['new@lfb.fr'] }, { now }).session;
   assert.deepEqual(compute(before, after).map((entry) => entry.passageId), ['x1', 'x2']);
 });
+
+test('un sujet hors projet n’envoie aucune invitation', () => {
+  const before = session();
+  const after = applySessionAction(before, { type: 'addTopic', passageId: 't1', title: 'Point RGPD', minutes: 10 }, { isChair: true, now }).session;
+  assert.deepEqual(compute(before, after).map((entry) => entry.passageId), ['x1', 'x2']);
+  const removed = applySessionAction(after, { type: 'unbook', passageId: 't1' }, { isChair: true, now }).session;
+  assert.deepEqual(compute(after, removed).map((entry) => entry.passageId), ['x1', 'x2']);
+});

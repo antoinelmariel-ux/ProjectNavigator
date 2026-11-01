@@ -80,6 +80,17 @@ export default {
     }
   },
   agenda: {
+    cancelledBanner: 'This session is cancelled.',
+    topicBadge: 'Topic',
+    topicPresenter: 'Presented by {{presenter}}',
+    removeTopic: 'Remove the topic',
+    removeTopicConfirm: 'Remove this topic from the agenda?',
+    topicTitle: 'Add a topic to the agenda',
+    topicHint: 'An item that is not a project (information, feedback, any other business). It takes session time like a project.',
+    topicLabel: 'Topic',
+    topicPresenterLabel: 'Presented by (optional)',
+    topicNoteLabel: 'Details (optional)',
+    topicButton: 'Add the topic',
     eyebrow: 'Agenda',
     back: 'Back',
     forbidden: 'This agenda is reserved for committee members.',
@@ -113,6 +124,9 @@ export default {
     addButton: 'Register',
     overrunConfirm: 'The session will run {{minutes}} min over. Extend the session accordingly?',
     feedback: {
+      topicAdded: 'Topic added to the agenda.',
+      topicRemoved: 'Topic removed.',
+      sessionCancelled: 'Session cancelled, registered projects have been notified.',
       booked: 'Project registered.',
       requestAccepted: 'Request accepted.',
       requestRefused: 'Request refused.',

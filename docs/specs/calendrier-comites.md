@@ -90,6 +90,13 @@ Sur **tous** les projets de ses séances :
 - **Accepter ou refuser** une demande de temps.
 - **Annuler** un passage, avec un motif transmis au chef de projet.
 - **Saisir les présences** (§8).
+- **Ajouter un sujet hors projet** à l'ordre du jour (point d'information, retour d'expérience,
+  point divers) : un intitulé, une durée (10 min par défaut), un intervenant et une précision
+  facultatifs. Il prend du temps de séance comme un projet, se réordonne, se redimensionne et se
+  retire de la même façon, mais n'a ni porteur, ni invitation Outlook, ni présences propres, et ne
+  prévient personne.
+- **Annuler la séance**, depuis le back-office ou directement depuis la page « Ordre du jour » :
+  les inscrits sont prévenus et leurs invitations Outlook annulées (étape 2).
 - **Demander un nouveau passage** à l'issue d'un passage : le chef de projet est prévenu et
   invité à se réinscrire ; le bloc du comité de la synthèse l'affiche tant qu'aucun nouveau
   passage n'est pris.
@@ -114,7 +121,7 @@ Une page par séance, ouverte par un **lien permanent** placé dans l'invitation
 - **Pendant la séance** : le passage en cours est mis en évidence d'après l'heure ; « ouvrir la
   vitrine » en un clic ; accès direct au bloc du comité de la synthèse pour saisir l'avis.
 - **Commandes du président** : flèches de réorganisation, durée, déplacer, annuler, accepter /
-  refuser une demande.
+  refuser une demande, ajouter un sujet hors projet, annuler la séance.
 - **Présences** de la séance (§8).
 - Les membres voient la même page sans les commandes.
 

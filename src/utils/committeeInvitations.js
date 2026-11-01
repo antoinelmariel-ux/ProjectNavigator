@@ -9,6 +9,7 @@
 // passage est indicatif) : ni l'ordre ni la durée d'un passage n'y figurent, si bien que
 // réordonner l'ordre du jour ne renvoie aucune mise à jour Outlook.
 import {
+  PASSAGE_KIND_TOPIC,
   SESSION_STATUS_PUBLISHED,
   getSessionEndAt,
   isSessionPast,
@@ -132,7 +133,7 @@ export const computeSessionInvitations = ({
   const invitations = [];
 
   if (next && nextInvitable) {
-    next.agenda.forEach((passage) => {
+    next.agenda.filter((passage) => passage.kind !== PASSAGE_KIND_TOPIC).forEach((passage) => {
       const invitation = build(next, passage);
       // Projet introuvable (pas encore chargé, supprimé) : on ne décide rien pour lui, ni
       // invitation ni annulation.
@@ -147,7 +148,7 @@ export const computeSessionInvitations = ({
   const formerPassages = [
     ...(previous ? previous.agenda.map((passage) => ({ session: previous, passage })) : []),
     ...(next && !nextInvitable ? next.agenda.map((passage) => ({ session: next, passage })) : [])
-  ];
+  ].filter(({ passage }) => passage.kind !== PASSAGE_KIND_TOPIC);
   const cancelled = new Set();
   formerPassages.forEach(({ session, passage }) => {
     const id = buildInvitationId(session.id, passage.id);

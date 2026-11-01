@@ -80,6 +80,17 @@ export default {
     }
   },
   agenda: {
+    cancelledBanner: 'Diese Sitzung ist abgesagt.',
+    topicBadge: 'Thema',
+    topicPresenter: 'Vorgestellt von {{presenter}}',
+    removeTopic: 'Thema entfernen',
+    removeTopicConfirm: 'Dieses Thema von der Tagesordnung entfernen?',
+    topicTitle: 'Thema zur Tagesordnung hinzufügen',
+    topicHint: 'Ein Punkt, der kein Projekt ist (Information, Erfahrungsbericht, Verschiedenes). Er belegt Sitzungszeit wie ein Projekt.',
+    topicLabel: 'Thema',
+    topicPresenterLabel: 'Vorgestellt von (optional)',
+    topicNoteLabel: 'Details (optional)',
+    topicButton: 'Thema hinzufügen',
     eyebrow: 'Tagesordnung',
     back: 'Zurück',
     forbidden: 'Diese Tagesordnung ist den Ausschussmitgliedern vorbehalten.',
@@ -113,6 +124,9 @@ export default {
     addButton: 'Anmelden',
     overrunConfirm: 'Die Sitzung wird um {{minutes}} Min. überzogen. Sitzung entsprechend verlängern?',
     feedback: {
+      topicAdded: 'Thema zur Tagesordnung hinzugefügt.',
+      topicRemoved: 'Thema entfernt.',
+      sessionCancelled: 'Sitzung abgesagt, die Angemeldeten wurden informiert.',
       booked: 'Projekt angemeldet.',
       requestAccepted: 'Anfrage angenommen.',
       requestRefused: 'Anfrage abgelehnt.',

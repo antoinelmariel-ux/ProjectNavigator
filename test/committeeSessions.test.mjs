@@ -184,3 +184,35 @@ test('un avis de comité rendu après le passage est rattaché à la séance et 
   // Pas de passage commencé : l'avis n'est rattaché à aucune séance.
   assert.equal(stampCommitteeOpinionSessions(next, previous, () => ''), next);
 });
+
+test('le président ajoute un sujet hors projet : il prend du temps de séance, sans porteur ni passage de projet', async () => {
+  const { PASSAGE_KIND_TOPIC } = await import('../src/utils/committeeSessions.js');
+  const booked = book(session(), 'a').session;
+  assert.equal(applySessionAction(booked, { type: 'addTopic', title: 'Point RGPD' }, { now }).error, 'forbidden');
+  assert.equal(applySessionAction(booked, { type: 'addTopic', title: '  ' }, { isChair: true, now }).error, 'invalid');
+
+  const withTopic = applySessionAction(booked, {
+    type: 'addTopic',
+    passageId: 't1',
+    title: 'Point RGPD',
+    presenter: 'DPO',
+    note: 'Nouvelle doctrine',
+    minutes: 15
+  }, { isChair: true, now }).session;
+  const topic = withTopic.agenda[1];
+  assert.equal(topic.kind, PASSAGE_KIND_TOPIC);
+  assert.equal(topic.projectId, '');
+  assert.equal(topic.minutes, 15);
+  assert.equal(getRemainingMinutes(withTopic), 25);
+  assert.equal(getProjectPassages([withTopic], 'a', 'c1', now).length, 1);
+
+  const renamed = applySessionAction(withTopic, { type: 'updateTopic', passageId: 't1', patch: { title: 'Point RGPD 2026' } }, { isChair: true, now }).session;
+  assert.equal(renamed.agenda[1].title, 'Point RGPD 2026');
+  const removed = applySessionAction(renamed, { type: 'unbook', passageId: 't1' }, { isChair: true, now }).session;
+  assert.equal(removed.agenda.length, 1);
+
+  // Un sujet qui ferait dépasser la séance demande la même confirmation qu'un projet.
+  const almostFull = book(withTopic, 'b').session;
+  assert.equal(getRemainingMinutes(almostFull), 5);
+  assert.equal(applySessionAction(almostFull, { type: 'addTopic', title: 'Divers' }, { isChair: true, now }).error, 'overrun');
+});

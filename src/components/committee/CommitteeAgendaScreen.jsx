@@ -4,6 +4,7 @@ import { CommitteeAttendance } from './CommitteeAttendance.jsx';
 import { InvitationBadge } from './InvitationBadge.jsx';
 import { buildInvitationId } from '../../utils/committeeInvitations.js';
 import {
+  PASSAGE_KIND_TOPIC,
   MIN_PASSAGE_MINUTES,
   PASSAGE_STEP_MINUTES,
   SESSION_STATUS_CANCELLED,
@@ -74,6 +75,7 @@ export const CommitteeAgendaScreen = ({
   const [minutesDrafts, setMinutesDrafts] = useState({});
   const [moveTargets, setMoveTargets] = useState({});
   const [candidateId, setCandidateId] = useState('');
+  const [topicDraft, setTopicDraft] = useState({ title: '', minutes: '10', presenter: '', note: '' });
 
   const members = useMemo(() => getCommitteeMemberEmails(committee), [committee]);
   const chairs = useMemo(() => getCommitteeChairEmails(committee), [committee]);
@@ -195,6 +197,28 @@ export const CommitteeAgendaScreen = ({
             </p>
           </div>
         </div>
+        {isCancelled && (
+          <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-800" role="status">
+            {t('committeeSessions.agenda.cancelledBanner')}
+          </p>
+        )}
+        {isChair && session.status === 'published' && !isSessionPast(session, now) && (
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof window !== 'undefined'
+                  && !window.confirm(t('committeeSessions.planner.cancelConfirm', { count: session.agenda.filter((passage) => passage.kind !== PASSAGE_KIND_TOPIC).length }))) {
+                  return;
+                }
+                run({ type: 'cancel' }, 'sessionCancelled');
+              }}
+              className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50"
+            >
+              {t('committeeSessions.planner.cancel')}
+            </button>
+          </div>
+        )}
         {feedback && (
           <p role={feedback.tone === 'error' ? 'alert' : 'status'} className={`text-sm ${feedback.tone === 'error' ? 'text-red-700' : 'text-emerald-700'}`}>
             {feedback.message}
@@ -213,7 +237,8 @@ export const CommitteeAgendaScreen = ({
         )}
         <ol className="space-y-3">
           {timeline.map(({ passage, number, startAt, endAt }) => {
-            const project = projectsById.get(passage.projectId);
+            const isTopic = passage.kind === PASSAGE_KIND_TOPIC;
+            const project = isTopic ? null : projectsById.get(passage.projectId);
             const isCurrent = new Date(startAt) <= now && now < new Date(endAt);
             const pendingRequest = passage.timeRequest?.status === TIME_REQUEST_PENDING ? passage.timeRequest : null;
             const minutesDraft = minutesDrafts[passage.id] ?? String(passage.minutes);
@@ -234,10 +259,22 @@ export const CommitteeAgendaScreen = ({
                         </span>
                       )}
                     </p>
+                    {isTopic && (
+                      <span className="rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-xs font-semibold text-violet-800">
+                        {t('committeeSessions.agenda.topicBadge')}
+                      </span>
+                    )}
                     <h3 className="text-base font-semibold text-gray-900">
-                      {project?.projectName || t('committeeSessions.agenda.unknownProject')}
+                      {isTopic ? passage.title : project?.projectName || t('committeeSessions.agenda.unknownProject')}
                     </h3>
-                    <InvitationBadge record={invitationRecords[buildInvitationId(session.id, passage.id)]} />
+                    {isTopic && (passage.presenter || passage.note) && (
+                      <p className="text-xs text-gray-600">
+                        {passage.presenter && t('committeeSessions.agenda.topicPresenter', { presenter: passage.presenter })}
+                        {passage.presenter && passage.note && ' · '}
+                        {passage.note}
+                      </p>
+                    )}
+                    {!isTopic && <InvitationBadge record={invitationRecords[buildInvitationId(session.id, passage.id)]} />}
                     {project?.ownerEmail && (
                       <p className="text-xs text-gray-600">
                         {t('committeeSessions.agenda.owner', { owner: getDisplayNameFromEmail(project.ownerEmail) })}
@@ -333,7 +370,7 @@ export const CommitteeAgendaScreen = ({
                     >
                       {t('committeeSessions.agenda.applyDuration')}
                     </button>
-                    {otherSessions.length > 0 && (
+                    {!isTopic && otherSessions.length > 0 && (
                       <>
                         <label htmlFor={`agenda-move-${passage.id}`} className="sr-only">{t('committeeSessions.panel.moveLabel')}</label>
                         <select
@@ -367,6 +404,12 @@ export const CommitteeAgendaScreen = ({
                     <button
                       type="button"
                       onClick={() => {
+                        if (isTopic) {
+                          if (typeof window === 'undefined' || window.confirm(t('committeeSessions.agenda.removeTopicConfirm'))) {
+                            run({ type: 'unbook', passageId: passage.id }, 'topicRemoved');
+                          }
+                          return;
+                        }
                         const reason = typeof window !== 'undefined' ? window.prompt(t('committeeSessions.agenda.cancelReasonPrompt')) : '';
                         if (reason === null || !String(reason).trim()) {
                           return;
@@ -375,12 +418,12 @@ export const CommitteeAgendaScreen = ({
                       }}
                       className="ml-auto rounded-lg border border-red-200 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-50"
                     >
-                      {t('committeeSessions.agenda.cancelPassage')}
+                      {isTopic ? t('committeeSessions.agenda.removeTopic') : t('committeeSessions.agenda.cancelPassage')}
                     </button>
                   </div>
                 )}
 
-                {(isChair || Object.keys(passage.attendanceOverride).length > 0) && (
+                {!isTopic && (isChair || Object.keys(passage.attendanceOverride).length > 0) && (
                   <CommitteeAttendance
                     idPrefix={`agenda-passage-${passage.id}`}
                     label={t('committeeSessions.attendance.passageLabel')}
@@ -436,6 +479,85 @@ export const CommitteeAgendaScreen = ({
             </div>
           )}
         </section>
+      )}
+
+      {isChair && !isCancelled && (
+        <form
+          className="rounded-xl border border-gray-200 bg-white p-4 space-y-3"
+          aria-labelledby="committee-agenda-topic"
+          data-testid="committee-agenda-topic-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            run({
+              type: 'addTopic',
+              title: topicDraft.title,
+              minutes: Number(topicDraft.minutes) || MIN_PASSAGE_MINUTES,
+              presenter: topicDraft.presenter,
+              note: topicDraft.note
+            }, 'topicAdded').then((result) => {
+              if (result?.ok) {
+                setTopicDraft({ title: '', minutes: '10', presenter: '', note: '' });
+              }
+            });
+          }}
+        >
+          <div>
+            <h2 id="committee-agenda-topic" className="text-sm font-semibold text-gray-800">{t('committeeSessions.agenda.topicTitle')}</h2>
+            <p className="text-xs text-gray-500">{t('committeeSessions.agenda.topicHint')}</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-4">
+            <div className="sm:col-span-2">
+              <label htmlFor="committee-agenda-topic-title" className="block text-xs font-medium text-gray-700 mb-1">{t('committeeSessions.agenda.topicLabel')}</label>
+              <input
+                id="committee-agenda-topic-title"
+                type="text"
+                required
+                value={topicDraft.title}
+                onChange={(event) => setTopicDraft((prev) => ({ ...prev, title: event.target.value }))}
+                className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
+              />
+            </div>
+            <div>
+              <label htmlFor="committee-agenda-topic-presenter" className="block text-xs font-medium text-gray-700 mb-1">{t('committeeSessions.agenda.topicPresenterLabel')}</label>
+              <input
+                id="committee-agenda-topic-presenter"
+                type="text"
+                value={topicDraft.presenter}
+                onChange={(event) => setTopicDraft((prev) => ({ ...prev, presenter: event.target.value }))}
+                className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
+              />
+            </div>
+            <div>
+              <label htmlFor="committee-agenda-topic-minutes" className="block text-xs font-medium text-gray-700 mb-1">{t('committeeSessions.agenda.durationLabel')}</label>
+              <input
+                id="committee-agenda-topic-minutes"
+                type="number"
+                min={MIN_PASSAGE_MINUTES}
+                step={PASSAGE_STEP_MINUTES}
+                value={topicDraft.minutes}
+                onChange={(event) => setTopicDraft((prev) => ({ ...prev, minutes: event.target.value }))}
+                className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
+              />
+            </div>
+            <div className="sm:col-span-4">
+              <label htmlFor="committee-agenda-topic-note" className="block text-xs font-medium text-gray-700 mb-1">{t('committeeSessions.agenda.topicNoteLabel')}</label>
+              <input
+                id="committee-agenda-topic-note"
+                type="text"
+                value={topicDraft.note}
+                onChange={(event) => setTopicDraft((prev) => ({ ...prev, note: event.target.value }))}
+                className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
+              />
+            </div>
+          </div>
+          <button
+            type="submit"
+            disabled={!topicDraft.title.trim()}
+            className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            {t('committeeSessions.agenda.topicButton')}
+          </button>
+        </form>
       )}
 
       <section aria-labelledby="committee-agenda-attendance" className="space-y-2">

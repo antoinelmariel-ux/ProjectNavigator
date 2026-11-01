@@ -136,8 +136,9 @@ test.describe('Calendrier des comités', () => {
     await expect(agenda.getByRole('button', { name: 'Vitrine' })).toBeVisible();
     await expect(agenda.getByText('20 min attribuées sur 60 min')).toBeVisible();
 
-    await agenda.getByLabel('Durée (min)').fill('30');
-    await agenda.getByRole('button', { name: 'Appliquer' }).click();
+    const firstPassage = agenda.getByTestId('committee-agenda-passage').first();
+    await firstPassage.getByLabel('Durée (min)').fill('30');
+    await firstPassage.getByRole('button', { name: 'Appliquer' }).click();
     await expect(agenda.getByText('30 min attribuées sur 60 min')).toBeVisible();
 
     await agenda.getByRole('button', { name: 'Tous présents' }).click();
@@ -152,6 +153,23 @@ test.describe('Calendrier des comités', () => {
         return [session?.agenda?.[0]?.minutes, session?.attendance?.['membre@lfb.fr']];
       })
       .toEqual([30, 'excused']);
+
+    // Un sujet hors projet prend du temps de séance, comme un projet.
+    const topicForm = agenda.getByTestId('committee-agenda-topic-form');
+    await topicForm.getByLabel('Sujet', { exact: true }).fill('Point RGPD');
+    await topicForm.getByLabel('Présenté par (facultatif)').fill('DPO');
+    await topicForm.getByRole('button', { name: 'Ajouter le sujet' }).click();
+    await expect(agenda.getByTestId('committee-agenda-passage')).toHaveCount(2);
+    await expect(agenda.getByRole('heading', { name: 'Point RGPD' })).toBeVisible();
+    await expect(agenda.getByText('40 min attribuées sur 60 min')).toBeVisible();
+
+    // Le président annule la séance depuis l'ordre du jour.
+    page.once('dialog', (dialog) => dialog.accept());
+    await agenda.getByRole('button', { name: 'Annuler la séance' }).click();
+    await expect(agenda.getByText('Cette séance est annulée.')).toBeVisible();
+    await expect
+      .poll(async () => (await readStoredState(page)).committeeSessions?.find((entry) => entry.id === 'session-chair')?.status)
+      .toBe('cancelled');
 
     await agenda.getByRole('button', { name: /Retour/ }).click();
     await expect(page.getByRole('heading', { name: 'Enjeux du projet' })).toBeVisible();

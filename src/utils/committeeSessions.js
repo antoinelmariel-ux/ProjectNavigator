@@ -23,6 +23,12 @@ export const ATTENDANCE_EXCUSED = 'excused';
 export const ATTENDANCE_ABSENT = 'absent';
 export const ATTENDANCE_STATES = [ATTENDANCE_PRESENT, ATTENDANCE_EXCUSED, ATTENDANCE_ABSENT];
 
+// Un passage est soit la présentation d'un projet, soit un sujet libre que le président met à
+// l'ordre du jour (point d'information, retour d'expérience…) : il prend du temps de séance comme
+// un projet, mais n'a ni porteur, ni invitation, ni présences propres.
+export const PASSAGE_KIND_PROJECT = 'project';
+export const PASSAGE_KIND_TOPIC = 'topic';
+
 export const TIME_REQUEST_PENDING = 'pending';
 export const TIME_REQUEST_ACCEPTED = 'accepted';
 export const TIME_REQUEST_REFUSED = 'refused';
@@ -106,9 +112,14 @@ export const normalizePassage = (value = {}) => {
   const representation = value?.representationRequest && typeof value.representationRequest === 'object'
     ? { by: normalizeEmail(value.representationRequest.by), at: toIso(value.representationRequest.at) }
     : null;
+  const kind = value?.kind === PASSAGE_KIND_TOPIC ? PASSAGE_KIND_TOPIC : PASSAGE_KIND_PROJECT;
   return {
     id: toText(value?.id) || createPassageId(),
-    projectId: toText(value?.projectId),
+    kind,
+    projectId: kind === PASSAGE_KIND_TOPIC ? '' : toText(value?.projectId),
+    title: kind === PASSAGE_KIND_TOPIC ? toText(value?.title) : '',
+    presenter: kind === PASSAGE_KIND_TOPIC ? toText(value?.presenter) : '',
+    note: kind === PASSAGE_KIND_TOPIC ? toText(value?.note) : '',
     minutes: normalizePassageMinutes(value?.minutes),
     guests: normalizeEmails(value?.guests),
     bookedBy: normalizeEmail(value?.bookedBy),
@@ -131,7 +142,7 @@ export const normalizeSession = (value = {}) => ({
   status: SESSION_STATUSES.includes(value?.status) ? value.status : SESSION_STATUS_DRAFT,
   agenda: (Array.isArray(value?.agenda) ? value.agenda : [])
     .map(normalizePassage)
-    .filter((passage) => passage.projectId.length > 0),
+    .filter((passage) => (passage.kind === PASSAGE_KIND_TOPIC ? passage.title.length > 0 : passage.projectId.length > 0)),
   attendance: normalizeAttendanceMap(value?.attendance),
   planningReminderSentAt: toIso(value?.planningReminderSentAt),
   updatedAt: toIso(value?.updatedAt),
@@ -346,6 +357,49 @@ export const applySessionAction = (rawSession, action = {}, context = {}) => {
         bookedAt: toIso(now)
       });
       return done(settleDuration(withAgenda(session, [...session.agenda, passage]), action));
+    }
+    case 'addTopic': {
+      if (!isChair) {
+        return fail('forbidden');
+      }
+      const title = toText(action.title);
+      if (!title) {
+        return fail('invalid');
+      }
+      if (session.status === SESSION_STATUS_CANCELLED) {
+        return fail('cancelled');
+      }
+      const topic = normalizePassage({
+        id: action.passageId,
+        kind: PASSAGE_KIND_TOPIC,
+        title,
+        presenter: action.presenter,
+        note: action.note,
+        minutes: normalizePassageMinutes(action.minutes, MIN_PASSAGE_MINUTES),
+        bookedBy: actor,
+        bookedAt: toIso(now)
+      });
+      return done(settleDuration(withAgenda(session, [...session.agenda, topic]), action));
+    }
+    case 'updateTopic': {
+      if (!isChair) {
+        return fail('forbidden');
+      }
+      const target = session.agenda.find((passage) => passage.id === action.passageId);
+      if (target?.kind !== PASSAGE_KIND_TOPIC) {
+        return fail('notFound');
+      }
+      const patch = action.patch || {};
+      if ('title' in patch && !toText(patch.title)) {
+        return fail('invalid');
+      }
+      const next = updatePassage(session, action.passageId, (passage) => ({
+        ...passage,
+        ...('title' in patch ? { title: patch.title } : {}),
+        ...('presenter' in patch ? { presenter: patch.presenter } : {}),
+        ...('note' in patch ? { note: patch.note } : {})
+      }));
+      return done({ ok: true, session: next });
     }
     case 'unbook': {
       const agenda = session.agenda.filter((passage) => passage.id !== action.passageId);

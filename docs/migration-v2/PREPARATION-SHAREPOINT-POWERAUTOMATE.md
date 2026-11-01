@@ -413,7 +413,7 @@ les séances ; les chefs de projet y inscrivent leur projet depuis « Enjeux du 
 | DurationMinutes | Nombre |
 | Location | Une ligne de texte (lien Teams ou salle) |
 | Status | Une ligne de texte (`draft`, `published`, `cancelled`) |
-| AgendaJson | Texte long (passages ordonnés : projet, durée, invités, demande de temps, présences propres au passage, rappels envoyés) |
+| AgendaJson | Texte long (passages ordonnés : projet ou sujet hors projet, durée, invités, demande de temps, présences propres au passage, rappels envoyés) |
 | AttendanceJson | Texte long (présences de la séance, ex. `{"prenom.nom@lfb.fr":"present"}`) |
 | PlanningReminderSentAt | Une ligne de texte |
 | OutlookEventId | Une ligne de texte |

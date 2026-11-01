@@ -331,6 +331,11 @@
   background-color: transparent;
 }
 
+.bg-violet-50 {
+  --tw-bg-opacity: 1;
+  background-color: rgba(245,243,255, var(--tw-bg-opacity));
+}
+
 .bg-white {
   --tw-bg-opacity: 1;
   background-color: rgba(255,255,255, var(--tw-bg-opacity));
@@ -585,6 +590,11 @@
 
 .border-transparent {
   border-color: transparent;
+}
+
+.border-violet-200 {
+  --tw-border-opacity: 1;
+  border-color: rgba(221,214,254, var(--tw-border-opacity));
 }
 
 .border-white {
@@ -1917,6 +1927,11 @@
   line-height: 1.25rem;
 }
 
+.text-violet-800 {
+  --tw-text-opacity: 1;
+  color: rgba(91,33,182, var(--tw-text-opacity));
+}
+
 .text-white {
   --tw-text-opacity: 1;
   color: rgba(255,255,255, var(--tw-text-opacity));
@@ -2155,8 +2170,20 @@
 }
 
 @media (min-width: 640px) {
+  .sm\:col-span-2 {
+    grid-column: span 2 / span 2;
+  }
+}
+
+@media (min-width: 640px) {
   .sm\:col-span-3 {
     grid-column: span 3 / span 3;
+  }
+}
+
+@media (min-width: 640px) {
+  .sm\:col-span-4 {
+    grid-column: span 4 / span 4;
   }
 }
 
@@ -2211,6 +2238,12 @@
 @media (min-width: 640px) {
   .sm\:grid-cols-3 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 640px) {
+  .sm\:grid-cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
