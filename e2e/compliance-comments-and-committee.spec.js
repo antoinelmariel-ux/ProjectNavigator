@@ -104,7 +104,7 @@ test.describe('Repêchage par un comité (réintégration)', () => {
     await goToProjectsHome(page);
 
     await page.getByRole('button', { name: /Hors scope comité \(1\)/ }).click();
-    const reintegrateBtn = page.getByRole('button', { name: 'Réintégrer en comité' });
+    const reintegrateBtn = page.getByRole('button', { name: 'Intégrer au comité' });
     await expect(reintegrateBtn).toBeVisible();
     await reintegrateBtn.click();
 

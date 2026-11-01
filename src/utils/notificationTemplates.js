@@ -275,12 +275,15 @@ export const NOTIFICATION_CATALOG = {
   },
 
   [NOTIFICATION_TYPES.COMMITTEE_REINTEGRATION]: {
-    actionType: 'Reintegrated into the validation committee',
-    intro: (ctx) =>
-      `${ctx.actorName} reintegrated the project ${quoted(ctx.projectName)} into the validation committee.`,
+    actionType: 'Action required: book a validation committee slot',
+    intro: (ctx) => {
+      const committee = ctx.teamNames.length > 0 ? `the ${ctx.teamNames.join(', ')} validation committee` : 'the validation committee';
+      return `${ctx.actorName} added your project ${quoted(ctx.projectName)} to ${committee}. To be reviewed, the project must be registered on a committee session: you need to book a slot yourself in Project Navigator.`;
+    },
     expected: () => [
-      'Check that the file is complete before the committee review.',
-      'Prepare the presentation materials expected by the committee.'
+      'Open the project in Project Navigator (link above) and go to the project stakes page.',
+      'In the validation committee block, choose an available session and book a slot.',
+      'Check that the file is complete and prepare the presentation materials expected by the committee.'
     ],
     reason: () => 'you are the owner or co-owner of this project.'
   },

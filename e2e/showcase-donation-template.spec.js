@@ -214,6 +214,7 @@ test('le back-office masque un emplacement, renomme une section et prévisualise
   await expect(termsCondition.locator('summary')).toContainText('affichée sous condition');
 
   // la feuille de route devient le bloc « Étapes » du catalogue, titre renommé compris
+  await select('timeline', 'builtin');
   await section('timeline').getByRole('button', { name: 'Remplacer par un bloc réglable' }).click();
   await expect(section('timeline')).toHaveCount(0);
   const steps = section('from-timeline');
