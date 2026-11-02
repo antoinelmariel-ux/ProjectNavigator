@@ -99,6 +99,7 @@ script (nécessaire au-delà de 5 000 éléments).
 | `CN_UserProfiles` | UserEmail📌, ActivityScopeJson (texte long), PreferredLanguage, HasCompletedOnboarding (oui/non), TeamPreferencesJson (texte long), AbsenceJson (texte long), UpdatedAt (date) |
 | `CN_Rules` | RuleId📌, PayloadJson (texte long), SortOrder (nombre), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
 | `CN_Teams` | TeamId📌, ContactsJson (texte long), NameJson (texte long), Expertise (texte long), AcceptedLanguagesJson (texte long), MemberRulesJson (texte long), ClaimStaleDays (nombre), ClaimReminderDays (nombre), SortOrder (nombre), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
+| `CN_Committees` | CommitteeId📌, PayloadJson (texte long), SortOrder (nombre), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
 | `CN_SampleProjects` | SampleId📌, AnswersJson (texte long), SortOrder (nombre), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
 | `CN_Faq` | FaqId📌, QuestionJson (texte long), AnswerJson (texte long), CategoryJson (texte long), IsPublished (oui/non, défaut oui), SortOrder (nombre), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
 | `CN_CommitteeSessions` | SessionId📌, CommitteeId📌, StartAt, DurationMinutes (nombre), Location (texte long), Status, AgendaJson (texte long), AttendanceJson (texte long), PlanningReminderSentAt, OutlookEventId, RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
@@ -375,6 +376,18 @@ existaient auparavant dans `CN-Config` — une ligne par règle/équipe plutôt 
         { name: 'MemberRulesJson', type: 'Note' },
         { name: 'ClaimStaleDays', type: 'Number' },
         { name: 'ClaimReminderDays', type: 'Number' },
+        { name: 'SortOrder', type: 'Number' },
+        { name: 'RowVersion', type: 'Number' },
+        { name: 'CreatedByEmail', type: 'Text' },
+        { name: 'UpdatedByEmail', type: 'Text' },
+        { name: 'UpdatedAt', type: 'DateTime' }
+      ]
+    },
+    {
+      title: 'CN_Committees',
+      fields: [
+        { name: 'CommitteeId', type: 'Text', indexed: true },
+        { name: 'PayloadJson', type: 'Note' },
         { name: 'SortOrder', type: 'Number' },
         { name: 'RowVersion', type: 'Number' },
         { name: 'CreatedByEmail', type: 'Text' },

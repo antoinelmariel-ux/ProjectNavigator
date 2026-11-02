@@ -7,7 +7,7 @@ const SETTINGS_KEYS = [
   'adminEmails',
   'technicalContactEmails',
   'onboardingTourConfig',
-  'validationCommitteeConfig',
+  'validationCommitteesEnabled',
   'launchReminderDays',
   'inspirationFormFields',
   'projectFilters',
@@ -16,6 +16,9 @@ const SETTINGS_KEYS = [
   'helpManuals'
 ];
 
+// `validationCommitteesEnabled` : interrupteur global des comités (admin seul). Les comités eux-mêmes
+// vivent dans la liste CN_Committees (committeesProvider.js) ; un settings.json ancien peut encore
+// porter `validationCommitteeConfig` complet, lu en repli tant que la liste est vide.
 // `rules` et `teams` ne sont plus des référentiels-fichiers : ils vivent dans les listes
 // SharePoint CN_Rules / CN_Teams (une ligne par règle / par équipe), voir rulesProvider.js et
 // teamsProvider.js — chargés et écrits séparément dans App.jsx, pas via ce module.

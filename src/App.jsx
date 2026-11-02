@@ -182,6 +182,7 @@ import { filesIndexProvider } from './utils/filesIndexProvider.js';
 import { rulesProvider } from './utils/rulesProvider.js';
 import { sampleProjectsProvider } from './utils/sampleProjectsProvider.js';
 import { teamsProvider } from './utils/teamsProvider.js';
+import { committeesProvider } from './utils/committeesProvider.js';
 import { faqProvider } from './utils/faqProvider.js';
 import {
   normalizeSessions as normalizeCommitteeSessions,
@@ -1225,7 +1226,8 @@ export const App = () => {
   const [sharePointReinitSelection, setSharePointReinitSelection] = useState(() => ({
     ...buildFullReferentialSelection(),
     rules: true,
-    teams: true
+    teams: true,
+    committees: true
   }));
   const annotationNotesRef = useRef(annotationNotes);
   const pendingShowcaseProjectIdRef = useRef(null);
@@ -1248,6 +1250,7 @@ export const App = () => {
   const sampleProjectsQueueRef = useRef(null);
   const committeeInvitationsQueueRef = useRef(null);
   const teamsQueueRef = useRef(null);
+  const committeesQueueRef = useRef(null);
   const faqQueueRef = useRef(null);
   const inspirationsQueueRef = useRef(null);
   // Métadonnées SharePoint (spItemId/RowVersion/SortOrder) par id de règle/équipe — jamais
@@ -1255,6 +1258,10 @@ export const App = () => {
   const ruleServerMetaRef = useRef(new Map());
   const sampleProjectServerMetaRef = useRef(new Map());
   const teamServerMetaRef = useRef(new Map());
+  const committeeServerMetaRef = useRef(new Map());
+  // Vrai quand CN_Committees est vide alors que settings.json porte encore des comités (ancien
+  // format) : un administrateur les recopie alors dans la liste, une seule fois.
+  const committeesNeedSeedRef = useRef(false);
   const faqServerMetaRef = useRef(new Map());
   const loadedProjectMembersRef = useRef(new Set());
   const loadedStickyNotesRef = useRef(new Set());
@@ -1670,7 +1677,7 @@ export const App = () => {
       adminEmails,
       technicalContactEmails,
       onboardingTourConfig,
-      validationCommitteeConfig,
+      validationCommitteesEnabled: validationCommitteeConfig.enabled !== false,
       launchReminderDays,
       inspirationFormFields,
       projectFilters,
@@ -1688,7 +1695,7 @@ export const App = () => {
     adminEmails,
     technicalContactEmails,
     onboardingTourConfig,
-    validationCommitteeConfig,
+    validationCommitteeConfig.enabled,
     launchReminderDays,
     inspirationFormFields,
     projectFilters,
@@ -2089,8 +2096,16 @@ const updateProjectFilters = useCallback((updater) => {
       if (slices.onboardingTourConfig) {
         setOnboardingTourConfig(normalizeOnboardingConfig(slices.onboardingTourConfig));
       }
+      // Ancien format : settings.json portait les comités eux-mêmes. Repli tant que CN_Committees
+      // est vide (voir hydrateFromSharePoint) ; l'interrupteur, lui, a sa propre clé.
       if (slices.validationCommitteeConfig) {
         setValidationCommitteeConfig(normalizeValidationCommitteeConfig(slices.validationCommitteeConfig));
+      }
+      if (typeof slices.validationCommitteesEnabled === 'boolean') {
+        setValidationCommitteeConfig((previous) => ({
+          ...normalizeValidationCommitteeConfig(previous),
+          enabled: slices.validationCommitteesEnabled
+        }));
       }
       if (slices.launchReminderDays) {
         setLaunchReminderDays(normalizeLaunchReminderDays(slices.launchReminderDays));
@@ -2111,7 +2126,8 @@ const updateProjectFilters = useCallback((updater) => {
           sampleEntries,
           faqServerEntries,
           serverCommitteeSessions,
-          serverCommitteeInvitations
+          serverCommitteeInvitations,
+          committeeEntries
         ] =
           await Promise.all([
             dataProvider.listProjects(),
@@ -2133,7 +2149,10 @@ const updateProjectFilters = useCallback((updater) => {
             faqProvider.listAllFaqEntries().catch(() => null),
             // Échec de lecture (liste pas encore créée) = on garde les séances locales.
             committeeSessionsProvider ? committeeSessionsProvider.listAllSessions().catch(() => null) : null,
-            committeeInvitationsProvider ? committeeInvitationsProvider.listAllInvitations().catch(() => null) : null
+            committeeInvitationsProvider ? committeeInvitationsProvider.listAllInvitations().catch(() => null) : null,
+            // `null` = échec de lecture (liste pas encore créée, droits) : on garde les comités
+            // locaux ou de l'ancien settings.json plutôt que de les confondre avec une liste vide.
+            committeesProvider.listAllCommittees().catch(() => null)
           ]);
 
         if (cancelled) {
@@ -2152,6 +2171,24 @@ const updateProjectFilters = useCallback((updater) => {
         if (teamEntries.length > 0) {
           teamServerMetaRef.current = new Map(teamEntries.map(({ team, meta }) => [team.id, meta]));
           setTeams(teamEntries.map(({ team }) => team));
+        }
+        if (Array.isArray(committeeEntries)) {
+          if (committeeEntries.length > 0) {
+            committeeServerMetaRef.current = new Map(
+              committeeEntries.map(({ committee, meta }) => [committee.id, meta])
+            );
+            setValidationCommitteeConfig((previous) => ({
+              ...normalizeValidationCommitteeConfig(previous),
+              committees: normalizeValidationCommitteeConfig({
+                committees: committeeEntries.map(({ committee }) => committee)
+              }).committees
+            }));
+          } else if (
+            Array.isArray(referentials.slices.validationCommitteeConfig?.committees)
+            && referentials.slices.validationCommitteeConfig.committees.length > 0
+          ) {
+            committeesNeedSeedRef.current = true;
+          }
         }
 
         // Les projets types, eux, peuvent légitimement être vides (aucun expert n'en a encore
@@ -3570,7 +3607,42 @@ const updateProjectFilters = useCallback((updater) => {
       },
       getItemKey: (payload) => (payload.action === 'remove' ? payload.teamId : payload.team.id)
     });
+
+    committeesQueueRef.current = createRetryQueue({
+      processItem: async (payload) => {
+        if (payload.action === 'remove') {
+          await committeesProvider.removeCommittee(payload.committeeId);
+          committeeServerMetaRef.current.delete(payload.committeeId);
+          return;
+        }
+        const { committee, meta } = await committeesProvider.saveCommittee(payload.committee, {
+          sortOrder: payload.sortOrder,
+          userEmail: currentUserEmail
+        });
+        committeeServerMetaRef.current.set(committee.id, meta);
+      },
+      getItemKey: (payload) => (payload.action === 'remove' ? payload.committeeId : payload.committee.id)
+    });
   }, [currentUserEmail]);
+
+  // Migration : CN_Committees vide alors que settings.json porte encore les comités. Un
+  // administrateur les recopie dans la liste (upsert par CommitteeId, donc sans risque si deux
+  // administrateurs le font en même temps), puis la liste fait foi.
+  useEffect(() => {
+    if (
+      !committeesNeedSeedRef.current
+      || !isSharePointMode()
+      || !isCurrentUserAdmin
+      || !(sharePointSync.state === 'synced' || sharePointSync.state === 'partial')
+    ) {
+      return;
+    }
+    committeesNeedSeedRef.current = false;
+    normalizeValidationCommitteeConfig(validationCommitteeConfig).committees.forEach((committee, index) => {
+      committeeServerMetaRef.current.set(committee.id, { sortOrder: (index + 1) * 1000 });
+      committeesQueueRef.current?.enqueue({ action: 'save', committee, sortOrder: (index + 1) * 1000 });
+    });
+  }, [isCurrentUserAdmin, sharePointSync.state, validationCommitteeConfig]);
 
   // Mise à jour optimiste immédiate (l'écran d'onboarding/le profil réagit tout de suite),
   // écriture réelle passée par la file d'attente avec réessais (voir plus haut).
@@ -3680,6 +3752,7 @@ const updateProjectFilters = useCallback((updater) => {
       userProfileQueueRef.current?.flush();
       rulesQueueRef.current?.flush();
       teamsQueueRef.current?.flush();
+      committeesQueueRef.current?.flush();
       sampleProjectsQueueRef.current?.flush();
       committeeInvitationsQueueRef.current?.flush();
       faqQueueRef.current?.flush();
@@ -8272,9 +8345,10 @@ const updateProjectFilters = useCallback((updater) => {
     );
     const includeRules = sharePointReinitSelection.rules !== false;
     const includeTeams = sharePointReinitSelection.teams !== false;
+    const includeCommittees = sharePointReinitSelection.committees !== false;
     const signatureSnapshot = referentialSignatures;
 
-    if (selectedFileKeys.size === 0 && !includeRules && !includeTeams) {
+    if (selectedFileKeys.size === 0 && !includeRules && !includeTeams && !includeCommittees) {
       setSharePointReinitState({
         inProgress: false,
         message: t('app.reinit.nothingSelected'),
@@ -8325,13 +8399,14 @@ const updateProjectFilters = useCallback((updater) => {
           questions,
           rules,
           teams,
+          committees: normalizeValidationCommitteeConfig(validationCommitteeConfig).committees,
           riskLevelRules,
           riskWeights,
           projectFilters,
           inspirationFilters,
           inspirationFormFields,
           onboardingTourConfig,
-          validationCommitteeConfig,
+          validationCommitteesEnabled: validationCommitteeConfig.enabled !== false,
           launchReminderDays,
           showcaseThemes,
           showcaseTemplates,
@@ -8341,7 +8416,7 @@ const updateProjectFilters = useCallback((updater) => {
           teamVisibility,
           userEmail: currentUserEmail
         },
-        { files: selectedFileKeys, rules: includeRules, teams: includeTeams }
+        { files: selectedFileKeys, rules: includeRules, teams: includeTeams, committees: includeCommittees }
       );
 
       const details = summary.lists
@@ -8456,7 +8531,7 @@ const updateProjectFilters = useCallback((updater) => {
           inspirationFilters,
           inspirationFormFields,
           onboardingTourConfig,
-          validationCommitteeConfig,
+          validationCommitteesEnabled: validationCommitteeConfig.enabled !== false,
           launchReminderDays,
           showcaseThemes,
           showcaseTemplates,
@@ -8538,7 +8613,7 @@ const updateProjectFilters = useCallback((updater) => {
           inspirationFilters,
           inspirationFormFields,
           onboardingTourConfig,
-          validationCommitteeConfig,
+          validationCommitteesEnabled: validationCommitteeConfig.enabled !== false,
           launchReminderDays,
           showcaseThemes,
           showcaseTemplates,
@@ -9321,6 +9396,8 @@ const updateProjectFilters = useCallback((updater) => {
                 sampleProjectServerMetaRef={sampleProjectServerMetaRef}
                 rulesQueueRef={rulesQueueRef}
                 teamsQueueRef={teamsQueueRef}
+                committeesQueueRef={committeesQueueRef}
+                committeeServerMetaRef={committeeServerMetaRef}
                 ruleServerMetaRef={ruleServerMetaRef}
                 teamServerMetaRef={teamServerMetaRef}
                 helpManuals={helpManuals}

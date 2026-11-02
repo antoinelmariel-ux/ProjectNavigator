@@ -528,7 +528,8 @@ const REFERENTIAL_SELECTION_ITEMS = [
 
 const REINIT_EXTRA_SELECTION_ITEMS = [
   { key: 'rules', labelKey: 'referentialItemRules' },
-  { key: 'teams', labelKey: 'referentialItemTeams' }
+  { key: 'teams', labelKey: 'referentialItemTeams' },
+  { key: 'committees', labelKey: 'referentialItemCommittees' }
 ];
 
 const buildRiskWeightFields = (t) =>
@@ -799,8 +800,10 @@ export const BackOffice = ({
   onPublishSingleReferential,
   rulesQueueRef,
   teamsQueueRef,
+  committeesQueueRef,
   ruleServerMetaRef,
   teamServerMetaRef,
+  committeeServerMetaRef,
   userProfilesByEmail = null,
   onSaveMemberAbsence,
   onPerimeterClaimAction,
@@ -1391,18 +1394,86 @@ export const BackOffice = ({
   );
 
 
+  // Chaque comité est une ligne de CN_Committees : seuls les comités réellement modifiés (ou
+  // ajoutés, ou retirés) sont écrits, via la file avec réessais — deux administrateurs qui
+  // éditent deux comités différents ne se marchent plus dessus. L'état complet, lui, garde sa
+  // forme {enabled, committees} pour tous les consommateurs. En mode local, rien n'est écrit :
+  // l'état est persisté tel quel dans complianceNavigatorState.
+  const committeeConfigRef = useRef(validationCommitteeConfig);
+  committeeConfigRef.current = validationCommitteeConfig;
+
+  const syncCommitteeRows = useCallback(
+    (previousConfig, nextConfig) => {
+      if (!isSharePointMode()) {
+        return;
+      }
+      const queue = committeesQueueRef?.current;
+      const metaMap = committeeServerMetaRef?.current;
+      if (!queue || typeof queue.enqueue !== 'function') {
+        return;
+      }
+
+      const previousById = new Map(previousConfig.committees.map((committee) => [committee.id, committee]));
+      const nextIds = new Set(nextConfig.committees.map((committee) => committee.id));
+      let highestOrder = Math.max(
+        0,
+        ...nextConfig.committees
+          .map((committee) => metaMap?.get(committee.id)?.sortOrder)
+          .filter((value) => typeof value === 'number')
+      );
+
+      nextConfig.committees.forEach((committee) => {
+        const before = previousById.get(committee.id);
+        if (before && JSON.stringify(before) === JSON.stringify(committee)) {
+          return;
+        }
+        let sortOrder = metaMap?.get(committee.id)?.sortOrder;
+        if (typeof sortOrder !== 'number') {
+          highestOrder += 1000;
+          sortOrder = highestOrder;
+          metaMap?.set(committee.id, { ...(metaMap.get(committee.id) || {}), sortOrder });
+        }
+        queue.enqueue({ action: 'save', committee, sortOrder });
+      });
+
+      previousById.forEach((_, committeeId) => {
+        if (!nextIds.has(committeeId)) {
+          queue.enqueue({ action: 'remove', committeeId });
+        }
+      });
+    },
+    [committeeServerMetaRef, committeesQueueRef]
+  );
+
   const updateValidationCommitteeConfig = useCallback(
     (updater) => {
       if (typeof setValidationCommitteeConfig !== 'function') {
         return;
       }
-      setValidationCommitteeConfig((prev) =>
-        normalizeValidationCommitteeConfig(
-          typeof updater === 'function' ? updater(prev) : updater
-        )
+      const previous = normalizeValidationCommitteeConfig(committeeConfigRef.current);
+      const next = normalizeValidationCommitteeConfig(
+        typeof updater === 'function' ? updater(previous) : updater
       );
+      committeeConfigRef.current = next;
+      setValidationCommitteeConfig(next);
+      syncCommitteeRows(previous, next);
     },
-    [setValidationCommitteeConfig]
+    [setValidationCommitteeConfig, syncCommitteeRows]
+  );
+
+  // Interrupteur global : il concerne tous les comités, donc réservé aux administrateurs (ou, hors
+  // SharePoint, à qui a les droits pleins du back-office — `allowedTabIds` nul). Un membre de
+  // comité ou une équipe, qui n'a qu'une vue restreinte, ne peut pas le basculer ; la garde est
+  // aussi dans le gestionnaire, pas seulement dans l'attribut `disabled`.
+  const canToggleCommitteesEnabled = isCurrentUserAdmin || !allowedTabIds;
+  const handleToggleCommitteesEnabled = useCallback(
+    (enabled) => {
+      if (!canToggleCommitteesEnabled) {
+        return;
+      }
+      updateValidationCommitteeConfig((prev) => ({ ...prev, enabled }));
+    },
+    [canToggleCommitteesEnabled, updateValidationCommitteeConfig]
   );
   const updateCommitteeEntry = useCallback(
     (committeeId, updater) => {
@@ -7721,20 +7792,24 @@ export const BackOffice = ({
                 )}
 
                 <div className="flex flex-wrap items-center gap-3">
-                  <label className="inline-flex items-center gap-3 text-sm font-medium text-gray-700">
+                  <label
+                    className="inline-flex items-center gap-3 text-sm font-medium text-gray-700"
+                    title={canToggleCommitteesEnabled ? undefined : t('backOffice.main.enableCommitteeTrackingAdminOnlyHint')}
+                  >
                     <input
                       type="checkbox"
-                      className="h-4 w-4 rounded border-gray-300 text-blue-600"
+                      className="h-4 w-4 rounded border-gray-300 text-blue-600 disabled:cursor-not-allowed disabled:opacity-60"
                       checked={normalizedValidationCommitteeConfig.enabled}
-                      onChange={(event) => {
-                        updateValidationCommitteeConfig((prev) => ({
-                          ...prev,
-                          enabled: event.target.checked
-                        }));
-                      }}
+                      disabled={!canToggleCommitteesEnabled}
+                      onChange={(event) => handleToggleCommitteesEnabled(event.target.checked)}
                     />
                     {t('backOffice.main.enableCommitteeTrackingLabel')}
                   </label>
+                  {!canToggleCommitteesEnabled && (
+                    <p className="text-xs text-gray-500">
+                      {t('backOffice.main.enableCommitteeTrackingAdminOnlyHint')}
+                    </p>
+                  )}
                   <button
                     type="button"
                     onClick={addCommitteeEntry}
