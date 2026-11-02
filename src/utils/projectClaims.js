@@ -4,6 +4,7 @@ import { resolveTeamRecipients } from './teamMemberRules.js';
 import { withTeamFollowers } from './perimeterFollowers.js';
 import { countBusinessDaysBetween } from './businessDays.js';
 import { applyAbsenceSubstitution, wantsClaimCopyForTeam } from './teamMemberProfile.js';
+import { getPerimeterQueueState, isBallWithExpert } from './expertQueue.js';
 
 // Prise en charge d'un projet par un membre d'une équipe experte déclenchée. L'unité n'est pas
 // le projet mais le couple (projet × périmètre) : un projet peut déclencher plusieurs équipes,
@@ -289,7 +290,9 @@ export const getPerimeterLastActivityAt = (entry) => {
   return candidates.sort().pop() || '';
 };
 
-export const getClaimStaleness = (entry, { team, now = new Date().toISOString() } = {}) => {
+// Avec `project`, la relance n'est due que si la balle est chez l'expert (voir `isBallWithExpert`) ;
+// sans, seule l'inactivité compte.
+export const getClaimStaleness = (entry, { team, project, now = new Date().toISOString() } = {}) => {
   const claim = getPerimeterClaim(entry);
   const { staleDays, reminderDays } = resolveTeamClaimSettings(team);
 
@@ -316,7 +319,13 @@ export const getClaimStaleness = (entry, { team, now = new Date().toISOString() 
     lastActivityAt,
     businessDaysSinceActivity,
     isStale: staleDays > 0 && businessDaysSinceActivity >= staleDays,
-    isReminderDue: reminderDays > 0 && businessDaysSinceActivity >= reminderDays && !alreadyReminded,
+    isReminderDue: reminderDays > 0
+      && businessDaysSinceActivity >= reminderDays
+      && !alreadyReminded
+      && (!project || isBallWithExpert(getPerimeterQueueState(entry, {
+        project,
+        complianceEmails: normalizeTeamContacts(team)
+      }))),
     staleDays,
     reminderDays
   };
