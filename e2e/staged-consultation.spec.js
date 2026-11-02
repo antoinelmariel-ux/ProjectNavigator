@@ -86,7 +86,8 @@ test('commencer par un périmètre : les autres attendent, invisibles de leurs e
   await expect(card.getByText('Consultation partielle')).toBeVisible();
   // L'expert de PI n'a pas été sollicité : rien dans sa file.
   await expect(page.getByText('Projets déclenchés pour vous')).toBeVisible();
-  await expect(page.getByText('Aucun projet à traiter pour l’instant.')).toBeVisible();
+  await expect(page.getByText('Aucun projet en cours pour l’instant.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'À prendre (0)' })).toBeVisible();
 
   expect(errors).toEqual([]);
 });
@@ -113,7 +114,7 @@ test('solliciter les autres périmètres referme la consultation par vagues', as
   expect(staged?.waves).toHaveLength(2);
 
   await page.goto('/index.html');
-  await expect(page.getByRole('button', { name: 'À traiter (1)' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'À prendre (1)' })).toBeVisible();
 });
 
 test('tout envoyer reste le choix par défaut', async ({ page }) => {

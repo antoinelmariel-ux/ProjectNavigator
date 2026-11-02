@@ -839,7 +839,7 @@ back-office chunk.
 ## Taking a project in charge (claim / take-over)
 
 When several contacts of the same expert team are triggered on a project, one of them can **take it
-in charge**: the project then leaves the others' « À traiter » list and the following exchanges only
+in charge**: the project then leaves the others' « À prendre » list and the following exchanges only
 notify the person handling it. `src/utils/projectClaims.js` holds all of it, `src/utils/businessDays.js`
 the (Mon–Fri, no holiday calendar) delay arithmetic, and `src/utils/teamMemberProfile.js` the two
 per-person settings this feature needs.
@@ -848,8 +848,8 @@ per-person settings this feature needs.
   `answers['__compliance_team_comments__'].teams[teamId].claim`, right next to that perimeter's
   compliance status, because a project can trigger several teams and one person can be a contact of
   two of them. Counts and tab routing are therefore computed per perimeter (`openPerimeters` in
-  `HomeScreen.jsx`); a project only leaves « À traiter » when **every** still-open perimeter of that
-  person is claimed by someone else.
+  `HomeScreen.jsx`); a project only goes to « Pris en charge par l'équipe » when **every** still-open
+  perimeter of that person is claimed by someone else (see « The expert's queue » below).
 - **Recipients are narrowed, access is not** — same invariant as `teamMemberRules.js`, and the two
   compose in one direction only: `resolveClaimAwareRecipients` starts from `resolveTeamRecipients`,
   so a claim can only ever shrink an already-routed list. `resolveClaimCopyRecipients` intersects
@@ -903,10 +903,42 @@ per-person settings this feature needs.
   synthesis, just above « Points à préparer ». A follower must already be a team contact, so it
   grants no access; what it changes is mail: `resolveTeamRecipients` adds followers even when member
   routing excludes them, `resolveClaimAwareRecipients` sends to assignee + followers, and a follower
-  keeps a claimed project in « À traiter ». The synthesis editor never edits followers:
+  keeps a claimed project in « En cours ». The synthesis editor never edits followers:
   `preservePerimeterFollowers` restores them on every comment save. Tests:
   `test/perimeterFollowers.test.mjs`, `e2e/perimeter-followers.spec.js`.
 - Tests: `test/projectClaims.test.mjs`, `test/teamMemberProfile.test.mjs`, `e2e/project-claim.spec.js`.
+
+## The expert's queue on the home (À prendre / En cours / Traités)
+
+`src/utils/expertQueue.js` (`test/expertQueue.test.mjs`, `e2e/expert-queue.spec.js`) sorts each
+project of an expert into **one** tab, from the state of that person's perimeters
+(`getPerimeterQueueState` → `classifyExpertProject`, priority En cours > À prendre > collègue > Traités):
+
+- **À prendre**: an open team perimeter nobody claimed. **En cours**: claimed by me, followed by me, or
+  a committee (not claimable, so straight into « En cours »). **Pris en charge par l'équipe**:
+  secondary, every open perimeter is claimed by someone else. **Traités**: an opinion was given.
+- **Taking in charge = the project, until the definitive opinion**, not one question or one round: a
+  project stays « En cours » through every back-and-forth. `pending_information` is **not** an
+  opinion (it used to count as treated while the owner had not answered). A preliminary opinion
+  (the version it carries was sent as `preliminary`, read in `__submission_history__.entries`)
+  stays « En cours », at the end of the list, badge « Avis préliminaire rendu »; once the owner
+  requests validation it comes back with news. A review pending after an update
+  (`isPerimeterReviewPending`) or an unconfirmed final round also reopen a given opinion.
+- **The dot** (`news`): an owner-side reply (any author outside the team contacts / committee
+  members) after the expert side's last gesture (`statusUpdatedAt` or a reply by a contact) —
+  partial or not, the expert judges —, a project update, a validation request after a preliminary
+  opinion, a final-round request. It goes out on the expert's next gesture, **never on opening**
+  the project. Dotted projects sort first (most recent news first); this sort only applies on
+  arrival/tab change (`useStableList`), a click never moves the card. In « Traités » a late owner
+  reply shows the dot but does not move the project.
+- **The owner's mirror is simpler**: a dot on their own project card (`src/utils/synthesisSeen.js`,
+  `test/synthesisSeen.test.mjs`, `e2e/owner-expert-news.spec.js`) when an expert saved an opinion/status
+  or wrote in a thread (author outside owner/co-owners) since they last opened « Enjeux du projet ».
+  The open date is personal reading state, kept in `localStorage` (`complianceNavigatorSynthesisSeen`,
+  per person, per browser, not written in simulation) — never in the project, which would re-save it
+  on every read. The first read stores `initializedAt` as baseline, so existing history never lights up.
+- The synthesis's « dernier périmètre ouvert » message follows the same rule
+  (`perimeterResolution.js` reuses `OPINION_STATUSES`; preliminary request → its own message).
 
 ## The rules/questions engine (the risk-critical logic)
 
@@ -928,15 +960,15 @@ case — keep using them for any new list/action instead of inventing another on
 - **Stays in place** — `src/hooks/useStableList.js` (pure logic in `src/utils/stableOrder.js`, tests
   `test/stableOrder.test.mjs`). The sorted order is applied on arrival and when `resetKey` changes
   (tab, filter, search, sort); afterwards items already shown keep their slot, new ones are inserted
-  after their sorted predecessor, vanished ones leave. Used for the experts' « À traiter » tabs, « Mes
+  after their sorted predecessor, vanished ones leave. Used for the experts' queue tabs, « Mes
   projets » / submitted lists (before pagination, so a card never changes page under the cursor),
   the synthesis team cards (an expert's saved opinion no longer sinks the card they just edited),
   « Mon équipe » and the trash dialog. `useTransientHighlight` + `.cn-halo` flash the acted-on card.
 - **Leaves, and says where it went** — `animateLeave: true` keeps a removed item rendered for ~280ms as
   a ghost (`isLeaving(id)`, skipped under `prefers-reduced-motion`) inside `CollapseItem.jsx`, which
   carries the `role="listitem"` (a grid-rows collapse; don't put the role on the card inside). Own
-  actions that move an item to another view raise an `ActionToast` (home: take-over → « Voir dans
-  À traiter », trash → « Annuler » / « Ouvrir la corbeille », restore → « Voir », cancelled submission).
+  actions that move an item to another view raise an `ActionToast` (home: claim/release/take-over → « Voir dans
+  « En cours » / « À prendre » », trash → « Annuler » / « Ouvrir la corbeille », restore → « Voir », cancelled submission).
   « Voir » switches tab/page and scrolls via the `pendingReveal` effect in `HomeScreen.jsx`. In the
   synthesis, saving the opinion on your last open perimeter says the project moves to « Traités »
   (`perimeterResolution.js`). The per-team save message now renders under the card header: it used to

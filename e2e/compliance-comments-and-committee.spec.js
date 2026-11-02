@@ -67,13 +67,13 @@ test.describe('Commentaires experts, réponses et validation par équipe', () =>
     expect(errors).toEqual([]);
   });
 
-  test('valider une équipe déplace le projet de "À traiter" vers "Traités"', async ({ page }) => {
+  test('valider une équipe déplace le projet de "À prendre" vers "Traités"', async ({ page }) => {
     await gotoHome(page);
     await grantSelfComplianceExpertAndCommitteeAccess(page);
     await createAndSubmitProject(page);
     await goToProjectsHome(page);
 
-    await expect(page.getByRole('button', { name: /À traiter \(1\)/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /À prendre \(1\)/ })).toBeVisible();
 
     await openTriggeredProjectAndExpandTeam(page, 'Contrôle pub');
     await page.getByRole('button', { name: /Modifier le commentaire/ }).first().click();
@@ -88,12 +88,13 @@ test.describe('Commentaires experts, réponses et validation par équipe', () =>
 
     await page.getByRole('button', { name: /Retourner à l.accueil des projets/ }).click();
     await expect(page.getByRole('button', { name: /Traités \(1\)/ })).toBeVisible();
-    await expect(page.getByRole('button', { name: /À traiter \(0\)/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /À prendre \(0\)/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /En cours \(0\)/ })).toBeVisible();
   });
 });
 
 test.describe('Repêchage par un comité (réintégration)', () => {
-  test('un membre de comité peut réintégrer un projet hors scope, qui bascule alors en "À traiter" pour ce comité', async ({ page }) => {
+  test('un membre de comité peut réintégrer un projet hors scope, qui bascule alors en "En cours" pour ce comité', async ({ page }) => {
     const errors = collectConsoleErrors(page);
     await gotoHome(page);
     // Le comité par défaut n'a aucun déclencheur configuré (ruleTriggers/riskTriggers/
@@ -110,7 +111,7 @@ test.describe('Repêchage par un comité (réintégration)', () => {
     await reintegrateBtn.click();
 
     await expect(page.getByRole('button', { name: /Hors scope comité \(0\)/ })).toBeVisible();
-    await expect(page.getByRole('button', { name: /À traiter \(1\)/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /En cours \(1\)/ })).toBeVisible();
     expect(errors).toEqual([]);
   });
 

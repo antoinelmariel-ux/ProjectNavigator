@@ -1479,7 +1479,7 @@ export const SynthesisReport = ({
         ? t('synthesisReport.commentSavedMessage')
         : t('synthesisReport.commentClearedMessage');
 
-      // Prendre position sur son dernier périmètre ouvert fait quitter « À traiter » au projet :
+      // Rendre un avis sur son dernier périmètre ouvert fait passer le projet dans « Traités » :
       // on le dit ici, là où l'expert vient de cliquer, plutôt que de le laisser le découvrir
       // en revenant sur l'accueil.
       const myPerimeters = [
@@ -1506,13 +1506,16 @@ export const SynthesisReport = ({
       scheduleComplianceFeedback(
         `${targetType}-${targetId || 'committee'}`,
         closesLastOpenPerimeter
-          ? `${savedMessage} ${t('synthesisReport.projectTreatedMessage')}`
+          ? `${savedMessage} ${t(isPreliminaryRequest
+            ? 'synthesisReport.projectPreliminaryOpinionMessage'
+            : 'synthesisReport.projectTreatedMessage')}`
           : savedMessage,
         closesLastOpenPerimeter ? 9000 : 4000
       );
     },
     [
       getStoredTeamStatus,
+      isPreliminaryRequest,
       triggeredValidationCommittees,
       canSaveComplianceComment,
       canBypassCompliancePerimeter,

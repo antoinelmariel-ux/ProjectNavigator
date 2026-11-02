@@ -365,9 +365,11 @@ export default {
     feedback: {
       undo: 'Annuler',
       view: 'Voir',
-      viewInPending: 'Voir dans « À traiter »',
+      viewInPending: 'Voir dans « En cours »',
+      movedToQueue: '« {{name}} » est maintenant dans « {{tab}} ».',
+      viewInQueue: 'Voir dans « {{tab}} »',
       openTrash: 'Ouvrir la corbeille',
-      takenOver: 'Vous avez repris « {{name}} ». Il est maintenant dans « À traiter ».',
+      takenOver: 'Vous avez repris « {{name}} ». Il est maintenant dans « En cours ».',
       trashed: '« {{name}} » a été mis à la corbeille.',
       restored: '« {{name}} » a été restauré.',
       submissionCancelled: 'La soumission de « {{name}} » est annulée. Retrouvez-le parmi vos brouillons.'
@@ -510,20 +512,42 @@ export default {
     triggeredSubtitle:
       'Retrouvez les projets sur lesquels vous êtes sollicité(e) en tant qu’expert ou membre de comité.',
     triggeredFilterAriaLabel: 'Filtre des projets déclenchés',
-    pendingTab: 'À traiter ({{count}})',
-    pendingTabLabel: 'À traiter',
+    toClaimTab: 'À prendre ({{count}})',
+    toClaimTabLabel: 'À prendre',
+    inProgressTab: 'En cours ({{count}})',
+    inProgressTabLabel: 'En cours',
     treatedTab: 'Traités ({{count}})',
     treatedTabLabel: 'Traités',
     outOfScopeTab: 'Hors scope comité ({{count}})',
     outOfScopeTabLabel: 'Hors scope comité',
-    noPendingTriggered: 'Aucun projet à traiter pour l’instant.',
+    noToClaimTriggered: 'Aucun projet à prendre pour l’instant.',
+    noInProgressTriggered: 'Aucun projet en cours pour l’instant.',
     noTreatedTriggered: 'Aucun projet traité pour le moment.',
     noOutOfScopeTriggered: 'Aucun projet hors scope comité pour le moment.',
     triggeredListAriaLabel: 'Liste des projets déclenchés',
     committeeLabel: 'Comité',
     expertLabel: 'Expert',
-    validated: 'Validé',
-    toReview: 'À traiter',
+    ownerNews: {
+      dotTitle: 'Nouvel avis ou nouvelle question d’un expert depuis votre dernière consultation des enjeux'
+    },
+    queue: {
+      newsDotTitle: 'Du nouveau côté porteur de projet',
+      newsListAriaLabel: 'Nouveautés côté porteur de projet',
+      news: {
+        owner_reply: 'nouvelle réponse du porteur le {{date}}',
+        project_update: 'projet modifié depuis votre avis ({{date}})',
+        final_request: 'demande de validation définitive reçue le {{date}}',
+        final_round: 'confirmation finale demandée le {{date}}'
+      },
+      badge: {
+        toClaim: 'À prendre',
+        inProgress: 'En cours',
+        news: 'Nouveau',
+        preliminary: 'Avis préliminaire rendu',
+        treated: 'Avis rendu',
+        teammate: 'Suivi par un collègue'
+      }
+    },
     reintegrateInCommittee: 'Intégrer au comité',
     open: 'Ouvrir',
     inspiringProjectsHeading: 'Projets inspirants',
@@ -1359,7 +1383,7 @@ export default {
     },
     main: {
       claimSettingsHeading: 'Suivi des projets pris en charge',
-      claimSettingsHint: 'Un membre de cette équipe peut prendre en charge un projet déclenché : il quitte alors la file « À traiter » des autres membres, et les échanges suivants ne partent plus qu’à lui.',
+      claimSettingsHint: 'Un membre de cette équipe peut prendre en charge un projet déclenché : il quitte alors la file « À prendre » des autres membres, et les échanges suivants ne partent plus qu’à lui.',
       claimStaleDaysLabel: 'Afficher « sans activité » sur le projet après (jours ouvrés sans action)',
       claimReminderDaysLabel: 'Envoyer un e-mail à l’expert qui a pris le projet en charge après (jours ouvrés sans action)',
       claimDaysZeroHint: '0 désactive la fonction correspondante.',
@@ -1391,7 +1415,7 @@ export default {
       contactRemovalDescriptionTemplate: '{{member}} est retiré de {{team}} mais suit encore {{count}} projet(s). Choisissez ce qu’ils deviennent.',
       contactRemovalReassignToLabel: 'Réattribuer à',
       contactRemovalCancelButton: 'Annuler le retrait',
-      contactRemovalReleaseButton: 'Les remettre dans « À traiter »',
+      contactRemovalReleaseButton: 'Les remettre dans « À prendre »',
       contactRemovalReassignButton: 'Les réattribuer',
       questionTypes: {
         choice: { label: 'Liste de choix', description: 'Affiche une liste d’options exclusives.' },
@@ -2386,6 +2410,7 @@ export default {
     uploadFailedMessage: 'Dépôt du document impossible.',
     uploadingLabel: 'Dépôt du fichier en cours…',
     commentSavedMessage: 'Commentaire enregistré.',
+    projectPreliminaryOpinionMessage: 'Avis préliminaire rendu sur votre dernier périmètre ouvert : le projet reste dans « En cours », en fin de liste, jusqu’à la demande de validation définitive.',
     projectTreatedMessage: 'Vous avez pris position sur votre dernier périmètre ouvert : le projet passe dans « Traités » sur votre accueil.',
     teamAcceptedLanguagesNoticeTemplate: 'Cette équipe échange uniquement dans les langues suivantes : {{languages}}. Merci d’utiliser l’une d’elles pour votre message.',
     committeeAcceptedLanguagesNoticeTemplate: 'Ce comité échange uniquement dans les langues suivantes : {{languages}}. Merci d’utiliser l’une d’elles pour votre message.',

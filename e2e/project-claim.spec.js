@@ -58,29 +58,36 @@ test.describe('Prise en charge d’un projet par un membre d’équipe', () => {
     const claimRow = page.getByRole('list', { name: 'Prise en charge par périmètre' }).first();
     await expect(claimRow).toContainText('Personne ne suit encore ce périmètre');
 
+    await expect(page.getByRole('button', { name: /À prendre \(1\)/ })).toBeVisible();
     await page.getByRole('button', { name: 'Je prends en charge' }).first().click();
-    await expect(claimRow).toContainText('Vous le suivez depuis');
-    // Le projet reste dans « À traiter » pour le référent lui-même.
-    await expect(page.getByRole('button', { name: /À traiter \(1\)/ })).toBeVisible();
+    // Pris en charge, le projet passe de « À prendre » à « En cours » pour le référent lui-même,
+    // pas chez les collègues.
+    await expect(page.getByRole('button', { name: /En cours \(1\)/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /À prendre \(0\)/ })).toBeVisible();
     await expect(page.getByRole('button', { name: /Pris en charge par l’équipe \(0\)/ })).toBeVisible();
+    await page.getByRole('button', { name: 'Voir dans « En cours »' }).click();
+    await expect(claimRow).toContainText('Vous le suivez depuis');
 
     await page.waitForTimeout(600);
     const storedAssignee = (await readStoredClaim(page))?.assigneeEmail || '';
     expect(storedAssignee).toBe('bertrand.darieux@lfb.fr');
 
     await page.getByRole('button', { name: 'Libérer' }).first().click();
+    await expect(page.getByRole('button', { name: /À prendre \(1\)/ })).toBeVisible();
+    await page.getByRole('button', { name: 'Voir dans « À prendre »' }).click();
     await expect(claimRow).toContainText('Personne ne suit encore ce périmètre');
     expect(errors).toEqual([]);
   });
 
-  test('un projet suivi par un collègue quitte « À traiter » et peut être repris', async ({ page }) => {
+  test('un projet suivi par un collègue quitte « À prendre » et peut être repris', async ({ page }) => {
     await gotoHome(page);
     await grantSelfComplianceExpertAndCommitteeAccess(page);
     await createAndSubmitProject(page);
     await goToProjectsHome(page);
     await injectClaim(page, 'marie.dupont@lfb.fr');
 
-    await expect(page.getByRole('button', { name: /À traiter \(0\)/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /À prendre \(0\)/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /En cours \(0\)/ })).toBeVisible();
     await page.getByRole('button', { name: /Pris en charge par l’équipe \(1\)/ }).click();
     await expect(page.getByText('Suivi par marie.dupont@lfb.fr')).toBeVisible();
 
@@ -91,8 +98,8 @@ test.describe('Prise en charge d’un projet par un membre d’équipe', () => {
     await dialog.getByRole('button', { name: 'Absence' }).click();
     await dialog.getByRole('button', { name: 'Reprendre', exact: true }).click();
 
-    await expect(page.getByRole('button', { name: /À traiter \(1\)/ })).toBeVisible();
-    await page.getByRole('button', { name: /À traiter \(1\)/ }).click();
+    await expect(page.getByRole('button', { name: /En cours \(1\)/ })).toBeVisible();
+    await page.getByRole('button', { name: /En cours \(1\)/ }).click();
     await expect(page.getByRole('list', { name: 'Prise en charge par périmètre' }).first())
       .toContainText('Vous le suivez depuis');
   });
@@ -165,7 +172,7 @@ test.describe('Prise en charge d’un projet par un membre d’équipe', () => {
     await page.getByRole('button', { name: 'Retirer laure.chevalier@lfb.fr' }).click();
     const dialog = page.getByRole('alertdialog', { name: 'Ce contact porte encore des projets' });
     await expect(dialog).toBeVisible();
-    await dialog.getByRole('button', { name: 'Les remettre dans « À traiter »' }).click();
+    await dialog.getByRole('button', { name: 'Les remettre dans « À prendre »' }).click();
 
     await page.waitForTimeout(600);
     const stored = await readStoredState(page);

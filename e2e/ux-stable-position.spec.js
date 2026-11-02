@@ -12,7 +12,7 @@ import {
 // il part en le disant. Ces specs verrouillent les deux cas qui ont motivé le changement.
 
 test.describe('Position stable après un clic', () => {
-  test('prendre un projet en charge ne le fait pas remonter en tête de liste', async ({ page }) => {
+  test('prendre un projet en charge le fait passer dans « En cours » sans faire bouger les autres', async ({ page }) => {
     const errors = collectConsoleErrors(page);
     await gotoHome(page);
     await grantSelfComplianceExpertAndCommitteeAccess(page);
@@ -65,12 +65,18 @@ test.describe('Position stable après un clic', () => {
     });
 
     await older.getByRole('button', { name: 'Je prends en charge' }).first().click();
-    await expect(older).toContainText('Vous le suivez depuis');
+    // Pris en charge, il quitte « À prendre » en le disant ; il ne passe jamais devant l'autre
+    // carte, qui ne bouge pas.
+    await expect(page.getByRole('button', { name: 'Voir dans « En cours »' })).toBeVisible();
     await page.waitForTimeout(1200);
 
     const orders = await page.evaluate(() => window.__listOrders);
-    orders.forEach((order) => expect(order).toEqual(idsBefore));
-    expect(Math.abs((await offsetFromFirst()) - offsetBefore)).toBeLessThan(2);
+    orders.forEach((order) => expect(order[0]).toBe(idsBefore[0]));
+    expect(orders[orders.length - 1]).toEqual([idsBefore[0]]);
+    expect(offsetBefore).toBeGreaterThan(0);
+
+    await page.getByRole('button', { name: 'Voir dans « En cours »' }).click();
+    await expect(page.locator('#compliance-project-project-e2e-older')).toContainText('Vous le suivez depuis');
     expect(errors).toEqual([]);
   });
 

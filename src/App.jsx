@@ -170,6 +170,7 @@ import {
 import { canQuestionHaveDoubt, withQuestionDoubt, withoutQuestionDoubt, getOpenQuestionDoubts } from './utils/questionDoubts.js';
 import { getCurrentUser, getRealUser } from './utils/spContext.js';
 import { isImpersonating } from './utils/impersonation.js';
+import { getProjectOwnerEmails, markSynthesisSeen } from './utils/synthesisSeen.js';
 import { buildAdminConsoleUrl, isAdminConsoleActive } from './utils/adminConsole.js';
 import { dataProvider } from './utils/dataProvider.js';
 import { inspirationDataProvider, buildOnboardingDemoInspirations } from './utils/inspirationDataProvider.js';
@@ -3844,6 +3845,18 @@ const updateProjectFilters = useCallback((updater) => {
     () => projects.find(project => project.id === activeProjectId) || null,
     [projects, activeProjectId]
   );
+  // Ouvrir les enjeux de son projet vaut lecture de ce que les experts y ont écrit : la pastille de
+  // la carte s'éteint. Marqué à l'entrée et à la sortie, pour couvrir ce qui arrive pendant la lecture.
+  const isActiveProjectOwnedByCurrentUser = Boolean(
+    activeProject && currentUserEmail && getProjectOwnerEmails(activeProject).includes(currentUserEmail)
+  );
+  useEffect(() => {
+    if (screen !== 'synthesis' || !activeProjectId || !isActiveProjectOwnedByCurrentUser) {
+      return undefined;
+    }
+    markSynthesisSeen(currentUserEmail, activeProjectId);
+    return () => markSynthesisSeen(currentUserEmail, activeProjectId);
+  }, [activeProjectId, currentUserEmail, isActiveProjectOwnedByCurrentUser, screen]);
   // Un projet ouvert depuis le cache local (lien d'e-mail, accueil) copie ses réponses dans `answers`
   // avant que SharePoint ait répondu ; la liste `projects` se met ensuite à jour mais cette copie
   // restait figée sur l'ancienne version. Tant que personne n'y a touché (même référence qu'à
@@ -5071,7 +5084,7 @@ const updateProjectFilters = useCallback((updater) => {
 
   // Revendication implicite (décision produit) : poster un commentaire de conformité, changer un
   // statut ou répondre dans le fil vaut prise en charge du périmètre. Sans cela, le référent
-  // reste « libre » chez les autres alors que le travail est déjà fait, et la file « À traiter »
+  // reste « libre » chez les autres alors que le travail est déjà fait, et la file « À prendre »
   // ne se vide jamais. Trois garde-fous :
   //   - seul un contact de l'équipe revendique (le porteur qui répond ne revendique rien) ;
   //   - un périmètre déjà pris par quelqu'un d'autre n'est jamais repris en silence : le

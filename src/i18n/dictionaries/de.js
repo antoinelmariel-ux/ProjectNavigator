@@ -365,9 +365,11 @@ export default {
     feedback: {
       undo: 'Rückgängig',
       view: 'Anzeigen',
-      viewInPending: 'In „Zu bearbeiten“ anzeigen',
+      viewInPending: 'In „In Bearbeitung“ anzeigen',
+      movedToQueue: '„{{name}}“ befindet sich jetzt unter „{{tab}}“.',
+      viewInQueue: 'In „{{tab}}“ anzeigen',
       openTrash: 'Papierkorb öffnen',
-      takenOver: 'Sie haben „{{name}}“ übernommen. Es befindet sich jetzt unter „Zu bearbeiten“.',
+      takenOver: 'Sie haben „{{name}}“ übernommen. Es befindet sich jetzt unter „In Bearbeitung“.',
       trashed: '„{{name}}“ wurde in den Papierkorb verschoben.',
       restored: '„{{name}}“ wurde wiederhergestellt.',
       submissionCancelled: 'Die Einreichung von „{{name}}“ wurde zurückgezogen. Sie finden es unter Ihren Entwürfen.'
@@ -511,20 +513,42 @@ export default {
     triggeredSubtitle:
       'Finden Sie die Projekte, bei denen Sie als Experte oder Ausschussmitglied angefragt werden.',
     triggeredFilterAriaLabel: 'Filter für ausgelöste Projekte',
-    pendingTab: 'Zu bearbeiten ({{count}})',
-    pendingTabLabel: 'Zu bearbeiten',
+    toClaimTab: 'Zu übernehmen ({{count}})',
+    toClaimTabLabel: 'Zu übernehmen',
+    inProgressTab: 'In Bearbeitung ({{count}})',
+    inProgressTabLabel: 'In Bearbeitung',
     treatedTab: 'Bearbeitet ({{count}})',
     treatedTabLabel: 'Bearbeitet',
     outOfScopeTab: 'Außerhalb des Ausschussbereichs ({{count}})',
     outOfScopeTabLabel: 'Außerhalb des Ausschussbereichs',
-    noPendingTriggered: 'Derzeit kein zu bearbeitendes Projekt.',
+    noToClaimTriggered: 'Derzeit kein zu übernehmendes Projekt.',
+    noInProgressTriggered: 'Derzeit kein Projekt in Bearbeitung.',
     noTreatedTriggered: 'Noch kein bearbeitetes Projekt.',
     noOutOfScopeTriggered: 'Derzeit kein Projekt außerhalb des Ausschussbereichs.',
     triggeredListAriaLabel: 'Liste der ausgelösten Projekte',
     committeeLabel: 'Ausschuss',
     expertLabel: 'Experte',
-    validated: 'Validiert',
-    toReview: 'Zu bearbeiten',
+    ownerNews: {
+      dotTitle: 'Neue Stellungnahme oder Frage eines Experten seit Ihrem letzten Aufruf der Projektthemen'
+    },
+    queue: {
+      newsDotTitle: 'Neues vom Projektverantwortlichen',
+      newsListAriaLabel: 'Neues vom Projektverantwortlichen',
+      news: {
+        owner_reply: 'neue Antwort des Projektverantwortlichen am {{date}}',
+        project_update: 'Projekt seit Ihrer Stellungnahme geändert ({{date}})',
+        final_request: 'Validierungsanfrage erhalten am {{date}}',
+        final_round: 'Abschließende Bestätigung angefordert am {{date}}'
+      },
+      badge: {
+        toClaim: 'Zu übernehmen',
+        inProgress: 'In Bearbeitung',
+        news: 'Neu',
+        preliminary: 'Vorläufige Stellungnahme abgegeben',
+        treated: 'Stellungnahme abgegeben',
+        teammate: 'Von einem Kollegen betreut'
+      }
+    },
     reintegrateInCommittee: 'In das Komitee aufnehmen',
     open: 'Öffnen',
     inspiringProjectsHeading: 'Inspirierende Projekte',
@@ -1361,7 +1385,7 @@ export default {
     },
     main: {
       claimSettingsHeading: 'Nachverfolgung übernommener Projekte',
-      claimSettingsHint: 'Ein Mitglied dieses Teams kann ein ausgelöstes Projekt übernehmen: es verlässt dann die Liste „Zu bearbeiten“ der anderen Mitglieder, und der weitere Austausch geht nur noch an diese Person.',
+      claimSettingsHint: 'Ein Mitglied dieses Teams kann ein ausgelöstes Projekt übernehmen: es verlässt dann die Liste „Zu übernehmen“ der anderen Mitglieder, und der weitere Austausch geht nur noch an diese Person.',
       claimStaleDaysLabel: '„Keine Aktivität“ am Projekt anzeigen nach (Arbeitstage ohne Aktion)',
       claimReminderDaysLabel: 'E-Mail an die Fachperson senden, die das Projekt übernommen hat, nach (Arbeitstage ohne Aktion)',
       claimDaysZeroHint: '0 deaktiviert die jeweilige Funktion.',
@@ -2387,6 +2411,7 @@ export default {
     uploadFailedMessage: 'Das Dokument konnte nicht hochgeladen werden.',
     uploadingLabel: 'Datei wird hochgeladen…',
     commentSavedMessage: 'Kommentar gespeichert.',
+    projectPreliminaryOpinionMessage: 'Vorläufige Stellungnahme zu Ihrem letzten offenen Bereich abgegeben: Das Projekt bleibt am Ende der Liste unter „In Bearbeitung“, bis die abschließende Validierung angefragt wird.',
     projectTreatedMessage: 'Sie haben zu Ihrem letzten offenen Bereich Stellung genommen: Das Projekt wechselt auf Ihrer Startseite zu „Bearbeitet“.',
     teamAcceptedLanguagesNoticeTemplate: 'Dieses Team antwortet nur in folgenden Sprachen: {{languages}}. Bitte verwenden Sie eine davon für Ihre Nachricht.',
     committeeAcceptedLanguagesNoticeTemplate: 'Dieser Ausschuss antwortet nur in folgenden Sprachen: {{languages}}. Bitte verwenden Sie eine davon für Ihre Nachricht.',

@@ -90,7 +90,7 @@ test.describe('Ajouter un collègue de l’équipe au suivi d’un projet', () =
     expect(errors).toEqual([]);
   });
 
-  test('un suiveur garde dans « À traiter » un projet pris en charge par un collègue', async ({ page }) => {
+  test('un suiveur garde dans « En cours » un projet pris en charge par un collègue', async ({ page }) => {
     await gotoHome(page);
     await grantSelfComplianceExpertAndCommitteeAccess(page);
     await createAndSubmitProject(page);
@@ -100,7 +100,7 @@ test.describe('Ajouter un collègue de l’équipe au suivi d’un projet', () =
       followerEmail: 'bertrand.darieux@lfb.fr'
     });
 
-    await expect(page.getByRole('button', { name: /À traiter \(1\)/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /En cours \(1\)/ })).toBeVisible();
     await expect(page.getByRole('button', { name: /Pris en charge par l’équipe \(0\)/ })).toBeVisible();
   });
 });
