@@ -2,6 +2,7 @@ import { getWebUrl, isSharePointMode, sharepointConfig } from '../config/sharepo
 import { diagnoseInstallation, publishAllReferentials } from './referentialStore.js';
 import { rulesProvider } from './rulesProvider.js';
 import { teamsProvider } from './teamsProvider.js';
+import { committeesProvider } from './committeesProvider.js';
 
 const NOT_SHAREPOINT_MESSAGE =
   'Action impossible : ouvrez la page Project Navigator du site SharePoint ' +
@@ -16,9 +17,10 @@ export const diagnoseSharePointInstallation = async () => {
   return diagnoseInstallation();
 };
 
-// `rules`/`teams` ne sont plus des fichiers CN-Config : une ligne par élément, upsertée via
-// leur provider respectif. On ne supprime jamais une ligne distante absente localement — un
-// admin qui veut nettoyer une règle/équipe orpheline le fait depuis SharePoint.
+// `rules`/`teams`/`committees` ne sont plus des fichiers CN-Config : une ligne par élément,
+// upsertée via leur provider respectif. On ne supprime jamais une ligne distante absente
+// localement — un admin qui veut nettoyer une règle/équipe/un comité orphelin le fait depuis
+// SharePoint.
 const publishRowList = async (items, saveItem, { key, file, label, userEmail }) => {
   const list = Array.isArray(items) ? items : [];
   if (list.length === 0) {
@@ -84,17 +86,19 @@ export const publishReferentialSettings = async (referentialPayload, selectedKey
 
 // `selection` (optionnelle) restreint ce que la réinitialisation écrase :
 // `selection.files` (Set de clés REFERENTIAL_FILES) pour les référentiels JSON, et
-// `selection.rules`/`selection.teams` (booléens, true par défaut) pour les listes.
+// `selection.rules`/`selection.teams`/`selection.committees` (booléens, true par défaut) pour
+// les listes.
 export const reinitializeSharePointConfiguration = async (payload, selection) => {
-  const { rules, teams, userEmail, ...referentialPayload } = payload || {};
+  const { rules, teams, committees, userEmail, ...referentialPayload } = payload || {};
 
   await ensureSharePointStructureReady();
 
   const includeRules = !selection || selection.rules !== false;
   const includeTeams = !selection || selection.teams !== false;
+  const includeCommittees = !selection || selection.committees !== false;
   const fileKeys = selection ? selection.files : undefined;
 
-  const [fileResults, rulesResult, teamsResult] = await Promise.all([
+  const [fileResults, rulesResult, teamsResult, committeesResult] = await Promise.all([
     publishAllReferentials(referentialPayload, fileKeys),
     includeRules
       ? publishRowList(rules, (rule, options) => rulesProvider.saveRule(rule, options), {
@@ -111,10 +115,23 @@ export const reinitializeSharePointConfiguration = async (payload, selection) =>
         label: 'Équipes',
         userEmail
       })
-      : Promise.resolve({ key: 'teams', file: sharepointConfig.lists.teams, label: 'Équipes', status: 'skipped' })
+      : Promise.resolve({ key: 'teams', file: sharepointConfig.lists.teams, label: 'Équipes', status: 'skipped' }),
+    includeCommittees
+      ? publishRowList(committees, (committee, options) => committeesProvider.saveCommittee(committee, options), {
+        key: 'committees',
+        file: sharepointConfig.lists.committees,
+        label: 'Comités de validation',
+        userEmail
+      })
+      : Promise.resolve({
+        key: 'committees',
+        file: sharepointConfig.lists.committees,
+        label: 'Comités de validation',
+        status: 'skipped'
+      })
   ]);
 
-  const results = [...fileResults, rulesResult, teamsResult];
+  const results = [...fileResults, rulesResult, teamsResult, committeesResult];
   throwOnFailures(results);
   return buildPublishSummary(results);
 };

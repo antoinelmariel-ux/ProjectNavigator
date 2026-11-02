@@ -76,7 +76,8 @@ test('buildReferentialPayload : un fichier par référentiel, réglages regroup�
     currencies: [],
     adminEmails: ['a@b.fr'],
     onboardingTourConfig: { steps: [] },
-    validationCommitteeConfig: {},
+    validationCommitteesEnabled: false,
+    validationCommitteeConfig: { committees: [{ id: 'c1' }] },
     inspirationFormFields: [],
     projectFilters: { fields: [] },
     inspirationFilters: { fields: [] },
@@ -85,6 +86,11 @@ test('buildReferentialPayload : un fichier par référentiel, réglages regroup�
 
   assert.deepEqual(Object.keys(payload).sort(), Object.keys(REFERENTIAL_FILES).sort());
   assert.deepEqual(payload.settings.adminEmails, ['a@b.fr']);
+  assert.equal(payload.settings.validationCommitteesEnabled, false);
+  assert.ok(
+    !('validationCommitteeConfig' in payload.settings),
+    'les comités vivent dans CN_Committees, plus dans settings.json'
+  );
   assert.ok(!('projects' in payload));
   assert.ok(!('projects' in payload.settings));
 });
@@ -111,7 +117,7 @@ test('aller-retour build → flatten', () => {
     currencies: [],
     adminEmails: ['x@y.fr'],
     onboardingTourConfig: { a: 1 },
-    validationCommitteeConfig: { b: 2 },
+    validationCommitteesEnabled: true,
     inspirationFormFields: [],
     projectFilters: {},
     inspirationFilters: {}

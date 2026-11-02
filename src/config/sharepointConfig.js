@@ -14,6 +14,7 @@ export const sharepointConfig = {
     userProfiles: 'CN_UserProfiles',
     rules: 'CN_Rules',
     teams: 'CN_Teams',
+    committees: 'CN_Committees',
     sampleProjects: 'CN_SampleProjects',
     faq: 'CN_Faq',
     committeeSessions: 'CN_CommitteeSessions',

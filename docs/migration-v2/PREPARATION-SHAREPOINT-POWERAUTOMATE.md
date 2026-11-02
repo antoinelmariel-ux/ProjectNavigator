@@ -280,6 +280,34 @@ modifient chacun une règle différente ne se marchent plus dessus.
 | UpdatedByEmail | Une ligne de texte |
 | UpdatedAt | Date et heure |
 
+### `CN_Committees` — les comités de validation (une ligne par comité)
+Même principe que `CN_Rules` : les comités ne sont plus dans `settings.json` (clé
+`validationCommitteeConfig`), chacun est sa propre ligne, pour que deux administrateurs ou
+présidents qui modifient chacun un comité différent ne se marchent plus dessus. Le comité entier
+(membres, présidence, durée de passage, déclencheurs, conditions…) voyage dans `PayloadJson`.
+
+**L'interrupteur « Activer les comités » n'est pas dans cette liste** : il concerne tous les
+comités, il reste dans `settings.json` (clé `validationCommitteesEnabled`) et seul un
+administrateur peut le basculer.
+
+Migration depuis l'ancien format : tant que la liste est vide et que `settings.json` porte encore
+des comités, l'app les affiche depuis ce fichier ; la première session d'un administrateur les
+recopie dans `CN_Committees`, une seule fois. Le bouton « Publier la configuration » (case
+« Comités de validation ») permet aussi de le faire à la main. **Créez la liste avant de déployer
+cette version** (la liste vide est tolérée, une liste absente fait seulement garder les comités de
+`settings.json`).
+
+| Colonne | Type |
+|---|---|
+| Title | (existante — nom du comité, pour repérer la ligne dans SharePoint) |
+| CommitteeId 📌 | Une ligne de texte |
+| PayloadJson | Texte long (le comité entier) |
+| SortOrder | Nombre |
+| RowVersion | Nombre |
+| CreatedByEmail | Une ligne de texte |
+| UpdatedByEmail | Une ligne de texte |
+| UpdatedAt | Date et heure |
+
 ### `CN_Teams` — les équipes de conformité (une ligne par équipe)
 Remplace de la même façon le fichier `teams.json`. Le nom et le domaine d'expertise sont
 traduisibles dans les 4 langues de l'app (anglais, français, allemand, espagnol) : `NameJson`

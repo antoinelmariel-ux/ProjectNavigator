@@ -326,6 +326,26 @@ export const LIST_SCHEMAS = {
     },
     numbers: ['ClaimStaleDays', 'ClaimReminderDays', 'SortOrder', 'RowVersion'],
     booleans: []
+  },
+  // Une ligne par comité de validation : déclencheurs et conditions imbriqués, donc l'objet
+  // entier voyage dans PayloadJson (comme pour rules). `Title` (nom) reste lisible dans les vues
+  // SharePoint natives. L'interrupteur global « suivi par comité » n'est PAS ici : il concerne
+  // tous les comités et vit dans settings.json (`validationCommitteesEnabled`).
+  committees: {
+    keyField: 'CommitteeId',
+    columns: [
+      'Title',
+      'CommitteeId',
+      'PayloadJson',
+      'SortOrder',
+      'RowVersion',
+      'CreatedByEmail',
+      'UpdatedByEmail',
+      'UpdatedAt'
+    ],
+    json: { PayloadJson: OBJECT },
+    numbers: ['SortOrder', 'RowVersion'],
+    booleans: []
   }
 };
 

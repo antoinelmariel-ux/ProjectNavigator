@@ -115,8 +115,9 @@ test('isSharePointMode : vrai seulement en https sur *.sharepoint.com', () => {
   );
 });
 
-test('sharepointConfig : les 13 listes et 3 bibliothèques attendues', () => {
-  assert.equal(Object.keys(sharepointConfig.lists).length, 15);
+test('sharepointConfig : les 16 listes et 3 bibliothèques attendues', () => {
+  assert.equal(Object.keys(sharepointConfig.lists).length, 16);
+  assert.equal(sharepointConfig.lists.committees, 'CN_Committees');
   assert.equal(sharepointConfig.lists.projects, 'CN_Projects');
   assert.equal(sharepointConfig.lists.notificationsQueue, 'CN_NotificationsQueue');
   assert.equal(sharepointConfig.lists.siteAccessRequests, 'CN_SiteAccessRequests');
