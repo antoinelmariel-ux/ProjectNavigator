@@ -2226,15 +2226,17 @@ export const HomeScreen = ({
         <div className="flex items-start justify-between gap-4">
           <div>
             <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2 flex-wrap">
-              {hasExpertNews && (
-                <span
-                  className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-rose-500"
-                  data-testid="owner-expert-news-dot"
-                  title={t('home.ownerNews.dotTitle')}
-                  aria-hidden="true"
-                />
-              )}
-              <span>{displayProjectName || t('home.projectNameFallback')}</span>
+              <span>
+                {hasExpertNews && (
+                  <span
+                    className="mr-2 inline-block h-2.5 w-2.5 rounded-full bg-rose-500 align-middle"
+                    data-testid="owner-expert-news-dot"
+                    title={t('home.ownerNews.dotTitle')}
+                    aria-hidden="true"
+                  />
+                )}
+                {displayProjectName || t('home.projectNameFallback')}
+              </span>
               {hasExpertNews && <span className="sr-only">{t('home.ownerNews.dotTitle')}</span>}
               {project.isDemo && (
                 <span className="inline-flex items-center px-2 py-0.5 text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 rounded-full">

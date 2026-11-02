@@ -42,6 +42,10 @@
   position: absolute;
 }
 
+.align-middle {
+  vertical-align: middle;
+}
+
 .align-top {
   vertical-align: top;
 }

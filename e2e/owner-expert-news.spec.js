@@ -31,7 +31,7 @@ async function injectExpertReply(page) {
             message: 'Pouvez-vous préciser le circuit de diffusion ?',
             authorName: 'Experte',
             authorEmail: 'experte.pub@lfb.fr',
-            createdAt: new Date(Date.now() - 1000).toISOString()
+            createdAt: new Date().toISOString()
           }
         ]
       };
