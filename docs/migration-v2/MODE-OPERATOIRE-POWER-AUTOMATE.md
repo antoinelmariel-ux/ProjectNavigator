@@ -658,7 +658,9 @@ Dans la branche **« Si oui »** :
 - Une boîte partagée des comités (ci-dessous `comites@…`) ; le compte propriétaire du flux y a les
   droits « Accès total » et « Envoyer en tant que » (à donner par un administrateur Exchange).
 - Le président (et co-président) de chaque comité est désigné dans le back-office, onglet « Comités
-  de validation », puis la configuration est republiée — sans quoi personne ne planifie de séance.
+  de validation » — sans quoi personne ne planifie de séance. Les comités sont désormais une ligne
+  chacun dans la liste `CN_Committees` (à créer **avant** de déployer, voir la préparation) ; il n'y
+  a plus de configuration à republier pour la présidence.
 
 ### 7 quater.2 Le déclencheur
 
@@ -870,7 +872,7 @@ et `Body`.
 - [ ] Flux 6 : condition « la balle est chez l'expert » ajoutée ([§7 ter.5](#7-ter5-décider-si-la-relance-est-due)),
   en connaissant l'écart décrit dans l'encadré
 - [ ] Calendrier des comités : listes `CN_CommitteeSessions` et `CN_CommitteeInvitations` créées,
-  présidents désignés et configuration republiée
+  liste `CN_Committees` créée avant le déploiement, présidents désignés
 - [ ] Flux 7 (invitations Outlook des comités) créé, branche d'erreur configurée, recette passée
   ([§7 quater.6](#7-quater6-recette--avant-douvrir-à-tous)) et **Activé**
 - [ ] Flux optionnels créés si souhaité
