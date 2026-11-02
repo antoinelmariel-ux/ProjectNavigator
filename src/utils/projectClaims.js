@@ -290,8 +290,8 @@ export const getPerimeterLastActivityAt = (entry) => {
   return candidates.sort().pop() || '';
 };
 
-// Avec `project`, la relance n'est due que si la balle est chez l'expert (voir `isBallWithExpert`) ;
-// sans, seule l'inactivité compte.
+// Avec `project`, le retard et la relance ne comptent que si la balle est chez l'expert (voir
+// `isBallWithExpert`) ; sans, seule l'inactivité compte.
 export const getClaimStaleness = (entry, { team, project, now = new Date().toISOString() } = {}) => {
   const claim = getPerimeterClaim(entry);
   const { staleDays, reminderDays } = resolveTeamClaimSettings(team);
@@ -314,18 +314,20 @@ export const getClaimStaleness = (entry, { team, project, now = new Date().toISO
   // la passe de relance idempotente alors que n'importe quelle session peut la déclencher.
   const alreadyReminded = Boolean(claim.reminderSentAt) && claim.reminderSentAt >= lastActivityAt;
 
+  const isBallOnExpert = !project || isBallWithExpert(getPerimeterQueueState(entry, {
+    project,
+    complianceEmails: normalizeTeamContacts(team)
+  }));
+
   return {
     claim,
     lastActivityAt,
     businessDaysSinceActivity,
-    isStale: staleDays > 0 && businessDaysSinceActivity >= staleDays,
-    isReminderDue: reminderDays > 0
+    isStale: isBallOnExpert && staleDays > 0 && businessDaysSinceActivity >= staleDays,
+    isReminderDue: isBallOnExpert
+      && reminderDays > 0
       && businessDaysSinceActivity >= reminderDays
-      && !alreadyReminded
-      && (!project || isBallWithExpert(getPerimeterQueueState(entry, {
-        project,
-        complianceEmails: normalizeTeamContacts(team)
-      }))),
+      && !alreadyReminded,
     staleDays,
     reminderDays
   };
@@ -429,7 +431,7 @@ export const collectTeamClaims = (projects, team, { now = new Date().toISOString
       if (!claim) {
         return null;
       }
-      const staleness = getClaimStaleness(entry, { team, now });
+      const staleness = getClaimStaleness(entry, { team, project, now });
       return {
         projectId: project?.id || '',
         projectName: project?.projectName || '',

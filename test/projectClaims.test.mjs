@@ -172,7 +172,8 @@ test('péremption : 3 jours ouvrés relancent, 6 signalent, et une activité ré
 test('relance du référent : seulement quand la balle est chez l’expert', () => {
   const now = '2026-09-10T08:00:00Z';
   const base = { claim: { assigneeEmail: 'alice@lfb.fr', assignedAt: '2026-09-01T08:00:00Z' }, replies: [] };
-  const due = (entry) => getClaimStaleness(entry, { team: TEAM, project: { id: 'p1', answers: {} }, now }).isReminderDue;
+  const state = (entry, at = now) => getClaimStaleness(entry, { team: TEAM, project: { id: 'p1', answers: {} }, now: at });
+  const due = (entry) => state(entry).isReminderDue;
 
   assert.equal(due(base), true);
 
@@ -193,6 +194,12 @@ test('relance du référent : seulement quand la balle est chez l’expert', () 
 
   const opinionGiven = { ...base, status: 'validated', statusUpdatedAt: '2026-09-02T08:00:00Z' };
   assert.equal(due(opinionGiven), false);
+
+  assert.equal(state(base).isStale, true);
+  assert.equal(state(expertAsked).isStale, false);
+  assert.equal(state(ownerAnswered, '2026-09-14T08:00:00Z').isStale, true);
+  assert.equal(state(waitingInfo).isStale, false);
+  assert.equal(state(opinionGiven).isStale, false);
 });
 
 test('après prise en charge, les échanges ne partent qu’au référent', () => {
