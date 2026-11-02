@@ -527,6 +527,9 @@ export default {
     triggeredListAriaLabel: 'Liste des projets déclenchés',
     committeeLabel: 'Comité',
     expertLabel: 'Expert',
+    ownerNews: {
+      dotTitle: 'Nouvel avis ou nouvelle question d’un expert depuis votre dernière consultation des enjeux'
+    },
     queue: {
       newsDotTitle: 'Du nouveau côté porteur de projet',
       newsListAriaLabel: 'Nouveautés côté porteur de projet',

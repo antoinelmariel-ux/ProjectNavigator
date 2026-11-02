@@ -522,6 +522,9 @@ export default {
     triggeredListAriaLabel: 'List of triggered projects',
     committeeLabel: 'Committee',
     expertLabel: 'Expert',
+    ownerNews: {
+      dotTitle: 'New opinion or question from an expert since you last opened the project stakes'
+    },
     queue: {
       newsDotTitle: 'News from the project owner',
       newsListAriaLabel: 'News from the project owner',

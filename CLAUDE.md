@@ -931,6 +931,12 @@ project of an expert into **one** tab, from the state of that person's perimeter
   the project. Dotted projects sort first (most recent news first); this sort only applies on
   arrival/tab change (`useStableList`), a click never moves the card. In « Traités » a late owner
   reply shows the dot but does not move the project.
+- **The owner's mirror is simpler**: a dot on their own project card (`src/utils/synthesisSeen.js`,
+  `test/synthesisSeen.test.mjs`, `e2e/owner-expert-news.spec.js`) when an expert saved an opinion/status
+  or wrote in a thread (author outside owner/co-owners) since they last opened « Enjeux du projet ».
+  The open date is personal reading state, kept in `localStorage` (`complianceNavigatorSynthesisSeen`,
+  per person, per browser, not written in simulation) — never in the project, which would re-save it
+  on every read. The first read stores `initializedAt` as baseline, so existing history never lights up.
 - The synthesis's « dernier périmètre ouvert » message follows the same rule
   (`perimeterResolution.js` reuses `OPINION_STATUSES`; preliminary request → its own message).
 

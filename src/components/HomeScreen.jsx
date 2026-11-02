@@ -72,6 +72,7 @@ import {
   getPerimeterQueueState,
   sortExpertQueue
 } from '../utils/expertQueue.js';
+import { SYNTHESIS_SEEN_STORAGE_KEY, ensureSynthesisSeenRecord, hasUnseenExpertActivity } from '../utils/synthesisSeen.js';
 
 const formatDate = (isoDate, language, unknownDateLabel) => {
   if (!isoDate) {
@@ -508,6 +509,24 @@ export const HomeScreen = ({
   const cancelSubmissionDismissButtonRef = useRef(null);
   const cancelSubmissionConfirmButtonRef = useRef(null);
   const previouslyFocusedElementRef = useRef(null);
+
+  // Relu à chaque montage de l'accueil : revenir des enjeux d'un projet remonte l'écran, et la
+  // pastille de ce projet s'éteint alors d'elle-même.
+  // Les enjeux ouverts dans un autre onglet éteignent aussi la pastille ici (événement `storage`).
+  const [synthesisSeenRecord, setSynthesisSeenRecord] = useState(() => ensureSynthesisSeenRecord(currentUserEmail));
+  useEffect(() => {
+    setSynthesisSeenRecord(ensureSynthesisSeenRecord(currentUserEmail));
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+    const handleStorage = (event) => {
+      if (event.key === SYNTHESIS_SEEN_STORAGE_KEY) {
+        setSynthesisSeenRecord(ensureSynthesisSeenRecord(currentUserEmail));
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, [currentUserEmail]);
 
   const isOwnedOrSharedProject = useCallback((project) => {
     const ownerEmail = normalizeEmail(project?.ownerEmail);
@@ -2126,6 +2145,10 @@ export const HomeScreen = ({
       ? projectType
       : t('home.projectTypeNotProvided');
     const displayProjectName = stripRichTextToPlainText(project.projectName);
+    const hasExpertNews = !isTeamCard
+      && !isDraft
+      && isOwnedOrSharedProject(project)
+      && hasUnseenExpertActivity(project, synthesisSeenRecord);
     const isPubliclyVisible = project?.answers?.[PUBLIC_VISIBILITY_KEY] === true;
     const canToggleVisibility = !isDraft
       && !isTeamCard
@@ -2203,7 +2226,16 @@ export const HomeScreen = ({
         <div className="flex items-start justify-between gap-4">
           <div>
             <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2 flex-wrap">
+              {hasExpertNews && (
+                <span
+                  className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-rose-500"
+                  data-testid="owner-expert-news-dot"
+                  title={t('home.ownerNews.dotTitle')}
+                  aria-hidden="true"
+                />
+              )}
               <span>{displayProjectName || t('home.projectNameFallback')}</span>
+              {hasExpertNews && <span className="sr-only">{t('home.ownerNews.dotTitle')}</span>}
               {project.isDemo && (
                 <span className="inline-flex items-center px-2 py-0.5 text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 rounded-full">
                   {t('home.demoProjectBadge')}

@@ -528,6 +528,9 @@ export default {
     triggeredListAriaLabel: 'Liste der ausgelösten Projekte',
     committeeLabel: 'Ausschuss',
     expertLabel: 'Experte',
+    ownerNews: {
+      dotTitle: 'Neue Stellungnahme oder Frage eines Experten seit Ihrem letzten Aufruf der Projektthemen'
+    },
     queue: {
       newsDotTitle: 'Neues vom Projektverantwortlichen',
       newsListAriaLabel: 'Neues vom Projektverantwortlichen',
