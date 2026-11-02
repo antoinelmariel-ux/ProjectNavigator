@@ -745,7 +745,7 @@ export const HomeScreen = ({
               // pris en charge par un autre : c'est tout l'objet de l'ajout.
               isHandledByOther: isClaimedByOther(claim, currentUserEmail)
                 && !isPerimeterFollower(teamEntry, currentUserEmail),
-              isStale: getClaimStaleness(teamEntry, { team, now: nowIso }).isStale
+              isStale: getClaimStaleness(teamEntry, { team, project, now: nowIso }).isStale
             };
           });
 

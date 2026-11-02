@@ -169,6 +169,39 @@ test('péremption : 3 jours ouvrés relancent, 6 signalent, et une activité ré
   assert.equal(disabled.isReminderDue, false);
 });
 
+test('relance du référent : seulement quand la balle est chez l’expert', () => {
+  const now = '2026-09-10T08:00:00Z';
+  const base = { claim: { assigneeEmail: 'alice@lfb.fr', assignedAt: '2026-09-01T08:00:00Z' }, replies: [] };
+  const state = (entry, at = now) => getClaimStaleness(entry, { team: TEAM, project: { id: 'p1', answers: {} }, now: at });
+  const due = (entry) => state(entry).isReminderDue;
+
+  assert.equal(due(base), true);
+
+  const expertAsked = { ...base, replies: [{ createdAt: '2026-09-02T08:00:00Z', authorEmail: 'alice@lfb.fr' }] };
+  assert.equal(due(expertAsked), false);
+
+  const ownerAnswered = {
+    ...base,
+    replies: [
+      { createdAt: '2026-09-02T08:00:00Z', authorEmail: 'alice@lfb.fr' },
+      { createdAt: '2026-09-03T08:00:00Z', authorEmail: 'owner@lfb.fr' }
+    ]
+  };
+  assert.equal(due(ownerAnswered), true);
+
+  const waitingInfo = { ...base, status: 'pending_information', statusUpdatedAt: '2026-09-02T08:00:00Z' };
+  assert.equal(due(waitingInfo), false);
+
+  const opinionGiven = { ...base, status: 'validated', statusUpdatedAt: '2026-09-02T08:00:00Z' };
+  assert.equal(due(opinionGiven), false);
+
+  assert.equal(state(base).isStale, true);
+  assert.equal(state(expertAsked).isStale, false);
+  assert.equal(state(ownerAnswered, '2026-09-14T08:00:00Z').isStale, true);
+  assert.equal(state(waitingInfo).isStale, false);
+  assert.equal(state(opinionGiven).isStale, false);
+});
+
 test('après prise en charge, les échanges ne partent qu’au référent', () => {
   assert.deepEqual(resolveClaimAwareRecipients(TEAM, {}, null), ['Alice@lfb.fr', 'bob@lfb.fr', 'carla@lfb.fr']);
   assert.deepEqual(resolveClaimAwareRecipients(TEAM, {}, { assigneeEmail: 'BOB@lfb.fr' }), ['bob@lfb.fr']);

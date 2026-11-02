@@ -106,9 +106,16 @@ export const getPerimeterQueueState = (entry, { project, complianceEmails = [] }
     newsAt = round.requestedAt || sentAt;
   }
 
+  const expertReplyAt = latest(
+    replies
+      .filter((reply) => emails.has(normalizeEmail(reply?.authorEmail)))
+      .map((reply) => toText(reply?.createdAt))
+  );
+
   return {
     status,
     hasOpinion,
+    expertReplyAt,
     isSettled,
     isPreliminaryOpinion,
     news,
@@ -117,6 +124,23 @@ export const getPerimeterQueueState = (entry, { project, complianceEmails = [] }
     ownerReplyAt,
     expertGestureAt
   };
+};
+
+// La balle est chez l'expert quand c'est à lui d'agir : il a une nouveauté à traiter (réponse du
+// porteur, mise à jour, demande finale), ou il n'a rien encore dit au porteur. Elle est chez le
+// porteur après un avis rendu sans nouveauté, un statut « pending_information » ou une dernière
+// réponse de l'expert dans le fil : relancer l'expert n'aurait alors aucun sens.
+export const isBallWithExpert = (queueState) => {
+  if (!queueState) {
+    return true;
+  }
+  if (queueState.hasNews) {
+    return true;
+  }
+  if (queueState.hasOpinion || queueState.status === 'pending_information') {
+    return false;
+  }
+  return !(queueState.expertReplyAt && queueState.expertReplyAt > (queueState.ownerReplyAt || ''));
 };
 
 // `perimeters` : [{ type: 'team'|'committee', claim, isHandledByOther, queue }].

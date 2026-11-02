@@ -4,6 +4,7 @@ import { resolveTeamRecipients } from './teamMemberRules.js';
 import { withTeamFollowers } from './perimeterFollowers.js';
 import { countBusinessDaysBetween } from './businessDays.js';
 import { applyAbsenceSubstitution, wantsClaimCopyForTeam } from './teamMemberProfile.js';
+import { getPerimeterQueueState, isBallWithExpert } from './expertQueue.js';
 
 // Prise en charge d'un projet par un membre d'une équipe experte déclenchée. L'unité n'est pas
 // le projet mais le couple (projet × périmètre) : un projet peut déclencher plusieurs équipes,
@@ -289,7 +290,9 @@ export const getPerimeterLastActivityAt = (entry) => {
   return candidates.sort().pop() || '';
 };
 
-export const getClaimStaleness = (entry, { team, now = new Date().toISOString() } = {}) => {
+// Avec `project`, le retard et la relance ne comptent que si la balle est chez l'expert (voir
+// `isBallWithExpert`) ; sans, seule l'inactivité compte.
+export const getClaimStaleness = (entry, { team, project, now = new Date().toISOString() } = {}) => {
   const claim = getPerimeterClaim(entry);
   const { staleDays, reminderDays } = resolveTeamClaimSettings(team);
 
@@ -311,12 +314,20 @@ export const getClaimStaleness = (entry, { team, now = new Date().toISOString() 
   // la passe de relance idempotente alors que n'importe quelle session peut la déclencher.
   const alreadyReminded = Boolean(claim.reminderSentAt) && claim.reminderSentAt >= lastActivityAt;
 
+  const isBallOnExpert = !project || isBallWithExpert(getPerimeterQueueState(entry, {
+    project,
+    complianceEmails: normalizeTeamContacts(team)
+  }));
+
   return {
     claim,
     lastActivityAt,
     businessDaysSinceActivity,
-    isStale: staleDays > 0 && businessDaysSinceActivity >= staleDays,
-    isReminderDue: reminderDays > 0 && businessDaysSinceActivity >= reminderDays && !alreadyReminded,
+    isStale: isBallOnExpert && staleDays > 0 && businessDaysSinceActivity >= staleDays,
+    isReminderDue: isBallOnExpert
+      && reminderDays > 0
+      && businessDaysSinceActivity >= reminderDays
+      && !alreadyReminded,
     staleDays,
     reminderDays
   };
@@ -420,7 +431,7 @@ export const collectTeamClaims = (projects, team, { now = new Date().toISOString
       if (!claim) {
         return null;
       }
-      const staleness = getClaimStaleness(entry, { team, now });
+      const staleness = getClaimStaleness(entry, { team, project, now });
       return {
         projectId: project?.id || '',
         projectName: project?.projectName || '',

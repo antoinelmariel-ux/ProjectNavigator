@@ -5229,7 +5229,7 @@ const updateProjectFilters = useCallback((updater) => {
           return;
         }
 
-        const staleness = getClaimStaleness(entry, { team, now });
+        const staleness = getClaimStaleness(entry, { team, project, now });
         if (!staleness.isReminderDue) {
           return;
         }
