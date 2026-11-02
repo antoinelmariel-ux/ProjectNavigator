@@ -63,6 +63,15 @@ import { selectTeamProjects } from '../utils/reportingHierarchy.js';
 import { getProjectTrashEntry, getRespondedPerimeters, isProjectInOwnerTrash } from '../utils/projectTrash.js';
 import { TeamProjectsPanel } from './TeamProjectsPanel.jsx';
 import { SegmentedTabs } from './SegmentedTabs.jsx';
+import {
+  EXPERT_QUEUE_IN_PROGRESS,
+  EXPERT_QUEUE_TEAMMATE,
+  EXPERT_QUEUE_TO_CLAIM,
+  EXPERT_QUEUE_TREATED,
+  classifyExpertProject,
+  getPerimeterQueueState,
+  sortExpertQueue
+} from '../utils/expertQueue.js';
 
 const formatDate = (isoDate, language, unknownDateLabel) => {
   if (!isoDate) {
@@ -115,36 +124,6 @@ const TOUR_STEP_SCROLL_TARGETS = {
 };
 const PROJECTS_PAGE_SIZE = 6;
 const INSPIRATIONS_PAGE_SIZE = 6;
-
-const RESOLVED_COMPLIANCE_STATUSES = ['validated', 'validated_with_conditions', 'rejected', 'not_concerned'];
-
-// « pending_information » n’est considéré traité que si la dernière action sur le fil
-// (passage au statut, ou réponse) vient de la compliance elle-même : une réponse plus
-// récente du porteur de projet remet le périmètre en file d’attente (« à traiter »).
-const isCompliancePerimeterResolved = (statusEntry, complianceEmails) => {
-  const status = statusEntry?.status;
-
-  if (RESOLVED_COMPLIANCE_STATUSES.includes(status)) {
-    return true;
-  }
-
-  if (status !== 'pending_information') {
-    return false;
-  }
-
-  const statusUpdatedAt = typeof statusEntry?.statusUpdatedAt === 'string' ? statusEntry.statusUpdatedAt : '';
-  const replies = Array.isArray(statusEntry?.replies) ? statusEntry.replies : [];
-  const lastReplyAfterStatus = replies
-    .filter((reply) => !statusUpdatedAt || String(reply?.createdAt || '') > statusUpdatedAt)
-    .sort((a, b) => String(a?.createdAt || '').localeCompare(String(b?.createdAt || '')))
-    .pop();
-
-  if (!lastReplyAfterStatus) {
-    return true;
-  }
-
-  return complianceEmails.includes(normalizeEmail(lastReplyAfterStatus.authorEmail));
-};
 
 const normalizeComplianceComments = (value) => {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
@@ -489,7 +468,7 @@ export const HomeScreen = ({
     [currentUser]
   );
   const currentUserFirstName = getSafeString(currentUser?.givenName).trim();
-  const [complianceProjectsView, setComplianceProjectsView] = useState('pending');
+  const [complianceProjectsView, setComplianceProjectsView] = useState(EXPERT_QUEUE_IN_PROGRESS);
   const [committeeSelectionModal, setCommitteeSelectionModal] = useState({ isOpen: false, project: null, committees: [] });
   const heroHeadline = currentUserFirstName.length > 0
     ? t('home.heroHeadlineNamed', { name: currentUserFirstName })
@@ -778,25 +757,19 @@ export const HomeScreen = ({
           (committee) => !deferredKeys.has(buildPerimeterKey(PERIMETER_TYPE_COMMITTEE, committee.id))
         );
 
-        const triggeredPerimeters = [...triggeredTeams, ...solicitedCommittees].map((entry) => ({
-          ...entry,
-          isResolved: isCompliancePerimeterResolved(
-            entry.type === 'committee'
-              ? comments.committees?.[entry.id]
-              : resolveEffectiveTeamComplianceEntry(comments.teams?.[entry.id], project?.analysis, entry.id, language),
-            entry.complianceEmails
-          )
-        }));
+        const triggeredPerimeters = [...triggeredTeams, ...solicitedCommittees].map((entry) => {
+          const statusEntry = entry.type === 'committee'
+            ? comments.committees?.[entry.id]
+            : resolveEffectiveTeamComplianceEntry(comments.teams?.[entry.id], project?.analysis, entry.id, language);
+          const queue = getPerimeterQueueState(statusEntry, { project, complianceEmails: entry.complianceEmails });
+          return { ...entry, queue, isResolved: queue.isSettled };
+        });
 
         const allValidated = triggeredPerimeters.length > 0
           && triggeredPerimeters.every((entry) => entry.isResolved);
 
-        // « Pris en charge par l'équipe » ne vaut que si *tous* les périmètres encore ouverts de
-        // cette personne sont suivis par quelqu'un d'autre : une équipe reprise par un collègue
-        // ne fait pas disparaître le comité qui attend encore.
         const openPerimeters = triggeredPerimeters.filter((entry) => !entry.isResolved);
-        const isHandledByTeammate = openPerimeters.length > 0
-          && openPerimeters.every((entry) => entry.isHandledByOther);
+        const queueClassification = classifyExpertProject(triggeredPerimeters);
 
         const allExpertsValidated = relevantTeams.every((team) =>
           resolveEffectiveTeamComplianceEntry(comments.teams?.[team.id], project?.analysis, team.id, language)?.status === 'validated');
@@ -815,7 +788,10 @@ export const HomeScreen = ({
           triggeredPerimeters,
           openPerimeters,
           allValidated,
-          isHandledByTeammate,
+          queueBucket: queueClassification.bucket,
+          hasNews: queueClassification.hasNews,
+          newsAt: queueClassification.newsAt,
+          isPreliminaryOnly: queueClassification.isPreliminaryOnly,
           isOutOfScopeCandidate,
           userOutOfScopeCommittees
         };
@@ -833,24 +809,48 @@ export const HomeScreen = ({
     language
   ]);
 
-  const pendingComplianceProjects = useMemo(
-    () => complianceTriggeredProjects.filter((entry) => (
-      entry.triggeredPerimeters.length > 0 && !entry.allValidated && !entry.isHandledByTeammate
-    )),
-    [complianceTriggeredProjects]
+  // On ouvre sur « En cours », sauf pour qui n'a encore rien pris en charge : son travail du
+  // moment est dans « À prendre ». Choisi une seule fois, à l'arrivée des projets.
+  const hasChosenInitialQueueViewRef = useRef(false);
+  useEffect(() => {
+    if (hasChosenInitialQueueViewRef.current || complianceTriggeredProjects.length === 0) {
+      return;
+    }
+    hasChosenInitialQueueViewRef.current = true;
+    const hasInProgress = complianceTriggeredProjects.some((entry) => entry.queueBucket === EXPERT_QUEUE_IN_PROGRESS);
+    const hasToClaim = complianceTriggeredProjects.some((entry) => entry.queueBucket === EXPERT_QUEUE_TO_CLAIM);
+    if (!hasInProgress && hasToClaim) {
+      setComplianceProjectsView((current) => (current === EXPERT_QUEUE_IN_PROGRESS ? EXPERT_QUEUE_TO_CLAIM : current));
+    }
+  }, [complianceTriggeredProjects]);
+
+  const getComplianceQueueTimestamp = useCallback((entry) => getProjectTimestamp(entry?.project), []);
+
+  const toClaimComplianceProjects = useMemo(
+    () => sortExpertQueue(
+      complianceTriggeredProjects.filter((entry) => entry.queueBucket === EXPERT_QUEUE_TO_CLAIM),
+      getComplianceQueueTimestamp
+    ),
+    [complianceTriggeredProjects, getComplianceQueueTimestamp]
+  );
+
+  const inProgressComplianceProjects = useMemo(
+    () => sortExpertQueue(
+      complianceTriggeredProjects.filter((entry) => entry.queueBucket === EXPERT_QUEUE_IN_PROGRESS),
+      getComplianceQueueTimestamp
+    ),
+    [complianceTriggeredProjects, getComplianceQueueTimestamp]
   );
 
   // Volontairement pas une disparition : une prise en charge oubliée par quelqu'un d'absent
   // deviendrait un projet que plus personne ne voit. L'onglet est secondaire, le projet reste là.
   const teammateHandledComplianceProjects = useMemo(
-    () => complianceTriggeredProjects.filter((entry) => (
-      entry.triggeredPerimeters.length > 0 && !entry.allValidated && entry.isHandledByTeammate
-    )),
+    () => complianceTriggeredProjects.filter((entry) => entry.queueBucket === EXPERT_QUEUE_TEAMMATE),
     [complianceTriggeredProjects]
   );
 
   const treatedComplianceProjects = useMemo(
-    () => complianceTriggeredProjects.filter((entry) => entry.triggeredPerimeters.length > 0 && entry.allValidated),
+    () => complianceTriggeredProjects.filter((entry) => entry.queueBucket === EXPERT_QUEUE_TREATED),
     [complianceTriggeredProjects]
   );
 
@@ -909,7 +909,9 @@ export const HomeScreen = ({
       ? outOfScopeCommitteeProjects
       : complianceProjectsView === 'teammate'
         ? teammateHandledComplianceProjects
-        : pendingComplianceProjects;
+        : complianceProjectsView === EXPERT_QUEUE_TO_CLAIM
+          ? toClaimComplianceProjects
+          : inProgressComplianceProjects;
 
   // Prendre en charge, libérer ou transférer un projet réécrit sa date de mise à jour : trié
   // dessus, il bondirait en tête de liste, souvent hors de l'écran. L'ordre est donc figé
@@ -934,21 +936,64 @@ export const HomeScreen = ({
 
   const canActOnClaims = isClaimActionAvailable && typeof onPerimeterClaimAction === 'function';
 
-  const handleClaimPerimeter = useCallback((projectId, perimeter) => {
-    if (typeof onPerimeterClaimAction !== 'function') {
-      return;
-    }
-    onPerimeterClaimAction(projectId, perimeter.id, CLAIM_ACTION_CLAIM);
-    flashProject(projectId);
-  }, [flashProject, onPerimeterClaimAction]);
+  const getQueueTabLabel = useCallback((bucket) => (
+    bucket === EXPERT_QUEUE_TO_CLAIM
+      ? t('home.toClaimTabLabel')
+      : bucket === EXPERT_QUEUE_IN_PROGRESS
+        ? t('home.inProgressTabLabel')
+        : bucket === EXPERT_QUEUE_TREATED
+          ? t('home.treatedTabLabel')
+          : t('home.teammateTabLabel')
+  ), [t]);
 
-  const handleReleasePerimeter = useCallback((projectId, perimeter) => {
+  // Prendre en charge fait passer le projet de « À prendre » à « En cours », libérer l'y renvoie :
+  // on dit où il est parti et on offre de l'y suivre, plutôt que de le laisser disparaître.
+  const announceQueueMove = useCallback((projectEntry, nextPerimeters) => {
+    const projectId = projectEntry?.project?.id;
+    const nextBucket = classifyExpertProject(nextPerimeters).bucket;
+    if (!projectId || !nextBucket || nextBucket === complianceProjectsView) {
+      flashProject(projectId);
+      return;
+    }
+    const tabLabel = getQueueTabLabel(nextBucket);
+    showToast(
+      t('home.feedback.movedToQueue', {
+        name: projectEntry.project.projectName || t('home.projectNameFallback'),
+        tab: tabLabel
+      }),
+      [{
+        label: t('home.feedback.viewInQueue', { tab: tabLabel }),
+        onClick: () => {
+          setComplianceProjectsView(nextBucket);
+          setPendingReveal({ domId: `compliance-project-${projectId}`, projectId });
+        }
+      }]
+    );
+  }, [complianceProjectsView, flashProject, getQueueTabLabel, showToast, t]);
+
+  const handleClaimPerimeter = useCallback((projectEntry, perimeter) => {
     if (typeof onPerimeterClaimAction !== 'function') {
       return;
     }
-    onPerimeterClaimAction(projectId, perimeter.id, CLAIM_ACTION_RELEASE);
-    flashProject(projectId);
-  }, [flashProject, onPerimeterClaimAction]);
+    onPerimeterClaimAction(projectEntry.project.id, perimeter.id, CLAIM_ACTION_CLAIM);
+    announceQueueMove(projectEntry, projectEntry.triggeredPerimeters.map((entry) => (
+      entry.type === perimeter.type && entry.id === perimeter.id
+        ? { ...entry, claim: { assigneeEmail: currentUserEmail }, isMine: true, isHandledByOther: false }
+        : entry
+    )));
+  }, [announceQueueMove, currentUserEmail, onPerimeterClaimAction]);
+
+  const handleReleasePerimeter = useCallback((projectEntry, perimeter) => {
+    if (typeof onPerimeterClaimAction !== 'function') {
+      return;
+    }
+    onPerimeterClaimAction(projectEntry.project.id, perimeter.id, CLAIM_ACTION_RELEASE);
+    announceQueueMove(projectEntry, projectEntry.triggeredPerimeters.map((entry) => (
+      entry.type === perimeter.type && entry.id === perimeter.id
+        ? { ...entry, claim: null, isMine: false, isHandledByOther: false }
+        : entry
+    )));
+  }, [announceQueueMove, onPerimeterClaimAction]);
 
   const handleOpenClaimTakeover = useCallback((projectEntry, perimeter) => {
     setClaimTakeoverReason(CLAIM_REASONS[0]);
@@ -977,7 +1022,7 @@ export const HomeScreen = ({
 
     // Repris depuis « Pris en charge par un collègue », le projet change d'onglet : on le dit et
     // on offre de l'y suivre plutôt que de laisser croire qu'il a disparu.
-    if (complianceProjectsView === 'pending') {
+    if (complianceProjectsView === EXPERT_QUEUE_IN_PROGRESS) {
       flashProject(projectId);
       return;
     }
@@ -986,7 +1031,7 @@ export const HomeScreen = ({
       [{
         label: t('home.feedback.viewInPending'),
         onClick: () => {
-          setComplianceProjectsView('pending');
+          setComplianceProjectsView(EXPERT_QUEUE_IN_PROGRESS);
           setPendingReveal({ domId: `compliance-project-${projectId}`, projectId });
         }
       }]
@@ -2539,7 +2584,8 @@ export const HomeScreen = ({
                 value={complianceProjectsView}
                 onChange={setComplianceProjectsView}
                 items={[
-                  { id: 'pending', label: t('home.pendingTabLabel'), ariaLabel: t('home.pendingTab', { count: pendingComplianceProjects.length }), count: pendingComplianceProjects.length, urgent: true },
+                  { id: EXPERT_QUEUE_TO_CLAIM, label: t('home.toClaimTabLabel'), ariaLabel: t('home.toClaimTab', { count: toClaimComplianceProjects.length }), count: toClaimComplianceProjects.length, urgent: true },
+                  { id: EXPERT_QUEUE_IN_PROGRESS, label: t('home.inProgressTabLabel'), ariaLabel: t('home.inProgressTab', { count: inProgressComplianceProjects.length }), count: inProgressComplianceProjects.length },
                   { id: 'teammate', label: t('home.teammateTabLabel'), ariaLabel: t('home.teammateTab', { count: teammateHandledComplianceProjects.length }), count: teammateHandledComplianceProjects.length },
                   { id: 'treated', label: t('home.treatedTabLabel'), ariaLabel: t('home.treatedTab', { count: treatedComplianceProjects.length }), count: treatedComplianceProjects.length },
                   ...(isValidationCommitteeMember
@@ -2552,8 +2598,10 @@ export const HomeScreen = ({
 
             {stableComplianceProjects.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-blue-200 bg-blue-50/40 p-5 text-sm text-gray-600">
-                {complianceProjectsView === 'pending'
-                  ? t('home.noPendingTriggered')
+                {complianceProjectsView === EXPERT_QUEUE_TO_CLAIM
+                  ? t('home.noToClaimTriggered')
+                  : complianceProjectsView === EXPERT_QUEUE_IN_PROGRESS
+                    ? t('home.noInProgressTriggered')
                   : complianceProjectsView === 'teammate'
                     ? t('home.noTeammateTriggered')
                     : complianceProjectsView === 'treated'
@@ -2565,7 +2613,10 @@ export const HomeScreen = ({
             ) : (
               <div className="space-y-3" role="list" aria-label={t('home.triggeredListAriaLabel')}>
                 {stableComplianceProjects.map((projectEntry) => {
-                  const { project, triggeredPerimeters, allValidated } = projectEntry;
+                  const { project, triggeredPerimeters, queueBucket, hasNews, isPreliminaryOnly } = projectEntry;
+                  const newsPerimeters = complianceProjectsView === 'abandoned'
+                    ? []
+                    : triggeredPerimeters.filter((entry) => entry.queue?.hasNews);
                   // Les actions de prise en charge ne portent que sur les périmètres « équipe »
                   // encore ouverts : un comité n'est pas revendicable, un périmètre déjà traité
                   // n'a plus besoin de référent.
@@ -2582,12 +2633,34 @@ export const HomeScreen = ({
                     >
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="space-y-2">
-                          <h3 className="text-base font-semibold text-gray-900">
-                            {project.projectName || t('home.projectNameFallback')}
+                          <h3 className="flex items-center gap-2 text-base font-semibold text-gray-900">
+                            {newsPerimeters.length > 0 && (
+                              <span
+                                className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-rose-500"
+                                data-testid="expert-queue-news-dot"
+                                title={t('home.queue.newsDotTitle')}
+                                aria-hidden="true"
+                              />
+                            )}
+                            <span>{project.projectName || t('home.projectNameFallback')}</span>
+                            {newsPerimeters.length > 0 && (
+                              <span className="sr-only">{t('home.queue.newsDotTitle')}</span>
+                            )}
                           </h3>
                           <p className="text-xs text-gray-500">
                             {t('home.lastUpdated', { date: formatDate(project.lastUpdated || project.submittedAt, language, t('home.dateUnknown')) })}
                           </p>
+                          {newsPerimeters.length > 0 && (
+                            <ul className="space-y-0.5 text-xs font-medium text-rose-700" aria-label={t('home.queue.newsListAriaLabel')}>
+                              {newsPerimeters.map((entry) => (
+                                <li key={`${project.id}-news-${entry.type}-${entry.id}`}>
+                                  {entry.name} · {t(`home.queue.news.${entry.queue.news}`, {
+                                    date: formatDate(entry.queue.newsAt, language, t('home.dateUnknown'))
+                                  })}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
                           <div className="flex flex-wrap gap-2">
                             {triggeredPerimeters.map((entry) => (
                               <span
@@ -2645,7 +2718,7 @@ export const HomeScreen = ({
                                       {canActOnClaims && !perimeter.claim && (
                                         <button
                                           type="button"
-                                          onClick={() => handleClaimPerimeter(project.id, perimeter)}
+                                          onClick={() => handleClaimPerimeter(projectEntry, perimeter)}
                                           className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1 font-semibold text-white shadow-sm hover:bg-blue-700"
                                         >
                                           <CheckCircle className="w-3.5 h-3.5" aria-hidden="true" />
@@ -2655,7 +2728,7 @@ export const HomeScreen = ({
                                       {canActOnClaims && perimeter.isMine && (
                                         <button
                                           type="button"
-                                          onClick={() => handleReleasePerimeter(project.id, perimeter)}
+                                          onClick={() => handleReleasePerimeter(projectEntry, perimeter)}
                                           className="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-2.5 py-1 font-semibold text-gray-600 hover:bg-gray-100"
                                         >
                                           <Undo className="w-3.5 h-3.5" aria-hidden="true" />
@@ -2689,13 +2762,31 @@ export const HomeScreen = ({
                               {t('home.abandonedBadge')}
                             </span>
                           ) : (
-                            <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${
-                              allValidated
-                                ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                                : 'bg-amber-50 border-amber-200 text-amber-700'
-                            }`}>
-                              {allValidated ? t('home.validated') : t('home.toReview')}
-                            </span>
+                            queueBucket ? (
+                              <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${
+                                queueBucket === EXPERT_QUEUE_TREATED
+                                  ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                                  : isPreliminaryOnly
+                                    ? 'bg-violet-50 border-violet-200 text-violet-700'
+                                    : hasNews
+                                      ? 'bg-rose-50 border-rose-200 text-rose-700'
+                                      : queueBucket === EXPERT_QUEUE_TO_CLAIM
+                                        ? 'bg-amber-50 border-amber-200 text-amber-700'
+                                        : 'bg-blue-50 border-blue-200 text-blue-700'
+                              }`}>
+                                {queueBucket === EXPERT_QUEUE_TREATED
+                                  ? t('home.queue.badge.treated')
+                                  : isPreliminaryOnly
+                                    ? t('home.queue.badge.preliminary')
+                                    : hasNews
+                                      ? t('home.queue.badge.news')
+                                      : queueBucket === EXPERT_QUEUE_TO_CLAIM
+                                        ? t('home.queue.badge.toClaim')
+                                        : queueBucket === EXPERT_QUEUE_IN_PROGRESS
+                                          ? t('home.queue.badge.inProgress')
+                                          : t('home.queue.badge.teammate')}
+                              </span>
+                            ) : null
                           )}
                           {complianceProjectsView === 'out_of_scope' && (
                             <button

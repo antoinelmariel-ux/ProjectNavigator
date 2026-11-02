@@ -918,7 +918,7 @@ export const BackOffice = ({
   // clé `${teamId}::${projectId}` -> adresse cible.
   const [orphanClaimTargets, setOrphanClaimTargets] = useState({});
   // Retrait d'un contact qui porte encore des prises en charge : on suspend le retrait le temps
-  // de décider du sort de ses projets (réattribution ou retour dans « À traiter »).
+  // de décider du sort de ses projets (réattribution ou retour dans « À prendre »).
   const [contactRemovalDialog, setContactRemovalDialog] = useState(null);
   const [inspirationEditingLanguage, setInspirationEditingLanguage] = useState(language);
   const [projectFiltersEditingLanguage, setProjectFiltersEditingLanguage] = useState(language);

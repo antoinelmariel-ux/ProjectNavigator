@@ -11,7 +11,7 @@ import { applyAbsenceSubstitution, wantsClaimCopyForTeam } from './teamMemberPro
 // de conformité, dans answers['__compliance_team_comments__'].teams[teamId].claim.
 //
 // Invariant reprenant celui de teamMemberRules.js : on restreint les destinataires, jamais les
-// accès. Une prise en charge retire le projet de la file « À traiter » et des e-mails des autres
+// accès. Une prise en charge retire le projet de la file « À prendre » et des e-mails des autres
 // membres ; elle ne retire à personne le droit d'ouvrir, de commenter ou de reprendre.
 export const COMPLIANCE_COMMENTS_ANSWER_KEY = '__compliance_team_comments__';
 

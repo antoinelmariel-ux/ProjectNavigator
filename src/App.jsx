@@ -5071,7 +5071,7 @@ const updateProjectFilters = useCallback((updater) => {
 
   // Revendication implicite (décision produit) : poster un commentaire de conformité, changer un
   // statut ou répondre dans le fil vaut prise en charge du périmètre. Sans cela, le référent
-  // reste « libre » chez les autres alors que le travail est déjà fait, et la file « À traiter »
+  // reste « libre » chez les autres alors que le travail est déjà fait, et la file « À prendre »
   // ne se vide jamais. Trois garde-fous :
   //   - seul un contact de l'équipe revendique (le porteur qui répond ne revendique rien) ;
   //   - un périmètre déjà pris par quelqu'un d'autre n'est jamais repris en silence : le

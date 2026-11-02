@@ -1,11 +1,8 @@
-// Un périmètre est « traité » du point de vue de l'expert dès qu'il a pris position, y compris en
-// demandant des informations : l'ordre est alors chez le porteur, plus dans sa file « À traiter ».
-const SETTLED_STATUSES = new Set([
-  'validated',
-  'validated_with_conditions',
-  'rejected',
-  'not_concerned',
-  'pending_information'
-]);
+// Un périmètre est « traité » du point de vue de l'expert quand il a rendu un avis. Demander des
+// informations n'en est pas un : la balle est chez le porteur, mais le projet reste « En cours »
+// pour l'expert qui l'a pris en charge (cf. expertQueue.js).
+import { OPINION_STATUSES } from './expertQueue.js';
+
+const SETTLED_STATUSES = new Set(OPINION_STATUSES);
 
 export const isPerimeterStatusSettled = (status) => SETTLED_STATUSES.has(status);
