@@ -16,6 +16,7 @@
 | 4 | Purge du journal des notifications | Optionnel (entretien) | 10 min | [§7](#7-flux-4--purge-du-journal-optionnel) |
 | 5 | Ajout automatique comme membre du site | Selon ta décision — voir [§7 bis](#7-bis-flux-5--ajout-automatique-comme-membre-du-site-selon-ta-décision) | 20 min | [§7 bis](#7-bis-flux-5--ajout-automatique-comme-membre-du-site-selon-ta-décision) |
 | 6 | Relance des dossiers pris en charge | ⚠️ **Recommandé** — sans lui, plus aucune relance ne part une fois basculé en mode SharePoint | 25 min | [§7 ter](#7-ter-flux-6--relance-des-dossiers-pris-en-charge-recommandé) |
+| 7 | Invitations Outlook des comités (chefs de projet et membres) | Recommandé si tu utilises le calendrier des comités — sans lui, les invitations restent à envoyer à la main | 40 min | [§7 quater](#7-quater-flux-7--invitations-outlook-des-comités-recommandé) |
 
 **Commence par le flux 1 et teste-le** ([§4](#4-recette-du-flux-1--5-minutes)) avant d'aborder les autres.
 
@@ -544,6 +545,27 @@ Pas de calendrier de jours fériés ici (l'app n'en a pas non plus, voir
 *(Reproduit `isReminderDue` de `getClaimStaleness` dans `projectClaims.js` : seuil désactivé si
 `0`, et une relance déjà envoyée depuis la dernière activité ne se rejoue pas.)*
 
+**Ajoute une quatrième condition : la balle doit être chez l'expert.** Depuis novembre 2026,
+l'application ne relance le référent (et ne marque le dossier « en retard ») que si c'est à lui
+d'agir (`isBallWithExpert`, `src/utils/expertQueue.js`). Relancer un expert qui a déjà rendu son
+avis, ou dont la dernière réponse attend le porteur, n'avait aucun sens. Sans cette condition, le
+flux enverrait des relances que l'application ne ferait plus.
+
+| Membre gauche | Opérateur | Membre droit |
+|---|---|---|
+| `Status` de la ligne racine (`items('Appliquer_à_chacun')?['Status']`) | n'est **pas** égal à | `pending_information` |
+| même `Status` | n'est **pas** l'un de | `validated`, `validated_with_conditions`, `rejected`, `not_concerned` (avis rendu — quatre conditions « n'est pas égal à » dans le groupe « ET ») |
+| `CreatedByEmail` de la dernière réponse du fil (§7 ter.4, étape 2) | n'est **pas** contenu dans | `ContactsJson` de l'équipe (`CN_Teams`, lu en §7 ter.3), comparé en minuscules ; sans réponse dans le fil, la condition est vraie |
+
+> ⚠️ **Écart connu avec l'application.** L'application considère aussi que la balle est chez
+> l'expert quand il y a une *nouveauté* à traiter malgré un avis déjà rendu : réponse du porteur
+> postérieure à l'avis, mise à jour du projet, demande de validation finale, tour de confirmation
+> final. Ces cas se calculent à partir de l'historique des envois et du tour final, stockés dans
+> `AnswersJson` de `CN_Projects` — le flux ne les relit pas. **Conséquence : pour un périmètre qui a
+> un avis rendu mais une nouveauté en attente, l'application relancerait et le flux non.** Le flux
+> sous-relance dans ce cas, il ne sur-relance jamais. Si ce cas doit être relancé, il faut décider
+> de lire `AnswersJson` dans le flux ; je ne l'ai pas fait.
+
 ### 7 ter.6 Envoyer la relance et marquer `reminderSentAt`
 
 Dans la branche **« Si oui »** :
@@ -610,6 +632,149 @@ Dans la branche **« Si oui »** :
 
 ---
 
+## 7 quater. Flux 7 — Invitations Outlook des comités (recommandé)
+
+> **À quoi il sert.** L'application tient le calendrier des séances de comité (liste
+> `CN_CommitteeSessions`) et décrit, pour chaque passage de projet et pour chaque séance, l'invitation
+> Outlook telle qu'elle doit être, dans la liste `CN_CommitteeInvitations`. **L'application n'envoie
+> rien** : ce flux réconcilie Outlook avec cette liste (création, mise à jour, annulation) et crée la
+> réunion Teams. Sans lui, l'application fonctionne mais les lignes restent à l'état « en cours
+> d'envoi » et les invitations sont à faire à la main.
+>
+> Le détail des colonnes, des droits et du raisonnement est dans
+> `PREPARATION-SHAREPOINT-POWERAUTOMATE.md` (« CN_CommitteeSessions » et « Étape 5 quater »). Cette
+> section est le pas-à-pas dans Power Automate.
+
+> ⚠️ **Ce que je n'ai pas pu vérifier.** Je n'ai pas testé ce flux sur ton tenant. Deux points
+> dépendent de lui : le nom exact des actions, et la possibilité de créer une réunion **Teams** dans
+> le calendrier d'une **boîte partagée** (une boîte partagée n'a en général pas de licence Teams). Si
+> la création échoue, remplace l'adresse de la boîte partagée par celle d'un compte de service
+> disposant d'une licence Teams, partout dans les URI ci-dessous. Fais d'abord la recette (§7
+> quater.6) avec une adresse de test.
+
+### 7 quater.1 Prérequis
+
+- Les listes `CN_CommitteeSessions` et `CN_CommitteeInvitations` existent (préparation).
+- Une boîte partagée des comités (ci-dessous `comites@…`) ; le compte propriétaire du flux y a les
+  droits « Accès total » et « Envoyer en tant que » (à donner par un administrateur Exchange).
+- Le président (et co-président) de chaque comité est désigné dans le back-office, onglet « Comités
+  de validation », puis la configuration est republiée — sans quoi personne ne planifie de séance.
+
+### 7 quater.2 Le déclencheur
+
+1. **Créer** → **Flux de cloud automatisé**. Nom : `CN - Invitations des comités`.
+2. Déclencheur SharePoint **« Lorsqu'un élément est créé ou modifié »**, liste
+   `CN_CommitteeInvitations`.
+3. **⋯ → Paramètres** du déclencheur :
+   - **Conditions de déclenchement** :
+     `@not(equals(triggerOutputs()?['body/Revision'], triggerOutputs()?['body/ProcessedRevision']))`
+     — **indispensable** : sans elle, l'écriture de la réponse du flux le redéclenche à l'infini.
+   - **Contrôle de la concurrence** : activé, degré de parallélisme **1** (deux modifications
+     rapprochées d'une même invitation ne doivent pas être traitées en même temps).
+4. **Initialiser une variable** `revisionTraitee` (Entier) = `Revision` du déclencheur. C'est
+   **cette valeur** qui sera écrite dans `ProcessedRevision`, pas une valeur relue plus tard : si
+   l'application a modifié l'invitation pendant que le flux tournait, le flux repartira tout seul.
+
+### 7 quater.3 L'étendue « Traiter »
+
+Place toutes les actions suivantes dans une **Étendue** nommée `Traiter`.
+
+1. **Composer** `participants` : `split(triggerOutputs()?['body/Attendees'], ';')`, puis une action
+   **Sélectionner** sur ce tableau, dont chaque élément est
+   `{"emailAddress": {"address": item()}, "type": "required"}`.
+2. **Condition** : `Status` est égal à `cancelled`.
+   - **Si oui** — et seulement si `OutlookEventId` n'est pas vide : action **« Envoyer une requête
+     HTTP »** du connecteur **Office 365 Outlook**, méthode **POST**, URI
+     `https://graph.microsoft.com/v1.0/users/comites@…/events/<OutlookEventId>/cancel`, corps
+     `{"comment": "This presentation slot has been cancelled. See Project Navigator for details."}`.
+     Si `OutlookEventId` est vide, il n'y a rien à annuler.
+   - **Si non** — **Composer** `evenement` :
+     ```json
+     {
+       "subject": "<Subject>",
+       "body": { "contentType": "HTML", "content": "<BodyHtml>" },
+       "start": { "dateTime": "<formatDateTime(StartAt, 'yyyy-MM-ddTHH:mm:ss')>", "timeZone": "UTC" },
+       "end": { "dateTime": "<formatDateTime(EndAt, 'yyyy-MM-ddTHH:mm:ss')>", "timeZone": "UTC" },
+       "location": { "displayName": "<Location>" },
+       "attendees": <sortie de Sélectionner>,
+       "allowNewTimeProposals": false
+     }
+     ```
+     puis une **Condition** : `OutlookEventId` est vide.
+     - **Si oui** (création) : « Envoyer une requête HTTP », **POST**
+       `https://graph.microsoft.com/v1.0/users/comites@…/events`, corps = `evenement`. **Si `Kind`
+       est `members`**, ajoute au corps `"isOnlineMeeting": true` et
+       `"onlineMeetingProvider": "teamsForBusiness"` (soit deux branches, soit une expression
+       `if(...)` sur le corps) : c'est ce qui crée la réunion Teams. Puis SharePoint **« Mettre à
+       jour l'élément »** : `OutlookEventId` = `id` de la réponse ; `OnlineMeetingUrl` =
+       `onlineMeeting.joinUrl` de la réponse (vide pour une invitation de chef de projet).
+     - **Si non** (mise à jour) : « Envoyer une requête HTTP », **PATCH**
+       `https://graph.microsoft.com/v1.0/users/comites@…/events/<OutlookEventId>`, corps =
+       `evenement`.
+3. SharePoint **« Mettre à jour l'élément »** : `ProcessedRevision` = `revisionTraitee`,
+   `SyncState` = `done`, `ProcessedAt` = `utcNow()`, `ErrorMessage` vide.
+
+> 💡 Dans chaque « Mettre à jour l'élément », ne renseigne **que** les colonnes du flux
+> (`OutlookEventId`, `OnlineMeetingUrl`, `ProcessedRevision`, `SyncState`, `ProcessedAt`,
+> `ErrorMessage`). Selon la version de l'action, laisser les autres champs vides peut les effacer ;
+> si c'est le cas chez toi, recopie-y les valeurs du déclencheur.
+
+### 7 quater.4 Quoi faire selon l'état de la ligne
+
+| État de la ligne | Ce que fait le flux |
+|---|---|
+| `Status = active`, `OutlookEventId` vide | Crée l'événement, note son identifiant dans `OutlookEventId` |
+| `Status = active`, `OutlookEventId` rempli | Met l'événement à jour (les participants reçoivent la mise à jour) |
+| `Status = cancelled`, `OutlookEventId` rempli | Annule l'événement (les participants reçoivent l'annulation) |
+| `Status = cancelled`, `OutlookEventId` vide | Rien à faire |
+
+L'invitation d'un chef de projet (`Kind = presentation`) couvre **toute la durée de la séance**. Celle
+des membres (`Kind = members`) porte le lien vers la page « Ordre du jour » mais **jamais l'ordre du
+jour lui-même** : elle ne bouge donc pas quand un projet s'inscrit ou se désinscrit. Changer
+l'ordre de passage ou la durée d'un passage n'envoie rien non plus.
+
+### 7 quater.5 La branche d'erreur (indispensable)
+
+Ajoute une seconde **Étendue** `En cas d'erreur`, configurée (**⋯ → Configurer l'exécution
+après**) pour s'exécuter **après** `Traiter` quand elle a **échoué** ou **expiré**. Dedans, SharePoint
+« Mettre à jour l'élément » : `ProcessedRevision` = `revisionTraitee`, `SyncState` = `error`,
+`ErrorMessage` = `string(result('Traiter'))` (tronqué si besoin). Le président voit alors le badge
+« Invitation Outlook en erreur » sur la page « Ordre du jour », avec le message.
+
+### 7 quater.6 Recette — avant d'ouvrir à tous
+
+Sur un comité de test dont tu es président et membre :
+
+1. Crée et publie une séance à J+10. → Tu reçois l'invitation « Committee session » avec une réunion
+   Teams. Recharge l'application : la page « Ordre du jour » affiche « Rejoindre la réunion ».
+2. Depuis un projet de test qui déclenche ce comité, inscris-le avec un collègue en invité. → Toi et
+   le collègue recevez une invitation de la boîte partagée, sur toute la séance, avec le même lien
+   Teams. La page affiche « Invitation Outlook envoyée ».
+3. Change la durée du passage. → **Aucun** e-mail.
+4. Déplace la séance d'une heure dans le back-office. → Mise à jour reçue.
+5. Désinscris le projet. → Annulation reçue. L'invitation des membres n'a pas bougé.
+6. Ajoute un collègue comme membre du comité, publie la configuration, recharge l'app. → Une
+   invitation part vers les membres pour chaque séance publiée à venir.
+7. Inscris puis désinscris un projet. → Les membres ne reçoivent **rien**.
+8. Annule la séance depuis « Ordre du jour ». → Membres et chefs de projet reçoivent l'annulation.
+9. Idempotence : ouvre l'historique du flux. Une exécution qui écrit `ProcessedRevision` ne doit
+   **pas** en provoquer une seconde.
+
+**Une fois ces tests passés**, supprime de tes calendriers les occurrences futures de l'ancienne
+série récurrente (depuis son organisateur) : les invitations des membres viennent désormais de la
+boîte partagée, séance par séance.
+
+### 7 quater.7 Sécurité et gouvernance
+
+- Ajoute un **co-propriétaire** (§3.7).
+- Le flux écrit dans le calendrier de la boîte partagée avec les droits de son propriétaire : prends
+  un compte de service plutôt qu'un compte nominatif, pour que le flux survive à un départ.
+- Les listes `CN_CommitteeSessions` et `CN_CommitteeInvitations` sont en lecture/écriture pour tous
+  les membres du site (un chef de projet écrit sur la ligne quand il s'inscrit). Les règles « seul
+  le président peut… » sont appliquées par l'application, pas par SharePoint.
+
+---
+
 ## 8. Catalogue des notifications envoyées par l'application
 
 Le flux 1 traite **tous** ces messages : aucune configuration supplémentaire n'est nécessaire.
@@ -631,6 +796,14 @@ Le flux 1 traite **tous** ces messages : aucune configuration supplémentaire n'
 > tout — c'est le flux 6 ([§7 ter](#7-ter-flux-6--relance-des-dossiers-pris-en-charge-recommandé))
 > qui dépose lui-même la ligne dans `CN_NotificationsQueue`. Le flux 1 l'envoie ensuite exactement
 > comme les neuf autres, sans rien à ajouter de ce côté.
+
+> ℹ️ **Les mails du calendrier des comités passent aussi par le flux 1, sans rien à ajouter.** Ce
+> sont des mails en anglais, déposés dans `CN_NotificationsQueue` : inscription d'un projet,
+> demande de temps, actions du président, séance déplacée, prolongée ou annulée, rappels J-7 et J-1
+> au porteur, rappel de planification au président (4 semaines avant la dernière séance publiée).
+> Ils ne contiennent **jamais** le lien Teams ni la salle : un mail se transfère et son corps reste
+> dans la file. Le lien n'est que dans l'invitation Outlook (flux 7) et dans l'application. Les
+> invitations Outlook elles-mêmes ne sont **pas** des notifications : elles vont par le flux 7.
 
 **Deux règles appliquées automatiquement par l'application :**
 
@@ -694,6 +867,12 @@ et `Body`.
 - [ ] Vue « Anomalies » créée sur `CN_NotificationsQueue`
 - [ ] Flux 6 (relance des dossiers pris en charge) créé, testé ([§7 ter.7](#7-ter7-recette--10-minutes))
   et **Activé** — sans lui, cette relance ne part plus du tout
+- [ ] Flux 6 : condition « la balle est chez l'expert » ajoutée ([§7 ter.5](#7-ter5-décider-si-la-relance-est-due)),
+  en connaissant l'écart décrit dans l'encadré
+- [ ] Calendrier des comités : listes `CN_CommitteeSessions` et `CN_CommitteeInvitations` créées,
+  présidents désignés et configuration republiée
+- [ ] Flux 7 (invitations Outlook des comités) créé, branche d'erreur configurée, recette passée
+  ([§7 quater.6](#7-quater6-recette--avant-douvrir-à-tous)) et **Activé**
 - [ ] Flux optionnels créés si souhaité
 
 ---
@@ -741,9 +920,33 @@ au bon endroit, puis compléter le tableau de la [§8](#8-catalogue-des-notifica
 - Stockage de la prise en charge : `toClaimColumns`/`fromClaimColumns` dans
   [`src/utils/complianceCommentsProvider.js`](../../src/utils/complianceCommentsProvider.js)
   (`AssigneeEmail` + `ClaimJson` sur la ligne racine `CN_ComplianceComments`).
+- Condition « la balle est chez l'expert » : `isBallWithExpert` dans
+  [`src/utils/expertQueue.js`](../../src/utils/expertQueue.js), appelée par `getClaimStaleness`
+  (`isStale` et `isReminderDue`). Le flux n'en reproduit que la partie lisible dans
+  `CN_ComplianceComments` (statut, auteur de la dernière réponse) ; les nouveautés (`hasNews`) lui
+  échappent, voir l'encadré de §7 ter.5.
 - Tests : `test/projectClaims.test.mjs`, `test/businessDays.test.mjs` (si présent).
 - **⚠️ Point de synchronisation manuelle** : c'est la seule notification de ce document dont la
   règle de déclenchement vit dans **deux** endroits (le JS et ce flux) plutôt qu'un seul. Si le
   seuil, le calendrier de jours ouvrés ou la définition de « dernière activité » changent un jour
   côté code, il faut reporter le même changement dans le flux — sinon l'app et Power Automate
   finiront par ne plus être d'accord sur la date à laquelle une relance est due.
+
+### Flux 7 — Invitations Outlook des comités
+
+- Calcul de l'invitation attendue : `computeSessionInvitations`, `selectInvitationsToSync` dans
+  [`src/utils/committeeInvitations.js`](../../src/utils/committeeInvitations.js) ; lecture/écriture
+  de la liste dans
+  [`src/utils/committeeInvitationsProvider.js`](../../src/utils/committeeInvitationsProvider.js).
+- Séances : [`src/utils/committeeSessions.js`](../../src/utils/committeeSessions.js) (logique
+  pure), [`src/utils/committeeSessionsProvider.js`](../../src/utils/committeeSessionsProvider.js)
+  (`CN_CommitteeSessions`), [`src/hooks/useCommitteeSessionActions.js`](../../src/hooks/useCommitteeSessionActions.js)
+  (écritures, `mutateSession` sous IF-MATCH).
+- Mails du calendrier : [`src/utils/committeeSessionEmails.js`](../../src/utils/committeeSessionEmails.js)
+  (jamais de lien Teams ni de salle, épinglé par `test/committeeSessionEmails.test.mjs`).
+- Écriture par l'app : `committeeInvitationsQueueRef` dans `src/App.jsx` (une `retryQueue`, mode
+  SharePoint uniquement, jamais en simulation « Voir en tant que »). Le flux n'écrit que ses
+  colonnes (`ProcessedRevision`, `OutlookEventId`, `OnlineMeetingUrl`, `SyncState`, `ErrorMessage`,
+  `ProcessedAt`).
+- Tests : `test/committeeSessions*.test.mjs`, `test/committeeInvitations.test.mjs`.
+- Spécification : `docs/specs/calendrier-comites.md`.
