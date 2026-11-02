@@ -638,10 +638,10 @@ export const initialOnboardingTourConfig = {
         "es": "Dialogar con los expertos"
       },
       "content": {
-        "en": "This is where it all happens. Each team issues an opinion — Approved, Approved with conditions, Awaiting information, Not concerned or Rejected — along with its recommendations. You reply in the thread, attach a document if needed, and you can see who has taken charge of your file. Everything is traced in one place. For complex questions, don't hesitate to set up a meeting.",
-        "fr": "C’est ici que tout se joue. Chaque équipe rend un avis — Validé, Validé sous conditions, En attente d’informations, Non concerné ou Refusé — avec ses recommandations. Vous répondez dans le fil, vous joignez un document si besoin, et vous voyez qui a pris votre dossier en charge. Tout est tracé au même endroit. En cas de questions complexes, n’hésitez pas à organiser une réunion.",
-        "de": "Hier entscheidet sich alles. Jedes Team gibt eine Stellungnahme ab — Freigegeben, Freigegeben unter Auflagen, Warten auf Informationen, Nicht betroffen oder Abgelehnt — mit seinen Empfehlungen. Sie antworten im Verlauf, hängen bei Bedarf ein Dokument an und sehen, wer Ihre Akte übernommen hat. Alles ist an einem Ort nachvollziehbar. Bei komplexen Fragen zögern Sie nicht, ein Treffen zu organisieren.",
-        "es": "Aquí es donde se juega todo. Cada equipo emite un dictamen — Validado, Validado con condiciones, A la espera de información, No afectado o Rechazado — con sus recomendaciones. Usted responde en el hilo, adjunta un documento si es necesario y ve quién se ha hecho cargo de su expediente. Todo queda trazado en un mismo lugar. Ante preguntas complejas, no dude en organizar una reunión."
+        "en": "This is where it all happens. Each team issues an opinion — Approved, Approved with conditions, Awaiting information, Not concerned or Rejected — along with its recommendations. You reply in the thread, attach a document if needed, and you can see who has taken charge of your file. Everything is traced in one place. For complex questions, don't hesitate to set up a meeting. When an expert gives an opinion or asks a question, a pink dot appears on your project’s card on the home screen, until you next open the project issues.",
+        "fr": "C’est ici que tout se joue. Chaque équipe rend un avis — Validé, Validé sous conditions, En attente d’informations, Non concerné ou Refusé — avec ses recommandations. Vous répondez dans le fil, vous joignez un document si besoin, et vous voyez qui a pris votre dossier en charge. Tout est tracé au même endroit. En cas de questions complexes, n’hésitez pas à organiser une réunion. Quand un expert rend un avis ou pose une question, une pastille rose apparaît sur la carte de votre projet à l’accueil, jusqu’à votre prochaine consultation des enjeux.",
+        "de": "Hier entscheidet sich alles. Jedes Team gibt eine Stellungnahme ab — Freigegeben, Freigegeben unter Auflagen, Warten auf Informationen, Nicht betroffen oder Abgelehnt — mit seinen Empfehlungen. Sie antworten im Verlauf, hängen bei Bedarf ein Dokument an und sehen, wer Ihre Akte übernommen hat. Alles ist an einem Ort nachvollziehbar. Bei komplexen Fragen zögern Sie nicht, ein Treffen zu organisieren. Sobald ein Experte eine Stellungnahme abgibt oder eine Frage stellt, erscheint auf der Karte Ihres Projekts auf der Startseite ein rosa Punkt, bis Sie die Projektthemen das nächste Mal öffnen.",
+        "es": "Aquí es donde se juega todo. Cada equipo emite un dictamen — Validado, Validado con condiciones, A la espera de información, No afectado o Rechazado — con sus recomendaciones. Usted responde en el hilo, adjunta un documento si es necesario y ve quién se ha hecho cargo de su expediente. Todo queda trazado en un mismo lugar. Ante preguntas complejas, no dude en organizar una reunión. Cuando un experto emite un dictamen o plantea una pregunta, aparece un punto rosa en la tarjeta de su proyecto en la página de inicio, hasta que vuelva a abrir los retos del proyecto."
       },
       "placement": "top",
       "highlightScope": "target",
@@ -659,10 +659,10 @@ export const initialOnboardingTourConfig = {
         "es": "El paso por comité"
       },
       "content": {
-        "en": "Some projects additionally trigger one or more validation committees. Their decisions and arbitrations are recorded in the project report, in the same place as the experts' opinions.",
-        "fr": "Certains projets déclenchent en plus un ou plusieurs comités de validation. Leurs décisions et arbitrages sont enregistrés dans le rapport du projet, au même endroit que les avis des experts.",
-        "de": "Manche Projekte lösen zusätzlich ein oder mehrere Validierungsgremien aus. Ihre Entscheidungen und Abwägungen werden im Projektbericht festgehalten, am selben Ort wie die Stellungnahmen der Experten.",
-        "es": "Algunos proyectos activan además uno o varios comités de validación. Sus decisiones y arbitrajes se registran en el informe del proyecto, en el mismo lugar que los dictámenes de los expertos."
+        "en": "Some projects require going before a validation committee. To go before a committee, book one of the open sessions from Project Navigator.",
+        "fr": "Certains projets nécessitent un passage devant un comité de validation. Pour passer en comité, réservez depuis Project Navigator une séance parmi celles qui sont ouvertes.",
+        "de": "Für manche Projekte ist der Gang vor ein Validierungsgremium erforderlich. Für den Gang ins Gremium buchen Sie in Project Navigator eine der offenen Sitzungen.",
+        "es": "Algunos proyectos requieren pasar por un comité de validación. Para pasar por un comité, reserve desde Project Navigator una de las sesiones abiertas."
       },
       "placement": "top",
       "highlightScope": "target",
