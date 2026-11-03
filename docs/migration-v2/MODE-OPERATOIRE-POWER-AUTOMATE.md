@@ -645,12 +645,13 @@ Dans la branche **« Si oui »** :
 > `PREPARATION-SHAREPOINT-POWERAUTOMATE.md` (« CN_CommitteeSessions » et « Étape 5 quater »). Cette
 > section est le pas-à-pas dans Power Automate.
 
-> ⚠️ **Ce que je n'ai pas pu vérifier.** Je n'ai pas testé ce flux sur ton tenant. Deux points
-> dépendent de lui : le nom exact des actions, et la possibilité de créer une réunion **Teams** dans
-> le calendrier d'une **boîte partagée** (une boîte partagée n'a en général pas de licence Teams). Si
-> la création échoue, remplace l'adresse de la boîte partagée par celle d'un compte de service
-> disposant d'une licence Teams, partout dans les URI ci-dessous. Fais d'abord la recette (§7
-> quater.6) avec une adresse de test.
+> ⚠️ **Ce que je n'ai pas pu vérifier.** Je n'ai pas testé ce flux sur ton tenant. Les termes de
+> l'éditeur français (Portée, Message, Début/Carte, Initialiser la variable) ont été confirmés en
+> le construisant ; d'autres libellés, cités de mémoire, peuvent différer. Deux points dépendent de
+> ton tenant : les actions natives d'Outlook couvrent-elles tout (voir §7 quater.3), et la
+> possibilité de créer une réunion **Teams** dans le calendrier d'une **boîte partagée** (elle n'a
+> en général pas de licence Teams). Si la création échoue, utilise un compte de service disposant
+> d'une licence Teams. Fais d'abord la recette (§7 quater.6) avec une adresse de test.
 
 ### 7 quater.1 Prérequis
 
@@ -673,53 +674,183 @@ Dans la branche **« Si oui »** :
      — **indispensable** : sans elle, l'écriture de la réponse du flux le redéclenche à l'infini.
    - **Contrôle de la concurrence** : activé, degré de parallélisme **1** (deux modifications
      rapprochées d'une même invitation ne doivent pas être traitées en même temps).
-4. **Initialiser une variable** `revisionTraitee` (Entier) = `Revision` du déclencheur. C'est
+4. **Initialiser la variable** `revisionTraitee` (type **Entier**) = `Revision` du déclencheur. C'est
    **cette valeur** qui sera écrite dans `ProcessedRevision`, pas une valeur relue plus tard : si
    l'application a modifié l'invitation pendant que le flux tournait, le flux repartira tout seul.
 
-### 7 quater.3 L'étendue « Traiter »
+### 7 quater.3 La portée « Traiter »
 
-Place toutes les actions suivantes dans une **Étendue** nommée `Traiter`.
+> **Vocabulaire de l'interface française.** Les termes ci-dessous sont ceux de l'éditeur en français :
+> **Portée** (un conteneur d'actions, *Scope*), **Message** (catégorie « Opération de données »,
+> c'est l'action *Compose* : son champ s'appelle « Entrées »), **Sélectionner** (champs **Début** et
+> **Carte**), **Initialiser la variable**, **Condition** (branches **Vrai** et **Faux**),
+> **Mettre à jour l'élément**, **Envoyer une requête HTTP**. Un libellé qui ne correspond pas
+> exactement chez toi : cherche l'action avec la barre de recherche de l'éditeur.
 
-1. **Composer** `participants` : `split(triggerOutputs()?['body/Attendees'], ';')`, puis une action
-   **Sélectionner** sur ce tableau, dont chaque élément est
-   `{"emailAddress": {"address": item()}, "type": "required"}`.
-2. **Condition** : `Status` est égal à `cancelled`.
-   - **Si oui** — et seulement si `OutlookEventId` n'est pas vide : action **« Envoyer une requête
-     HTTP »** du connecteur **Office 365 Outlook**, méthode **POST**, URI
-     `https://graph.microsoft.com/v1.0/users/comites@…/events/<OutlookEventId>/cancel`, corps
-     `{"comment": "This presentation slot has been cancelled. See Project Navigator for details."}`.
-     Si `OutlookEventId` est vide, il n'y a rien à annuler.
-   - **Si non** — **Composer** `evenement` :
-     ```json
-     {
-       "subject": "<Subject>",
-       "body": { "contentType": "HTML", "content": "<BodyHtml>" },
-       "start": { "dateTime": "<formatDateTime(StartAt, 'yyyy-MM-ddTHH:mm:ss')>", "timeZone": "UTC" },
-       "end": { "dateTime": "<formatDateTime(EndAt, 'yyyy-MM-ddTHH:mm:ss')>", "timeZone": "UTC" },
-       "location": { "displayName": "<Location>" },
-       "attendees": <sortie de Sélectionner>,
-       "allowNewTimeProposals": false
-     }
-     ```
-     puis une **Condition** : `OutlookEventId` est vide.
-     - **Si oui** (création) : « Envoyer une requête HTTP », **POST**
-       `https://graph.microsoft.com/v1.0/users/comites@…/events`, corps = `evenement`. **Si `Kind`
-       est `members`**, ajoute au corps `"isOnlineMeeting": true` et
-       `"onlineMeetingProvider": "teamsForBusiness"` (soit deux branches, soit une expression
-       `if(...)` sur le corps) : c'est ce qui crée la réunion Teams. Puis SharePoint **« Mettre à
-       jour l'élément »** : `OutlookEventId` = `id` de la réponse ; `OnlineMeetingUrl` =
-       `onlineMeeting.joinUrl` de la réponse (vide pour une invitation de chef de projet).
-     - **Si non** (mise à jour) : « Envoyer une requête HTTP », **PATCH**
-       `https://graph.microsoft.com/v1.0/users/comites@…/events/<OutlookEventId>`, corps =
-       `evenement`.
-3. SharePoint **« Mettre à jour l'élément »** : `ProcessedRevision` = `revisionTraitee`,
-   `SyncState` = `done`, `ProcessedAt` = `utcNow()`, `ErrorMessage` vide.
+Place toutes les actions suivantes dans une **Portée** nommée `Traiter`. Renomme chaque action et
+chaque condition (**⋯ → Renommer**) : l'historique d'exécution devient lisible.
+
+Voici l'arbre à construire. Les noms entre guillemets sont des suggestions.
+
+```
+Portée « Traiter »
+├─ Condition « Annulée ? »  — Status est égal à cancelled
+│  ├─ Vrai : Condition « Déjà créée ? »  — OutlookEventId n'est pas vide
+│  │  ├─ Vrai : ANNULER l'événement
+│  │  └─ Faux : (rien — il n'y a rien à annuler)
+│  └─ Faux : Condition « Pas encore créée ? »  — OutlookEventId est vide
+│     ├─ Vrai : Condition « Pour les membres ? »  — Kind est égal à members
+│     │  ├─ Vrai : CRÉER l'événement AVEC réunion Teams, puis Mettre à jour l'élément
+│     │  └─ Faux : CRÉER l'événement SANS réunion Teams, puis Mettre à jour l'élément
+│     └─ Faux : METTRE À JOUR l'événement
+└─ Mettre à jour l'élément (fin de la portée : ProcessedRevision, SyncState…)
+```
+
+**Écrire les conditions.**
+
+- Pour **« est vide »** et **« n'est pas vide »**, ne compare pas à `""` : une colonne SharePoint
+  vide peut être lue comme *null* et non comme une chaîne vide, ce qui fausse la comparaison. Utilise
+  la fonction `empty()` : à gauche l'expression `empty(triggerOutputs()?['body/OutlookEventId'])`
+  (onglet **Expression**, icône *fx*, puis **Ajouter**), opérateur **est égal à**, à droite `true`
+  (« est vide ») ou `false` (« n'est pas vide »).
+- Une condition ne doit contenir **aucune ligne vide** : le groupe « Et » attend que toutes les
+  lignes soient vraies. Supprime toute ligne inutilisée (**⋯ → Supprimer** sur la ligne).
+
+**Choisir le type d'actions pour créer, mettre à jour et annuler.** Deux variantes. Prends la A si
+elle couvre ton besoin (elle évite le JSON et les adresses à construire), sinon la B.
+
+> ⚠️ **Ce que je n'ai pas pu vérifier.** Je ne sais pas si les actions natives d'Outlook couvrent
+> les trois besoins dans ton tenant. Ouvre-les et contrôle : (1) un champ permet de choisir le
+> **calendrier** de la boîte partagée des comités (ou du compte de service) ; (2) une option de
+> **réunion en ligne** Teams existe (probablement dans les paramètres avancés) ; (3) l'**identifiant
+> de l'événement** (et, pour Teams, le lien de la réunion) figure dans les sorties de l'action ;
+> (4) pour l'annulation, l'action de suppression d'événement **prévient bien les invités** — teste
+> avec ta propre adresse en invité. Les libellés exacts de ces actions et de leurs champs peuvent
+> différer de ceux cités ci-dessous.
+
+#### Variante A — actions natives du connecteur Office 365 Outlook (à privilégier)
+
+- **Créer un événement (V4)** : renseigne l'**ID de calendrier** (champ obligatoire, voir l'encadré
+  ci-dessous), l'**objet** (`Subject`), le **début** (`StartAt`), la **fin** (`EndAt`), le **fuseau horaire**
+  (`UTC`), les **participants requis** (`Attendees` : la colonne contient déjà les adresses séparées
+  par des points-virgules, c'est le format attendu — **plus besoin** de « participants » ni de
+  « Sélectionner »), le **corps** (`BodyHtml`, avec l'option indiquant que c'est du HTML) et le
+  **lieu** (`Location`). Tout se saisit depuis le contenu dynamique du déclencheur : aucun JSON à
+  écrire, donc aucun risque de guillemet ou de retour à la ligne dans `BodyHtml` qui casse la
+  requête.
+  - Dans la branche **« Pour les membres ? » — Vrai**, active l'option de **réunion en ligne** avec
+    Teams comme fournisseur (paramètres avancés). Dans la branche Faux, laisse-la désactivée.
+> **Le champ « ID de calendrier ».** Il ouvre une liste déroulante des calendriers auxquels le
+> compte de la **connexion** Outlook du flux a accès. Choisis celui des comités s'il y figure. Je ne
+> sais pas si le calendrier d'une boîte partagée apparaît dans cette liste (cela dépend des droits
+> et de la version de l'action). S'il n'y figure pas : (1) essaie « Entrer une valeur
+> personnalisée » en y mettant l'identifiant du calendrier, que tu obtiens depuis Microsoft Graph
+> (je ne sais pas le retrouver sans appel Graph) ; (2) ou prends le calendrier par défaut d'un
+> **compte de service** des comités, avec lequel tu crées la connexion Outlook du flux : les
+> événements vivent alors dans son calendrier et les invitations partent de ce compte. Dans les
+> deux cas, **teste** avec ta propre adresse en invité et regarde qui apparaît comme organisateur.
+
+- **Mettre à jour un événement (V4)** : mêmes champs, plus l'**ID de l'événement** =
+  `OutlookEventId`.
+- **Annuler** : l'action de suppression d'événement, avec l'`OutlookEventId`, **si** ton test montre
+  que les invités reçoivent une annulation. Sinon, utilise pour l'annulation seule la requête HTTP de
+  la variante B.
+- Dans les sorties de l'action de création, relève l'**identifiant** de l'événement et le **lien de
+  la réunion en ligne** (le contenu dynamique propose ces valeurs ; vérifie dans l'historique
+  d'exécution, onglet **Sorties**, où elles se trouvent).
+
+#### Variante B — « Envoyer une requête HTTP » (repli)
+
+L'action **« Envoyer une requête HTTP »** du connecteur **Office 365 Outlook** (pas l'action
+« HTTP » seule, qui est premium) envoie une requête Microsoft Graph. Chaque action a trois champs à
+régler : la **méthode**, l'**URI** (à chercher en haut du panneau — un point rouge sur « Paramètres »
+signale un champ obligatoire vide) et le **corps** (champ « Corps », ouvert avec « Afficher tout »
+dans les paramètres avancés).
+
+Ne copie pas les modèles ci-dessous tels quels : tout ce qui est en `<…>` ou en `…` est un
+**emplacement à remplacer**. Pour une valeur de la ligne SharePoint, utilise le bouton **fx** du
+champ (onglet **Expression** → saisir → **Ajouter**), ou le contenu dynamique.
+
+1. **Message** nommé `participants` : dans « Entrées », l'expression
+   `split(triggerOutputs()?['body/Attendees'], ';')`. Le mot « participants » est le **nom** de
+   l'action (⋯ → Renommer), pas son contenu.
+2. **Sélectionner** : **Début** = la sortie de `participants` ; **Carte** : passe en **mode texte**
+   (icône à droite de la ligne clé/valeur, un « T » encadré), puis
+   `{"emailAddress": {"address": "@{item()}"}, "type": "required"}`. Vérifie dans l'historique
+   d'exécution que la sortie est une liste de `{"emailAddress": {"address": "prenom.nom@…"}, "type": "required"}`.
+3. **Annuler** — « Envoyer une requête HTTP » : méthode `POST`, URI
+   `https://graph.microsoft.com/v1.0/users/comites@votre-domaine.fr/events/@{triggerOutputs()?['body/OutlookEventId']}/cancel`
+   (si le `@{…}` reste du texte brut, tape le début de l'adresse, insère `OutlookEventId` depuis le
+   contenu dynamique, puis tape `/cancel`), corps
+   `{"comment": "This presentation slot has been cancelled. See Project Navigator for details."}`.
+4. **Créer** — méthode `POST`, URI `https://graph.microsoft.com/v1.0/users/comites@votre-domaine.fr/events`,
+   corps :
+   ```json
+   {
+     "subject": "@{triggerOutputs()?['body/Subject']}",
+     "body": { "contentType": "HTML", "content": "@{triggerOutputs()?['body/BodyHtml']}" },
+     "start": { "dateTime": "@{formatDateTime(triggerOutputs()?['body/StartAt'], 'yyyy-MM-ddTHH:mm:ss')}", "timeZone": "UTC" },
+     "end": { "dateTime": "@{formatDateTime(triggerOutputs()?['body/EndAt'], 'yyyy-MM-ddTHH:mm:ss')}", "timeZone": "UTC" },
+     "location": { "displayName": "@{triggerOutputs()?['body/Location']}" },
+     "attendees": @{body('Sélectionner')},
+     "allowNewTimeProposals": false
+   }
+   ```
+   Dans la branche **« Pour les membres ? » — Vrai**, ajoute avant `allowNewTimeProposals` les deux
+   lignes `"isOnlineMeeting": true,` et `"onlineMeetingProvider": "teamsForBusiness",` ; dans la
+   branche Faux, la même action **sans** ces deux lignes (copie-la : ⋯ → **Copier dans mon
+   presse-papiers**, puis colle-la dans l'autre branche). Le nom entre guillemets de
+   `body('Sélectionner')` doit être **exactement** celui de ton action (les espaces deviennent des
+   tirets bas : `Sélectionner_1`).
+   - ⚠️ `BodyHtml` contient du HTML : s'il contient des guillemets ou des retours à la ligne, la
+     requête échouera à l'exécution (« JSON invalide »), sans erreur visible dans l'éditeur. Regarde
+     le contenu d'une ligne de `CN_CommitteeInvitations` ; au besoin, remplace l'expression par une
+     version qui échappe ces caractères, par exemple
+     `replace(replace(triggerOutputs()?['body/BodyHtml'], '"', '\"'), decodeUriComponent('%0A'), '\n')`
+     (non testée : vérifie la sortie dans l'historique d'exécution).
+5. **Mettre à jour l'événement** — méthode `PATCH`, URI
+   `https://graph.microsoft.com/v1.0/users/comites@votre-domaine.fr/events/@{triggerOutputs()?['body/OutlookEventId']}`,
+   corps : le même que la création **sans** les deux lignes Teams.
+
+Dans les actions suivantes, l'identifiant de l'événement créé se lit dans la réponse de la requête
+de création : `body('Envoyer_une_requête_HTTP_2')?['id']` et, pour Teams,
+`body('Envoyer_une_requête_HTTP_2')?['onlineMeeting']?['joinUrl']` (le nom doit être celui de **ton**
+action, espaces remplacés par des tirets bas). Je ne sais pas si l'action renvoie la réponse de
+Graph directement ou dans une enveloppe : ouvre les **Sorties** de l'action dans l'historique
+d'exécution et adapte le chemin. L'action **Analyser JSON** (catégorie « Opération de données »)
+peut aussi exposer ces champs dans le contenu dynamique.
+
+#### Après chaque création : « Mettre à jour l'élément »
+
+Après chaque action qui **crée** un événement (les deux branches de « Pour les membres ? »), ajoute
+l'action SharePoint **« Mettre à jour l'élément »** sur la ligne du déclencheur :
+
+- **Adresse du site** et **Nom de la liste** : ton site et `CN_CommitteeInvitations`.
+- **ID** : l'identifiant de la ligne SharePoint — le contenu dynamique « ID » du déclencheur
+  (pas `InvitationId`, pas `OutlookEventId`).
+- Tout champ **obligatoire** (astérisque rouge, comme le titre) : recopie la valeur du déclencheur.
+  Les colonnes comme `OutlookEventId` peuvent être masquées : ouvre les paramètres avancés.
+- `OutlookEventId` = l'identifiant renvoyé par la création ; `OnlineMeetingUrl` = le lien de la
+  réunion (branche « membres » seulement, laisse-le vide sinon).
+- **Et aussi** `ProcessedRevision` = `revisionTraitee`, `SyncState` = `done`, `ProcessedAt` =
+  `utcNow()`, `ErrorMessage` vide. Sans cela, cette écriture **redéclenche le flux** (le déclencheur
+  est « créé ou modifié » et `Revision` ≠ `ProcessedRevision` à ce moment-là) : une mise à jour
+  inutile de l'événement, éventuellement envoyée aux invités. Avec `ProcessedRevision` égal à
+  `Revision`, la condition de déclenchement du §7 quater.2 bloque ce redémarrage.
+
+#### Fin de la portée : « Mettre à jour l'élément »
+
+Dernière action de la portée, **après** la condition « Annulée ? » : SharePoint
+**« Mettre à jour l'élément »**, avec `ProcessedRevision` = `revisionTraitee`, `SyncState` = `done`,
+`ProcessedAt` = `utcNow()`, `ErrorMessage` vide. Elle couvre les branches d'annulation et de mise
+à jour (qui n'ont rien d'autre à écrire) ; pour une création, elle réécrit les mêmes valeurs sans
+effet.
 
 > 💡 Dans chaque « Mettre à jour l'élément », ne renseigne **que** les colonnes du flux
 > (`OutlookEventId`, `OnlineMeetingUrl`, `ProcessedRevision`, `SyncState`, `ProcessedAt`,
-> `ErrorMessage`). Selon la version de l'action, laisser les autres champs vides peut les effacer ;
-> si c'est le cas chez toi, recopie-y les valeurs du déclencheur.
+> `ErrorMessage`) en plus de l'ID et des champs obligatoires. Selon la version de l'action, laisser
+> les autres champs vides peut les effacer ; si c'est le cas chez toi, recopie-y les valeurs du
+> déclencheur.
 
 ### 7 quater.4 Quoi faire selon l'état de la ligne
 
@@ -737,8 +868,9 @@ l'ordre de passage ou la durée d'un passage n'envoie rien non plus.
 
 ### 7 quater.5 La branche d'erreur (indispensable)
 
-Ajoute une seconde **Étendue** `En cas d'erreur`, configurée (**⋯ → Configurer l'exécution
-après**) pour s'exécuter **après** `Traiter` quand elle a **échoué** ou **expiré**. Dedans, SharePoint
+Ajoute une seconde **Portée** `En cas d'erreur`, **après** `Traiter`, configurée (**⋯ → Configurer
+l'exécution ultérieure** — libellé à vérifier chez toi : cherche l'option d'exécution « après » une
+action) pour s'exécuter quand `Traiter` a **échoué** ou **expiré**. Dedans, SharePoint
 « Mettre à jour l'élément » : `ProcessedRevision` = `revisionTraitee`, `SyncState` = `error`,
 `ErrorMessage` = `string(result('Traiter'))` (tronqué si besoin). Le président voit alors le badge
 « Invitation Outlook en erreur » sur la page « Ordre du jour », avec le message.
