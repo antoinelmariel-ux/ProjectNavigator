@@ -101,3 +101,13 @@ test('ni PDF, ni image, ni document hors tenant ne proposent d’édition Office
   assert.equal(buildOfficeEditLinks('data:application/vnd.ms-powerpoint;base64,AAAA', sharePointContext), null);
   assert.equal(buildOfficeEditLinks(`${base}deck.pptx`, { ...sharePointContext, isSharePoint: false }), null);
 });
+
+test('resolveDocumentFrameFormat: slides for presentations, sheet for spreadsheets, page otherwise', async () => {
+  const { resolveDocumentFrameFormat } = await import('../src/utils/documentEmbed.js');
+  assert.equal(resolveDocumentFrameFormat('https://t.sharepoint.com/s/a/Deck.pptx', 'pptx'), 'slides');
+  assert.equal(resolveDocumentFrameFormat('https://t.sharepoint.com/s/a/Deck.PPT?web=1', 'pptx'), 'slides');
+  assert.equal(resolveDocumentFrameFormat('https://t.sharepoint.com/s/a/Note.docx', 'pptx'), 'page');
+  assert.equal(resolveDocumentFrameFormat('https://t.sharepoint.com/s/a/Budget.xlsx', 'pptx'), 'sheet');
+  assert.equal(resolveDocumentFrameFormat('https://t.sharepoint.com/s/a/Doc.pdf', 'pdf'), 'page');
+  assert.equal(resolveDocumentFrameFormat('', 'pptx'), 'page');
+});
