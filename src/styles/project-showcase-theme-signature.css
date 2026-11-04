@@ -789,6 +789,7 @@
 
 /* visionneuse documentaire — seul gabarit à forme propre */
 .sg-doc {
+  container-type: inline-size;
   margin-top: 1.2rem;
   border: 1px solid var(--sg-line-light);
   border-radius: 14px;
@@ -802,6 +803,17 @@
   border: none;
   display: block;
   background: var(--sg-cloud);
+}
+
+/* Présentation : diapositive 16:9 + barre d'outils de la visionneuse Office (~2.5rem).
+   La largeur est plafonnée pour que le cadre entier tienne à l'écran ; elle suit le bloc
+   (cqw), pas la fenêtre — la vitrine peut être étroite dans une page SharePoint. */
+.sg-doc__frame--slides {
+  --sg-doc-bar: 2.5rem;
+  --sg-doc-w: min(100cqw, calc((82vh - var(--sg-doc-bar)) * 16 / 9));
+  width: var(--sg-doc-w);
+  height: calc(var(--sg-doc-w) * 9 / 16 + var(--sg-doc-bar));
+  margin-inline: auto;
 }
 
 .sg-doc__image {

@@ -103,7 +103,7 @@ import {
 import { resolveLocalizedText } from '../utils/localizedContent.js';
 import { resolveThemeFromActivation } from '../utils/showcase.js';
 import { createAttachmentFromFile, getFileExtension } from '../utils/documentStore.js';
-import { IMAGE_DOCUMENT_TYPES, buildOfficeEditLinks, resolveDocumentEmbedSrc } from '../utils/documentEmbed.js';
+import { IMAGE_DOCUMENT_TYPES, buildOfficeEditLinks, resolveDocumentEmbedSrc, resolveDocumentFrameFormat } from '../utils/documentEmbed.js';
 import { NEW_TAB_LINK_ATTRIBUTES } from '../utils/newTabLinks.js';
 import { getOrigin, getWebUrl, isSharePointMode } from '../config/sharepointConfig.js';
 import { RichTextEditor } from './RichTextEditor.jsx';
@@ -5112,7 +5112,7 @@ export const ProjectShowcase = ({
                     ) : documentEmbedSrc ? (
                       <iframe
                         key={documentFrameRevisions[section.id] || 0}
-                        className="sg-doc__frame"
+                        className={`sg-doc__frame sg-doc__frame--${resolveDocumentFrameFormat(section.documentUrl, section.documentType)}`}
                         title={t('projectShowcase.documentAltTemplate', { title })}
                         src={documentEmbedSrc}
                         loading="lazy"

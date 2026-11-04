@@ -98,6 +98,17 @@ export const buildOfficeEditLinks = (documentUrl, context = {}) => {
   };
 };
 
+const SLIDE_EXTENSIONS = ['pptx', 'ppt', 'ppsx', 'pps', 'potx', 'odp'];
+
+// Forme du cadre d'aperçu : une présentation est affichée au format de ses diapositives
+// (16:9), au lieu de la hauteur fixe qui l'entourait de larges bandes noires.
+export const resolveDocumentFrameFormat = (documentUrl, documentType) => {
+  if (!documentUrl || documentType === 'pdf' || IMAGE_DOCUMENT_TYPES.includes(documentType)) {
+    return 'page';
+  }
+  return SLIDE_EXTENSIONS.includes(getDocumentExtension(documentUrl)) ? 'slides' : 'page';
+};
+
 export const resolveDocumentEmbedSrc = (documentUrl, documentType, context = {}) => {
   if (!documentUrl || IMAGE_DOCUMENT_TYPES.includes(documentType)) {
     return '';
