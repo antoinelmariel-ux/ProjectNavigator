@@ -99,14 +99,21 @@ export const buildOfficeEditLinks = (documentUrl, context = {}) => {
 };
 
 const SLIDE_EXTENSIONS = ['pptx', 'ppt', 'ppsx', 'pps', 'potx', 'odp'];
+const SHEET_EXTENSIONS = ['xlsx', 'xls', 'xlsm', 'ods', 'csv'];
 
-// Forme du cadre d'aperçu : une présentation est affichée au format de ses diapositives
-// (16:9), au lieu de la hauteur fixe qui l'entourait de larges bandes noires.
+// Forme du cadre d'aperçu. Une présentation est affichée au format de ses diapositives
+// (16:9) ; un tableur garde un cadre large ; un PDF, un Word ou tout autre fichier reçoit un
+// cadre haut pensé pour des pages portrait. Le format réel d'un PDF n'est pas connu (un
+// PowerPoint exporté est en paysage) : le cadre haut reste acceptable dans ce cas aussi.
 export const resolveDocumentFrameFormat = (documentUrl, documentType) => {
   if (!documentUrl || documentType === 'pdf' || IMAGE_DOCUMENT_TYPES.includes(documentType)) {
     return 'page';
   }
-  return SLIDE_EXTENSIONS.includes(getDocumentExtension(documentUrl)) ? 'slides' : 'page';
+  const extension = getDocumentExtension(documentUrl);
+  if (SLIDE_EXTENSIONS.includes(extension)) {
+    return 'slides';
+  }
+  return SHEET_EXTENSIONS.includes(extension) ? 'sheet' : 'page';
 };
 
 export const resolveDocumentEmbedSrc = (documentUrl, documentType, context = {}) => {

@@ -805,6 +805,17 @@
   background: var(--sg-cloud);
 }
 
+/* Page (PDF, Word) : cadre haut sur toute la largeur — le texte reste lisible et une bonne
+   part de la page est visible ; un cadre au ratio A4 exact serait trop étroit pour être lu. */
+.sg-doc__frame--page {
+  height: clamp(20rem, 80vh, 60rem);
+}
+
+/* Tableur : cadre large, un peu plus haut que l'ancien bandeau pour montrer plus de lignes. */
+.sg-doc__frame--sheet {
+  height: clamp(18rem, 60vh, 42rem);
+}
+
 /* Présentation : diapositive 16:9 + barre d'outils de la visionneuse Office (~2.5rem).
    La largeur est plafonnée pour que le cadre entier tienne à l'écran ; elle suit le bloc
    (cqw), pas la fenêtre — la vitrine peut être étroite dans une page SharePoint. */
