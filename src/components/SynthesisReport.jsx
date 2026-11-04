@@ -3112,88 +3112,6 @@ export const SynthesisReport = ({
                             </div>
                             )}
 
-                            {replyMessages.length > 0 && (
-                              <div className="space-y-2" data-tour-id="synthesis-team-thread">
-                                <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                  <MessageSquare className="w-3.5 h-3.5" />
-                                  {t('synthesisReport.discussionThreadLabel')}
-                                </p>
-                                <div className="space-y-2">
-                                  {visibleMessages.map((message) => {
-                                    const trimmedMessage = message.message.trim();
-                                    const isTruncated = shouldCollapse && trimmedMessage.length > 240;
-                                    const preview = isTruncated ? `${trimmedMessage.slice(0, 240)}…` : trimmedMessage;
-                                    const isExpertAuthor = teamContactEmailSet.has(normalizeEmail(message.authorEmail));
-                                    const isAdminAuthor = isAdminAuthoredMessage({
-                                      authorEmail: message.authorEmail,
-                                      adminEmails: normalizedAdminEmails,
-                                      memberEmails: [...teamContactEmailSet]
-                                    });
-                                    const roleLabel = t(
-                                      isAdminAuthor
-                                        ? 'synthesisReport.adminRoleLabel'
-                                        : isExpertAuthor ? 'synthesisReport.expertRoleLabel' : 'synthesisReport.projectOwnerRoleLabel'
-                                    );
-
-                                    return (
-                                      <div
-                                        key={message.id}
-                                        id={`compliance-message-${message.id}`}
-                                        className={`flex ${isExpertAuthor ? 'justify-start' : 'justify-end'}`}
-                                      >
-                                        <div
-                                          className={`max-w-[85%] rounded-lg border p-3 ${
-                                            isExpertAuthor ? 'border-blue-200 bg-blue-50/60' : 'border-gray-200 bg-gray-50'
-                                          }`}
-                                        >
-                                          <div className="flex flex-wrap items-center gap-2 text-xs">
-                                            <span className={`font-semibold ${isExpertAuthor ? 'text-blue-700' : 'text-gray-600'}`}>
-                                              {message.authorName || message.authorEmail || t('synthesisReport.defaultUserLabel')}
-                                            </span>
-                                            <span
-                                              className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
-                                                isAdminAuthor
-                                                  ? 'bg-amber-100 text-amber-900'
-                                                  : isExpertAuthor ? 'bg-blue-100 text-blue-800' : 'bg-gray-200 text-gray-700'
-                                              }`}
-                                            >
-                                              {roleLabel}
-                                            </span>
-                                            {message.createdAt && (
-                                              <span className="text-gray-400">{formatTimestamp(message.createdAt, language)}</span>
-                                            )}
-                                          </div>
-                                          <p className="mt-1 text-sm text-gray-700 whitespace-pre-line">
-                                            {renderTextWithLinks(preview)}
-                                          </p>
-                                          {normalizeCommentAttachments(message.attachments).length > 0 && (
-                                            <ul className="mt-2 space-y-1 text-xs">
-                                              {normalizeCommentAttachments(message.attachments).map((attachment) => (
-                                                <li key={attachment.id}>
-                                                  <a href={attachment.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                                                    {attachment.name}
-                                                  </a>
-                                                </li>
-                                              ))}
-                                            </ul>
-                                          )}
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                  {shouldCollapse && (
-                                    <button
-                                      type="button"
-                                      onClick={() => toggleThreadExpanded(threadKey)}
-                                      className="text-xs font-semibold text-blue-600 hover:text-blue-700"
-                                    >
-                                      {t('synthesisReport.seeMore')}
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-
                             {canEditTeamComment && isCommentEditorOpen && (
                               <div className="border-t border-gray-200 pt-3" data-tour-id="synthesis-team-opinion">
                                 <form
@@ -3302,6 +3220,88 @@ export const SynthesisReport = ({
                                     )}
                                   </div>
                                 </form>
+                              </div>
+                            )}
+
+                            {replyMessages.length > 0 && (
+                              <div className="space-y-2" data-tour-id="synthesis-team-thread">
+                                <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                  <MessageSquare className="w-3.5 h-3.5" />
+                                  {t('synthesisReport.discussionThreadLabel')}
+                                </p>
+                                <div className="space-y-2">
+                                  {visibleMessages.map((message) => {
+                                    const trimmedMessage = message.message.trim();
+                                    const isTruncated = shouldCollapse && trimmedMessage.length > 240;
+                                    const preview = isTruncated ? `${trimmedMessage.slice(0, 240)}…` : trimmedMessage;
+                                    const isExpertAuthor = teamContactEmailSet.has(normalizeEmail(message.authorEmail));
+                                    const isAdminAuthor = isAdminAuthoredMessage({
+                                      authorEmail: message.authorEmail,
+                                      adminEmails: normalizedAdminEmails,
+                                      memberEmails: [...teamContactEmailSet]
+                                    });
+                                    const roleLabel = t(
+                                      isAdminAuthor
+                                        ? 'synthesisReport.adminRoleLabel'
+                                        : isExpertAuthor ? 'synthesisReport.expertRoleLabel' : 'synthesisReport.projectOwnerRoleLabel'
+                                    );
+
+                                    return (
+                                      <div
+                                        key={message.id}
+                                        id={`compliance-message-${message.id}`}
+                                        className={`flex ${isExpertAuthor ? 'justify-start' : 'justify-end'}`}
+                                      >
+                                        <div
+                                          className={`max-w-[85%] rounded-lg border p-3 ${
+                                            isExpertAuthor ? 'border-blue-200 bg-blue-50/60' : 'border-gray-200 bg-gray-50'
+                                          }`}
+                                        >
+                                          <div className="flex flex-wrap items-center gap-2 text-xs">
+                                            <span className={`font-semibold ${isExpertAuthor ? 'text-blue-700' : 'text-gray-600'}`}>
+                                              {message.authorName || message.authorEmail || t('synthesisReport.defaultUserLabel')}
+                                            </span>
+                                            <span
+                                              className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                                                isAdminAuthor
+                                                  ? 'bg-amber-100 text-amber-900'
+                                                  : isExpertAuthor ? 'bg-blue-100 text-blue-800' : 'bg-gray-200 text-gray-700'
+                                              }`}
+                                            >
+                                              {roleLabel}
+                                            </span>
+                                            {message.createdAt && (
+                                              <span className="text-gray-400">{formatTimestamp(message.createdAt, language)}</span>
+                                            )}
+                                          </div>
+                                          <p className="mt-1 text-sm text-gray-700 whitespace-pre-line">
+                                            {renderTextWithLinks(preview)}
+                                          </p>
+                                          {normalizeCommentAttachments(message.attachments).length > 0 && (
+                                            <ul className="mt-2 space-y-1 text-xs">
+                                              {normalizeCommentAttachments(message.attachments).map((attachment) => (
+                                                <li key={attachment.id}>
+                                                  <a href={attachment.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                                                    {attachment.name}
+                                                  </a>
+                                                </li>
+                                              ))}
+                                            </ul>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                  {shouldCollapse && (
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleThreadExpanded(threadKey)}
+                                      className="text-xs font-semibold text-blue-600 hover:text-blue-700"
+                                    >
+                                      {t('synthesisReport.seeMore')}
+                                    </button>
+                                  )}
+                                </div>
                               </div>
                             )}
 

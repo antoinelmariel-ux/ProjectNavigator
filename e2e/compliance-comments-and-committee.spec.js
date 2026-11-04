@@ -64,6 +64,16 @@ test.describe('Commentaires experts, réponses et validation par équipe', () =>
     await page.getByRole('button', { name: 'Envoyer la réponse' }).click();
 
     await expect(page.getByText('Le budget détaillé est en pièce jointe')).toBeVisible();
+
+    // L'éditeur d'avis s'ouvre juste sous l'avis, avant le fil de discussion.
+    await page.getByRole('button', { name: /Modifier le commentaire/ }).first().click();
+    const editor = page.locator('[data-tour-id="synthesis-team-opinion"]').first();
+    const thread = page.locator('[data-tour-id="synthesis-team-thread"]').first();
+    await expect(editor).toBeVisible();
+    await expect(thread).toBeVisible();
+    const editorPrecedesThread = await editor.evaluate((node, threadNode) =>
+      Boolean(node.compareDocumentPosition(threadNode) & Node.DOCUMENT_POSITION_FOLLOWING), await thread.elementHandle());
+    expect(editorPrecedesThread).toBe(true);
     expect(errors).toEqual([]);
   });
 
