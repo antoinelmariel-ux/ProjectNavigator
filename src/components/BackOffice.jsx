@@ -102,6 +102,7 @@ import { ACTIVITY_SCOPE_LABELS, ACTIVITY_SCOPE_VALUES } from '../utils/activityS
 import { PeoplePicker } from './PeoplePicker.jsx';
 import { CommitteeCalendar } from './committee/CommitteeCalendar.jsx';
 import { CommitteeSessionsGenerator } from './committee/CommitteeSessionsGenerator.jsx';
+import { CommitteeAgendaSearch } from './committee/CommitteeAgendaSearch.jsx';
 import { CommitteeChairSettings } from './committee/CommitteeChairSettings.jsx';
 import { isCommitteeChair } from '../utils/committeeSessions.js';
 import { buildImpersonationUrl, isImpersonating } from '../utils/impersonation.js';
@@ -812,7 +813,8 @@ export const BackOffice = ({
   onCreateCommitteeSessions,
   onCommitteeSessionAction,
   onDeleteCommitteeDraftSession,
-  onOpenCommitteeAgenda
+  onOpenCommitteeAgenda,
+  committeeSearchProjects = null
 }) => {
   const { t, language } = useTranslation();
 
@@ -7709,6 +7711,13 @@ export const BackOffice = ({
                     onOpenAgenda={onOpenCommitteeAgenda}
                     onCreateSessions={onCreateCommitteeSessions}
                     focusSession={focusedCommitteeSession}
+                  />
+                  <CommitteeAgendaSearch
+                    committees={visibleCommittees}
+                    sessions={committeeSessions}
+                    projects={committeeSearchProjects || projects}
+                    teams={teams}
+                    onOpenAgenda={onOpenCommitteeAgenda}
                   />
                   <CommitteeSessionsGenerator
                     committees={visibleCommittees.filter((committee) => canManageCommitteeSessions(committee))}

@@ -226,7 +226,10 @@ test.describe('Calendrier des comités', () => {
     await expect(agenda.getByRole('button', { name: 'Vitrine' })).toBeVisible();
     await expect(agenda.getByText('20 min attribuées sur 60 min')).toBeVisible();
 
+    // Les points sont repliés par défaut : on déplie celui qu'on veut animer.
     const firstPassage = agenda.getByTestId('committee-agenda-passage').first();
+    await expect(firstPassage.getByLabel('Durée (min)')).toHaveCount(0);
+    await firstPassage.getByRole('button', { name: /Afficher ou masquer le détail/ }).click();
     await firstPassage.getByLabel('Durée (min)').fill('30');
     await firstPassage.getByRole('button', { name: 'Appliquer' }).click();
     await expect(agenda.getByText('30 min attribuées sur 60 min')).toBeVisible();
@@ -251,6 +254,7 @@ test.describe('Calendrier des comités', () => {
     await presenterField.fill('dpo@lfb.fr');
     await presenterField.press('Enter');
     await topicForm.getByRole('button', { name: 'Ajouter le sujet' }).click();
+    await agenda.getByRole('button', { name: 'Tout déplier' }).click();
     await expect(agenda.getByText('Présenté par Dpo')).toBeVisible();
     await expect
       .poll(async () => (await readStoredState(page)).committeeSessions
@@ -270,5 +274,73 @@ test.describe('Calendrier des comités', () => {
 
     await agenda.getByRole('button', { name: /Retour/ }).click();
     await expect(page.getByRole('heading', { name: 'Enjeux du projet' })).toBeVisible();
+  });
+
+  test('le président consigne la décision du comité sur l’ordre du jour, reliée à la synthèse, et la retrouve par la recherche', async ({ page }) => {
+    test.slow();
+    await seedCommittee(page, {
+      president: MOCK_USER,
+      members: [MOCK_USER, 'membre@lfb.fr'],
+      sessions: [
+        { id: 'session-decision', committeeId: COMMITTEE_ID, startAt: daysFromNow(10), durationMinutes: 90, status: 'published', agenda: [] }
+      ]
+    });
+    await gotoHome(page);
+    await createAndSubmitProject(page);
+    await openCommitteeSection(page);
+
+    const panel = page.getByTestId(`committee-session-${COMMITTEE_ID}-panel`);
+    await panel.getByRole('button', { name: 'Inscrire le projet' }).click();
+    await panel.getByRole('button', { name: 'Voir l’ordre du jour' }).click();
+
+    const agenda = page.getByTestId('committee-agenda');
+    const topicForm = agenda.getByTestId('committee-agenda-topic-form');
+    await topicForm.getByLabel('Sujet', { exact: true }).fill('Charte éthique des données');
+    await topicForm.getByRole('button', { name: 'Ajouter le sujet' }).click();
+    await expect(agenda.getByTestId('committee-agenda-passage')).toHaveCount(2);
+
+    await agenda.getByRole('button', { name: 'Tout déplier' }).click();
+    const decisions = agenda.getByTestId('committee-agenda-decision');
+    await expect(decisions).toHaveCount(2);
+
+    // Sujet libre : décision et commentaire vivent sur le passage, dans la séance.
+    const topicPassage = agenda.getByTestId('committee-agenda-passage').filter({ hasText: 'Charte éthique des données' });
+    await topicPassage.locator('select[id$="-status"]').selectOption('validated_with_conditions');
+    await topicPassage.locator('[contenteditable="true"]').click();
+    await page.keyboard.type('Adoptée sous réserve de relecture juridique.');
+    await topicPassage.getByRole('button', { name: 'Enregistrer la décision' }).click();
+    await expect(topicPassage.getByTestId('committee-agenda-decision-badge').first()).toContainText('Validé sous conditions');
+    await expect
+      .poll(async () => (await readStoredState(page)).committeeSessions
+        ?.find((entry) => entry.id === 'session-decision')?.agenda?.find((passage) => passage.kind === 'topic')?.decision?.status)
+      .toBe('validated_with_conditions');
+
+    // Projet Project Navigator : la décision est l'avis du comité de sa synthèse.
+    const projectPassage = agenda.getByTestId('committee-agenda-passage').filter({ hasNotText: 'Charte éthique des données' });
+    await projectPassage.locator('select[id$="-status"]').selectOption('validated');
+    await projectPassage.locator('[contenteditable="true"]').click();
+    await page.keyboard.type('Projet validé par le comité.');
+    await projectPassage.getByRole('button', { name: 'Enregistrer la décision' }).click();
+    await expect(projectPassage.getByTestId('committee-agenda-decision-badge').first()).toContainText('Validé');
+    await expect
+      .poll(async () => {
+        const project = (await readStoredState(page)).projects?.find((entry) => entry.answers?.__compliance_team_comments__?.committees?.[COMMITTEE_ID]);
+        const entry = project?.answers?.__compliance_team_comments__?.committees?.[COMMITTEE_ID];
+        return [entry?.status, entry?.comment, entry?.sessionOutcomes?.['session-decision']?.status];
+      })
+      .toEqual(['validated', expect.stringContaining('Projet validé par le comité.'), 'validated']);
+
+    // Retour au back-office : le sujet se retrouve par son titre ou son commentaire.
+    await grantAdminAccess(page);
+    await page.getByRole('tab', { name: /Comités de validation/ }).click();
+    const search = page.getByTestId('committee-agenda-search');
+    await search.getByLabel('Rechercher dans les ordres du jour').fill('juridique');
+    const results = search.getByTestId('committee-agenda-search-result');
+    await expect(results).toHaveCount(1);
+    await expect(results.first()).toContainText('Charte éthique des données');
+    await expect(results.first()).toContainText('Validé sous conditions');
+    await expect(results.first()).toContainText('À venir');
+    await results.first().getByRole('button', { name: 'Voir l’ordre du jour' }).click();
+    await expect(page.getByTestId('committee-agenda')).toBeVisible();
   });
 });
