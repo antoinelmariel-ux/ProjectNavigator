@@ -191,7 +191,9 @@ import {
   isCommitteeChair,
   buildSessionTimeline,
   getCommitteeChairEmails,
+  applyCommitteePassageDecision,
   getCurrentPassageSessionId,
+  isLatestProjectPassage,
   getDueOwnerReminder,
   getPlanningReminderSession,
   isSessionPast,
@@ -5924,6 +5926,71 @@ const updateProjectFilters = useCallback((updater) => {
     validationCommitteeConfig
   ]);
 
+  // Décision du comité saisie depuis l'ordre du jour : c'est l'avis du comité du projet (celui de
+  // « Enjeux du projet »), pas une copie. Écrit sur un projet identifié, qui n'est pas forcément
+  // le projet actif, par le même chemin d'horodatage/miroir que handleUpdateComplianceComments.
+  const handleSetCommitteePassageDecision = useCallback(({ projectId, committeeId, sessionId, status, comment }) => {
+    if (isSimulatedSession || !projectId || !committeeId || !sessionId) {
+      return { ok: false, error: 'forbidden' };
+    }
+    const committee = committeesById[committeeId] || null;
+    if (!(hasFullBackOfficeRights || isCommitteeChair(committee, currentUserEmail))) {
+      return { ok: false, error: 'forbidden' };
+    }
+    const project = projects.find((entry) => entry?.id === projectId);
+    if (!project) {
+      return { ok: false, error: 'notFound' };
+    }
+
+    const previousComments = project.answers?.[COMPLIANCE_COMMENTS_KEY];
+    const isLatest = isLatestProjectPassage(committeeSessionsRef.current, projectId, committeeId, sessionId);
+    const decided = applyCommitteePassageDecision(previousComments, { committeeId, sessionId, isLatest, status, comment });
+    const nextComments = stampReviewedVersions(decided, previousComments, getSubmissionVersion(project));
+    const nextEntry = nextComments?.committees?.[committeeId];
+    const previousEntry = previousComments?.committees?.[committeeId];
+    const nextAnswers = { ...(project.answers || {}), [COMPLIANCE_COMMENTS_KEY]: nextComments };
+
+    if (projectId === activeProjectId) {
+      setAnswers(nextAnswers);
+    }
+    setHasUnsavedChanges(true);
+    setProjects((prevProjects) => prevProjects.map((entry) => (
+      entry.id === projectId
+        ? { ...entry, answers: { ...(entry.answers || {}), [COMPLIANCE_COMMENTS_KEY]: nextComments }, lastUpdated: new Date().toISOString() }
+        : entry
+    )));
+
+    if (nextEntry && JSON.stringify(nextEntry) !== JSON.stringify(previousEntry)) {
+      complianceCommentsQueueRef.current?.enqueue({
+        projectId,
+        targetType: 'committee',
+        targetId: committeeId,
+        entry: nextEntry,
+        userEmail: currentUserEmail
+      });
+      if (isLatest) {
+        const statusLabel = COMPLIANCE_STATUS_EMAIL_LABELS[nextEntry.status] || '';
+        const excerpt = [statusLabel ? `Status: ${statusLabel}` : '', typeof nextEntry.comment === 'string' ? nextEntry.comment.trim() : '']
+          .filter(Boolean)
+          .join('\n\n');
+        if (excerpt) {
+          notifyOwnerAndCoOwners(project, NOTIFICATION_TYPES.SYNTHESIS_COMMENT_TO_OWNER, { excerpt });
+        }
+      }
+    }
+    return { ok: true };
+  }, [
+    activeProjectId,
+    committeeSessionsRef,
+    committeesById,
+    currentUserEmail,
+    hasFullBackOfficeRights,
+    isSimulatedSession,
+    notifyOwnerAndCoOwners,
+    projects,
+    setHasUnsavedChanges
+  ]);
+
   const handleComplianceReplyNotification = useCallback((payload = {}) => {
     notifyThreadLastAuthor({
       targetEmail: payload.lastAuthorEmail,
@@ -9415,6 +9482,7 @@ const updateProjectFilters = useCallback((updater) => {
                 onCommitteeSessionAction={runCommitteeSessionAction}
                 onDeleteCommitteeDraftSession={deleteCommitteeDraftSession}
                 onOpenCommitteeAgenda={handleOpenCommitteeAgenda}
+                committeeSearchProjects={projects}
               />
             </Suspense>
           </AdminBackOfficeErrorBoundary>
@@ -9621,6 +9689,7 @@ const updateProjectFilters = useCallback((updater) => {
                 isChair={isAgendaChair}
                 canView={isAgendaChair || isAgendaMember}
                 onRunAction={runCommitteeSessionAction}
+                onSetProjectDecision={handleSetCommitteePassageDecision}
                 onMovePassage={moveCommitteePassage}
                 onOpenSynthesis={(projectId) => handleOpenProject(projectId, {
                   view: 'synthesis',

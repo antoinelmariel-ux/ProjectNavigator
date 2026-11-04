@@ -29,6 +29,10 @@ export const ATTENDANCE_STATES = [ATTENDANCE_PRESENT, ATTENDANCE_EXCUSED, ATTEND
 export const PASSAGE_KIND_PROJECT = 'project';
 export const PASSAGE_KIND_TOPIC = 'topic';
 
+// Décision du comité sur un point : mêmes statuts que l'avis du comité dans la synthèse, pour
+// que l'ordre du jour et « Enjeux du projet » parlent de la même chose. Facultative.
+export const DECISION_STATUSES = ['validated', 'validated_with_conditions', 'pending_information', 'not_concerned', 'rejected'];
+
 export const TIME_REQUEST_PENDING = 'pending';
 export const TIME_REQUEST_ACCEPTED = 'accepted';
 export const TIME_REQUEST_REFUSED = 'refused';
@@ -108,6 +112,18 @@ const normalizeTimeRequest = (value) => {
   };
 };
 
+export const normalizePassageDecision = (value) => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+  const status = DECISION_STATUSES.includes(value.status) ? value.status : '';
+  const comment = typeof value.comment === 'string' ? value.comment.trim() : '';
+  if (!status && !comment) {
+    return null;
+  }
+  return { status, comment, decidedBy: normalizeEmail(value.decidedBy), decidedAt: toIso(value.decidedAt) };
+};
+
 export const normalizePassage = (value = {}) => {
   const representation = value?.representationRequest && typeof value.representationRequest === 'object'
     ? { by: normalizeEmail(value.representationRequest.by), at: toIso(value.representationRequest.at) }
@@ -123,6 +139,9 @@ export const normalizePassage = (value = {}) => {
     // projet (committeeInvitations.js). `presenter` reste lu pour les sujets saisis en texte libre.
     presenterEmails: kind === PASSAGE_KIND_TOPIC ? normalizeEmails(value?.presenterEmails) : [],
     note: kind === PASSAGE_KIND_TOPIC ? toText(value?.note) : '',
+    // Pour un projet, la décision vit dans l'avis du comité de sa synthèse (applyCommitteePassageDecision) ;
+    // seul un sujet libre, qui n'a pas de projet, la porte sur le passage lui-même.
+    decision: kind === PASSAGE_KIND_TOPIC ? normalizePassageDecision(value?.decision) : null,
     minutes: normalizePassageMinutes(value?.minutes),
     guests: normalizeEmails(value?.guests),
     bookedBy: normalizeEmail(value?.bookedBy),
@@ -405,6 +424,22 @@ export const applySessionAction = (rawSession, action = {}, context = {}) => {
         ...('note' in patch ? { note: patch.note } : {})
       }));
       return done({ ok: true, session: next });
+    }
+    case 'setPassageDecision': {
+      if (!isChair) {
+        return fail('forbidden');
+      }
+      const target = session.agenda.find((passage) => passage.id === action.passageId);
+      if (target?.kind !== PASSAGE_KIND_TOPIC) {
+        return fail('notFound');
+      }
+      const decision = normalizePassageDecision({
+        status: action.status,
+        comment: action.comment,
+        decidedBy: actor,
+        decidedAt: now
+      });
+      return done({ ok: true, session: updatePassage(session, action.passageId, (passage) => ({ ...passage, decision })) });
     }
     case 'unbook': {
       const agenda = session.agenda.filter((passage) => passage.id !== action.passageId);
@@ -718,4 +753,61 @@ export const stampCommitteeOpinionSessions = (nextComments, previousComments, re
     return acc;
   }, {});
   return changed ? { ...nextComments, committees: stamped } : nextComments;
+};
+
+// ——— Décision du comité sur un passage de projet ———
+
+// Le passage le plus récent d'un projet devant un comité : c'est lui dont la décision est « l'avis
+// courant » de la synthèse. Les passages précédents ne gardent que leur trace figée par séance.
+export const isLatestProjectPassage = (sessions, projectId, committeeId, sessionId, now = new Date()) => {
+  const passages = getProjectPassages(sessions, projectId, committeeId, now);
+  return passages.length > 0 && passages[passages.length - 1].session.id === sessionId;
+};
+
+// Applique une décision saisie sur l'ordre du jour à l'avis du comité du projet. Toujours
+// consignée dans `sessionOutcomes[sessionId]` (l'historique) ; recopiée dans l'avis courant
+// (statut + commentaire, ce que la synthèse affiche) seulement s'il s'agit du dernier passage.
+export const applyCommitteePassageDecision = (comments, { committeeId, sessionId, isLatest, status, comment, now = new Date() } = {}) => {
+  if (!committeeId || !sessionId) {
+    return comments;
+  }
+  const base = comments && typeof comments === 'object' && !Array.isArray(comments) ? comments : {};
+  const committees = base.committees && typeof base.committees === 'object' && !Array.isArray(base.committees)
+    ? base.committees
+    : {};
+  const entry = committees[committeeId] && typeof committees[committeeId] === 'object' ? committees[committeeId] : {};
+  const nextStatus = DECISION_STATUSES.includes(status) ? status : '';
+  const nextComment = typeof comment === 'string' ? comment : '';
+  const renderedAt = toIso(now);
+  const outcomes = entry.sessionOutcomes && typeof entry.sessionOutcomes === 'object' && !Array.isArray(entry.sessionOutcomes)
+    ? entry.sessionOutcomes
+    : {};
+  const nextEntry = {
+    ...entry,
+    ...(isLatest ? { status: nextStatus, comment: nextComment, sessionId } : {}),
+    sessionOutcomes: {
+      ...outcomes,
+      [sessionId]: { status: nextStatus, comment: nextComment, renderedAt }
+    }
+  };
+  return { ...base, committees: { ...committees, [committeeId]: nextEntry } };
+};
+
+// Décision affichée pour un passage : sur le passage pour un sujet libre, dans l'avis du comité
+// du projet sinon (la trace de cette séance, ou l'avis courant pour le dernier passage).
+export const getPassageDecision = ({ session, passage, project, isLatest = false, commentsKey = '__compliance_team_comments__' } = {}) => {
+  if (passage?.kind === PASSAGE_KIND_TOPIC) {
+    return { status: passage.decision?.status || '', comment: passage.decision?.comment || '' };
+  }
+  const entry = project?.answers?.[commentsKey]?.committees?.[session?.committeeId];
+  if (!entry || typeof entry !== 'object') {
+    return { status: '', comment: '' };
+  }
+  const outcome = entry.sessionOutcomes?.[session.id];
+  if (outcome && typeof outcome === 'object') {
+    return { status: outcome.status || '', comment: outcome.comment || '' };
+  }
+  return isLatest && entry.sessionId === session.id
+    ? { status: typeof entry.status === 'string' ? entry.status : '', comment: typeof entry.comment === 'string' ? entry.comment : '' }
+    : { status: '', comment: '' };
 };

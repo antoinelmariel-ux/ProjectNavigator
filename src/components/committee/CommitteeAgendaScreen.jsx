@@ -3,6 +3,7 @@ import { useTranslation } from '../../i18n/LanguageContext.jsx';
 import { CommitteeAttendance } from './CommitteeAttendance.jsx';
 import { PeoplePicker } from '../PeoplePicker.jsx';
 import { InvitationBadge } from './InvitationBadge.jsx';
+import { CommitteeAgendaDecision, DecisionBadge } from './CommitteeAgendaDecision.jsx';
 import { buildInvitationId, getEffectiveSessionLocation } from '../../utils/committeeInvitations.js';
 import {
   PASSAGE_KIND_TOPIC,
@@ -16,7 +17,9 @@ import {
   getCommitteeDefaultPassageMinutes,
   getCommitteeMemberEmails,
   getPassageAttendance,
+  getPassageDecision,
   getRemainingMinutes,
+  isLatestProjectPassage,
   isSessionPast
 } from '../../utils/committeeSessions.js';
 import { getProjectCompliancePerimeters } from '../../utils/projectValidationStatus.js';
@@ -82,6 +85,7 @@ export const CommitteeAgendaScreen = ({
   isChair = false,
   canView = false,
   onRunAction,
+  onSetProjectDecision,
   onMovePassage,
   onOpenSynthesis,
   onOpenShowcase,
@@ -95,6 +99,7 @@ export const CommitteeAgendaScreen = ({
   const [candidateId, setCandidateId] = useState('');
   const [topicDraft, setTopicDraft] = useState({ title: '', minutes: '10', presenterEmails: [], note: '' });
   const [openTopicEditor, setOpenTopicEditor] = useState('');
+  const [expandedIds, setExpandedIds] = useState({});
 
   const members = useMemo(() => getCommitteeMemberEmails(committee), [committee]);
   const chairs = useMemo(() => getCommitteeChairEmails(committee), [committee]);
@@ -255,6 +260,24 @@ export const CommitteeAgendaScreen = ({
             {t('committeeSessions.agenda.empty')}
           </p>
         )}
+        {timeline.length > 1 && (
+          <div className="flex gap-2 text-xs">
+            <button
+              type="button"
+              onClick={() => setExpandedIds(Object.fromEntries(timeline.map(({ passage }) => [passage.id, true])))}
+              className="rounded-lg border border-gray-200 bg-white px-2 py-1 font-semibold text-gray-700 hover:bg-gray-50"
+            >
+              {t('committeeSessions.agenda.expandAll')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setExpandedIds({})}
+              className="rounded-lg border border-gray-200 bg-white px-2 py-1 font-semibold text-gray-700 hover:bg-gray-50"
+            >
+              {t('committeeSessions.agenda.collapseAll')}
+            </button>
+          </div>
+        )}
         <ol className="space-y-3">
           {timeline.map(({ passage, number, startAt, endAt }) => {
             const isTopic = passage.kind === PASSAGE_KIND_TOPIC;
@@ -262,6 +285,11 @@ export const CommitteeAgendaScreen = ({
             const isCurrent = new Date(startAt) <= now && now < new Date(endAt);
             const pendingRequest = passage.timeRequest?.status === TIME_REQUEST_PENDING ? passage.timeRequest : null;
             const minutesDraft = minutesDrafts[passage.id] ?? String(passage.minutes);
+            const isOpen = Boolean(expandedIds[passage.id]);
+            const passageTitle = isTopic ? passage.title : project?.projectName || t('committeeSessions.agenda.unknownProject');
+            const isLatest = !isTopic && isLatestProjectPassage(sessions, passage.projectId, session.committeeId, session.id, now);
+            const decision = getPassageDecision({ session, passage, project, isLatest });
+            const canDecide = isChair && !isCancelled && (isTopic || (Boolean(project) && typeof onSetProjectDecision === 'function'));
             return (
               <li
                 key={passage.id}
@@ -269,8 +297,8 @@ export const CommitteeAgendaScreen = ({
                 data-testid="committee-agenda-passage"
                 aria-current={isCurrent ? 'step' : undefined}
               >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
                     <p className="text-xs font-semibold text-gray-500">
                       {number}. {formatTime(startAt, language)} – {formatTime(endAt, language)} · {t('committeeSessions.agenda.minutes', { minutes: passage.minutes })}
                       {isCurrent && (
@@ -279,14 +307,51 @@ export const CommitteeAgendaScreen = ({
                         </span>
                       )}
                     </p>
-                    {isTopic && (
-                      <span className="rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-xs font-semibold text-violet-800">
-                        {t('committeeSessions.agenda.topicBadge')}
-                      </span>
-                    )}
                     <h3 className="text-base font-semibold text-gray-900">
-                      {isTopic ? passage.title : project?.projectName || t('committeeSessions.agenda.unknownProject')}
+                      <button
+                        type="button"
+                        aria-expanded={isOpen}
+                        aria-controls={`agenda-passage-body-${passage.id}`}
+                        aria-label={t('committeeSessions.agenda.togglePassage', { title: passageTitle })}
+                        onClick={() => setExpandedIds((prev) => ({ ...prev, [passage.id]: !prev[passage.id] }))}
+                        className="flex w-full items-center gap-2 text-left hover:text-blue-800"
+                      >
+                        <span aria-hidden="true" className={`inline-block text-xs text-gray-500 transition-transform ${isOpen ? 'rotate-90' : ''}`}>▶</span>
+                        <span className="min-w-0">{passageTitle}</span>
+                      </button>
                     </h3>
+                    <div className="mt-1 flex flex-wrap items-center gap-2 pl-5">
+                      {isTopic && (
+                        <span className="rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-xs font-semibold text-violet-800">
+                          {t('committeeSessions.agenda.topicBadge')}
+                        </span>
+                      )}
+                      <DecisionBadge status={decision.status} />
+                    </div>
+                  </div>
+                  {project && (
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onOpenShowcase(project.id)}
+                        className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
+                      >
+                        {t('committeeSessions.agenda.openShowcase')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onOpenSynthesis(project.id)}
+                        className="rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50"
+                      >
+                        {t('committeeSessions.agenda.openSynthesis')}
+                      </button>
+                    </div>
+                  )}
+                </div>
+                {isOpen && (
+                <div id={`agenda-passage-body-${passage.id}`} className="space-y-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
                     {isTopic && (() => {
                       const presenterLabel = passage.presenterEmails.length > 0
                         ? passage.presenterEmails.map(getDisplayNameFromEmail).join(', ')
@@ -332,24 +397,6 @@ export const CommitteeAgendaScreen = ({
                       </p>
                     )}
                   </div>
-                  {project && (
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => onOpenShowcase(project.id)}
-                        className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
-                      >
-                        {t('committeeSessions.agenda.openShowcase')}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onOpenSynthesis(project.id)}
-                        className="rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50"
-                      >
-                        {t('committeeSessions.agenda.openSynthesis')}
-                      </button>
-                    </div>
-                  )}
                 </div>
 
                 {project && renderExperts(project)}
@@ -484,6 +531,33 @@ export const CommitteeAgendaScreen = ({
                       ? (email, state) => run({ type: 'setPassageAttendance', passageId: passage.id, email, state }, 'attendanceSaved')
                       : undefined}
                   />
+                )}
+
+                {(canDecide || decision.status || decision.comment) && (
+                  <CommitteeAgendaDecision
+                    idPrefix={`agenda-decision-${passage.id}`}
+                    status={decision.status}
+                    comment={decision.comment}
+                    canEdit={canDecide}
+                    hint={isTopic ? '' : isLatest ? t('committeeSessions.agenda.decisionLinkedHint') : t('committeeSessions.agenda.decisionHistoryHint')}
+                    onSave={async ({ status, comment }) => {
+                      setFeedback(null);
+                      const result = isTopic
+                        ? await onRunAction(session.id, { type: 'setPassageDecision', passageId: passage.id, status, comment })
+                        : await onSetProjectDecision({
+                          projectId: passage.projectId,
+                          committeeId: session.committeeId,
+                          sessionId: session.id,
+                          status,
+                          comment
+                        });
+                      setFeedback(result?.ok
+                        ? { tone: 'success', message: t('committeeSessions.agenda.feedback.decisionSaved') }
+                        : { tone: 'error', message: t(`committeeSessions.errors.${result?.error || 'generic'}`, { minutes: 0 }) });
+                    }}
+                  />
+                )}
+                </div>
                 )}
               </li>
             );

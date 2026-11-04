@@ -639,6 +639,21 @@ in the synthesis committee block, `CommitteeAgendaScreen` = screen `committee-ag
   a renamed project or a flow-created Teams link reach Outlook without any session action.
 - Tests: `test/committeeSessions*.test.mjs`, `test/committeeInvitations.test.mjs`,
   `e2e/committee-sessions.spec.js`.
+- **Decisions on the agenda** (accordion, one per passage, collapsed by default; showcase/synthesis
+  buttons stay in the header). The decision is a status from `DECISION_STATUSES` (the synthesis' list —
+  « Non concerné » is the existing value, there is no « N/A ») plus a comment, both optional, editable by
+  chairs/admins only. For a **project** passage it is *the committee's opinion of the synthesis*, not a copy:
+  `handleSetCommitteePassageDecision` (`App.jsx`, writes on an explicit `projectId`, not the active project)
+  runs `applyCommitteePassageDecision` — always into `sessionOutcomes[sessionId]` (history), and into the
+  current `status`/`comment`/`sessionId` only when it is the project's **latest** passage
+  (`isLatestProjectPassage`) — then the same `stampReviewedVersions`/`CN_ComplianceComments` mirror/owner mail
+  as a synthesis edit. A **topic** keeps `passage.decision` on the session (`setPassageDecision`, chair only).
+  `getPassageDecision` reads either; the current opinion only counts for the session it is stamped with.
+- **Agenda search** (back-office « Comités de validation », `CommitteeAgendaSearch.jsx`, pure logic
+  `committeeAgendaSearch.js`): free text on title + comment (accent/case-insensitive, every word), past *and*
+  upcoming sessions, each result links to its agenda and carries a situation badge (trashed / purged / missing
+  / committee deferred by staged consultation). It is fed `projects` (trashed ones included, unlike `liveProjects`).
+- Tests: `test/committeeAgendaDecisions.test.mjs`, `e2e/committee-sessions.spec.js`.
 
 ## The final round before launch (and why it cannot block anything)
 
