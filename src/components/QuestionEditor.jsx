@@ -919,7 +919,7 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
       enabled: typeUsesOptions && otherOption.enabled && !isLocalizedValueEmpty(otherLabel),
       label: isLocalizedValueEmpty(otherLabel) ? t('backOffice.questionEditor.otherOptionLabelPlaceholder') : otherLabel,
       placeholder: trimLocalizedValue(otherOption.placeholder),
-      value: otherOption.value
+      value: (typeof otherOption.value === 'string' && otherOption.value.trim()) || 'other'
     };
 
     onSave({
