@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   shouldShowQuestion,
   normalizeQuestionOptions,
+  formatAnswer,
   buildExtraCheckboxQuestionId,
   getConditionQuestionEntries,
   withActivityScope,
@@ -116,4 +117,17 @@ test('shouldShowQuestion : condition basée sur le périmètre d’activité (eq
   };
   assert.equal(shouldShowQuestion(notFranceQuestion, answersWithFrance), false);
   assert.equal(shouldShowQuestion(notFranceQuestion, answersWithoutFrance), true);
+});
+
+test('normalizeQuestionOptions : une option "Autre" sans valeur (chaîne vide) reçoit la valeur "other"', () => {
+  const question = {
+    options: [{ label: 'A', value: 'a' }],
+    otherOption: { enabled: true, label: 'Autre', value: '' }
+  };
+  const other = normalizeQuestionOptions(question).find((option) => option.isOther);
+  assert.equal(other.value, 'other');
+  assert.equal(
+    formatAnswer({ ...question, type: 'multi_choice' }, { values: ['other'], otherText: 'Mon texte' }),
+    'Autre (Mon texte)'
+  );
 });

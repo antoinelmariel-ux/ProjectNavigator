@@ -4,7 +4,7 @@ import { gotoHome, patchStateOnBoot, walkQuestionnaireToShowcase, collectConsole
 
 const questionsWithOther = initialQuestions.map((question) =>
   question.type === 'choice' || question.type === 'multi_choice'
-    ? { ...question, otherOption: { enabled: true, label: { fr: 'Autre', en: 'Other' }, placeholder: { fr: 'Précisez ici', en: 'Specify' } } }
+    ? { ...question, otherOption: { enabled: true, value: '', label: { fr: 'Autre', en: 'Other' }, placeholder: { fr: 'Précisez ici', en: 'Specify' } } }
     : question
 );
 

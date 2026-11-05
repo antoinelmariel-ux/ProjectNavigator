@@ -370,8 +370,12 @@ export const normalizeQuestionOptions = (questionOrOptions, { includeOther = tru
   const otherLabel = typeof otherOption.label === 'string' ? otherOption.label.trim() : '';
 
   if (otherOption.enabled && otherLabel.length > 0) {
+    const rawOtherValue = questionOrOptions?.otherOption?.value;
+    const otherValue = typeof rawOtherValue === 'string' && rawOtherValue.trim() === ''
+      ? 'other'
+      : rawOtherValue;
     normalizedOptions.push({
-      ...normalizeQuestionOption({ label: otherLabel, value: questionOrOptions?.otherOption?.value }, language),
+      ...normalizeQuestionOption({ label: otherLabel, value: otherValue }, language),
       isOther: true
     });
   }
