@@ -5831,7 +5831,9 @@ const updateProjectFilters = useCallback((updater) => {
         if (isOwnerOrCoOwner) {
           // Une fois le périmètre pris en charge, les échanges ne partent plus qu'à son
           // référent : c'est tout l'objet de la revendication côté volume d'e-mails.
-          const teamRecipients = Object.keys(teamEntries)
+          const changedTeamIds = changedTeamEntries.map(([teamId]) => teamId);
+          const changedCommitteeIds = changedCommitteeEntries.map(([committeeId]) => committeeId);
+          const teamRecipients = changedTeamIds
             .flatMap((teamId) => {
               const team = teams.find((entry) => entry?.id === teamId);
               if (!team) {
@@ -5844,7 +5846,7 @@ const updateProjectFilters = useCallback((updater) => {
                 { profiles: userProfilesByEmail }
               );
             });
-          const committeeRecipients = Object.keys(committeeEntries)
+          const committeeRecipients = changedCommitteeIds
             .flatMap((committeeId) => {
               const committee = normalizeValidationCommitteeConfig(validationCommitteeConfig).committees
                 .find((entry) => entry?.id === committeeId);
@@ -5854,7 +5856,7 @@ const updateProjectFilters = useCallback((updater) => {
             .filter((email) => email !== currentUserEmail);
 
           if (recipients.length > 0) {
-            const teamNames = Object.keys(teamEntries)
+            const teamNames = changedTeamIds
               .map((teamId) => resolveLocalizedText(teams.find((entry) => entry?.id === teamId)?.name, DEFAULT_LANGUAGE))
               .filter(Boolean);
 
