@@ -800,7 +800,8 @@ export const HomeScreen = ({
           isValidationCommitteeMember
           && project?.status === 'submitted'
           && userOutOfScopeCommittees.length > 0
-          && !allExpertsValidated;
+          && !allExpertsValidated
+          && queueClassification.bucket !== EXPERT_QUEUE_TREATED;
 
         return {
           project,
