@@ -244,7 +244,8 @@ import { isSharePointMode, withWebViewEnv } from './config/sharepointConfig.js';
 import { REFERENTIAL_FILES, loadReferentials } from './utils/referentialStore.js';
 import { listPossiblyDeletedProjects, mergeServerAndLocalProjects } from './utils/syncMerge.js';
 import { queueNotification } from './utils/notificationQueue.js';
-import { NOTIFICATION_TYPES, buildNotification } from './utils/notificationTemplates.js';
+import { MESSAGE_FIRST_NOTIFICATION_TYPES, NOTIFICATION_TYPES, buildNotification } from './utils/notificationTemplates.js';
+import { buildNotificationGroupKey } from './utils/notificationGrouping.js';
 import { resolveLocalizedText } from './utils/localizedContent.js';
 import { DEFAULT_LANGUAGE } from './i18n/languages.js';
 import HEADER_LOGO_PATH from './components/logo.png';
@@ -1457,24 +1458,57 @@ export const App = () => {
       return [];
     }
 
+    const occurredAt = new Date().toISOString();
+    const appUrl = descriptor.appUrl || buildNotificationUrl(project.id, descriptor.view, descriptor.focus, descriptor.urlParams);
+    const templateInput = {
+      type: descriptor.type,
+      projectName: project.projectName,
+      projectId: project.id,
+      actorName: currentUserDisplayName,
+      actorEmail,
+      ownerEmail: project.ownerEmail,
+      teamNames: descriptor.teamNames,
+      excerpt: descriptor.excerpt,
+      appUrl,
+      occurredAt
+    };
+
     let notification;
     try {
-      notification = buildNotification({
-        type: descriptor.type,
-        projectName: project.projectName,
-        projectId: project.id,
-        actorName: currentUserDisplayName,
-        actorEmail,
-        ownerEmail: project.ownerEmail,
-        teamNames: descriptor.teamNames,
-        excerpt: descriptor.excerpt,
-        appUrl: descriptor.appUrl || buildNotificationUrl(project.id, descriptor.view, descriptor.focus, descriptor.urlParams),
-        occurredAt: new Date().toISOString()
-      });
+      notification = buildNotification(templateInput);
     } catch (error) {
       console.error('[Notification] Gabarit introuvable :', error);
       return [];
     }
+
+    // Les mails qui relaient un message écrit coup sur coup se regroupent dans la file : même
+    // fil (ou même vitrine), mêmes destinataires, une ligne en attente qui reçoit les suivants.
+    // Le lien du mail regroupé mène au premier message du lot.
+    const focusKind = descriptor.focus?.kind || '';
+    const group = MESSAGE_FIRST_NOTIFICATION_TYPES.has(descriptor.type) && project.id
+      ? {
+        key: buildNotificationGroupKey({
+          type: descriptor.type,
+          projectId: project.id,
+          target: focusKind === FOCUS_KIND_NOTE ? 'showcase' : `${focusKind}:${descriptor.focus?.id || ''}`,
+          to,
+          cc
+        }),
+        message: {
+          id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          actorName: currentUserDisplayName || '',
+          actorEmail,
+          text: typeof descriptor.excerpt === 'string' ? descriptor.excerpt : '',
+          at: occurredAt,
+          appUrl
+        },
+        render: (messages) => buildNotification({
+          ...templateInput,
+          appUrl: messages[0]?.appUrl || appUrl,
+          messages
+        })
+      }
+      : null;
 
     // Volontairement non bloquant : l’échec d’une notification ne doit jamais
     // annuler l’action métier de l’utilisateur.
@@ -1484,7 +1518,8 @@ export const App = () => {
       actionType: notification.actionType,
       to,
       cc,
-      projectId: project.id || ''
+      projectId: project.id || '',
+      group
     }).catch((error) => {
       console.warn('[Notification] Mise en file impossible :', error);
     });

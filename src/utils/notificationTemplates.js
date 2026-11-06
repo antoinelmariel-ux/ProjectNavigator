@@ -544,7 +544,8 @@ export const buildNotification = ({
   teamNames = [],
   excerpt = '',
   appUrl = '',
-  occurredAt = ''
+  occurredAt = '',
+  messages = null
 } = {}) => {
   const definition = NOTIFICATION_CATALOG[type];
   if (!definition) {
@@ -561,20 +562,35 @@ export const buildNotification = ({
     teamNames: Array.isArray(teamNames) ? teamNames.filter(Boolean) : []
   };
 
+  // Plusieurs messages regroupés dans un même mail (notificationGrouping.js) : chacun garde son
+  // auteur et son heure, le lien mène au premier, et le tableau cite tous les auteurs.
+  const isMessageFirst = MESSAGE_FIRST_NOTIFICATION_TYPES.has(type);
+  const groupedMessages = isMessageFirst && Array.isArray(messages)
+    ? messages.filter((message) => message && typeof message.text === 'string' && message.text.trim())
+    : [];
+  const messageList = groupedMessages.length > 0
+    ? groupedMessages
+    : [{ actorName: context.actorName, actorEmail: context.actorEmail, text: String(excerpt || ''), at: occurredAt }];
+  const isGrouped = messageList.length > 1;
+  const authorLabels = Array.from(new Set(messageList
+    .map((message) => (message.actorEmail || message.actorName || '').trim())
+    .filter(Boolean)));
+
   const facts = [['Project', context.projectName]];
   if (context.ownerEmail) {
     facts.push(['Project owner', context.ownerEmail]);
   }
-  facts.push(['Action performed by', context.actorEmail || context.actorName]);
+  facts.push(['Action performed by', isGrouped && authorLabels.length > 0
+    ? authorLabels.join(', ')
+    : context.actorEmail || context.actorName]);
   if (context.teamNames.length > 0) {
     facts.push(['Teams involved', context.teamNames.join(', ')]);
   }
-  const formattedDate = formatDate(occurredAt);
+  const formattedDate = formatDate(isGrouped ? messageList[messageList.length - 1].at || occurredAt : occurredAt);
   if (formattedDate) {
     facts.push(['Date', formattedDate]);
   }
 
-  const isMessageFirst = MESSAGE_FIRST_NOTIFICATION_TYPES.has(type);
   const factsTable = `<table role="presentation" style="border-collapse:collapse;margin:16px 0">${facts
     .map(([label, value]) => factRow(label, value))
     .join('')}</table>`;
@@ -594,14 +610,33 @@ export const buildNotification = ({
   const intro = `<p>${escapeHtml(definition.intro(context))}</p>`;
 
   if (isMessageFirst) {
-    const fullText = String(excerpt || '').trim();
-    const isCut = fullText.length > MAX_FULL_MESSAGE_LENGTH;
-    const messageText = isCut ? `${fullText.slice(0, MAX_FULL_MESSAGE_LENGTH)}…` : fullText;
-    const messageBlock = messageText
-      ? `<p style="margin:0 0 4px;color:#555">${escapeHtml(context.actorName)} wrote:</p>` +
+    let remaining = MAX_FULL_MESSAGE_LENGTH;
+    let isCut = false;
+    const blocks = messageList.map((message) => {
+      const fullText = String(message.text || '').trim();
+      if (!fullText || remaining <= 0) {
+        isCut = isCut || Boolean(fullText);
+        return '';
+      }
+      const isMessageCut = fullText.length > remaining;
+      const shown = isMessageCut ? `${fullText.slice(0, remaining)}…` : fullText;
+      isCut = isCut || isMessageCut;
+      remaining -= fullText.length;
+      const author = (message.actorName || '').trim() || context.actorName;
+      const when = isGrouped ? formatDate(message.at) : '';
+      const heading = isGrouped
+        ? `${escapeHtml(author)}${when ? ` <span style="color:#888">· ${escapeHtml(when)}</span>` : ''}`
+        : `${escapeHtml(author)} wrote:`;
+      return `<p style="margin:${isGrouped ? '12px' : '0'} 0 4px;color:#555">${heading}</p>` +
         `<blockquote data-cn-message="true" style="margin:0;padding:12px 16px;border-left:4px solid #1d4ed8;background:#f8fafc;color:#111;font-size:15px">${escapeHtml(
-          messageText
-        ).replace(/\n/g, '<br>')}</blockquote>` +
+          shown
+        ).replace(/\n/g, '<br>')}</blockquote>`;
+    }).join('');
+    const messageBlock = blocks
+      ? (isGrouped
+        ? `<p style="margin:0 0 4px;color:#111"><strong>${messageList.length} new messages</strong></p>`
+        : '') +
+        blocks +
         (isCut
           ? '<p style="margin:4px 0 0;font-size:12px;color:#555">This message is too long to be shown in full here: read the rest in Project Navigator.</p>'
           : '')
@@ -626,7 +661,10 @@ export const buildNotification = ({
       footer +
       '</div>';
     return {
-      subject: buildNotificationSubject(context.projectName, definition.actionType),
+      subject: buildNotificationSubject(
+        context.projectName,
+        isGrouped ? `${definition.actionType} (${messageList.length} messages)` : definition.actionType
+      ),
       actionType: definition.actionType,
       body
     };

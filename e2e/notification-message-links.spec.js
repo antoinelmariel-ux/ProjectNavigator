@@ -117,7 +117,8 @@ test.describe('Mails d’échange : le texte en tête, et un lien vers le messag
     expect(opinionLink.searchParams.get('focusId')).toBe('controle_pub');
     expect(opinionLink.searchParams.get('focusMessage')).toBe('opinion');
 
-    // Une réponse dans le fil : c'est elle, et non l'avis, qui ouvre le mail suivant.
+    // Une réponse écrite dans la foulée : elle rejoint le mail encore en attente au lieu d'en
+    // ouvrir un second. Le mail regroupé garde le lien vers le premier message (l'avis).
     const teamToggle = page.getByRole('button', { name: /Contrôle pub/ }).first();
     if ((await teamToggle.getAttribute('aria-expanded')) !== 'true') {
       await teamToggle.click();
@@ -128,10 +129,17 @@ test.describe('Mails d’échange : le texte en tête, et un lien vers le messag
     await page.getByRole('button', { name: 'Envoyer la réponse' }).click();
 
     await expect.poll(async () => (await lastMailTo(page, OWNER_EMAIL))?.body || '').toContain('joindre le devis');
-    const replyMail = await lastMailTo(page, OWNER_EMAIL);
-    expect(replyMail.body.indexOf('Pouvez-vous joindre le devis ?')).toBeLessThan(replyMail.body.indexOf('Do not reply'));
-    expect(replyMail.body).not.toContain('Status: Validated with conditions');
-    const replyLink = new URL(extractReplyLink(replyMail.body));
+    const ownerMails = (await readMails(page)).filter((mail) => mail.to.includes(OWNER_EMAIL));
+    expect(ownerMails).toHaveLength(1);
+    const groupedMail = ownerMails[0];
+    expect(groupedMail.subject).toContain('(2 messages)');
+    expect(groupedMail.body).toContain('2 new messages');
+    expect(groupedMail.body.indexOf('budget détaillé')).toBeLessThan(groupedMail.body.indexOf('Pouvez-vous joindre le devis ?'));
+    expect(groupedMail.body.indexOf('Pouvez-vous joindre le devis ?')).toBeLessThan(groupedMail.body.indexOf('Do not reply'));
+    expect(new URL(extractReplyLink(groupedMail.body)).searchParams.get('focusMessage')).toBe('opinion');
+
+    // Chaque message garde son propre lien, celui de la réponse mène à la réponse.
+    const replyLink = new URL(groupedMail.messages[1].appUrl);
     const replyId = replyLink.searchParams.get('focusMessage');
     expect(replyId).toMatch(/^reply-/);
 
@@ -196,7 +204,7 @@ test.describe('Mails d’échange : le texte en tête, et un lien vers le messag
   });
 
   test('un post-it ne prévient le porteur qu’une fois, quand son auteur le quitte, avec le texte complet', async ({ page }) => {
-    test.setTimeout(60000);
+    test.setTimeout(120000);
     const errors = collectConsoleErrors(page);
     await gotoHome(page);
     await grantSelfComplianceExpertAndCommitteeAccess(page);
@@ -236,6 +244,18 @@ test.describe('Mails d’échange : le texte en tête, et un lien vers le messag
     await note.evaluate((element) => element.blur());
     await page.waitForTimeout(1500);
     expect(await showcaseMails()).toHaveLength(1);
+
+    // Un second post-it posé dans la foulée rejoint le même mail, encore en attente d'envoi.
+    await page.locator('[data-showcase-section]').nth(1).dblclick();
+    const secondNote = page.getByPlaceholder('Ajoutez votre remarque ici...').nth(1);
+    await expect(secondNote).toBeFocused();
+    await page.keyboard.type('Le calendrier me semble serré.');
+    await secondNote.evaluate((element) => element.blur());
+    await expect.poll(async () => (await showcaseMails())[0]?.messages?.length || 0).toBe(2);
+    const grouped = await showcaseMails();
+    expect(grouped).toHaveLength(1);
+    expect(grouped[0].subject).toContain('(2 messages)');
+    expect(grouped[0].body.indexOf('mention légale')).toBeLessThan(grouped[0].body.indexOf('Le calendrier me semble serré.'));
     expect(errors).toEqual([]);
   });
 

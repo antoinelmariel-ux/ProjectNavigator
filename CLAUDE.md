@@ -770,6 +770,22 @@ the usual intro / facts / expectations / footer. Every other type keeps the form
   `AnchorJson` on `CN_ShowcaseStickyNotes`, no new column) makes it once per note; entering and
   leaving a note without typing sends nothing (`editedAnnotationNoteIdsRef`). The first reply to a
   post-it goes to the post-it's author (`getShowcaseNoteReplyTarget`), who was never told before.
+- **Messages written in quick succession share one mail** (`src/utils/notificationGrouping.js`,
+  `test/notificationGrouping.test.mjs`). For the five message types `notify` passes a `group` to
+  `queueNotification`: a `GroupKey` hashed from type + project + target (`team:<id>`,
+  `committee:<id>`, or `showcase` for post-its) + to/cc — recipients are in the key so a message
+  never reaches someone it was not addressed to —, the message itself (author, text, time, its own
+  link) and a `render(messages)` that rebuilds subject and body (`buildNotification({ messages })`:
+  « N new messages », each with author and time, link to the **first** one, subject « (N messages) »).
+  `queueNotification` looks for the last `Pending` row with that key (`Created` server-side) and, if
+  younger than `NOTIFICATION_GROUP_WINDOW_MS` (4 min) and not full (`MAX_GROUPED_MESSAGES`, text
+  length), MERGEs into it under IF-MATCH (replayed on 412); otherwise it creates a row with
+  `GroupKey`/`MessagesJson`. The send flow waits 5 min (`NOTIFICATION_FLOW_DELAY_MINUTES`) on rows
+  with a `GroupKey`, re-reads the row, then sends it (PREPARATION doc, étape 5). Every message is
+  written at once, so a closed tab loses nothing. If the two columns don't exist yet, the lookup
+  fails silently and a 400 on create retries without them: one mail per message, as before. The
+  local journal (`window.__cnMockNotifications`) groups the same way, entries carry `groupKey`/
+  `messages`.
 - Outside SharePoint, no mail leaves: `queueNotification` keeps the last 50 in
   `window.__cnMockNotifications` (subject, body, recipients), which is what `e2e/notification-message-links.spec.js` reads.
   Local mode does not persist post-its, so the post-it reveal itself is only exercised in SharePoint mode.
