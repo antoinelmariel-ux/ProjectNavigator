@@ -233,3 +233,69 @@ test('un lancement se déclare, il ne se déduit jamais d’une date', () => {
     LAUNCH_CONFIRMATION_LATE
   );
 });
+
+import { isPerimeterOpinionCurrent } from '../src/utils/finalValidationRound.js';
+import { recordSubmission } from '../src/utils/submissionHistory.js';
+
+const sentProject = (answers = { budget: 100, description: 'texte' }, { reviewedVersion = 1 } = {}) => {
+  const sent = recordSubmission(answers, { kind: 'final' });
+  return {
+    project: { status: 'submitted', answers: sent },
+    entry: { status: 'validated', reviewedVersion, reviewedAt: '2026-04-01T09:00:00.000Z' }
+  };
+};
+
+test('un avis dont le projet n’a pas bougé est à jour, y compris sur les champs libres', () => {
+  const { project, entry } = sentProject();
+  assert.equal(isPerimeterOpinionCurrent(project, entry), true);
+
+  const marker = { ...project, answers: { ...project.answers, __project_launch__: { launched: true } } };
+  assert.equal(isPerimeterOpinionCurrent(marker, entry), true);
+});
+
+test('un champ libre modifié sans renvoi rend l’avis non à jour', () => {
+  const { project, entry } = sentProject();
+  const edited = { ...project, answers: { ...project.answers, description: 'texte réécrit' } };
+  assert.equal(isPerimeterOpinionCurrent(edited, entry), false);
+});
+
+test('un envoi postérieur à l’avis, ou un champ libre journalisé depuis, rend l’avis non à jour', () => {
+  const { project, entry } = sentProject();
+  const resent = recordSubmission(project.answers, { kind: 'final', narrativeQuestionIds: ['description'] });
+  assert.equal(isPerimeterOpinionCurrent({ ...project, answers: resent }, entry), false);
+});
+
+test('sans instantané du dernier envoi, on ne dispense pas', () => {
+  assert.equal(
+    isPerimeterOpinionCurrent({ status: 'submitted', answers: { budget: 100 } }, { status: 'validated' }),
+    false
+  );
+});
+
+test('la confirmation est dispensée pour un avis à jour, sauf « je dois réexaminer »', () => {
+  assert.equal(getPerimeterConfirmationState({ status: 'validated' }, 1, REQUESTED_AT), '');
+  assert.equal(
+    getPerimeterConfirmationState({ status: 'validated' }, 1, REQUESTED_AT, { isOpinionCurrent: true }),
+    CONFIRMATION_CONFIRMED
+  );
+  const reexamining = { status: 'validated', confirmation: { round: 1, state: CONFIRMATION_REEXAMINING } };
+  assert.equal(
+    getPerimeterConfirmationState(reexamining, 1, REQUESTED_AT, { isOpinionCurrent: true }),
+    CONFIRMATION_REEXAMINING
+  );
+});
+
+test('le tour est complet dès l’ouverture quand tous les avis tiennent encore', () => {
+  const status = getFinalValidationRoundStatus(requested(), [
+    { id: 'quality', hasOpinion: true, entry: { status: 'validated' }, isOpinionCurrent: true },
+    { id: 'legal', hasOpinion: true, entry: { status: 'validated' }, isOpinionCurrent: false }
+  ]);
+  assert.deepEqual(status.unchanged, ['quality']);
+  assert.deepEqual(status.pending, ['legal']);
+  assert.equal(status.isComplete, false);
+
+  const all = getFinalValidationRoundStatus(requested(), [
+    { id: 'quality', hasOpinion: true, entry: { status: 'validated' }, isOpinionCurrent: true }
+  ]);
+  assert.equal(all.isComplete, true);
+});

@@ -183,7 +183,8 @@ export default {
     },
     finalRound: {
       requested: 'Confirmation finale demandée : les experts qui se sont déjà prononcés sont invités à confirmer leur avis.',
-      requestedWithoutRecipients: 'Confirmation finale ouverte. Aucun avis n’a encore été rendu sur ce projet, il n’y a donc personne à relancer.'
+      requestedWithoutRecipients: 'Confirmation finale ouverte. Aucun avis n’a encore été rendu sur ce projet, il n’y a donc personne à relancer.',
+      requestedAllUnchanged: 'Confirmation finale ouverte. Le projet n’a pas changé depuis les avis rendus : aucune confirmation n’est demandée aux experts.'
     },
     submit: {
       syncing: 'Synchronisation en cours : veuillez patienter avant de soumettre.',

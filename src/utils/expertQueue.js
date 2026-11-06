@@ -5,7 +5,8 @@ import { getSubmissionKind, normalizeSubmissionKind, SUBMISSION_KIND_PRELIMINARY
 import {
   CONFIRMATION_CONFIRMED,
   getFinalValidationRound,
-  getPerimeterConfirmationState
+  getPerimeterConfirmationState,
+  isPerimeterOpinionCurrent
 } from './finalValidationRound.js';
 
 // La file d'un expert sur l'accueil : « À prendre », « En cours », « Pris en charge par
@@ -80,7 +81,9 @@ export const getPerimeterQueueState = (entry, { project, complianceEmails = [] }
   const round = getFinalValidationRound(project?.answers);
   const isFinalRoundPending = hasOpinion
     && round.round > 0
-    && getPerimeterConfirmationState(entry, round.round, round.requestedAt) !== CONFIRMATION_CONFIRMED;
+    && getPerimeterConfirmationState(entry, round.round, round.requestedAt, {
+      isOpinionCurrent: isPerimeterOpinionCurrent(project, entry)
+    }) !== CONFIRMATION_CONFIRMED;
 
   const isSettled = hasOpinion
     && !isReviewPending

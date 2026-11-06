@@ -183,7 +183,8 @@ export default {
     },
     finalRound: {
       requested: 'Endgültige Bestätigung angefragt: Die Experten, die bereits Stellung genommen haben, werden um Bestätigung gebeten.',
-      requestedWithoutRecipients: 'Endgültige Bestätigung eröffnet. Zu diesem Projekt liegt noch keine Stellungnahme vor, es gibt also niemanden zu fragen.'
+      requestedWithoutRecipients: 'Endgültige Bestätigung eröffnet. Zu diesem Projekt liegt noch keine Stellungnahme vor, es gibt also niemanden zu fragen.',
+      requestedAllUnchanged: 'Endgültige Bestätigung eröffnet. Das Projekt hat sich seit den abgegebenen Stellungnahmen nicht geändert, daher wird keine Bestätigung angefragt.'
     },
     submit: {
       syncing: 'Synchronisierung läuft: Bitte warten Sie vor dem Absenden.',

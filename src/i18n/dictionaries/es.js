@@ -183,7 +183,8 @@ export default {
     },
     finalRound: {
       requested: 'Confirmación final solicitada: se pide a los expertos que ya se pronunciaron que confirmen su dictamen.',
-      requestedWithoutRecipients: 'Confirmación final abierta. Aún no se ha emitido ningún dictamen sobre este proyecto, así que no hay a quién pedírsela.'
+      requestedWithoutRecipients: 'Confirmación final abierta. Aún no se ha emitido ningún dictamen sobre este proyecto, así que no hay a quién pedírsela.',
+      requestedAllUnchanged: 'Confirmación final abierta. El proyecto no ha cambiado desde los dictámenes emitidos, así que no se pide confirmación a los expertos.'
     },
     submit: {
       syncing: 'Sincronización en curso: espere antes de enviar.',

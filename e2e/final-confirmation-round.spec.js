@@ -1,6 +1,47 @@
 import { test, expect } from '@playwright/test';
 import { gotoHome, createAndSubmitProject,
-  goToProjectsHome, grantSelfComplianceExpertAndCommitteeAccess, openTriggeredProjectAndExpandTeam, readStoredState } from './fixtures.js';
+  goToProjectsHome, grantSelfComplianceExpertAndCommitteeAccess, openTriggeredProjectAndExpandTeam, patchStateOnBoot, readStoredState } from './fixtures.js';
+
+// Simule un champ libre réécrit depuis le dernier envoi : l'instantané envoyé n'est plus l'état
+// courant des réponses. Appliqué au prochain démarrage de l'app, donc à suivre d'un rechargement.
+async function registerEditAfterSend(page) {
+  await patchStateOnBoot(page, (state) => {
+    if (!state || !Array.isArray(state.projects)) {
+      return state;
+    }
+    return {
+      ...state,
+      projects: state.projects.map((project) => {
+        const history = project?.answers?.__submission_history__;
+        if (!history || !history.snapshot) {
+          return project;
+        }
+        return {
+          ...project,
+          answers: {
+            ...project.answers,
+            __submission_history__: { ...history, snapshot: { ...history.snapshot, e2eFreeText: 'avant' } }
+          }
+        };
+      })
+    };
+  });
+}
+
+async function giveOpinionThenReload(page, comment) {
+  await openTriggeredProjectAndExpandTeam(page, 'Contrôle pub');
+  await page.getByRole('button', { name: /Modifier le commentaire/ }).first().click();
+  await page.locator('[id^="compliance-status-"]').first().selectOption('validated');
+  await page.locator('[id^="compliance-comment-"][contenteditable="true"]').first().click();
+  await page.keyboard.type(comment);
+  await page.getByRole('button', { name: 'Enregistrer le commentaire' }).click();
+  await expect.poll(() => readStoredState(page).then((parsed) => (
+    parsed.projects?.some((entry) => entry?.answers?.__compliance_team_comments__?.teams?.controle_pub?.status === 'validated')
+  ))).toBe(true);
+  await page.reload();
+  await page.getByRole('button', { name: 'Consulter les enjeux' }).first().click();
+  await expect(page.getByRole('heading', { name: 'Enjeux du projet' })).toBeVisible();
+}
 
 // Lot 3 : dernier tour avant lancement. Rien ne peut le rendre obligatoire — il n'existe pas de
 // jalon opposable — donc ce qui est testé ici, c'est qu'il est demandé explicitement, qu'il ne
@@ -10,16 +51,12 @@ test.describe('Confirmation finale avant lancement', () => {
     test.slow();
     await gotoHome(page);
     await grantSelfComplianceExpertAndCommitteeAccess(page);
+    await registerEditAfterSend(page);
     await createAndSubmitProject(page);
     await goToProjectsHome(page);
 
-    // Un avis est d'abord rendu : sans avis, il n'y a rien à confirmer.
-    await openTriggeredProjectAndExpandTeam(page, 'Contrôle pub');
-    await page.getByRole('button', { name: /Modifier le commentaire/ }).first().click();
-    await page.locator('[id^="compliance-status-"]').first().selectOption('validated');
-    await page.locator('[id^="compliance-comment-"][contenteditable="true"]').first().click();
-    await page.keyboard.type('RAS pour le contrôle pub.');
-    await page.getByRole('button', { name: 'Enregistrer le commentaire' }).click();
+    // Un avis est d'abord rendu : sans avis, il n'y a rien à confirmer. Le projet a bougé depuis.
+    await giveOpinionThenReload(page, 'RAS pour le contrôle pub.');
 
     await page.getByRole('button', { name: 'Demander la confirmation finale' }).click();
 
@@ -51,7 +88,7 @@ test.describe('Confirmation finale avant lancement', () => {
   });
 });
 
-test('un lancement se déclare : il n’est jamais déduit d’une date dépassée', async ({ page }) => {
+test('un projet inchangé depuis les avis ne réclame aucune confirmation aux experts', async ({ page }) => {
   test.slow();
   await gotoHome(page);
   await grantSelfComplianceExpertAndCommitteeAccess(page);
@@ -64,6 +101,23 @@ test('un lancement se déclare : il n’est jamais déduit d’une date dépass�
   await page.locator('[id^="compliance-comment-"][contenteditable="true"]').first().click();
   await page.keyboard.type('RAS.');
   await page.getByRole('button', { name: 'Enregistrer le commentaire' }).click();
+
+  await page.getByRole('button', { name: 'Demander la confirmation finale' }).click();
+
+  await expect(page.getByText('Confirmation finale obtenue')).toBeVisible();
+  await expect(page.getByText('Le projet n’a pas changé depuis les avis rendus')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Je confirme mon avis' })).toHaveCount(0);
+});
+
+test('un lancement se déclare : il n’est jamais déduit d’une date dépassée', async ({ page }) => {
+  test.slow();
+  await gotoHome(page);
+  await grantSelfComplianceExpertAndCommitteeAccess(page);
+  await registerEditAfterSend(page);
+  await createAndSubmitProject(page);
+  await goToProjectsHome(page);
+
+  await giveOpinionThenReload(page, 'RAS.');
 
   await page.getByRole('button', { name: 'Demander la confirmation finale' }).click();
 

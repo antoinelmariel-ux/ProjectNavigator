@@ -183,7 +183,8 @@ export default {
     },
     finalRound: {
       requested: 'Final confirmation requested: the experts who already gave an opinion are asked to confirm it.',
-      requestedWithoutRecipients: 'Final confirmation opened. No opinion has been given on this project yet, so there is nobody to ask.'
+      requestedWithoutRecipients: 'Final confirmation opened. No opinion has been given on this project yet, so there is nobody to ask.',
+      requestedAllUnchanged: 'Final confirmation opened. The project has not changed since the opinions were given, so no expert is asked to confirm.'
     },
     submit: {
       syncing: 'Sync in progress: please wait before submitting.',

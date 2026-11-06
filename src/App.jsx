@@ -60,6 +60,7 @@ import {
   hasLaunchReminderBeenSent,
   markLaunchReminderSent,
   startFinalValidationRound,
+  isPerimeterOpinionCurrent,
   withPerimeterConfirmation
 } from './utils/finalValidationRound.js';
 import {
@@ -3828,6 +3829,7 @@ const updateProjectFilters = useCallback((updater) => {
     id: perimeter.id,
     type: perimeter.type,
     hasOpinion: Boolean(perimeter.entry?.status),
+    isOpinionCurrent: isPerimeterOpinionCurrent(project, perimeter.entry),
     entry: perimeter.entry
   })), [teams, validationCommitteeConfig]);
 
@@ -8047,7 +8049,8 @@ const updateProjectFilters = useCallback((updater) => {
       return null;
     }
 
-    const perimeters = buildRoundPerimeters(project).filter((perimeter) => perimeter.hasOpinion);
+    const roundPerimeters = buildRoundPerimeters(project).filter((perimeter) => perimeter.hasOpinion);
+    const perimeters = roundPerimeters.filter((perimeter) => !perimeter.isOpinionCurrent);
     const nextAnswers = startFinalValidationRound(project.answers || {}, {
       by: currentUserEmail,
       version: getSubmissionVersion(project)
@@ -8102,7 +8105,9 @@ const updateProjectFilters = useCallback((updater) => {
       status: 'success',
       message: recipients.length > 0
         ? t('app.finalRound.requested')
-        : t('app.finalRound.requestedWithoutRecipients')
+        : t(roundPerimeters.length > 0 && perimeters.length === 0
+          ? 'app.finalRound.requestedAllUnchanged'
+          : 'app.finalRound.requestedWithoutRecipients')
     });
 
     return nextAnswers;
