@@ -515,6 +515,12 @@ const createInspirationId = () => {
   return `inspiration-${Date.now()}-${Math.round(Math.random() * 100000)}`;
 };
 
+const buildThreadReplyMailKey = (projectId, focus) => (
+  focus?.message && focus.message !== FOCUS_MESSAGE_OPINION
+    ? [projectId || '', focus.kind, focus.id, focus.message].join('|')
+    : ''
+);
+
 // Un post-it n'existe que dans le mode d'affichage où il a été posé (sa portée) : le lien d'un
 // mail qui en parle rouvre la vitrine dans ce mode-là, faute de quoi il n'y serait pas.
 const buildNoteLinkParams = (note) => (
@@ -1266,6 +1272,9 @@ export const App = () => {
   const [committeeAgendaSessionId, setCommitteeAgendaSessionId] = useState(null);
   const pendingProjectViewRef = useRef(null);
   const pendingNotificationFocusRef = useRef(null);
+  // Destinataires du mail principal d'une réponse de fil (au porteur ou à l'équipe), pour que le
+  // mail « réponse à votre message » ne parte pas une seconde fois aux mêmes personnes.
+  const lastThreadReplyMailRef = useRef({ key: '', emails: [] });
   const [pendingShowcaseNoteFocus, setPendingShowcaseNoteFocus] = useState(null);
   const pendingShowcaseSharedRef = useRef(false);
   const pendingShowcaseCommentsRef = useRef(false);
@@ -1441,7 +1450,7 @@ export const App = () => {
     );
 
     if (to.length === 0 && cc.length === 0) {
-      return;
+      return [];
     }
 
     let notification;
@@ -1460,7 +1469,7 @@ export const App = () => {
       });
     } catch (error) {
       console.error('[Notification] Gabarit introuvable :', error);
-      return;
+      return [];
     }
 
     // Volontairement non bloquant : l’échec d’une notification ne doit jamais
@@ -1475,6 +1484,7 @@ export const App = () => {
     }).catch((error) => {
       console.warn('[Notification] Mise en file impossible :', error);
     });
+    return [...to, ...cc];
   }, [buildNotificationUrl, currentUserDisplayName, currentUserEmail]);
 
   const buildOwnerNotificationRecipients = useCallback((project) => {
@@ -1490,11 +1500,11 @@ export const App = () => {
 
   const notifyOwnerAndCoOwners = useCallback((project, type, options = {}) => {
     if (!project) {
-      return;
+      return [];
     }
 
     const recipients = buildOwnerNotificationRecipients(project);
-    notify({
+    return notify({
       type,
       project,
       to: recipients.to,
@@ -1662,6 +1672,9 @@ export const App = () => {
   const notifyThreadLastAuthor = useCallback((payload = {}) => {
     const targetEmail = normalizeEmail(payload.targetEmail);
     if (!targetEmail || targetEmail === currentUserEmail) {
+      return;
+    }
+    if (Array.isArray(payload.alreadyNotified) && payload.alreadyNotified.includes(targetEmail)) {
       return;
     }
 
@@ -5925,6 +5938,7 @@ const updateProjectFilters = useCallback((updater) => {
           }))
         ];
         const { text: commentExcerpt, focus: commentFocus } = combineComplianceChangeMessages(changeMessages);
+        let mainRecipients = [];
 
         if (isOwnerOrCoOwner) {
           // Une fois le périmètre pris en charge, les échanges ne partent plus qu'à son
@@ -5958,7 +5972,7 @@ const updateProjectFilters = useCallback((updater) => {
               .map((teamId) => resolveLocalizedText(teams.find((entry) => entry?.id === teamId)?.name, DEFAULT_LANGUAGE))
               .filter(Boolean);
 
-            notify({
+            mainRecipients = notify({
               type: NOTIFICATION_TYPES.SYNTHESIS_COMMENT_TO_TEAM,
               project,
               to: recipients,
@@ -5968,11 +5982,16 @@ const updateProjectFilters = useCallback((updater) => {
             });
           }
         } else {
-          notifyOwnerAndCoOwners(project, NOTIFICATION_TYPES.SYNTHESIS_COMMENT_TO_OWNER, {
+          mainRecipients = notifyOwnerAndCoOwners(project, NOTIFICATION_TYPES.SYNTHESIS_COMMENT_TO_OWNER, {
             excerpt: commentExcerpt,
             focus: commentFocus
           });
         }
+
+        lastThreadReplyMailRef.current = {
+          key: buildThreadReplyMailKey(activeProjectId, commentFocus),
+          emails: Array.isArray(mainRecipients) ? mainRecipients : []
+        };
 
         // Prises en charge implicites déclenchées par cette écriture : seules les copies
         // volontaires reçoivent un e-mail (voir notifyPerimeterClaimEvent).
@@ -6098,27 +6117,33 @@ const updateProjectFilters = useCallback((updater) => {
   ]);
 
   const handleComplianceReplyNotification = useCallback((payload = {}) => {
+    const projectId = payload.projectId || activeProjectId;
+    const focus = {
+      kind: payload.targetType === 'committee' ? FOCUS_KIND_COMMITTEE : FOCUS_KIND_TEAM,
+      id: payload.targetId,
+      message: payload.replyId || ''
+    };
+    const replyMailKey = buildThreadReplyMailKey(projectId, focus);
     notifyThreadLastAuthor({
       targetEmail: payload.lastAuthorEmail,
       type: NOTIFICATION_TYPES.SYNTHESIS_COMMENT_REPLY,
       project: {
-        id: payload.projectId || activeProjectId,
+        id: projectId,
         projectName: payload.projectName,
         ownerEmail: payload.ownerEmail || ''
       },
       excerpt: payload.message || '',
-      focus: {
-        kind: payload.targetType === 'committee' ? FOCUS_KIND_COMMITTEE : FOCUS_KIND_TEAM,
-        id: payload.targetId,
-        message: payload.replyId || ''
-      }
+      focus,
+      alreadyNotified: replyMailKey && lastThreadReplyMailRef.current.key === replyMailKey
+        ? lastThreadReplyMailRef.current.emails
+        : []
     });
   }, [activeProjectId, notifyThreadLastAuthor]);
 
   // Signaler un doute sur une question, sans jamais remplacer la réponse elle-même : le porteur
-  // garde sa vraie réponse et ajoute, en texte libre, ce qui le fait douter. La note reste privée
-  // au porteur (elle n'est plus notifiée ni envoyée à une équipe) et ne bloque que la validation
-  // définitive, jamais un avis technique (cf. mandatoryQuestions.js).
+  // garde sa vraie réponse et ajoute, en texte libre, ce qui le fait douter. La note n'est ni
+  // notifiée ni envoyée à une équipe (les experts la lisent dans « Rappel de vos réponses ») et ne
+  // bloque que la validation définitive, jamais un avis technique (cf. mandatoryQuestions.js).
   const handleSetQuestionDoubt = useCallback((questionId, text) => {
     const nextAnswers = withQuestionDoubt(answers, questionId, text);
     setAnswers(nextAnswers);

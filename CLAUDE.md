@@ -745,6 +745,13 @@ the usual intro / facts / expectations / footer. Every other type keeps the form
   `onFocusPerimeterHandled` resets the focus and re-runs the effect, which used to cancel the scroll.
   `AnnotationLayer` waits for the note's section, scrolls to the note's point and outlines the note
   (or the reply, `data-annotation-reply-id`); an unknown note is dropped after 15 s.
+- **A thread reply mails each person once.** A reply triggers the main mail (to the owner side
+  or the team, from `handleUpdateComplianceComments`) and, from `SynthesisReport`, « Reply to your
+  comment » to the previous message's author. `notify` returns its final recipients;
+  `lastThreadReplyMailRef` keeps those of the main mail keyed by project/perimeter/reply id, and
+  `notifyThreadLastAuthor` skips a last author already among them (`alreadyNotified`) — that was
+  the owner receiving the same reply twice. A last author outside them (a colleague, a co-owner
+  routing left out) still gets « Reply to your comment ».
 - Outside SharePoint, no mail leaves: `queueNotification` keeps the last 50 in
   `window.__cnMockNotifications` (subject, body, recipients), which is what `e2e/notification-message-links.spec.js` reads.
   Local mode does not persist post-its, so the post-it reveal itself is only exercised in SharePoint mode.
