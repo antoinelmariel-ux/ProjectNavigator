@@ -126,6 +126,17 @@ import {
   isSharedShowcaseSearch,
   readShowcaseShareToken
 } from './utils/showcaseShareLink.js';
+import {
+  FOCUS_KIND_COMMITTEE,
+  FOCUS_KIND_NOTE,
+  FOCUS_KIND_TEAM,
+  FOCUS_MESSAGE_OPINION,
+  appendNotificationFocus,
+  buildComplianceChangeMessage,
+  combineComplianceChangeMessages,
+  getNotificationFocusView,
+  readNotificationFocus
+} from './utils/notificationLinks.js';
 import { resolveTeamRecipients } from './utils/teamMemberRules.js';
 import { resolveEffectiveTeamComplianceEntry } from './utils/complianceAutoValidation.js';
 import { normalizeTeamContacts } from './utils/teamContacts.js';
@@ -503,6 +514,12 @@ const createInspirationId = () => {
 
   return `inspiration-${Date.now()}-${Math.round(Math.random() * 100000)}`;
 };
+
+// Un post-it n'existe que dans le mode d'affichage où il a été posé (sa portée) : le lien d'un
+// mail qui en parle rouvre la vitrine dans ce mode-là, faute de quoi il n'y serait pas.
+const buildNoteLinkParams = (note) => (
+  note?.scope === 'display-light' ? { showcaseMode: 'light' } : undefined
+);
 
 const buildAnnotationContextKey = ({ screen, projectId, scope }) => {
   const base = screen === 'showcase' ? `showcase:${projectId || 'unknown'}` : screen;
@@ -1248,6 +1265,8 @@ export const App = () => {
   const committeeAgendaReturnRef = useRef(null);
   const [committeeAgendaSessionId, setCommitteeAgendaSessionId] = useState(null);
   const pendingProjectViewRef = useRef(null);
+  const pendingNotificationFocusRef = useRef(null);
+  const [pendingShowcaseNoteFocus, setPendingShowcaseNoteFocus] = useState(null);
   const pendingShowcaseSharedRef = useRef(false);
   const pendingShowcaseCommentsRef = useRef(false);
   const pendingShowcaseAnnotationVisibilityRef = useRef('all');
@@ -1366,6 +1385,32 @@ export const App = () => {
     }
   }, []);
 
+  // Lien d'un mail qui relaie un message : le projet, l'écran où vit ce message (« Enjeux du
+  // projet » pour un périmètre, la vitrine pour un post-it) et le message lui-même.
+  const buildNotificationUrl = useCallback((projectId, view, focus, urlParams) => {
+    const focusView = getNotificationFocusView(focus);
+    const resolvedView = view || (focusView === 'synthesis' ? 'synthesis' : undefined);
+    const baseUrl = buildProjectUrl(projectId, resolvedView);
+    if (!baseUrl) {
+      return '';
+    }
+    let url = appendNotificationFocus(baseUrl, focus);
+    if (urlParams && typeof urlParams === 'object') {
+      try {
+        const parsed = new URL(url);
+        Object.entries(urlParams).forEach(([key, value]) => {
+          if (typeof value === 'string' && value) {
+            parsed.searchParams.set(key, value);
+          }
+        });
+        url = parsed.toString();
+      } catch {
+        // URL inchangée : le lien ouvre au moins le projet.
+      }
+    }
+    return url;
+  }, [buildProjectUrl]);
+
   const buildCommitteeSessionUrl = useCallback((sessionId) => {
     if (typeof window === 'undefined' || !window.location || !sessionId) {
       return '';
@@ -1410,7 +1455,7 @@ export const App = () => {
         ownerEmail: project.ownerEmail,
         teamNames: descriptor.teamNames,
         excerpt: descriptor.excerpt,
-        appUrl: descriptor.appUrl || buildProjectUrl(project.id, descriptor.view),
+        appUrl: descriptor.appUrl || buildNotificationUrl(project.id, descriptor.view, descriptor.focus, descriptor.urlParams),
         occurredAt: new Date().toISOString()
       });
     } catch (error) {
@@ -1430,7 +1475,7 @@ export const App = () => {
     }).catch((error) => {
       console.warn('[Notification] Mise en file impossible :', error);
     });
-  }, [buildProjectUrl, currentUserDisplayName, currentUserEmail]);
+  }, [buildNotificationUrl, currentUserDisplayName, currentUserEmail]);
 
   const buildOwnerNotificationRecipients = useCallback((project) => {
     const owner = normalizeEmail(project?.ownerEmail);
@@ -1624,7 +1669,9 @@ export const App = () => {
       type: payload.type,
       project: payload.project,
       to: [targetEmail],
-      excerpt: payload.excerpt
+      excerpt: payload.excerpt,
+      focus: payload.focus,
+      urlParams: payload.urlParams
     });
   }, [currentUserEmail, notify]);
 
@@ -1813,6 +1860,8 @@ export const App = () => {
     if (projectId) {
       pendingShowcaseProjectIdRef.current = projectId;
       pendingProjectViewRef.current = rawView === 'synthesis' || rawView === 'questionnaire' ? rawView : null;
+      // Un lien partagé de vitrine ne vise jamais un message : seule une notification le fait.
+      pendingNotificationFocusRef.current = sharedLink ? null : readNotificationFocus(params);
     }
 
     if (resolvedShowcaseMode) {
@@ -4443,7 +4492,9 @@ const updateProjectFilters = useCallback((updater) => {
           : null);
 
       notifyOwnerAndCoOwners(project, NOTIFICATION_TYPES.SHOWCASE_COMMENT, {
-        excerpt: commentText
+        excerpt: commentText,
+        focus: { kind: FOCUS_KIND_NOTE, id: noteId },
+        urlParams: buildNoteLinkParams(note)
       });
       showcaseCommentNotificationTimeoutsRef.current.delete(timeoutKey);
     }, SHOWCASE_COMMENT_EDIT_DEBOUNCE_MS);
@@ -4542,7 +4593,9 @@ const updateProjectFilters = useCallback((updater) => {
         projectName: showcaseProjectContext?.projectName || activeProjectName,
         ownerEmail: showcaseProjectContext?.ownerEmail || ''
       },
-      excerpt: typeof reply?.text === 'string' ? reply.text : ''
+      excerpt: typeof reply?.text === 'string' ? reply.text : '',
+      focus: { kind: FOCUS_KIND_NOTE, id: noteId, message: reply?.id || '' },
+      urlParams: buildNoteLinkParams(updatedNote)
     });
   }, [
     activeProjectId,
@@ -4552,6 +4605,16 @@ const updateProjectFilters = useCallback((updater) => {
     showcaseProjectContext,
     t
   ]);
+
+  // Un post-it visé par un lien de mail qui n'apparaît jamais (supprimé, ou pas encore chargé
+  // depuis SharePoint au bout de ce délai) : la vitrine reste ouverte, sans plus chercher.
+  useEffect(() => {
+    if (!pendingShowcaseNoteFocus) {
+      return undefined;
+    }
+    const timeoutId = setTimeout(() => setPendingShowcaseNoteFocus(null), 15000);
+    return () => clearTimeout(timeoutId);
+  }, [pendingShowcaseNoteFocus]);
 
   const handleToggleAnnotationMode = useCallback(() => {
     setIsAnnotationModeEnabled(prev => {
@@ -5836,18 +5899,32 @@ const updateProjectFilters = useCallback((updater) => {
         mirrorChangedEntries(changedTeamEntries, 'team');
         mirrorChangedEntries(changedCommitteeEntries, 'committee');
 
-        // Contenu du/des commentaire(s) et/ou statut(s) de validation qui viennent d'être posés,
-        // pour l'inclure dans la notification (comme pour les réponses de fil) et éviter un
-        // e-mail sans substance — y compris quand seul le statut a changé, sans commentaire.
-        const commentExcerpt = [...changedTeamEntries, ...changedCommitteeEntries]
-          .map(([, entry]) => {
-            const statusLabel = COMPLIANCE_STATUS_EMAIL_LABELS[entry?.status] || '';
-            const commentText = typeof entry?.comment === 'string' ? entry.comment.trim() : '';
-            const statusLine = statusLabel ? `Status: ${statusLabel}` : '';
-            return [statusLine, commentText].filter(Boolean).join('\n');
-          })
-          .filter(Boolean)
-          .join('\n\n');
+        // Ce que la personne vient d'écrire, repris en tête du mail, et l'endroit exact où son
+        // lien mène : la réponse ajoutée au fil si c'en est une, sinon l'avis (statut et/ou
+        // commentaire — un statut changé sans commentaire est repris aussi).
+        const changeMessages = [
+          ...changedTeamEntries.map(([teamId, entry]) => ({
+            ...buildComplianceChangeMessage({
+              kind: FOCUS_KIND_TEAM,
+              id: teamId,
+              previousEntry: previousTeamEntries[teamId],
+              nextEntry: entry,
+              statusLabels: COMPLIANCE_STATUS_EMAIL_LABELS
+            }),
+            label: resolveLocalizedText(teams.find((team) => team?.id === teamId)?.name, DEFAULT_LANGUAGE)
+          })),
+          ...changedCommitteeEntries.map(([committeeId, entry]) => ({
+            ...buildComplianceChangeMessage({
+              kind: FOCUS_KIND_COMMITTEE,
+              id: committeeId,
+              previousEntry: previousCommitteeEntries[committeeId],
+              nextEntry: entry,
+              statusLabels: COMPLIANCE_STATUS_EMAIL_LABELS
+            }),
+            label: committeesById[committeeId]?.name || ''
+          }))
+        ];
+        const { text: commentExcerpt, focus: commentFocus } = combineComplianceChangeMessages(changeMessages);
 
         if (isOwnerOrCoOwner) {
           // Une fois le périmètre pris en charge, les échanges ne partent plus qu'à son
@@ -5886,12 +5963,14 @@ const updateProjectFilters = useCallback((updater) => {
               project,
               to: recipients,
               teamNames,
-              excerpt: commentExcerpt
+              excerpt: commentExcerpt,
+              focus: commentFocus
             });
           }
         } else {
           notifyOwnerAndCoOwners(project, NOTIFICATION_TYPES.SYNTHESIS_COMMENT_TO_OWNER, {
-            excerpt: commentExcerpt
+            excerpt: commentExcerpt,
+            focus: commentFocus
           });
         }
 
@@ -5936,6 +6015,7 @@ const updateProjectFilters = useCallback((updater) => {
   }, [
     activeProjectId,
     committeeSessionsRef,
+    committeesById,
     currentUserEmail,
     injectImplicitClaims,
     isSimulatedSession,
@@ -5995,9 +6075,12 @@ const updateProjectFilters = useCallback((updater) => {
         const statusLabel = COMPLIANCE_STATUS_EMAIL_LABELS[nextEntry.status] || '';
         const excerpt = [statusLabel ? `Status: ${statusLabel}` : '', typeof nextEntry.comment === 'string' ? nextEntry.comment.trim() : '']
           .filter(Boolean)
-          .join('\n\n');
+          .join('\n');
         if (excerpt) {
-          notifyOwnerAndCoOwners(project, NOTIFICATION_TYPES.SYNTHESIS_COMMENT_TO_OWNER, { excerpt });
+          notifyOwnerAndCoOwners(project, NOTIFICATION_TYPES.SYNTHESIS_COMMENT_TO_OWNER, {
+            excerpt,
+            focus: { kind: FOCUS_KIND_COMMITTEE, id: committeeId, message: FOCUS_MESSAGE_OPINION }
+          });
         }
       }
     }
@@ -6023,7 +6106,12 @@ const updateProjectFilters = useCallback((updater) => {
         projectName: payload.projectName,
         ownerEmail: payload.ownerEmail || ''
       },
-      excerpt: payload.message || ''
+      excerpt: payload.message || '',
+      focus: {
+        kind: payload.targetType === 'committee' ? FOCUS_KIND_COMMITTEE : FOCUS_KIND_TEAM,
+        id: payload.targetId,
+        message: payload.replyId || ''
+      }
     });
   }, [activeProjectId, notifyThreadLastAuthor]);
 
@@ -6606,7 +6694,11 @@ const updateProjectFilters = useCallback((updater) => {
 
     setSynthesisFocusPerimeter(
       options?.focusPerimeter?.id && options?.focusPerimeter?.type
-        ? { type: options.focusPerimeter.type, id: options.focusPerimeter.id }
+        ? {
+          type: options.focusPerimeter.type,
+          id: options.focusPerimeter.id,
+          ...(options.focusPerimeter.message ? { message: options.focusPerimeter.message } : {})
+        }
         : null
     );
 
@@ -7080,6 +7172,7 @@ const updateProjectFilters = useCallback((updater) => {
       if (['local-only', 'synced', 'partial'].includes(sharePointSync.state)) {
         pendingShowcaseProjectIdRef.current = null;
         pendingProjectViewRef.current = null;
+        pendingNotificationFocusRef.current = null;
         discardPendingSharedShowcase();
         setCancelledSubmissionNotice({ projectName: '', reason: 'missing' });
         previousScreenRef.current = null;
@@ -7091,13 +7184,21 @@ const updateProjectFilters = useCallback((updater) => {
     pendingShowcaseProjectIdRef.current = null;
     const pendingView = pendingProjectViewRef.current;
     pendingProjectViewRef.current = null;
+    const pendingFocus = pendingNotificationFocusRef.current;
+    pendingNotificationFocusRef.current = null;
+    // Lien d'un mail qui relaie un message : la carte du périmètre visé, et dans cette carte
+    // l'avis ou la réponse précise. Une cible qui n'existe plus retombe sur la carte, puis sur
+    // le haut de la page (SynthesisReport).
+    const focusPerimeter = pendingFocus && (pendingFocus.kind === FOCUS_KIND_TEAM || pendingFocus.kind === FOCUS_KIND_COMMITTEE)
+      ? { type: pendingFocus.kind, id: pendingFocus.id, message: pendingFocus.message || '' }
+      : null;
 
     // Un projet à la corbeille ne s'ouvre plus par lien, vitrine partagée comprise : seul un expert
     // qui y a répondu en garde la synthèse, comme dans son onglet « Abandonnés ».
     if (isProjectTrashed(matchingProject)) {
       discardPendingSharedShowcase();
       if (pendingView === 'synthesis' && isRespondingExpert(matchingProject, currentUserEmail, trashResponseOptions)) {
-        handleOpenProject(pendingProjectId, { view: 'synthesis' });
+        handleOpenProject(pendingProjectId, { view: 'synthesis', focusPerimeter });
         return;
       }
       setCancelledSubmissionNotice({ projectName: matchingProject.projectName || '', reason: 'trashed' });
@@ -7119,9 +7220,17 @@ const updateProjectFilters = useCallback((updater) => {
 
     if (pendingView === 'synthesis' || (pendingView === 'questionnaire' && isAdminConsole)) {
       discardPendingSharedShowcase();
-      handleOpenProject(pendingProjectId, { view: pendingView });
+      handleOpenProject(pendingProjectId, {
+        view: pendingView,
+        focusPerimeter: pendingView === 'synthesis' ? focusPerimeter : null
+      });
     } else {
       openProjectShowcase({ projectId: pendingProjectId });
+      if (pendingFocus?.kind === FOCUS_KIND_NOTE) {
+        setIsAnnotationModeEnabled(true);
+        setIsAnnotationPaused(false);
+        setPendingShowcaseNoteFocus({ noteId: pendingFocus.id, replyId: pendingFocus.message || '' });
+      }
     }
   }, [currentUserEmail, handleOpenProject, isAdminConsole, isHydrated, openProjectShowcase, projects, sharePointSync.state, trashResponseOptions]);
 
@@ -8889,7 +8998,7 @@ const updateProjectFilters = useCallback((updater) => {
       )}
       <AnnotationLayer
         isActive={isAnnotationModeEnabled && screen === 'showcase'}
-        suppressIntro={isOnboardingActive}
+        suppressIntro={isOnboardingActive || Boolean(pendingShowcaseNoteFocus)}
         hideToolbar={isOnboardingActive && onboardingStepId === 'showcase-back-to-report'}
         projectName={showcaseProjectContext?.projectName || ''}
         onExit={handleToggleAnnotationMode}
@@ -8899,6 +9008,8 @@ const updateProjectFilters = useCallback((updater) => {
         sourceColors={annotationSources}
         autoFocusNoteId={autoFocusAnnotationId}
         onAutoFocusComplete={() => setAutoFocusAnnotationId(null)}
+        focusNote={pendingShowcaseNoteFocus}
+        onFocusNoteHandled={() => setPendingShowcaseNoteFocus(null)}
         canCloseNotes={canCloseAnnotationNotes}
         noteVisibilityMode={isShowcaseSharedView ? showcaseAnnotationVisibilityMode : 'all'}
         currentSourceId={currentUserDisplayName || ''}

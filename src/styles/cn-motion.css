@@ -111,10 +111,17 @@
   animation: cn-halo 1.2s ease-out;
 }
 
+.cn-link-target {
+  outline: 3px solid rgba(37, 99, 235, 0.85);
+  outline-offset: 3px;
+  animation: cn-halo 1.8s ease-out 2;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .cn-collapse--leaving,
   .cn-halo,
   .cn-moved,
+  .cn-link-target,
   .cn-toast {
     animation: none;
   }

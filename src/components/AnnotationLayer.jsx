@@ -3,6 +3,8 @@ import { Close, Trash2 } from './icons.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { getLocaleTag } from '../i18n/languages.js';
 import { isImpersonating } from '../utils/impersonation.js';
+import { revealLinkTarget } from '../utils/linkTarget.js';
+import { getAppScrollTop, scrollAppTo } from '../utils/scrollContainer.js';
 
 const clamp01 = (value) => {
   if (typeof value !== 'number' || Number.isNaN(value)) {
@@ -77,6 +79,8 @@ export const AnnotationLayer = ({
   currentSourceId = '',
   activeContextId = '',
   autoFocusNoteId = null,
+  focusNote = null,
+  onFocusNoteHandled,
   onExit,
   onNoteChange,
   onNoteClose,
@@ -180,6 +184,55 @@ export const AnnotationLayer = ({
       }
     }
   }, [autoFocusNoteId, onAutoFocusComplete]);
+
+  // Arrivée par le lien d'un mail sur un post-it (ou l'une de ses réponses) : le post-it suit sa
+  // section, qui n'est rendue qu'une fois la vitrine chargée ; on attend donc cette section,
+  // on fait défiler la page jusqu'au point où le post-it est posé, puis on le cerne.
+  const focusTimeoutRef = useRef(null);
+  useEffect(() => () => clearTimeout(focusTimeoutRef.current), []);
+  useEffect(() => {
+    if (!isActive || !focusNote?.noteId || typeof window === 'undefined') {
+      return;
+    }
+    const note = visibleNotes.find((entry) => entry?.id === focusNote.noteId);
+    if (!note) {
+      return;
+    }
+
+    let attempts = 0;
+    clearTimeout(focusTimeoutRef.current);
+    const reveal = () => {
+      attempts += 1;
+      const anchor = getAnnotationAnchor(note);
+      if (!anchor && note.sectionId && attempts < 40) {
+        focusTimeoutRef.current = setTimeout(reveal, 100);
+        return;
+      }
+      if (anchor && typeof anchor.getBoundingClientRect === 'function') {
+        const rect = anchor.getBoundingClientRect();
+        const noteTop = rect.top + rect.height * clamp01(note?.sectionY ?? note?.y ?? 0.5);
+        scrollAppTo({ top: Math.max(0, getAppScrollTop() + noteTop - window.innerHeight * 0.25) });
+      }
+      setLayoutVersion((previous) => previous + 1);
+      focusTimeoutRef.current = setTimeout(() => {
+        const escapedNoteId = escapeAttributeValue(note.id);
+        const noteElement = document.querySelector(`[data-annotation-note-id="${escapedNoteId}"]`);
+        const replyElement = focusNote.replyId && noteElement
+          ? noteElement.querySelector(`[data-annotation-reply-id="${escapeAttributeValue(focusNote.replyId)}"]`)
+          : null;
+        if (replyElement && typeof replyElement.scrollIntoView === 'function') {
+          replyElement.scrollIntoView({ block: 'nearest' });
+        }
+        revealLinkTarget(replyElement || noteElement, { scroll: false });
+        if (typeof onFocusNoteHandled === 'function') {
+          onFocusNoteHandled();
+        }
+      }, 120);
+    };
+    focusTimeoutRef.current = setTimeout(reveal, 50);
+    // La note est recherchée à chaque changement de la liste, mais révélée une seule fois.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusNote, isActive, visibleNotes]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -404,6 +457,7 @@ export const AnnotationLayer = ({
               style={{ left: `${position.left}px`, top: `${position.top}px` }}
               data-annotation-ui="true"
               data-feedback-source-color={paletteKey}
+              data-annotation-note-id={note.id}
               data-tour-id={index === 0 ? 'showcase-annotation-note' : undefined}
             >
               <div className="feedback-note-header">
@@ -471,7 +525,11 @@ export const AnnotationLayer = ({
                     const timestamp = formatTimestamp(reply?.createdAt);
                     const replyAttachments = Array.isArray(reply?.attachments) ? reply.attachments : [];
                     return (
-                      <div key={reply?.id || `${note.id}-${reply?.createdAt}`} className="feedback-note-reply">
+                      <div
+                        key={reply?.id || `${note.id}-${reply?.createdAt}`}
+                        className="feedback-note-reply"
+                        data-annotation-reply-id={reply?.id || undefined}
+                      >
                         <div className="feedback-note-reply__meta">
                           <span>{reply?.author || t('annotationLayer.replyAuthorFallback')}</span>
                           {timestamp ? <span>· {timestamp}</span> : null}

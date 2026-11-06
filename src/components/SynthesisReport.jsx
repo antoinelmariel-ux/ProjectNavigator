@@ -15,6 +15,8 @@ import {
 } from './icons.js';
 import { formatAnswer } from '../utils/questions.js';
 import { getQuestionDoubtText, hasQuestionDoubt } from '../utils/questionDoubts.js';
+import { FOCUS_MESSAGE_OPINION } from '../utils/notificationLinks.js';
+import { revealLinkTarget } from '../utils/linkTarget.js';
 import { computeRankingRecommendations, normalizeRankingConfig } from '../utils/ranking.js';
 import { resolveLocalizedText } from '../utils/localizedContent.js';
 import { renderTextWithLinks } from '../utils/linkify.js';
@@ -1789,6 +1791,8 @@ export const SynthesisReport = ({
         onComplianceReplyNotification({
           targetId,
           targetType,
+          replyId: reply.id,
+          message: trimmed,
           projectName: effectiveProjectName,
           lastAuthorEmail: lastExistingReply?.authorEmail || '',
           lastAuthorName: lastExistingReply?.authorName || ''
@@ -1880,12 +1884,19 @@ export const SynthesisReport = ({
   // on déplie le bloc concerné, on force le fil de discussion complet ouvert (sinon la réponse du
   // porteur peut être hors des deux derniers messages affichés), puis on scrolle vers la dernière
   // réponse du porteur si elle existe, sinon vers l'en-tête du bloc.
+  const focusRevealTimeoutRef = useRef(null);
+  useEffect(() => () => clearTimeout(focusRevealTimeoutRef.current), []);
+
   useEffect(() => {
     if (!focusPerimeter?.id || !focusPerimeter?.type) {
       return;
     }
 
-    let targetId = null;
+    // Lien d'un mail qui relaie un message : l'avis du périmètre (`opinion`) ou une réponse
+    // précise du fil. La cible peut ne plus exister (réponse supprimée, avis effacé) : on se
+    // rabat alors sur la carte du périmètre, et faute de carte la page reste en haut.
+    const targetMessage = typeof focusPerimeter.message === 'string' ? focusPerimeter.message : '';
+    const candidateIds = [];
 
     if (focusPerimeter.type === 'team') {
       const team = relevantTeams.find((entry) => entry.id === focusPerimeter.id);
@@ -1896,39 +1907,70 @@ export const SynthesisReport = ({
         setTeamCollapsedOverrides((prev) => ({ ...prev, [focusPerimeter.id]: false }));
         setExpandedThreads((prev) => ({ ...prev, [`team-${focusPerimeter.id}`]: true }));
 
-        const storedEntry = normalizeCommentEntry(complianceComments.teams?.[focusPerimeter.id]);
-        const teamDisplayName = resolveLocalizedText(team.name, language);
-        const teamContactEmailSet = new Set(
-          normalizeTeamContacts(team).map((contact) => normalizeEmail(contact))
-        );
-        const ownerMessages = getThreadMessages(storedEntry, teamDisplayName).filter(
-          (message) => !message.id.startsWith('comment-') && !teamContactEmailSet.has(normalizeEmail(message.authorEmail))
-        );
-        const lastOwnerMessage = ownerMessages[ownerMessages.length - 1];
-        targetId = lastOwnerMessage
-          ? `compliance-message-${lastOwnerMessage.id}`
-          : `compliance-team-block-${focusPerimeter.id}`;
+        if (targetMessage === FOCUS_MESSAGE_OPINION) {
+          candidateIds.push(`compliance-opinion-team-${focusPerimeter.id}`);
+        } else if (targetMessage) {
+          candidateIds.push(`compliance-message-${targetMessage}`);
+        } else {
+          const storedEntry = normalizeCommentEntry(complianceComments.teams?.[focusPerimeter.id]);
+          const teamDisplayName = resolveLocalizedText(team.name, language);
+          const teamContactEmailSet = new Set(
+            normalizeTeamContacts(team).map((contact) => normalizeEmail(contact))
+          );
+          const ownerMessages = getThreadMessages(storedEntry, teamDisplayName).filter(
+            (message) => !message.id.startsWith('comment-') && !teamContactEmailSet.has(normalizeEmail(message.authorEmail))
+          );
+          const lastOwnerMessage = ownerMessages[ownerMessages.length - 1];
+          if (lastOwnerMessage) {
+            candidateIds.push(`compliance-message-${lastOwnerMessage.id}`);
+          }
+        }
+        candidateIds.push(`compliance-team-block-${focusPerimeter.id}`);
       }
     } else if (focusPerimeter.type === 'committee') {
       openSection('committees');
-      targetId = `compliance-committee-block-${focusPerimeter.id}`;
+      setExpandedThreads((prev) => ({ ...prev, [`committee-${focusPerimeter.id}`]: true }));
+      if (targetMessage === FOCUS_MESSAGE_OPINION) {
+        candidateIds.push(`compliance-opinion-committee-${focusPerimeter.id}`);
+      } else if (targetMessage) {
+        candidateIds.push(`compliance-message-${targetMessage}`);
+      }
+      candidateIds.push(`compliance-committee-block-${focusPerimeter.id}`);
     }
 
     onFocusPerimeterHandled?.();
 
-    if (!targetId || typeof document === 'undefined') {
+    if (candidateIds.length === 0 || typeof document === 'undefined') {
       return;
     }
 
-    const timeoutId = setTimeout(() => {
-      const element = document.getElementById(targetId);
-      if (element && typeof element.scrollIntoView === 'function') {
-        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Les sections et cartes dépliées ci-dessus ne sont dans le DOM qu'au rendu suivant : on
+    // laisse quelques essais à la cible exacte avant de se contenter de la carte. Le minuteur
+    // vit hors du cycle de l'effet : `onFocusPerimeterHandled` remet la cible à null, ce qui
+    // relance l'effet, et un nettoyage lié à ce cycle annulerait le défilement avant qu'il ait lieu.
+    let attempts = 0;
+    clearTimeout(focusRevealTimeoutRef.current);
+    const tryReveal = () => {
+      attempts += 1;
+      const isLastAttempt = attempts >= 20;
+      const ids = isLastAttempt ? candidateIds : candidateIds.slice(0, 1);
+      const element = ids.map((id) => document.getElementById(id)).find(Boolean);
+      if (element) {
+        if (targetMessage) {
+          revealLinkTarget(element);
+        } else if (typeof element.scrollIntoView === 'function') {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        return;
       }
-    }, 50);
-
-    return () => clearTimeout(timeoutId);
-  }, [focusPerimeter, relevantTeams, complianceComments, language, getThreadMessages, onFocusPerimeterHandled, openSection]);
+      if (!isLastAttempt) {
+        focusRevealTimeoutRef.current = setTimeout(tryReveal, 100);
+      }
+    };
+    focusRevealTimeoutRef.current = setTimeout(tryReveal, 50);
+    // Une seule fois par arrivée : `complianceComments` & co. ne sont lus que pour choisir la cible.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusPerimeter]);
 
   const handleShareMemberAdd = useCallback((emails) => {
     if (typeof onShareProjectMember !== 'function') {
@@ -3043,7 +3085,7 @@ export const SynthesisReport = ({
                             )}
 
                             {shouldShowOpinionCard && (
-                            <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-3">
+                            <div id={`compliance-opinion-team-${team.id}`} className="rounded-xl border border-blue-200 bg-blue-50/60 p-3">
                               <div className="flex flex-wrap items-center justify-between gap-2">
                                 <div className="flex flex-wrap items-center gap-1.5 text-xs">
                                   <span className="flex items-center gap-1.5 font-semibold uppercase tracking-wide text-blue-700">
@@ -3837,7 +3879,13 @@ export const SynthesisReport = ({
                                 const isTruncated = shouldCollapse && trimmedMessage.length > 240;
                                 const preview = isTruncated ? `${trimmedMessage.slice(0, 220)}…` : trimmedMessage;
                                 return (
-                                  <div key={message.id} className="rounded-lg bg-white border border-gray-200 p-3">
+                                  <div
+                                    key={message.id}
+                                    id={message.id.startsWith('comment-')
+                                      ? `compliance-opinion-committee-${committee.id}`
+                                      : `compliance-message-${message.id}`}
+                                    className="rounded-lg bg-white border border-gray-200 p-3"
+                                  >
                                     <div className="flex items-center justify-between gap-2 text-xs text-gray-500">
                                       <span className="font-semibold text-gray-700">{message.authorName}</span>
                                       {(message.adminProxy || isAdminAuthoredMessage({

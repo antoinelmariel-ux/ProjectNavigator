@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  MAX_FULL_MESSAGE_LENGTH,
+  MESSAGE_FIRST_NOTIFICATION_TYPES,
   NOTIFICATION_CATALOG,
   NOTIFICATION_TYPES,
   buildNotification,
@@ -52,13 +54,13 @@ test('chaque notification explique ce qui est attendu ET pourquoi elle est reçu
 test('ordre du corps : intro → contenu du message → lien → tableau → attendu', () => {
   const { body } = buildNotification({
     ...baseContext,
-    type: NOTIFICATION_TYPES.SHOWCASE_COMMENT,
+    type: NOTIFICATION_TYPES.PERIMETER_TRANSFERRED,
     excerpt: 'Merci de retirer le visuel page 3.',
     appUrl: 'https://lfb1.sharepoint.com/sites/PN/CN-App/index.aspx?projectId=p-1'
   });
 
   const positions = {
-    intro: body.indexOf('posted a comment'),
+    intro: body.indexOf('Hello,'),
     contenu: body.indexOf('Message content'),
     lien: body.indexOf('Open the project in Project Navigator'),
     tableau: body.indexOf('<table'),
@@ -147,7 +149,7 @@ test('le lien vers le projet n’apparaît que s’il est fourni', () => {
 test('un extrait trop long est tronqué', () => {
   const { body } = buildNotification({
     ...baseContext,
-    type: NOTIFICATION_TYPES.SHOWCASE_COMMENT,
+    type: NOTIFICATION_TYPES.PERIMETER_TRANSFERRED,
     excerpt: 'a'.repeat(900)
   });
   assert.ok(body.includes('…'));
@@ -228,4 +230,77 @@ test('buildErrorReportEmail : isFollowUp distingue le complément du signalement
   assert.equal(followUp.actionType, 'Display error report (details added)');
   assert.ok(followUp.body.includes('added details'));
   assert.ok(followUp.body.includes('Je cliquais sur Valider'));
+});
+
+const MESSAGE_FIRST_TYPES = [
+  NOTIFICATION_TYPES.SYNTHESIS_COMMENT_TO_OWNER,
+  NOTIFICATION_TYPES.SYNTHESIS_COMMENT_TO_TEAM,
+  NOTIFICATION_TYPES.SYNTHESIS_COMMENT_REPLY,
+  NOTIFICATION_TYPES.SHOWCASE_COMMENT,
+  NOTIFICATION_TYPES.SHOWCASE_COMMENT_REPLY
+];
+
+test('avis, réponses de fil et post-its : le texte saisi ouvre le mail, suivi de l’avertissement et du lien', () => {
+  assert.deepEqual([...MESSAGE_FIRST_NOTIFICATION_TYPES].sort(), [...MESSAGE_FIRST_TYPES].sort());
+  MESSAGE_FIRST_TYPES.forEach((type) => {
+    const { body } = buildNotification({
+      ...baseContext,
+      type,
+      excerpt: 'Status: Validated with conditions\nMerci de retirer le visuel page 3.',
+      appUrl: 'https://lfb1.sharepoint.com/sites/PN/CN-App/index.aspx?projectId=p-1&view=synthesis&focus=team%3At1%3Aopinion'
+    });
+    const positions = {
+      message: body.indexOf('Status: Validated with conditions'),
+      avertissement: body.indexOf('Do not reply to this email.'),
+      lien: body.indexOf('Reply in Project Navigator'),
+      bonjour: body.indexOf('Hello,'),
+      tableau: body.indexOf('<table'),
+      attendu: body.indexOf('What is expected of you')
+    };
+    Object.entries(positions).forEach(([nom, index]) => assert.ok(index > -1, `${nom} absent pour ${type}`));
+    assert.ok(body.indexOf('Nathan Auvray wrote:') < positions.message, type);
+    assert.ok(positions.message < positions.avertissement, `le texte doit précéder l’avertissement (${type})`);
+    assert.ok(positions.avertissement < positions.lien, type);
+    assert.ok(positions.lien < positions.bonjour, `le reste du mail suit (${type})`);
+    assert.ok(positions.bonjour < positions.tableau && positions.tableau < positions.attendu, type);
+    assert.ok(body.indexOf('<blockquote') < body.indexOf('Hello,'), type);
+    assert.ok(body.includes('focus=team%3At1%3Aopinion'), 'le lien est repris tel quel');
+    assert.ok(body.includes('Merci de retirer le visuel page 3.'));
+    assert.ok(body.includes('Status: Validated with conditions<br>Merci'));
+  });
+});
+
+test('mails de message : le texte est repris en entier, pas en extrait', () => {
+  const longText = 'b'.repeat(5000);
+  const { body } = buildNotification({ ...baseContext, type: NOTIFICATION_TYPES.SYNTHESIS_COMMENT_REPLY, excerpt: longText });
+  assert.ok(body.includes(longText));
+  assert.ok(!body.includes('too long to be shown in full'));
+});
+
+test('mails de message : au-delà de la limite, le texte s’arrête proprement et renvoie à l’application', () => {
+  const { body } = buildNotification({
+    ...baseContext,
+    type: NOTIFICATION_TYPES.SYNTHESIS_COMMENT_REPLY,
+    excerpt: 'c'.repeat(MAX_FULL_MESSAGE_LENGTH + 50)
+  });
+  assert.ok(body.includes('c'.repeat(MAX_FULL_MESSAGE_LENGTH)));
+  assert.ok(!body.includes('c'.repeat(MAX_FULL_MESSAGE_LENGTH + 1)));
+  assert.ok(body.includes('too long to be shown in full'));
+  assert.ok(body.length < 30000, 'le corps reste sous la limite de la file');
+});
+
+test('mails de message : texte échappé, avertissement présent même sans lien ni texte', () => {
+  const { body } = buildNotification({
+    ...baseContext,
+    type: NOTIFICATION_TYPES.SHOWCASE_COMMENT,
+    excerpt: '<script>x</script>'
+  });
+  assert.ok(!body.includes('<script>x'));
+  assert.ok(body.includes('&lt;script&gt;x'));
+  assert.ok(body.includes('Do not reply to this email.'));
+  assert.ok(!body.includes('Reply in Project Navigator'));
+
+  const empty = buildNotification({ ...baseContext, type: NOTIFICATION_TYPES.SHOWCASE_COMMENT });
+  assert.ok(!empty.body.includes('wrote:'));
+  assert.ok(empty.body.includes('Do not reply to this email.'));
 });

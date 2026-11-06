@@ -42,6 +42,22 @@ export const NOTIFICATION_TYPES = {
 
 const quoted = (value) => `"${value}"`;
 
+// Mails qui relaient un message écrit par quelqu'un (avis ou statut d'expert, réponse dans un
+// fil, post-it de la vitrine) : le texte passe en tête, en entier, suivi de l'avertissement
+// de ne pas répondre par mail et du lien vers le message lui-même dans l'application. Un
+// destinataire qui répond au mail parle dans le vide ; c'est là qu'il faut le lui dire.
+export const MESSAGE_FIRST_NOTIFICATION_TYPES = new Set([
+  NOTIFICATION_TYPES.SYNTHESIS_COMMENT_TO_OWNER,
+  NOTIFICATION_TYPES.SYNTHESIS_COMMENT_TO_TEAM,
+  NOTIFICATION_TYPES.SYNTHESIS_COMMENT_REPLY,
+  NOTIFICATION_TYPES.SHOWCASE_COMMENT,
+  NOTIFICATION_TYPES.SHOWCASE_COMMENT_REPLY
+]);
+
+// La file coupe le corps à 30 000 caractères (notificationQueue.js) : au-delà de cette taille,
+// le message est arrêté proprement ici plutôt qu'au milieu d'une balise par la file.
+export const MAX_FULL_MESSAGE_LENGTH = 20000;
+
 export const NOTIFICATION_CATALOG = {
   [NOTIFICATION_TYPES.PROJECT_SUBMITTED_TEAM]: {
     actionType: 'Project submitted for review',
@@ -558,6 +574,64 @@ export const buildNotification = ({
     facts.push(['Date', formattedDate]);
   }
 
+  const isMessageFirst = MESSAGE_FIRST_NOTIFICATION_TYPES.has(type);
+  const factsTable = `<table role="presentation" style="border-collapse:collapse;margin:16px 0">${facts
+    .map(([label, value]) => factRow(label, value))
+    .join('')}</table>`;
+  const expectedBlock =
+    '<p style="margin:16px 0 6px"><strong>What is expected of you</strong></p>' +
+    `<ul style="margin:0 0 8px;padding-left:20px">${definition
+      .expected(context)
+      .map((line) => `<li style="margin:4px 0">${escapeHtml(line)}</li>`)
+      .join('')}</ul>`;
+  const footer =
+    '<hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0 12px">' +
+    `<p style="font-size:12px;color:#666;margin:0">Why are you receiving this message? Because ${escapeHtml(
+      definition.reason(context)
+    )}</p>` +
+    '<p style="font-size:12px;color:#666;margin:6px 0 0">Automated message sent by Project Navigator. Please do not reply to this email: use the discussion threads in the application to communicate.</p>';
+  const open = '<div style="font-family:Segoe UI,Arial,sans-serif;font-size:14px;line-height:1.5;color:#111">';
+  const intro = `<p>${escapeHtml(definition.intro(context))}</p>`;
+
+  if (isMessageFirst) {
+    const fullText = String(excerpt || '').trim();
+    const isCut = fullText.length > MAX_FULL_MESSAGE_LENGTH;
+    const messageText = isCut ? `${fullText.slice(0, MAX_FULL_MESSAGE_LENGTH)}…` : fullText;
+    const messageBlock = messageText
+      ? `<p style="margin:0 0 4px;color:#555">${escapeHtml(context.actorName)} wrote:</p>` +
+        `<blockquote data-cn-message="true" style="margin:0;padding:12px 16px;border-left:4px solid #1d4ed8;background:#f8fafc;color:#111;font-size:15px">${escapeHtml(
+          messageText
+        ).replace(/\n/g, '<br>')}</blockquote>` +
+        (isCut
+          ? '<p style="margin:4px 0 0;font-size:12px;color:#555">This message is too long to be shown in full here: read the rest in Project Navigator.</p>'
+          : '')
+      : '';
+    const replyLink = appUrl
+      ? `<p style="margin:10px 0 0"><a href="${escapeHtml(appUrl)}" style="display:inline-block;padding:8px 16px;border-radius:6px;background:#1d4ed8;color:#ffffff;font-weight:600;text-decoration:none">Reply in Project Navigator</a></p>`
+      : '';
+    const warningBlock =
+      '<div data-cn-warning="true" style="margin:16px 0;padding:12px 16px;border:1px solid #f59e0b;border-radius:6px;background:#fffbeb;color:#78350f">' +
+      '<p style="margin:0"><strong>&#9888; Do not reply to this email.</strong> Any reply must be posted in Project Navigator: ' +
+      'an answer sent by email reaches no one and is not kept with the project.</p>' +
+      replyLink +
+      '</div>';
+    const body =
+      open +
+      messageBlock +
+      warningBlock +
+      '<p>Hello,</p>' +
+      intro +
+      factsTable +
+      expectedBlock +
+      footer +
+      '</div>';
+    return {
+      subject: buildNotificationSubject(context.projectName, definition.actionType),
+      actionType: definition.actionType,
+      body
+    };
+  }
+
   const excerptText = truncate(excerpt);
   const excerptBlock = excerptText
     ? `<p style="margin:16px 0 4px;color:#555">Message content:</p>` +
@@ -571,24 +645,14 @@ export const buildNotification = ({
     : '';
 
   const body =
-    '<div style="font-family:Segoe UI,Arial,sans-serif;font-size:14px;line-height:1.5;color:#111">' +
+    open +
     '<p>Hello,</p>' +
-    `<p>${escapeHtml(definition.intro(context))}</p>` +
+    intro +
     excerptBlock +
     linkBlock +
-    `<table role="presentation" style="border-collapse:collapse;margin:16px 0">${facts
-      .map(([label, value]) => factRow(label, value))
-      .join('')}</table>` +
-    '<p style="margin:16px 0 6px"><strong>What is expected of you</strong></p>' +
-    `<ul style="margin:0 0 8px;padding-left:20px">${definition
-      .expected(context)
-      .map((line) => `<li style="margin:4px 0">${escapeHtml(line)}</li>`)
-      .join('')}</ul>` +
-    '<hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0 12px">' +
-    `<p style="font-size:12px;color:#666;margin:0">Why are you receiving this message? Because ${escapeHtml(
-      definition.reason(context)
-    )}</p>` +
-    '<p style="font-size:12px;color:#666;margin:6px 0 0">Automated message sent by Project Navigator. Please do not reply to this email: use the discussion threads in the application to communicate.</p>' +
+    factsTable +
+    expectedBlock +
+    footer +
     '</div>';
 
   return {
