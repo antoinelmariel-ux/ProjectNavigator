@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from '../../react.js';
 import { useTranslation } from '../../i18n/LanguageContext.jsx';
 import { InvitationBadge } from './InvitationBadge.jsx';
+import { AgendaAttachments } from './AgendaAttachments.jsx';
 import { CommitteeAgendaDecision } from './CommitteeAgendaDecision.jsx';
 import { buildInvitationId } from '../../utils/committeeInvitations.js';
 import { PASSAGE_ROLE_GUEST, PASSAGE_ROLE_OWNER, PASSAGE_ROLE_PRESENTER } from '../../utils/userCommitteePassages.js';
@@ -104,6 +105,9 @@ export const CommitteePassageCard = ({ entry, committeesById, invitationRecords,
             })}
           </span>
         </p>
+      )}
+      {!entry.isCancelled && entry.passage.attachments?.length > 0 && (
+        <AgendaAttachments idPrefix={`${idPrefix}-attachments`} attachments={entry.passage.attachments} />
       )}
       {entry.isPast && !entry.isCancelled && (
         entry.hasDecision ? (

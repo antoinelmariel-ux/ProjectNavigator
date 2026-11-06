@@ -1,5 +1,24 @@
 // Committee calendar (docs/specs/calendrier-comites.md).
 export default {
+  attachments: {
+    title: 'Documents and links',
+    empty: 'No document or link for this item.',
+    audience: 'Visible to committee members and to the item’s presenters.',
+    addFiles: 'Attach files',
+    uploading: 'Uploading “{{name}}”…',
+    linkUrlLabel: 'Link address',
+    linkNameLabel: 'Label (optional)',
+    linkPlaceholder: 'https://…',
+    addLink: 'Add link',
+    invalidLink: 'This link is not a valid http(s) address.',
+    remove: 'Remove “{{name}}”',
+    removeConfirm: 'Remove “{{name}}” from this item?',
+    linkBadge: 'Link',
+    added: '“{{name}}” added.',
+    removed: '“{{name}}” removed.',
+    uploadFailed: '“{{name}}” could not be attached: {{reason}}',
+    sharePointAccess: 'Files are stored in the app’s document library: each reader’s SharePoint permissions apply.'
+  },
   status: { draft: 'Draft', published: 'Published', cancelled: 'Cancelled' },
   invitation: { pending: 'Outlook invitation being sent', done: 'Outlook invitation sent', error: 'Outlook invitation failed' },
   errors: {
@@ -14,7 +33,8 @@ export default {
     conflict: 'The session was changed by someone else at the same time. Try again.',
     invalid: 'The information entered is incomplete.',
     alreadySent: 'Already done.',
-    generic: 'The operation did not succeed.'
+    generic: 'The operation did not succeed.',
+    tooManyAttachments: 'This item already has the maximum number of attachments ({{max}}).'
   },
   orphan: {
     message: 'Your project no longer triggers the following committee, where it is registered: {{committees}}.',

@@ -1,5 +1,24 @@
 // Calendario de los comités (docs/specs/calendrier-comites.md).
 export default {
+  attachments: {
+    title: 'Documentos y enlaces',
+    empty: 'Ningún documento ni enlace para este punto.',
+    audience: 'Visibles para los miembros del comité y los ponentes del punto.',
+    addFiles: 'Adjuntar archivos',
+    uploading: 'Enviando «{{name}}»…',
+    linkUrlLabel: 'Dirección del enlace',
+    linkNameLabel: 'Etiqueta (opcional)',
+    linkPlaceholder: 'https://…',
+    addLink: 'Añadir el enlace',
+    invalidLink: 'Este enlace no es una dirección http(s) válida.',
+    remove: 'Quitar «{{name}}»',
+    removeConfirm: '¿Quitar «{{name}}» de este punto?',
+    linkBadge: 'Enlace',
+    added: '«{{name}}» añadido.',
+    removed: '«{{name}}» quitado.',
+    uploadFailed: 'No se pudo adjuntar «{{name}}»: {{reason}}',
+    sharePointAccess: 'Los archivos se guardan en la biblioteca de documentos de la aplicación: se aplican los permisos de SharePoint de cada lector.'
+  },
   status: { draft: 'Borrador', published: 'Publicada', cancelled: 'Cancelada' },
   invitation: { pending: 'Invitación de Outlook en curso de envío', done: 'Invitación de Outlook enviada', error: 'Error en la invitación de Outlook' },
   errors: {
@@ -14,7 +33,8 @@ export default {
     conflict: 'Otra persona modificó la sesión al mismo tiempo. Inténtelo de nuevo.',
     invalid: 'La información introducida está incompleta.',
     alreadySent: 'Ya hecho.',
-    generic: 'La operación no se completó.'
+    generic: 'La operación no se completó.',
+    tooManyAttachments: 'Este punto ya tiene el número máximo de archivos adjuntos ({{max}}).'
   },
   orphan: {
     message: 'Su proyecto ya no activa el siguiente comité, en el que está inscrito: {{committees}}.',

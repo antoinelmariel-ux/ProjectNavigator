@@ -3,6 +3,9 @@ import { useTranslation } from '../../i18n/LanguageContext.jsx';
 import { CommitteeAttendance } from './CommitteeAttendance.jsx';
 import { PeoplePicker } from '../PeoplePicker.jsx';
 import { InvitationBadge } from './InvitationBadge.jsx';
+import { AgendaAttachments } from './AgendaAttachments.jsx';
+import { getStoredAgendaFilePaths } from '../../utils/agendaAttachments.js';
+import { deleteDocument } from '../../utils/documentStore.js';
 import { CommitteeAgendaDecision, DecisionBadge } from './CommitteeAgendaDecision.jsx';
 import { buildInvitationId, getEffectiveSessionLocation } from '../../utils/committeeInvitations.js';
 import {
@@ -399,6 +402,17 @@ export const CommitteeAgendaScreen = ({
                   </div>
                 </div>
 
+                {isTopic && (
+                  <AgendaAttachments
+                    idPrefix={`agenda-attachments-${passage.id}`}
+                    attachments={passage.attachments}
+                    canEdit={isChair && !isCancelled}
+                    entityId={session.id}
+                    onAdd={(attachment) => onRunAction(session.id, { type: 'addPassageAttachment', passageId: passage.id, attachment })}
+                    onRemove={(attachment) => onRunAction(session.id, { type: 'removePassageAttachment', passageId: passage.id, attachmentId: attachment.id })}
+                  />
+                )}
+
                 {project && renderExperts(project)}
 
                 {pendingRequest && (
@@ -503,7 +517,13 @@ export const CommitteeAgendaScreen = ({
                       onClick={() => {
                         if (isTopic) {
                           if (typeof window === 'undefined' || window.confirm(t('committeeSessions.agenda.removeTopicConfirm'))) {
-                            run({ type: 'unbook', passageId: passage.id }, 'topicRemoved');
+                            run({ type: 'unbook', passageId: passage.id }, 'topicRemoved').then((result) => {
+                              if (result?.ok) {
+                                getStoredAgendaFilePaths(passage.attachments).forEach((path) => {
+                                  deleteDocument(path).catch((error) => console.warn('[Comités] Suppression du fichier impossible :', error));
+                                });
+                              }
+                            });
                           }
                           return;
                         }
