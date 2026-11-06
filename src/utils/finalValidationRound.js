@@ -6,6 +6,7 @@
 // delta. Le cas nominal doit être un clic — sinon le round devient le goulot qui redonne aux
 // porteurs l'envie de ne plus rien modifier, c'est-à-dire le problème de départ à l'autre bout
 // de la chaîne.
+import { PROJECT_VALIDATION_VALIDATED } from './projectValidationStatus.js';
 import { getReviewedVersion, getNeedsReviewSince } from './perimeterReview.js';
 import {
   buildSubmissionSnapshot,
@@ -162,6 +163,16 @@ export const getPerimeterConfirmationState = (entry, round, requestedAt, { isOpi
 
   return confirmation.state === CONFIRMATION_REEXAMINING ? CONFIRMATION_REEXAMINING : CONFIRMATION_CONFIRMED;
 };
+
+// Un projet entièrement validé (validé, validé sous conditions et non concerné se valent, c'est
+// `computeProjectValidationStatus`) dont aucun avis n'a été contredit depuis n'a rien à faire
+// confirmer : demander le tour ne ferait que le refermer aussitôt. Il compte donc comme réglé,
+// sans que le porteur ait à l'ouvrir — pas de rappel de lancement, pas de reproche à l'envol.
+export const isLaunchSettled = (validation, perimeters = []) =>
+  validation?.status === PROJECT_VALIDATION_VALIDATED
+  && (Array.isArray(perimeters) ? perimeters : [])
+    .filter((perimeter) => perimeter?.hasOpinion)
+    .every((perimeter) => perimeter.isOpinionCurrent === true);
 
 // `perimeters` : [{ id, hasOpinion, entry, isOpinionCurrent? }]. Seuls les périmètres qui se sont déjà prononcés
 // entrent en confirmation ; ceux qui n'ont jamais répondu relèvent de la sollicitation ordinaire,

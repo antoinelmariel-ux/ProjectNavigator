@@ -2255,6 +2255,8 @@ export default {
         awaitingHint: '{{confirmed}} de {{total}} ámbitos han confirmado. La ronda sigue abierta hasta que los demás se pronuncien.',
         confirmedTitle: 'Confirmación final obtenida',
         confirmedHint: 'Todos los dictámenes emitidos se han confirmado sobre el estado actual del proyecto.',
+        settledTitle: 'No hace falta confirmación final',
+        settledHint: 'Todos los dictámenes son favorables y el proyecto no ha cambiado desde entonces: los expertos no tienen nada que confirmar antes del lanzamiento.',
         launched_withoutTitle: 'Proyecto lanzado sin confirmación final',
         launched_withoutHint: 'Alguien ha registrado que este proyecto se ha lanzado mientras la confirmación final seguía abierta. Se ha informado a los ámbitos afectados y a los administradores.',
         lateTitle: 'El lanzamiento espera a compliance',

@@ -78,6 +78,10 @@ export const ProjectReadinessPanel = ({
   // Sans date de lancement déclarée, le signal reste « none » : on propose quand même le tour
   // final dès que la validation est possible, plutôt que d'attendre une date que le porteur
   // n'est pas obligé de renseigner.
+  // Réglé sans tour : tous les avis sont favorables et à jour, personne n'a rien à confirmer.
+  const launchCopyKey = launchSignal === LAUNCH_CONFIRMATION_CONFIRMED && !roundStatus?.isRequested
+    ? 'settled'
+    : null;
   const resolvedLaunchSignal = launchSignal === 'none' && canRequestValidation && !roundStatus?.isRequested
     ? LAUNCH_CONFIRMATION_DUE
     : launchSignal;
@@ -510,7 +514,7 @@ export const ProjectReadinessPanel = ({
                 : 'text-amber-900'
           }`}
           >
-            {t(`synthesisReport.readiness.launch.${resolvedLaunchSignal}Title`)}
+            {t(`synthesisReport.readiness.launch.${launchCopyKey || resolvedLaunchSignal}Title`)}
           </p>
           <p className="mt-1 text-xs text-gray-700">
             {resolvedLaunchSignal === LAUNCH_CONFIRMATION_AWAITING && roundStatus
@@ -518,7 +522,7 @@ export const ProjectReadinessPanel = ({
                 confirmed: roundStatus.confirmed.length,
                 total: roundStatus.confirmed.length + roundStatus.pending.length + roundStatus.reexamining.length
               })
-              : t(`synthesisReport.readiness.launch.${resolvedLaunchSignal}Hint`)}
+              : t(`synthesisReport.readiness.launch.${launchCopyKey || resolvedLaunchSignal}Hint`)}
           </p>
           <div className="mt-3 flex flex-col gap-2">
             {resolvedLaunchSignal !== LAUNCH_CONFIRMATION_CONFIRMED

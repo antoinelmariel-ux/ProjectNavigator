@@ -299,3 +299,45 @@ test('le tour est complet dès l’ouverture quand tous les avis tiennent encore
   ]);
   assert.equal(all.isComplete, true);
 });
+
+import { isLaunchSettled } from '../src/utils/finalValidationRound.js';
+
+const FUTURE_LAUNCH = { launchDate: '2026-12-01' };
+const SETTLED_NOW = new Date("2026-11-10T09:00:00.000Z");
+
+test('un projet validé dont les avis sont à jour est réglé, quelle que soit l’équivalence des statuts', () => {
+  const validated = { status: 'validated' };
+  assert.equal(isLaunchSettled(validated, [
+    { id: 'a', hasOpinion: true, isOpinionCurrent: true },
+    { id: 'b', hasOpinion: false }
+  ]), true);
+  assert.equal(isLaunchSettled(validated, [{ id: 'a', hasOpinion: true, isOpinionCurrent: false }]), false);
+  assert.equal(isLaunchSettled({ status: 'outdated' }, [{ id: 'a', hasOpinion: true, isOpinionCurrent: true }]), false);
+  assert.equal(isLaunchSettled({ status: 'pending' }, []), false);
+  assert.equal(isLaunchSettled(null, []), false);
+});
+
+test('réglé : plus de rappel de lancement et signal confirmé, même sans tour demandé', () => {
+  assert.equal(getDueLaunchReminder({ answers: FUTURE_LAUNCH, roundStatus: null, now: SETTLED_NOW, reminderDays: { first: 30, second: 10 } }), 30);
+  assert.equal(
+    getDueLaunchReminder({ answers: FUTURE_LAUNCH, roundStatus: null, isSettled: true, now: SETTLED_NOW, reminderDays: { first: 30, second: 10 } }),
+    null
+  );
+  assert.equal(getLaunchConfirmationSignal({ answers: FUTURE_LAUNCH, roundStatus: null, now: SETTLED_NOW }), LAUNCH_CONFIRMATION_DUE);
+  assert.equal(
+    getLaunchConfirmationSignal({ answers: FUTURE_LAUNCH, roundStatus: null, isSettled: true, now: SETTLED_NOW }),
+    LAUNCH_CONFIRMATION_CONFIRMED
+  );
+});
+
+test('réglé : un lancement déclaré n’est pas « sans confirmation »', () => {
+  const launched = withProjectLaunch(FUTURE_LAUNCH, { by: 'porteur@lfb.fr' });
+  assert.equal(
+    getLaunchConfirmationSignal({ answers: launched, roundStatus: null, now: SETTLED_NOW }),
+    LAUNCH_CONFIRMATION_LAUNCHED_WITHOUT
+  );
+  assert.equal(
+    getLaunchConfirmationSignal({ answers: launched, roundStatus: null, isSettled: true, now: SETTLED_NOW }),
+    LAUNCH_CONFIRMATION_CONFIRMED
+  );
+});

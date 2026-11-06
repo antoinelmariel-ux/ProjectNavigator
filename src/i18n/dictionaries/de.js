@@ -2265,6 +2265,8 @@ export default {
         awaitingHint: '{{confirmed}} von {{total}} Bereichen haben bestätigt. Die Runde bleibt offen, bis sich die übrigen geäußert haben.',
         confirmedTitle: 'Endgültige Bestätigung erhalten',
         confirmedHint: 'Alle abgegebenen Stellungnahmen wurden für den aktuellen Projektstand bestätigt.',
+        settledTitle: 'Keine endgültige Bestätigung nötig',
+        settledHint: 'Alle Stellungnahmen sind positiv und das Projekt hat sich seitdem nicht geändert: Die Experten müssen vor dem Start nichts bestätigen.',
         launched_withoutTitle: 'Projekt ohne endgültige Bestätigung gestartet',
         launched_withoutHint: 'Jemand hat erfasst, dass dieses Projekt gestartet ist, während die endgültige Bestätigung noch offen war. Die betroffenen Bereiche und die Administratoren wurden informiert.',
         lateTitle: 'Der Start wartet auf Compliance',

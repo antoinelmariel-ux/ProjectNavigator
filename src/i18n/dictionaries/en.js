@@ -2255,6 +2255,8 @@ export default {
         awaitingHint: '{{confirmed}} of {{total}} areas have confirmed. The round stays open until the others have answered.',
         confirmedTitle: 'Final confirmation obtained',
         confirmedHint: 'Every opinion given has been confirmed against the project as it stands.',
+        settledTitle: 'No final confirmation needed',
+        settledHint: 'Every opinion is favourable and the project has not changed since: the experts have nothing to confirm before launch.',
         launched_withoutTitle: 'Project launched without final confirmation',
         launched_withoutHint: 'Someone recorded that this project has launched while the final confirmation was still open. The areas concerned and the administrators have been told.',
         lateTitle: 'The launch is waiting on compliance',

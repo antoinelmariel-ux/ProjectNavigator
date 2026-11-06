@@ -60,18 +60,20 @@ export const normalizeLaunchReminderDays = (value) => {
 export const getLaunchConfirmationSignal = ({
   answers,
   roundStatus,
+  isSettled = false,
   now = new Date(),
   reminderDays
 } = {}) => {
   const isLaunched = isProjectLaunched(answers);
+  const isComplete = roundStatus?.isComplete === true || isSettled === true;
 
   // Le seul cas qui accuse vraiment quelqu'un, et le seul que l'application ait le droit
   // d'affirmer : le projet a été déclaré lancé, et le tour n'était pas bouclé.
-  if (isLaunched && !roundStatus?.isComplete) {
+  if (isLaunched && !isComplete) {
     return LAUNCH_CONFIRMATION_LAUNCHED_WITHOUT;
   }
 
-  if (roundStatus?.isComplete) {
+  if (isComplete) {
     return LAUNCH_CONFIRMATION_CONFIRMED;
   }
 
@@ -92,9 +94,10 @@ export const getLaunchConfirmationSignal = ({
 
 // Le seuil dont le rappel est dû maintenant, ou `null`. Le seuil le plus proche du lancement
 // l'emporte : à J-5, c'est le rappel « agir » qui part, pas celui « prévoir ».
-export const getDueLaunchReminder = ({ answers, roundStatus, now = new Date(), reminderDays } = {}) => {
-  // Rappeler une date de lancement à un projet déjà parti n'a plus d'objet.
-  if (roundStatus?.isComplete || isProjectLaunched(answers)) {
+export const getDueLaunchReminder = ({ answers, roundStatus, isSettled = false, now = new Date(), reminderDays } = {}) => {
+  // Rappeler une date de lancement à un projet déjà parti n'a plus d'objet, ni à un projet dont
+  // tous les avis sont favorables et à jour : il n'y a rien à demander avant de lancer.
+  if (roundStatus?.isComplete || isSettled || isProjectLaunched(answers)) {
     return null;
   }
 
