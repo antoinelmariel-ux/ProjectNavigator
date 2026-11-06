@@ -183,7 +183,8 @@ export default {
     },
     finalRound: {
       requested: 'Confirmation finale demandée : les experts qui se sont déjà prononcés sont invités à confirmer leur avis.',
-      requestedWithoutRecipients: 'Confirmation finale ouverte. Aucun avis n’a encore été rendu sur ce projet, il n’y a donc personne à relancer.'
+      requestedWithoutRecipients: 'Confirmation finale ouverte. Aucun avis n’a encore été rendu sur ce projet, il n’y a donc personne à relancer.',
+      requestedAllUnchanged: 'Confirmation finale ouverte. Le projet n’a pas changé depuis les avis rendus : aucune confirmation n’est demandée aux experts.'
     },
     submit: {
       syncing: 'Synchronisation en cours : veuillez patienter avant de soumettre.',
@@ -2263,6 +2264,8 @@ export default {
         awaitingHint: '{{confirmed}} périmètre(s) sur {{total}} ont confirmé. Le tour reste ouvert tant que les autres ne se sont pas prononcés.',
         confirmedTitle: 'Confirmation finale obtenue',
         confirmedHint: 'Tous les avis rendus ont été confirmés sur l’état actuel du projet.',
+        settledTitle: 'Aucune confirmation finale nécessaire',
+        settledHint: 'Tous les avis sont favorables et le projet n’a pas changé depuis : les experts n’ont rien à confirmer avant le lancement.',
         launched_withoutTitle: 'Projet lancé sans confirmation finale',
         launched_withoutHint: 'Quelqu’un a constaté que ce projet est parti alors que la confirmation finale n’était pas complète. Les périmètres concernés et les administrateurs en ont été informés.',
         lateTitle: 'Le lancement attend la compliance',

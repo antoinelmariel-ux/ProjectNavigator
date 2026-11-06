@@ -60,6 +60,8 @@ import {
   hasLaunchReminderBeenSent,
   markLaunchReminderSent,
   startFinalValidationRound,
+  isLaunchSettled,
+  isPerimeterOpinionCurrent,
   withPerimeterConfirmation
 } from './utils/finalValidationRound.js';
 import {
@@ -68,7 +70,7 @@ import {
   normalizeLaunchReminderDays
 } from './utils/launchConfirmation.js';
 import { isProjectLaunched, withProjectLaunch, withoutProjectLaunch } from './utils/projectLaunch.js';
-import { getProjectCompliancePerimeters } from './utils/projectValidationStatus.js';
+import { computeProjectValidationStatus, getProjectCompliancePerimeters } from './utils/projectValidationStatus.js';
 import {
   PERIMETER_TYPE_TEAM,
   buildPerimeterKey,
@@ -3828,8 +3830,14 @@ const updateProjectFilters = useCallback((updater) => {
     id: perimeter.id,
     type: perimeter.type,
     hasOpinion: Boolean(perimeter.entry?.status),
+    isOpinionCurrent: isPerimeterOpinionCurrent(project, perimeter.entry),
     entry: perimeter.entry
   })), [teams, validationCommitteeConfig]);
+
+  const getLaunchSettled = useCallback((project) => isLaunchSettled(
+    computeProjectValidationStatus(project, { teams, validationCommitteeConfig }),
+    buildRoundPerimeters(project)
+  ), [buildRoundPerimeters, teams, validationCommitteeConfig]);
 
   // Une modification qui fait que le projet ne déclenche plus un comité où il est inscrit : le
   // passage n'est pas retiré en silence, le chef de projet confirme (ou corrige sa réponse).
@@ -4064,10 +4072,11 @@ const updateProjectFilters = useCallback((updater) => {
     acc[project.id] = getLaunchConfirmationSignal({
       answers: project.answers,
       roundStatus: getFinalValidationRoundStatus(project.answers, buildRoundPerimeters(project)),
+      isSettled: getLaunchSettled(project),
       reminderDays: launchReminderDays
     });
     return acc;
-  }, {}), [liveProjects, buildRoundPerimeters, launchReminderDays]);
+  }, {}), [liveProjects, buildRoundPerimeters, getLaunchSettled, launchReminderDays]);
 
 
   const activeProjectName = useMemo(() => {
@@ -5534,6 +5543,7 @@ const updateProjectFilters = useCallback((updater) => {
       const dueThreshold = getDueLaunchReminder({
         answers: project.answers,
         roundStatus,
+        isSettled: getLaunchSettled(project),
         reminderDays: launchReminderDays
       });
 
@@ -5576,6 +5586,7 @@ const updateProjectFilters = useCallback((updater) => {
     buildRoundPerimeters,
     canManageProject,
     currentUserEmail,
+    getLaunchSettled,
     isHydrated,
     isSimulatedSession,
     launchReminderDays,
@@ -8002,7 +8013,7 @@ const updateProjectFilters = useCallback((updater) => {
     }
 
     const roundStatus = getFinalValidationRoundStatus(nextAnswers, buildRoundPerimeters({ ...project, answers: nextAnswers }));
-    if (roundStatus.isComplete) {
+    if (roundStatus.isComplete || getLaunchSettled({ ...project, answers: nextAnswers })) {
       return;
     }
 
@@ -8037,6 +8048,7 @@ const updateProjectFilters = useCallback((updater) => {
     buildRoundPerimeters,
     canDeclareProjectLaunch,
     currentUserEmail,
+    getLaunchSettled,
     notify,
     teams
   ]);
@@ -8047,7 +8059,8 @@ const updateProjectFilters = useCallback((updater) => {
       return null;
     }
 
-    const perimeters = buildRoundPerimeters(project).filter((perimeter) => perimeter.hasOpinion);
+    const roundPerimeters = buildRoundPerimeters(project).filter((perimeter) => perimeter.hasOpinion);
+    const perimeters = roundPerimeters.filter((perimeter) => !perimeter.isOpinionCurrent);
     const nextAnswers = startFinalValidationRound(project.answers || {}, {
       by: currentUserEmail,
       version: getSubmissionVersion(project)
@@ -8102,7 +8115,9 @@ const updateProjectFilters = useCallback((updater) => {
       status: 'success',
       message: recipients.length > 0
         ? t('app.finalRound.requested')
-        : t('app.finalRound.requestedWithoutRecipients')
+        : t(roundPerimeters.length > 0 && perimeters.length === 0
+          ? 'app.finalRound.requestedAllUnchanged'
+          : 'app.finalRound.requestedWithoutRecipients')
     });
 
     return nextAnswers;
