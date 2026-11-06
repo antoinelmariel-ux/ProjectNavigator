@@ -122,9 +122,13 @@ export const LIST_SCHEMAS = {
       'ProjectId',
       'Status',
       'SentAt',
-      'ErrorMessage'
+      'ErrorMessage',
+      // Regroupement des mails de message écrits coup sur coup (notificationGrouping.js) : une
+      // ligne en attente reçoit les messages suivants de même clé, le flux attend avant d'envoyer.
+      'GroupKey',
+      'MessagesJson'
     ],
-    json: {},
+    json: { MessagesJson: ARRAY },
     numbers: [],
     booleans: []
   },

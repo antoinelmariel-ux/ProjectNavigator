@@ -225,6 +225,19 @@ report - details added ») pour que l'équipe rattache ce contexte au même inci
 | Status 📌 | Choix : `Pending`, `Sent`, `Error` — **valeur par défaut : `Pending`** |
 | SentAt | Date et heure |
 | ErrorMessage | Texte long |
+| GroupKey | Une ligne de texte — **à indexer** (Paramètres de la liste → Colonnes indexées) |
+| MessagesJson | Texte long (**texte brut**, pas « texte enrichi ») |
+
+**Regroupement des mails écrits coup sur coup** (`GroupKey`, `MessagesJson`). Quand quelqu'un
+enchaîne plusieurs réponses dans un même fil, ou pose plusieurs post-its sur une vitrine, l'app
+n'écrit plus une ligne par message : tant qu'une ligne de même `GroupKey` attend encore son envoi
+(`Status` = `Pending`, créée il y a moins de 4 minutes), elle y ajoute le message et réécrit
+`Title` et `Body`. Le flux d'envoi attend 5 minutes avant d'envoyer ces lignes-là (voir l'étape 5),
+ce qui laisse une minute de marge. Seuls les mails qui relaient un message sont concernés (avis
+d'expert, réponses de fil, post-its) ; tous les autres ont un `GroupKey` vide et partent comme
+avant. **Indexe `GroupKey`** : l'app filtre dessus, et au-delà de 5 000 lignes SharePoint refuse
+un filtre sur une colonne non indexée. Tant que ces deux colonnes n'existent pas, l'app envoie
+simplement un mail par message, comme avant — rien ne casse si tu les crées après le déploiement.
 
 ### `CN_SiteAccessRequests` — demandes d'ajout comme membre du site
 Décision assumée : quand quelqu'un est sélectionné via la recherche de personnes (partage de
@@ -481,11 +494,19 @@ automatisé**. Aucun connecteur premium n'est nécessaire.
 1. **Déclencheur** : SharePoint → « **Lorsqu'un élément est créé** »
    → Site : ton site · Liste : `CN_NotificationsQueue`.
 2. **Condition** (recommandé) : `Status` est égal à `Pending` → brancher la suite sur « Si oui ».
+2 bis. **Condition** « `GroupKey` n'est pas vide » (dans « Si oui » de la précédente) :
+   - **Si oui** : Contrôle → « **Délai** », **5 minutes**. C'est le temps pendant lequel l'app peut
+     encore ajouter à cette ligne les messages écrits dans la foulée.
+   - **Si non** : rien (les autres notifications partent sans attendre).
+2 ter. **Action**, après cette condition : SharePoint → « **Obtenir l'élément** » → même liste,
+   ID = contenu dynamique `ID` du déclencheur. **Les étapes suivantes utilisent les champs de cet
+   élément relu**, pas ceux du déclencheur : ce sont eux qui contiennent les messages ajoutés
+   pendant le délai.
 3. **Action** : Office 365 Outlook → « **Envoyer un e-mail (V2)** »
-   - À : contenu dynamique `ToEmails`
-   - Cc : contenu dynamique `CcEmails`
-   - Objet : contenu dynamique `Title` (tu peux préfixer par `[Project Navigator] `)
-   - Corps : contenu dynamique `Body`
+   - À : `ToEmails` de l'élément relu (étape 2 ter)
+   - Cc : `CcEmails` de l'élément relu
+   - Objet : `Title` de l'élément relu (tu peux préfixer par `[Project Navigator] `)
+   - Corps : `Body` de l'élément relu
    - ⚠️ L'e-mail partira **de la boîte du propriétaire du flux** (toi). **Recommandé** : utiliser
      plutôt « Envoyer un e-mail à partir d'une boîte aux lettres partagée (V2) » avec une boîte
      partagée dédiée (à demander à l'IT — c'est une demande simple, sans enjeu de sécurité).

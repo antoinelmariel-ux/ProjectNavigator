@@ -2479,6 +2479,7 @@ export default {
     replyPlaceholder: 'Su respuesta (texto enriquecido y enlaces)...',
     removeButton: 'Eliminar',
     sendReplyButton: 'Enviar respuesta',
+    unclaimedReplyNoMailHint: 'Nadie de este equipo se ha hecho cargo del proyecto todavía: su respuesta queda guardada y visible para los expertos en la aplicación, pero no se envía ningún correo hasta que alguien lo haga.',
     risksHeadingTemplate: 'Riesgos identificados ({{count}})',
     riskAriaLabelTemplate: 'Riesgo {{level}}',
     referentTeamLabel: 'Equipo de referencia:',

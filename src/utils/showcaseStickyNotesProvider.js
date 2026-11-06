@@ -14,6 +14,8 @@ const toNote = (record) => {
     sectionY: anchor.sectionY,
     x: anchor.x,
     y: anchor.y,
+    // Pas de colonne dédiée : la date du mail de création voyage avec l'ancrage (JSON).
+    notifiedAt: anchor.notifiedAt || null,
     text: record.Content || '',
     color: record.Color || '',
     status: record.Resolved ? 'closed' : 'open',
@@ -39,7 +41,8 @@ const toListItem = (note, userEmail) => ({
     sectionX: note.sectionX,
     sectionY: note.sectionY,
     x: note.x,
-    y: note.y
+    y: note.y,
+    ...(note.notifiedAt ? { notifiedAt: note.notifiedAt } : {})
   },
   Content: note.text || '',
   Color: note.color || '',

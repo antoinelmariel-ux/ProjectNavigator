@@ -13,6 +13,7 @@ import {
   getPerimeterLastActivityAt,
   getTeamClaim,
   getUnclaimedReminderState,
+  hasActivePerimeterClaim,
   markUnclaimedReminderSent,
   isClaimedBy,
   isClaimedByOther,
@@ -388,4 +389,13 @@ test('transfert : le dernier suiveur parti, la clé followers disparaît', () =>
     { action: CLAIM_ACTION_TRANSFER, assigneeEmail: 'bob@lfb.fr' }
   );
   assert.equal('followers' in next, false);
+});
+
+test('hasActivePerimeterClaim : une prise en charge par un contact actuel de l’équipe, rien d’autre', () => {
+  const team = { id: 'legal', contacts: ['Anne@lfb.fr', 'bob@lfb.fr'] };
+  assert.equal(hasActivePerimeterClaim(team, undefined), false);
+  assert.equal(hasActivePerimeterClaim(team, { status: 'validated' }), false);
+  assert.equal(hasActivePerimeterClaim(team, { claim: { assigneeEmail: 'anne@lfb.fr' } }), true);
+  assert.equal(hasActivePerimeterClaim(team, { claim: { assigneeEmail: 'parti@lfb.fr' } }), false, 'orpheline');
+  assert.equal(hasActivePerimeterClaim(team, { claim: { assigneeEmail: '' } }), false);
 });

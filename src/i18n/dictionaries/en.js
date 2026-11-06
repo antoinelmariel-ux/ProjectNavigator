@@ -2479,6 +2479,7 @@ export default {
     replyPlaceholder: 'Your reply (rich text and links)...',
     removeButton: 'Remove',
     sendReplyButton: 'Send reply',
+    unclaimedReplyNoMailHint: 'No one in this team has taken the project in charge yet: your reply is saved and visible to the experts in the application, but no email is sent until someone does.',
     risksHeadingTemplate: 'Identified risks ({{count}})',
     riskAriaLabelTemplate: 'Risk {{level}}',
     referentTeamLabel: 'Referent team:',

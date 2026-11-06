@@ -129,6 +129,13 @@ test('un lancement se déclare : il n’est jamais déduit d’une date dépass�
   await page.getByRole('button', { name: 'Déclarer le projet lancé' }).click();
   await expect(page.getByText('Projet lancé sans confirmation finale')).toBeVisible();
 
+  // Le constat ne va qu'à qui suit le périmètre (ici l'expert qui a rendu l'avis, auteur de la
+  // déclaration) et aux administrateurs — plus à tous les contacts de l'équipe.
+  await page.waitForTimeout(300);
+  const launchMails = await page.evaluate(() => (window.__cnMockNotifications || [])
+    .filter((mail) => mail.actionType && /without/i.test(mail.subject)));
+  expect(launchMails.some((mail) => mail.to.includes('laure.chevalier@lfb.fr'))).toBe(false);
+
   await expect
     .poll(() => readStoredState(page).then((parsed) => {
       const project = parsed.projects?.find((entry) => entry?.answers?.__project_launch__?.launchedAt);

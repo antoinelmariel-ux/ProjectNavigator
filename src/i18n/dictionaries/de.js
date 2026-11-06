@@ -2489,6 +2489,7 @@ export default {
     replyPlaceholder: 'Ihre Antwort (Rich-Text und Links)...',
     removeButton: 'Entfernen',
     sendReplyButton: 'Antwort senden',
+    unclaimedReplyNoMailHint: 'Noch niemand in diesem Team hat das Projekt übernommen: Ihre Antwort ist gespeichert und für die Experten in der Anwendung sichtbar, aber bis zur Übernahme wird keine E-Mail versendet.',
     risksHeadingTemplate: 'Identifizierte Risiken ({{count}})',
     riskAriaLabelTemplate: 'Risiko {{level}}',
     referentTeamLabel: 'Zuständiges Team:',

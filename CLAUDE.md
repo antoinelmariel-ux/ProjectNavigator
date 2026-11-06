@@ -443,25 +443,15 @@ gracefully to the old behaviour when its data is absent:
   and of "this question is mandatory" — it was copy-pasted identically into `App.jsx`,
   `QuestionnaireScreen.jsx`, `SynthesisReport.jsx` and `projectNormalization.js`, and copies that
   disagree would produce different progress counts for one project.
-- **`src/utils/unknownAnswer.js` — "I do not know yet" as a real answer.** Sentinel value stored
-  like any other answer, but **no condition is ever satisfied by it**, negative conditions
-  included — the guard lives in *both* condition engines (`questions.js#evaluateQuestionCondition`
-  and `rules.js#matchesCondition`, they are separate code paths; patching one only is the trap).
-  Without that, `not_equals` would fire on an absence of information. `getUncertainRuleCoverage`
-  (`uncertainCoverage.js`) is the necessary counterpart: it names the rules such an answer leaves
-  in suspense, **the teams those rules would solicit, and the teams the doubt was actually sent
-  to** — a doubt nobody is asked about has no chance of being lifted, so the questionnaire offers
-  those teams right under the toggle and the synthesis flags an unrouted one. Routing reuses
-  `questionThreads.js` rather than inventing a second solicitation path: only a thread notifies a
-  team and makes it a perimeter. It is offered on the question types the rules engine reads
-  (`canAnswerBeUnknown`), not on narrative fields. The synthesis's « Rappel de vos réponses »
-  renders such an answer as an open point rather than as a value like any other — a doubt printed
-  as plain text next to the question reads as an answer, not as something still owed to someone —
-  with its recipient team, the offer to route it when it has none, and the reminder that it blocks
-  the final validation. Beware `QuestionnaireScreen.jsx`'s effect that
-  prunes a `choice`/`multi_choice` answer no longer among the visible options: the sentinel is not
-  an option, so without its explicit guard the doubt is erased the moment it is expressed, with no
-  error anywhere (that is exactly what happened, on the two types where it is most useful).
+- **`src/utils/questionDoubts.js` — « J'ai un doute », a note, never the answer.** The owner
+  keeps their real answer and flags, with free text, that they are not sure of it (stored in
+  `answers` under `__question_doubts__`). The rules engine never sees it: an opinion can be given on
+  a doubtful answer; only the final validation (`rejectUnknown` in `mandatoryQuestions.js`) requires
+  the doubt to be lifted. Offered on the types `canQuestionHaveDoubt` allows (or the question's
+  `allowUnknownAnswer`). It is shown in the synthesis's « Rappel de vos réponses » (amber block,
+  readable by experts too) and **never sends a mail nor solicits a team** — it replaced both the old
+  "I do not know yet" sentinel answer (`unknownAnswer.js`/`uncertainCoverage.js`) and the anchored
+  questions to an expert (`questionThreads.js`), which are gone; don't bring either back.
 - **`src/utils/submissionKind.js` — two doors, one project.** `preliminary` vs `final`, stored in
   answers (so it needs no SharePoint column). A preliminary request only requires the orientation
   level — the core questions (`getMissingForPreliminaryRequest`, the same list that enables the
@@ -704,6 +694,9 @@ expert one click** in the nominal case, and makes a project that ships without i
 - **"I need to review again" reuses the update machinery**: it sets `needsReviewSince`, so the
   perimeter shows the same "to review again" state as after a project update and the home badge
   goes `outdated`. The round stays open until a new opinion lands.
+- **« Launched without confirmation » follows the claim** (`PROJECT_LAUNCHED_WITHOUT_CONFIRMATION`):
+  per unconfirmed team `resolveClaimAwareRecipients` (assignee + followers, else the routed team,
+  absences substituted, `never` members excluded) plus `adminEmails` — never the raw contact list.
 - **A launch is declared, never inferred** (`src/utils/projectLaunch.js`). `launchDate` is a
   forecast saved months earlier, and most owners wait for their confirmation before shipping —
   so deducing "launched without confirmation" from a missed date accused exactly the people who
@@ -723,35 +716,79 @@ expert one click** in the nominal case, and makes a project that ships without i
   session of whoever opens the app — here the owner, since they are the one who decides to launch
   — and `remindersSent` keeps it idempotent. The nearest threshold wins.
 
-## Anchored questions (asking an expert from inside the questionnaire)
+## Mails relaying a message (text first, no-reply warning, link to the message itself)
 
-The point of consulting early is to ask *while filling the form*, at the moment the doubt appears,
-without submitting anything. `src/utils/questionThreads.js` holds those threads, in `answers` under
-`__question_threads__` (same reason as every other project-level marker: selectable, no new
-SharePoint column). A thread is `{id, questionId, teamId, createdBy, createdAt, resolvedAt,
-messages[]}` — anchored to one questionnaire item and one expert team.
+Five notification types relay something a person wrote — an expert's or committee's opinion
+(status and/or comment, the committee decision entered from the agenda included), a reply in a
+discussion thread of « Enjeux du projet », a showcase post-it and a reply to it:
+`MESSAGE_FIRST_NOTIFICATION_TYPES` in `src/utils/notificationTemplates.js`. Their body starts with
+that text **in full** (« X wrote: », then the text; cut only beyond `MAX_FULL_MESSAGE_LENGTH`,
+because `notificationQueue.js` truncates bodies at 30 000 characters and would cut mid-tag), then a
+standing « Do not reply to this email » warning with a « Reply in Project Navigator » button, then
+the usual intro / facts / expectations / footer. Every other type keeps the former layout.
 
-- **Asking solicits the team for real.** `handleAskQuestionToTeam` (`App.jsx`) writes the thread
-  *and* an `addManualTeamRequest(...)` entry, which is what already makes a team a perimeter of the
-  synthesis. No parallel visibility mechanism was invented: `manualTeamRequests` survives a
-  recomputation of the analysis, and `HomeScreen.jsx`'s `complianceTriggeredProjects` now merges
-  manually-requested teams into `relevantTeams` exactly as `SynthesisReport.jsx` already did —
-  without that merge an anchored question on a still-draft project would land in nobody's queue
-  (and neither did a manual team request, which this fixes too).
-- **The thread is shown on both sides, in the same place each side already works**: under the
-  questionnaire item for the owner (`data-tour-id="question-ask-expert"`, collapsed form + thread
-  list), and inside that team's card in the synthesis for the expert, with the originating question
-  label on top. A team with an **unresolved** thread defaults to *expanded* in the synthesis
-  (`hasPendingQuestionThread`) — expert cards are collapsed by default, which would otherwise hide
-  the very thing waiting for an answer.
-- **Writing happens through `patchActiveProjectAnswers`**, not `setAnswers` alone: these threads live
-  on projects that are usually still drafts, so the project entry has to be patched too or the
-  thread dies with the next hydration.
-- **Closing a thread belongs to whoever opened it** (`handleResolveQuestionThread` checks
-  `thread.createdBy`): an expert who answered does not get to decide their answer was enough.
-- Replies notify **the other side only** (`QUESTION_ASKED` towards the team via
-  `resolveTeamMailRecipients`, `QUESTION_ANSWERED` back to the asker). Tests:
-  `test/questionThreads.test.mjs`, `e2e/question-threads.spec.js`.
+- **What the text and the link are is decided per write**, by `buildComplianceChangeMessage`
+  (`src/utils/notificationLinks.js`, `test/notificationLinks.test.mjs`): a reply added to the thread
+  wins (its text, link to that reply); otherwise the opinion (« Status: … » then the comment — a
+  status changed without comment still has a text), link to the opinion. Several perimeters saved
+  at once give one titled paragraph each, link to the first.
+- **The link** is the project URL plus `focusKind` (`team`/`committee`/`note`), `focusId` and
+  `focusMessage` (`opinion` or a reply id) — three separate params, since no id is guaranteed free
+  of a separator. A team/committee target also gets `view=synthesis` (it used to open the
+  showcase); a light-mode post-it gets `showcaseMode=light`, because a note only exists in the
+  display mode it was posted in. A shared showcase token (`?sv=`) never carries a focus.
+- **Arrival**: the pending-link effect in `App.jsx` routes the focus through the usual trash /
+  cancelled / missing checks, then `handleOpenProject(..., { focusPerimeter: {type, id, message} })`
+  or, for a note, the showcase with annotation mode on and `pendingShowcaseNoteFocus`.
+  `SynthesisReport` opens the section, unfolds the card and the whole thread, then reveals
+  `#compliance-opinion-team-<id>` / `#compliance-opinion-committee-<id>` / `#compliance-message-<replyId>`
+  (`revealLinkTarget`, `src/utils/linkTarget.js`: centred scroll, `.cn-link-target` outline and
+  `data-cn-link-target` for a few seconds); a target that no longer exists falls back to the card,
+  then to the top of the page. Its retry timer lives in a ref, not in the effect's cleanup:
+  `onFocusPerimeterHandled` resets the focus and re-runs the effect, which used to cancel the scroll.
+  `AnnotationLayer` waits for the note's section, scrolls to the note's point and outlines the note
+  (or the reply, `data-annotation-reply-id`); an unknown note is dropped after 15 s.
+- **A thread reply mails each person once.** A reply triggers the main mail (to the owner side
+  or the team, from `handleUpdateComplianceComments`) and, from `SynthesisReport`, « Reply to your
+  comment » to the previous message's author. `notify` returns its final recipients;
+  `lastThreadReplyMailRef` keeps those of the main mail keyed by project/perimeter/reply id, and
+  `notifyThreadLastAuthor` skips a last author already among them (`alreadyNotified`) — that was
+  the owner receiving the same reply twice. A last author outside them (a colleague, a co-owner
+  routing left out) still gets « Reply to your comment ».
+- **No mail when nothing a reader waits for has changed.** `buildComplianceChangeMessage` returns
+  `isMeaningful` (a reply was added, or the status/comment changed); `handleUpdateComplianceComments`
+  and the agenda decision drop every perimeter where it is false, and send nothing if none is left.
+  That is what keeps a final-round confirmation (« I confirm », « I need to review again » — the
+  latter has its own `FINAL_CONFIRMATION_REEXAMINING`), an attachment-only change of the opinion,
+  a re-stamp or a claim/follower change from mailing the owner a copy of an opinion they already
+  have. On the owner side, only the perimeters actually written to are mailed. A reply made of an
+  attachment alone is quoted by its name (« Attachment: … »).
+- **A post-it mails the owner once, when its author has finished** (`commitAnnotationNote` in
+  `App.jsx`): on the textarea's `blur` (`onNoteCommit`), or after `SHOWCASE_COMMENT_IDLE_NOTIFY_MS`
+  (30 s) without typing. The save itself stays debounced at 1.2 s. It used to mail on every 1.2 s
+  pause, i.e. half-written texts, and again on every later edit. `notifiedAt` on the note (carried in
+  `AnchorJson` on `CN_ShowcaseStickyNotes`, no new column) makes it once per note; entering and
+  leaving a note without typing sends nothing (`editedAnnotationNoteIdsRef`). The first reply to a
+  post-it goes to the post-it's author (`getShowcaseNoteReplyTarget`), who was never told before.
+- **Messages written in quick succession share one mail** (`src/utils/notificationGrouping.js`,
+  `test/notificationGrouping.test.mjs`). For the five message types `notify` passes a `group` to
+  `queueNotification`: a `GroupKey` hashed from type + project + target (`team:<id>`,
+  `committee:<id>`, or `showcase` for post-its) + to/cc — recipients are in the key so a message
+  never reaches someone it was not addressed to —, the message itself (author, text, time, its own
+  link) and a `render(messages)` that rebuilds subject and body (`buildNotification({ messages })`:
+  « N new messages », each with author and time, link to the **first** one, subject « (N messages) »).
+  `queueNotification` looks for the last `Pending` row with that key (`Created` server-side) and, if
+  younger than `NOTIFICATION_GROUP_WINDOW_MS` (4 min) and not full (`MAX_GROUPED_MESSAGES`, text
+  length), MERGEs into it under IF-MATCH (replayed on 412); otherwise it creates a row with
+  `GroupKey`/`MessagesJson`. The send flow waits 5 min (`NOTIFICATION_FLOW_DELAY_MINUTES`) on rows
+  with a `GroupKey`, re-reads the row, then sends it (PREPARATION doc, étape 5). Every message is
+  written at once, so a closed tab loses nothing. If the two columns don't exist yet, the lookup
+  fails silently and a 400 on create retries without them: one mail per message, as before. The
+  local journal (`window.__cnMockNotifications`) groups the same way, entries carry `groupKey`/
+  `messages`.
+- Outside SharePoint, no mail leaves: `queueNotification` keeps the last 50 in
+  `window.__cnMockNotifications` (subject, body, recipients), which is what `e2e/notification-message-links.spec.js` reads.
+  Local mode does not persist post-its, so the post-it reveal itself is only exercised in SharePoint mode.
 
 ## Editing a reply in the expert ↔ owner thread
 
@@ -935,6 +972,14 @@ per-person settings this feature needs.
   (use followers for those), or the checkbox brings back the very email volume the feature removes.
   They are sent in `to` and not `cc`
   because there is no primary recipient (the new owner is the actor, whom `notify` filters out).
+- **What the owner side writes on an unclaimed team perimeter mails nobody in that team**
+  (`hasActivePerimeterClaim`: a claim held by a *current* contact — an orphan claim does not
+  count). Applies to the main mail of `handleUpdateComplianceComments` and to « Reply to your
+  comment » when its target is a team contact and the writer is not. The project already waits in
+  that team's « À prendre » with its news dot; claiming it is how the reply gets read. The owner
+  is told under the reply box (`unclaimedReplyNoMailHint`, `data-testid="unclaimed-reply-hint-<teamId>"`).
+  Committees are not claimable, so they keep receiving. Solicitations (submission, update,
+  final-round request) are not replies and still follow their own routing.
 - **The first submission mail still goes to the whole team.** You cannot claim a project you never
   heard of; only absence substitution applies there (`resolveTeamMailRecipients`).
 - **Staleness is signalled, never auto-released.** `ClaimStaleDays` (6 business days) flags the card,

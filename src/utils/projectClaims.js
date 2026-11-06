@@ -170,6 +170,15 @@ export const isOrphanClaim = (team, claim) => {
   return Boolean(normalized) && !isTeamContact(team, normalized.assigneeEmail);
 };
 
+// Un membre de l'équipe a-t-il pris le périmètre en charge ? Une prise en charge orpheline (son
+// titulaire n'est plus contact de l'équipe) ne compte pas : plus personne de l'équipe ne le suit.
+// Tant que c'est faux, ce qu'écrit le chef de projet ne prévient personne par mail : le projet est
+// dans « À prendre », avec sa pastille, et c'est en le prenant en charge qu'on lit ce qui attend.
+export const hasActivePerimeterClaim = (team, entry) => {
+  const claim = getPerimeterClaim(entry);
+  return Boolean(claim) && isTeamContact(team, claim.assigneeEmail);
+};
+
 export const applyClaimAction = (entry, {
   action = CLAIM_ACTION_CLAIM,
   assigneeEmail = '',

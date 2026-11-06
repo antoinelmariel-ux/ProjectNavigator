@@ -94,7 +94,7 @@ script (nécessaire au-delà de 5 000 éléments).
 | `CN_ProjectMembers` | EntryId, ProjectId📌, MemberEmail📌, Role, CanSubmit (oui/non) |
 | `CN_ShowcaseStickyNotes` | StickyId, ProjectId📌, ShowcaseSection, AnchorJson (texte long), Content (texte long), Color, **RepliesJson (texte long)**, **AttachmentsJson (texte long)**, Resolved (oui/non), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
 | `CN_FilesIndex` | FileId, EntityType📌, EntityId📌, Path, UploadedBy, UploadedAt (date), Checksum |
-| `CN_NotificationsQueue` | NotificationType, ToEmails (texte long), CcEmails (texte long), Body (texte long), ProjectId, Status📌 (Choix : Pending/Sent/Error, défaut Pending), SentAt (date), ErrorMessage (texte long) |
+| `CN_NotificationsQueue` | NotificationType, ToEmails (texte long), CcEmails (texte long), Body (texte long), ProjectId, Status📌 (Choix : Pending/Sent/Error, défaut Pending), SentAt (date), ErrorMessage (texte long), GroupKey📌, MessagesJson (texte long) |
 | `CN_SiteAccessRequests` | TargetEmail📌, DisplayName, RequestedByEmail, Context, Status📌 (Choix : Pending/Done/Error, défaut Pending), ProcessedAt (date), ErrorMessage (texte long) |
 | `CN_UserProfiles` | UserEmail📌, ActivityScopeJson (texte long), PreferredLanguage, HasCompletedOnboarding (oui/non), TeamPreferencesJson (texte long), AbsenceJson (texte long), UpdatedAt (date) |
 | `CN_Rules` | RuleId📌, PayloadJson (texte long), SortOrder (nombre), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
@@ -326,7 +326,9 @@ existaient auparavant dans `CN-Config` — une ligne par règle/équipe plutôt 
         { name: 'ProjectId', type: 'Text' },
         { name: 'Status', type: 'Choice', choices: ['Pending', 'Sent', 'Error'], defaultValue: 'Pending', indexed: true },
         { name: 'SentAt', type: 'DateTime' },
-        { name: 'ErrorMessage', type: 'Note' }
+        { name: 'ErrorMessage', type: 'Note' },
+        { name: 'GroupKey', type: 'Text', indexed: true },
+        { name: 'MessagesJson', type: 'Note' }
       ]
     },
     {
