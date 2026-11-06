@@ -152,7 +152,9 @@ test.describe('tour v2', () => {
       ['Deux portes pour solliciter la compliance', 'synthesis-submit'],
       ['Vous gardez la main', 'synthesis-submit'],
       ['Dialoguer avec les experts', 'synthesis-team-exchange'],
-      ['Le passage en comité', 'synthesis-committees']
+      ['Le passage en comité', 'synthesis-committees'],
+      // L'entrée n'existe que pour qui a un passage : le tour l'affiche le temps de l'étape.
+      ['Retrouver vos passages en comité', 'nav-committee-passages']
     ]);
 
     await expectStep(page, 'Vous savez faire valider votre projet');

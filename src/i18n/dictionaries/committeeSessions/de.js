@@ -34,6 +34,7 @@ export default {
     states: { present: 'Anwesend', excused: 'Entschuldigt', absent: 'Abwesend', unknown: 'Nicht erfasst' }
   },
   panel: {
+    allMyPassages: 'Alle meine Gremiumsauftritte',
     title: 'Präsentation im Ausschuss',
     openAgenda: 'Tagesordnung ansehen',
     opinionRenderedInSession: 'Stellungnahme in der Sitzung vom {{date}} abgegeben.',
@@ -77,6 +78,46 @@ export default {
       guestsSaved: 'Gäste gespeichert.',
       attendanceSaved: 'Anwesenheit gespeichert.',
       representationRequested: 'Die Projektleitung wird gebeten, das Projekt erneut vorzustellen.'
+    }
+  },
+  myPassages: {
+    title: 'Meine Gremiumsauftritte',
+    navAriaLabel: 'Meine Gremiumsauftritte ({{count}} anstehend)',
+    subtitle: 'Ihre kommenden Termine, die Tagesordnung jeder Sitzung und die zu Ihren Auftritten getroffenen Entscheidungen.',
+    back: 'Zurück',
+    upcomingTitle: 'Anstehend',
+    pastTitle: 'Vergangen',
+    noUpcoming: 'Kein anstehender Auftritt.',
+    noPast: 'Kein vergangener Auftritt.',
+    empty: 'Sie haben keinen Gremiumsauftritt.',
+    passageNumber: 'Auftritt Nr. {{number}}',
+    topicBadge: 'Tagesordnungspunkt',
+    roleGuest: 'Sie sind eingeladen',
+    rolePresenter: 'Sie stellen diesen Punkt vor',
+    indicativeTime: 'Voraussichtlicher Termin gegen {{time}} · {{minutes}} Min. · Position {{position}} von {{total}}. Die Reihenfolge kann sich ändern: Halten Sie die ganze Sitzung frei.',
+    cancelledBadge: 'Sitzung abgesagt',
+    cancelledUpcoming: 'Diese Sitzung ist abgesagt: Ihr Auftritt findet an diesem Datum nicht statt.',
+    decisionTitle: 'Entscheidung des Gremiums',
+    noDecision: 'Keine Entscheidung erfasst',
+    opinionChanged: 'Die aktuelle Stellungnahme des Gremiums hat sich seit dieser Sitzung geändert.',
+    openSynthesis: 'Projektthemen',
+    openAgenda: 'Sitzung ansehen',
+    filterCommittee: 'Gremium',
+    filterTitle: 'Projekt oder Punkt',
+    filterAll: 'Alle',
+    profileLink: 'Meine Gremiumsauftritte',
+    hint: {
+      upcoming: 'Nächster Auftritt: {{committee}}, {{date}}',
+      cancelled: 'Sitzung abgesagt: {{committee}}, {{date}}',
+      recent: 'Letzter Auftritt: {{committee}}, {{date}}',
+      open: 'Ansehen'
+    },
+    agenda: {
+      eyebrow: 'Tagesordnung',
+      yourPassage: 'Ihr Auftritt',
+      otherPassage: 'Anderer Auftritt',
+      maskedNote: 'Nur Ihre Auftritte werden angezeigt; die übrigen Tagesordnungspunkte sind den Gremiumsmitgliedern vorbehalten.',
+      allMine: 'Alle meine Gremiumsauftritte'
     }
   },
   agenda: {

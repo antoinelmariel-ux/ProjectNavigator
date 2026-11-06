@@ -10,7 +10,7 @@
 // settings.json publié) est remplacée par celle-ci au démarrage — voir
 // normalizeOnboardingConfig dans src/utils/onboarding.js. L'incrémenter écrase donc les
 // personnalisations back-office du tour : à ne faire que pour une refonte assumée.
-export const ONBOARDING_TOUR_VERSION = 8;
+export const ONBOARDING_TOUR_VERSION = 9;
 
 // Une action réservée à un public (bouton d'entrée d'un parcours qui n'a de sens que pour lui)
 // est retirée du tour des autres au lancement, voir filterOnboardingStepsForAudience.
@@ -667,6 +667,26 @@ export const initialOnboardingTourConfig = {
       "placement": "top",
       "highlightScope": "target",
       "scrollIntoViewOptions": { "behavior": "smooth", "block": "center", "inline": "nearest" },
+      "showDefaultButtons": true,
+      "actions": []
+    },
+    {
+      "id": "compliance-committee-passages",
+      "target": "[data-tour-id=\"nav-committee-passages\"]",
+      "title": {
+        "en": "Find your committee passages",
+        "fr": "Retrouver vos passages en comité",
+        "de": "Ihre Gremiumsauftritte wiederfinden",
+        "es": "Encontrar sus pasos por comité"
+      },
+      "content": {
+        "en": "Your upcoming slots, the agenda of each session and the decisions made on your passages are gathered here, in “My committee passages”. This entry appears as soon as you have a passage, whether you present a project or an agenda item, or are invited.",
+        "fr": "Vos créneaux à venir, l’ordre du jour de chaque séance et les décisions rendues sur vos passages sont rassemblés ici, dans « Mes passages en comité ». Cette entrée apparaît dès que vous avez un passage, que vous présentiez un projet, un point à l’ordre du jour, ou que vous soyez invité.",
+        "de": "Ihre kommenden Termine, die Tagesordnung jeder Sitzung und die zu Ihren Auftritten getroffenen Entscheidungen finden Sie hier, unter „Meine Gremiumsauftritte“. Dieser Eintrag erscheint, sobald Sie einen Auftritt haben – ob Sie ein Projekt oder einen Tagesordnungspunkt vorstellen oder eingeladen sind.",
+        "es": "Sus próximas franjas, el orden del día de cada sesión y las decisiones tomadas sobre sus pasos están reunidos aquí, en «Mis pasos por comité». Esta entrada aparece en cuanto tiene un paso, ya presente un proyecto o un punto del orden del día, o esté invitado."
+      },
+      "placement": "bottom",
+      "highlightScope": "target",
       "showDefaultButtons": true,
       "actions": []
     },

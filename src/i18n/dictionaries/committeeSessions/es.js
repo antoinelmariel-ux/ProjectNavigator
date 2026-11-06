@@ -34,6 +34,7 @@ export default {
     states: { present: 'Presente', excused: 'Excusado', absent: 'Ausente', unknown: 'Sin registrar' }
   },
   panel: {
+    allMyPassages: 'Todos mis pasos por comité',
     title: 'Presentación en sesión',
     openAgenda: 'Ver el orden del día',
     opinionRenderedInSession: 'Opinión emitida en la sesión del {{date}}.',
@@ -77,6 +78,46 @@ export default {
       guestsSaved: 'Invitados guardados.',
       attendanceSaved: 'Asistencia guardada.',
       representationRequested: 'Se invita al responsable del proyecto a volver a presentarlo.'
+    }
+  },
+  myPassages: {
+    title: 'Mis pasos por comité',
+    navAriaLabel: 'Mis pasos por comité ({{count}} próximos)',
+    subtitle: 'Sus próximas franjas, el orden del día de cada sesión y las decisiones tomadas sobre sus pasos.',
+    back: 'Volver',
+    upcomingTitle: 'Próximos',
+    pastTitle: 'Pasados',
+    noUpcoming: 'Ningún paso próximo.',
+    noPast: 'Ningún paso pasado.',
+    empty: 'No tiene ningún paso por comité.',
+    passageNumber: 'paso n.º {{number}}',
+    topicBadge: 'Punto del orden del día',
+    roleGuest: 'Está invitado',
+    rolePresenter: 'Usted presenta este punto',
+    indicativeTime: 'Franja indicativa hacia las {{time}} · {{minutes}} min · posición {{position}} de {{total}}. El orden puede cambiar: reserve toda la sesión.',
+    cancelledBadge: 'Sesión cancelada',
+    cancelledUpcoming: 'Esta sesión está cancelada: su paso no tendrá lugar en esta fecha.',
+    decisionTitle: 'Decisión del comité',
+    noDecision: 'Ninguna decisión registrada',
+    opinionChanged: 'El dictamen actual del comité ha cambiado desde esta sesión.',
+    openSynthesis: 'Retos del proyecto',
+    openAgenda: 'Ver la sesión',
+    filterCommittee: 'Comité',
+    filterTitle: 'Proyecto o punto',
+    filterAll: 'Todos',
+    profileLink: 'Mis pasos por comité',
+    hint: {
+      upcoming: 'Próximo paso: {{committee}}, {{date}}',
+      cancelled: 'Sesión cancelada: {{committee}}, {{date}}',
+      recent: 'Último paso: {{committee}}, {{date}}',
+      open: 'Ver'
+    },
+    agenda: {
+      eyebrow: 'Orden del día',
+      yourPassage: 'Su paso',
+      otherPassage: 'Otro paso',
+      maskedNote: 'Solo se detallan sus pasos; los demás puntos del orden del día están reservados a los miembros del comité.',
+      allMine: 'Todos mis pasos por comité'
     }
   },
   agenda: {

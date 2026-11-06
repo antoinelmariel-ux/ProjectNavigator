@@ -21,6 +21,7 @@ import {
   Redo,
   MessageSquare
 } from './icons.js';
+import { formatSessionDay as formatCommitteeSessionDay } from './committee/committeeFormat.js';
 import { normalizeProjectFilterConfig } from '../utils/projectFilters.js';
 import { normalizeInspirationFiltersConfig } from '../utils/inspirationConfig.js';
 import { isPerimeterFollower } from '../utils/perimeterFollowers.js';
@@ -412,6 +413,10 @@ export const HomeScreen = ({
   inspirationFilters,
   homeView = 'platform',
   onHomeViewChange,
+  committeePassageHint = null,
+  committeesById = {},
+  onOpenCommitteeAgenda,
+  onOpenMyCommitteePassages,
   onStartInspirationProject,
   onOpenInspirationProject,
   onStartNewProject,
@@ -2924,6 +2929,30 @@ export const HomeScreen = ({
               )}
             </div>
           </div>
+
+          {!isInspirationView && !isTeamView && committeePassageHint && (
+            <p
+              className={`inline-flex flex-wrap items-center gap-2 text-sm ${committeePassageHint.kind === 'cancelled' ? 'text-red-800' : 'text-gray-600'}`}
+              data-testid="home-committee-passage-hint"
+            >
+              <Calendar className="h-4 w-4" aria-hidden="true" />
+              <span>
+                {t(`committeeSessions.myPassages.hint.${committeePassageHint.kind}`, {
+                  committee: committeesById[committeePassageHint.entry.committeeId]?.name || committeePassageHint.entry.committeeId,
+                  date: formatCommitteeSessionDay(committeePassageHint.entry.session.startAt, language)
+                })}
+              </span>
+              <button
+                type="button"
+                onClick={() => (committeePassageHint.kind === 'cancelled' || typeof onOpenCommitteeAgenda !== 'function'
+                  ? onOpenMyCommitteePassages?.()
+                  : onOpenCommitteeAgenda(committeePassageHint.entry.session.id))}
+                className="font-semibold text-blue-700 hover:text-blue-800"
+              >
+                {t('committeeSessions.myPassages.hint.open')} →
+              </button>
+            </p>
+          )}
 
           {isTeamView && (
             <TeamProjectsPanel

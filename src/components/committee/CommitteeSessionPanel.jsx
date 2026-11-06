@@ -37,6 +37,7 @@ export const CommitteeSessionPanel = ({
   onRunAction,
   onMovePassage,
   onOpenAgenda,
+  onOpenMyPassages,
   renderStatusLabel
 }) => {
   const { t, language } = useTranslation();
@@ -166,15 +167,27 @@ export const CommitteeSessionPanel = ({
         <h4 id={`${idPrefix}-title`} className="text-sm font-semibold text-gray-800">
           {t('committeeSessions.panel.title')}
         </h4>
-        {canViewAgenda && upcoming && typeof onOpenAgenda === 'function' && (
-          <button
-            type="button"
-            onClick={() => onOpenAgenda(upcoming.session.id)}
-            className="text-xs font-semibold text-blue-700 hover:text-blue-800"
-          >
-            {t('committeeSessions.panel.openAgenda')}
-          </button>
-        )}
+        <span className="flex flex-wrap items-center gap-3">
+          {canViewAgenda && upcoming && typeof onOpenAgenda === 'function' && (
+            <button
+              type="button"
+              onClick={() => onOpenAgenda(upcoming.session.id)}
+              className="text-xs font-semibold text-blue-700 hover:text-blue-800"
+            >
+              {t('committeeSessions.panel.openAgenda')}
+            </button>
+          )}
+          {passages.length > 0 && typeof onOpenMyPassages === 'function' && (
+            <button
+              type="button"
+              onClick={onOpenMyPassages}
+              className="text-xs font-medium text-gray-600 underline hover:text-gray-800"
+              data-testid={`${idPrefix}-my-passages`}
+            >
+              {t('committeeSessions.panel.allMyPassages')}
+            </button>
+          )}
+        </span>
       </div>
 
       {opinionSession && (

@@ -654,6 +654,21 @@ in the synthesis committee block, `CommitteeAgendaScreen` = screen `committee-ag
   upcoming sessions, each result links to its agenda and carries a situation badge (trashed / purged / missing
   / committee deferred by staged consultation). It is fed `projects` (trashed ones included, unlike `liveProjects`).
 - Tests: `test/committeeAgendaDecisions.test.mjs`, `e2e/committee-sessions.spec.js`.
+- **« Mes passages en comité » (participants who are not committee members)** — owners/co-owners,
+  guests of a passage, presenters of a topic. Pure logic in `src/utils/userCommitteePassages.js`
+  (`test/userCommitteePassages.test.mjs`), screen `committee-passages` (`MyCommitteePassagesScreen.jsx`),
+  and `CommitteeAgendaParticipantView.jsx`, which `App.jsx` renders on `committee-agenda` instead of the
+  full agenda for a non-member with a passage there — so the same `?committeeSession=` link works for
+  everyone. **Other agenda items are masked** (number, times, « Autre passage »: no title, owner or
+  decision — `buildParticipantAgenda` never puts them in its output). A guest reads the decision of the
+  passage they were invited to only; only owners get the « avis actuel a évolué » note and the synthesis
+  link. Draft sessions are invisible, trashed projects drop out (built on `liveProjects`). Deliberately
+  discreet entry points: a calendar icon in the home nav (`data-tour-id="nav-committee-passages"`, only
+  when the person has a passage — forced visible during the `compliance-committee-passages` tour step),
+  a link in « Mon profil », « Tous mes passages en comité » in `CommitteeSessionPanel`, a home line
+  only from J-7 to J+7 around a session (`getCommitteePassageHint`), and an agenda link in the owner/
+  presenter Outlook invitations (adding it changed their body, so the reconciliation pass re-sends every
+  upcoming invitation once). `e2e/my-committee-passages.spec.js`.
 
 ## The final round before launch (and why it cannot block anything)
 

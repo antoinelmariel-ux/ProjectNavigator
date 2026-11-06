@@ -250,3 +250,25 @@ test('réconciliation : seules les invitations qui diffèrent de ce qui est enre
   assert.deepEqual(selectInvitationsToSync([cancelledAlready], { [first.id]: { ...first, status: 'cancelled' } }), []);
   assert.deepEqual(selectInvitationsToSync([cancelledAlready], recordsById).map((entry) => entry.status), ['cancelled']);
 });
+
+test('les invitations des porteurs et des intervenants pointent vers leur créneau dans l’ordre du jour', () => {
+  const withTopic = session({
+    agenda: [
+      { id: 'x1', projectId: 'p1', minutes: 20 },
+      { id: 't1', kind: 'topic', title: 'Charte', presenterEmails: ['speaker@lfb.fr'], minutes: 10 }
+    ]
+  });
+  const invitations = computeSessionInvitations({
+    before: null,
+    after: withTopic,
+    committee,
+    projectsById,
+    buildProjectUrl: (id) => `https://app/?projectId=${id}`,
+    buildAgendaUrl: (id) => `https://app/?committeeSession=${id}`,
+    now
+  });
+  const passage = invitations.find((entry) => entry.id === buildInvitationId('s1', 'x1'));
+  const topic = invitations.find((entry) => entry.id === buildInvitationId('s1', 't1'));
+  assert.ok(passage.bodyHtml.includes('href="https://app/?committeeSession=s1"'));
+  assert.ok(topic.bodyHtml.includes('href="https://app/?committeeSession=s1"'));
+});
