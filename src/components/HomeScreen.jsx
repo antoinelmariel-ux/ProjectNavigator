@@ -2932,7 +2932,7 @@ export const HomeScreen = ({
 
           {!isInspirationView && !isTeamView && committeePassageHint && (
             <p
-              className={`flex flex-wrap items-center gap-2 text-sm ${committeePassageHint.kind === 'cancelled' ? 'text-red-800' : 'text-gray-600'}`}
+              className={`inline-flex flex-wrap items-center gap-2 text-sm ${committeePassageHint.kind === 'cancelled' ? 'text-red-800' : 'text-gray-600'}`}
               data-testid="home-committee-passage-hint"
             >
               <Calendar className="h-4 w-4" aria-hidden="true" />
