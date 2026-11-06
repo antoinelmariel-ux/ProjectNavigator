@@ -1,5 +1,25 @@
 // Sitzungskalender der Ausschüsse (docs/specs/calendrier-comites.md).
 export default {
+  attachments: {
+    title: 'Dokumente und Links',
+    empty: 'Keine Dokumente oder Links zu diesem Punkt.',
+    audience: 'Sichtbar für die Ausschussmitglieder und die Vortragenden des Punkts.',
+    audienceProject: 'Sichtbar für die Ausschussmitglieder, den Projektverantwortlichen, die Mitverantwortlichen und die Gäste dieses Termins.',
+    addFiles: 'Dateien anhängen',
+    uploading: '„{{name}}“ wird hochgeladen…',
+    linkUrlLabel: 'Linkadresse',
+    linkNameLabel: 'Bezeichnung (optional)',
+    linkPlaceholder: 'https://…',
+    addLink: 'Link hinzufügen',
+    invalidLink: 'Dieser Link ist keine gültige http(s)-Adresse.',
+    remove: '„{{name}}“ entfernen',
+    removeConfirm: '„{{name}}“ von diesem Punkt entfernen?',
+    linkBadge: 'Link',
+    added: '„{{name}}“ hinzugefügt.',
+    removed: '„{{name}}“ entfernt.',
+    uploadFailed: '„{{name}}“ konnte nicht angehängt werden: {{reason}}',
+    sharePointAccess: 'Die Dateien liegen in der Dokumentbibliothek der Anwendung: Es gelten die SharePoint-Berechtigungen jedes Lesers.'
+  },
   status: { draft: 'Entwurf', published: 'Veröffentlicht', cancelled: 'Abgesagt' },
   invitation: { pending: 'Outlook-Einladung wird gesendet', done: 'Outlook-Einladung gesendet', error: 'Outlook-Einladung fehlgeschlagen' },
   errors: {
@@ -14,7 +34,8 @@ export default {
     conflict: 'Die Sitzung wurde gleichzeitig von jemand anderem geändert. Versuchen Sie es erneut.',
     invalid: 'Die Angaben sind unvollständig.',
     alreadySent: 'Bereits erledigt.',
-    generic: 'Der Vorgang ist fehlgeschlagen.'
+    generic: 'Der Vorgang ist fehlgeschlagen.',
+    tooManyAttachments: 'Dieser Punkt hat bereits die maximale Anzahl an Anhängen ({{max}}).'
   },
   orphan: {
     message: 'Ihr Projekt löst den folgenden Ausschuss, bei dem es angemeldet ist, nicht mehr aus: {{committees}}.',

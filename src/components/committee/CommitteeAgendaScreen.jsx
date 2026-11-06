@@ -3,6 +3,7 @@ import { useTranslation } from '../../i18n/LanguageContext.jsx';
 import { CommitteeAttendance } from './CommitteeAttendance.jsx';
 import { PeoplePicker } from '../PeoplePicker.jsx';
 import { InvitationBadge } from './InvitationBadge.jsx';
+import { AgendaAttachments } from './AgendaAttachments.jsx';
 import { CommitteeAgendaDecision, DecisionBadge } from './CommitteeAgendaDecision.jsx';
 import { buildInvitationId, getEffectiveSessionLocation } from '../../utils/committeeInvitations.js';
 import {
@@ -398,6 +399,18 @@ export const CommitteeAgendaScreen = ({
                     )}
                   </div>
                 </div>
+
+                {(isTopic || project) && (
+                  <AgendaAttachments
+                    idPrefix={`agenda-attachments-${passage.id}`}
+                    attachments={passage.attachments}
+                    canEdit={isChair && !isCancelled}
+                    audience={isTopic ? 'topic' : 'project'}
+                    entityId={session.id}
+                    onAdd={(attachment) => onRunAction(session.id, { type: 'addPassageAttachment', passageId: passage.id, attachment })}
+                    onRemove={(attachment) => onRunAction(session.id, { type: 'removePassageAttachment', passageId: passage.id, attachmentId: attachment.id })}
+                  />
+                )}
 
                 {project && renderExperts(project)}
 

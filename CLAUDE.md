@@ -603,6 +603,19 @@ in the synthesis committee block, `CommitteeAgendaScreen` = screen `committee-ag
   the invitation already sent. Every pass that
   looks for a project's passages filters on `projectId`, so topics fall out by construction; count
   « projects » with `kind !== 'topic'`. The chair can also cancel the session from the agenda page.
+- **Documents and links on an agenda item** (`src/utils/agendaAttachments.js`, `AgendaAttachments.jsx`,
+  `test/agendaAttachments.test.mjs`, `e2e/committee-agenda-attachments.spec.js`): `passage.attachments`
+  on any passage (topic or project), chair-only actions `addPassageAttachment`/`removePassageAttachment`
+  (through `mutateSession` like every agenda action, capped at `MAX_AGENDA_ATTACHMENTS`). Links are
+  http(s) only; files go through `createAttachmentFromFile` (CN-Documents library under
+  `committee-agenda/<sessionId>` in SharePoint mode — readers' SharePoint permissions apply —, data
+  URL in local mode) and only their link is stored in `AgendaJson`. Members read them on the agenda;
+  a topic's presenters, a project's owner/co-owners and the passage's guests in their participant
+  view, « Mes passages en comité », and (owner side) the upcoming passage of `CommitteeSessionPanel`.
+  A move (`movePassage` → `book` with `isMove`) carries them over; a fresh booking never brings any.
+  `useCommitteeSessionActions` deletes the uploaded files (best effort) when an attachment is removed,
+  a passage is unbooked (not a move) or a draft session is deleted. Never put them in a mail or an
+  invitation.
 - **Several passages per project and committee** (numbered, history in the synthesis); an owner
   has at most one *upcoming* passage per committee. A committee deferred by staged consultation
   cannot be booked. Trashing a project releases its upcoming passages; a project that stops
