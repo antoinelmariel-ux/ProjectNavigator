@@ -114,10 +114,13 @@ const toReplyFields = (projectId, sectionKey, rootId, reply, userEmail) => ({
   Status: '',
   Resolved: false,
   AttachmentsJson: Array.isArray(reply.attachments) ? reply.attachments : [],
+  // La date de modification (threadReplyEdit.js) voyage dans ClaimJson, inutilisé sur une
+  // ligne de réponse : pas de nouvelle colonne à créer.
+  ClaimJson: typeof reply.editedAt === 'string' && reply.editedAt ? { editedAt: reply.editedAt } : {},
   CreatedByEmail: reply.authorEmail || userEmail || '',
   UpdatedByEmail: reply.authorEmail || userEmail || '',
-  // Pas de colonne dédiée à la date de création d’une réponse (elle n’est jamais éditée
-  // après coup) : UpdatedAt en tient lieu.
+  // Pas de colonne dédiée à la date de création d’une réponse : UpdatedAt en tient lieu, et
+  // une modification le garde (c’est aussi la clé de tri du fil).
   UpdatedAt: reply.createdAt || new Date().toISOString()
 });
 
@@ -163,6 +166,9 @@ const reconstructFromRows = (rows) => {
         authorName: row.CreatedByEmail || '',
         authorEmail: row.CreatedByEmail || '',
         createdAt: row.UpdatedAt || '',
+        ...(typeof row.ClaimJson?.editedAt === 'string' && row.ClaimJson.editedAt
+          ? { editedAt: row.ClaimJson.editedAt }
+          : {}),
         attachments: Array.isArray(row.AttachmentsJson) ? row.AttachmentsJson : []
       });
     });

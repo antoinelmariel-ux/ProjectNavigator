@@ -311,3 +311,52 @@ test('la date où l’avis a été rendu et sa version font l’aller-retour par
   assert.equal(entry.reviewedVersion, 2);
   assert.equal(entry.needsReviewSince, 2);
 });
+
+test('une réponse modifiée garde sa date de création et sa mention « Modifié » via ClaimJson', async () => {
+  const writes = [];
+
+  await withFetch(
+    (url, init) => {
+      if (url.endsWith('/_api/contextinfo')) {
+        return digestResponse();
+      }
+      if (init.method === 'POST' && url.includes('/items') && !url.includes('?')) {
+        writes.push(JSON.parse(init.body));
+        return makeResponse(201, { Id: writes.length });
+      }
+      return makeResponse(200, { value: [] });
+    },
+    async () => {
+      await new SharePointComplianceCommentsProvider().upsertComment('proj-1', 'team', 'legal', {
+        comment: '',
+        status: '',
+        attachments: [],
+        replies: [
+          {
+            id: 'reply-1',
+            message: 'Texte corrigé',
+            authorEmail: 'marie@b.fr',
+            createdAt: '2026-01-02T00:00:00.000Z',
+            editedAt: '2026-01-03T00:00:00.000Z',
+            attachments: []
+          },
+          { id: 'reply-2', message: 'Jamais modifiée', authorEmail: 'marie@b.fr', createdAt: '2026-01-04T00:00:00.000Z', attachments: [] }
+        ]
+      }, { userEmail: 'marie@b.fr' });
+    }
+  );
+
+  const [root, edited, untouched] = writes;
+  assert.equal(edited.UpdatedAt, '2026-01-02T00:00:00.000Z');
+  assert.equal(edited.ClaimJson, JSON.stringify({ editedAt: '2026-01-03T00:00:00.000Z' }));
+
+  const listed = await withFetch(
+    () => makeResponse(200, { value: [root, edited, untouched] }),
+    async () => new SharePointComplianceCommentsProvider().listComments('proj-1')
+  );
+
+  const [first, second] = listed.teams.legal.replies;
+  assert.equal(first.createdAt, '2026-01-02T00:00:00.000Z');
+  assert.equal(first.editedAt, '2026-01-03T00:00:00.000Z');
+  assert.equal('editedAt' in second, false);
+});

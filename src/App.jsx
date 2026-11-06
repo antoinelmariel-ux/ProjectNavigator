@@ -5897,7 +5897,9 @@ const updateProjectFilters = useCallback((updater) => {
     sharePointSync.state
   ]);
 
-  const handleUpdateComplianceComments = useCallback((updates) => {
+  // `silent` : la modification d'une réponse déjà envoyée (threadReplyEdit.js) est enregistrée
+  // et recopiée dans CN_ComplianceComments comme le reste, mais ne notifie personne.
+  const handleUpdateComplianceComments = useCallback((updates, { silent = false } = {}) => {
     if (!activeProjectId || !updates || typeof updates !== 'object') {
       return;
     }
@@ -6018,9 +6020,10 @@ const updateProjectFilters = useCallback((updater) => {
         const { text: commentExcerpt, focus: commentFocus } = combineComplianceChangeMessages(changeMessages);
         let mainRecipients = [];
 
-        if (changeMessages.length === 0) {
-          // Rien qu'un lecteur attende (confirmation de revue, pièce jointe seule, prise en charge…) :
-          // pas de mail. Les copies de prise en charge implicite ci-dessous restent traitées à part.
+        if (silent || changeMessages.length === 0) {
+          // Modification silencieuse d'une réponse déjà envoyée (threadReplyEdit.js), ou rien qu'un
+          // lecteur attende (confirmation de revue, pièce jointe seule, prise en charge…) : pas de
+          // mail. Les copies de prise en charge implicite ci-dessous restent traitées à part.
         } else if (isOwnerOrCoOwner) {
           // Une fois le périmètre pris en charge, les échanges ne partent plus qu'à son
           // référent : c'est tout l'objet de la revendication côté volume d'e-mails. Seuls les
@@ -6084,7 +6087,7 @@ const updateProjectFilters = useCallback((updater) => {
 
         // Prises en charge implicites déclenchées par cette écriture : seules les copies
         // volontaires reçoivent un e-mail (voir notifyPerimeterClaimEvent).
-        claimedTeamIds.forEach((teamId) => {
+        (silent ? [] : claimedTeamIds).forEach((teamId) => {
           const team = teams.find((entry) => entry?.id === teamId);
           if (!team) {
             return;
