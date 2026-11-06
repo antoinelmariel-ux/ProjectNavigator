@@ -753,6 +753,18 @@ messages[]}` — anchored to one questionnaire item and one expert team.
   `resolveTeamMailRecipients`, `QUESTION_ANSWERED` back to the asker). Tests:
   `test/questionThreads.test.mjs`, `e2e/question-threads.spec.js`.
 
+## Editing a reply in the expert ↔ owner thread
+
+In the synthesis threads (team and committee), the author of a **reply** can edit it as long as
+nobody else has written after it (`canEditThreadReply`, `src/utils/threadReplyEdit.js`); the opinion
+itself keeps its own editor. An edit keeps the reply's `id` and `createdAt` and only adds `editedAt`
+(discreet « Modifié » label) — the queue's news dot, the owner's dot and implicit claims all read
+`createdAt` or new ids, so an edit is not activity. It is saved through
+`handleUpdateComplianceComments(updates, { silent: true })`: mirrored to `CN_ComplianceComments`
+like any write, **no mail**. On SharePoint, `editedAt` travels in the reply row's `ClaimJson`
+(unused on reply rows), so no new column. Tests: `test/threadReplyEdit.test.mjs`,
+`e2e/compliance-reply-edit.spec.js`.
+
 ## A manager's view of their team's projects (« Mon équipe »)
 
 A manager sees the projects of everyone below them, at every level, in a **third home tab**

@@ -58,6 +58,7 @@ import {
 } from '../utils/projectClaims.js';
 import { createAttachmentFromFile } from '../utils/documentStore.js';
 import { normalizeEmail } from '../utils/normalizeEmail.js';
+import { applyThreadReplyEdit, canEditThreadReply } from '../utils/threadReplyEdit.js';
 import { stripRichTextToPlainText } from '../utils/richText.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { ProjectReadinessPanel } from './ProjectReadinessPanel.jsx';
@@ -335,6 +336,7 @@ const normalizeCommentEntry = (entry) => {
           authorName: typeof reply?.authorName === 'string' ? reply.authorName : '',
           authorEmail: typeof reply?.authorEmail === 'string' ? reply.authorEmail : '',
           createdAt: typeof reply?.createdAt === 'string' ? reply.createdAt : '',
+          ...(typeof reply?.editedAt === 'string' && reply.editedAt ? { editedAt: reply.editedAt } : {}),
           attachments: normalizeCommentAttachments(reply?.attachments)
         }))
         .filter((reply) => reply.message.trim().length > 0 || reply.authorName || reply.authorEmail)
@@ -721,6 +723,7 @@ export const SynthesisReport = ({
   const complianceCommentFeedbackTimeoutRef = useRef(null);
   const [expandedThreads, setExpandedThreads] = useState({});
   const [complianceReplyDrafts, setComplianceReplyDrafts] = useState({});
+  const [replyEdit, setReplyEdit] = useState(null);
   const [teamCollapsedOverrides, setTeamCollapsedOverrides] = useState({});
   const [openTeamCommentEditors, setOpenTeamCommentEditors] = useState({});
   const [openTeamReplyBoxes, setOpenTeamReplyBoxes] = useState({});
@@ -1824,6 +1827,155 @@ export const SynthesisReport = ({
     ]
   );
 
+  const canReplyInThread = useCallback((targetType, targetId) => {
+    if (!canSaveComplianceComment) {
+      return false;
+    }
+    const isPerimeterMember = targetType === 'committee'
+      ? committeeIdsForUser.has(targetId)
+      : complianceTeamIdsForUser.has(targetId);
+    return canBypassCompliancePerimeter || isPerimeterMember || canReplyAsProjectContributor;
+  }, [
+    canSaveComplianceComment,
+    canBypassCompliancePerimeter,
+    canReplyAsProjectContributor,
+    committeeIdsForUser,
+    complianceTeamIdsForUser
+  ]);
+
+  const getThreadSourceEntry = useCallback((targetType, targetId) => (
+    targetType === 'committee'
+      ? complianceComments.committees?.[targetId]
+      : complianceComments.teams?.[targetId]
+  ), [complianceComments]);
+
+  const isReplyEditable = useCallback((targetType, targetId, replyId) => (
+    canReplyInThread(targetType, targetId)
+    && canEditThreadReply(normalizeCommentEntry(getThreadSourceEntry(targetType, targetId)).replies, replyId, currentUserEmail)
+  ), [canReplyInThread, getThreadSourceEntry, currentUserEmail]);
+
+  // Modifier sa réponse n'est pas une nouvelle activité : ni notification (`silent`), ni
+  // relance du point « nouveau » côté expert/porteur, qui lisent `createdAt`.
+  const handleComplianceReplyEditSubmit = useCallback(({ targetId, targetType, replyId, message }) => {
+    if (!canReplyInThread(targetType, targetId)) {
+      return;
+    }
+
+    const normalizedEntry = normalizeCommentEntry(getThreadSourceEntry(targetType, targetId));
+    const nextReplies = applyThreadReplyEdit(normalizedEntry.replies, replyId, {
+      message,
+      userEmail: currentUserEmail
+    });
+
+    setReplyEdit(null);
+    if (!nextReplies) {
+      return;
+    }
+
+    const nextComments = {
+      teams: { ...(complianceComments?.teams || {}) },
+      committees: { ...(complianceComments?.committees || {}) },
+      forcedCommitteeIds: complianceComments?.forcedCommitteeIds || [],
+      legacy: complianceComments?.legacy || ''
+    };
+    const nextEntry = { ...normalizedEntry, replies: nextReplies };
+    if (targetType === 'committee') {
+      nextComments.committees[targetId] = nextEntry;
+    } else {
+      nextComments.teams[targetId] = nextEntry;
+    }
+
+    updateComplianceComments({ [COMPLIANCE_COMMENTS_KEY]: nextComments }, { silent: true });
+    scheduleComplianceFeedback(`${targetType}-${targetId}`, t('synthesisReport.replyEditedMessage'));
+  }, [
+    canReplyInThread,
+    complianceComments,
+    currentUserEmail,
+    getThreadSourceEntry,
+    scheduleComplianceFeedback,
+    t,
+    updateComplianceComments
+  ]);
+
+  const renderThreadMessageBody = (message, { targetType, targetId, preview }) => {
+    const isEditing = replyEdit?.replyId === message.id
+      && replyEdit?.targetType === targetType
+      && replyEdit?.targetId === targetId;
+    const isReply = !message.id.startsWith('comment-');
+
+    if (isEditing) {
+      const hasAttachments = normalizeCommentAttachments(message.attachments).length > 0;
+      const canSave = (replyEdit.value.trim().length > 0 || hasAttachments)
+        && replyEdit.value.trim() !== message.message.trim();
+      return (
+        <div className="mt-2 space-y-2">
+          <RichTextEditor
+            id={`compliance-reply-edit-${message.id}`}
+            compact
+            value={replyEdit.value}
+            onChange={(value) => setReplyEdit((prev) => (prev ? { ...prev, value } : prev))}
+          />
+          <p className="text-[11px] text-gray-500">{t('synthesisReport.editReplyNoNotificationHint')}</p>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={!canSave}
+              onClick={() => handleComplianceReplyEditSubmit({
+                targetId,
+                targetType,
+                replyId: message.id,
+                message: replyEdit.value
+              })}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                canSave ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              }`}
+            >
+              {t('synthesisReport.saveReplyEditButton')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setReplyEdit(null)}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-600 hover:bg-gray-100"
+            >
+              {t('synthesisReport.cancelReplyEditButton')}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    const canEdit = isReply && isReplyEditable(targetType, targetId, message.id);
+    return (
+      <>
+        <p className="mt-1 text-sm text-gray-700 whitespace-pre-line">
+          {renderTextWithLinks(preview)}
+        </p>
+        {(message.editedAt || canEdit) && (
+          <div className="mt-1 flex items-center gap-2 text-[11px] text-gray-400">
+            {message.editedAt && (
+              <span
+                data-testid="compliance-reply-edited"
+                title={t('synthesisReport.replyEditedAt', { date: formatTimestamp(message.editedAt, language) })}
+              >
+                {t('synthesisReport.replyEditedLabel')}
+              </span>
+            )}
+            {canEdit && (
+              <button
+                type="button"
+                data-testid="compliance-reply-edit"
+                onClick={() => setReplyEdit({ targetType, targetId, replyId: message.id, value: message.message })}
+                className="font-semibold text-blue-600 hover:text-blue-700"
+              >
+                {t('synthesisReport.editReplyButton')}
+              </button>
+            )}
+          </div>
+        )}
+      </>
+    );
+  };
+
   const shouldCollapseThread = useCallback((messages) => {
     if (!Array.isArray(messages)) {
       return false;
@@ -1862,6 +2014,7 @@ export const SynthesisReport = ({
         authorName: reply.authorName || reply.authorEmail || t('synthesisReport.defaultUserLabel'),
         authorEmail: reply.authorEmail || '',
         createdAt: reply.createdAt,
+        editedAt: reply.editedAt || '',
         attachments: normalizeCommentAttachments(reply.attachments)
       });
     });
@@ -3164,9 +3317,7 @@ export const SynthesisReport = ({
                                               <span className="text-gray-400">{formatTimestamp(message.createdAt, language)}</span>
                                             )}
                                           </div>
-                                          <p className="mt-1 text-sm text-gray-700 whitespace-pre-line">
-                                            {renderTextWithLinks(preview)}
-                                          </p>
+                                          {renderThreadMessageBody(message, { targetType: 'team', targetId: team.id, preview })}
                                           {normalizeCommentAttachments(message.attachments).length > 0 && (
                                             <ul className="mt-2 space-y-1 text-xs">
                                               {normalizeCommentAttachments(message.attachments).map((attachment) => (
@@ -3858,9 +4009,7 @@ export const SynthesisReport = ({
                                       )}
                                       {message.createdAt && <span>{formatTimestamp(message.createdAt, language)}</span>}
                                     </div>
-                                    <p className="mt-2 text-sm text-gray-700 whitespace-pre-line">
-                                      {renderTextWithLinks(preview)}
-                                    </p>
+                                    {renderThreadMessageBody(message, { targetType: 'committee', targetId: committee.id, preview })}
                                     {normalizeCommentAttachments(message.attachments).length > 0 && (
                                       <ul className="mt-2 space-y-1 text-xs">
                                         {normalizeCommentAttachments(message.attachments).map((attachment) => (
