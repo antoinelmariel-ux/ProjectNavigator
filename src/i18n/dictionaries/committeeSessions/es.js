@@ -4,6 +4,7 @@ export default {
     title: 'Documentos y enlaces',
     empty: 'Ningún documento ni enlace para este punto.',
     audience: 'Visibles para los miembros del comité y los ponentes del punto.',
+    audienceProject: 'Visibles para los miembros del comité, el responsable del proyecto, los corresponsables y los invitados de este paso.',
     addFiles: 'Adjuntar archivos',
     uploading: 'Enviando «{{name}}»…',
     linkUrlLabel: 'Dirección del enlace',

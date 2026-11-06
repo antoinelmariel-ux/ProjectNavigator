@@ -3,6 +3,7 @@ import { useTranslation } from '../../i18n/LanguageContext.jsx';
 import { PeoplePicker } from '../PeoplePicker.jsx';
 import { CommitteeAttendance } from './CommitteeAttendance.jsx';
 import { InvitationBadge } from './InvitationBadge.jsx';
+import { AgendaAttachments } from './AgendaAttachments.jsx';
 import { buildInvitationId, getEffectiveSessionLocation } from '../../utils/committeeInvitations.js';
 import {
   DEFAULT_PASSAGE_MINUTES,
@@ -229,6 +230,9 @@ export const CommitteeSessionPanel = ({
               minutes: upcoming.passage.minutes
             })}
           </p>
+          {upcoming.passage.attachments.length > 0 && (
+            <AgendaAttachments idPrefix={`${idPrefix}-attachments`} attachments={upcoming.passage.attachments} />
+          )}
           {upcoming.passage.guests.length > 0 && (
             <p className="text-xs text-blue-800">
               {t('committeeSessions.panel.guests', { guests: upcoming.passage.guests.join(', ') })}

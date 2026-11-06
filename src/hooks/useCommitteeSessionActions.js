@@ -7,6 +7,17 @@ import {
   normalizeSession,
   normalizeSessions
 } from '../utils/committeeSessions.js';
+import { getStoredAgendaFilePaths } from '../utils/agendaAttachments.js';
+import { deleteDocument } from '../utils/documentStore.js';
+
+// Un fichier joint à un point de l'ordre du jour n'a plus de lecteur quand le point disparaît :
+// on le range de la bibliothèque (corbeille du site, donc récupérable). Au mieux : un échec ne
+// remet pas en cause l'action déjà enregistrée.
+const deleteAgendaFiles = (attachments) => {
+  getStoredAgendaFilePaths(attachments).forEach((path) => {
+    deleteDocument(path).catch((error) => console.warn('[Comités] Suppression du fichier joint impossible :', error));
+  });
+};
 
 // Écritures du calendrier des comités. Pas de file de rejeu (retryQueue) ici, à dessein : une
 // inscription doit dire tout de suite si elle est acceptée — une séance pleine entre-temps n'est
@@ -71,6 +82,12 @@ export const useCommitteeSessionActions = ({
     if (result?.session) {
       replaceSessions([result.session]);
     }
+    if (result?.ok && action.type === 'unbook' && !action.isMove) {
+      deleteAgendaFiles(current.agenda.find((passage) => passage.id === action.passageId)?.attachments);
+    }
+    if (result?.ok && action.type === 'removePassageAttachment') {
+      deleteAgendaFiles([result.removed]);
+    }
     if (result?.ok && typeof onEvent === 'function') {
       onEvent({ action, before: current, after: result.session, result, committee });
     }
@@ -123,6 +140,7 @@ export const useCommitteeSessionActions = ({
       }
     }
     replaceSessions([], [sessionId]);
+    deleteAgendaFiles(current.agenda.flatMap((passage) => passage.attachments || []));
     return { ok: true };
   }, [replaceSessions]);
 
@@ -139,6 +157,7 @@ export const useCommitteeSessionActions = ({
       projectId: passage.projectId,
       minutes: passage.minutes,
       guests: passage.guests,
+      attachments: passage.attachments,
       allowOverrun: true,
       isMove: true
     });

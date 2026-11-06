@@ -2,8 +2,9 @@
 export default {
   attachments: {
     title: 'Documents et liens',
-    empty: 'Aucun document ni lien pour ce sujet.',
+    empty: 'Aucun document ni lien pour ce point.',
     audience: 'Visibles par les membres du comité et par les intervenants du sujet.',
+    audienceProject: 'Visibles par les membres du comité, le porteur, les co-porteurs et les invités de ce passage.',
     addFiles: 'Joindre des fichiers',
     uploading: 'Envoi de « {{name}} »…',
     linkUrlLabel: 'Adresse du lien',
@@ -12,7 +13,7 @@ export default {
     addLink: 'Ajouter le lien',
     invalidLink: 'Ce lien n’est pas une adresse http(s) valide.',
     remove: 'Retirer « {{name}} »',
-    removeConfirm: 'Retirer « {{name}} » de ce sujet ?',
+    removeConfirm: 'Retirer « {{name}} » de ce point ?',
     linkBadge: 'Lien',
     added: '« {{name}} » ajouté.',
     removed: '« {{name}} » retiré.',
@@ -34,7 +35,7 @@ export default {
     invalid: 'Les informations saisies sont incomplètes.',
     alreadySent: 'Déjà fait.',
     generic: 'L’opération n’a pas abouti.',
-    tooManyAttachments: 'Ce sujet a déjà le nombre maximal de pièces jointes ({{max}}).'
+    tooManyAttachments: 'Ce point a déjà le nombre maximal de pièces jointes ({{max}}).'
   },
   orphan: {
     message: 'Votre projet ne déclenche plus le comité suivant, où il est inscrit : {{committees}}.',

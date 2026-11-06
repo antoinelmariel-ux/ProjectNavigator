@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoHome, patchStateOnBoot, readStoredState } from './fixtures.js';
+import { gotoHome, createAndSubmitProject, patchStateOnBoot, readStoredState } from './fixtures.js';
 
 // Pièces jointes et liens d'un sujet de l'ordre du jour : le président les ajoute, les membres et
 // les intervenants du sujet les ouvrent.
@@ -38,7 +38,7 @@ const seed = (page, { president, members, topic }) => patchStateOnBoot(
         startAt: arg.startAt,
         durationMinutes: 90,
         status: 'published',
-        agenda: [{ id: 'topic-1', kind: 'topic', title: 'Charte éthique des données', minutes: 15, ...arg.topic }]
+        agenda: arg.topic ? [{ id: 'topic-1', kind: 'topic', title: 'Charte éthique des données', minutes: 15, ...arg.topic }] : []
       }];
     }
     return state;
@@ -53,7 +53,7 @@ const openAgenda = async (page) => {
 const storedAttachments = async (page) => (await readStoredState(page)).committeeSessions
   ?.find((entry) => entry.id === SESSION_ID)?.agenda?.[0]?.attachments || [];
 
-test.describe('Ordre du jour : documents et liens d’un sujet', () => {
+test.describe('Ordre du jour : documents et liens d’un point', () => {
   test('le président joint un lien et un fichier, puis en retire un', async ({ page }) => {
     await seed(page, { president: MOCK_USER, members: [MOCK_USER, 'membre@lfb.fr'], topic: {} });
     await gotoHome(page);
@@ -65,7 +65,7 @@ test.describe('Ordre du jour : documents et liens d’un sujet', () => {
     await topic.getByRole('button', { name: /Charte éthique des données/ }).click();
 
     const attachments = topic.getByTestId('agenda-attachments');
-    await expect(attachments).toContainText('Aucun document ni lien pour ce sujet.');
+    await expect(attachments).toContainText('Aucun document ni lien pour ce point.');
 
     await attachments.getByLabel('Adresse du lien').fill('javascript:alert(1)');
     await attachments.getByRole('button', { name: 'Ajouter le lien' }).click();
@@ -127,5 +127,40 @@ test.describe('Ordre du jour : documents et liens d’un sujet', () => {
     const mine = agenda.getByTestId('committee-agenda-participant-mine');
     await expect(mine.getByRole('link', { name: 'Projet de charte' })).toHaveAttribute('href', 'https://intranet.lfb.fr/charte');
     await expect(mine.getByLabel('Adresse du lien')).toHaveCount(0);
+  });
+
+  test('le président joint un document à un passage de projet, que le porteur retrouve dans sa synthèse', async ({ page }) => {
+    test.slow();
+    await seed(page, { president: MOCK_USER, members: [MOCK_USER, 'membre@lfb.fr'], topic: null });
+    await gotoHome(page);
+    await createAndSubmitProject(page);
+
+    const toggle = page.getByRole('region', { name: /Avis Comité/ }).getByRole('button', { name: /Avis Comité/ });
+    if ((await toggle.getAttribute('aria-expanded')) !== 'true') {
+      await toggle.click();
+    }
+    const panel = page.getByTestId(`committee-session-${COMMITTEE_ID}-panel`);
+    await panel.getByRole('button', { name: 'Inscrire le projet' }).click();
+    await panel.getByRole('button', { name: 'Voir l’ordre du jour' }).click();
+
+    const agenda = page.getByTestId('committee-agenda');
+    const passage = agenda.getByTestId('committee-agenda-passage').first();
+    await passage.locator('button[aria-expanded]').first().click();
+    const attachments = passage.getByTestId('agenda-attachments');
+    await expect(attachments).toContainText('le porteur, les co-porteurs et les invités');
+    await attachments.getByLabel('Adresse du lien').fill('https://intranet.lfb.fr/dossier-comite');
+    await attachments.getByLabel('Libellé (facultatif)').fill('Dossier du comité');
+    await attachments.getByRole('button', { name: 'Ajouter le lien' }).click();
+    await expect(attachments.getByRole('link', { name: 'Dossier du comité' })).toBeVisible();
+    await expect.poll(async () => (await storedAttachments(page)).map((entry) => entry.name)).toEqual(['Dossier du comité']);
+
+    await agenda.getByRole('button', { name: /Retour/ }).first().click();
+    const synthesisPanel = page.getByTestId(`committee-session-${COMMITTEE_ID}-panel`);
+    if (!(await synthesisPanel.isVisible())) {
+      const sectionToggle = page.getByRole('region', { name: /Avis Comité/ }).getByRole('button', { name: /Avis Comité/ });
+      await sectionToggle.click();
+    }
+    await expect(synthesisPanel.getByTestId(`committee-session-${COMMITTEE_ID}-upcoming`)
+      .getByRole('link', { name: 'Dossier du comité' })).toHaveAttribute('href', 'https://intranet.lfb.fr/dossier-comite');
   });
 });

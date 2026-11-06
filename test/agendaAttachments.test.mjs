@@ -46,11 +46,11 @@ test('normalization drops unsafe or duplicate entries and caps the list', () => 
   assert.equal(normalizeAgendaAttachments(many).length, MAX_AGENDA_ATTACHMENTS);
 });
 
-test('only a chair attaches, only to a topic, never on a cancelled session', () => {
+test('only a chair attaches, never on a cancelled session', () => {
   const session = baseSession();
   const link = { id: 'l1', type: 'link', url: 'https://x.fr/note', name: 'Note' };
   assert.equal(applySessionAction(session, { type: 'addPassageAttachment', passageId: 't1', attachment: link }, { now }).error, 'forbidden');
-  assert.equal(applySessionAction(session, { type: 'addPassageAttachment', passageId: 'p1', attachment: link }, chair).error, 'notFound');
+  assert.equal(applySessionAction(session, { type: 'addPassageAttachment', passageId: 'missing', attachment: link }, chair).error, 'notFound');
   assert.equal(applySessionAction(session, { type: 'addPassageAttachment', passageId: 't1', attachment: { type: 'link', url: 'javascript:x' } }, chair).error, 'invalid');
   assert.equal(
     applySessionAction({ ...session, status: SESSION_STATUS_CANCELLED }, { type: 'addPassageAttachment', passageId: 't1', attachment: link }, chair).error,
@@ -102,4 +102,32 @@ test('a presenter reads the attachments of their own topic in the participant ag
   assert.equal(mine.entry.passage.attachments[0].name, 'a.pdf');
   assert.deepEqual(getStoredAgendaFilePaths(mine.entry.passage.attachments), ['/sites/cn/CN-Documents/a.pdf']);
   assert.equal(buildParticipantAgenda({ session, email: 'someone@lfb.fr', now }), null);
+});
+
+test('a project passage takes attachments too, read by its owner and guests only', () => {
+  const session = applySessionAction(baseSession(), {
+    type: 'setGuests', passageId: 'p1', guests: ['guest@lfb.fr']
+  }, chair).session;
+  const withDoc = applySessionAction(session, {
+    type: 'addPassageAttachment',
+    passageId: 'p1',
+    attachment: { id: 'l1', type: 'link', url: 'https://x.fr/dossier', name: 'Dossier' }
+  }, chair);
+  assert.equal(withDoc.ok, true);
+  const projects = [{ id: 'proj-1', projectName: 'Projet', ownerEmail: 'owner@lfb.fr', sharedWith: ['co@lfb.fr'] }];
+  ['owner@lfb.fr', 'co@lfb.fr', 'guest@lfb.fr'].forEach((email) => {
+    const agenda = buildParticipantAgenda({ session: withDoc.session, projects, email, now });
+    const mine = agenda.slots.find((slot) => slot.entry);
+    assert.equal(mine.entry.passage.attachments[0].name, 'Dossier', email);
+  });
+  const presenterAgenda = buildParticipantAgenda({ session: withDoc.session, projects, email: 'speaker@lfb.fr', now });
+  assert.deepEqual(presenterAgenda.slots.filter((slot) => slot.entry).map((slot) => slot.passageId), ['t1']);
+});
+
+test('a moved passage keeps its attachments, a fresh booking never brings any', () => {
+  const attachments = [{ id: 'l1', type: 'link', url: 'https://x.fr/dossier', name: 'Dossier' }];
+  const moved = applySessionAction(baseSession(), { type: 'book', projectId: 'proj-2', minutes: 20, isMove: true, attachments }, chair);
+  assert.equal(moved.session.agenda.at(-1).attachments[0].name, 'Dossier');
+  const booked = applySessionAction(baseSession(), { type: 'book', projectId: 'proj-2', minutes: 20, attachments }, chair);
+  assert.deepEqual(booked.session.agenda.at(-1).attachments, []);
 });

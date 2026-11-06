@@ -4,6 +4,7 @@ export default {
     title: 'Documents and links',
     empty: 'No document or link for this item.',
     audience: 'Visible to committee members and to the item’s presenters.',
+    audienceProject: 'Visible to committee members, the project owner, co-owners and the guests of this passage.',
     addFiles: 'Attach files',
     uploading: 'Uploading “{{name}}”…',
     linkUrlLabel: 'Link address',

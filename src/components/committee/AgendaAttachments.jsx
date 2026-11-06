@@ -48,9 +48,9 @@ export const AgendaAttachmentList = ({ attachments = [], idPrefix, renderAction 
   );
 };
 
-// Documents et liens d'un sujet de l'ordre du jour. Le président et le co-président (ou un
+// Documents et liens d'un point de l'ordre du jour (sujet ou projet). Le président et le co-président (ou un
 // administrateur) les gèrent ; les membres et les intervenants ne font que les ouvrir.
-export const AgendaAttachments = ({ idPrefix, attachments = [], canEdit = false, entityId, onAdd, onRemove }) => {
+export const AgendaAttachments = ({ idPrefix, attachments = [], canEdit = false, audience = 'topic', entityId, onAdd, onRemove }) => {
   const { t } = useTranslation();
   const fileInputRef = useRef(null);
   const [linkDraft, setLinkDraft] = useState({ url: '', name: '' });
@@ -125,9 +125,6 @@ export const AgendaAttachments = ({ idPrefix, attachments = [], canEdit = false,
     const result = await onRemove(attachment);
     if (result?.ok) {
       setMessages([{ tone: 'success', text: t('committeeSessions.attachments.removed', { name: attachment.name }) }]);
-      getStoredAgendaFilePaths([attachment]).forEach((path) => {
-        deleteDocument(path).catch((error) => console.warn('[Comités] Suppression du fichier impossible :', error));
-      });
     } else {
       setMessages([{ tone: 'error', text: describeError(result) }]);
     }
@@ -139,7 +136,7 @@ export const AgendaAttachments = ({ idPrefix, attachments = [], canEdit = false,
     <section className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2" aria-labelledby={`${idPrefix}-title`} data-testid="agenda-attachments">
       <div>
         <h4 id={`${idPrefix}-title`} className="text-sm font-semibold text-gray-800">{t('committeeSessions.attachments.title')}</h4>
-        {canEdit && <p className="text-xs text-gray-500">{t('committeeSessions.attachments.audience')}</p>}
+        {canEdit && <p className="text-xs text-gray-500">{t(audience === 'project' ? 'committeeSessions.attachments.audienceProject' : 'committeeSessions.attachments.audience')}</p>}
       </div>
       {attachments.length === 0 ? (
         <p className="text-xs text-gray-500">{t('committeeSessions.attachments.empty')}</p>

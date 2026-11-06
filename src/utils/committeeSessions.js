@@ -141,9 +141,10 @@ export const normalizePassage = (value = {}) => {
     // projet (committeeInvitations.js). `presenter` reste lu pour les sujets saisis en texte libre.
     presenterEmails: kind === PASSAGE_KIND_TOPIC ? normalizeEmails(value?.presenterEmails) : [],
     note: kind === PASSAGE_KIND_TOPIC ? toText(value?.note) : '',
-    // Documents et liens joints au sujet par le président : lus par les membres (ordre du jour) et
-    // par les intervenants (vue participant), jamais repris dans un mail ni une invitation.
-    attachments: kind === PASSAGE_KIND_TOPIC ? normalizeAgendaAttachments(value?.attachments) : [],
+    // Documents et liens joints au point par le président : lus par les membres (ordre du jour) et
+    // par les participants du point (intervenants d'un sujet ; porteur, co-porteurs et invités d'un
+    // projet), jamais repris dans un mail ni une invitation.
+    attachments: normalizeAgendaAttachments(value?.attachments),
     // Pour un projet, la décision vit dans l'avis du comité de sa synthèse (applyCommitteePassageDecision) ;
     // seul un sujet libre, qui n'a pas de projet, la porte sur le passage lui-même.
     decision: kind === PASSAGE_KIND_TOPIC ? normalizePassageDecision(value?.decision) : null,
@@ -380,6 +381,8 @@ export const applySessionAction = (rawSession, action = {}, context = {}) => {
         projectId,
         minutes,
         guests: action.guests,
+        // Un passage déplacé d'une séance à l'autre garde les documents que le président y avait joints.
+        attachments: action.isMove ? action.attachments : [],
         bookedBy: actor,
         bookedAt: toIso(now)
       });
@@ -438,7 +441,7 @@ export const applySessionAction = (rawSession, action = {}, context = {}) => {
         return fail('cancelled');
       }
       const target = session.agenda.find((passage) => passage.id === action.passageId);
-      if (target?.kind !== PASSAGE_KIND_TOPIC) {
+      if (!target) {
         return fail('notFound');
       }
       const attachment = normalizeAgendaAttachment({ ...action.attachment, addedBy: actor, addedAt: now });

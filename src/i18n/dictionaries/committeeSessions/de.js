@@ -4,6 +4,7 @@ export default {
     title: 'Dokumente und Links',
     empty: 'Keine Dokumente oder Links zu diesem Punkt.',
     audience: 'Sichtbar für die Ausschussmitglieder und die Vortragenden des Punkts.',
+    audienceProject: 'Sichtbar für die Ausschussmitglieder, den Projektverantwortlichen, die Mitverantwortlichen und die Gäste dieses Termins.',
     addFiles: 'Dateien anhängen',
     uploading: '„{{name}}“ wird hochgeladen…',
     linkUrlLabel: 'Linkadresse',
