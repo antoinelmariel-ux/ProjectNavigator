@@ -5747,7 +5747,9 @@ const updateProjectFilters = useCallback((updater) => {
     sharePointSync.state
   ]);
 
-  const handleUpdateComplianceComments = useCallback((updates) => {
+  // `silent` : la modification d'une réponse déjà envoyée (threadReplyEdit.js) est enregistrée
+  // et recopiée dans CN_ComplianceComments comme le reste, mais ne notifie personne.
+  const handleUpdateComplianceComments = useCallback((updates, { silent = false } = {}) => {
     if (!activeProjectId || !updates || typeof updates !== 'object') {
       return;
     }
@@ -5849,7 +5851,9 @@ const updateProjectFilters = useCallback((updater) => {
           .filter(Boolean)
           .join('\n\n');
 
-        if (isOwnerOrCoOwner) {
+        if (silent) {
+          // Rien à notifier.
+        } else if (isOwnerOrCoOwner) {
           // Une fois le périmètre pris en charge, les échanges ne partent plus qu'à son
           // référent : c'est tout l'objet de la revendication côté volume d'e-mails.
           const changedTeamIds = changedTeamEntries.map(([teamId]) => teamId);
@@ -5897,7 +5901,7 @@ const updateProjectFilters = useCallback((updater) => {
 
         // Prises en charge implicites déclenchées par cette écriture : seules les copies
         // volontaires reçoivent un e-mail (voir notifyPerimeterClaimEvent).
-        claimedTeamIds.forEach((teamId) => {
+        (silent ? [] : claimedTeamIds).forEach((teamId) => {
           const team = teams.find((entry) => entry?.id === teamId);
           if (!team) {
             return;
