@@ -34,6 +34,7 @@ export default {
     states: { present: 'Present', excused: 'Excused', absent: 'Absent', unknown: 'Not recorded' }
   },
   panel: {
+    allMyPassages: 'All my committee passages',
     title: 'Committee session',
     openAgenda: 'View the agenda',
     opinionRenderedInSession: 'Opinion given in the session of {{date}}.',
@@ -77,6 +78,46 @@ export default {
       guestsSaved: 'Guests saved.',
       attendanceSaved: 'Attendance saved.',
       representationRequested: 'The project owner is asked to present the project again.'
+    }
+  },
+  myPassages: {
+    title: 'My committee passages',
+    navAriaLabel: 'My committee passages ({{count}} upcoming)',
+    subtitle: 'Your upcoming slots, the agenda of each session and the decisions made on your passages.',
+    back: 'Back',
+    upcomingTitle: 'Upcoming',
+    pastTitle: 'Past',
+    noUpcoming: 'No upcoming passage.',
+    noPast: 'No past passage.',
+    empty: 'You have no committee passage.',
+    passageNumber: 'passage no. {{number}}',
+    topicBadge: 'Agenda item',
+    roleGuest: 'You are invited',
+    rolePresenter: 'You present this item',
+    indicativeTime: 'Indicative slot around {{time}} · {{minutes}} min · position {{position}} of {{total}}. The order may change: keep the whole session free.',
+    cancelledBadge: 'Session cancelled',
+    cancelledUpcoming: 'This session is cancelled: your passage will not take place on this date.',
+    decisionTitle: 'Committee decision',
+    noDecision: 'No decision recorded',
+    opinionChanged: 'The committee’s current opinion has changed since this session.',
+    openSynthesis: 'Project issues',
+    openAgenda: 'View the session',
+    filterCommittee: 'Committee',
+    filterTitle: 'Project or item',
+    filterAll: 'All',
+    profileLink: 'My committee passages',
+    hint: {
+      upcoming: 'Next passage: {{committee}}, {{date}}',
+      cancelled: 'Session cancelled: {{committee}}, {{date}}',
+      recent: 'Last passage: {{committee}}, {{date}}',
+      open: 'View'
+    },
+    agenda: {
+      eyebrow: 'Agenda',
+      yourPassage: 'Your passage',
+      otherPassage: 'Other passage',
+      maskedNote: 'Only your passages are detailed; the other agenda items are reserved for committee members.',
+      allMine: 'All my committee passages'
     }
   },
   agenda: {

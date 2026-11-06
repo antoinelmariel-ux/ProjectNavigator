@@ -675,6 +675,7 @@ export const SynthesisReport = ({
   onCommitteeSessionAction,
   onMoveCommitteePassage,
   onOpenCommitteeAgenda,
+  onOpenMyCommitteePassages,
   onFocusPerimeterHandled,
   onPerimeterClaimAction,
   onPerimeterFollowerAction,
@@ -3685,10 +3686,11 @@ export const SynthesisReport = ({
                             isDeferred={deferredPerimeterKeys.has(buildPerimeterKey(PERIMETER_TYPE_COMMITTEE, committee.id))}
                             canBook={canBookCommitteeSessions || canBypassCompliancePerimeter || isCommitteeChair(committee, currentUserEmail)}
                             isChair={canBypassCompliancePerimeter || isCommitteeChair(committee, currentUserEmail)}
-                            canViewAgenda={canBypassCompliancePerimeter || committeeIdsForUser.has(committee.id)}
+                            canViewAgenda={canBypassCompliancePerimeter || committeeIdsForUser.has(committee.id) || canBookCommitteeSessions}
                             onRunAction={onCommitteeSessionAction}
                             onMovePassage={onMoveCommitteePassage}
                             onOpenAgenda={onOpenCommitteeAgenda}
+                            onOpenMyPassages={canBookCommitteeSessions ? onOpenMyCommitteePassages : undefined}
                             renderStatusLabel={(status) => getCommentStatusMeta(status, t)?.label || status}
                           />
                         )}

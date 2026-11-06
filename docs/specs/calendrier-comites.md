@@ -128,6 +128,24 @@ Une page par séance, ouverte par un **lien permanent** placé dans l'invitation
   refuser une demande, ajouter un sujet hors projet, annuler la séance.
 - **Présences** de la séance (§8).
 - Les membres voient la même page sans les commandes.
+- **Vue participant** : un porteur, co-porteur, invité d'un passage ou intervenant d'un sujet
+  qui n'est pas membre du comité ouvre le même lien et voit tous les créneaux (numéro, horaire,
+  durée) pour se situer, mais seuls ses propres passages sont détaillés ; les autres points
+  restent « Autre passage », sans titre ni décision. Après la séance, il y lit la décision de
+  ses passages (un invité : celle du seul passage où il était invité).
+
+### « Mes passages en comité »
+
+Page personnelle, peu utilisée, donc discrète mais jamais introuvable. Elle liste les passages
+de la personne (rôles ci-dessus) : à venir d'abord (créneau indicatif, invitation Outlook, une
+séance annulée en tête), puis passés, avec la décision figée pour cette séance
+(`sessionOutcomes`), « Pas de décision enregistrée » sinon, et une mention quand l'avis actuel du
+comité a évolué depuis. Aucune action : demander du temps, inviter ou se désinscrire reste dans
+le bloc comité de la synthèse. Accès : icône calendrier de la barre de navigation de l'accueil
+(seulement pour qui a au moins un passage, avec le nombre de passages à venir), « Mon profil »,
+« Tous mes passages en comité » dans le bloc « Passage en séance », une ligne de rappel à
+l'accueil de J-7 à J+7 autour d'une séance, le lien vers le créneau dans les invitations Outlook
+des porteurs et intervenants, et une étape du guide (séquence « Valider son projet »).
 
 ## 8. Les présences
 

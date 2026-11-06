@@ -14,7 +14,7 @@ import {
   LazyOnboardingScreen,
   LoadingFallback
 } from './lazyComponents.jsx';
-import { Link, Lock, MessageSquare, Settings, Sparkles, UserCircle } from './components/icons.js';
+import { Calendar, Link, Lock, MessageSquare, Settings, Sparkles, UserCircle } from './components/icons.js';
 import { MandatoryQuestionsSummary } from './components/MandatoryQuestionsSummary.jsx';
 import { SubmissionCancelledNotice } from './components/SubmissionCancelledNotice.jsx';
 import { ActivityScopeSelector } from './components/ActivityScopeSelector.jsx';
@@ -208,6 +208,15 @@ import { computeSessionInvitations, selectInvitationsToSync } from './utils/comm
 import { describeCommitteeSessionForEmail } from './utils/committeeSessionEmails.js';
 import { useCommitteeSessionActions } from './hooks/useCommitteeSessionActions.js';
 import { CommitteeAgendaScreen } from './components/committee/CommitteeAgendaScreen.jsx';
+import { CommitteeAgendaParticipantView } from './components/committee/CommitteeAgendaParticipantView.jsx';
+import { MyCommitteePassagesScreen } from './components/committee/MyCommitteePassagesScreen.jsx';
+import {
+  buildParticipantAgenda,
+  countUpcomingUserPassages,
+  getCommitteePassageHint,
+  hasUserCommitteePassages,
+  listUserCommitteePassages
+} from './utils/userCommitteePassages.js';
 import { normalizeFaqEntries } from './utils/faqEntries.js';
 import { normalizeHelpManuals } from './utils/helpManuals.js';
 import { mergeComplianceComments } from './utils/mergeComplianceComments.js';
@@ -3162,6 +3171,7 @@ const updateProjectFilters = useCallback((updater) => {
       case 'home-goodbye':
       case 'quick-end':
       case 'create-end':
+      case 'compliance-committee-passages':
       case 'validate-end':
       case 'showcase-end':
       case 'inspiration-end': {
@@ -7158,6 +7168,29 @@ const updateProjectFilters = useCallback((updater) => {
     setScreen(target?.screen && target.screen !== 'committee-agenda' ? target.screen : 'home');
   }, []);
 
+  // « Mes passages en comité » : les passages de la personne quand elle n'est pas membre du
+  // comité — porteur, invité, intervenant d'un sujet. Accès discret (barre de navigation, profil,
+  // bloc comité de la synthèse, rappel à l'accueil autour d'une séance).
+  const userCommitteePassages = useMemo(() => listUserCommitteePassages({
+    sessions: committeeSessions,
+    projects: liveProjects,
+    email: currentUserEmail,
+    now: new Date()
+  }), [committeeSessions, currentUserEmail, liveProjects]);
+  const hasCommitteePassages = hasUserCommitteePassages(userCommitteePassages);
+  const upcomingCommitteePassagesCount = countUpcomingUserPassages(userCommitteePassages);
+  const committeePassageHint = useMemo(
+    () => getCommitteePassageHint(userCommitteePassages, new Date()),
+    [userCommitteePassages]
+  );
+
+  const handleOpenMyCommitteePassages = useCallback(() => {
+    setIsProfileModalOpen(false);
+    setMode('user');
+    setAdminView('home');
+    setScreen('committee-passages');
+  }, []);
+
   useEffect(() => {
     const pendingSessionId = pendingCommitteeAgendaRef.current;
     if (!isHydrated || !pendingSessionId || !['local-only', 'synced', 'partial'].includes(sharePointSync.state)) {
@@ -9066,6 +9099,25 @@ const updateProjectFilters = useCallback((updater) => {
                   {backOfficeAuthError}
                 </p>
               )}
+              {mode === 'user' && screen === 'home'
+                && (hasCommitteePassages || onboardingStepId === 'compliance-committee-passages') && (
+                <button
+                  type="button"
+                  onClick={handleOpenMyCommitteePassages}
+                  className="relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border bg-white border-gray-200 text-gray-700 shadow-sm transition hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  aria-label={t('committeeSessions.myPassages.navAriaLabel', { count: upcomingCommitteePassagesCount })}
+                  title={t('committeeSessions.myPassages.title')}
+                  data-tour-id="nav-committee-passages"
+                  data-testid="nav-committee-passages"
+                >
+                  <Calendar className="h-5 w-5" aria-hidden="true" />
+                  {upcomingCommitteePassagesCount > 0 && (
+                    <span className="absolute -right-1 -top-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-xs font-bold text-white" aria-hidden="true">
+                      {upcomingCommitteePassagesCount}
+                    </span>
+                  )}
+                </button>
+              )}
               {mode === 'user' && screen === 'home' && (
                 <button
                   type="button"
@@ -9180,6 +9232,17 @@ const updateProjectFilters = useCallback((updater) => {
                   )}
                 </div>
               </div>
+            )}
+            {hasCommitteePassages && (
+              <button
+                type="button"
+                onClick={handleOpenMyCommitteePassages}
+                className="inline-flex items-center gap-2 text-sm font-semibold text-blue-700 hover:text-blue-800"
+                data-testid="profile-committee-passages"
+              >
+                <Calendar className="h-4 w-4" aria-hidden="true" />
+                {t('committeeSessions.myPassages.profileLink')}
+              </button>
             )}
             <div className="flex justify-end gap-3">
               <button
@@ -9537,6 +9600,10 @@ const updateProjectFilters = useCallback((updater) => {
             currentUser={currentUser}
             homeView={homeView}
             onHomeViewChange={handleHomeViewChange}
+            committeePassageHint={isOnboardingActive ? null : committeePassageHint}
+            committeesById={committeesById}
+            onOpenCommitteeAgenda={handleOpenCommitteeAgenda}
+            onOpenMyCommitteePassages={handleOpenMyCommitteePassages}
             reportingHierarchy={reportingHierarchy}
             teamVisibility={teamVisibility}
             onRetryReportingHierarchy={() => loadTeamHierarchy(true)}
@@ -9685,6 +9752,7 @@ const updateProjectFilters = useCallback((updater) => {
               onCommitteeSessionAction={activeProjectId && !isOnboardingActive ? runCommitteeSessionAction : undefined}
               onMoveCommitteePassage={moveCommitteePassage}
               onOpenCommitteeAgenda={handleOpenCommitteeAgenda}
+              onOpenMyCommitteePassages={handleOpenMyCommitteePassages}
             />
           </Suspense>
         ) : screen === 'committee-agenda' ? (
@@ -9693,6 +9761,24 @@ const updateProjectFilters = useCallback((updater) => {
             const agendaCommittee = agendaSession ? committeesById[agendaSession.committeeId] || null : null;
             const isAgendaChair = hasFullBackOfficeRights || isCommitteeChair(agendaCommittee, currentUserEmail);
             const isAgendaMember = (agendaCommittee?.emails || []).map(normalizeEmail).includes(currentUserEmail);
+            const participantAgenda = !isAgendaChair && !isAgendaMember
+              ? buildParticipantAgenda({ session: agendaSession, sessions: committeeSessions, projects: liveProjects, email: currentUserEmail })
+              : null;
+            if (participantAgenda) {
+              return (
+                <CommitteeAgendaParticipantView
+                  agenda={participantAgenda}
+                  committee={agendaCommittee}
+                  invitationRecords={committeeInvitationRecords}
+                  onOpenSynthesis={(projectId) => handleOpenProject(projectId, {
+                    view: 'synthesis',
+                    focusPerimeter: agendaCommittee ? { type: 'committee', id: agendaCommittee.id } : null
+                  })}
+                  onOpenMyPassages={handleOpenMyCommitteePassages}
+                  onBack={handleCloseCommitteeAgenda}
+                />
+              );
+            }
             return (
               <CommitteeAgendaScreen
                 session={agendaSession}
@@ -9717,6 +9803,18 @@ const updateProjectFilters = useCallback((updater) => {
               />
             );
           })()
+        ) : screen === 'committee-passages' ? (
+          <MyCommitteePassagesScreen
+            passages={userCommitteePassages}
+            committeesById={committeesById}
+            invitationRecords={committeeInvitationRecords}
+            onOpenAgenda={handleOpenCommitteeAgenda}
+            onOpenSynthesis={(projectId, committeeId) => handleOpenProject(projectId, {
+              view: 'synthesis',
+              focusPerimeter: committeeId ? { type: 'committee', id: committeeId } : null
+            })}
+            onBack={() => setScreen('home')}
+          />
         ) : screen === 'showcase' ? (
           showcaseProjectContext ? (
             <div className="space-y-4">

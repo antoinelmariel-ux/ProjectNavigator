@@ -94,7 +94,7 @@ const formatEnglishWindow = (session) => {
 };
 
 // Texte en anglais, comme les e-mails de notification (contrainte du flux Power Automate).
-export const buildPassageInvitation = ({ session, passage, committee, project, projectUrl = '', location: effectiveLocation }) => {
+export const buildPassageInvitation = ({ session, passage, committee, project, projectUrl = '', agendaUrl = '', location: effectiveLocation }) => {
   const normalizedSession = normalizeSession(session);
   const committeeName = committee?.name || normalizedSession.committeeId;
   const projectName = project?.projectName || passage.projectId;
@@ -110,6 +110,9 @@ export const buildPassageInvitation = ({ session, passage, committee, project, p
   }
   if (projectUrl) {
     lines.push(`<p><a href="${escapeHtml(projectUrl)}">Open the project in Project Navigator</a></p>`);
+  }
+  if (agendaUrl) {
+    lines.push(`<p><a href="${escapeHtml(agendaUrl)}">See your slot on the agenda in Project Navigator</a></p>`);
   }
 
   return {
@@ -130,7 +133,7 @@ export const buildPassageInvitation = ({ session, passage, committee, project, p
 };
 
 // Un sujet hors projet invite ses intervenants (pas de porteur, pas de lien vers un projet).
-export const buildTopicInvitation = ({ session, passage, committee, location: effectiveLocation }) => {
+export const buildTopicInvitation = ({ session, passage, committee, agendaUrl = '', location: effectiveLocation }) => {
   const normalizedSession = normalizeSession(session);
   const committeeName = committee?.name || normalizedSession.committeeId;
   const location = effectiveLocation ?? normalizedSession.location;
@@ -141,6 +144,9 @@ export const buildTopicInvitation = ({ session, passage, committee, location: ef
   ];
   if (passage.note) {
     lines.push(`<p>${linkifyEscaped(passage.note)}</p>`);
+  }
+  if (agendaUrl) {
+    lines.push(`<p><a href="${escapeHtml(agendaUrl)}">See your slot on the agenda in Project Navigator</a></p>`);
   }
   if (isHttpUrl(location)) {
     lines.push(`<p><a href="${escapeHtml(location)}">Join the meeting</a></p>`);
@@ -224,15 +230,17 @@ export const computeSessionInvitations = ({
 
   const build = (session, passage) => {
     const location = getEffectiveSessionLocation(session, recordsById);
+    const agendaUrl = buildAgendaUrl(session.id);
     return isTopic(passage)
-      ? buildTopicInvitation({ session, passage, committee, location })
+      ? buildTopicInvitation({ session, passage, committee, location, agendaUrl })
       : buildPassageInvitation({
         session,
         passage,
         committee,
         location,
         project: projectsById.get(passage.projectId) || null,
-        projectUrl: buildProjectUrl(passage.projectId)
+        projectUrl: buildProjectUrl(passage.projectId),
+        agendaUrl
       });
   };
 

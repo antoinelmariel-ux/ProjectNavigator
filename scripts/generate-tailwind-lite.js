@@ -382,6 +382,8 @@ const minHeights = {
 
 const minWidths = {
   '0': '0rem',
+  '4': '1rem',
+  '5': '1.25rem',
   full: '100%',
   fit: 'fit-content',
   min: 'min-content',
@@ -1124,6 +1126,12 @@ function baseRule(base) {
   }
   if (base === 'top-0') {
     return { declarations: { top: '0' } };
+  }
+  if (base === '-top-1') {
+    return { declarations: { top: `-${spacingValue('1')}` } };
+  }
+  if (base === '-right-1') {
+    return { declarations: { right: `-${spacingValue('1')}` } };
   }
   if (base === 'z-10') return { declarations: { 'z-index': '10' } };
   if (base === 'z-50') return { declarations: { 'z-index': '50' } };

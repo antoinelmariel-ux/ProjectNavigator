@@ -34,6 +34,7 @@ export default {
     states: { present: 'Présent', excused: 'Excusé', absent: 'Absent', unknown: 'Non renseigné' }
   },
   panel: {
+    allMyPassages: 'Tous mes passages en comité',
     title: 'Passage en séance',
     openAgenda: 'Voir l’ordre du jour',
     opinionRenderedInSession: 'Avis rendu en séance du {{date}}.',
@@ -77,6 +78,46 @@ export default {
       guestsSaved: 'Invités enregistrés.',
       attendanceSaved: 'Présences enregistrées.',
       representationRequested: 'Le chef de projet est invité à revenir présenter son projet.'
+    }
+  },
+  myPassages: {
+    title: 'Mes passages en comité',
+    navAriaLabel: 'Mes passages en comité ({{count}} à venir)',
+    subtitle: 'Vos créneaux à venir, l’ordre du jour de chaque séance et les décisions rendues sur vos passages.',
+    back: 'Retour',
+    upcomingTitle: 'À venir',
+    pastTitle: 'Passés',
+    noUpcoming: 'Aucun passage à venir.',
+    noPast: 'Aucun passage passé.',
+    empty: 'Vous n’avez aucun passage en comité.',
+    passageNumber: 'passage n° {{number}}',
+    topicBadge: 'Point à l’ordre du jour',
+    roleGuest: 'Vous êtes invité',
+    rolePresenter: 'Vous présentez ce point',
+    indicativeTime: 'Créneau indicatif vers {{time}} · {{minutes}} min · position {{position}} sur {{total}}. L’ordre peut changer : bloquez toute la séance.',
+    cancelledBadge: 'Séance annulée',
+    cancelledUpcoming: 'Cette séance est annulée : votre passage n’aura pas lieu à cette date.',
+    decisionTitle: 'Décision du comité',
+    noDecision: 'Pas de décision enregistrée',
+    opinionChanged: 'L’avis actuel du comité a évolué depuis cette séance.',
+    openSynthesis: 'Enjeux du projet',
+    openAgenda: 'Voir la séance',
+    filterCommittee: 'Comité',
+    filterTitle: 'Projet ou point',
+    filterAll: 'Tous',
+    profileLink: 'Mes passages en comité',
+    hint: {
+      upcoming: 'Prochain passage : {{committee}}, {{date}}',
+      cancelled: 'Séance annulée : {{committee}}, {{date}}',
+      recent: 'Dernier passage : {{committee}}, {{date}}',
+      open: 'Voir'
+    },
+    agenda: {
+      eyebrow: 'Ordre du jour',
+      yourPassage: 'Votre passage',
+      otherPassage: 'Autre passage',
+      maskedNote: 'Seuls vos passages sont détaillés ; les autres points de l’ordre du jour sont réservés aux membres du comité.',
+      allMine: 'Tous mes passages en comité'
     }
   },
   agenda: {
