@@ -83,6 +83,7 @@ export const AnnotationLayer = ({
   onFocusNoteHandled,
   onExit,
   onNoteChange,
+  onNoteCommit,
   onNoteClose,
   onNoteDelete,
   onNoteReply,
@@ -499,6 +500,7 @@ export const AnnotationLayer = ({
               <textarea
                 value={note.text || ''}
                 onChange={(event) => onNoteChange && onNoteChange(note.id, event.target.value)}
+                onBlur={() => onNoteCommit && onNoteCommit(note.id)}
                 ref={registerTextareaRef(note.id)}
                 className="feedback-note-text"
                 rows={4}

@@ -7,6 +7,7 @@ import {
   combineComplianceChangeMessages,
   describeComplianceEntryChange,
   getNotificationFocusView,
+  getShowcaseNoteReplyTarget,
   normalizeNotificationFocus,
   readNotificationFocus
 } from '../src/utils/notificationLinks.js';
@@ -103,4 +104,58 @@ test('plusieurs périmètres : un paragraphe titré par périmètre, lien vers l
   const single = combineComplianceChangeMessages([{ text: 'Seul', focus: null, label: 'X' }]);
   assert.equal(single.text, 'Seul');
   assert.deepEqual(combineComplianceChangeMessages([]), { text: '', focus: null });
+});
+
+test('rien de ce qu’un lecteur attend n’a changé : pas de mail (confirmation, pièce jointe seule, horodatage)', () => {
+  const previousEntry = {
+    status: 'validated',
+    comment: 'OK',
+    statusUpdatedAt: '2026-10-01T08:00:00.000Z',
+    attachments: [],
+    replies: [{ id: 'r1', message: 'Ancienne' }]
+  };
+  const confirmed = { ...previousEntry, finalConfirmation: { round: 1, state: 'confirmed' } };
+  const attachmentOnly = { ...previousEntry, attachments: [{ id: 'a1', name: 'grille.pdf', url: 'https://x/y.pdf' }] };
+  const restamped = { ...previousEntry, statusUpdatedAt: '2026-11-01T08:00:00.000Z', claim: { assigneeEmail: 'x@lfb.fr' } };
+  [confirmed, attachmentOnly, restamped].forEach((nextEntry) => {
+    const result = buildComplianceChangeMessage({ kind: 'team', id: 't1', previousEntry, nextEntry, statusLabels: STATUS_LABELS });
+    assert.equal(result.isMeaningful, false);
+  });
+  const reply = buildComplianceChangeMessage({
+    kind: 'team',
+    id: 't1',
+    previousEntry,
+    nextEntry: { ...previousEntry, replies: [...previousEntry.replies, { id: 'r2', message: 'Nouvelle' }] },
+    statusLabels: STATUS_LABELS
+  });
+  assert.equal(reply.isMeaningful, true);
+  const opinion = buildComplianceChangeMessage({
+    kind: 'team',
+    id: 't1',
+    previousEntry,
+    nextEntry: { ...previousEntry, comment: 'OK, sous réserve' },
+    statusLabels: STATUS_LABELS
+  });
+  assert.equal(opinion.isMeaningful, true);
+});
+
+test('une réponse faite d’une pièce jointe seule est reprise par son nom', () => {
+  const result = buildComplianceChangeMessage({
+    kind: 'team',
+    id: 't1',
+    previousEntry: { replies: [] },
+    nextEntry: { replies: [{ id: 'r1', message: '', attachments: [{ name: 'devis.pdf' }] }] },
+    statusLabels: STATUS_LABELS
+  });
+  assert.equal(result.isMeaningful, true);
+  assert.equal(result.text, 'Attachment: devis.pdf');
+});
+
+test('première réponse à un post-it : c’est son auteur qui l’attend', () => {
+  assert.equal(getShowcaseNoteReplyTarget({ sourceEmail: 'Lecteur@LFB.fr', replies: [] }), 'lecteur@lfb.fr');
+  assert.equal(
+    getShowcaseNoteReplyTarget({ sourceEmail: 'lecteur@lfb.fr', replies: [{ authorEmail: 'porteur@lfb.fr' }] }),
+    'porteur@lfb.fr'
+  );
+  assert.equal(getShowcaseNoteReplyTarget({}), '');
 });

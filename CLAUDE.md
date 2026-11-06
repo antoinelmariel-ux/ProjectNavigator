@@ -752,6 +752,21 @@ the usual intro / facts / expectations / footer. Every other type keeps the form
   `notifyThreadLastAuthor` skips a last author already among them (`alreadyNotified`) — that was
   the owner receiving the same reply twice. A last author outside them (a colleague, a co-owner
   routing left out) still gets « Reply to your comment ».
+- **No mail when nothing a reader waits for has changed.** `buildComplianceChangeMessage` returns
+  `isMeaningful` (a reply was added, or the status/comment changed); `handleUpdateComplianceComments`
+  and the agenda decision drop every perimeter where it is false, and send nothing if none is left.
+  That is what keeps a final-round confirmation (« I confirm », « I need to review again » — the
+  latter has its own `FINAL_CONFIRMATION_REEXAMINING`), an attachment-only change of the opinion,
+  a re-stamp or a claim/follower change from mailing the owner a copy of an opinion they already
+  have. On the owner side, only the perimeters actually written to are mailed. A reply made of an
+  attachment alone is quoted by its name (« Attachment: … »).
+- **A post-it mails the owner once, when its author has finished** (`commitAnnotationNote` in
+  `App.jsx`): on the textarea's `blur` (`onNoteCommit`), or after `SHOWCASE_COMMENT_IDLE_NOTIFY_MS`
+  (30 s) without typing. The save itself stays debounced at 1.2 s. It used to mail on every 1.2 s
+  pause, i.e. half-written texts, and again on every later edit. `notifiedAt` on the note (carried in
+  `AnchorJson` on `CN_ShowcaseStickyNotes`, no new column) makes it once per note; entering and
+  leaving a note without typing sends nothing (`editedAnnotationNoteIdsRef`). The first reply to a
+  post-it goes to the post-it's author (`getShowcaseNoteReplyTarget`), who was never told before.
 - Outside SharePoint, no mail leaves: `queueNotification` keeps the last 50 in
   `window.__cnMockNotifications` (subject, body, recipients), which is what `e2e/notification-message-links.spec.js` reads.
   Local mode does not persist post-its, so the post-it reveal itself is only exercised in SharePoint mode.

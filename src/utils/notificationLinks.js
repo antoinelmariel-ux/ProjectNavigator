@@ -106,6 +106,16 @@ export const describeComplianceEntryChange = (previousEntry, nextEntry) => {
   return { newReplies, opinionChanged };
 };
 
+// Une réponse faite d'une pièce jointe seule a quand même un texte à reprendre : son nom.
+const formatReplyText = (reply) => {
+  const message = trimText(reply?.message);
+  const attachmentLines = (Array.isArray(reply?.attachments) ? reply.attachments : [])
+    .map((attachment) => trimText(attachment?.name))
+    .filter(Boolean)
+    .map((name) => `Attachment: ${name}`);
+  return [message, ...attachmentLines].filter(Boolean).join('\n');
+};
+
 const formatOpinionText = (entry, statusLabels) => {
   const next = toEntry(entry);
   const statusLabel = statusLabels?.[next.status] || '';
@@ -114,22 +124,28 @@ const formatOpinionText = (entry, statusLabels) => {
 
 // Texte et cible du mail pour un périmètre modifié. Une nouvelle réponse dans le fil l'emporte :
 // c'est ce que la personne vient d'écrire (l'avis, lui, n'a pas bougé). Sinon c'est l'avis.
+// `isMeaningful` est faux quand rien de ce qu'un lecteur attend n'a changé — confirmation de la
+// revue finale, pièce jointe seule de l'avis, horodatage, prise en charge, suiveurs : aucun mail
+// ne doit alors partir, sinon il recopie un avis déjà reçu comme s'il était nouveau.
 export const buildComplianceChangeMessage = ({ kind, id, previousEntry, nextEntry, statusLabels = {} }) => {
   const { newReplies, opinionChanged } = describeComplianceEntryChange(previousEntry, nextEntry);
   const lastReply = newReplies[newReplies.length - 1] || null;
+  const isMeaningful = newReplies.length > 0 || opinionChanged;
+  const replyText = newReplies.map(formatReplyText).filter(Boolean).join('\n\n');
 
   if (newReplies.length > 0 && !opinionChanged) {
     return {
-      text: newReplies.map((reply) => trimText(reply.message)).filter(Boolean).join('\n\n'),
-      focus: normalizeNotificationFocus({ kind, id, message: lastReply?.id || '' })
+      text: replyText,
+      focus: normalizeNotificationFocus({ kind, id, message: lastReply?.id || '' }),
+      isMeaningful
     };
   }
 
   const opinionText = formatOpinionText(nextEntry, statusLabels);
-  const replyText = newReplies.map((reply) => trimText(reply.message)).filter(Boolean).join('\n\n');
   return {
     text: [opinionText, replyText].filter(Boolean).join('\n\n'),
-    focus: normalizeNotificationFocus({ kind, id, message: FOCUS_MESSAGE_OPINION })
+    focus: normalizeNotificationFocus({ kind, id, message: FOCUS_MESSAGE_OPINION }),
+    isMeaningful
   };
 };
 
@@ -145,4 +161,12 @@ export const combineComplianceChangeMessages = (messages) => {
     ? meaningful[0].text
     : meaningful.map((entry) => (entry.label ? `${entry.label}\n${entry.text}` : entry.text)).join('\n\n');
   return { text, focus: meaningful[0].focus || null };
+};
+
+// Qui attend une réponse à un post-it : l'auteur de la dernière réponse, ou, s'il n'y en a pas
+// encore, l'auteur du post-it lui-même (il n'était jamais prévenu de la première réponse).
+export const getShowcaseNoteReplyTarget = (note) => {
+  const replies = Array.isArray(note?.replies) ? note.replies : [];
+  const lastReply = replies.length > 0 ? replies[replies.length - 1] : null;
+  return trimText(lastReply?.authorEmail || note?.sourceEmail || '').toLowerCase();
 };

@@ -135,6 +135,7 @@ import {
   buildComplianceChangeMessage,
   combineComplianceChangeMessages,
   getNotificationFocusView,
+  getShowcaseNoteReplyTarget,
   readNotificationFocus
 } from './utils/notificationLinks.js';
 import { resolveTeamRecipients } from './utils/teamMemberRules.js';
@@ -395,6 +396,7 @@ const verifyBackOfficePassword = async (value) => {
 const COMPLIANCE_COMMENTS_KEY = '__compliance_team_comments__';
 const PUBLIC_VISIBILITY_KEY = '__public_visibility__';
 const SHOWCASE_COMMENT_EDIT_DEBOUNCE_MS = 1200;
+const SHOWCASE_COMMENT_IDLE_NOTIFY_MS = 30000;
 const MAX_DELETION_CHECKS = 50;
 
 const REFERENTIAL_SELECTION_KEYS = Object.keys(REFERENTIAL_FILES);
@@ -1282,6 +1284,7 @@ export const App = () => {
   const autosaveQueueRef = useRef(null);
   const autosaveTimeoutRef = useRef(null);
   const showcaseCommentNotificationTimeoutsRef = useRef(new Map());
+  const editedAnnotationNoteIdsRef = useRef(new Set());
   const projectMembersQueueRef = useRef(null);
   const stickyNotesQueueRef = useRef(null);
   const complianceCommentsQueueRef = useRef(null);
@@ -4470,55 +4473,91 @@ const updateProjectFilters = useCallback((updater) => {
     showcaseProjectContext
   ]);
 
+  // Le post-it est sauvegardé pendant la frappe (court délai), mais le chef de projet n'est prévenu
+  // qu'une fois, quand l'auteur a fini : en quittant le post-it, ou faute de quoi après un long
+  // silence. Un mail par pause de frappe envoyait des textes à moitié écrits, et chaque retouche
+  // ultérieure en renvoyait un. `notifiedAt` (porté par le post-it, donc synchronisé) l'empêche.
+  const commitAnnotationNote = useCallback((noteId) => {
+    const timeoutKey = `${showcaseProjectContext?.projectId || 'showcase'}:${noteId}`;
+    const pendingNotification = showcaseCommentNotificationTimeoutsRef.current.get(timeoutKey);
+    if (pendingNotification) {
+      clearTimeout(pendingNotification);
+      showcaseCommentNotificationTimeoutsRef.current.delete(timeoutKey);
+    }
+
+    // Entrer dans un post-it sans le modifier, puis en sortir, ne prévient personne.
+    if (!editedAnnotationNoteIdsRef.current.has(noteId)) {
+      return;
+    }
+    const note = (annotationNotesRef.current || []).find((entry) => entry?.id === noteId);
+    const commentText = typeof note?.text === 'string' ? note.text.trim() : '';
+    if (!note || !commentText || note.notifiedAt) {
+      return;
+    }
+    editedAnnotationNoteIdsRef.current.delete(noteId);
+
+    const notifiedNote = { ...note, notifiedAt: new Date().toISOString() };
+    annotationNotesRef.current = (annotationNotesRef.current || []).map((entry) => (
+      entry?.id === noteId ? notifiedNote : entry
+    ));
+    setAnnotationNotes((prevNotes) => prevNotes.map((entry) => (
+      entry?.id === noteId ? { ...entry, notifiedAt: notifiedNote.notifiedAt } : entry
+    )));
+    stickyNotesQueueRef.current?.enqueue(notifiedNote);
+
+    const project = projects.find((entry) => entry?.id === showcaseProjectContext?.projectId)
+      || (showcaseProjectContext
+        ? {
+          id: showcaseProjectContext.projectId,
+          projectName: showcaseProjectContext.projectName,
+          ownerEmail: showcaseProjectContext.ownerEmail || '',
+          sharedWith: Array.isArray(showcaseProjectContext.sharedWith) ? showcaseProjectContext.sharedWith : []
+        }
+        : null);
+
+    notifyOwnerAndCoOwners(project, NOTIFICATION_TYPES.SHOWCASE_COMMENT, {
+      excerpt: commentText,
+      focus: { kind: FOCUS_KIND_NOTE, id: noteId },
+      urlParams: buildNoteLinkParams(note)
+    });
+  }, [notifyOwnerAndCoOwners, projects, showcaseProjectContext]);
+
   const handleAnnotationTextChange = useCallback((noteId, text) => {
+    editedAnnotationNoteIdsRef.current.add(noteId);
     setAnnotationNotes(prevNotes => prevNotes.map(note => (
       note?.id === noteId
         ? (note.status === 'closed' ? note : { ...note, text })
         : note
     )));
 
+    const saveKey = `${showcaseProjectContext?.projectId || 'showcase'}:${noteId}:save`;
+    const existingSave = showcaseCommentNotificationTimeoutsRef.current.get(saveKey);
+    if (existingSave) {
+      clearTimeout(existingSave);
+    }
+    showcaseCommentNotificationTimeoutsRef.current.set(saveKey, setTimeout(() => {
+      showcaseCommentNotificationTimeoutsRef.current.delete(saveKey);
+      const note = (annotationNotesRef.current || []).find((entry) => entry?.id === noteId);
+      if (note) {
+        stickyNotesQueueRef.current?.enqueue(note);
+      }
+    }, SHOWCASE_COMMENT_EDIT_DEBOUNCE_MS));
+
     const timeoutKey = `${showcaseProjectContext?.projectId || 'showcase'}:${noteId}`;
     const existingTimeout = showcaseCommentNotificationTimeoutsRef.current.get(timeoutKey);
     if (existingTimeout) {
       clearTimeout(existingTimeout);
     }
-
-    const timeoutId = setTimeout(() => {
-      const note = (annotationNotesRef.current || []).find((entry) => entry?.id === noteId);
-      if (note) {
-        stickyNotesQueueRef.current?.enqueue(note);
-      }
-
-      const commentText = typeof note?.text === 'string' ? note.text.trim() : '';
-      if (!commentText) {
-        return;
-      }
-
-      const project = projects.find((entry) => entry?.id === showcaseProjectContext?.projectId)
-        || (showcaseProjectContext
-          ? {
-            id: showcaseProjectContext.projectId,
-            projectName: showcaseProjectContext.projectName,
-            ownerEmail: showcaseProjectContext.ownerEmail || '',
-            sharedWith: Array.isArray(showcaseProjectContext.sharedWith) ? showcaseProjectContext.sharedWith : []
-          }
-          : null);
-
-      notifyOwnerAndCoOwners(project, NOTIFICATION_TYPES.SHOWCASE_COMMENT, {
-        excerpt: commentText,
-        focus: { kind: FOCUS_KIND_NOTE, id: noteId },
-        urlParams: buildNoteLinkParams(note)
-      });
+    showcaseCommentNotificationTimeoutsRef.current.set(timeoutKey, setTimeout(() => {
       showcaseCommentNotificationTimeoutsRef.current.delete(timeoutKey);
-    }, SHOWCASE_COMMENT_EDIT_DEBOUNCE_MS);
+      commitAnnotationNoteRef.current?.(noteId);
+    }, SHOWCASE_COMMENT_IDLE_NOTIFY_MS));
+  }, [showcaseProjectContext]);
 
-    showcaseCommentNotificationTimeoutsRef.current.set(timeoutKey, timeoutId);
-  }, [
-    currentUserDisplayName,
-    notifyOwnerAndCoOwners,
-    projects,
-    showcaseProjectContext
-  ]);
+  const commitAnnotationNoteRef = useRef(commitAnnotationNote);
+  useEffect(() => {
+    commitAnnotationNoteRef.current = commitAnnotationNote;
+  }, [commitAnnotationNote]);
 
   const handleCloseAnnotationNote = useCallback((noteId) => {
     const current = (annotationNotesRef.current || []).find((entry) => entry?.id === noteId);
@@ -4588,8 +4627,7 @@ const updateProjectFilters = useCallback((updater) => {
     };
 
     const existingReplies = Array.isArray(current.replies) ? current.replies : [];
-    const previousReply = existingReplies.length > 0 ? existingReplies[existingReplies.length - 1] : null;
-    const lastReplyAuthor = normalizeEmail(previousReply?.authorEmail || '');
+    const lastReplyAuthor = normalizeEmail(getShowcaseNoteReplyTarget(current));
     const updatedNote = { ...current, replies: [...existingReplies, reply] };
 
     setAnnotationNotes(prevNotes => prevNotes.map(note => (
@@ -5924,7 +5962,9 @@ const updateProjectFilters = useCallback((updater) => {
               nextEntry: entry,
               statusLabels: COMPLIANCE_STATUS_EMAIL_LABELS
             }),
-            label: resolveLocalizedText(teams.find((team) => team?.id === teamId)?.name, DEFAULT_LANGUAGE)
+            label: resolveLocalizedText(teams.find((team) => team?.id === teamId)?.name, DEFAULT_LANGUAGE),
+            perimeterId: teamId,
+            perimeterKind: FOCUS_KIND_TEAM
           })),
           ...changedCommitteeEntries.map(([committeeId, entry]) => ({
             ...buildComplianceChangeMessage({
@@ -5934,17 +5974,27 @@ const updateProjectFilters = useCallback((updater) => {
               nextEntry: entry,
               statusLabels: COMPLIANCE_STATUS_EMAIL_LABELS
             }),
-            label: committeesById[committeeId]?.name || ''
+            label: committeesById[committeeId]?.name || '',
+            perimeterId: committeeId,
+            perimeterKind: FOCUS_KIND_COMMITTEE
           }))
-        ];
+        ].filter((message) => message.isMeaningful);
         const { text: commentExcerpt, focus: commentFocus } = combineComplianceChangeMessages(changeMessages);
         let mainRecipients = [];
 
-        if (isOwnerOrCoOwner) {
+        if (changeMessages.length === 0) {
+          // Rien qu'un lecteur attende (confirmation de revue, pièce jointe seule, prise en charge…) :
+          // pas de mail. Les copies de prise en charge implicite ci-dessous restent traitées à part.
+        } else if (isOwnerOrCoOwner) {
           // Une fois le périmètre pris en charge, les échanges ne partent plus qu'à son
-          // référent : c'est tout l'objet de la revendication côté volume d'e-mails.
-          const changedTeamIds = changedTeamEntries.map(([teamId]) => teamId);
-          const changedCommitteeIds = changedCommitteeEntries.map(([committeeId]) => committeeId);
+          // référent : c'est tout l'objet de la revendication côté volume d'e-mails. Seuls les
+          // périmètres où quelque chose a réellement été écrit sont prévenus.
+          const changedTeamIds = changeMessages
+            .filter((message) => message.perimeterKind === FOCUS_KIND_TEAM)
+            .map((message) => message.perimeterId);
+          const changedCommitteeIds = changeMessages
+            .filter((message) => message.perimeterKind === FOCUS_KIND_COMMITTEE)
+            .map((message) => message.perimeterId);
           const teamRecipients = changedTeamIds
             .flatMap((teamId) => {
               const team = teams.find((entry) => entry?.id === teamId);
@@ -6091,14 +6141,18 @@ const updateProjectFilters = useCallback((updater) => {
         userEmail: currentUserEmail
       });
       if (isLatest) {
-        const statusLabel = COMPLIANCE_STATUS_EMAIL_LABELS[nextEntry.status] || '';
-        const excerpt = [statusLabel ? `Status: ${statusLabel}` : '', typeof nextEntry.comment === 'string' ? nextEntry.comment.trim() : '']
-          .filter(Boolean)
-          .join('\n');
-        if (excerpt) {
+        // Ré-enregistrer la même décision (seul l'historique de séance bouge) ne prévient personne.
+        const decisionMessage = buildComplianceChangeMessage({
+          kind: FOCUS_KIND_COMMITTEE,
+          id: committeeId,
+          previousEntry,
+          nextEntry,
+          statusLabels: COMPLIANCE_STATUS_EMAIL_LABELS
+        });
+        if (decisionMessage.isMeaningful && decisionMessage.text) {
           notifyOwnerAndCoOwners(project, NOTIFICATION_TYPES.SYNTHESIS_COMMENT_TO_OWNER, {
-            excerpt,
-            focus: { kind: FOCUS_KIND_COMMITTEE, id: committeeId, message: FOCUS_MESSAGE_OPINION }
+            excerpt: decisionMessage.text,
+            focus: decisionMessage.focus
           });
         }
       }
@@ -9039,6 +9093,7 @@ const updateProjectFilters = useCallback((updater) => {
         noteVisibilityMode={isShowcaseSharedView ? showcaseAnnotationVisibilityMode : 'all'}
         currentSourceId={currentUserDisplayName || ''}
         onNoteChange={handleAnnotationTextChange}
+        onNoteCommit={commitAnnotationNote}
         onNoteClose={handleCloseAnnotationNote}
         onNoteDelete={handleDeleteAnnotationNote}
         canDeleteNote={canDeleteAnnotationNote}

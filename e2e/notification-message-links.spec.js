@@ -190,6 +190,50 @@ test.describe('Mails d’échange : le texte en tête, et un lien vers le messag
     expect(toOwner.to).not.toContain(COLLEAGUE_EMAIL);
   });
 
+  test('un post-it ne prévient le porteur qu’une fois, quand son auteur le quitte, avec le texte complet', async ({ page }) => {
+    test.setTimeout(60000);
+    const errors = collectConsoleErrors(page);
+    await gotoHome(page);
+    await grantSelfComplianceExpertAndCommitteeAccess(page);
+    await createAndSubmitProject(page);
+    await goToProjectsHome(page);
+    await handProjectToAnotherOwner(page);
+    const stored = await page.evaluate(() => window.__cnReadPersistedState());
+    const project = stored.projects.find((entry) => entry?.status === 'submitted');
+
+    await page.goto(`/index.html?projectId=${encodeURIComponent(project.id)}`);
+    await page.getByRole('button', { name: /Activer le mode annotation|Commenter/ }).first().click();
+    const intro = page.getByTestId('annotation-intro');
+    if (await intro.isVisible().catch(() => false)) {
+      await page.getByRole('button', { name: 'J’ai compris' }).click();
+    }
+    await page.locator('[data-showcase-section]').first().dblclick();
+    const note = page.getByPlaceholder('Ajoutez votre remarque ici...').first();
+    await expect(note).toBeFocused();
+
+    const showcaseMails = async () => (await readMails(page)).filter((mail) => mail.to.includes(OWNER_EMAIL)
+      && mail.subject.includes('Comment on the showcase'));
+
+    // Une pause en pleine frappe ne doit plus envoyer un texte à moitié écrit.
+    await page.keyboard.type('Le visuel de la page 3');
+    await page.waitForTimeout(2000);
+    expect(await showcaseMails()).toHaveLength(0);
+    await page.keyboard.type(' doit porter la mention légale.');
+
+    // L'auteur quitte le post-it : un seul mail, avec tout le texte.
+    await note.evaluate((element) => element.blur());
+    await expect.poll(async () => (await showcaseMails()).length).toBe(1);
+    expect((await showcaseMails())[0].body).toContain('Le visuel de la page 3 doit porter la mention légale.');
+
+    // Le retoucher plus tard ne renvoie rien.
+    await note.focus();
+    await page.keyboard.type(' Merci.');
+    await note.evaluate((element) => element.blur());
+    await page.waitForTimeout(1500);
+    expect(await showcaseMails()).toHaveLength(1);
+    expect(errors).toEqual([]);
+  });
+
   test('le lien d’un post-it ouvre la vitrine, pas les enjeux, et n’échoue pas si le post-it a disparu', async ({ page }) => {
     const errors = collectConsoleErrors(page);
     await gotoHome(page);
