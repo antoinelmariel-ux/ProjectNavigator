@@ -2481,6 +2481,7 @@ export default {
     replyPlaceholder: 'Votre réponse (texte riche et liens)...',
     removeButton: 'Supprimer',
     sendReplyButton: 'Envoyer la réponse',
+    unclaimedReplyNoMailHint: 'Personne de cette équipe n’a encore pris le projet en charge : votre réponse est enregistrée et visible des experts dans l’application, mais aucun mail ne part avant cette prise en charge.',
     risksHeadingTemplate: 'Risques identifiés ({{count}})',
     riskAriaLabelTemplate: 'Risque {{level}}',
     referentTeamLabel: 'Équipe référente :',

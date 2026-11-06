@@ -694,6 +694,9 @@ expert one click** in the nominal case, and makes a project that ships without i
 - **"I need to review again" reuses the update machinery**: it sets `needsReviewSince`, so the
   perimeter shows the same "to review again" state as after a project update and the home badge
   goes `outdated`. The round stays open until a new opinion lands.
+- **« Launched without confirmation » follows the claim** (`PROJECT_LAUNCHED_WITHOUT_CONFIRMATION`):
+  per unconfirmed team `resolveClaimAwareRecipients` (assignee + followers, else the routed team,
+  absences substituted, `never` members excluded) plus `adminEmails` — never the raw contact list.
 - **A launch is declared, never inferred** (`src/utils/projectLaunch.js`). `launchDate` is a
   forecast saved months earlier, and most owners wait for their confirmation before shipping —
   so deducing "launched without confirmation" from a missed date accused exactly the people who
@@ -941,6 +944,14 @@ per-person settings this feature needs.
   (use followers for those), or the checkbox brings back the very email volume the feature removes.
   They are sent in `to` and not `cc`
   because there is no primary recipient (the new owner is the actor, whom `notify` filters out).
+- **What the owner side writes on an unclaimed team perimeter mails nobody in that team**
+  (`hasActivePerimeterClaim`: a claim held by a *current* contact — an orphan claim does not
+  count). Applies to the main mail of `handleUpdateComplianceComments` and to « Reply to your
+  comment » when its target is a team contact and the writer is not. The project already waits in
+  that team's « À prendre » with its news dot; claiming it is how the reply gets read. The owner
+  is told under the reply box (`unclaimedReplyNoMailHint`, `data-testid="unclaimed-reply-hint-<teamId>"`).
+  Committees are not claimable, so they keep receiving. Solicitations (submission, update,
+  final-round request) are not replies and still follow their own routing.
 - **The first submission mail still goes to the whole team.** You cannot claim a project you never
   heard of; only absence substitution applies there (`resolveTeamMailRecipients`).
 - **Staleness is signalled, never auto-released.** `ClaimStaleDays` (6 business days) flags the card,

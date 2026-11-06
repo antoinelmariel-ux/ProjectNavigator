@@ -54,6 +54,7 @@ import {
   CLAIM_ACTION_TRANSFER,
   CLAIM_REASONS,
   getPerimeterClaim,
+  hasActivePerimeterClaim,
   getPerimeterClaimHistory,
   isClaimedBy,
   isClaimedByOther
@@ -3405,6 +3406,13 @@ export const SynthesisReport = ({
                                           </li>
                                         ))}
                                       </ul>
+                                    )}
+                                    {!complianceTeamIdsForUser.has(team.id)
+                                      && canReplyAsProjectContributor
+                                      && !hasActivePerimeterClaim(team, complianceComments.teams?.[team.id]) && (
+                                      <p className="mt-2 text-xs text-gray-600" role="note" data-testid={`unclaimed-reply-hint-${team.id}`}>
+                                        {t('synthesisReport.unclaimedReplyNoMailHint')}
+                                      </p>
                                     )}
                                     <div className="mt-2 flex items-center gap-3">
                                       <button

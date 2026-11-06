@@ -158,6 +158,7 @@ import {
   getPerimeterClaim,
   getPerimeterClaimHistory,
   getUnclaimedReminderState,
+  hasActivePerimeterClaim,
   isTeamContact,
   markClaimReminderSent,
   markUnclaimedReminderSent,
@@ -5995,10 +5996,13 @@ const updateProjectFilters = useCallback((updater) => {
           const changedCommitteeIds = changeMessages
             .filter((message) => message.perimeterKind === FOCUS_KIND_COMMITTEE)
             .map((message) => message.perimeterId);
+          // Une équipe dont personne n'a pris le périmètre en charge n'est pas prévenue : le projet
+          // l'attend dans « À prendre », pastille comprise, et le prendre en charge suffit à lire
+          // ce que le chef de projet a écrit. Les comités, eux, ne se prennent pas en charge.
           const teamRecipients = changedTeamIds
             .flatMap((teamId) => {
               const team = teams.find((entry) => entry?.id === teamId);
-              if (!team) {
+              if (!team || !hasActivePerimeterClaim(team, teamEntries[teamId])) {
                 return [];
               }
               return resolveClaimAwareRecipients(
@@ -6178,6 +6182,22 @@ const updateProjectFilters = useCallback((updater) => {
       message: payload.replyId || ''
     };
     const replyMailKey = buildThreadReplyMailKey(projectId, focus);
+    // Même règle que le mail principal : quand le côté chef de projet écrit sur un périmètre d'équipe
+    // que personne n'a pris en charge, aucun membre de l'équipe n'est prévenu. (Un expert qui répond
+    // prend lui-même le périmètre en charge : la règle ne le concerne pas.)
+    if (payload.targetType !== 'committee') {
+      const team = teams.find((entry) => entry?.id === payload.targetId);
+      const project = projectsRef.current.find((entry) => entry?.id === projectId);
+      const entry = project?.answers?.[COMPLIANCE_COMMENTS_KEY]?.teams?.[payload.targetId];
+      if (
+        team
+        && !isTeamContact(team, currentUserEmail)
+        && isTeamContact(team, payload.lastAuthorEmail)
+        && !hasActivePerimeterClaim(team, entry)
+      ) {
+        return;
+      }
+    }
     notifyThreadLastAuthor({
       targetEmail: payload.lastAuthorEmail,
       type: NOTIFICATION_TYPES.SYNTHESIS_COMMENT_REPLY,
@@ -6192,7 +6212,7 @@ const updateProjectFilters = useCallback((updater) => {
         ? lastThreadReplyMailRef.current.emails
         : []
     });
-  }, [activeProjectId, notifyThreadLastAuthor]);
+  }, [activeProjectId, currentUserEmail, notifyThreadLastAuthor, teams]);
 
   // Signaler un doute sur une question, sans jamais remplacer la réponse elle-même : le porteur
   // garde sa vraie réponse et ajoute, en texte libre, ce qui le fait douter. La note n'est ni
@@ -8245,8 +8265,19 @@ const updateProjectFilters = useCallback((updater) => {
       .map((teamId) => teams.find((entry) => entry?.id === teamId))
       .filter(Boolean);
 
+    // Côté équipes, ceux qui ont rendu l'avis : le référent et ses suiveurs, ou l'équipe routée à
+    // défaut — jamais la liste brute des contacts, qui ignorait le mode « jamais contacté », les
+    // suppléants des absents et la prise en charge. Les administrateurs restent prévenus : c'est le
+    // seul constat de manquement du dispositif.
+    const nextComments = nextAnswers?.[COMPLIANCE_COMMENTS_KEY];
+    const nextTeamEntries = nextComments?.teams && typeof nextComments.teams === 'object' ? nextComments.teams : {};
     const recipients = normalizeRecipientList([
-      ...unconfirmedTeams.flatMap((team) => normalizeTeamContacts(team)),
+      ...unconfirmedTeams.flatMap((team) => resolveClaimAwareRecipients(
+        team,
+        nextAnswers,
+        getPerimeterClaim(nextTeamEntries[team.id]),
+        { profiles: userProfilesByEmail }
+      )),
       ...adminEmails
     ]);
 
@@ -8271,7 +8302,8 @@ const updateProjectFilters = useCallback((updater) => {
     currentUserEmail,
     getLaunchSettled,
     notify,
-    teams
+    teams,
+    userProfilesByEmail
   ]);
 
   const handleRequestFinalValidation = useCallback(() => {

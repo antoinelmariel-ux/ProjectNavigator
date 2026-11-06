@@ -30,6 +30,8 @@ async function handProjectToAnotherOwner(page) {
 }
 
 const COLLEAGUE_EMAIL = 'collegue.autre@lfb.fr';
+// Seul contact de l'équipe « Contrôle pub » dans le référentiel par défaut.
+const COLLEAGUE_EXPERT_EMAIL = 'laure.chevalier@lfb.fr';
 
 async function seedThread(page, replies) {
   await patchStateOnBoot(page, (stored, seededReplies) => {
@@ -52,8 +54,11 @@ async function seedThread(page, replies) {
   await expect(page.getByRole('button', { name: /À prendre \(1\)/ })).toBeVisible();
 }
 
-async function sendThreadReply(page, text) {
+async function sendThreadReply(page, text, { beforeSend } = {}) {
   await page.getByRole('button', { name: /Répondre/ }).first().click();
+  if (beforeSend) {
+    await beforeSend();
+  }
   await page.locator('[contenteditable="true"]').last().click();
   await page.keyboard.type(text);
   await page.getByRole('button', { name: 'Envoyer la réponse' }).click();
@@ -231,6 +236,69 @@ test.describe('Mails d’échange : le texte en tête, et un lien vers le messag
     await note.evaluate((element) => element.blur());
     await page.waitForTimeout(1500);
     expect(await showcaseMails()).toHaveLength(1);
+    expect(errors).toEqual([]);
+  });
+
+  test('le chef de projet répond sur un périmètre que personne n’a pris en charge : aucun mail, et il en est averti', async ({ page }) => {
+    test.setTimeout(60000);
+    const errors = collectConsoleErrors(page);
+    await gotoHome(page);
+    await createAndSubmitProject(page);
+    const stored = await page.evaluate(() => window.__cnReadPersistedState());
+    const project = stored.projects.find((entry) => entry?.status === 'submitted');
+    const stakesLink = `/index.html?projectId=${encodeURIComponent(project.id)}&view=synthesis&focusKind=team&focusId=controle_pub`;
+
+    await patchStateOnBoot(page, (state, arg) => {
+      (state?.projects || []).forEach((entry) => {
+        if (entry?.id !== arg.projectId) {
+          return;
+        }
+        const comments = entry.answers.__compliance_team_comments__ || {};
+        comments.teams = {
+          ...(comments.teams || {}),
+          controle_pub: {
+            ...(comments.teams?.controle_pub || {}),
+            status: 'pending_information',
+            comment: 'Merci de préciser le public visé.',
+            statusUpdatedAt: '2026-11-01T09:00:00.000Z',
+            replies: [{ id: 'reply-expert', message: 'Question de l’expert', authorEmail: arg.expert, authorName: arg.expert, createdAt: '2026-11-01T09:05:00.000Z' }],
+            ...(arg.claimed ? { claim: { assigneeEmail: arg.expert, assignedAt: '2026-11-01T09:00:00.000Z', assignedByEmail: arg.expert } } : {})
+          }
+        };
+        entry.answers.__compliance_team_comments__ = comments;
+      });
+      return state;
+    }, { projectId: project.id, expert: COLLEAGUE_EXPERT_EMAIL, claimed: false });
+    await page.goto(stakesLink);
+    await expect(page.getByRole('heading', { name: 'Enjeux du projet' })).toBeVisible();
+
+    const mailsToExpert = async () => (await readMails(page)).filter((mail) => mail.to.includes(COLLEAGUE_EXPERT_EMAIL));
+    await sendThreadReply(page, 'Le public visé est national.', {
+      beforeSend: () => expect(page.getByTestId('unclaimed-reply-hint-controle_pub')).toBeVisible()
+    });
+    await expect(page.getByText('Le public visé est national.')).toBeVisible();
+    await page.waitForTimeout(800);
+    expect(await mailsToExpert()).toHaveLength(0);
+
+    // Le même échange, une fois le périmètre pris en charge : le référent est prévenu.
+    await patchStateOnBoot(page, (state, arg) => {
+      (state?.projects || []).forEach((entry) => {
+        const teamEntry = entry?.id === arg.projectId ? entry.answers?.__compliance_team_comments__?.teams?.controle_pub : null;
+        if (teamEntry) {
+          teamEntry.claim = { assigneeEmail: arg.expert, assignedAt: '2026-11-01T09:00:00.000Z', assignedByEmail: arg.expert };
+        }
+      });
+      return state;
+    }, { projectId: project.id, expert: COLLEAGUE_EXPERT_EMAIL });
+    await page.goto(stakesLink);
+    await expect(page.getByRole('heading', { name: 'Enjeux du projet' })).toBeVisible();
+    await sendThreadReply(page, 'Et la diffusion commence en mars.', {
+      beforeSend: () => expect(page.getByTestId('unclaimed-reply-hint-controle_pub')).toHaveCount(0)
+    });
+    await expect.poll(async () => (await mailsToExpert()).length).toBe(1);
+    const mail = (await mailsToExpert())[0];
+    expect(mail.body).toContain('Et la diffusion commence en mars.');
+    expect(mail.subject).toContain('Reply from the project owner');
     expect(errors).toEqual([]);
   });
 
