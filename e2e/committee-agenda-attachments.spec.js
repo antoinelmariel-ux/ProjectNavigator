@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoHome, createAndSubmitProject, patchStateOnBoot, readStoredState } from './fixtures.js';
+import { gotoHome, createAndSubmitProject, patchStateOnBoot, readStoredState, confirmInAppDialog } from './fixtures.js';
 
 // Pièces jointes et liens d'un sujet de l'ordre du jour : le président les ajoute, les membres et
 // les intervenants du sujet les ouvrent.
@@ -87,8 +87,8 @@ test.describe('Ordre du jour : documents et liens d’un point', () => {
     await expect.poll(async () => (await storedAttachments(page)).map((entry) => entry.name))
       .toEqual(['Projet de charte', 'note-cadrage.pdf']);
 
-    page.once('dialog', (dialog) => dialog.accept());
     await attachments.getByRole('button', { name: 'Retirer « Projet de charte »' }).click();
+    await confirmInAppDialog(page);
     await expect(attachments.getByRole('link', { name: 'Projet de charte' })).toHaveCount(0);
     await expect.poll(async () => (await storedAttachments(page)).map((entry) => entry.name)).toEqual(['note-cadrage.pdf']);
   });

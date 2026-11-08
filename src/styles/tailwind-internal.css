@@ -826,6 +826,10 @@
   height: 2.5rem;
 }
 
+.h-11 {
+  height: 2.75rem;
+}
+
 .h-12 {
   height: 3rem;
 }
@@ -2147,6 +2151,10 @@
   width: 2.5rem;
 }
 
+.w-11 {
+  width: 2.75rem;
+}
+
 .w-12 {
   width: 3rem;
 }
@@ -2227,6 +2235,10 @@
   z-index: 60;
 }
 
+.z-\[70\] {
+  z-index: 70;
+}
+
 .z-10 {
   z-index: 10;
 }
@@ -2237,6 +2249,12 @@
 
 .z-50 {
   z-index: 50;
+}
+
+@media (min-width: 640px) {
+  .sm\:block {
+    display: block;
+  }
 }
 
 @media (min-width: 640px) {

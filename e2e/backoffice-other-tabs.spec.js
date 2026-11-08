@@ -11,7 +11,7 @@ const OTHER_TABS = [
   'Inspiration',
   'Thèmes vitrine',
   'Modèles de vitrine',
-  'Onboarding',
+  'Visite guidée',
   'Comités de validation',
   'Administrateurs',
   'Niveaux de complexité',
@@ -58,7 +58,7 @@ test.describe('Back-office : autres onglets', () => {
         await selects.nth(i).selectOption({ index: options.length - 1 });
       }
     }
-    await expect(page.getByText('Nombre de projets soumis')).toBeVisible();
+    await expect(page.getByText('Nombre de projets envoyés')).toBeVisible();
     expect(errors).toEqual([]);
   });
 });

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoHome, createAndSubmitProject, grantAdminAccess, patchStateOnBoot, readStoredState, openBackOfficeTab } from './fixtures.js';
+import { gotoHome, createAndSubmitProject, grantAdminAccess, patchStateOnBoot, readStoredState, openBackOfficeTab, confirmInAppDialog } from './fixtures.js';
 
 // Calendrier des comités (docs/specs/calendrier-comites.md). Le comité de test se déclenche dès
 // qu'une équipe d'experts l'est — ce que fait toujours le projet rempli par l'autopilote.
@@ -265,8 +265,8 @@ test.describe('Calendrier des comités', () => {
     await expect(agenda.getByText('40 min attribuées sur 60 min')).toBeVisible();
 
     // Le président annule la séance depuis l'ordre du jour.
-    page.once('dialog', (dialog) => dialog.accept());
     await agenda.getByRole('button', { name: 'Annuler la séance' }).click();
+    await confirmInAppDialog(page);
     await expect(agenda.getByText('Cette séance est annulée.')).toBeVisible();
     await expect
       .poll(async () => (await readStoredState(page)).committeeSessions?.find((entry) => entry.id === 'session-chair')?.status)

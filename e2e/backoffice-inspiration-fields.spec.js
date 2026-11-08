@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoHome, grantAdminAccess, collectConsoleErrors, openBackOfficeTab } from './fixtures.js';
+import { gotoHome, grantAdminAccess, collectConsoleErrors, openBackOfficeTab, confirmInAppDialog } from './fixtures.js';
 
 async function openInspirationTab(page) {
   await gotoHome(page);
@@ -53,8 +53,8 @@ test.describe('Back-office : champs du formulaire inspiration', () => {
     const titleCard = fieldCards(page).first();
     await expect(titleCard.getByRole('button', { name: /^Supprimer le champ/ })).toBeDisabled();
 
-    page.once('dialog', (confirmDialog) => confirmDialog.accept());
     await card.getByRole('button', { name: 'Supprimer le champ Budget estimé' }).click();
+    await confirmInAppDialog(page);
     await expect(fieldCards(page)).toHaveCount(initialCount);
 
     await page.getByRole('button', { name: 'Annuler la dernière suppression' }).click();
@@ -104,8 +104,8 @@ test.describe('Back-office : filtres inspiration', () => {
     await moved.getByRole('switch', { name: 'Masquer le filtre Portée de l’accueil' }).click();
     await expect(moved.getByText('Désactivé', { exact: true })).toBeVisible();
 
-    page.once('dialog', (confirmDialog) => confirmDialog.accept());
     await moved.getByRole('button', { name: 'Supprimer le filtre Portée' }).click();
+    await confirmInAppDialog(page);
     await expect(filterCards(page)).toHaveCount(initialCount);
 
     expect(errors).toEqual([]);

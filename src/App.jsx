@@ -17,6 +17,7 @@ import {
 import { Calendar, ChevronRight, Link, Lock, MessageSquare, Settings, Sparkles, UserCircle } from './components/icons.js';
 import { buttonClass } from './utils/buttonStyles.js';
 import { useModalDialog } from './hooks/useModalDialog.js';
+import { ConfirmDialogHost, requestConfirmation } from './components/ConfirmDialog.jsx';
 import { MandatoryQuestionsSummary } from './components/MandatoryQuestionsSummary.jsx';
 import { SubmissionCancelledNotice } from './components/SubmissionCancelledNotice.jsx';
 import { ActivityScopeSelector } from './components/ActivityScopeSelector.jsx';
@@ -1181,6 +1182,9 @@ export const App = () => {
   const [isUserProfileLoaded, setIsUserProfileLoaded] = useState(false);
   const [userProfileLoadFailed, setUserProfileLoadFailed] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  // Information non bloquante (guide indisponible…) : un bandeau qu'on ferme, à la place de
+  // `window.alert`, qui figeait la page et affichait le nom du site SharePoint.
+  const [appNotice, setAppNotice] = useState('');
   const [profileDraftScope, setProfileDraftScope] = useState([]);
   const [profileDraftTeamPreferences, setProfileDraftTeamPreferences] = useState({});
   const [profileDraftAbsence, setProfileDraftAbsence] = useState({ from: '', to: '', backupEmail: '' });
@@ -3350,15 +3354,13 @@ const updateProjectFilters = useCallback((updater) => {
       ensureTourGuideAssets()
         .then((isReady) => {
           setTourGuideStatus(isReady ? 'ready' : 'error');
-          if (!isReady && typeof window.alert === 'function') {
-            window.alert(t('app.nav.guideTemporarilyUnavailable'));
+          if (!isReady) {
+            setAppNotice(t('app.nav.guideTemporarilyUnavailable'));
           }
         })
         .catch(() => {
           setTourGuideStatus('error');
-          if (typeof window.alert === 'function') {
-            window.alert(t('app.nav.guideTemporarilyUnavailable'));
-          }
+          setAppNotice(t('app.nav.guideTemporarilyUnavailable'));
         });
       return;
     }
@@ -3421,9 +3423,7 @@ const updateProjectFilters = useCallback((updater) => {
     } = normalizedOnboardingConfig;
 
     if (!Array.isArray(steps) || steps.length === 0) {
-      if (typeof window !== 'undefined' && typeof window.alert === 'function') {
-        window.alert(t('app.onboardingTourEmpty'));
-      }
+      setAppNotice(t('app.onboardingTourEmpty'));
       return;
     }
 
@@ -8770,13 +8770,12 @@ const updateProjectFilters = useCallback((updater) => {
       );
 
       if (alreadyPublished.length > 0) {
-        const confirmed =
-          typeof window === 'undefined' || typeof window.confirm !== 'function'
-            ? true
-            : window.confirm(
-              t('app.reinit.confirmOverwritePrefix', { count: alreadyPublished.length }) +
-                  t('app.reinit.confirmOverwriteSuffix')
-            );
+        const confirmed = await requestConfirmation({
+          title: t('common.confirmations.publishOverwrite.title'),
+          message: `${t('app.reinit.confirmOverwritePrefix', { count: alreadyPublished.length }).trim()} ${t('app.reinit.confirmOverwriteSuffix')}`,
+          confirmLabel: t('common.confirmations.publishOverwrite.confirm'),
+          tone: 'warning'
+        });
 
         if (!confirmed) {
           setSharePointReinitState({
@@ -8898,13 +8897,12 @@ const updateProjectFilters = useCallback((updater) => {
       );
 
       if (alreadyPublished.length > 0) {
-        const confirmed =
-          typeof window === 'undefined' || typeof window.confirm !== 'function'
-            ? true
-            : window.confirm(
-              t('app.publishSettings.confirmOverwritePrefix', { count: alreadyPublished.length }) +
-                  t('app.publishSettings.confirmOverwriteSuffix')
-            );
+        const confirmed = await requestConfirmation({
+          title: t('common.confirmations.publishOverwrite.title'),
+          message: `${t('app.publishSettings.confirmOverwritePrefix', { count: alreadyPublished.length }).trim()} ${t('app.publishSettings.confirmOverwriteSuffix')}`,
+          confirmLabel: t('common.confirmations.publishOverwrite.confirm'),
+          tone: 'warning'
+        });
 
         if (!confirmed) {
           setSharePointPublishSettingsState({
@@ -9069,6 +9067,25 @@ const updateProjectFilters = useCallback((updater) => {
         <ImpersonationBanner simulatedEmail={currentUserEmail} realEmail={realUserEmail} />
       )}
       {isAdminConsole && <AdminConsoleBanner adminEmail={realUserEmail} />}
+
+      {appNotice && (
+        <div
+          role="status"
+          className="w-full border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+          data-testid="app-notice"
+        >
+          <div className="mx-auto flex max-w-3xl items-start justify-between gap-3">
+            <span>{appNotice}</span>
+            <button
+              type="button"
+              onClick={() => setAppNotice('')}
+              className="whitespace-nowrap rounded-lg border border-amber-300 px-2 py-0.5 text-xs font-medium hover:bg-amber-100"
+            >
+              {t('app.banners.close')}
+            </button>
+          </div>
+        </div>
+      )}
 
       {!isOnline && (
         <div
@@ -9363,7 +9380,7 @@ const updateProjectFilters = useCallback((updater) => {
                   <span className="sr-only">{t('app.nav.accessBackOffice')}</span>
                 </button>
               )}
-              {isAdminMode && screen === 'home' && (
+              {isAdminMode && screen === 'home' && !isAdminBackOfficeView && (
                 <button
                   type="button"
                   onClick={handleBackOfficeClick}
@@ -10232,6 +10249,7 @@ const updateProjectFilters = useCallback((updater) => {
       </p>
     </footer>
     <StaticPageDialog faqEntries={faqEntries} helpManuals={helpManuals} isExpert={hasScopedBackOfficeAccess} />
+    <ConfirmDialogHost />
     </div>
   );
 };

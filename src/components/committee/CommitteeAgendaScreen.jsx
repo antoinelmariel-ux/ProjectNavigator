@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from '../../react.js';
 import { useTranslation } from '../../i18n/LanguageContext.jsx';
+import { requestConfirmation } from '../ConfirmDialog.jsx';
 import { CommitteeAttendance } from './CommitteeAttendance.jsx';
 import { PeoplePicker } from '../PeoplePicker.jsx';
 import { InvitationBadge } from './InvitationBadge.jsx';
@@ -136,11 +137,18 @@ export const CommitteeAgendaScreen = ({
   const bookedProjectIds = new Set(session.agenda.map((passage) => passage.projectId));
   const availableCandidates = candidateProjects.filter((project) => !bookedProjectIds.has(project.id));
 
+  const askOverrun = async (minutes) => Boolean(await requestConfirmation({
+    title: t('common.confirmations.overrun.title', { minutes }),
+    message: t('common.confirmations.overrun.message'),
+    confirmLabel: t('common.confirmations.overrun.confirm'),
+    cancelLabel: t('common.confirmations.overrun.cancel'),
+    tone: 'warning'
+  }));
+
   const run = async (action, successKey, { confirmOverrun = true } = {}) => {
     setFeedback(null);
     let result = await onRunAction(session.id, action);
-    if (!result?.ok && result?.error === 'overrun' && confirmOverrun && typeof window !== 'undefined'
-      && window.confirm(t('committeeSessions.agenda.overrunConfirm', { minutes: result.overrunMinutes }))) {
+    if (!result?.ok && result?.error === 'overrun' && confirmOverrun && await askOverrun(result.overrunMinutes)) {
       result = await onRunAction(session.id, { ...action, allowOverrun: true });
     }
     if (result?.ok) {
@@ -232,9 +240,16 @@ export const CommitteeAgendaScreen = ({
           <div className="flex justify-end">
             <button
               type="button"
-              onClick={() => {
-                if (typeof window !== 'undefined'
-                  && !window.confirm(t('committeeSessions.planner.cancelConfirm', { count: session.agenda.filter((passage) => passage.kind !== PASSAGE_KIND_TOPIC).length }))) {
+              onClick={async () => {
+                const count = session.agenda.filter((passage) => passage.kind !== PASSAGE_KIND_TOPIC).length;
+                const confirmed = await requestConfirmation({
+                  title: t('common.confirmations.cancelSession.title'),
+                  message: count > 0 ? t('common.confirmations.cancelSession.message', { count }) : '',
+                  confirmLabel: t('common.confirmations.cancelSession.confirm'),
+                  cancelLabel: t('common.confirmations.cancelSession.cancel'),
+                  tone: 'danger'
+                });
+                if (!confirmed) {
                   return;
                 }
                 run({ type: 'cancel' }, 'sessionCancelled');
@@ -513,18 +528,34 @@ export const CommitteeAgendaScreen = ({
                     )}
                     <button
                       type="button"
-                      onClick={() => {
+                      onClick={async () => {
                         if (isTopic) {
-                          if (typeof window === 'undefined' || window.confirm(t('committeeSessions.agenda.removeTopicConfirm'))) {
+                          const confirmed = await requestConfirmation({
+                            title: t('common.confirmations.removeTopic.title'),
+                            message: t('common.confirmations.removeTopic.message'),
+                            confirmLabel: t('common.confirmations.removeTopic.confirm'),
+                            tone: 'danger'
+                          });
+                          if (confirmed) {
                             run({ type: 'unbook', passageId: passage.id }, 'topicRemoved');
                           }
                           return;
                         }
-                        const reason = typeof window !== 'undefined' ? window.prompt(t('committeeSessions.agenda.cancelReasonPrompt')) : '';
-                        if (reason === null || !String(reason).trim()) {
+                        const answer = await requestConfirmation({
+                          title: t('common.confirmations.cancelPassage.title', { name: passageTitle }),
+                          message: t('common.confirmations.cancelPassage.message'),
+                          confirmLabel: t('common.confirmations.cancelPassage.confirm'),
+                          cancelLabel: t('common.confirmations.cancelPassage.cancel'),
+                          tone: 'danger',
+                          reason: {
+                            label: t('common.confirmations.cancelPassage.reasonLabel'),
+                            placeholder: t('common.confirmations.cancelPassage.reasonPlaceholder')
+                          }
+                        });
+                        if (!answer || !answer.reason) {
                           return;
                         }
-                        run({ type: 'unbook', passageId: passage.id, reason: String(reason).trim() }, 'cancelled');
+                        run({ type: 'unbook', passageId: passage.id, reason: answer.reason }, 'cancelled');
                       }}
                       className="ml-auto rounded-lg border border-red-200 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-50"
                     >

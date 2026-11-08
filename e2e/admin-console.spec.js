@@ -78,9 +78,9 @@ test('dans la console, un administrateur modifie, annule, met à la corbeille et
 
   // Annuler la soumission d'un projet soumis par quelqu'un d'autre.
   const submitted = projectRow(consolePage, 'Impact 360');
-  await submitted.getByRole('button', { name: 'Annuler la soumission' }).click();
+  await submitted.getByRole('button', { name: 'Annuler l’envoi' }).click();
   await submitted.getByRole('button', { name: 'Confirmer' }).click();
-  await expect(submitted).toContainText('Soumission annulée');
+  await expect(submitted).toContainText('Envoi annulé');
 
   // Corbeille puis restauration.
   const trashed = projectRow(consolePage, 'Partenariat La Rochelle');

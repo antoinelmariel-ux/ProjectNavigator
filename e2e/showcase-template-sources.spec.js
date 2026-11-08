@@ -82,7 +82,7 @@ test('une section de vitrine lit la question choisie dans le modèle et la réé
   await page.setViewportSize({ width: 1440, height: 900 });
   await gotoHome(page);
   await configureDonationTemplate(page);
-  await page.getByRole('button', { name: 'Basculer vers le mode chef de projet' }).click();
+  await page.getByRole('button', { name: 'Quitter le back-office et revenir aux projets' }).click();
   await createDonation(page);
 
   const story = page.locator('[data-showcase-section="story"]').first();

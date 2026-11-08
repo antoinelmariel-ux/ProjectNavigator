@@ -1,6 +1,9 @@
 import { test, expect } from '@playwright/test';
 import {
   gotoHome,
+  grantAdminAccess,
+  openBackOfficeTab,
+  confirmInAppDialog,
   walkQuestionnaireToShowcase,
   proceedThroughMandatorySummary,
   collectConsoleErrors
@@ -80,5 +83,34 @@ test.describe('Corrections de l’audit UX', () => {
 
     await expect(page.getByText(/\d+ points? à préparer · 0 échange$/).first()).toBeVisible();
     await expect(page.getByText(/\(s\)/)).toHaveCount(0);
+  });
+
+  test('supprimer une question passe par une fenêtre de l’app : Échap annule, le bouton nommé supprime', async ({ page }) => {
+    const errors = collectConsoleErrors(page);
+    let nativeDialogs = 0;
+    page.on('dialog', (dialog) => {
+      nativeDialogs += 1;
+      dialog.dismiss();
+    });
+    await gotoHome(page);
+    await grantAdminAccess(page);
+    await openBackOfficeTab(page, /Questions/);
+    const questionsTab = page.getByRole('tab', { name: /Questions/ });
+    const before = await questionsTab.textContent();
+
+    const deleteButton = page.getByRole('button', { name: /^Supprimer la question / }).and(page.locator(':not([aria-disabled="true"])')).first();
+    await deleteButton.click();
+    const dialog = page.getByTestId('confirm-dialog');
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Annuler' })).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    await expect(questionsTab).toHaveText(before);
+
+    await deleteButton.click();
+    await confirmInAppDialog(page);
+    await expect(questionsTab).not.toHaveText(before);
+    expect(nativeDialogs).toBe(0);
+    expect(errors).toEqual([]);
   });
 });

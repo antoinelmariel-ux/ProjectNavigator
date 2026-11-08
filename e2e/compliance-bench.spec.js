@@ -30,7 +30,7 @@ test('banc d essai : charger un projet type puis creer une regle depuis ses repo
 
   // Charger un projet reel comme projet type
   const sampleSelect = page.getByLabel('Charger un projet type');
-  const projectOption = sampleSelect.locator('optgroup[label="Projets réels soumis"] option').first();
+  const projectOption = sampleSelect.locator('optgroup[label="Projets réels envoyés"] option').first();
   const projectValue = await projectOption.getAttribute('value');
   await sampleSelect.selectOption(projectValue);
 
@@ -88,7 +88,7 @@ test('projets types enregistres : la portee et le pouvoir discriminant des condi
 
   // 1er projet type : le projet reel soumis, enregistre tel quel.
   const projectValue = await sampleSelect
-    .locator('optgroup[label="Projets réels soumis"] option')
+    .locator('optgroup[label="Projets réels envoyés"] option')
     .first()
     .getAttribute('value');
   await sampleSelect.selectOption(projectValue);
@@ -145,7 +145,7 @@ test('le module de revue montre le perimetre d activite issu de l onboarding', a
   await grantAdminAccess(page);
   await openBackOfficeTab(page, /Revue des règles/i);
 
-  await expect(page.getByRole('heading', { name: 'Votre profil (onboarding)' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Votre profil (premier accès)' })).toBeVisible();
   await expect(page.getByText(/Les conditions portant sur le périmètre d’activité/)).toBeVisible();
   // gotoHome a coché le premier périmètre de l'onboarding : il doit apparaître ici.
   await expect(page.getByText('bertrand.darieux@lfb.fr')).toBeVisible();
@@ -160,7 +160,7 @@ test('le module de revue liste les regles existantes et permet de les ouvrir', a
 
   const sampleSelect = page.getByLabel('Charger un projet type');
   const projectValue = await sampleSelect
-    .locator('optgroup[label="Projets réels soumis"] option')
+    .locator('optgroup[label="Projets réels envoyés"] option')
     .first()
     .getAttribute('value');
   await sampleSelect.selectOption(projectValue);
@@ -192,7 +192,7 @@ test('l apercu de regle montre les groupes reels et non une liste a plat', async
 
   const sampleSelect = page.getByLabel('Charger un projet type');
   const projectValue = await sampleSelect
-    .locator('optgroup[label="Projets réels soumis"] option')
+    .locator('optgroup[label="Projets réels envoyés"] option')
     .first()
     .getAttribute('value');
   await sampleSelect.selectOption(projectValue);
@@ -233,7 +233,7 @@ test('le perimetre d activite est simulable et change ce que le banc evalue', as
 
   const scopeGroup = page.getByRole('group', { name: /Périmètre d’activité utilisé/ });
   await expect(scopeGroup).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Votre profil (onboarding)' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Votre profil (premier accès)' })).toBeVisible();
 
   // L'onboarding a coché le premier périmètre : « Monde entier » est actif, les autres non.
   const worldwide = scopeGroup.getByRole('button', { name: 'Monde entier' });
@@ -250,7 +250,7 @@ test('le perimetre d activite est simulable et change ce que le banc evalue', as
 
   // Retour au profil réel.
   await page.getByRole('button', { name: 'Revenir à mon profil' }).click();
-  await expect(page.getByRole('heading', { name: 'Votre profil (onboarding)' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Votre profil (premier accès)' })).toBeVisible();
   await expect(france).toHaveAttribute('aria-pressed', 'false');
 });
 
@@ -262,7 +262,7 @@ test('le perimetre simule est proposable comme condition de regle', async ({ pag
 
   const sampleSelect = page.getByLabel('Charger un projet type');
   const projectValue = await sampleSelect
-    .locator('optgroup[label="Projets réels soumis"] option')
+    .locator('optgroup[label="Projets réels envoyés"] option')
     .first()
     .getAttribute('value');
   await sampleSelect.selectOption(projectValue);

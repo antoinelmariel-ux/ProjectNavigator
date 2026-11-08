@@ -2,6 +2,66 @@ import committeeSessions from './committeeSessions/en.js';
 
 export default {
   common: {
+    confirmDialog: {
+      confirm: 'Confirm',
+      cancel: 'Cancel',
+      delete: 'Delete',
+      reasonRequired: 'Enter a reason to continue.'
+    },
+    confirmations: {
+      faqDelete: {
+        title: 'Delete this FAQ question?',
+        message: 'It disappears from the help window for everyone. This cannot be undone.',
+        confirm: 'Delete the question'
+      },
+      noteDelete: {
+        title: 'Delete this sticky note?',
+        message: 'The sticky note and its replies disappear for everyone. This cannot be undone.',
+        confirm: 'Delete the sticky note'
+      },
+      overrun: {
+        title: 'The session would overrun by {{minutes}} min',
+        message: 'To make this change, the session has to be extended accordingly. Registered owners are notified of the new time.',
+        confirm: 'Extend the session',
+        cancel: 'Do not extend'
+      },
+      cancelSession: {
+        title: 'Cancel this session?',
+        message: '[[count|The registered project will be notified.|The {{count}} registered projects will be notified.]]',
+        confirm: 'Cancel the session',
+        cancel: 'Keep the session'
+      },
+      removeTopic: {
+        title: 'Remove this topic from the agenda?',
+        message: 'Its slot is freed; its speakers no longer receive the invitation.',
+        confirm: 'Remove the topic'
+      },
+      cancelPassage: {
+        title: 'Cancel the presentation of “{{name}}”?',
+        message: 'The project owner is notified, with your reason.',
+        reasonLabel: 'Reason (sent to the owner)',
+        reasonPlaceholder: 'E.g. incomplete file, presentation postponed to a later session',
+        confirm: 'Cancel the presentation',
+        cancel: 'Keep the presentation'
+      },
+      unbook: {
+        title: 'Remove the project from this session?',
+        message: 'The slot is freed and the committee chairs are notified.',
+        confirm: 'Remove the project'
+      },
+      removeAttachment: {
+        title: 'Remove “{{name}}” from this item?',
+        message: 'It no longer appears on the agenda.',
+        confirm: 'Remove'
+      },
+      publishOverwrite: {
+        title: 'Replace the published configuration?',
+        confirm: 'Publish and replace'
+      },
+      deleteGeneric: {
+        confirm: 'Delete'
+      }
+    },
     feedback: {
       dismiss: 'Dismiss notification',
       movedPosition: 'Moved to position {{position}} of {{total}}'
@@ -55,10 +115,10 @@ export default {
       backToHomeAriaLabel: 'Return to the projects home',
       backToHomeLabel: 'Projects home',
       logoHomeAriaLabel: 'Project Navigator, return to home',
-      feedbackAriaLabel: 'Share your feedback on Project Navigator (new window)',
-      feedbackLabel: 'Share your feedback',
-      switchToProjectModeAriaLabel: 'Switch to project lead mode',
-      switchToProjectModeLabel: 'Project Lead Mode',
+      feedbackAriaLabel: 'Give feedback on the tool (new window)',
+      feedbackLabel: 'Give feedback on the tool',
+      switchToProjectModeAriaLabel: 'Leave the back-office and return to projects',
+      switchToProjectModeLabel: 'Leave the back-office',
       activateAdmin: 'Activate administrator mode on the home page',
       adminModeSrOnly: 'Administrator Mode (Home)',
       accessBackOffice: 'Access the Back-office'
@@ -115,9 +175,9 @@ export default {
       copyFailed: 'Unable to copy the link automatically.',
       shortcutDownloaded: 'Shortcut downloaded.',
       displayModeLabel: 'Sharing mode',
-      fullMode: 'Full mode',
-      lightMode: 'Light mode',
-      lightModeHint: 'In Light mode, only the pre-selected sections are visible.',
+      fullMode: 'Full version',
+      lightMode: 'Short version',
+      lightModeHint: 'In the short version, only the chosen sections are visible.',
       commentsEnabledLabel: 'Comments allowed',
       commentsHint: 'Enables a floating comment button to launch the sticky-note module.',
       postItVisibilityLabel: 'Sticky notes visibility',
@@ -211,7 +271,7 @@ export default {
     reinit: {
       checking: 'Checking the SharePoint structure…',
       confirmOverwritePrefix: 'A configuration is already published ({{count}} [[count|file|files]]).\n\n',
-      confirmOverwriteSuffix: 'Replacing it will overwrite the configuration visible to all users. Continue?',
+      confirmOverwriteSuffix: 'Replacing it will overwrite the configuration visible to all users.',
       cancelledPublish: 'Publish cancelled: the published configuration is unchanged.',
       publishing: 'Publishing the configuration to SharePoint…',
       publishedSuccess: 'Configuration published in {{library}} ({{details}}).',
@@ -222,7 +282,7 @@ export default {
     publishSettings: {
       checking: 'Checking the SharePoint structure…',
       confirmOverwritePrefix: 'A configuration is already published ({{count}} [[count|file|files]]).\n\n',
-      confirmOverwriteSuffix: 'Replacing it will overwrite the questions and settings visible to all users. Continue?',
+      confirmOverwriteSuffix: 'Replacing it will overwrite the questions and settings visible to all users.',
       cancelledPublish: 'Publish cancelled: the published questions and settings are unchanged.',
       publishing: 'Publishing questions and settings to SharePoint…',
       publishedSuccess: 'Questions and settings published in {{library}} ({{details}}).',
@@ -450,9 +510,9 @@ export default {
     sortFallback: 'Sort',
     sortDesc: 'Most recent first',
     sortAsc: 'Oldest first',
-    statusDraft: 'Draft in progress',
-    statusSubmitted: 'Stakes finalized',
-    statusCancelled: 'Submission cancelled',
+    statusDraft: 'Draft',
+    statusSubmitted: 'Sent to compliance',
+    statusCancelled: 'Sending cancelled',
     showcaseFeedbackBadgeSingular: '{{count}} comment',
     showcaseFeedbackBadgePlural: '{{count}} comments',
     showcaseFeedbackTooltip: 'Sticky notes left on this project’s showcase and not yet handled.',
@@ -518,12 +578,12 @@ export default {
     inProgressTabLabel: 'In progress',
     treatedTab: 'Reviewed ({{count}})',
     treatedTabLabel: 'Reviewed',
-    outOfScopeTab: 'Out of committee scope ({{count}})',
-    outOfScopeTabLabel: 'Out of committee scope',
+    outOfScopeTab: 'Outside committee ({{count}})',
+    outOfScopeTabLabel: 'Outside committee',
     noToClaimTriggered: 'No project to pick up for now.',
     noInProgressTriggered: 'No project in progress for now.',
     noTreatedTriggered: 'No reviewed project yet.',
-    noOutOfScopeTriggered: 'No project out of committee scope for now.',
+    noOutOfScopeTriggered: 'No project outside the committee for now.',
     triggeredListAriaLabel: 'List of triggered projects',
     committeeLabel: 'Committee',
     expertLabel: 'Expert',
@@ -571,7 +631,7 @@ export default {
     noProjectsYetBody: 'Describe your first project with the “Create a project” button above: in a few minutes you will know which teams to involve.',
     projectsLoadingTitle: 'Loading your projects…',
     projectsLoadingBody: 'Syncing with SharePoint, one moment.',
-    searchProjectLabel: 'Search a project by name or lead',
+    searchProjectLabel: 'Search a project by name or owner',
     submittedProjectsHeading: 'Submitted projects',
     noSubmittedProjects: 'No project submitted yet.',
     noInspirationsYetTitle: 'No inspiring project saved.',
@@ -609,7 +669,7 @@ export default {
       empty: 'The trash is empty.',
       listAriaLabel: 'Projects in the trash',
       deletedOn: 'Deleted on {{date}}',
-      statusSubmitted: 'Submitted',
+      statusSubmitted: 'Sent to compliance',
       statusDraft: 'Draft',
       restore: 'Restore',
       expertResponseNote: 'An expert has already answered or given an opinion: this project will remain available to the experts involved.',
@@ -643,7 +703,7 @@ export default {
     noRisksIdentified: 'No risks identified',
     risksIdentifiedSingular: '{{count}} risk identified',
     risksIdentifiedPlural: '{{count}} risks identified',
-    leadNotProvided: 'Project lead not provided',
+    leadNotProvided: 'Project owner not provided',
     projectTypeNotProvided: 'Project type not provided',
     continueEditing: 'Continue editing',
     editProject: 'Edit the project',
@@ -2045,7 +2105,7 @@ export default {
       tabInspirationTemplate: 'Inspiration ({{count}})',
       tabThemesTemplate: 'Showcase themes ({{count}})',
       tabShowcaseTemplatesTemplate: 'Showcase templates ({{count}})',
-      tabOnboardingTemplate: 'Onboarding ({{count}})',
+      tabOnboardingTemplate: 'Guided tour ({{count}})',
       tabQuestionsTemplate: 'Questions ({{count}})',
       tabRulesTemplate: 'Rules ({{count}})',
       tabValidationCommittee: 'Validation committees',
@@ -2191,8 +2251,8 @@ export default {
     updatedOn: 'Updated on {{date}}',
     status: {
       draft: 'Draft',
-      submitted: 'Submitted',
-      cancelled: 'Submission cancelled',
+      submitted: 'Sent to compliance',
+      cancelled: 'Sending cancelled',
       trashed: 'Trash'
     },
     actions: {
@@ -2435,8 +2495,8 @@ export default {
     defaultTeamLabel: 'SME team',
     defaultUserLabel: 'User',
     statusDraft: 'Draft',
-    statusSubmitted: 'Submitted',
-    statusCancelled: 'Cancelled',
+    statusSubmitted: 'Sent to compliance',
+    statusCancelled: 'Sending cancelled',
     projectSynthesisAriaLabel: 'Project stakes',
     title: 'Project stakes',
     statusLabelTemplate: 'Status: {{status}}',
@@ -2857,13 +2917,13 @@ export default {
     addSectionButton: 'Add the section',
     modeSelectionAriaLabel: 'Usage mode selection',
     usageModeEyebrow: 'Short version for presenting',
-    usageModeHint: 'For a meeting or a share, the “Light” version only shows the sections you pick; the full version keeps everything.',
+    usageModeHint: 'For a meeting or a share, the short version only shows the sections you pick; the full version keeps everything.',
     usageModeToggle: 'Prepare a short version',
     usageModeCollapse: 'Hide',
-    lightModeButton: 'Light mode',
-    fullModeButton: 'Full mode',
+    lightModeButton: 'Short version',
+    fullModeButton: 'Full version',
     configureButton: 'Configure',
-    visibleSectionsLightTitle: 'Sections and items visible in Light mode',
+    visibleSectionsLightTitle: 'Sections and items visible in the short version',
     visibleSectionsLightHint: 'Uncheck the sections or items to hide in the light display.',
     selectAllButton: 'Select all',
     validateButton: 'Validate',
@@ -2884,10 +2944,10 @@ export default {
       addSectionHere: 'Add a section here',
       addSectionTitle: 'Add a section',
       addSectionHint: 'Hover a template to see it appear in place.',
-      hiddenInLight: 'Hidden in Light view',
+      hiddenInLight: 'Hidden in the short version',
       hiddenByCondition: 'Hidden for this project (template condition)',
-      showInLight: 'Show in Light view',
-      hideInLight: 'Hide in Light view',
+      showInLight: 'Show in the short version',
+      hideInLight: 'Hide in the short version',
       sectionMoveUp: 'Move section up',
       sectionMoveDown: 'Move section down',
       sectionDuplicate: 'Duplicate section',

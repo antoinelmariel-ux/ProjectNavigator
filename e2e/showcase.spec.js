@@ -91,7 +91,7 @@ test.describe('ProjectShowcase', () => {
     await createProjectAndOpenShowcase(page);
 
     await page.getByRole('button', { name: 'Partager' }).click();
-    await page.getByRole('button', { name: 'Mode Light', exact: true }).click();
+    await page.getByRole('button', { name: 'Version allégée', exact: true }).click();
     const shareUrl = await page.locator('input[readonly], input[type="text"]').first().inputValue();
 
     // Le mode ne doit apparaître nulle part : sinon le destinataire d'un lien « allégé »

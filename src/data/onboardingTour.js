@@ -434,7 +434,7 @@ export const initialOnboardingTourConfig = {
       },
       "content": {
         "en": "Add someone else to your project — a co-lead: they find it in their own list, can edit the answers, follow progress and answer the experts' questions too. Enough to stop being the bottleneck while you are away.",
-        "fr": "Ajoutez une autre personne à votre projet — un co-lead : elle le retrouve dans sa propre liste, peut modifier les réponses, suivre l’avancement et répondre aux questions des experts. De quoi ne plus être le point de blocage pendant vos congés.",
+        "fr": "Ajoutez une autre personne à votre projet — un co-porteur : elle le retrouve dans sa propre liste, peut modifier les réponses, suivre l’avancement et répondre aux questions des experts. De quoi ne plus être le point de blocage pendant vos congés.",
         "de": "Fügen Sie eine weitere Person zu Ihrem Projekt hinzu — einen Co-Lead: Sie findet es in ihrer eigenen Liste, kann die Antworten bearbeiten, den Fortschritt verfolgen und ebenfalls die Fragen der Experten beantworten. So sind Sie im Urlaub nicht mehr der Engpass.",
         "es": "Añada a otra persona a su proyecto — un co-lead: lo encontrará en su propia lista, podrá modificar las respuestas, seguir el avance y responder también a las preguntas de los expertos. Así deja de ser el cuello de botella durante sus vacaciones."
       },
@@ -862,13 +862,13 @@ export const initialOnboardingTourConfig = {
       "target": "[data-tour-id=\"showcase-display-mode-buttons\"]",
       "title": {
         "en": "Light or full, depending on the audience",
-        "fr": "Light ou complet, selon l’audience",
+        "fr": "Allégée ou complète, selon l’audience",
         "de": "Light oder vollständig, je nach Publikum",
         "es": "Light o completo, según el público"
       },
       "content": {
         "en": "Light mode only shows the sections you pre-selected: ideal to present to a team or in a meeting without exposing “sensitive” or irrelevant elements. Full mode keeps everything.",
-        "fr": "Le mode Light ne montre que les sections que vous avez pré-sélectionnées : idéal pour présenter à une équipe ou en séance sans exposer les éléments « sensibles » ou non-pertinents. Le mode complet garde tout.",
+        "fr": "La version allégée ne montre que les sections que vous avez choisies : idéal pour présenter à une équipe ou en séance sans exposer les éléments « sensibles » ou non pertinents. La version complète garde tout.",
         "de": "Der Light-Modus zeigt nur die von Ihnen vorausgewählten Abschnitte: ideal für die Präsentation vor einem Team oder in einer Sitzung, ohne „sensible“ oder nicht relevante Elemente offenzulegen. Der Vollmodus behält alles.",
         "es": "El modo Light solo muestra las secciones que ha preseleccionado: ideal para presentar a un equipo o en una reunión sin exponer elementos «sensibles» o no pertinentes. El modo completo lo mantiene todo."
       },
@@ -888,7 +888,7 @@ export const initialOnboardingTourConfig = {
       },
       "content": {
         "en": "Copy the sharing link (or download a shortcut) and choose what your recipients will see: Light or full display, comments allowed or not, everyone's sticky notes or only their own.",
-        "fr": "Copiez le lien de partage (ou téléchargez un raccourci) et choisissez ce que verront vos destinataires : affichage Light ou complet, commentaires autorisés ou non, post-its de tous ou uniquement les leurs.",
+        "fr": "Copiez le lien de partage (ou téléchargez un raccourci) et choisissez ce que verront vos destinataires : version allégée ou complète, commentaires autorisés ou non, post-its de tous ou uniquement les leurs.",
         "de": "Kopieren Sie den Freigabelink (oder laden Sie eine Verknüpfung herunter) und legen Sie fest, was Ihre Empfänger sehen: Light- oder Vollansicht, Kommentare erlaubt oder nicht, Haftnotizen aller oder nur ihre eigenen.",
         "es": "Copie el enlace de uso compartido (o descargue un acceso directo) y elija lo que verán sus destinatarios: visualización Light o completa, comentarios permitidos o no, notas adhesivas de todos o solo las suyas."
       },

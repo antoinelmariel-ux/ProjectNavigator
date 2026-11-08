@@ -80,7 +80,7 @@ test.describe('Langues de réponse acceptées', () => {
     const controlePubCard = page.locator('article', { hasText: 'Contrôle pub' }).first();
     await controlePubCard.getByRole('checkbox', { name: 'English' }).check();
 
-    await page.getByRole('button', { name: 'Mode Chef de Projet' }).click();
+    await page.getByRole('button', { name: 'Quitter le back-office' }).click();
     await expect(page.getByRole('button', { name: /Créer un projet/ }).first()).toBeVisible();
 
     await createAndSubmitProject(page);

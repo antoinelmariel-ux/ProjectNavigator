@@ -2,6 +2,66 @@ import committeeSessions from './committeeSessions/es.js';
 
 export default {
   common: {
+    confirmDialog: {
+      confirm: 'Confirmar',
+      cancel: 'Cancelar',
+      delete: 'Eliminar',
+      reasonRequired: 'Indique un motivo para continuar.'
+    },
+    confirmations: {
+      faqDelete: {
+        title: '¿Eliminar esta pregunta de las FAQ?',
+        message: 'Desaparece de la ventana de ayuda para todos. Esta acción es definitiva.',
+        confirm: 'Eliminar la pregunta'
+      },
+      noteDelete: {
+        title: '¿Eliminar este pósit?',
+        message: 'El pósit y sus respuestas desaparecen para todos. Esta acción es definitiva.',
+        confirm: 'Eliminar el pósit'
+      },
+      overrun: {
+        title: 'La sesión se excedería en {{minutes}} min',
+        message: 'Para hacer este cambio, la sesión debe prolongarse en la misma medida. Los responsables inscritos reciben aviso del nuevo horario.',
+        confirm: 'Prolongar la sesión',
+        cancel: 'No prolongar'
+      },
+      cancelSession: {
+        title: '¿Cancelar esta sesión?',
+        message: '[[count|Se avisará al proyecto inscrito.|Se avisará a los {{count}} proyectos inscritos.]]',
+        confirm: 'Cancelar la sesión',
+        cancel: 'Mantener la sesión'
+      },
+      removeTopic: {
+        title: '¿Retirar este tema del orden del día?',
+        message: 'Su franja queda libre; sus ponentes dejan de recibir la invitación.',
+        confirm: 'Retirar el tema'
+      },
+      cancelPassage: {
+        title: '¿Cancelar la presentación de «{{name}}»?',
+        message: 'Se avisa al responsable del proyecto, con su motivo.',
+        reasonLabel: 'Motivo (se transmite al responsable)',
+        reasonPlaceholder: 'P. ej. expediente incompleto, presentación aplazada a una próxima sesión',
+        confirm: 'Cancelar la presentación',
+        cancel: 'Mantener la presentación'
+      },
+      unbook: {
+        title: '¿Retirar el proyecto de esta sesión?',
+        message: 'La franja queda libre y se avisa a la presidencia del comité.',
+        confirm: 'Retirar el proyecto'
+      },
+      removeAttachment: {
+        title: '¿Retirar «{{name}}» de este punto?',
+        message: 'Deja de aparecer en el orden del día.',
+        confirm: 'Retirar'
+      },
+      publishOverwrite: {
+        title: '¿Sustituir la configuración publicada?',
+        confirm: 'Publicar y sustituir'
+      },
+      deleteGeneric: {
+        confirm: 'Eliminar'
+      }
+    },
     feedback: {
       dismiss: 'Cerrar la notificación',
       movedPosition: 'Movido a la posición {{position}} de {{total}}'
@@ -55,10 +115,10 @@ export default {
       backToHomeAriaLabel: 'Volver al inicio de proyectos',
       backToHomeLabel: 'Inicio de proyectos',
       logoHomeAriaLabel: 'Project Navigator, volver al inicio',
-      feedbackAriaLabel: 'Comparta su opinión sobre Project Navigator (nueva ventana)',
-      feedbackLabel: 'Comparta su opinión',
-      switchToProjectModeAriaLabel: 'Cambiar al modo de jefe de proyecto',
-      switchToProjectModeLabel: 'Modo Jefe de Proyecto',
+      feedbackAriaLabel: 'Opinar sobre la herramienta (nueva ventana)',
+      feedbackLabel: 'Opinar sobre la herramienta',
+      switchToProjectModeAriaLabel: 'Salir del back-office y volver a los proyectos',
+      switchToProjectModeLabel: 'Salir del back-office',
       activateAdmin: 'Activar el modo administrador en la página de inicio',
       adminModeSrOnly: 'Modo Administrador (Inicio)',
       accessBackOffice: 'Acceder al Back-office'
@@ -115,9 +175,9 @@ export default {
       copyFailed: 'No se pudo copiar el enlace automáticamente.',
       shortcutDownloaded: 'Acceso directo descargado.',
       displayModeLabel: 'Modo de uso compartido',
-      fullMode: 'Modo completo',
-      lightMode: 'Modo Light',
-      lightModeHint: 'En modo Light, solo son visibles las secciones preseleccionadas.',
+      fullMode: 'Versión completa',
+      lightMode: 'Versión reducida',
+      lightModeHint: 'En la versión reducida, solo son visibles las secciones elegidas.',
       commentsEnabledLabel: 'Comentarios permitidos',
       commentsHint: 'Activa un botón de comentarios flotante para iniciar el módulo de notas adhesivas.',
       postItVisibilityLabel: 'Visibilidad de las notas adhesivas',
@@ -211,7 +271,7 @@ export default {
     reinit: {
       checking: 'Verificando la estructura de SharePoint…',
       confirmOverwritePrefix: 'Ya hay una configuración publicada ({{count}} [[count|archivo|archivos]]).\n\n',
-      confirmOverwriteSuffix: 'Reemplazarla sobrescribirá la configuración visible para todos los usuarios. ¿Continuar?',
+      confirmOverwriteSuffix: 'Reemplazarla sobrescribirá la configuración visible para todos los usuarios.',
       cancelledPublish: 'Publicación cancelada: la configuración publicada no ha cambiado.',
       publishing: 'Publicando la configuración en SharePoint…',
       publishedSuccess: 'Configuración publicada en {{library}} ({{details}}).',
@@ -222,7 +282,7 @@ export default {
     publishSettings: {
       checking: 'Verificando la estructura de SharePoint…',
       confirmOverwritePrefix: 'Ya hay una configuración publicada ({{count}} [[count|archivo|archivos]]).\n\n',
-      confirmOverwriteSuffix: 'Reemplazarlas sobrescribirá las preguntas y ajustes visibles para todos los usuarios. ¿Continuar?',
+      confirmOverwriteSuffix: 'Reemplazarlas sobrescribirá las preguntas y ajustes visibles para todos los usuarios.',
       cancelledPublish: 'Publicación cancelada: las preguntas y ajustes publicados no han cambiado.',
       publishing: 'Publicando preguntas y ajustes en SharePoint…',
       publishedSuccess: 'Preguntas y ajustes publicados en {{library}} ({{details}}).',
@@ -451,9 +511,9 @@ export default {
     sortFallback: 'Orden',
     sortDesc: 'Más recientes primero',
     sortAsc: 'Más antiguos primero',
-    statusDraft: 'Borrador en curso',
-    statusSubmitted: 'Retos finalizados',
-    statusCancelled: 'Envío cancelado',
+    statusDraft: 'Borrador',
+    statusSubmitted: 'Enviado a compliance',
+    statusCancelled: 'Envío anulado',
     showcaseFeedbackBadgeSingular: '{{count}} comentario',
     showcaseFeedbackBadgePlural: '{{count}} comentarios',
     showcaseFeedbackTooltip: 'Notas adhesivas dejadas en la vitrina de este proyecto y aún sin tratar.',
@@ -520,12 +580,12 @@ export default {
     inProgressTabLabel: 'En curso',
     treatedTab: 'Tratados ({{count}})',
     treatedTabLabel: 'Tratados',
-    outOfScopeTab: 'Fuera del alcance del comité ({{count}})',
-    outOfScopeTabLabel: 'Fuera del alcance del comité',
+    outOfScopeTab: 'Fuera del comité ({{count}})',
+    outOfScopeTabLabel: 'Fuera del comité',
     noToClaimTriggered: 'No hay ningún proyecto por asumir por el momento.',
     noInProgressTriggered: 'No hay ningún proyecto en curso por el momento.',
     noTreatedTriggered: 'Ningún proyecto tratado por el momento.',
-    noOutOfScopeTriggered: 'Ningún proyecto fuera del alcance del comité por el momento.',
+    noOutOfScopeTriggered: 'Ningún proyecto fuera del comité por el momento.',
     triggeredListAriaLabel: 'Lista de proyectos activados',
     committeeLabel: 'Comité',
     expertLabel: 'Experto',
@@ -610,7 +670,7 @@ export default {
       empty: 'La papelera está vacía.',
       listAriaLabel: 'Proyectos en la papelera',
       deletedOn: 'Eliminado el {{date}}',
-      statusSubmitted: 'Enviado',
+      statusSubmitted: 'Enviado a compliance',
       statusDraft: 'Borrador',
       restore: 'Restaurar',
       expertResponseNote: 'Un experto ya ha respondido o dado su opinión: este proyecto seguirá disponible para los expertos solicitados.',
@@ -2046,7 +2106,7 @@ export default {
       tabInspirationTemplate: 'Inspiration ({{count}})',
       tabThemesTemplate: 'Temas de vitrina ({{count}})',
       tabShowcaseTemplatesTemplate: 'Plantillas de vitrina ({{count}})',
-      tabOnboardingTemplate: 'Incorporación ({{count}})',
+      tabOnboardingTemplate: 'Visita guiada ({{count}})',
       tabQuestionsTemplate: 'Preguntas ({{count}})',
       tabRulesTemplate: 'Reglas ({{count}})',
       tabValidationCommittee: 'Comités de validación',
@@ -2192,7 +2252,7 @@ export default {
     updatedOn: 'Actualizado el {{date}}',
     status: {
       draft: 'Borrador',
-      submitted: 'Enviado',
+      submitted: 'Enviado a compliance',
       cancelled: 'Envío anulado',
       trashed: 'Papelera'
     },
@@ -2435,8 +2495,8 @@ export default {
     defaultTeamLabel: 'Equipo SME',
     defaultUserLabel: 'Usuario',
     statusDraft: 'Borrador',
-    statusSubmitted: 'Enviado',
-    statusCancelled: 'Cancelado',
+    statusSubmitted: 'Enviado a compliance',
+    statusCancelled: 'Envío anulado',
     projectSynthesisAriaLabel: 'Retos del proyecto',
     title: 'Retos del proyecto',
     statusLabelTemplate: 'Estado: {{status}}',
@@ -2857,13 +2917,13 @@ export default {
     addSectionButton: 'Añadir la sección',
     modeSelectionAriaLabel: 'Selección del modo de uso',
     usageModeEyebrow: 'Versión reducida para presentar',
-    usageModeHint: 'Para una reunión o para compartir, la versión «Light» solo muestra las secciones que elija; la versión completa lo conserva todo.',
+    usageModeHint: 'Para una reunión o para compartir, la versión reducida solo muestra las secciones que elija; la versión completa lo conserva todo.',
     usageModeToggle: 'Preparar una versión reducida',
     usageModeCollapse: 'Ocultar',
-    lightModeButton: 'Modo Light',
-    fullModeButton: 'Modo completo',
+    lightModeButton: 'Versión reducida',
+    fullModeButton: 'Versión completa',
     configureButton: 'Configurar',
-    visibleSectionsLightTitle: 'Secciones y elementos visibles en modo Light',
+    visibleSectionsLightTitle: 'Secciones y elementos visibles en la versión reducida',
     visibleSectionsLightHint: 'Desmarque las secciones o elementos que desea ocultar en la visualización reducida.',
     selectAllButton: 'Seleccionar todo',
     validateButton: 'Validar',
@@ -2884,10 +2944,10 @@ export default {
       addSectionHere: 'Añadir una sección aquí',
       addSectionTitle: 'Añadir una sección',
       addSectionHint: 'Pase el cursor sobre una plantilla para verla aparecer en su sitio.',
-      hiddenInLight: 'Oculta en la vista Light',
+      hiddenInLight: 'Oculta en la versión reducida',
       hiddenByCondition: 'Oculta para este proyecto (condición de la plantilla)',
-      showInLight: 'Mostrar en la vista Light',
-      hideInLight: 'Ocultar en la vista Light',
+      showInLight: 'Mostrar en la versión reducida',
+      hideInLight: 'Ocultar en la versión reducida',
       sectionMoveUp: 'Subir la sección',
       sectionMoveDown: 'Bajar la sección',
       sectionDuplicate: 'Duplicar la sección',

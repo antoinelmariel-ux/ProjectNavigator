@@ -4,6 +4,7 @@ import { DEFAULT_LANGUAGE, LANGUAGE_LABELS } from '../i18n/languages.js';
 import { getLocalizedRaw, setLocalizedText } from '../utils/localizedContent.js';
 import { createFaqEntry, getFaqTranslationGaps } from '../utils/faqEntries.js';
 import { RichTextEditor } from './RichTextEditor.jsx';
+import { requestConfirmation } from './ConfirmDialog.jsx';
 import { LanguageEditSwitcher } from './LocalizedFieldEditor.jsx';
 import { useReorderFeedback } from '../hooks/useReorderFeedback.js';
 
@@ -88,8 +89,14 @@ export const BackOfficeFaq = ({
     enqueueSave(created, sortOrder);
   };
 
-  const handleRemove = (id) => {
-    if (typeof window !== 'undefined' && !window.confirm(t('backOffice.faq.confirmDelete'))) {
+  const handleRemove = async (id) => {
+    const confirmed = await requestConfirmation({
+      title: t('common.confirmations.faqDelete.title'),
+      message: t('common.confirmations.faqDelete.message'),
+      confirmLabel: t('common.confirmations.faqDelete.confirm'),
+      tone: 'danger'
+    });
+    if (!confirmed) {
       return;
     }
     const timer = timersRef.current.get(id);

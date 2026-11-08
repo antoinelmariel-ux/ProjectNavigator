@@ -238,7 +238,7 @@ test.describe('Éditeur de vitrine — canvas vivant', () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await openEditor(page);
 
-    await page.getByRole('button', { name: 'Mode Light' }).click();
+    await page.getByRole('button', { name: 'Version allégée', exact: true }).click();
 
     const problem = page.locator('.sge-frame').filter({ hasText: 'Le problème' }).first();
     await problem.scrollIntoViewIfNeeded();
@@ -247,7 +247,7 @@ test.describe('Éditeur de vitrine — canvas vivant', () => {
     // interactive et se heurte au contenu de la section en dessous (comme un vrai
     // utilisateur, il faut d'abord survoler le cadre pour la révéler).
     await problem.hover();
-    await problem.locator('button[aria-label="Masquer en vue Light"]').click();
+    await problem.locator('button[aria-label="Masquer dans la version allégée"]').click();
 
     // toujours présente dans le canvas (barrée), sinon impossible de la réafficher
     await expect(problem).toHaveClass(/sge-frame--hidden/);

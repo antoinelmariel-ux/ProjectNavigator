@@ -179,7 +179,7 @@ test.describe('tour v2', () => {
       ['Chaque section se règle', 'showcase-edit-panel'],
       ['Ajoutez vos propres blocs', 'showcase-add-section-panel'],
       ['Publier vos modifications', 'showcase-save-edits'],
-      ['Light ou complet, selon l’audience', 'showcase-display-mode-buttons'],
+      ['Allégée ou complète, selon l’audience', 'showcase-display-mode-buttons'],
       ['Partager et choisir ce qui est visible', 'showcase-share-dialog'],
       ['Activer les commentaires', 'showcase-comment-toggle'],
       ['Le feedback arrive en contexte', 'showcase-annotation-note']

@@ -63,7 +63,7 @@ test.describe('Fenêtre d’aide : manuels en lecture seule', () => {
     await expect.poll(async () => (await readStoredState(page))?.helpManuals?.sme?.fr).toBe(MANUALS.sme.fr);
     expect((await readStoredState(page)).helpManuals.names.sme.fr).toBe('Guide expert');
 
-    await page.getByRole('button', { name: 'Mode Chef de Projet' }).click();
+    await page.getByRole('button', { name: 'Quitter le back-office' }).click();
     await openFaqDialog(page);
     const dialog = page.locator('[data-static-page="faq"]');
     await expect(dialog.locator('[data-help-manual]')).toHaveCount(2);

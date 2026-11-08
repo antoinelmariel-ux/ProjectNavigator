@@ -182,7 +182,7 @@ test.describe('Questionnaire adaptatif -> Vitrine -> Enjeux du projet', () => {
       }
     });
     await page.getByRole('button', { name: 'Demander la validation' }).click();
-    await expect(page.getByText(/soumis/i).first()).toBeVisible();
+    await expect(page.getByText(/envoyé/i).first()).toBeVisible();
   });
 });
 

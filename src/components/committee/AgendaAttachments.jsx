@@ -1,5 +1,6 @@
 import React, { useRef, useState } from '../../react.js';
 import { useTranslation } from '../../i18n/LanguageContext.jsx';
+import { requestConfirmation } from '../ConfirmDialog.jsx';
 import { isSharePointMode } from '../../config/sharepointConfig.js';
 import { createAttachmentFromFile, deleteDocument, formatFileSize } from '../../utils/documentStore.js';
 import {
@@ -118,8 +119,13 @@ export const AgendaAttachments = ({ idPrefix, attachments = [], canEdit = false,
   };
 
   const handleRemove = async (attachment) => {
-    if (typeof window !== 'undefined'
-      && !window.confirm(t('committeeSessions.attachments.removeConfirm', { name: attachment.name }))) {
+    const confirmed = await requestConfirmation({
+      title: t('common.confirmations.removeAttachment.title', { name: attachment.name }),
+      message: t('common.confirmations.removeAttachment.message'),
+      confirmLabel: t('common.confirmations.removeAttachment.confirm'),
+      tone: 'danger'
+    });
+    if (!confirmed) {
       return;
     }
     const result = await onRemove(attachment);

@@ -302,7 +302,7 @@ export async function grantSelfComplianceExpertAndCommitteeAccess(page) {
   await committeeEmailsField.fill('bertrand.darieux@lfb.fr');
   await committeeEmailsField.press('Enter');
 
-  await page.getByRole('button', { name: 'Mode Chef de Projet' }).click();
+  await page.getByRole('button', { name: 'Quitter le back-office' }).click();
   await expect(page.getByRole('button', { name: /Créer un projet/ }).first()).toBeVisible();
 }
 
@@ -350,4 +350,13 @@ export async function openBackOfficeTab(page, name) {
     }
   }
   await tab.first().click();
+}
+
+// Les confirmations passent par une fenêtre de l'app (src/components/ConfirmDialog.jsx), plus
+// par window.confirm : on clique son bouton d'action, toujours le dernier de la fenêtre.
+export async function confirmInAppDialog(page) {
+  const dialog = page.getByTestId('confirm-dialog');
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole('button').last().click();
+  await expect(dialog).toHaveCount(0);
 }

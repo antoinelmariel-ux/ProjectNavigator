@@ -2,6 +2,66 @@ import committeeSessions from './committeeSessions/de.js';
 
 export default {
   common: {
+    confirmDialog: {
+      confirm: 'Bestätigen',
+      cancel: 'Abbrechen',
+      delete: 'Löschen',
+      reasonRequired: 'Geben Sie einen Grund an, um fortzufahren.'
+    },
+    confirmations: {
+      faqDelete: {
+        title: 'Diese FAQ-Frage löschen?',
+        message: 'Sie verschwindet für alle aus dem Hilfefenster. Diese Aktion ist endgültig.',
+        confirm: 'Frage löschen'
+      },
+      noteDelete: {
+        title: 'Diese Haftnotiz löschen?',
+        message: 'Die Haftnotiz und ihre Antworten verschwinden für alle. Diese Aktion ist endgültig.',
+        confirm: 'Haftnotiz löschen'
+      },
+      overrun: {
+        title: 'Die Sitzung würde um {{minutes}} Min. überziehen',
+        message: 'Für diese Änderung muss die Sitzung entsprechend verlängert werden. Die angemeldeten Projektverantwortlichen werden über die neue Uhrzeit informiert.',
+        confirm: 'Sitzung verlängern',
+        cancel: 'Nicht verlängern'
+      },
+      cancelSession: {
+        title: 'Diese Sitzung absagen?',
+        message: '[[count|Das angemeldete Projekt wird informiert.|Die {{count}} angemeldeten Projekte werden informiert.]]',
+        confirm: 'Sitzung absagen',
+        cancel: 'Sitzung beibehalten'
+      },
+      removeTopic: {
+        title: 'Dieses Thema von der Tagesordnung nehmen?',
+        message: 'Sein Zeitfenster wird frei; die Vortragenden erhalten die Einladung nicht mehr.',
+        confirm: 'Thema entfernen'
+      },
+      cancelPassage: {
+        title: 'Präsentation von „{{name}}“ absagen?',
+        message: 'Die Projektverantwortlichen werden mit Ihrem Grund informiert.',
+        reasonLabel: 'Grund (wird an die Projektverantwortlichen übermittelt)',
+        reasonPlaceholder: 'z. B. unvollständige Unterlagen, Präsentation auf eine spätere Sitzung verschoben',
+        confirm: 'Präsentation absagen',
+        cancel: 'Präsentation beibehalten'
+      },
+      unbook: {
+        title: 'Projekt aus dieser Sitzung entfernen?',
+        message: 'Das Zeitfenster wird frei und der Ausschussvorsitz wird informiert.',
+        confirm: 'Projekt entfernen'
+      },
+      removeAttachment: {
+        title: '„{{name}}“ von diesem Punkt entfernen?',
+        message: 'Es erscheint nicht mehr in der Tagesordnung.',
+        confirm: 'Entfernen'
+      },
+      publishOverwrite: {
+        title: 'Veröffentlichte Konfiguration ersetzen?',
+        confirm: 'Veröffentlichen und ersetzen'
+      },
+      deleteGeneric: {
+        confirm: 'Löschen'
+      }
+    },
     feedback: {
       dismiss: 'Benachrichtigung schließen',
       movedPosition: 'Auf Position {{position}} von {{total}} verschoben'
@@ -55,10 +115,10 @@ export default {
       backToHomeAriaLabel: 'Zur Projektübersicht zurückkehren',
       backToHomeLabel: 'Projektübersicht',
       logoHomeAriaLabel: 'Project Navigator, zur Startseite zurückkehren',
-      feedbackAriaLabel: 'Geben Sie Feedback zu Project Navigator (neues Fenster)',
-      feedbackLabel: 'Feedback geben',
-      switchToProjectModeAriaLabel: 'Zum Projektleiter-Modus wechseln',
-      switchToProjectModeLabel: 'Projektleiter-Modus',
+      feedbackAriaLabel: 'Feedback zum Tool geben (neues Fenster)',
+      feedbackLabel: 'Feedback zum Tool geben',
+      switchToProjectModeAriaLabel: 'Back-Office verlassen und zu den Projekten zurückkehren',
+      switchToProjectModeLabel: 'Back-Office verlassen',
       activateAdmin: 'Administratormodus auf der Startseite aktivieren',
       adminModeSrOnly: 'Administratormodus (Startseite)',
       accessBackOffice: 'Zum Back-office'
@@ -115,9 +175,9 @@ export default {
       copyFailed: 'Der Link konnte nicht automatisch kopiert werden.',
       shortcutDownloaded: 'Verknüpfung heruntergeladen.',
       displayModeLabel: 'Freigabemodus',
-      fullMode: 'Vollständiger Modus',
-      lightMode: 'Light-Modus',
-      lightModeHint: 'Im Light-Modus sind nur die vorausgewählten Abschnitte sichtbar.',
+      fullMode: 'Vollständige Fassung',
+      lightMode: 'Kurzfassung',
+      lightModeHint: 'In der Kurzfassung sind nur die gewählten Abschnitte sichtbar.',
       commentsEnabledLabel: 'Kommentare möglich',
       commentsHint: 'Aktiviert eine schwebende Kommentarschaltfläche zum Starten des Haftnotiz-Moduls.',
       postItVisibilityLabel: 'Sichtbarkeit der Haftnotizen',
@@ -211,7 +271,7 @@ export default {
     reinit: {
       checking: 'Überprüfung der SharePoint-Struktur…',
       confirmOverwritePrefix: 'Es ist bereits eine Konfiguration veröffentlicht ({{count}} [[count|Datei|Dateien]]).\n\n',
-      confirmOverwriteSuffix: 'Das Ersetzen überschreibt die für alle Benutzer sichtbare Konfiguration. Fortfahren?',
+      confirmOverwriteSuffix: 'Das Ersetzen überschreibt die für alle Benutzer sichtbare Konfiguration.',
       cancelledPublish: 'Veröffentlichung abgebrochen: Die veröffentlichte Konfiguration ist unverändert.',
       publishing: 'Konfiguration wird an SharePoint veröffentlicht…',
       publishedSuccess: 'Konfiguration in {{library}} veröffentlicht ({{details}}).',
@@ -222,7 +282,7 @@ export default {
     publishSettings: {
       checking: 'Überprüfung der SharePoint-Struktur…',
       confirmOverwritePrefix: 'Es ist bereits eine Konfiguration veröffentlicht ({{count}} [[count|Datei|Dateien]]).\n\n',
-      confirmOverwriteSuffix: 'Das Ersetzen überschreibt die für alle Benutzer sichtbaren Fragen und Einstellungen. Fortfahren?',
+      confirmOverwriteSuffix: 'Das Ersetzen überschreibt die für alle Benutzer sichtbaren Fragen und Einstellungen.',
       cancelledPublish: 'Veröffentlichung abgebrochen: Die veröffentlichten Fragen und Einstellungen sind unverändert.',
       publishing: 'Fragen und Einstellungen werden an SharePoint veröffentlicht…',
       publishedSuccess: 'Fragen und Einstellungen in {{library}} veröffentlicht ({{details}}).',
@@ -452,9 +512,9 @@ export default {
     sortFallback: 'Sortierung',
     sortDesc: 'Neueste zuerst',
     sortAsc: 'Älteste zuerst',
-    statusDraft: 'Entwurf in Bearbeitung',
-    statusSubmitted: 'Herausforderungen finalisiert',
-    statusCancelled: 'Einreichung storniert',
+    statusDraft: 'Entwurf',
+    statusSubmitted: 'An Compliance gesendet',
+    statusCancelled: 'Senden storniert',
     showcaseFeedbackBadgeSingular: '{{count}} Rückmeldung',
     showcaseFeedbackBadgePlural: '{{count}} Rückmeldungen',
     showcaseFeedbackTooltip: 'Haftnotizen auf der Vitrine dieses Projekts, die noch offen sind.',
@@ -524,12 +584,12 @@ export default {
     inProgressTabLabel: 'In Bearbeitung',
     treatedTab: 'Bearbeitet ({{count}})',
     treatedTabLabel: 'Bearbeitet',
-    outOfScopeTab: 'Außerhalb des Ausschussbereichs ({{count}})',
-    outOfScopeTabLabel: 'Außerhalb des Ausschussbereichs',
+    outOfScopeTab: 'Außerhalb des Ausschusses ({{count}})',
+    outOfScopeTabLabel: 'Außerhalb des Ausschusses',
     noToClaimTriggered: 'Derzeit kein zu übernehmendes Projekt.',
     noInProgressTriggered: 'Derzeit kein Projekt in Bearbeitung.',
     noTreatedTriggered: 'Noch kein bearbeitetes Projekt.',
-    noOutOfScopeTriggered: 'Derzeit kein Projekt außerhalb des Ausschussbereichs.',
+    noOutOfScopeTriggered: 'Derzeit kein Projekt außerhalb des Ausschusses.',
     triggeredListAriaLabel: 'Liste der ausgelösten Projekte',
     committeeLabel: 'Ausschuss',
     expertLabel: 'Experte',
@@ -617,7 +677,7 @@ export default {
       empty: 'Der Papierkorb ist leer.',
       listAriaLabel: 'Projekte im Papierkorb',
       deletedOn: 'Gelöscht am {{date}}',
-      statusSubmitted: 'Eingereicht',
+      statusSubmitted: 'An Compliance gesendet',
       statusDraft: 'Entwurf',
       restore: 'Wiederherstellen',
       expertResponseNote: 'Ein Experte hat bereits geantwortet oder eine Stellungnahme abgegeben: Dieses Projekt bleibt für die beteiligten Experten einsehbar.',
@@ -2055,7 +2115,7 @@ export default {
       tabInspirationTemplate: 'Inspiration ({{count}})',
       tabThemesTemplate: 'Showcase-Themen ({{count}})',
       tabShowcaseTemplatesTemplate: 'Vitrinen-Vorlagen ({{count}})',
-      tabOnboardingTemplate: 'Onboarding ({{count}})',
+      tabOnboardingTemplate: 'Geführte Tour ({{count}})',
       tabQuestionsTemplate: 'Fragen ({{count}})',
       tabRulesTemplate: 'Regeln ({{count}})',
       tabValidationCommittee: 'Validierungsausschüsse',
@@ -2201,8 +2261,8 @@ export default {
     updatedOn: 'Aktualisiert am {{date}}',
     status: {
       draft: 'Entwurf',
-      submitted: 'Eingereicht',
-      cancelled: 'Einreichung storniert',
+      submitted: 'An Compliance gesendet',
+      cancelled: 'Senden storniert',
       trashed: 'Papierkorb'
     },
     actions: {
@@ -2445,8 +2505,8 @@ export default {
     defaultTeamLabel: 'SME-Team',
     defaultUserLabel: 'Benutzer',
     statusDraft: 'Entwurf',
-    statusSubmitted: 'Eingereicht',
-    statusCancelled: 'Storniert',
+    statusSubmitted: 'An Compliance gesendet',
+    statusCancelled: 'Senden storniert',
     projectSynthesisAriaLabel: 'Projektherausforderungen',
     title: 'Projektherausforderungen',
     statusLabelTemplate: 'Status: {{status}}',
@@ -2867,13 +2927,13 @@ export default {
     addSectionButton: 'Abschnitt hinzufügen',
     modeSelectionAriaLabel: 'Auswahl des Nutzungsmodus',
     usageModeEyebrow: 'Kurzfassung zum Präsentieren',
-    usageModeHint: 'Für eine Sitzung oder zum Teilen zeigt die „Light“-Version nur die von Ihnen gewählten Abschnitte; die vollständige Version behält alles.',
+    usageModeHint: 'Für eine Sitzung oder zum Teilen zeigt die Kurzfassung nur die von Ihnen gewählten Abschnitte; die vollständige Fassung behält alles.',
     usageModeToggle: 'Kurzfassung vorbereiten',
     usageModeCollapse: 'Ausblenden',
-    lightModeButton: 'Light-Modus',
-    fullModeButton: 'Vollständiger Modus',
+    lightModeButton: 'Kurzfassung',
+    fullModeButton: 'Vollständige Fassung',
     configureButton: 'Konfigurieren',
-    visibleSectionsLightTitle: 'Im Light-Modus sichtbare Abschnitte und Elemente',
+    visibleSectionsLightTitle: 'In der Kurzfassung sichtbare Abschnitte und Elemente',
     visibleSectionsLightHint: 'Deaktivieren Sie die Abschnitte oder Elemente, die in der abgespeckten Anzeige ausgeblendet werden sollen.',
     selectAllButton: 'Alle auswählen',
     validateButton: 'Bestätigen',
@@ -2894,10 +2954,10 @@ export default {
       addSectionHere: 'Hier einen Abschnitt hinzufügen',
       addSectionTitle: 'Abschnitt hinzufügen',
       addSectionHint: 'Fahren Sie über eine Vorlage, um sie an ihrem Platz zu sehen.',
-      hiddenInLight: 'In der Light-Ansicht ausgeblendet',
+      hiddenInLight: 'In der Kurzfassung ausgeblendet',
       hiddenByCondition: 'Für dieses Projekt ausgeblendet (Bedingung der Vorlage)',
-      showInLight: 'In der Light-Ansicht anzeigen',
-      hideInLight: 'In der Light-Ansicht ausblenden',
+      showInLight: 'In der Kurzfassung anzeigen',
+      hideInLight: 'In der Kurzfassung ausblenden',
       sectionMoveUp: 'Abschnitt nach oben',
       sectionMoveDown: 'Abschnitt nach unten',
       sectionDuplicate: 'Abschnitt duplizieren',

@@ -98,7 +98,7 @@ export default {
       timeRequested: 'Demande envoyée au président et au co-président.',
       guestsSaved: 'Invités enregistrés.',
       attendanceSaved: 'Présences enregistrées.',
-      representationRequested: 'Le chef de projet est invité à revenir présenter son projet.'
+      representationRequested: 'Le porteur est invité à revenir présenter son projet.'
     }
   },
   myPassages: {
@@ -191,7 +191,7 @@ export default {
     moveDown: 'Descendre',
     durationLabel: 'Durée (min)',
     applyDuration: 'Appliquer',
-    cancelReasonPrompt: 'Motif de l’annulation (transmis au chef de projet) :',
+    cancelReasonPrompt: 'Motif de l’annulation (transmis au porteur) :',
     cancelPassage: 'Annuler le passage',
     addTitle: 'Inscrire un projet',
     noCandidate: 'Aucun autre projet ne déclenche ce comité.',
@@ -210,7 +210,7 @@ export default {
       reordered: 'Ordre mis à jour.',
       minutesSaved: 'Durée enregistrée.',
       moved: 'Passage déplacé.',
-      cancelled: 'Passage annulé, le chef de projet est prévenu.',
+      cancelled: 'Passage annulé, le porteur est prévenu.',
       attendanceSaved: 'Présences enregistrées.'
     }
   },
@@ -246,11 +246,11 @@ export default {
     generatorHint: 'Générer des séances à partir d’une règle, ou en ajouter une isolée.',
     generatorCommittee: 'Comité',
     unbooked: '{{count}} [[count|projet|projets]] sans passage prévu',
-    unbookedSplit: '{{submitted}} soumis · {{drafts}} [[drafts|brouillon|brouillons]]',
+    unbookedSplit: '{{submitted}} [[submitted|envoyé|envoyés]] · {{drafts}} [[drafts|brouillon|brouillons]]',
     unbookedListTitle: 'Voir les projets concernés',
-    unbookedSubmitted: 'Projets soumis ({{count}})',
+    unbookedSubmitted: 'Projets envoyés ({{count}})',
     unbookedDrafts: 'Projets en brouillon ({{count}})',
-    unbookedDraftsHint: 'Pas de lien : le projet n’est pas encore soumis.',
+    unbookedDraftsHint: 'Pas de lien : le projet n’est pas encore envoyé.',
     unbookedCommittee: 'Comité : {{committee}}',
     unbookedOwner: 'Porteur : {{owner}}',
     unbookedNoOwner: 'Porteur inconnu',

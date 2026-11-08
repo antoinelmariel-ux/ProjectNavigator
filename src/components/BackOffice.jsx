@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from '../react.js';
 import { useModalDialog } from '../hooks/useModalDialog.js';
+import { requestConfirmation } from './ConfirmDialog.jsx';
 import { normalizeRiskWeighting } from '../utils/risk.js';
 import {
   Settings,
@@ -2170,13 +2171,13 @@ export const BackOffice = ({
     teams
   ]);
 
-  const confirmDeletion = useCallback((message) => {
-    if (typeof window === 'undefined') {
-      return true;
-    }
-
-    return window.confirm(message);
-  }, []);
+  // La suppression reste annulable (« Annuler la dernière suppression ») : la fenêtre ne fait
+  // que nommer ce qui part, avec le verbe exact sur le bouton.
+  const confirmDeletion = useCallback(async (message) => Boolean(await requestConfirmation({
+    title: message,
+    confirmLabel: t('common.confirmations.deleteGeneric.confirm'),
+    tone: 'danger'
+  })), [t]);
 
   const pushUndoEntry = useCallback((entry) => {
     undoStackRef.current = [...undoStackRef.current.slice(-19), entry];
@@ -2855,7 +2856,7 @@ export const BackOffice = ({
     setInspirationFilterEditor(null);
   }, [inspirationFilterEditor, inspirationFormFieldEntries, language, setInspirationFilters, t]);
 
-  const handleRemoveProjectFilter = useCallback((field) => {
+  const handleRemoveProjectFilter = useCallback(async (field) => {
     if (!field || typeof setProjectFilters !== 'function') {
       return;
     }
@@ -2866,7 +2867,7 @@ export const BackOffice = ({
 
     const label = resolveLocalizedText(field.label, language) || field.id || t('backOffice.main.filterWordFallback');
     const confirmationMessage = t('backOffice.main.confirmDeleteFilterTemplate', { label });
-    const shouldDelete = confirmDeletion(confirmationMessage);
+    const shouldDelete = await confirmDeletion(confirmationMessage);
 
     if (!shouldDelete) {
       return;
@@ -2904,14 +2905,14 @@ export const BackOffice = ({
     });
   }, [confirmDeletion, language, normalizedProjectFilters, pushUndoEntry, setProjectFilters, t]);
 
-  const handleRemoveInspirationFilter = useCallback((field) => {
+  const handleRemoveInspirationFilter = useCallback(async (field) => {
     if (!field || typeof setInspirationFilters !== 'function') {
       return;
     }
 
     const label = resolveLocalizedText(field.label, language) || field.id || t('backOffice.main.filterWordFallback');
     const confirmationMessage = t('backOffice.main.confirmDeleteFilterTemplate', { label });
-    const shouldDelete = confirmDeletion(confirmationMessage);
+    const shouldDelete = await confirmDeletion(confirmationMessage);
 
     if (!shouldDelete) {
       return;
@@ -3097,7 +3098,7 @@ export const BackOffice = ({
     t
   ]);
 
-  const deleteInspirationFormField = useCallback((fieldId) => {
+  const deleteInspirationFormField = useCallback(async (fieldId) => {
     if (typeof setInspirationFormFields !== 'function') {
       return;
     }
@@ -3117,7 +3118,7 @@ export const BackOffice = ({
     const target = inspirationFormFieldEntries[index];
     const label = resolveLocalizedText(target.label, language) || target.id;
 
-    if (!confirmDeletion(t('backOffice.inspirationFields.confirmDeleteTemplate', { label }))) {
+    if (!await confirmDeletion(t('backOffice.inspirationFields.confirmDeleteTemplate', { label }))) {
       return;
     }
 
@@ -3869,7 +3870,7 @@ export const BackOffice = ({
     });
   };
 
-  const deleteRiskLevelRule = (id, index) => {
+  const deleteRiskLevelRule = async (id, index) => {
     if (typeof setRiskLevelRules !== 'function') {
       return;
     }
@@ -3890,7 +3891,7 @@ export const BackOffice = ({
     const targetRule = safeRiskLevelRules[normalizedIndex];
     const label = targetRule?.label || targetRule?.id || t('backOffice.main.levelNumberFallbackTemplate', { number: normalizedIndex + 1 });
 
-    if (!confirmDeletion(t('backOffice.main.confirmDeleteLevelTemplate', { label }))) {
+    if (!await confirmDeletion(t('backOffice.main.confirmDeleteLevelTemplate', { label }))) {
       return;
     }
 
@@ -4288,7 +4289,7 @@ export const BackOffice = ({
     }
   };
 
-  const deleteQuestion = (id) => {
+  const deleteQuestion = async (id) => {
     if (PROTECTED_QUESTION_IDS.has(id)) {
       return;
     }
@@ -4305,7 +4306,7 @@ export const BackOffice = ({
 
     const label = resolveLocalizedText(target?.question, language) || target?.id || t('backOffice.main.defaultQuestionThisFallback');
 
-    if (!confirmDeletion(t('backOffice.main.confirmDeleteQuestionFullTemplate', { label }))) {
+    if (!await confirmDeletion(t('backOffice.main.confirmDeleteQuestionFullTemplate', { label }))) {
       return;
     }
 
@@ -4742,16 +4743,16 @@ export const BackOffice = ({
     t
   ]);
 
-  const deleteRule = (id) => {
+  const deleteRule = async (id) => {
     const targetIndex = rules.findIndex((rule) => rule.id === id);
     if (targetIndex < 0) {
       return;
     }
 
     const target = rules[targetIndex];
-    const label = target?.name || target?.id || t('backOffice.main.defaultRuleThisFallback');
+    const label = resolveLocalizedText(target?.name, language) || target?.id || t('backOffice.main.defaultRuleThisFallback');
 
-    if (!confirmDeletion(t('backOffice.main.confirmDeleteRuleFullTemplate', { label }))) {
+    if (!await confirmDeletion(t('backOffice.main.confirmDeleteRuleFullTemplate', { label }))) {
       return;
     }
 
@@ -5165,16 +5166,16 @@ export const BackOffice = ({
     }
   };
 
-  const deleteTeam = (id) => {
+  const deleteTeam = async (id) => {
     const targetIndex = teams.findIndex((team) => team.id === id);
     if (targetIndex < 0) {
       return;
     }
 
     const target = teams[targetIndex];
-    const label = target?.name || target?.id || t('backOffice.main.defaultTeamThisFallback');
+    const label = resolveLocalizedText(target?.name, language) || target?.id || t('backOffice.main.defaultTeamThisFallback');
 
-    if (!confirmDeletion(t('backOffice.main.confirmDeleteTeamTemplate', { label }))) {
+    if (!await confirmDeletion(t('backOffice.main.confirmDeleteTeamTemplate', { label }))) {
       return;
     }
 
@@ -6975,15 +6976,7 @@ export const BackOffice = ({
                                     if (deleteButtonDisabled) {
                                       return;
                                     }
-
-                                    const confirmationMessage = t('backOffice.main.confirmDeleteQuestionTemplate', { id: question.id });
-                                    const shouldDelete = typeof window === 'undefined'
-                                      ? true
-                                      : window.confirm(confirmationMessage);
-
-                                    if (shouldDelete) {
-                                      deleteQuestion(question.id);
-                                    }
+                                    deleteQuestion(question.id);
                                   }}
                                   className={deleteButtonClasses}
                                   aria-label={deleteButtonTitle}
@@ -7228,15 +7221,7 @@ export const BackOffice = ({
                                   if (deleteButtonDisabled) {
                                     return;
                                   }
-
-                                  const confirmationMessage = t('backOffice.main.confirmDeleteQuestionTemplate', { id: question.id });
-                                  const shouldDelete = typeof window === 'undefined'
-                                    ? true
-                                    : window.confirm(confirmationMessage);
-
-                                  if (shouldDelete) {
-                                    deleteQuestion(question.id);
-                                  }
+                                  deleteQuestion(question.id);
                                 }}
                                 className={deleteButtonClasses}
                                 aria-label={deleteButtonTitle}
