@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { collectConsoleErrors, gotoHome, grantAdminAccess, readStoredState } from './fixtures.js';
+import { collectConsoleErrors, gotoHome, grantAdminAccess, readStoredState, openBackOfficeTab } from './fixtures.js';
 
 // L'atelier règle un modèle sur la vraie vitrine : on clique une section, on la règle dans
 // l'inspecteur, la vitrine suit aussitôt — sur des réponses d'exemple ou des emplacements vides.
@@ -9,7 +9,7 @@ test('l’atelier règle le modèle « don » sur la vraie vitrine', async ({ pa
   await page.setViewportSize({ width: 1600, height: 1000 });
   await gotoHome(page);
   await grantAdminAccess(page);
-  await page.getByRole('tab', { name: /Modèles de vitrine/ }).click();
+  await openBackOfficeTab(page, /Modèles de vitrine/);
 
   await page.getByTestId('showcase-template-card').first().getByRole('button', { name: 'Éditer sur la vitrine' }).click();
   const studio = page.getByTestId('showcase-template-studio');

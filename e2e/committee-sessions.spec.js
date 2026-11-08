@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoHome, createAndSubmitProject, grantAdminAccess, patchStateOnBoot, readStoredState } from './fixtures.js';
+import { gotoHome, createAndSubmitProject, grantAdminAccess, patchStateOnBoot, readStoredState, openBackOfficeTab, confirmInAppDialog } from './fixtures.js';
 
 // Calendrier des comités (docs/specs/calendrier-comites.md). Le comité de test se déclenche dès
 // qu'une équipe d'experts l'est — ce que fait toujours le projet rempli par l'autopilote.
@@ -61,7 +61,7 @@ test.describe('Calendrier des comités', () => {
     await gotoHome(page);
     await grantAdminAccess(page);
 
-    await page.getByRole('tab', { name: /Comités de validation/ }).click();
+    await openBackOfficeTab(page, /Comités de validation/);
     const calendar = page.getByTestId('committee-calendar');
     await expect(calendar).toBeVisible();
     await expect(page.getByRole('button', { name: /Configuration des comités/ })).toHaveAttribute('aria-expanded', 'false');
@@ -96,7 +96,7 @@ test.describe('Calendrier des comités', () => {
     await gotoHome(page);
     await grantAdminAccess(page);
 
-    await page.getByRole('tab', { name: /Comités de validation/ }).click();
+    await openBackOfficeTab(page, /Comités de validation/);
     await page.getByRole('button', { name: /Configuration des comités/ }).click();
 
     const chairs = page.getByTestId(`committee-chairs-${COMMITTEE_ID}`);
@@ -119,7 +119,7 @@ test.describe('Calendrier des comités', () => {
     // Après rechargement, la présidence est toujours là.
     await page.reload();
     await page.getByRole('button', { name: /Accéder au Back-office/ }).click();
-    await page.getByRole('tab', { name: /Comités de validation/ }).click();
+    await openBackOfficeTab(page, /Comités de validation/);
     await page.getByRole('button', { name: /Configuration des comités/ }).click();
     await expect(page.getByTestId(`committee-chairs-${COMMITTEE_ID}`).getByLabel('Président(e)', { exact: true })).toHaveValue('membre@lfb.fr');
     await expect(page.getByTestId(`committee-chairs-${COMMITTEE_ID}`).getByLabel('Co-président(e)', { exact: true })).toHaveValue('autre.membre@lfb.fr');
@@ -129,7 +129,7 @@ test.describe('Calendrier des comités', () => {
     await seedCommittee(page, { president: 'president@lfb.fr', members: ['president@lfb.fr', MOCK_USER] });
     await gotoHome(page);
     await page.getByRole('button', { name: /Accéder au Back-office/ }).click();
-    await page.getByRole('tab', { name: /Comités de validation/ }).click();
+    await openBackOfficeTab(page, /Comités de validation/);
     await page.getByRole('button', { name: /Configuration des comités/ }).click();
 
     const chairs = page.getByTestId(`committee-chairs-${COMMITTEE_ID}`);
@@ -144,7 +144,7 @@ test.describe('Calendrier des comités', () => {
     await gotoHome(page);
     await grantAdminAccess(page);
 
-    await page.getByRole('tab', { name: /Comités de validation/ }).click();
+    await openBackOfficeTab(page, /Comités de validation/);
     const target = new Date(daysFromNow(2));
     if (target.getMonth() !== new Date().getMonth()) {
       await page.getByRole('button', { name: 'Mois suivant' }).click();
@@ -235,9 +235,9 @@ test.describe('Calendrier des comités', () => {
     await expect(agenda.getByText('30 min attribuées sur 60 min')).toBeVisible();
 
     await agenda.getByRole('button', { name: 'Tous présents' }).click();
-    await expect(agenda.getByText('3 présent(s) · 0 excusé(s) · 0 absent(s)').first()).toBeVisible();
+    await expect(agenda.getByText('3 présents · 0 excusé · 0 absent').first()).toBeVisible();
     await agenda.getByRole('group', { name: 'Présence de Membre' }).getByRole('button', { name: 'Excusé' }).click();
-    await expect(agenda.getByText('2 présent(s) · 1 excusé(s) · 0 absent(s)').first()).toBeVisible();
+    await expect(agenda.getByText('2 présents · 1 excusé · 0 absent').first()).toBeVisible();
 
     await expect
       .poll(async () => {
@@ -265,8 +265,8 @@ test.describe('Calendrier des comités', () => {
     await expect(agenda.getByText('40 min attribuées sur 60 min')).toBeVisible();
 
     // Le président annule la séance depuis l'ordre du jour.
-    page.once('dialog', (dialog) => dialog.accept());
     await agenda.getByRole('button', { name: 'Annuler la séance' }).click();
+    await confirmInAppDialog(page);
     await expect(agenda.getByText('Cette séance est annulée.')).toBeVisible();
     await expect
       .poll(async () => (await readStoredState(page)).committeeSessions?.find((entry) => entry.id === 'session-chair')?.status)
@@ -332,7 +332,7 @@ test.describe('Calendrier des comités', () => {
 
     // Retour au back-office : le sujet se retrouve par son titre ou son commentaire.
     await grantAdminAccess(page);
-    await page.getByRole('tab', { name: /Comités de validation/ }).click();
+    await openBackOfficeTab(page, /Comités de validation/);
     const search = page.getByTestId('committee-agenda-search');
     await search.getByLabel('Rechercher dans les ordres du jour').fill('juridique');
     const results = search.getByTestId('committee-agenda-search-result');

@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from '../../react.js';
 import { useTranslation } from '../../i18n/LanguageContext.jsx';
+import { requestConfirmation } from '../ConfirmDialog.jsx';
 import { getLocaleTag } from '../../i18n/languages.js';
 import {
   DEFAULT_SESSION_MINUTES,
@@ -197,10 +198,24 @@ export const CommitteeCalendar = ({
     return result;
   };
 
+  const confirmOverrun = async (minutes) => Boolean(await requestConfirmation({
+    title: t('common.confirmations.overrun.title', { minutes }),
+    message: t('common.confirmations.overrun.message'),
+    confirmLabel: t('common.confirmations.overrun.confirm'),
+    cancelLabel: t('common.confirmations.overrun.cancel'),
+    tone: 'warning'
+  }));
+  const confirmCancelSession = async (count) => Boolean(await requestConfirmation({
+    title: t('common.confirmations.cancelSession.title'),
+    message: count > 0 ? t('common.confirmations.cancelSession.message', { count }) : '',
+    confirmLabel: t('common.confirmations.cancelSession.confirm'),
+    cancelLabel: t('common.confirmations.cancelSession.cancel'),
+    tone: 'danger'
+  }));
+
   const runWithOverrun = async (sessionId, action, successKey) => {
     let result = await onRunAction(sessionId, action);
-    if (!result?.ok && result?.error === 'overrun' && typeof window !== 'undefined'
-      && window.confirm(t('committeeSessions.agenda.overrunConfirm', { minutes: result.overrunMinutes }))) {
+    if (!result?.ok && result?.error === 'overrun' && await confirmOverrun(result.overrunMinutes)) {
       result = await onRunAction(sessionId, { ...action, allowOverrun: true });
     }
     return report(result, successKey);
@@ -328,8 +343,8 @@ export const CommitteeCalendar = ({
             {isEditable && session.status === SESSION_STATUS_PUBLISHED && (
               <button
                 type="button"
-                onClick={() => {
-                  if (typeof window !== 'undefined' && !window.confirm(t('committeeSessions.planner.cancelConfirm', { count: projectCount }))) {
+                onClick={async () => {
+                  if (!(await confirmCancelSession(projectCount))) {
                     return;
                   }
                   onRunAction(session.id, { type: 'cancel' }).then((result) => report(result, 'cancelled'));
@@ -371,7 +386,7 @@ export const CommitteeCalendar = ({
                   type="button"
                   disabled={!drafts[session.id]}
                   onClick={() => commitDraft(session)}
-                  className="rounded-lg border border-blue-200 bg-white px-3 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-40"
+                  className="rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-40"
                 >
                   {t('committeeSessions.planner.save')}
                 </button>

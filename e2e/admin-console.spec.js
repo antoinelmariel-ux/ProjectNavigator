@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoHome, grantAdminAccess, collectConsoleErrors, readStoredState } from './fixtures.js';
+import { gotoHome, grantAdminAccess, collectConsoleErrors, readStoredState, openBackOfficeTab } from './fixtures.js';
 
 // Les projets de démonstration (mock-sharepoint-lists/projects.json) appartiennent à d'autres
 // personnes que l'utilisateur simulé : quatre projets soumis de chef.projet@entreprise.com et
@@ -9,7 +9,7 @@ const projectRow = (page, name) => consoleProjects(page).filter({ hasText: name 
 
 const openAdminConsole = async (page) => {
   await grantAdminAccess(page);
-  await page.getByRole('tab', { name: /Administrateurs/ }).click();
+  await openBackOfficeTab(page, /Administrateurs/);
   const launcher = page.getByTestId('admin-console-launcher');
   await expect(launcher).toContainText('Console d’administration des projets');
   const [consolePage] = await Promise.all([
@@ -35,11 +35,11 @@ test('la console d’administration s’ouvre depuis le back-office et retrouve 
 
   // Recherche par porteur, insensible aux accents et à la casse, puis filtre « Porteur ».
   await consolePage.getByTestId('admin-console-search').fill('AUVRAY');
-  await expect(consolePage.getByTestId('admin-console-count')).toContainText('1 projet(s)');
+  await expect(consolePage.getByTestId('admin-console-count')).toContainText('1 projet sur');
   await expect(consolePage.getByTestId('admin-console-search')).toHaveValue('AUVRAY');
   await consolePage.getByRole('button', { name: 'Réinitialiser' }).click();
   await consolePage.getByTestId('admin-console-owner').selectOption('chef.projet@entreprise.com');
-  await expect(consolePage.getByTestId('admin-console-count')).toContainText('4 projet(s)');
+  await expect(consolePage.getByTestId('admin-console-count')).toContainText('4 projets sur');
   await consolePage.getByRole('button', { name: 'Réinitialiser' }).click();
 
   // L'onglet ordinaire n'a pas changé : pas de bandeau, pas de projets d'autrui.
@@ -78,9 +78,9 @@ test('dans la console, un administrateur modifie, annule, met à la corbeille et
 
   // Annuler la soumission d'un projet soumis par quelqu'un d'autre.
   const submitted = projectRow(consolePage, 'Impact 360');
-  await submitted.getByRole('button', { name: 'Annuler la soumission' }).click();
+  await submitted.getByRole('button', { name: 'Annuler l’envoi' }).click();
   await submitted.getByRole('button', { name: 'Confirmer' }).click();
-  await expect(submitted).toContainText('Soumission annulée');
+  await expect(submitted).toContainText('Envoi annulé');
 
   // Corbeille puis restauration.
   const trashed = projectRow(consolePage, 'Partenariat La Rochelle');
@@ -88,9 +88,9 @@ test('dans la console, un administrateur modifie, annule, met à la corbeille et
   await trashed.getByRole('button', { name: 'Confirmer' }).click();
   await expect(trashed).toContainText('Corbeille');
   await consolePage.getByTestId('admin-console-status').selectOption('trashed');
-  await expect(consolePage.getByTestId('admin-console-count')).toContainText('1 projet(s)');
+  await expect(consolePage.getByTestId('admin-console-count')).toContainText('1 projet sur');
   await trashed.getByRole('button', { name: 'Restaurer' }).click();
-  await expect(consolePage.getByTestId('admin-console-count')).toContainText('0 projet(s)');
+  await expect(consolePage.getByTestId('admin-console-count')).toContainText('0 projet sur');
 
   await expect.poll(async () => {
     const stored = await readStoredState(consolePage);

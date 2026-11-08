@@ -5,7 +5,8 @@ import {
   grantAdminAccess,
   proceedThroughMandatorySummary,
   readStoredState,
-  walkQuestionnaireToShowcase
+  walkQuestionnaireToShowcase,
+  openBackOfficeTab
 } from './fixtures.js';
 
 // Un modèle de vitrine choisit de quelle question vient le contenu d'une section : la vitrine
@@ -14,7 +15,7 @@ const DESCRIPTION = 'Le don finance une chaire de recherche.';
 
 const configureDonationTemplate = async (page) => {
   await grantAdminAccess(page);
-  await page.getByRole('tab', { name: /Modèles de vitrine/ }).click();
+  await openBackOfficeTab(page, /Modèles de vitrine/);
   await page.getByTestId('showcase-template-card').first().getByRole('button', { name: 'Éditer sur la vitrine' }).click();
   const studio = page.getByTestId('showcase-template-studio');
   const outline = studio.getByTestId('showcase-template-studio-outline');
@@ -81,7 +82,7 @@ test('une section de vitrine lit la question choisie dans le modèle et la réé
   await page.setViewportSize({ width: 1440, height: 900 });
   await gotoHome(page);
   await configureDonationTemplate(page);
-  await page.getByRole('button', { name: 'Basculer vers le mode chef de projet' }).click();
+  await page.getByRole('button', { name: 'Quitter le back-office et revenir aux projets' }).click();
   await createDonation(page);
 
   const story = page.locator('[data-showcase-section="story"]').first();

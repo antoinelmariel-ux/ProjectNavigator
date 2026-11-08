@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from '../react.js';
+import { useModalDialog } from '../hooks/useModalDialog.js';
 import {
   Plus,
   Trash2,
@@ -483,6 +484,8 @@ export const RuleEditor = ({ rule, onSave, onCancel, questions, teams }) => {
   const dialogTitleId = 'rule-editor-title';
   const routingConditionGroups = Array.isArray(routingModal.groups) ? routingModal.groups : [];
   const isRoutingModalOpen = routingModal.index !== null;
+  const dialogRef = useModalDialog({ onClose: onCancel });
+  const routingDialogRef = useModalDialog({ isOpen: isRoutingModalOpen, onClose: closeRoutingModal });
 
   return (
     <div
@@ -495,6 +498,7 @@ export const RuleEditor = ({ rule, onSave, onCancel, questions, teams }) => {
         role="dialog"
         aria-modal="true"
         aria-labelledby={dialogTitleId}
+        ref={dialogRef}
       >
         <div className="sticky top-0 bg-white border-b border-gray-200 px-8 py-6 rounded-t-2xl">
           <div className="flex justify-between items-center">
@@ -577,7 +581,7 @@ export const RuleEditor = ({ rule, onSave, onCancel, questions, teams }) => {
               <button
                 type="button"
                 onClick={addConditionGroup}
-                className="flex items-center px-3 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all text-sm font-medium"
+                className="flex items-center px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all text-sm font-medium"
               >
                 <Plus className="w-4 h-4 mr-1" />
                 {t('backOffice.ruleEditor.addGroup')}
@@ -689,7 +693,7 @@ export const RuleEditor = ({ rule, onSave, onCancel, questions, teams }) => {
                               <button
                                 type="button"
                                 onClick={() => addConditionToGroup(groupIdx)}
-                                className="mt-3 inline-flex items-center px-3 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all text-sm font-medium"
+                                className="mt-3 inline-flex items-center px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all text-sm font-medium"
                               >
                                 <Plus className="w-4 h-4 mr-1" />
                                 {t('backOffice.ruleEditor.addCondition')}
@@ -922,7 +926,7 @@ export const RuleEditor = ({ rule, onSave, onCancel, questions, teams }) => {
                                 <button
                                   type="button"
                                   onClick={() => addConditionToGroup(groupIdx)}
-                                  className="flex items-center px-3 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all text-sm font-medium"
+                                  className="flex items-center px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all text-sm font-medium"
                                 >
                                   <Plus className="w-4 h-4 mr-1" />
                                   {t('backOffice.ruleEditor.addCondition')}
@@ -1002,7 +1006,7 @@ export const RuleEditor = ({ rule, onSave, onCancel, questions, teams }) => {
                 type="button"
                 onClick={addRoutingRule}
                 disabled={!primaryTeamId}
-                className="flex items-center px-3 py-2 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-all text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-all text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Plus className="w-4 h-4 mr-1" />
                 {t('backOffice.ruleEditor.addRouting')}
@@ -1048,7 +1052,7 @@ export const RuleEditor = ({ rule, onSave, onCancel, questions, teams }) => {
                       <button
                         type="button"
                         onClick={() => openRoutingModal(idx)}
-                        className="inline-flex items-center px-3 py-2 bg-white border border-indigo-200 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-all text-sm"
+                        className="inline-flex items-center px-4 py-2 bg-white border border-indigo-200 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-all text-sm"
                       >
                         {t('backOffice.ruleEditor.manageConditions')}
                       </button>
@@ -1076,7 +1080,7 @@ export const RuleEditor = ({ rule, onSave, onCancel, questions, teams }) => {
                       </h4>
                       <button
                         onClick={() => addQuestionForTeam(primaryTeamId)}
-                        className="flex items-center px-3 py-1 text-xs bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all"
+                        className="flex items-center px-3 py-1.5 text-xs bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all"
                       >
                         <Plus className="w-3 h-3 mr-1" />
                         {t('backOffice.ruleEditor.addQuestion')}
@@ -1244,7 +1248,7 @@ export const RuleEditor = ({ rule, onSave, onCancel, questions, teams }) => {
               </h3>
               <button
                 onClick={addRisk}
-                className="flex items-center px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-all text-sm font-medium"
+                className="flex items-center px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-all text-sm font-medium"
               >
                 <Plus className="w-4 h-4 mr-1" />
                 {t('backOffice.ruleEditor.addRisk')}
@@ -1443,10 +1447,16 @@ export const RuleEditor = ({ rule, onSave, onCancel, questions, teams }) => {
       {isRoutingModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center px-4 py-6">
           <div className="absolute inset-0 bg-gray-900/50" onClick={closeRoutingModal} aria-hidden="true" />
-          <div className="relative w-full max-w-4xl rounded-2xl bg-white p-6 shadow-xl">
+          <div
+            className="relative w-full max-w-4xl rounded-2xl bg-white p-6 shadow-xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="rule-editor-routing-title"
+            ref={routingDialogRef}
+          >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h3 className="text-xl font-semibold text-gray-900">{t('backOffice.ruleEditor.routingModalTitle')}</h3>
+                <h3 id="rule-editor-routing-title" className="text-xl font-semibold text-gray-900">{t('backOffice.ruleEditor.routingModalTitle')}</h3>
                 <p className="mt-1 text-sm text-gray-500">
                   {t('backOffice.ruleEditor.routingModalDescription', {
                     team: primaryTeamLabel ? `"${primaryTeamLabel}"` : t('backOffice.ruleEditor.primaryTeamFallback')
@@ -1462,7 +1472,7 @@ export const RuleEditor = ({ rule, onSave, onCancel, questions, teams }) => {
                 <button
                   type="button"
                   onClick={() => updateRoutingModalGroups(groups => ([...groups, { logic: 'all', conditions: [createEmptyQuestionCondition()] }]))}
-                  className="inline-flex items-center gap-2 rounded-lg bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100"
+                  className="inline-flex items-center gap-2 rounded-lg bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100"
                 >
                   <Plus className="h-4 w-4" />
                   {t('backOffice.ruleEditor.addGroup')}
@@ -1495,7 +1505,7 @@ export const RuleEditor = ({ rule, onSave, onCancel, questions, teams }) => {
                         <button
                           type="button"
                           onClick={() => updateRoutingModalGroups(groups => groups.filter((_, idx) => idx !== groupIdx))}
-                          className="inline-flex items-center rounded-md bg-white px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
+                          className="inline-flex items-center rounded-lg bg-white px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
                         >
                           <Trash2 className="mr-1 h-3.5 w-3.5" />
                           {t('backOffice.ruleEditor.remove')}
@@ -1523,7 +1533,7 @@ export const RuleEditor = ({ rule, onSave, onCancel, questions, teams }) => {
                                 updated[groupIdx] = { ...target, conditions };
                                 return updated;
                               })}
-                              className="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
+                              className="inline-flex items-center rounded-lg bg-gray-50 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
                             >
                               <Trash2 className="mr-1 h-3.5 w-3.5" />
                               {t('backOffice.ruleEditor.removeCondition')}
@@ -1599,7 +1609,7 @@ export const RuleEditor = ({ rule, onSave, onCancel, questions, teams }) => {
                           updated[groupIdx] = { ...target, conditions };
                           return updated;
                         })}
-                        className="inline-flex items-center gap-2 rounded-lg bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100"
+                        className="inline-flex items-center gap-2 rounded-lg bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100"
                       >
                         <Plus className="h-4 w-4" />
                         {t('backOffice.ruleEditor.addCondition')}

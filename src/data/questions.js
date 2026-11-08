@@ -112,7 +112,7 @@ export const initialQuestions = [
     "type": "text",
     "question": {
       "en": "Who is leading this project?",
-      "fr": "Qui lead ce projet ?",
+      "fr": "Qui porte ce projet ?",
       "de": "Wer leitet dieses Projekt?",
       "es": "¿Quién lidera este proyecto?"
     },
@@ -294,20 +294,20 @@ export const initialQuestions = [
     "guidance": {
       "objective": {
         "en": "Specify the lead's team to streamline approvals.",
-        "fr": "Préciser le rattachement du lead pour fluidifier les validations.",
+        "fr": "Préciser le rattachement du porteur pour fluidifier les validations.",
         "de": "Geben Sie die Zugehörigkeit des Projektleiters an, um die Validierungen zu erleichtern.",
         "es": "Precisar la adscripción del responsable del proyecto para agilizar las validaciones."
       },
       "details": {
         "en": "This information is shown alongside the lead to help contacts identify the right channel.",
-        "fr": "Cette information s’affiche en complément du lead pour aider les interlocuteurs à identifier le bon canal.",
+        "fr": "Cette information s’affiche en complément du porteur pour aider les interlocuteurs à identifier le bon canal.",
         "de": "Diese Angabe wird ergänzend zum Projektleiter angezeigt, damit die Ansprechpartner den richtigen Kanal identifizieren können.",
         "es": "Esta información se muestra junto al responsable del proyecto para ayudar a los interlocutores a identificar el canal adecuado."
       },
       "tips": [
         {
           "en": "Select the lead's main team.",
-          "fr": "Sélectionnez l’équipe principale du lead.",
+          "fr": "Sélectionnez l’équipe principale du porteur.",
           "de": "Wählen Sie das Hauptteam des Projektleiters aus.",
           "es": "Seleccione el equipo principal del responsable del proyecto."
         },

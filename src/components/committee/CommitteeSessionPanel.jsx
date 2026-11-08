@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from '../../react.js';
 import { useTranslation } from '../../i18n/LanguageContext.jsx';
+import { requestConfirmation } from '../ConfirmDialog.jsx';
 import { PeoplePicker } from '../PeoplePicker.jsx';
 import { CommitteeAttendance } from './CommitteeAttendance.jsx';
 import { InvitationBadge } from './InvitationBadge.jsx';
@@ -123,8 +124,17 @@ export const CommitteeSessionPanel = ({
     });
   };
 
-  const handleUnbook = () => {
-    if (!upcoming || (typeof window !== 'undefined' && !window.confirm(t('committeeSessions.panel.unbookConfirm')))) {
+  const handleUnbook = async () => {
+    if (!upcoming) {
+      return;
+    }
+    const confirmed = await requestConfirmation({
+      title: t('common.confirmations.unbook.title'),
+      message: t('common.confirmations.unbook.message'),
+      confirmLabel: t('common.confirmations.unbook.confirm'),
+      tone: 'danger'
+    });
+    if (!confirmed) {
       return;
     }
     run(() => onRunAction(upcoming.session.id, { type: 'unbook', passageId: upcoming.passage.id }), 'unbooked');
@@ -344,7 +354,7 @@ export const CommitteeSessionPanel = ({
               <button
                 type="submit"
                 disabled={isBusy || !requestNote.trim()}
-                className="rounded-lg bg-blue-600 px-3 py-1 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
               >
                 {t('committeeSessions.panel.requestSubmit')}
               </button>

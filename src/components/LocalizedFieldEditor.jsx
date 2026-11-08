@@ -13,7 +13,7 @@ export const LanguageEditSwitcher = ({ editingLanguage, onChange, label, hint })
               type="button"
               onClick={() => onChange(code)}
               aria-pressed={editingLanguage === code}
-              className={`px-3 py-1 rounded-md text-xs font-semibold uppercase transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold uppercase transition-colors ${
                 editingLanguage === code
                   ? 'bg-blue-600 text-white'
                   : 'text-gray-600 hover:bg-blue-50'

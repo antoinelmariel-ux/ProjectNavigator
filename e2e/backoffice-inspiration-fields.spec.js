@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { gotoHome, grantAdminAccess, collectConsoleErrors } from './fixtures.js';
+import { gotoHome, grantAdminAccess, collectConsoleErrors, openBackOfficeTab, confirmInAppDialog } from './fixtures.js';
 
 async function openInspirationTab(page) {
   await gotoHome(page);
   await grantAdminAccess(page);
-  await page.getByRole('tab', { name: /^Inspiration/ }).click();
+  await openBackOfficeTab(page, /^Inspiration/);
 }
 
 const fieldCards = (page) => page.locator('ol > li').filter({ has: page.getByRole('button', { name: /^Modifier le champ/ }) });
@@ -36,7 +36,7 @@ test.describe('Back-office : champs du formulaire inspiration', () => {
     await expect(fieldCards(page)).toHaveCount(initialCount + 1);
     const card = fieldCards(page).filter({ hasText: 'Budget estimé' });
     await expect(card.getByText('Personnalisé')).toBeVisible();
-    await expect(card.getByText('2 option(s)')).toBeVisible();
+    await expect(card.getByText('2 options')).toBeVisible();
 
     await card.getByRole('button', { name: 'Modifier le champ Budget estimé' }).click();
     const editDialog = page.getByRole('dialog', { name: 'Modifier le champ' });
@@ -53,11 +53,11 @@ test.describe('Back-office : champs du formulaire inspiration', () => {
     const titleCard = fieldCards(page).first();
     await expect(titleCard.getByRole('button', { name: /^Supprimer le champ/ })).toBeDisabled();
 
-    page.once('dialog', (confirmDialog) => confirmDialog.accept());
     await card.getByRole('button', { name: 'Supprimer le champ Budget estimé' }).click();
+    await confirmInAppDialog(page);
     await expect(fieldCards(page)).toHaveCount(initialCount);
 
-    await page.getByRole('button', { name: /Annuler/ }).filter({ hasText: /Ctrl/ }).click();
+    await page.getByRole('button', { name: 'Annuler la dernière suppression' }).click();
     await expect(fieldCards(page).filter({ hasText: 'Budget estimé' })).toHaveCount(1);
 
     expect(errors).toEqual([]);
@@ -104,8 +104,8 @@ test.describe('Back-office : filtres inspiration', () => {
     await moved.getByRole('switch', { name: 'Masquer le filtre Portée de l’accueil' }).click();
     await expect(moved.getByText('Désactivé', { exact: true })).toBeVisible();
 
-    page.once('dialog', (confirmDialog) => confirmDialog.accept());
     await moved.getByRole('button', { name: 'Supprimer le filtre Portée' }).click();
+    await confirmInAppDialog(page);
     await expect(filterCards(page)).toHaveCount(initialCount);
 
     expect(errors).toEqual([]);

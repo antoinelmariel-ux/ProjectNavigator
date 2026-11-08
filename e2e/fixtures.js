@@ -288,12 +288,12 @@ export async function grantSelfComplianceExpertAndCommitteeAccess(page) {
   // l'adresse puis Entrée la valide et l'ajoute à la liste existante (pas de fill/blur sur un
   // textarea brut comme avant son introduction). Pas besoin de passer par l'onglet
   // Administrateurs : grantAdminAccess a déjà rendu les droits admin persistants dès le boot.
-  await page.getByRole('tab', { name: /Équipes/ }).click();
+  await openBackOfficeTab(page, /Équipes/);
   const contactsField = page.locator('input[id$="-contact"]').first();
   await contactsField.fill('bertrand.darieux@lfb.fr');
   await contactsField.press('Enter');
 
-  await page.getByRole('tab', { name: /Comités de validation/ }).click();
+  await openBackOfficeTab(page, /Comités de validation/);
   const committeeConfigToggle = page.getByRole('button', { name: /Configuration des comités/ });
   if ((await committeeConfigToggle.getAttribute('aria-expanded')) !== 'true') {
     await committeeConfigToggle.click();
@@ -302,7 +302,7 @@ export async function grantSelfComplianceExpertAndCommitteeAccess(page) {
   await committeeEmailsField.fill('bertrand.darieux@lfb.fr');
   await committeeEmailsField.press('Enter');
 
-  await page.getByRole('button', { name: 'Mode Chef de Projet' }).click();
+  await page.getByRole('button', { name: 'Quitter le back-office' }).click();
   await expect(page.getByRole('button', { name: /Créer un projet/ }).first()).toBeVisible();
 }
 
@@ -329,4 +329,34 @@ export function collectConsoleErrors(page) {
     }
   });
   return errors;
+}
+
+// Le back-office range ses onglets par groupes (Contenu, Accueil, Vitrine, Système) : seuls
+// les onglets du groupe ouvert existent dans la page. On ouvre donc le groupe qui contient
+// l'onglet voulu avant de cliquer dessus.
+export async function openBackOfficeTab(page, name) {
+  const tab = page.getByRole('tab', { name });
+  const groups = page.locator('[data-backoffice-group]');
+  // Le back-office est un chunk chargé à la demande : attendre sa barre de groupes, sinon on
+  // cherche l'onglet avant qu'il ait la moindre chance d'exister.
+  await groups.first().waitFor();
+  if ((await tab.count()) === 0) {
+    const groupCount = await groups.count();
+    for (let index = 0; index < groupCount; index += 1) {
+      await groups.nth(index).click();
+      if ((await tab.count()) > 0) {
+        break;
+      }
+    }
+  }
+  await tab.first().click();
+}
+
+// Les confirmations passent par une fenêtre de l'app (src/components/ConfirmDialog.jsx), plus
+// par window.confirm : on clique son bouton d'action, toujours le dernier de la fenêtre.
+export async function confirmInAppDialog(page) {
+  const dialog = page.getByTestId('confirm-dialog');
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole('button').last().click();
+  await expect(dialog).toHaveCount(0);
 }

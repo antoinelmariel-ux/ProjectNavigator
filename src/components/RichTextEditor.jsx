@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from '../react.js';
 import { sanitizeRichText } from '../utils/richText.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
+import { useModalDialog } from '../hooks/useModalDialog.js';
 
 const BUTTON_BASE_CLASSES =
   'inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1';
@@ -243,6 +244,7 @@ export const RichTextEditor = ({
     setIsLinkModalOpen(false);
     setLinkError('');
   }, []);
+  const linkDialogRef = useModalDialog({ isOpen: isLinkModalOpen, onClose: handleCloseLinkModal });
 
   const handleConfirmLink = useCallback((event) => {
     event?.preventDefault?.();
@@ -395,6 +397,7 @@ export const RichTextEditor = ({
             role="dialog"
             aria-modal="true"
             aria-labelledby={`${id}-link-modal-title`}
+            ref={linkDialogRef}
           >
             <h3 id={`${id}-link-modal-title`} className="text-lg font-semibold text-gray-900">
               {t('richTextEditor.linkModalTitle')}

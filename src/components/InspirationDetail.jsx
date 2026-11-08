@@ -123,7 +123,7 @@ export const InspirationDetail = ({
               <button
                 type="button"
                 onClick={() => toggleFieldEditing(field.id, false)}
-                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700"
+                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700"
               >
                 <Close className="h-4 w-4" aria-hidden="true" />
                 {t('inspirationDetail.finish')}
@@ -134,7 +134,7 @@ export const InspirationDetail = ({
                   setDraft(project);
                   toggleFieldEditing(field.id, false);
                 }}
-                className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50"
               >
                 <Close className="h-4 w-4" aria-hidden="true" />
                 {t('inspirationDetail.cancel')}
@@ -144,7 +144,7 @@ export const InspirationDetail = ({
             <button
               type="button"
               onClick={() => toggleFieldEditing(field.id, true)}
-              className="inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+              className="inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100"
             >
               <Edit className="h-4 w-4" aria-hidden="true" />
               {t('inspirationDetail.edit')}
@@ -259,7 +259,7 @@ export const InspirationDetail = ({
                 { name: '', url: '' }
               ])
             }
-            className="inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+            className="inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100"
           >
             {t('inspirationDetail.addDocument')}
           </button>

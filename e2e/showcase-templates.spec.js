@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoHome, grantAdminAccess, proceedThroughMandatorySummary, walkQuestionnaireToShowcase } from './fixtures.js';
+import { gotoHome, grantAdminAccess, proceedThroughMandatorySummary, walkQuestionnaireToShowcase, openBackOfficeTab } from './fixtures.js';
 
 // Les dons, projets de tiers et Advisory Boards étaient privés de vitrine. Ils l'ont
 // désormais, structurée par un modèle de vitrine : sections intégrées choisies et blocs
@@ -49,7 +49,7 @@ test.describe('Modèles de vitrine', () => {
     await gotoHome(page);
     await grantAdminAccess(page);
 
-    await page.getByRole('tab', { name: /Modèles de vitrine/ }).click();
+    await openBackOfficeTab(page, /Modèles de vitrine/);
     const cards = page.getByTestId('showcase-template-card');
     await expect(cards).toHaveCount(3);
     const questionSelect = (card) => card

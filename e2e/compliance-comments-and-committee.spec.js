@@ -105,12 +105,12 @@ test.describe('Repêchage par un comité (réintégration)', () => {
     await createAndSubmitProject(page);
     await goToProjectsHome(page);
 
-    await page.getByRole('button', { name: /Hors scope comité \(1\)/ }).click();
+    await page.getByRole('button', { name: /Hors comité \(1\)/ }).click();
     const reintegrateBtn = page.getByRole('button', { name: 'Intégrer au comité' });
     await expect(reintegrateBtn).toBeVisible();
     await reintegrateBtn.click();
 
-    await expect(page.getByRole('button', { name: /Hors scope comité \(0\)/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Hors comité \(0\)/ })).toBeVisible();
     await expect(page.getByRole('button', { name: /En cours \(1\)/ })).toBeVisible();
     expect(errors).toEqual([]);
   });
@@ -134,7 +134,7 @@ test.describe('Repêchage par un comité (réintégration)', () => {
     }));
     await page.reload();
 
-    await page.getByRole('button', { name: /Hors scope comité \(1\)/ }).click();
+    await page.getByRole('button', { name: /Hors comité \(1\)/ }).click();
     await page.getByRole('button', { name: 'Intégrer au comité' }).click();
     await expect.poll(() => mails.find((mail) => mail.actionType.includes('book a validation committee slot'))).toBeTruthy();
     const mail = mails.find((entry) => entry.actionType.includes('book a validation committee slot'));

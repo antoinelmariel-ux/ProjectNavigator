@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from '../react.js';
+import { useModalDialog } from '../hooks/useModalDialog.js';
 import {
   Plus,
   Trash2,
@@ -70,16 +71,7 @@ export const InspirationFieldEditor = ({
     }
   }, []);
 
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        onCancel();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onCancel]);
+  const dialogRef = useModalDialog({ onClose: onCancel });
 
   useEffect(() => {
     if (OPTION_TYPES.has(type) && optionRows.length === 0) {
@@ -219,6 +211,7 @@ export const InspirationFieldEditor = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby={dialogTitleId}
+        ref={dialogRef}
       >
         <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-8 py-6 rounded-t-2xl">
           <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
@@ -383,7 +376,7 @@ export const InspirationFieldEditor = ({
                       <button
                         type="button"
                         onClick={() => setOptionRows((rows) => [...rows, { key: nextOptionRowKey(), value: '', label: '' }])}
-                        className="flex items-center px-3 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all text-sm font-medium"
+                        className="flex items-center px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all text-sm font-medium"
                       >
                         <Plus className="w-4 h-4 mr-1" />
                         {t('backOffice.inspirationFieldEditor.addOption')}

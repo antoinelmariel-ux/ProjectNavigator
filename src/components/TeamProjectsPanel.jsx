@@ -125,7 +125,7 @@ export const TeamProjectsPanel = ({
             <button
               type="button"
               onClick={onRetry}
-              className="rounded-lg border border-red-200 bg-white px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-100"
+              className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100"
             >
               {t('home.team.retry')}
             </button>

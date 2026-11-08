@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoHome, grantAdminAccess, createAndSubmitProject } from './fixtures.js';
+import { gotoHome, grantAdminAccess, createAndSubmitProject, openBackOfficeTab } from './fixtures.js';
 
 
 // Le questionnaire de revue commence par des questions en texte libre (non modifiables ici).
@@ -23,14 +23,14 @@ test('banc d essai : charger un projet type puis creer une regle depuis ses repo
   await createAndSubmitProject(page);
   await grantAdminAccess(page);
 
-  await page.getByRole('tab', { name: /Revue des règles/i }).click();
+  await openBackOfficeTab(page, /Revue des règles/i);
   await expect(page.getByRole('heading', { name: 'Mode revue des règles' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Projet type' })).toBeVisible();
   await page.screenshot({ path: `${SHOT}/01-bench-empty.png`, fullPage: true });
 
   // Charger un projet reel comme projet type
   const sampleSelect = page.getByLabel('Charger un projet type');
-  const projectOption = sampleSelect.locator('optgroup[label="Projets réels soumis"] option').first();
+  const projectOption = sampleSelect.locator('optgroup[label="Projets réels envoyés"] option').first();
   const projectValue = await projectOption.getAttribute('value');
   await sampleSelect.selectOption(projectValue);
 
@@ -39,7 +39,7 @@ test('banc d essai : charger un projet type puis creer une regle depuis ses repo
 
   // Le mode « Projet complet » doit etre actif et l'analyse globale renseignee
   await expect(page.getByRole('button', { name: 'Projet complet' })).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByText(/règle\(s\) déclenchée\(s\), toutes équipes confondues/)).toBeVisible();
+  await expect(page.getByText(/règles? déclenchées?, toutes équipes confondues/)).toBeVisible();
 
   // Ouvrir le constructeur de regle
   await page.getByRole('button', { name: 'Créer une règle à partir de ce projet' }).click();
@@ -50,7 +50,7 @@ test('banc d essai : charger un projet type puis creer une regle depuis ses repo
   // Selectionner deux conditions
   const dialog = page.getByRole('dialog');
   await dialog.locator('article button[aria-pressed="false"]').first().click();
-  await expect(dialog.getByText(/Se déclenche sur .* projet\(s\) type/)).toBeVisible();
+  await expect(dialog.getByText(/Se déclenche sur .* projets? types?/)).toBeVisible();
   await page.screenshot({ path: `${SHOT}/04-builder-selected.png`, fullPage: true });
 
   await dialog.getByLabel('Nom de la règle').fill('Règle de test du banc d’essai');
@@ -71,7 +71,7 @@ test('banc d essai : charger un projet type puis creer une regle depuis ses repo
   await expect(editor).toBeHidden();
 
   // La règle existe désormais dans le référentiel et se déclenche sur le projet chargé.
-  await page.getByRole('tab', { name: /^Règles/ }).click();
+  await openBackOfficeTab(page, /^Règles/);
   // La liste des règles est virtualisée : on filtre pour amener la nouvelle règle à l'écran.
   await page.locator('#rule-title-filter').fill('banc');
   await expect(page.getByRole('heading', { name: /banc/ })).toBeVisible();
@@ -82,13 +82,13 @@ test('projets types enregistres : la portee et le pouvoir discriminant des condi
   await gotoHome(page);
   await createAndSubmitProject(page);
   await grantAdminAccess(page);
-  await page.getByRole('tab', { name: /Revue des règles/i }).click();
+  await openBackOfficeTab(page, /Revue des règles/i);
 
   const sampleSelect = page.getByLabel('Charger un projet type');
 
   // 1er projet type : le projet reel soumis, enregistre tel quel.
   const projectValue = await sampleSelect
-    .locator('optgroup[label="Projets réels soumis"] option')
+    .locator('optgroup[label="Projets réels envoyés"] option')
     .first()
     .getAttribute('value');
   await sampleSelect.selectOption(projectValue);
@@ -116,14 +116,14 @@ test('projets types enregistres : la portee et le pouvoir discriminant des condi
   await expect(dialog.getByText('/2', { exact: false }).first()).toBeVisible();
 
   await dialog.locator('article button[aria-pressed="false"]').first().click();
-  await expect(dialog.getByText(/Se déclenche sur \d+ projet\(s\) type sur 2/)).toBeVisible();
+  await expect(dialog.getByText(/Se déclenche sur \d+ projets? types? sur 2/)).toBeVisible();
   await page.screenshot({ path: `${SHOT}/09-builder-with-corpus.png`, fullPage: true });
 });
 
 test('un projet type survit au rechargement de la page', async ({ page }) => {
   await gotoHome(page);
   await grantAdminAccess(page);
-  await page.getByRole('tab', { name: /Revue des règles/i }).click();
+  await openBackOfficeTab(page, /Revue des règles/i);
 
   expect(await pickFirstSelectableAnswer(page)).toBe(true);
   await page.getByRole('button', { name: 'Enregistrer comme projet type' }).click();
@@ -134,7 +134,7 @@ test('un projet type survit au rechargement de la page', async ({ page }) => {
   // Le rechargement ramene a l'accueil : il faut rouvrir le back-office.
   await page.reload();
   await page.getByRole('button', { name: /Accéder au Back-office/ }).click();
-  await page.getByRole('tab', { name: /Revue des règles/i }).click();
+  await openBackOfficeTab(page, /Revue des règles/i);
   await expect(
     page.getByLabel('Charger un projet type').locator('option', { hasText: 'Cas persistant' })
   ).toHaveCount(1);
@@ -143,9 +143,9 @@ test('un projet type survit au rechargement de la page', async ({ page }) => {
 test('le module de revue montre le perimetre d activite issu de l onboarding', async ({ page }) => {
   await gotoHome(page);
   await grantAdminAccess(page);
-  await page.getByRole('tab', { name: /Revue des règles/i }).click();
+  await openBackOfficeTab(page, /Revue des règles/i);
 
-  await expect(page.getByRole('heading', { name: 'Votre profil (onboarding)' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Votre profil (premier accès)' })).toBeVisible();
   await expect(page.getByText(/Les conditions portant sur le périmètre d’activité/)).toBeVisible();
   // gotoHome a coché le premier périmètre de l'onboarding : il doit apparaître ici.
   await expect(page.getByText('bertrand.darieux@lfb.fr')).toBeVisible();
@@ -156,11 +156,11 @@ test('le module de revue liste les regles existantes et permet de les ouvrir', a
   await gotoHome(page);
   await createAndSubmitProject(page);
   await grantAdminAccess(page);
-  await page.getByRole('tab', { name: /Revue des règles/i }).click();
+  await openBackOfficeTab(page, /Revue des règles/i);
 
   const sampleSelect = page.getByLabel('Charger un projet type');
   const projectValue = await sampleSelect
-    .locator('optgroup[label="Projets réels soumis"] option')
+    .locator('optgroup[label="Projets réels envoyés"] option')
     .first()
     .getAttribute('value');
   await sampleSelect.selectOption(projectValue);
@@ -188,11 +188,11 @@ test('l apercu de regle montre les groupes reels et non une liste a plat', async
   await gotoHome(page);
   await createAndSubmitProject(page);
   await grantAdminAccess(page);
-  await page.getByRole('tab', { name: /Revue des règles/i }).click();
+  await openBackOfficeTab(page, /Revue des règles/i);
 
   const sampleSelect = page.getByLabel('Charger un projet type');
   const projectValue = await sampleSelect
-    .locator('optgroup[label="Projets réels soumis"] option')
+    .locator('optgroup[label="Projets réels envoyés"] option')
     .first()
     .getAttribute('value');
   await sampleSelect.selectOption(projectValue);
@@ -204,11 +204,11 @@ test('l apercu de regle montre les groupes reels et non une liste a plat', async
   // Une condition venant d'une question : un seul groupe.
   const articles = dialog.locator('article');
   await articles.first().locator('button[aria-pressed="false"]').first().click();
-  await expect(dialog.getByText('1 groupe(s) de conditions', { exact: false })).toBeVisible();
+  await expect(dialog.getByText('1 groupe de conditions', { exact: false })).toBeVisible();
 
   // Une condition d'une seconde question : deux groupes, combinés en ET.
   await articles.nth(1).locator('button[aria-pressed="false"]').first().click();
-  await expect(dialog.getByText('2 groupe(s) de conditions', { exact: false })).toBeVisible();
+  await expect(dialog.getByText('2 groupes de conditions', { exact: false })).toBeVisible();
 
   // Deux valeurs d'une même question restent UN groupe : le moteur les combine en OU, et
   // l'aperçu doit le montrer plutôt que d'aligner les pastilles séparées par des « et ».
@@ -218,7 +218,7 @@ test('l apercu de regle montre les groupes reels et non une liste a plat', async
     const remaining = multiValue.nth(index).locator('button[aria-pressed="false"]');
     if (await remaining.count() > 0 && await multiValue.nth(index).locator('button[aria-pressed="true"]').count() > 0) {
       await remaining.first().click();
-      await expect(dialog.getByText('2 groupe(s) de conditions', { exact: false })).toBeVisible();
+      await expect(dialog.getByText('2 groupes de conditions', { exact: false })).toBeVisible();
       break;
     }
   }
@@ -229,11 +229,11 @@ test('l apercu de regle montre les groupes reels et non une liste a plat', async
 test('le perimetre d activite est simulable et change ce que le banc evalue', async ({ page }) => {
   await gotoHome(page);
   await grantAdminAccess(page);
-  await page.getByRole('tab', { name: /Revue des règles/i }).click();
+  await openBackOfficeTab(page, /Revue des règles/i);
 
   const scopeGroup = page.getByRole('group', { name: /Périmètre d’activité utilisé/ });
   await expect(scopeGroup).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Votre profil (onboarding)' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Votre profil (premier accès)' })).toBeVisible();
 
   // L'onboarding a coché le premier périmètre : « Monde entier » est actif, les autres non.
   const worldwide = scopeGroup.getByRole('button', { name: 'Monde entier' });
@@ -250,7 +250,7 @@ test('le perimetre d activite est simulable et change ce que le banc evalue', as
 
   // Retour au profil réel.
   await page.getByRole('button', { name: 'Revenir à mon profil' }).click();
-  await expect(page.getByRole('heading', { name: 'Votre profil (onboarding)' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Votre profil (premier accès)' })).toBeVisible();
   await expect(france).toHaveAttribute('aria-pressed', 'false');
 });
 
@@ -258,11 +258,11 @@ test('le perimetre simule est proposable comme condition de regle', async ({ pag
   await gotoHome(page);
   await createAndSubmitProject(page);
   await grantAdminAccess(page);
-  await page.getByRole('tab', { name: /Revue des règles/i }).click();
+  await openBackOfficeTab(page, /Revue des règles/i);
 
   const sampleSelect = page.getByLabel('Charger un projet type');
   const projectValue = await sampleSelect
-    .locator('optgroup[label="Projets réels soumis"] option')
+    .locator('optgroup[label="Projets réels envoyés"] option')
     .first()
     .getAttribute('value');
   await sampleSelect.selectOption(projectValue);
@@ -280,8 +280,8 @@ test('le perimetre simule est proposable comme condition de regle', async ({ pag
   await expect(scopeArticle).toHaveCount(1);
   await scopeArticle.getByRole('button', { name: 'France', exact: true }).click();
 
-  await expect(dialog.getByText(/1 groupe\(s\) de conditions/)).toBeVisible();
+  await expect(dialog.getByText(/1 groupe de conditions/)).toBeVisible();
   // Le corpus est évalué avec le périmètre simulé : la condition y est vraie partout.
-  await expect(dialog.getByText(/Se déclencherait sur \d+ projet\(s\) réel\(s\)/)).toBeVisible();
+  await expect(dialog.getByText(/Se déclencherait sur \d+ projets? réels?/)).toBeVisible();
   await page.screenshot({ path: `${SHOT}/17-scope-as-condition.png`, fullPage: true });
 });

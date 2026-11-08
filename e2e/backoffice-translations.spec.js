@@ -6,7 +6,8 @@ import {
   goToProjectsHome,
   openTriggeredProjectAndExpandTeam,
   collectConsoleErrors,
-  patchStateOnBoot
+  patchStateOnBoot,
+  openBackOfficeTab
 } from './fixtures.js';
 
 test.describe('Back-office : onglet Traductions', () => {
@@ -15,7 +16,7 @@ test.describe('Back-office : onglet Traductions', () => {
     await gotoHome(page);
     await grantAdminAccess(page);
 
-    await page.getByRole('tab', { name: /Traductions/ }).click();
+    await openBackOfficeTab(page, /Traductions/);
     await expect(page.getByRole('heading', { name: 'Traductions manquantes' })).toBeVisible();
 
     // Les données de démonstration des équipes ne sont pas encore traduites (chaînes françaises
@@ -38,7 +39,7 @@ test.describe('Back-office : onglet Traductions', () => {
     await gotoHome(page);
     await grantAdminAccess(page);
 
-    await page.getByRole('tab', { name: /Équipes/ }).click();
+    await openBackOfficeTab(page, /Équipes/);
     const contactsField = page.locator('input[id$="-contact"]').first();
     await contactsField.fill('bertrand.darieux@lfb.fr');
     await contactsField.press('Enter');
@@ -57,7 +58,7 @@ test.describe('Back-office : onglet Traductions', () => {
     await page.getByRole('button', { name: /Accéder au Back-office/ }).click();
     await expect(page.getByRole('heading', { name: 'Back-office' })).toBeVisible();
 
-    await page.getByRole('tab', { name: /Traductions/ }).click();
+    await openBackOfficeTab(page, /Traductions/);
     await expect(page.getByText('Vous voyez uniquement les traductions concernant vos équipes.')).toBeVisible();
     await expect(page.locator('tr', { hasText: "Équipe « Contrôle pub » — nom" })).toBeVisible();
     // Onglet "Administrateurs" masqué dans cette vue restreinte : pas de contenu global visible.
@@ -71,7 +72,7 @@ test.describe('Langues de réponse acceptées', () => {
     await gotoHome(page);
     await grantAdminAccess(page);
 
-    await page.getByRole('tab', { name: /Équipes/ }).click();
+    await openBackOfficeTab(page, /Équipes/);
     const contactsField = page.locator('input[id$="-contact"]').first();
     await contactsField.fill('bertrand.darieux@lfb.fr');
     await contactsField.press('Enter');
@@ -79,7 +80,7 @@ test.describe('Langues de réponse acceptées', () => {
     const controlePubCard = page.locator('article', { hasText: 'Contrôle pub' }).first();
     await controlePubCard.getByRole('checkbox', { name: 'English' }).check();
 
-    await page.getByRole('button', { name: 'Mode Chef de Projet' }).click();
+    await page.getByRole('button', { name: 'Quitter le back-office' }).click();
     await expect(page.getByRole('button', { name: /Créer un projet/ }).first()).toBeVisible();
 
     await createAndSubmitProject(page);

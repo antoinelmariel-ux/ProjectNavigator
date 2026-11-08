@@ -102,7 +102,7 @@ export const CommitteeAgendaSearch = ({ committees = [], sessions = [], projects
                     <button
                       type="button"
                       onClick={() => onOpenAgenda(entry.sessionId)}
-                      className="rounded-lg border border-blue-200 bg-white px-3 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-50"
+                      className="rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50"
                     >
                       {t('committeeSessions.search.open')}
                     </button>

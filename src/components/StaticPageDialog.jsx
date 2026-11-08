@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from '../react.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
+import { useModalDialog } from '../hooks/useModalDialog.js';
 import { STATIC_PAGE_EVENT } from '../utils/staticPages.js';
 import { buildFaqPageHtml } from '../utils/faqEntries.js';
 import { sanitizeRichText } from '../utils/richText.js';
@@ -35,20 +36,14 @@ export const StaticPageDialog = ({ faqEntries = [], helpManuals = null, isExpert
     return () => window.removeEventListener(STATIC_PAGE_EVENT, handleOpen);
   }, []);
 
-  useEffect(() => {
-    if (!pageId) {
-      return undefined;
-    }
-    closeButtonRef.current?.focus();
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        setManualId(null);
-        setPageId(null);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [pageId]);
+  const dialogRef = useModalDialog({
+    isOpen: Boolean(pageId),
+    onClose: () => {
+      setManualId(null);
+      setPageId(null);
+    },
+    initialFocusRef: closeButtonRef
+  });
 
   const dynamicFaqHtml = useMemo(
     () =>
@@ -90,6 +85,7 @@ export const StaticPageDialog = ({ faqEntries = [], helpManuals = null, isExpert
       role="dialog"
       aria-modal="true"
       aria-label={title}
+      ref={dialogRef}
       data-static-page={pageId}
     >
       <div className="flex items-center justify-between gap-4 border-b border-gray-200 px-4 py-3">

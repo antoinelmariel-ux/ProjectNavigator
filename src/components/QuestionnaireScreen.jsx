@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   AlertTriangle,
+  Lock,
   Plus,
   Trash2
 } from './icons.js';
@@ -27,6 +28,13 @@ import { resolveLocalizedText } from '../utils/localizedContent.js';
 import { createAttachmentFromFile } from '../utils/documentStore.js';
 import { UploadProgressBar } from './UploadProgressBar.jsx';
 import { isAnswerProvided, isQuestionMandatory } from '../utils/mandatoryQuestions.js';
+import {
+  OUTLINE_STATE_ANSWERED,
+  OUTLINE_STATE_MISSED,
+  OUTLINE_STATE_UPCOMING,
+  countMissedMandatoryQuestions,
+  getOutlineQuestionState
+} from '../utils/questionnaireOutline.js';
 import { canQuestionHaveDoubt, getQuestionDoubtText, hasQuestionDoubt } from '../utils/questionDoubts.js';
 import { scrollAppTo } from '../utils/scrollContainer.js';
 import { staticPageLinkProps } from '../utils/staticPages.js';
@@ -212,7 +220,28 @@ export const QuestionnaireScreen = ({
   const currentQuestionPlaceholder = resolveLocalizedText(currentQuestion.placeholder, language).trim();
   const currentQuestionNumberUnit = resolveLocalizedText(currentQuestion.numberUnit, language).trim();
 
-  const [isOutlineOpen, setIsOutlineOpen] = useState(true);
+  // Sur un petit écran le sommaire passe sous la question et reste replié : déplié, il
+  // faisait défiler 400 px avant d'atteindre ce qu'il fallait remplir.
+  const [isOutlineOpen, setIsOutlineOpen] = useState(() => (
+    typeof window === 'undefined' || typeof window.matchMedia !== 'function'
+      ? true
+      : window.matchMedia('(min-width: 1024px)').matches
+  ));
+  const [visitedQuestionIds, setVisitedQuestionIds] = useState(() => new Set());
+  const activeQuestionId = activeQuestion?.id || null;
+  useEffect(() => {
+    if (!activeQuestionId) {
+      return;
+    }
+    setVisitedQuestionIds((previous) => {
+      if (previous.has(activeQuestionId)) {
+        return previous;
+      }
+      const next = new Set(previous);
+      next.add(activeQuestionId);
+      return next;
+    });
+  }, [activeQuestionId]);
   const canHaveDoubt = canQuestionHaveDoubt(currentQuestion);
   const hasCurrentDoubt = hasQuestionDoubt(answers, currentQuestion.id);
   const currentDoubtText = getQuestionDoubtText(answers, currentQuestion.id);
@@ -221,11 +250,12 @@ export const QuestionnaireScreen = ({
   const answeredQuestionsCount = questions.filter(
     (question) => question?.id && isAnswerProvided(answers[question.id])
   ).length;
-  const missingRequiredCount = questions.filter(
-    (question) => question?.id
-      && isQuestionMandatory(question)
-      && !isAnswerProvided(answers[question.id])
-  ).length;
+  const missingRequiredCount = countMissedMandatoryQuestions({
+    questions,
+    currentIndex,
+    visitedIds: visitedQuestionIds,
+    answers
+  });
   const remainingQuestions = Math.max(questions.length - (currentIndex + 1), 0);
   const remainingLabel = remainingQuestions === 0
     ? t('questionnaire.noRemainingQuestions')
@@ -1031,7 +1061,7 @@ export const QuestionnaireScreen = ({
                     <button
                       type="button"
                       onClick={() => handleRankingToggleIgnored(criterion.id)}
-                      className={`text-xs font-medium px-3 py-2 rounded-lg border transition ${
+                      className={`text-xs font-medium px-4 py-2 rounded-lg border transition ${
                         rankingIgnoredSet.has(criterion.id)
                           ? 'border-gray-300 text-gray-600 bg-gray-50'
                           : 'border-red-200 text-red-600 hover:bg-red-50'
@@ -1145,7 +1175,7 @@ export const QuestionnaireScreen = ({
                     <button
                       type="button"
                       onClick={() => handleMilestoneRemoval(index)}
-                      className="inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                      className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
                     >
                       <Trash2 className="w-4 h-4 mr-2" />
                       {t('questionnaire.removeMilestone')}
@@ -1157,7 +1187,7 @@ export const QuestionnaireScreen = ({
             <button
               type="button"
               onClick={handleAddMilestone}
-              className="mt-4 inline-flex items-center px-4 py-2 border-2 border-dashed border-blue-300 rounded-xl text-blue-700 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="mt-4 inline-flex items-center px-4 py-2 border-2 border-dashed border-blue-300 rounded-lg text-blue-700 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               <Plus className="w-4 h-4 mr-2" />
               {t('questionnaire.addMilestone')}
@@ -1168,8 +1198,8 @@ export const QuestionnaireScreen = ({
       case 'text':
         return (
           <div className="mb-8">
-            <label className="block text-sm sm:text-base font-medium text-gray-700 mb-3" htmlFor={`${currentQuestion.id}-text`}>
-              {t('questionnaire.freeTextLabel')}
+            <label className="sr-only" htmlFor={`${currentQuestion.id}-text`}>
+              {currentQuestionText}
             </label>
             <RichTextEditor
               id={`${currentQuestion.id}-text`}
@@ -1181,16 +1211,15 @@ export const QuestionnaireScreen = ({
                   : t('questionnaire.freeTextDefaultPlaceholder')
               }
               compact
-              ariaLabel={t('questionnaire.freeTextAriaLabel')}
+              ariaLabel={currentQuestionText || t('questionnaire.freeTextAriaLabel')}
             />
-            <p className="text-xs text-gray-500 mt-2">{t('questionnaire.freeTextHint')}</p>
           </div>
         );
       case 'long_text':
         return (
           <div className="mb-8">
-            <label className="block text-sm sm:text-base font-medium text-gray-700 mb-3" htmlFor={`${currentQuestion.id}-long-text`}>
-              {t('questionnaire.longTextLabel')}
+            <label className="sr-only" htmlFor={`${currentQuestion.id}-long-text`}>
+              {currentQuestionText}
             </label>
             <RichTextEditor
               id={`${currentQuestion.id}-long-text`}
@@ -1201,9 +1230,8 @@ export const QuestionnaireScreen = ({
                   ? currentQuestionPlaceholder
                   : t('questionnaire.longTextDefaultPlaceholder')
               }
-              ariaLabel={t('questionnaire.longTextAriaLabel')}
+              ariaLabel={currentQuestionText || t('questionnaire.longTextAriaLabel')}
             />
-            <p className="text-xs text-gray-500 mt-2">{t('questionnaire.longTextHint')}</p>
           </div>
         );
       case 'number': {
@@ -1214,8 +1242,8 @@ export const QuestionnaireScreen = ({
         const selectedUnit = unitOptions.includes(answers[unitAnswerId]) ? answers[unitAnswerId] : unitOptions[0];
         return (
           <div className="mb-8">
-            <label className="block text-sm sm:text-base font-medium text-gray-700 mb-3" htmlFor={`${currentQuestion.id}-number`}>
-              {t('questionnaire.numberLabel')}
+            <label className="sr-only" htmlFor={`${currentQuestion.id}-number`}>
+              {currentQuestionText}
             </label>
             <div className={`flex items-center gap-3 ${unitLabel ? 'flex-wrap sm:flex-nowrap' : ''}`}>
               <input
@@ -1327,7 +1355,7 @@ export const QuestionnaireScreen = ({
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 px-4 py-6 sm:px-8 sm:py-10">
       <div className="max-w-6xl mx-auto flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
         <aside
-          className="w-full lg:w-72 lg:shrink-0 lg:sticky lg:top-6"
+          className="order-last w-full lg:order-none lg:w-72 lg:shrink-0 lg:sticky lg:top-6"
           aria-label={t('questionnaire.summaryAriaLabel')}
           data-tour-id="question-summary-panel"
         >
@@ -1380,14 +1408,23 @@ export const QuestionnaireScreen = ({
               {isOutlineOpen && (
                 <ol id={outlineId} className="mt-3 space-y-0.5 max-h-80 overflow-y-auto pr-1">
                   {questions.map((question, index) => {
-                    const isAnswered = isAnswerProvided(answers[question.id]);
+                    const outlineState = getOutlineQuestionState({
+                      question,
+                      index,
+                      currentIndex,
+                      visitedIds: visitedQuestionIds,
+                      answers
+                    });
+                    const isAnswered = outlineState === OUTLINE_STATE_ANSWERED;
                     const isCurrent = index === currentIndex;
-                    const isMissingRequired = isQuestionMandatory(question) && !isAnswered;
+                    const isMissingRequired = outlineState === OUTLINE_STATE_MISSED;
                     const stateLabel = isMissingRequired
                       ? t('questionnaire.stateMissingRequired')
                       : isAnswered
                         ? t('questionnaire.stateAnswered')
-                        : t('questionnaire.stateNotAnswered');
+                        : outlineState === OUTLINE_STATE_UPCOMING
+                          ? t(isQuestionMandatory(question) ? 'questionnaire.stateUpcomingRequired' : 'questionnaire.stateUpcoming')
+                          : t('questionnaire.stateNotAnswered');
 
                     return (
                       <li key={question.id}>
@@ -1395,7 +1432,7 @@ export const QuestionnaireScreen = ({
                           type="button"
                           onClick={() => onNavigateToQuestion?.(question.id)}
                           aria-current={isCurrent ? 'step' : undefined}
-                          className={`flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors ${
+                          className={`flex w-full items-start gap-2 rounded-lg px-3 py-1.5 text-left text-xs transition-colors ${
                             isCurrent
                               ? 'bg-blue-50 text-blue-800 font-semibold'
                               : 'text-gray-600 hover:bg-gray-100'
@@ -1452,17 +1489,6 @@ export const QuestionnaireScreen = ({
               <p id={instructionsId} className="text-xs text-gray-500 mt-2 flex items-center">
                 <Info className="w-3 h-3 mr-1" />
                 {t('questionnaire.visibilityHint')}
-              </p>
-            )}
-            {currentIndex === 0 && (
-              <p className="mt-4 text-xs italic text-gray-400">
-                {t('questionnaire.privacyNotice')}{' '}
-                <a
-                  {...staticPageLinkProps('mentions-legales')}
-                  className="underline hover:text-gray-500"
-                >
-                  {t('questionnaire.privacyLink')}
-                </a>
               </p>
             )}
           </div>
@@ -1652,58 +1678,75 @@ export const QuestionnaireScreen = ({
             </div>
           )}
 
+          {/* « Suivant » est l'action principale : seul bouton plein, tout à droite (et en
+              premier sur mobile, grâce au flex-col-reverse). « Terminer » le précède en simple
+              lien ; « Précédent » reste seul à gauche. */}
           <div
-            className={`flex flex-col-reverse gap-3 sm:flex-row sm:items-center ${
-              currentIndex === 0 ? 'sm:justify-end' : 'sm:justify-between'
-            }`}
+            className="flex flex-col-reverse gap-3 border-t border-gray-100 pt-5 sm:flex-row sm:items-center sm:justify-between"
             data-tour-id="questionnaire-finish"
           >
-            {currentIndex > 0 && (
+            {currentIndex > 0 ? (
               <button
                 type="button"
                 onClick={onBack}
-                className="flex items-center justify-center px-6 py-3 rounded-lg font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all w-full sm:w-auto text-sm sm:text-base"
+                className="flex items-center justify-center px-4 py-2 rounded-lg font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all w-full sm:w-auto text-sm sm:text-base"
               >
                 <ChevronLeft className="w-5 h-5 mr-2" />
                 {t('questionnaire.previous')}
               </button>
+            ) : (
+              <span className="hidden sm:block" aria-hidden="true" />
             )}
 
-            {onReturnToSynthesis && (
-              <button
-                type="button"
-                onClick={onReturnToSynthesis}
-                className="flex items-center justify-center px-6 py-3 rounded-lg font-medium bg-yellow-500 text-white hover:bg-yellow-600 transition-all w-full sm:w-auto text-sm sm:text-base"
-              >
-                <CheckCircle className="w-5 h-5 mr-2" />
-                {t('questionnaire.validateAndReturn')}
-              </button>
-            )}
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
+              {currentIndex < questions.length - 1 && onFinish && shouldShowFinishButton && (
+                <button
+                  type="button"
+                  onClick={onFinish}
+                  className="flex items-center justify-center px-4 py-2 rounded-lg font-medium text-blue-700 hover:bg-blue-50 hover:underline transition-all w-full sm:w-auto text-sm sm:text-base"
+                  data-tour-id="questionnaire-finish-button"
+                >
+                  {t('questionnaire.finish')}
+                </button>
+              )}
 
-            {shouldShowNextButton && (
-              <button
-                type="button"
-                onClick={isReturnToSynthesisRequested ? handleLinkedQuestionNext : onNext}
-                className="flex items-center justify-center px-6 py-3 rounded-lg font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all w-full sm:w-auto text-sm sm:text-base"
-                data-tour-id={currentIndex === questions.length - 1 ? 'questionnaire-view-showcase' : undefined}
-              >
-                {currentIndex === questions.length - 1 ? t('questionnaire.viewShowcase') : t('questionnaire.next')}
-                <ChevronRight className="w-5 h-5 ml-2" />
-              </button>
-            )}
+              {onReturnToSynthesis && (
+                <button
+                  type="button"
+                  onClick={onReturnToSynthesis}
+                  className="flex items-center justify-center px-4 py-2 rounded-lg font-medium bg-yellow-500 text-white hover:bg-yellow-600 transition-all w-full sm:w-auto text-sm sm:text-base"
+                >
+                  <CheckCircle className="w-5 h-5 mr-2" />
+                  {t('questionnaire.validateAndReturn')}
+                </button>
+              )}
 
-            {currentIndex < questions.length - 1 && onFinish && shouldShowFinishButton && (
-              <button
-                type="button"
-                onClick={onFinish}
-                className="flex items-center justify-center px-6 py-3 rounded-lg font-medium bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-all w-full sm:w-auto text-sm sm:text-base"
-                data-tour-id="questionnaire-finish-button"
-              >
-                {t('questionnaire.finish')}
-              </button>
-            )}
+              {shouldShowNextButton && (
+                <button
+                  type="button"
+                  onClick={isReturnToSynthesisRequested ? handleLinkedQuestionNext : onNext}
+                  className="flex items-center justify-center px-5 py-2.5 rounded-lg font-semibold bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all w-full sm:w-auto text-sm sm:text-base"
+                  data-tour-id={currentIndex === questions.length - 1 ? 'questionnaire-view-showcase' : undefined}
+                >
+                  {currentIndex === questions.length - 1 ? t('questionnaire.viewShowcase') : t('questionnaire.next')}
+                  <ChevronRight className="w-5 h-5 ml-2" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
+        <p className="mt-3 flex items-start gap-2 px-1 text-xs text-gray-500">
+          <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          <span>
+            {t('questionnaire.privacyNotice')}{' '}
+            <a
+              {...staticPageLinkProps('mentions-legales')}
+              className="underline hover:text-gray-700"
+            >
+              {t('questionnaire.privacyLink')}
+            </a>
+          </span>
+        </p>
         </div>
       </div>
     </div>

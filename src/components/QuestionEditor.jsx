@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from '../react.js';
+import { useModalDialog } from '../hooks/useModalDialog.js';
 import {
   Plus,
   Trash2,
@@ -945,6 +946,8 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
   }, []);
 
   const isOptionConditionOpen = optionConditionModal.index !== null;
+  const dialogRef = useModalDialog({ onClose: onCancel });
+  const optionConditionDialogRef = useModalDialog({ isOpen: isOptionConditionOpen, onClose: closeOptionConditionModal });
   const optionConditionGroups = Array.isArray(optionConditionModal.groups)
     ? optionConditionModal.groups
     : [];
@@ -960,6 +963,7 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
         role="dialog"
         aria-modal="true"
         aria-labelledby={dialogTitleId}
+        ref={dialogRef}
       >
         <div className="sticky top-0 bg-white border-b border-gray-200 px-8 py-6 rounded-t-2xl">
           <div className="flex justify-between items-center">
@@ -1314,7 +1318,7 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
                     <button
                       type="button"
                       onClick={() => setShowOptionIds((prev) => !prev)}
-                      className={`inline-flex items-center gap-1 rounded-lg border px-3 py-2 text-xs font-semibold transition-all ${
+                      className={`inline-flex items-center gap-1 rounded-lg border px-4 py-2 text-xs font-semibold transition-all ${
                         showOptionIds
                           ? 'border-indigo-300 bg-indigo-50 text-indigo-700'
                           : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
@@ -1327,7 +1331,7 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
                     </button>
                     <button
                       onClick={addOption}
-                      className="flex items-center px-3 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all text-sm font-medium"
+                      className="flex items-center px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all text-sm font-medium"
                     >
                       <Plus className="w-4 h-4 mr-1" />
                       {t('backOffice.questionEditor.addOption')}
@@ -1412,7 +1416,7 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
                         <button
                           type="button"
                           onClick={() => setExpandedOptionIndex(isExpanded ? null : idx)}
-                          className="px-3 py-2 text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100"
+                          className="px-4 py-2 text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100"
                         >
                           {t('backOffice.questionEditor.subOptionsButton')} {subOptionCount > 0 ? `(${subOptionCount})` : ''}
                         </button>
@@ -1420,7 +1424,7 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
                           <button
                             type="button"
                             onClick={() => openOptionConditionModal(idx)}
-                            className="px-3 py-2 text-xs font-semibold text-orange-600 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100"
+                            className="px-4 py-2 text-xs font-semibold text-orange-600 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100"
                           >
                             {t('backOffice.questionEditor.editConditions')}
                           </button>
@@ -1512,7 +1516,7 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
                               <button
                                 type="button"
                                 onClick={() => addSubOption(idx)}
-                                className="inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold text-blue-600 bg-white border border-blue-200 rounded-lg hover:bg-blue-50"
+                                className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-blue-600 bg-white border border-blue-200 rounded-lg hover:bg-blue-50"
                               >
                                 <Plus className="w-4 h-4" />
                                 {t('backOffice.questionEditor.addSubOption')}
@@ -1520,7 +1524,7 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
                               <button
                                 type="button"
                                 onClick={() => addOtherSubOption(idx)}
-                                className="inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold text-purple-600 bg-white border border-purple-200 rounded-lg hover:bg-purple-50"
+                                className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-purple-600 bg-white border border-purple-200 rounded-lg hover:bg-purple-50"
                               >
                                 <Plus className="w-4 h-4" />
                                 {t('backOffice.questionEditor.addOtherSubOption')}
@@ -1551,7 +1555,7 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
                 <button
                   type="button"
                   onClick={addRankingEntry}
-                  className="flex items-center px-3 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-all text-sm font-medium"
+                  className="flex items-center px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-all text-sm font-medium"
                 >
                   <Plus className="w-4 h-4 mr-1" />
                   {t('backOffice.questionEditor.addEntry')}
@@ -1792,7 +1796,7 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
                 <button
                   type="button"
                   onClick={addGuidanceTip}
-                  className="flex items-center px-3 py-1 text-xs bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all"
+                  className="flex items-center px-3 py-1.5 text-xs bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all"
                 >
                   <Plus className="w-3 h-3 mr-1" />
                   {t('backOffice.questionEditor.addTip')}
@@ -1842,7 +1846,7 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
               <button
                 type="button"
                 onClick={addConditionGroup}
-                className="flex items-center px-3 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-all text-sm font-medium"
+                className="flex items-center px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-all text-sm font-medium"
               >
                 <Plus className="w-4 h-4 mr-1" />
                 {t('backOffice.questionEditor.addGroup')}
@@ -1953,7 +1957,7 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
                               <button
                                 type="button"
                                 onClick={() => addConditionToGroup(groupIdx)}
-                                className="mt-3 inline-flex items-center px-3 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-all text-sm font-medium"
+                                className="mt-3 inline-flex items-center px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-all text-sm font-medium"
                               >
                                 <Plus className="w-4 h-4 mr-1" />
                                 {t('backOffice.questionEditor.addCondition')}
@@ -2112,7 +2116,7 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
                                 <button
                                   type="button"
                                   onClick={() => addConditionToGroup(groupIdx)}
-                                  className="inline-flex items-center px-3 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-all text-sm font-medium"
+                                  className="inline-flex items-center px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-all text-sm font-medium"
                                 >
                                   <Plus className="w-4 h-4 mr-1" />
                                   {t('backOffice.questionEditor.addCondition')}
@@ -2137,10 +2141,16 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
             onClick={closeOptionConditionModal}
             aria-hidden="true"
           />
-          <div className="relative w-full max-w-3xl rounded-2xl bg-white p-6 shadow-xl">
+          <div
+            className="relative w-full max-w-3xl rounded-2xl bg-white p-6 shadow-xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="question-editor-option-conditions-title"
+            ref={optionConditionDialogRef}
+          >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h3 className="text-xl font-semibold text-gray-900">
+                <h3 id="question-editor-option-conditions-title" className="text-xl font-semibold text-gray-900">
                   {t('backOffice.questionEditor.optionConditionsTitle')}
                 </h3>
                 <p className="mt-1 text-sm text-gray-500">{t('backOffice.questionEditor.optionConditionsDescription')}</p>
@@ -2160,7 +2170,7 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
                 <button
                   type="button"
                   onClick={addOptionConditionGroup}
-                  className="inline-flex items-center gap-2 rounded-lg bg-orange-50 px-3 py-2 text-sm font-medium text-orange-700 hover:bg-orange-100"
+                  className="inline-flex items-center gap-2 rounded-lg bg-orange-50 px-4 py-2 text-sm font-medium text-orange-700 hover:bg-orange-100"
                 >
                   <Plus className="h-4 w-4" />
                   {t('backOffice.questionEditor.addGroup')}
@@ -2208,7 +2218,7 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
                             <button
                               type="button"
                               onClick={() => addOptionConditionToGroup(groupIdx)}
-                              className="mt-2 inline-flex items-center gap-2 rounded-lg bg-orange-50 px-3 py-2 text-sm font-medium text-orange-700 hover:bg-orange-100"
+                              className="mt-2 inline-flex items-center gap-2 rounded-lg bg-orange-50 px-4 py-2 text-sm font-medium text-orange-700 hover:bg-orange-100"
                             >
                               <Plus className="h-4 w-4" />
                               {t('backOffice.questionEditor.addCondition')}
@@ -2374,7 +2384,7 @@ export const QuestionEditor = ({ question, onSave, onCancel, allQuestions }) => 
                               <button
                                 type="button"
                                 onClick={() => addOptionConditionToGroup(groupIdx)}
-                                className="inline-flex items-center gap-2 rounded-lg bg-orange-50 px-3 py-2 text-sm font-medium text-orange-700 hover:bg-orange-100"
+                                className="inline-flex items-center gap-2 rounded-lg bg-orange-50 px-4 py-2 text-sm font-medium text-orange-700 hover:bg-orange-100"
                               >
                                 <Plus className="h-4 w-4" />
                                 {t('backOffice.questionEditor.addCondition')}

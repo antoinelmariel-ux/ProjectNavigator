@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoHome, grantAdminAccess, collectConsoleErrors } from './fixtures.js';
+import { gotoHome, grantAdminAccess, collectConsoleErrors, openBackOfficeTab } from './fixtures.js';
 
 // L'organigramme fictif (src/data/mockOrgDirectory.js) place le porteur des quatre projets
 // soumis de démonstration deux niveaux sous l'utilisateur simulé : c'est ce qui fait apparaître
@@ -25,7 +25,7 @@ test('le manager consulte les projets de son équipe sans les confondre avec les
   await expect(card).toContainText('Porté par Chef de projet (démo)');
   await expect(card).toContainText('Équipe de Claire Dubreuil');
   await expect(card.getByRole('button', { name: /Modifier/ })).toHaveCount(0);
-  await expect(card.getByRole('button', { name: /Supprimer|Dupliquer|Annuler la soumission/ })).toHaveCount(0);
+  await expect(card.getByRole('button', { name: /Supprimer|Dupliquer|Annuler l’envoi/ })).toHaveCount(0);
 
   await page.getByRole('searchbox', { name: 'Rechercher un projet ou une personne' }).fill('Impact');
   await expect(teamCards(page)).toHaveCount(1);
@@ -48,14 +48,14 @@ test('un administrateur ouvre les brouillons de l’équipe aux managers depuis 
   await expect(tabs.getByRole('button', { name: 'Mon équipe (4)' })).toBeVisible();
 
   await grantAdminAccess(page);
-  await page.getByRole('tab', { name: /Administrateurs/ }).click();
+  await openBackOfficeTab(page, /Administrateurs/);
   const privateOption = page.getByRole('button', { name: /Projets envoyés uniquement/ });
   const draftsOption = page.getByRole('button', { name: /Projets envoyés et brouillons/ });
   await expect(privateOption).toHaveAttribute('aria-pressed', 'true');
   await draftsOption.click();
   await expect(draftsOption).toHaveAttribute('aria-pressed', 'true');
 
-  await page.getByRole('button', { name: 'Basculer vers le mode chef de projet' }).click();
+  await page.getByRole('button', { name: 'Quitter le back-office et revenir aux projets' }).click();
   await tabs.getByRole('button', { name: 'Mon équipe (5)' }).click();
   await expect(page.getByRole('note')).toContainText('Les brouillons en cours de rédaction sont également affichés');
   const draftCard = teamCards(page).filter({ hasText: 'Brouillon' });

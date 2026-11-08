@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from '../react.js';
+import { useModalDialog } from '../hooks/useModalDialog.js';
 import { AlertTriangle, CheckCircle, Close, Sparkles, Target } from './icons.js';
 import { CANDIDATE_TIERS } from '../utils/ruleDraftFromAnswers.js';
 import { resolveLocalizedText } from '../utils/localizedContent.js';
@@ -50,16 +51,7 @@ export const RuleDraftBuilder = ({
     }
   }, []);
 
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        onCancel();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onCancel]);
+  const dialogRef = useModalDialog({ onClose: onCancel });
 
   const hasConditions = selectedCandidates.length > 0;
   const safeTeams = Array.isArray(teams) ? teams : [];
@@ -85,6 +77,7 @@ export const RuleDraftBuilder = ({
         role="dialog"
         aria-modal="true"
         aria-label={t('backOffice.main.benchBuilderTitle')}
+        ref={dialogRef}
         className="mx-auto w-full max-w-6xl rounded-2xl bg-white shadow-2xl"
       >
         <header className="flex flex-col gap-2 border-b border-gray-200 p-5 sm:flex-row sm:items-start sm:justify-between">
@@ -118,7 +111,7 @@ export const RuleDraftBuilder = ({
                   type="button"
                   onClick={() => onModeChange('all')}
                   aria-pressed={mode === 'all'}
-                  className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${mode === 'all' ? 'bg-white text-indigo-700 shadow-sm border border-indigo-100' : 'text-gray-600'}`}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${mode === 'all' ? 'bg-white text-indigo-700 shadow-sm border border-indigo-100' : 'text-gray-600'}`}
                 >
                   {t('backOffice.main.benchLogicAll')}
                 </button>
@@ -126,7 +119,7 @@ export const RuleDraftBuilder = ({
                   type="button"
                   onClick={() => onModeChange('any')}
                   aria-pressed={mode === 'any'}
-                  className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${mode === 'any' ? 'bg-white text-indigo-700 shadow-sm border border-indigo-100' : 'text-gray-600'}`}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${mode === 'any' ? 'bg-white text-indigo-700 shadow-sm border border-indigo-100' : 'text-gray-600'}`}
                 >
                   {t('backOffice.main.benchLogicAny')}
                 </button>
@@ -137,7 +130,7 @@ export const RuleDraftBuilder = ({
                   type="button"
                   onClick={() => onSortChange('relevance')}
                   aria-pressed={sort === 'relevance'}
-                  className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${sort === 'relevance' ? 'bg-white text-indigo-700 shadow-sm border border-indigo-100' : 'text-gray-600'}`}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${sort === 'relevance' ? 'bg-white text-indigo-700 shadow-sm border border-indigo-100' : 'text-gray-600'}`}
                 >
                   {t('backOffice.main.benchSortRelevance')}
                 </button>
@@ -145,7 +138,7 @@ export const RuleDraftBuilder = ({
                   type="button"
                   onClick={() => onSortChange('questionnaire')}
                   aria-pressed={sort === 'questionnaire'}
-                  className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${sort === 'questionnaire' ? 'bg-white text-indigo-700 shadow-sm border border-indigo-100' : 'text-gray-600'}`}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${sort === 'questionnaire' ? 'bg-white text-indigo-700 shadow-sm border border-indigo-100' : 'text-gray-600'}`}
                 >
                   {t('backOffice.main.benchSortQuestionnaire')}
                 </button>
@@ -171,7 +164,7 @@ export const RuleDraftBuilder = ({
                               type="button"
                               onClick={() => onPerQuestionLogicChange(group.questionId, 'any')}
                               aria-pressed={(perQuestionLogic[group.questionId] || 'any') === 'any'}
-                              className={`rounded px-2 py-1 font-medium ${(perQuestionLogic[group.questionId] || 'any') === 'any' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-600'}`}
+                              className={`rounded-lg px-2 py-1 font-medium ${(perQuestionLogic[group.questionId] || 'any') === 'any' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-600'}`}
                             >
                               {t('backOffice.main.benchGroupAny')}
                             </button>
@@ -179,7 +172,7 @@ export const RuleDraftBuilder = ({
                               type="button"
                               onClick={() => onPerQuestionLogicChange(group.questionId, 'all')}
                               aria-pressed={perQuestionLogic[group.questionId] === 'all'}
-                              className={`rounded px-2 py-1 font-medium ${perQuestionLogic[group.questionId] === 'all' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-600'}`}
+                              className={`rounded-lg px-2 py-1 font-medium ${perQuestionLogic[group.questionId] === 'all' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-600'}`}
                             >
                               {t('backOffice.main.benchGroupAll')}
                             </button>
@@ -197,7 +190,7 @@ export const RuleDraftBuilder = ({
                                 type="button"
                                 onClick={() => onToggleCandidate(candidate.id)}
                                 aria-pressed={isSelected}
-                                className={`flex w-full items-center rounded-lg border px-3 py-2 text-left text-sm transition ${
+                                className={`flex w-full items-center rounded-lg border px-4 py-2 text-left text-sm transition ${
                                   isSelected
                                     ? 'border-indigo-500 bg-indigo-50 text-indigo-900'
                                     : 'border-gray-200 bg-white text-gray-700 hover:border-indigo-300'
@@ -367,7 +360,7 @@ export const RuleDraftBuilder = ({
                 type="button"
                 onClick={onConfirm}
                 disabled={!hasConditions}
-                className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {t('backOffice.main.benchConfirmButton')}
               </button>

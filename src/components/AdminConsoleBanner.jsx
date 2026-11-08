@@ -44,7 +44,7 @@ export const AdminConsoleBanner = ({ adminEmail }) => {
         <button
           type="button"
           onClick={handleExit}
-          className="inline-flex shrink-0 items-center justify-center rounded-lg border border-white bg-white px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-50"
+          className="inline-flex shrink-0 items-center justify-center rounded-lg border border-white bg-white px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50"
         >
           {t('app.adminConsole.exit')}
         </button>
