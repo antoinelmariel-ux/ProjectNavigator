@@ -14,7 +14,9 @@ import {
   LazyOnboardingScreen,
   LoadingFallback
 } from './lazyComponents.jsx';
-import { Calendar, Link, Lock, MessageSquare, Settings, Sparkles, UserCircle } from './components/icons.js';
+import { Calendar, ChevronRight, Link, Lock, MessageSquare, Settings, Sparkles, UserCircle } from './components/icons.js';
+import { buttonClass } from './utils/buttonStyles.js';
+import { useModalDialog } from './hooks/useModalDialog.js';
 import { MandatoryQuestionsSummary } from './components/MandatoryQuestionsSummary.jsx';
 import { SubmissionCancelledNotice } from './components/SubmissionCancelledNotice.jsx';
 import { ActivityScopeSelector } from './components/ActivityScopeSelector.jsx';
@@ -7505,6 +7507,16 @@ const updateProjectFilters = useCallback((updater) => {
     });
   }, [activeProjectId, openProjectShowcase]);
 
+  // Fin du questionnaire : la vitrine s'ouvre en plein écran et rien n'y dit que le projet
+  // n'est qu'un brouillon que la compliance n'a pas vu. Le bandeau le dit, une fois, pour le
+  // projet qu'on vient de décrire, et disparaît dès qu'on quitte la vitrine.
+  const [showcaseNextStepProjectId, setShowcaseNextStepProjectId] = useState(null);
+  useEffect(() => {
+    if (screen !== 'showcase' && showcaseNextStepProjectId) {
+      setShowcaseNextStepProjectId(null);
+    }
+  }, [screen, showcaseNextStepProjectId]);
+
   // Sortie de questionnaire : la vitrine est la destination par défaut, l'outil servant d'abord
   // à penser le projet. Tout projet a sa vitrine ; un modèle de vitrine en adapte la structure.
   const navigateToProjectShowcase = useCallback(() => {
@@ -7512,6 +7524,7 @@ const updateProjectFilters = useCallback((updater) => {
     setAnalysis(result);
     setValidationError(null);
     setReturnToSynthesisAfterEdit(false);
+    setShowcaseNextStepProjectId(activeProjectId || null);
 
     openProjectShowcase({
       projectId: activeProjectId,
@@ -8631,6 +8644,18 @@ const updateProjectFilters = useCallback((updater) => {
     setIsShowcaseShareOpen(false);
     setShowcaseShareFeedback('');
   }, []);
+  const showcaseShareDialogRef = useModalDialog({
+    isOpen: isShowcaseShareOpen && canShareActiveProjectShowcase,
+    onClose: handleCloseShowcaseShare
+  });
+  const profileDialogRef = useModalDialog({
+    isOpen: isProfileModalOpen,
+    onClose: () => setIsProfileModalOpen(false)
+  });
+  const backOfficePromptDialogRef = useModalDialog({
+    isOpen: isBackOfficePromptOpen,
+    onClose: () => closeBackOfficePrompt(false)
+  });
 
   useEffect(() => {
     if (!isShowcaseShareOpen) {
@@ -9137,7 +9162,7 @@ const updateProjectFilters = useCallback((updater) => {
                   runCommitteeSessionAction(session.id, { type: 'unbook', passageId: passage.id });
                 });
               }}
-              className="whitespace-nowrap rounded-lg border border-amber-300 bg-white px-3 py-1 text-xs font-semibold hover:bg-amber-100"
+              className="whitespace-nowrap rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold hover:bg-amber-100"
             >
               {t('committeeSessions.orphan.release')}
             </button>
@@ -9204,7 +9229,7 @@ const updateProjectFilters = useCallback((updater) => {
                 <button
                   type="button"
                   onClick={handleToggleAnnotationMode}
-                  className={`order-first self-start sm:order-last sm:self-center inline-flex h-10 px-4 items-center justify-center gap-2 rounded-full border text-blue-700 shadow-sm transition hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                  className={`order-first self-start sm:order-last sm:self-center inline-flex h-10 px-4 items-center justify-center gap-2 rounded-lg border text-blue-700 shadow-sm transition hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
                     isAnnotationModeEnabled ? 'bg-blue-50 border-blue-200' : 'bg-white border-blue-100'
                   }`}
                   aria-pressed={isAnnotationModeEnabled}
@@ -9221,7 +9246,7 @@ const updateProjectFilters = useCallback((updater) => {
                 <button
                   type="button"
                   onClick={handleOpenShowcaseShare}
-                  className="order-first self-start sm:order-last sm:self-center inline-flex h-10 px-4 items-center justify-center gap-2 rounded-full border bg-white border-blue-100 text-blue-700 shadow-sm transition hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  className="order-first self-start sm:order-last sm:self-center inline-flex h-10 px-4 items-center justify-center gap-2 rounded-lg border bg-white border-blue-100 text-blue-700 shadow-sm transition hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   aria-label={t('app.nav.shareShowcase')}
                   title={t('app.nav.shareShowcase')}
                   data-tour-id="showcase-share-trigger"
@@ -9379,21 +9404,56 @@ const updateProjectFilters = useCallback((updater) => {
                   )}
                 </button>
               )}
-              {mode === 'user' && screen === 'home' && (
-                <button
-                  type="button"
-                  onClick={() => setIsProfileModalOpen(true)}
-                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border bg-white border-gray-200 text-gray-700 shadow-sm transition hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                  aria-label={t('profile.openButtonAriaLabel')}
-                  title={t('profile.openButtonAriaLabel')}
-                >
-                  <UserCircle className="h-5 w-5" />
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => setIsProfileModalOpen(true)}
+                className="order-last inline-flex h-10 w-10 shrink-0 items-center justify-center self-center rounded-full border bg-white border-gray-200 text-gray-700 shadow-sm transition hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                aria-label={t('profile.openButtonAriaLabel')}
+                title={t('profile.openButtonAriaLabel')}
+                data-testid="nav-profile-button"
+              >
+                <UserCircle className="h-5 w-5" />
+              </button>
             </div>
           </div>
         </div>
       </nav>
+      )}
+      {screen === 'showcase'
+        && showcaseNextStepProjectId
+        && showcaseProjectContext?.projectId === showcaseNextStepProjectId
+        && (showcaseProjectContext?.status || 'draft') === 'draft'
+        && !isShowcaseSharedView
+        && !isOnboardingActive && (
+        <div
+          role="status"
+          className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-amber-900"
+          data-testid="showcase-next-step"
+        >
+          <div className="mx-auto flex max-w-7xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
+            <div className="text-sm">
+              <p className="font-semibold">{t('app.showcaseNextStep.title')}</p>
+              <p className="mt-0.5 text-amber-800">{t('app.showcaseNextStep.body')}</p>
+            </div>
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={handleReturnToComplianceReport}
+                className={buttonClass('primary', 'md')}
+              >
+                {t('app.showcaseNextStep.action')}
+                <ChevronRight className="h-4 w-4" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowcaseNextStepProjectId(null)}
+                className={buttonClass('ghost', 'md')}
+              >
+                {t('app.showcaseNextStep.dismiss')}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {isProfileModalOpen && (
@@ -9402,6 +9462,7 @@ const updateProjectFilters = useCallback((updater) => {
           role="dialog"
           aria-modal="true"
           aria-labelledby="profile-modal-title"
+          ref={profileDialogRef}
         >
           <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full my-4 sm:my-8 p-6 sm:p-8 space-y-6 overflow-y-auto hv-modal-panel">
             <div className="text-center">
@@ -9534,6 +9595,7 @@ const updateProjectFilters = useCallback((updater) => {
           role="dialog"
           aria-modal="true"
           aria-labelledby="showcase-share-title"
+          ref={showcaseShareDialogRef}
         >
           <div
             className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 sm:p-8 space-y-4 hv-modal-panel"
@@ -9638,14 +9700,14 @@ const updateProjectFilters = useCallback((updater) => {
               <button
                 type="button"
                 onClick={handleCopyShowcaseLink}
-                className="px-5 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 {t('app.showcaseShare.copyLink')}
               </button>
               <button
                 type="button"
                 onClick={handleDownloadShowcaseShortcut}
-                className="px-5 py-2 bg-white text-blue-700 font-medium rounded-lg border border-blue-200 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="px-4 py-2 bg-white text-blue-700 font-medium rounded-lg border border-blue-200 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 {t('app.showcaseShare.downloadShortcut')}
               </button>
@@ -9669,6 +9731,7 @@ const updateProjectFilters = useCallback((updater) => {
           role="dialog"
           aria-modal="true"
           aria-labelledby="backoffice-auth-title"
+          ref={backOfficePromptDialogRef}
         >
           <div className="absolute inset-0 bg-gray-900/50" onClick={() => closeBackOfficePrompt(false)} aria-hidden="true" />
           <form
@@ -9703,13 +9766,13 @@ const updateProjectFilters = useCallback((updater) => {
               <button
                 type="button"
                 onClick={() => closeBackOfficePrompt(false)}
-                className="px-5 py-2 bg-white text-gray-700 font-medium rounded-lg border border-gray-200 hover:bg-gray-50"
+                className="px-4 py-2 bg-white text-gray-700 font-medium rounded-lg border border-gray-200 hover:bg-gray-50"
               >
                 {t('app.backOfficeAuth.cancel')}
               </button>
               <button
                 type="submit"
-                className="px-5 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700"
+                className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700"
               >
                 {t('app.backOfficeAuth.unlock')}
               </button>

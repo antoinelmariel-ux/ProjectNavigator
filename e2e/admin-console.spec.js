@@ -35,11 +35,11 @@ test('la console d’administration s’ouvre depuis le back-office et retrouve 
 
   // Recherche par porteur, insensible aux accents et à la casse, puis filtre « Porteur ».
   await consolePage.getByTestId('admin-console-search').fill('AUVRAY');
-  await expect(consolePage.getByTestId('admin-console-count')).toContainText('1 projet(s)');
+  await expect(consolePage.getByTestId('admin-console-count')).toContainText('1 projet sur');
   await expect(consolePage.getByTestId('admin-console-search')).toHaveValue('AUVRAY');
   await consolePage.getByRole('button', { name: 'Réinitialiser' }).click();
   await consolePage.getByTestId('admin-console-owner').selectOption('chef.projet@entreprise.com');
-  await expect(consolePage.getByTestId('admin-console-count')).toContainText('4 projet(s)');
+  await expect(consolePage.getByTestId('admin-console-count')).toContainText('4 projets sur');
   await consolePage.getByRole('button', { name: 'Réinitialiser' }).click();
 
   // L'onglet ordinaire n'a pas changé : pas de bandeau, pas de projets d'autrui.
@@ -88,9 +88,9 @@ test('dans la console, un administrateur modifie, annule, met à la corbeille et
   await trashed.getByRole('button', { name: 'Confirmer' }).click();
   await expect(trashed).toContainText('Corbeille');
   await consolePage.getByTestId('admin-console-status').selectOption('trashed');
-  await expect(consolePage.getByTestId('admin-console-count')).toContainText('1 projet(s)');
+  await expect(consolePage.getByTestId('admin-console-count')).toContainText('1 projet sur');
   await trashed.getByRole('button', { name: 'Restaurer' }).click();
-  await expect(consolePage.getByTestId('admin-console-count')).toContainText('0 projet(s)');
+  await expect(consolePage.getByTestId('admin-console-count')).toContainText('0 projet sur');
 
   await expect.poll(async () => {
     const stored = await readStoredState(consolePage);

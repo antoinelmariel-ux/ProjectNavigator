@@ -1,4 +1,5 @@
 import React, { Suspense, useEffect, useMemo, useState } from '../react.js';
+import { useModalDialog } from '../hooks/useModalDialog.js';
 import { getLocalizedRaw, resolveLocalizedText, setLocalizedText } from '../utils/localizedContent.js';
 import {
   createShowcaseTemplate,
@@ -34,15 +35,7 @@ const ShowcaseTemplatePreview = ({ template, questions, showcaseThemes, language
     });
   }, []);
 
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        onClose();
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+  const dialogRef = useModalDialog({ onClose });
 
   return (
     <div
@@ -50,6 +43,7 @@ const ShowcaseTemplatePreview = ({ template, questions, showcaseThemes, language
       role="dialog"
       aria-modal="true"
       aria-label={t('backOffice.showcaseTemplates.previewTitle', { name: templateName })}
+      ref={dialogRef}
       data-testid="showcase-template-preview"
     >
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white px-4 py-3 shadow">
@@ -63,7 +57,7 @@ const ShowcaseTemplatePreview = ({ template, questions, showcaseThemes, language
           type="button"
           onClick={onClose}
           autoFocus
-          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+          className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
         >
           {t('backOffice.showcaseTemplates.previewClose')}
         </button>
@@ -232,7 +226,7 @@ export const BackOfficeShowcaseTemplates = ({
                       <button
                         type="button"
                         onClick={() => setPreviewTemplateId(template.id)}
-                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-50"
+                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 bg-white px-4 py-2 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-50"
                       >
                         <Eye className="w-4 h-4" />
                         {t('backOffice.showcaseTemplates.previewButton')}
@@ -240,7 +234,7 @@ export const BackOfficeShowcaseTemplates = ({
                       <button
                         type="button"
                         onClick={() => setStudioTemplateId(template.id)}
-                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
+                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
                       >
                         <Edit className="w-4 h-4" />
                         {t('backOffice.showcaseTemplates.studio.openButton')}
@@ -272,7 +266,7 @@ export const BackOfficeShowcaseTemplates = ({
                       <button
                         type="button"
                         onClick={() => handleDeleteTemplate(template.id)}
-                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
                       >
                         <Trash2 className="w-4 h-4" />
                         {t('backOffice.showcaseTemplates.deleteButton')}

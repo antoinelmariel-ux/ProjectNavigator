@@ -39,7 +39,7 @@ test('banc d essai : charger un projet type puis creer une regle depuis ses repo
 
   // Le mode « Projet complet » doit etre actif et l'analyse globale renseignee
   await expect(page.getByRole('button', { name: 'Projet complet' })).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByText(/règle\(s\) déclenchée\(s\), toutes équipes confondues/)).toBeVisible();
+  await expect(page.getByText(/règles? déclenchées?, toutes équipes confondues/)).toBeVisible();
 
   // Ouvrir le constructeur de regle
   await page.getByRole('button', { name: 'Créer une règle à partir de ce projet' }).click();
@@ -50,7 +50,7 @@ test('banc d essai : charger un projet type puis creer une regle depuis ses repo
   // Selectionner deux conditions
   const dialog = page.getByRole('dialog');
   await dialog.locator('article button[aria-pressed="false"]').first().click();
-  await expect(dialog.getByText(/Se déclenche sur .* projet\(s\) type/)).toBeVisible();
+  await expect(dialog.getByText(/Se déclenche sur .* projets? types?/)).toBeVisible();
   await page.screenshot({ path: `${SHOT}/04-builder-selected.png`, fullPage: true });
 
   await dialog.getByLabel('Nom de la règle').fill('Règle de test du banc d’essai');
@@ -116,7 +116,7 @@ test('projets types enregistres : la portee et le pouvoir discriminant des condi
   await expect(dialog.getByText('/2', { exact: false }).first()).toBeVisible();
 
   await dialog.locator('article button[aria-pressed="false"]').first().click();
-  await expect(dialog.getByText(/Se déclenche sur \d+ projet\(s\) type sur 2/)).toBeVisible();
+  await expect(dialog.getByText(/Se déclenche sur \d+ projets? types? sur 2/)).toBeVisible();
   await page.screenshot({ path: `${SHOT}/09-builder-with-corpus.png`, fullPage: true });
 });
 
@@ -204,11 +204,11 @@ test('l apercu de regle montre les groupes reels et non une liste a plat', async
   // Une condition venant d'une question : un seul groupe.
   const articles = dialog.locator('article');
   await articles.first().locator('button[aria-pressed="false"]').first().click();
-  await expect(dialog.getByText('1 groupe(s) de conditions', { exact: false })).toBeVisible();
+  await expect(dialog.getByText('1 groupe de conditions', { exact: false })).toBeVisible();
 
   // Une condition d'une seconde question : deux groupes, combinés en ET.
   await articles.nth(1).locator('button[aria-pressed="false"]').first().click();
-  await expect(dialog.getByText('2 groupe(s) de conditions', { exact: false })).toBeVisible();
+  await expect(dialog.getByText('2 groupes de conditions', { exact: false })).toBeVisible();
 
   // Deux valeurs d'une même question restent UN groupe : le moteur les combine en OU, et
   // l'aperçu doit le montrer plutôt que d'aligner les pastilles séparées par des « et ».
@@ -218,7 +218,7 @@ test('l apercu de regle montre les groupes reels et non une liste a plat', async
     const remaining = multiValue.nth(index).locator('button[aria-pressed="false"]');
     if (await remaining.count() > 0 && await multiValue.nth(index).locator('button[aria-pressed="true"]').count() > 0) {
       await remaining.first().click();
-      await expect(dialog.getByText('2 groupe(s) de conditions', { exact: false })).toBeVisible();
+      await expect(dialog.getByText('2 groupes de conditions', { exact: false })).toBeVisible();
       break;
     }
   }
@@ -280,8 +280,8 @@ test('le perimetre simule est proposable comme condition de regle', async ({ pag
   await expect(scopeArticle).toHaveCount(1);
   await scopeArticle.getByRole('button', { name: 'France', exact: true }).click();
 
-  await expect(dialog.getByText(/1 groupe\(s\) de conditions/)).toBeVisible();
+  await expect(dialog.getByText(/1 groupe de conditions/)).toBeVisible();
   // Le corpus est évalué avec le périmètre simulé : la condition y est vraie partout.
-  await expect(dialog.getByText(/Se déclencherait sur \d+ projet\(s\) réel\(s\)/)).toBeVisible();
+  await expect(dialog.getByText(/Se déclencherait sur \d+ projets? réels?/)).toBeVisible();
   await page.screenshot({ path: `${SHOT}/17-scope-as-condition.png`, fullPage: true });
 });

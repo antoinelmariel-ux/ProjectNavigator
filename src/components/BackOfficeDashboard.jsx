@@ -592,7 +592,7 @@ const BarChart = ({
             <div className="flex items-center justify-between text-sm">
               <span className="font-medium text-gray-700">{entry.label}</span>
               <span className="font-semibold text-gray-900">
-                {resolvedValueFormatter(entry.value)}{unitSuffix}
+                {resolvedValueFormatter(entry.value)}{typeof unitSuffix === 'function' ? unitSuffix(entry.value) : unitSuffix}
               </span>
             </div>
             <div className="h-3 rounded-full bg-gray-100">
@@ -1223,7 +1223,7 @@ export const BackOfficeDashboard = ({ projects = [], teams = [], launchSignals =
               totalRisks: entry.totalRisks
             }))}
             valueFormatter={(value) => averageFormatter.format(value)}
-            unitSuffix={t('backOffice.dashboard.riskUnitSuffix')}
+            unitSuffix={(value) => t('backOffice.dashboard.riskUnitSuffix', { count: value })}
             emptyLabel={t('backOffice.dashboard.noRisksIdentified')}
           />
           {riskSeverityAverages.entries.length > 0 && (
@@ -1246,7 +1246,7 @@ export const BackOfficeDashboard = ({ projects = [], teams = [], launchSignals =
           </header>
           <BarChart
             data={solicitationsByTeam.entries}
-            unitSuffix={t('backOffice.dashboard.solicitationsUnitSuffix')}
+            unitSuffix={(value) => t('backOffice.dashboard.solicitationsUnitSuffix', { count: value })}
             emptyLabel={t('backOffice.dashboard.noSolicitations')}
           />
         </article>

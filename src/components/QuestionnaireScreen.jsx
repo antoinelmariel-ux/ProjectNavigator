@@ -27,6 +27,13 @@ import { resolveLocalizedText } from '../utils/localizedContent.js';
 import { createAttachmentFromFile } from '../utils/documentStore.js';
 import { UploadProgressBar } from './UploadProgressBar.jsx';
 import { isAnswerProvided, isQuestionMandatory } from '../utils/mandatoryQuestions.js';
+import {
+  OUTLINE_STATE_ANSWERED,
+  OUTLINE_STATE_MISSED,
+  OUTLINE_STATE_UPCOMING,
+  countMissedMandatoryQuestions,
+  getOutlineQuestionState
+} from '../utils/questionnaireOutline.js';
 import { canQuestionHaveDoubt, getQuestionDoubtText, hasQuestionDoubt } from '../utils/questionDoubts.js';
 import { scrollAppTo } from '../utils/scrollContainer.js';
 import { staticPageLinkProps } from '../utils/staticPages.js';
@@ -213,6 +220,21 @@ export const QuestionnaireScreen = ({
   const currentQuestionNumberUnit = resolveLocalizedText(currentQuestion.numberUnit, language).trim();
 
   const [isOutlineOpen, setIsOutlineOpen] = useState(true);
+  const [visitedQuestionIds, setVisitedQuestionIds] = useState(() => new Set());
+  const activeQuestionId = activeQuestion?.id || null;
+  useEffect(() => {
+    if (!activeQuestionId) {
+      return;
+    }
+    setVisitedQuestionIds((previous) => {
+      if (previous.has(activeQuestionId)) {
+        return previous;
+      }
+      const next = new Set(previous);
+      next.add(activeQuestionId);
+      return next;
+    });
+  }, [activeQuestionId]);
   const canHaveDoubt = canQuestionHaveDoubt(currentQuestion);
   const hasCurrentDoubt = hasQuestionDoubt(answers, currentQuestion.id);
   const currentDoubtText = getQuestionDoubtText(answers, currentQuestion.id);
@@ -221,11 +243,12 @@ export const QuestionnaireScreen = ({
   const answeredQuestionsCount = questions.filter(
     (question) => question?.id && isAnswerProvided(answers[question.id])
   ).length;
-  const missingRequiredCount = questions.filter(
-    (question) => question?.id
-      && isQuestionMandatory(question)
-      && !isAnswerProvided(answers[question.id])
-  ).length;
+  const missingRequiredCount = countMissedMandatoryQuestions({
+    questions,
+    currentIndex,
+    visitedIds: visitedQuestionIds,
+    answers
+  });
   const remainingQuestions = Math.max(questions.length - (currentIndex + 1), 0);
   const remainingLabel = remainingQuestions === 0
     ? t('questionnaire.noRemainingQuestions')
@@ -1031,7 +1054,7 @@ export const QuestionnaireScreen = ({
                     <button
                       type="button"
                       onClick={() => handleRankingToggleIgnored(criterion.id)}
-                      className={`text-xs font-medium px-3 py-2 rounded-lg border transition ${
+                      className={`text-xs font-medium px-4 py-2 rounded-lg border transition ${
                         rankingIgnoredSet.has(criterion.id)
                           ? 'border-gray-300 text-gray-600 bg-gray-50'
                           : 'border-red-200 text-red-600 hover:bg-red-50'
@@ -1145,7 +1168,7 @@ export const QuestionnaireScreen = ({
                     <button
                       type="button"
                       onClick={() => handleMilestoneRemoval(index)}
-                      className="inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                      className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
                     >
                       <Trash2 className="w-4 h-4 mr-2" />
                       {t('questionnaire.removeMilestone')}
@@ -1157,7 +1180,7 @@ export const QuestionnaireScreen = ({
             <button
               type="button"
               onClick={handleAddMilestone}
-              className="mt-4 inline-flex items-center px-4 py-2 border-2 border-dashed border-blue-300 rounded-xl text-blue-700 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="mt-4 inline-flex items-center px-4 py-2 border-2 border-dashed border-blue-300 rounded-lg text-blue-700 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               <Plus className="w-4 h-4 mr-2" />
               {t('questionnaire.addMilestone')}
@@ -1380,14 +1403,23 @@ export const QuestionnaireScreen = ({
               {isOutlineOpen && (
                 <ol id={outlineId} className="mt-3 space-y-0.5 max-h-80 overflow-y-auto pr-1">
                   {questions.map((question, index) => {
-                    const isAnswered = isAnswerProvided(answers[question.id]);
+                    const outlineState = getOutlineQuestionState({
+                      question,
+                      index,
+                      currentIndex,
+                      visitedIds: visitedQuestionIds,
+                      answers
+                    });
+                    const isAnswered = outlineState === OUTLINE_STATE_ANSWERED;
                     const isCurrent = index === currentIndex;
-                    const isMissingRequired = isQuestionMandatory(question) && !isAnswered;
+                    const isMissingRequired = outlineState === OUTLINE_STATE_MISSED;
                     const stateLabel = isMissingRequired
                       ? t('questionnaire.stateMissingRequired')
                       : isAnswered
                         ? t('questionnaire.stateAnswered')
-                        : t('questionnaire.stateNotAnswered');
+                        : outlineState === OUTLINE_STATE_UPCOMING
+                          ? t(isQuestionMandatory(question) ? 'questionnaire.stateUpcomingRequired' : 'questionnaire.stateUpcoming')
+                          : t('questionnaire.stateNotAnswered');
 
                     return (
                       <li key={question.id}>
@@ -1395,7 +1427,7 @@ export const QuestionnaireScreen = ({
                           type="button"
                           onClick={() => onNavigateToQuestion?.(question.id)}
                           aria-current={isCurrent ? 'step' : undefined}
-                          className={`flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors ${
+                          className={`flex w-full items-start gap-2 rounded-lg px-3 py-1.5 text-left text-xs transition-colors ${
                             isCurrent
                               ? 'bg-blue-50 text-blue-800 font-semibold'
                               : 'text-gray-600 hover:bg-gray-100'
@@ -1662,7 +1694,7 @@ export const QuestionnaireScreen = ({
               <button
                 type="button"
                 onClick={onBack}
-                className="flex items-center justify-center px-6 py-3 rounded-lg font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all w-full sm:w-auto text-sm sm:text-base"
+                className="flex items-center justify-center px-5 py-2.5 rounded-lg font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all w-full sm:w-auto text-sm sm:text-base"
               >
                 <ChevronLeft className="w-5 h-5 mr-2" />
                 {t('questionnaire.previous')}
@@ -1673,7 +1705,7 @@ export const QuestionnaireScreen = ({
               <button
                 type="button"
                 onClick={onReturnToSynthesis}
-                className="flex items-center justify-center px-6 py-3 rounded-lg font-medium bg-yellow-500 text-white hover:bg-yellow-600 transition-all w-full sm:w-auto text-sm sm:text-base"
+                className="flex items-center justify-center px-5 py-2.5 rounded-lg font-medium bg-yellow-500 text-white hover:bg-yellow-600 transition-all w-full sm:w-auto text-sm sm:text-base"
               >
                 <CheckCircle className="w-5 h-5 mr-2" />
                 {t('questionnaire.validateAndReturn')}
@@ -1684,7 +1716,7 @@ export const QuestionnaireScreen = ({
               <button
                 type="button"
                 onClick={isReturnToSynthesisRequested ? handleLinkedQuestionNext : onNext}
-                className="flex items-center justify-center px-6 py-3 rounded-lg font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all w-full sm:w-auto text-sm sm:text-base"
+                className="flex items-center justify-center px-5 py-2.5 rounded-lg font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all w-full sm:w-auto text-sm sm:text-base"
                 data-tour-id={currentIndex === questions.length - 1 ? 'questionnaire-view-showcase' : undefined}
               >
                 {currentIndex === questions.length - 1 ? t('questionnaire.viewShowcase') : t('questionnaire.next')}
@@ -1696,7 +1728,7 @@ export const QuestionnaireScreen = ({
               <button
                 type="button"
                 onClick={onFinish}
-                className="flex items-center justify-center px-6 py-3 rounded-lg font-medium bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-all w-full sm:w-auto text-sm sm:text-base"
+                className="flex items-center justify-center px-5 py-2.5 rounded-lg font-medium bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-all w-full sm:w-auto text-sm sm:text-base"
                 data-tour-id="questionnaire-finish-button"
               >
                 {t('questionnaire.finish')}

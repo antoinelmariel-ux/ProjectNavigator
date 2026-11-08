@@ -527,7 +527,7 @@ export const InspirationForm = ({
                       <button
                         type="button"
                         onClick={() => handleRemoveDocument(field.id, index)}
-                        className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100"
+                        className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100"
                       >
                         {t('inspirationForm.removeDocument')}
                       </button>

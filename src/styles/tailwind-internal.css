@@ -1243,6 +1243,10 @@
   order: -9999;
 }
 
+.order-last {
+  order: 9999;
+}
+
 .overflow-auto {
   overflow: auto;
 }
@@ -2422,6 +2426,13 @@
 @media (min-width: 640px) {
   .sm\:pl-8 {
     padding-left: 2rem;
+  }
+}
+
+@media (min-width: 640px) {
+  .sm\:px-4 {
+    padding-left: 1rem;
+    padding-right: 1rem;
   }
 }
 

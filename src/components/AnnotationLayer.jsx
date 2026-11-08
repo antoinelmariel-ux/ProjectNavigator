@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from '../react.js';
 import { Close, Trash2 } from './icons.js';
+import { useModalDialog } from '../hooks/useModalDialog.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { getLocaleTag } from '../i18n/languages.js';
 import { isImpersonating } from '../utils/impersonation.js';
@@ -141,12 +142,6 @@ export const AnnotationLayer = ({
     setIsIntroOpen(true);
   }, [isActive, suppressIntro]);
 
-  useEffect(() => {
-    if (isIntroOpen && introStartRef.current) {
-      introStartRef.current.focus();
-    }
-  }, [isIntroOpen]);
-
   const closeIntro = () => {
     if (dontShowIntroAgain) {
       rememberIntroDismissed();
@@ -154,6 +149,7 @@ export const AnnotationLayer = ({
 
     setIsIntroOpen(false);
   };
+  const introDialogRef = useModalDialog({ isOpen: isIntroOpen, onClose: closeIntro, initialFocusRef: introStartRef });
 
   const registerTextareaRef = (noteId) => (node) => {
     if (!noteId) {
@@ -410,6 +406,7 @@ export const AnnotationLayer = ({
             role="dialog"
             aria-modal="true"
             aria-labelledby="annotation-intro-title"
+            ref={introDialogRef}
             className="w-full max-w-md rounded-xl bg-white border border-slate-200 p-6 shadow-2xl text-slate-900"
           >
             <h2 id="annotation-intro-title" className="text-lg font-semibold">

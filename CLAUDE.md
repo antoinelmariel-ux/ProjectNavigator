@@ -260,6 +260,14 @@ has a showcase**: the project types that used to be denied one (third-party proj
 grant, Advisory Board) now get a showcase template instead (see below) — don't bring back a
 type-based block.
 
+Arriving there from the form, the owner of a **draft** gets a banner under the nav
+(`showcaseNextStepProjectId` in `App.jsx`, `data-testid="showcase-next-step"`): the draft is
+saved but compliance has not been consulted, with a button to « Enjeux du projet ». It is set
+only by `navigateToProjectShowcase`, dropped as soon as the screen changes, and never shown in a
+shared view or during the tour. The questionnaire's outline flags a mandatory question as missing
+only once it has been passed (before the current one, or already displayed —
+`src/utils/questionnaireOutline.js`); a question not reached yet is neutral « à venir ».
+
 The report itself is **« Enjeux du projet »** everywhere in the UI (`synthesisReport.title`,
 `app.nav.reportSummaryLabel`, the home cards' « Consulter les enjeux »); the code keeps its
 `synthesis` screen id, `navigateToSynthesis`, `SynthesisReport.jsx` and `synthesis-*` tour ids —
@@ -1096,6 +1104,9 @@ then another effect reorders it back, so asserting only the final order proves n
 ## Conventions
 
 - No comments unless the "why" is non-obvious (hidden constraint / workaround). Existing components are near comment-free.
+- **Modal dialogs go through `src/hooks/useModalDialog.js`** (`const ref = useModalDialog({ isOpen, onClose, initialFocusRef })`, `ref` on the `role="dialog"` element, `aria-modal="true"`): focus moved inside on open, Tab trapped, Échap closes only the topmost dialog (a stack) and never when an inner widget already `preventDefault`-ed it, focus returned on close. Don't add another per-dialog `keydown` listener for Escape/Tab; the studio keeps its own Escape rule (ignored while typing) with `closeOnEscape: false`. The showcase's `SectionInserter` is a non-modal popover and stays out of it.
+- **Buttons**: one radius (`rounded-lg`, `rounded-full` only for chips/pills and round icon buttons) and four paddings — `px-2 py-1` (dense inline/toolbar), `px-3 py-1.5` (small), `px-4 py-2` (default), `px-5 py-2.5` (large). New buttons can use `buttonClass(variant, size)` from `src/utils/buttonStyles.js` (`primary`/`secondary`/`subtle`/`ghost`/`danger`, `sm`/`md`/`lg`).
+- **Plurals in dictionaries**: never `projet(s)`; write `{{count}} [[count|projet|projets]]` — `translate.js` picks the form with `Intl.PluralRules` of the language (French 0 and 1 are singular), several counts per string allowed, plural form when the param is missing. `test/translatePlurals.test.mjs` fails on any new `(s)`/`(e)`/`(en)` in a string carrying `{{…}}`.
 - Rich text is sanitized through an allow-list in `src/utils/richText.js` before any `dangerouslySetInnerHTML` — route user HTML through it, don't bypass.
 - Rules of Hooks matters here: several components are huge; never place an early `return` before hooks (a real bug of this kind was fixed in `QuestionnaireScreen.jsx` using a stable sentinel + guard-after-hooks). `npm run lint` enforces `react-hooks/rules-of-hooks`.
 - Memoize any array/object built with `.filter()`/`.map()`/`.slice()` that a `useEffect` depends on, or that effect refires on *every* unrelated render of that component (a new array reference each time never equals the previous one). A real instance of this in `SynthesisReport.jsx` (`relevantTeams` computed inline, feeding an effect that rebuilds `complianceCommentDrafts` from whatever's already persisted) made the compliance status `<select>` functionally unusable — any re-render, including the one caused by picking a status, instantly reset the draft back to empty before it could be saved. Fixed via `useMemo`; watch for the same pattern elsewhere in the huge components.

@@ -110,7 +110,7 @@ export const MandatoryQuestionsSummary = ({
             <button
               type="button"
               onClick={handleBack}
-              className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 rounded-lg font-medium text-gray-700 border border-gray-300 hover:bg-gray-100 transition-all"
+              className="w-full sm:w-auto inline-flex items-center justify-center px-5 py-2.5 rounded-lg font-medium text-gray-700 border border-gray-300 hover:bg-gray-100 transition-all"
             >
               {t('mandatoryQuestionsSummary.backButton')}
             </button>

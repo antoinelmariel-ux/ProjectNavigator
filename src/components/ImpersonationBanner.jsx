@@ -45,7 +45,7 @@ export const ImpersonationBanner = ({ simulatedEmail, realEmail }) => {
         <button
           type="button"
           onClick={handleExit}
-          className="inline-flex shrink-0 items-center justify-center rounded-lg border border-purple-300 bg-white px-3 py-1 text-xs font-semibold text-purple-700 hover:bg-purple-100"
+          className="inline-flex shrink-0 items-center justify-center rounded-lg border border-purple-300 bg-white px-3 py-1.5 text-xs font-semibold text-purple-700 hover:bg-purple-100"
         >
           {t('app.impersonation.exit')}
         </button>

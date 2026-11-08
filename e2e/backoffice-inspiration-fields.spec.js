@@ -36,7 +36,7 @@ test.describe('Back-office : champs du formulaire inspiration', () => {
     await expect(fieldCards(page)).toHaveCount(initialCount + 1);
     const card = fieldCards(page).filter({ hasText: 'Budget estimé' });
     await expect(card.getByText('Personnalisé')).toBeVisible();
-    await expect(card.getByText('2 option(s)')).toBeVisible();
+    await expect(card.getByText('2 options')).toBeVisible();
 
     await card.getByRole('button', { name: 'Modifier le champ Budget estimé' }).click();
     const editDialog = page.getByRole('dialog', { name: 'Modifier le champ' });

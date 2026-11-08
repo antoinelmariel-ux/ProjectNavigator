@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from '../react.js';
+import { useModalDialog } from '../hooks/useModalDialog.js';
 import { Clipboard, Settings, Eye, Search } from './icons.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { resolveLocalizedText, getLocalizedRaw, setLocalizedText } from '../utils/localizedContent.js';
@@ -39,16 +40,7 @@ export const InspirationFilterEditor = ({
     }
   }, []);
 
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        onCancel();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onCancel]);
+  const dialogRef = useModalDialog({ onClose: onCancel });
 
   const sourceField = formFields.find((field) => field && field.id === sourceId) || null;
   const type = isCreation ? getFilterTypeForField(sourceField) : filter?.type || 'text';
@@ -107,6 +99,7 @@ export const InspirationFilterEditor = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby={dialogTitleId}
+        ref={dialogRef}
       >
         <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-8 py-6 rounded-t-2xl">
           <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">

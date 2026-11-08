@@ -202,7 +202,7 @@ export const ProjectReadinessPanel = ({
           <button
             type="button"
             onClick={onSendUpdate}
-            className="mt-3 w-full px-3 py-2 rounded-lg font-semibold text-xs transition-all flex items-center justify-center bg-amber-600 text-white hover:bg-amber-700 shadow-md"
+            className="mt-3 w-full px-4 py-2 rounded-lg font-semibold text-xs transition-all flex items-center justify-center bg-amber-600 text-white hover:bg-amber-700 shadow-md"
           >
             <Send className="w-4 h-4 mr-2" />
             {t('synthesisReport.readiness.sendUpdateAction')}
@@ -324,7 +324,7 @@ export const ProjectReadinessPanel = ({
                     type="button"
                     aria-pressed={perimeterScope === scope}
                     onClick={() => setPerimeterScope(scope)}
-                    className={`w-full rounded-lg border px-3 py-2 text-left text-xs font-semibold transition-all ${
+                    className={`w-full rounded-lg border px-4 py-2 text-left text-xs font-semibold transition-all ${
                       perimeterScope === scope
                         ? 'border-blue-500 bg-blue-50 text-blue-900'
                         : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
@@ -357,7 +357,7 @@ export const ProjectReadinessPanel = ({
                 type="button"
                 onClick={handleConfirmPerimeters}
                 disabled={perimeterScope === 'some' && selectedPerimeters.length === 0}
-                className="mt-3 w-full px-3 py-2 rounded-lg font-semibold text-xs transition-all flex flex-col items-center justify-center bg-blue-600 text-white hover:bg-blue-700 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                className="mt-3 w-full px-4 py-2 rounded-lg font-semibold text-xs transition-all flex flex-col items-center justify-center bg-blue-600 text-white hover:bg-blue-700 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span className="flex items-center">
                   <Send className="w-4 h-4 mr-2" />
@@ -388,7 +388,7 @@ export const ProjectReadinessPanel = ({
               <button
                 type="button"
                 onClick={onSubmitFinal}
-                className="w-full px-4 py-2.5 rounded-lg font-semibold text-sm transition-all flex items-center justify-center bg-blue-600 text-white hover:bg-blue-700 shadow-md"
+                className="w-full px-5 py-2.5 rounded-lg font-semibold text-sm transition-all flex items-center justify-center bg-blue-600 text-white hover:bg-blue-700 shadow-md"
               >
                 <Send className="w-4 h-4 mr-2" />
                 {t('synthesisReport.readiness.validationAction')}
@@ -408,7 +408,7 @@ export const ProjectReadinessPanel = ({
                 type="button"
                 onClick={handlePreliminaryClick}
                 disabled={!canRequestPreliminary}
-                className="w-full px-4 py-2.5 rounded-lg font-semibold text-sm transition-all flex items-center justify-center bg-blue-600 text-white hover:bg-blue-700 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-5 py-2.5 rounded-lg font-semibold text-sm transition-all flex items-center justify-center bg-blue-600 text-white hover:bg-blue-700 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <MessageSquare className="w-4 h-4 mr-2" />
                 {t('synthesisReport.readiness.preliminaryAction')}
@@ -458,7 +458,7 @@ export const ProjectReadinessPanel = ({
           <button
             type="button"
             onClick={onOpenShowcase}
-            className="mt-2 w-full px-3 py-2 bg-white border border-blue-200 text-blue-700 hover:bg-blue-100 rounded-lg font-medium transition-all flex items-center justify-center text-xs"
+            className="mt-2 w-full px-4 py-2 bg-white border border-blue-200 text-blue-700 hover:bg-blue-100 rounded-lg font-medium transition-all flex items-center justify-center text-xs"
           >
             {t('synthesisReport.readiness.thinkAction')}
           </button>
@@ -532,7 +532,7 @@ export const ProjectReadinessPanel = ({
               <button
                 type="button"
                 onClick={onRequestFinalValidation}
-                className="w-full px-3 py-2 rounded-lg font-semibold text-xs transition-all flex items-center justify-center bg-blue-600 text-white hover:bg-blue-700 shadow-md"
+                className="w-full px-4 py-2 rounded-lg font-semibold text-xs transition-all flex items-center justify-center bg-blue-600 text-white hover:bg-blue-700 shadow-md"
               >
                 <Send className="w-4 h-4 mr-2" />
                 {t('synthesisReport.readiness.launch.requestAction')}
@@ -543,7 +543,7 @@ export const ProjectReadinessPanel = ({
               <button
                 type="button"
                 onClick={() => onDeclareLaunch(!isLaunched)}
-                className="w-full px-3 py-2 rounded-lg font-semibold text-xs transition-all flex items-center justify-center border border-gray-300 bg-white text-gray-800 hover:bg-gray-100"
+                className="w-full px-4 py-2 rounded-lg font-semibold text-xs transition-all flex items-center justify-center border border-gray-300 bg-white text-gray-800 hover:bg-gray-100"
               >
                 {isLaunched
                   ? t('synthesisReport.readiness.launch.revertLaunchAction')
@@ -586,7 +586,7 @@ export const ProjectReadinessPanel = ({
                 <button
                   type="button"
                   onClick={onEditProject}
-                  className="mt-3 w-full px-3 py-2 rounded-lg font-semibold text-xs transition-all flex items-center justify-center border border-gray-300 bg-white text-gray-800 hover:bg-gray-100"
+                  className="mt-3 w-full px-4 py-2 rounded-lg font-semibold text-xs transition-all flex items-center justify-center border border-gray-300 bg-white text-gray-800 hover:bg-gray-100"
                 >
                   {t('synthesisReport.stagedConsultation.editProject')}
                 </button>
@@ -596,7 +596,7 @@ export const ProjectReadinessPanel = ({
                   <button
                     type="button"
                     onClick={() => onSolicitPerimeters(deferredPerimeters.map((perimeter) => perimeter.key))}
-                    className={`mt-2 w-full px-3 py-2 rounded-lg font-semibold text-xs transition-all flex items-center justify-center ${
+                    className={`mt-2 w-full px-4 py-2 rounded-lg font-semibold text-xs transition-all flex items-center justify-center ${
                       hasSolicitedOpinion
                         ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-md'
                         : 'border border-blue-200 bg-white text-blue-700 hover:bg-blue-50'
@@ -619,7 +619,7 @@ export const ProjectReadinessPanel = ({
               <button
                 type="button"
                 onClick={onSubmitFinal}
-                className="mt-3 w-full px-3 py-2 rounded-lg font-semibold text-xs transition-all flex items-center justify-center bg-blue-600 text-white hover:bg-blue-700 shadow-md"
+                className="mt-3 w-full px-4 py-2 rounded-lg font-semibold text-xs transition-all flex items-center justify-center bg-blue-600 text-white hover:bg-blue-700 shadow-md"
               >
                 <Send className="w-4 h-4 mr-2" />
                 {t('synthesisReport.readiness.validationAction')}

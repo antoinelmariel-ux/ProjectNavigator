@@ -44,7 +44,7 @@ export const OnboardingScreen = ({ onComplete, onStartTour, onSkipTour }) => {
                 type="button"
                 onClick={handleContinue}
                 disabled={selectedScope.length === 0}
-                className={`px-6 py-3 rounded-lg font-medium text-white transition-all ${
+                className={`px-5 py-2.5 rounded-lg font-medium text-white transition-all ${
                   selectedScope.length === 0
                     ? 'bg-gray-300 cursor-not-allowed'
                     : 'bg-blue-600 hover:bg-blue-700'
@@ -65,14 +65,14 @@ export const OnboardingScreen = ({ onComplete, onStartTour, onSkipTour }) => {
               <button
                 type="button"
                 onClick={onStartTour}
-                className="px-6 py-3 rounded-lg font-medium text-white bg-blue-600 hover:bg-blue-700 transition-all"
+                className="px-5 py-2.5 rounded-lg font-medium text-white bg-blue-600 hover:bg-blue-700 transition-all"
               >
                 {t('onboarding.tourStep.startButton')}
               </button>
               <button
                 type="button"
                 onClick={onSkipTour}
-                className="px-6 py-3 rounded-lg font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all"
+                className="px-5 py-2.5 rounded-lg font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all"
               >
                 {t('onboarding.tourStep.skipButton')}
               </button>

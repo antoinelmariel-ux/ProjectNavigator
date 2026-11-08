@@ -170,7 +170,7 @@ const CollapsibleSection = ({
         onClick={onToggle}
         aria-expanded={isOpen}
         aria-controls={`${sectionId}-panel`}
-        className="flex w-full items-center gap-3 rounded-xl border border-gray-200 bg-white px-5 py-4 text-left transition-colors hover:bg-gray-50"
+        className="flex w-full items-center gap-3 rounded-lg border border-gray-200 bg-white px-5 py-4 text-left transition-colors hover:bg-gray-50"
       >
         <svg
           className={`h-4 w-4 flex-shrink-0 text-gray-400 transition-transform duration-200 ${isOpen ? '' : '-rotate-90'}`}
@@ -2485,7 +2485,7 @@ export const SynthesisReport = ({
                 <button
                   type="button"
                   onClick={() => onDeclareLaunch(!isLaunched)}
-                  className="mt-3 w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-xs font-semibold text-gray-800 hover:bg-gray-100 transition-all"
+                  className="mt-3 w-full px-4 py-2 rounded-lg border border-gray-300 bg-white text-xs font-semibold text-gray-800 hover:bg-gray-100 transition-all"
                 >
                   {isLaunched
                     ? t('synthesisReport.readiness.launch.revertLaunchAction')
@@ -2505,7 +2505,7 @@ export const SynthesisReport = ({
                       <button
                         type="button"
                         onClick={() => handleNavigateToSection(item.key, item.elementId)}
-                        className="w-full rounded-lg px-2 py-1.5 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 hover:text-blue-700"
+                        className="w-full rounded-lg px-3 py-1.5 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 hover:text-blue-700"
                       >
                         {item.label}
                       </button>
@@ -3478,7 +3478,7 @@ export const SynthesisReport = ({
                                   <div className="flex items-center gap-3">
                                     <button
                                       type="submit"
-                                      className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                                      className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
                                         canSaveComplianceComment && isDirty
                                           ? 'bg-blue-600 text-white hover:bg-blue-700'
                                           : 'bg-gray-100 text-gray-400 cursor-not-allowed'
@@ -3571,7 +3571,7 @@ export const SynthesisReport = ({
                                         onClick={() =>
                                           handleComplianceReplySubmit({ targetId: team.id, targetType: 'team' })
                                         }
-                                        className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                                        className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
                                           canSaveComplianceComment
                                           && (normalizeReplyDraft(complianceReplyDrafts[threadKey]).message.trim().length > 0
                                             || normalizeReplyDraft(complianceReplyDrafts[threadKey]).attachments.length > 0)
@@ -3810,7 +3810,7 @@ export const SynthesisReport = ({
                 <div className="space-y-4">
                   {requiredValidationCommittees.length > 0 && (
                     <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                      <p className="font-medium">{t('synthesisReport.requiredCommitteesTitle')}</p>
+                      <p className="font-medium">{t('synthesisReport.requiredCommitteesTitle', { count: requiredValidationCommittees.length })}</p>
                       <ul className="mt-2 list-disc pl-5 space-y-1">
                         {requiredValidationCommittees.map((committee) => (
                           <li key={`required-${committee.id}`}>{committee.name}</li>
@@ -4134,7 +4134,7 @@ export const SynthesisReport = ({
                                 onClick={() =>
                                   handleComplianceReplySubmit({ targetId: committee.id, targetType: 'committee' })
                                 }
-                                className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                                className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
                                   canSaveComplianceComment
                                   && (normalizeReplyDraft(complianceReplyDrafts[threadKey]).message.trim().length > 0
                                     || normalizeReplyDraft(complianceReplyDrafts[threadKey]).attachments.length > 0)
@@ -4240,7 +4240,7 @@ export const SynthesisReport = ({
               <button
                 type="button"
                 onClick={() => setIsOverviewOpen((previous) => !previous)}
-                className="flex w-full items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-5 py-4 text-left transition-colors hover:bg-gray-100"
+                className="flex w-full items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-5 py-4 text-left transition-colors hover:bg-gray-100"
                 aria-expanded={isOverviewOpen}
                 aria-controls="overview-panel"
               >

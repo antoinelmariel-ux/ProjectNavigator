@@ -235,9 +235,9 @@ test.describe('Calendrier des comités', () => {
     await expect(agenda.getByText('30 min attribuées sur 60 min')).toBeVisible();
 
     await agenda.getByRole('button', { name: 'Tous présents' }).click();
-    await expect(agenda.getByText('3 présent(s) · 0 excusé(s) · 0 absent(s)').first()).toBeVisible();
+    await expect(agenda.getByText('3 présents · 0 excusé · 0 absent').first()).toBeVisible();
     await agenda.getByRole('group', { name: 'Présence de Membre' }).getByRole('button', { name: 'Excusé' }).click();
-    await expect(agenda.getByText('2 présent(s) · 1 excusé(s) · 0 absent(s)').first()).toBeVisible();
+    await expect(agenda.getByText('2 présents · 1 excusé · 0 absent').first()).toBeVisible();
 
     await expect
       .poll(async () => {

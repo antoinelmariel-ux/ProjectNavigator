@@ -1,4 +1,5 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from '../react.js';
+import { useModalDialog } from '../hooks/useModalDialog.js';
 import { useReorderFeedback } from '../hooks/useReorderFeedback.js';
 import { resolveLocalizedText } from '../utils/localizedContent.js';
 import { SHOWCASE_SECTION_IDS } from '../utils/showcaseEditor.js';
@@ -151,6 +152,9 @@ export const ShowcaseTemplateStudio = ({
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
+  // Échap garde ici sa propre règle (ignorée pendant la saisie, comme la touche P) : le
+  // hook n'apporte que le focus initial, le piège du Tab et le retour du focus.
+  const dialogRef = useModalDialog({ onClose, closeOnEscape: false });
 
   const authoring = useMemo(
     () => ({ selectedKey, onSelect: selectFromCanvas, showChrome, labels }),
@@ -198,6 +202,7 @@ export const ShowcaseTemplateStudio = ({
       role="dialog"
       aria-modal="true"
       aria-label={t('backOffice.showcaseTemplates.studio.title', { name: templateName })}
+      ref={dialogRef}
       data-testid="showcase-template-studio"
     >
       <div className="flex flex-wrap items-center gap-3 border-b border-gray-200 bg-white px-4 py-3 shadow-sm">
@@ -290,7 +295,7 @@ export const ShowcaseTemplateStudio = ({
                     data-outline-key={key}
                     onClick={() => selectFromOutline(key)}
                     aria-current={isSelected ? 'true' : undefined}
-                    className={`min-w-0 flex-1 truncate rounded-lg px-2 py-1.5 text-left text-sm ${
+                    className={`min-w-0 flex-1 truncate rounded-lg px-3 py-1.5 text-left text-sm ${
                       isSelected ? 'font-semibold text-blue-700' : 'text-gray-700 hover:bg-gray-100'
                     }`}
                   >

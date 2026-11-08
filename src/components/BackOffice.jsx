@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from '../react.js';
+import { useModalDialog } from '../hooks/useModalDialog.js';
 import { normalizeRiskWeighting } from '../utils/risk.js';
 import {
   Settings,
@@ -4933,6 +4934,14 @@ export const BackOffice = ({
   const closeTeamMemberRuleModal = () => {
     setTeamMemberRuleModal(null);
   };
+  const teamMemberRuleDialogRef = useModalDialog({
+    isOpen: Boolean(teamMemberRuleModal),
+    onClose: closeTeamMemberRuleModal
+  });
+  const contactRemovalDialogRef = useModalDialog({
+    isOpen: Boolean(contactRemovalDialog),
+    onClose: () => resolveContactRemoval('cancel')
+  });
 
   const updateTeamMemberRule = (teamId, email, updater) => {
     updateTeamById(teamId, (team) => applyTeamMemberRule(team, email, updater));
@@ -6558,7 +6567,7 @@ export const BackOffice = ({
                           <button
                             type="button"
                             onClick={() => addOnboardingAction(index)}
-                            className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
+                            className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
                           >
                             <Plus className="w-3 h-3" />
                             {t('backOffice.main.addButtonButton')}
@@ -7822,7 +7831,7 @@ export const BackOffice = ({
                   <button
                     type="button"
                     onClick={addCommitteeEntry}
-                    className="ml-auto inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+                    className="ml-auto inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100"
                   >
                     {t('backOffice.main.addCommitteeButton')}
                   </button>
@@ -7957,7 +7966,7 @@ export const BackOffice = ({
                             <button
                               type="button"
                               onClick={() => addCommitteeConditionGroup(committee.id)}
-                              className="inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+                              className="inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100"
                             >
                               <Plus className="h-4 w-4" />
                               {t('backOffice.main.addGroupButton')}
@@ -8083,7 +8092,7 @@ export const BackOffice = ({
                                               <button
                                                 type="button"
                                                 onClick={() => addCommitteeCondition(committee.id, groupIdx)}
-                                                className="mt-3 inline-flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-100"
+                                                className="mt-3 inline-flex items-center gap-2 rounded-lg bg-blue-50 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-100"
                                               >
                                                 <Plus className="h-4 w-4" />
                                                 {t('backOffice.main.addConditionButton')}
@@ -8445,7 +8454,7 @@ export const BackOffice = ({
                                                 <button
                                                   type="button"
                                                   onClick={() => addCommitteeCondition(committee.id, groupIdx)}
-                                                  className="inline-flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-100"
+                                                  className="inline-flex items-center gap-2 rounded-lg bg-blue-50 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-100"
                                                 >
                                                   <Plus className="h-4 w-4" />
                                                   {t('backOffice.main.addConditionButton')}
@@ -9401,7 +9410,7 @@ export const BackOffice = ({
                                             <button
                                               type="button"
                                               onClick={() => openMemberAbsenceEditor(team.id, contact, storedAbsence)}
-                                              className="ml-auto rounded-lg border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+                                              className="ml-auto rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100"
                                             >
                                               {t('backOffice.main.memberAbsenceEditButton')}
                                             </button>
@@ -9447,7 +9456,7 @@ export const BackOffice = ({
                                               <button
                                                 type="button"
                                                 onClick={() => setMemberAbsenceDraft(null)}
-                                                className="rounded-lg border border-gray-300 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                                                className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
                                               >
                                                 {t('backOffice.main.memberAbsenceCancelButton')}
                                               </button>
@@ -9455,7 +9464,7 @@ export const BackOffice = ({
                                                 <button
                                                   type="button"
                                                   onClick={() => submitMemberAbsence(true)}
-                                                  className="rounded-lg border border-red-200 px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-50"
+                                                  className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50"
                                                 >
                                                   {t('backOffice.main.memberAbsenceClearButton')}
                                                 </button>
@@ -9463,7 +9472,7 @@ export const BackOffice = ({
                                               <button
                                                 type="button"
                                                 onClick={() => submitMemberAbsence(false)}
-                                                className="rounded-lg bg-blue-600 px-3 py-1 text-xs font-semibold text-white hover:bg-blue-700"
+                                                className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
                                               >
                                                 {t('backOffice.main.memberAbsenceSaveButton')}
                                               </button>
@@ -9515,7 +9524,7 @@ export const BackOffice = ({
                                             <button
                                               type="button"
                                               onClick={() => applyOrphanClaimReassignment(team.id, orphan.projectId, targetEmail)}
-                                              className="rounded-lg bg-amber-600 px-3 py-1 text-xs font-semibold text-white hover:bg-amber-700"
+                                              className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700"
                                             >
                                               {t('backOffice.main.claimOrphanReassignButton')}
                                             </button>
@@ -9584,7 +9593,7 @@ export const BackOffice = ({
                                         <button
                                           type="button"
                                           onClick={() => applyOrphanClaimReassignment(team.id, entry.projectId, targetEmail)}
-                                          className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1 font-semibold text-blue-700 hover:bg-blue-100"
+                                          className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 font-semibold text-blue-700 hover:bg-blue-100"
                                         >
                                           {t('backOffice.main.claimOrphanReassignButton')}
                                         </button>
@@ -9645,6 +9654,7 @@ export const BackOffice = ({
                   role="alertdialog"
                   aria-modal="true"
                   aria-labelledby="contact-removal-title"
+                  ref={contactRemovalDialogRef}
                 >
                   <div className="w-full max-w-lg space-y-4 rounded-2xl bg-white p-6 shadow-2xl">
                     <h3 id="contact-removal-title" className="text-lg font-semibold text-gray-900">
@@ -9781,7 +9791,7 @@ export const BackOffice = ({
                       type="button"
                       onClick={handleOpenSampleNameRow}
                       disabled={Object.keys(complianceReviewAnswers).length === 0}
-                      className="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium bg-white border border-indigo-300 text-indigo-700 hover:bg-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium bg-white border border-indigo-300 text-indigo-700 hover:bg-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Save className="w-4 h-4 mr-1.5" />
                       {t('backOffice.main.benchSaveSampleButton')}
@@ -9790,7 +9800,7 @@ export const BackOffice = ({
                       type="button"
                       onClick={handleDeleteComplianceSample}
                       disabled={!complianceReviewSampleId.startsWith('sample:')}
-                      className="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium text-red-700 bg-white border border-red-200 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium text-red-700 bg-white border border-red-200 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       <Trash2 className="w-4 h-4 mr-1.5" />
                       {t('backOffice.main.benchDeleteSampleButton')}
@@ -9827,14 +9837,14 @@ export const BackOffice = ({
                       <button
                         type="button"
                         onClick={handleSaveComplianceSample}
-                        className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+                        className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
                       >
                         {t('backOffice.main.benchSampleConfirmButton')}
                       </button>
                       <button
                         type="button"
                         onClick={() => setIsSampleNameRowOpen(false)}
-                        className="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
+                        className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
                       >
                         {t('backOffice.main.benchCancelButton')}
                       </button>
@@ -9968,7 +9978,7 @@ export const BackOffice = ({
                             <button
                               type="button"
                               onClick={() => setIsComplianceReviewGuidanceOpen((prev) => !prev)}
-                              className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors font-medium"
+                              className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors font-medium"
                             >
                               <Info className="w-4 h-4 mr-2" />
                               {isComplianceReviewGuidanceOpen ? t('backOffice.main.hideHelpButton') : t('backOffice.main.understandQuestionButton')}
@@ -10426,7 +10436,7 @@ export const BackOffice = ({
                       <button
                         type="button"
                         onClick={() => setComplianceReviewDisplayMode('direct')}
-                        className={`px-3 py-1.5 text-xs font-semibold rounded-md transition ${
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition ${
                           complianceReviewDisplayMode === 'direct'
                             ? 'bg-white text-blue-700 shadow-sm border border-blue-100'
                             : 'text-gray-600 hover:text-gray-800'
@@ -10438,7 +10448,7 @@ export const BackOffice = ({
                       <button
                         type="button"
                         onClick={() => setComplianceReviewDisplayMode('cumulative')}
-                        className={`px-3 py-1.5 text-xs font-semibold rounded-md transition ${
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition ${
                           complianceReviewDisplayMode === 'cumulative'
                             ? 'bg-white text-blue-700 shadow-sm border border-blue-100'
                             : 'text-gray-600 hover:text-gray-800'
@@ -10450,7 +10460,7 @@ export const BackOffice = ({
                       <button
                         type="button"
                         onClick={() => setComplianceReviewDisplayMode('complete')}
-                        className={`px-3 py-1.5 text-xs font-semibold rounded-md transition ${
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition ${
                           complianceReviewDisplayMode === 'complete'
                             ? 'bg-white text-blue-700 shadow-sm border border-blue-100'
                             : 'text-gray-600 hover:text-gray-800'
@@ -10525,7 +10535,7 @@ export const BackOffice = ({
                       type="button"
                       onClick={handleOpenRuleDraft}
                       disabled={Object.keys(complianceReviewAnswers).length === 0}
-                      className="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-lg text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full inline-flex items-center justify-center px-5 py-2.5 rounded-lg text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Sparkles className="w-4 h-4 mr-2" />
                       {t('backOffice.main.benchCreateRuleButton')}
@@ -10548,7 +10558,7 @@ export const BackOffice = ({
                       type="button"
                       onClick={() => setBenchRuleScope('triggered')}
                       aria-pressed={benchRuleScope === 'triggered'}
-                      className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${benchRuleScope === 'triggered' ? 'bg-white text-blue-700 shadow-sm border border-blue-100' : 'text-gray-600'}`}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${benchRuleScope === 'triggered' ? 'bg-white text-blue-700 shadow-sm border border-blue-100' : 'text-gray-600'}`}
                     >
                       {t('backOffice.main.benchRulesScopeTriggered')}
                     </button>
@@ -10556,7 +10566,7 @@ export const BackOffice = ({
                       type="button"
                       onClick={() => setBenchRuleScope('all')}
                       aria-pressed={benchRuleScope === 'all'}
-                      className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${benchRuleScope === 'all' ? 'bg-white text-blue-700 shadow-sm border border-blue-100' : 'text-gray-600'}`}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${benchRuleScope === 'all' ? 'bg-white text-blue-700 shadow-sm border border-blue-100' : 'text-gray-600'}`}
                     >
                       {t('backOffice.main.benchRulesScopeAll')}
                     </button>
@@ -10585,7 +10595,7 @@ export const BackOffice = ({
                         <button
                           type="button"
                           onClick={() => setEditingRule(entry.rule)}
-                          className="flex w-full items-center gap-3 rounded-lg border border-gray-200 px-3 py-2 text-left text-sm hover:border-blue-300 hover:bg-blue-50"
+                          className="flex w-full items-center gap-3 rounded-lg border border-gray-200 px-4 py-2 text-left text-sm hover:border-blue-300 hover:bg-blue-50"
                           aria-label={t('backOffice.main.benchOpenRuleAriaLabelTemplate', { name: entry.label })}
                         >
                           <span
@@ -10846,6 +10856,7 @@ export const BackOffice = ({
                 role="dialog"
                 aria-modal="true"
                 aria-label={t('backOffice.main.teamMemberModalTitleTemplate', { member: memberEmail })}
+                ref={teamMemberRuleDialogRef}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>

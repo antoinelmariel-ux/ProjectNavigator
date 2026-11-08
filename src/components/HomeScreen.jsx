@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from '../react.js';
+import { useModalDialog } from '../hooks/useModalDialog.js';
 import {
   Plus,
   Target,
@@ -513,7 +514,6 @@ export const HomeScreen = ({
   }));
   const cancelSubmissionDismissButtonRef = useRef(null);
   const cancelSubmissionConfirmButtonRef = useRef(null);
-  const previouslyFocusedElementRef = useRef(null);
 
   // Relu à chaque montage de l'accueil : revenir des enjeux d'un projet remonte l'écran, et la
   // pastille de ce projet s'éteint alors d'elle-même.
@@ -1130,11 +1130,6 @@ export const HomeScreen = ({
       return;
     }
 
-    if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
-      previouslyFocusedElementRef.current = document.activeElement;
-    } else {
-      previouslyFocusedElementRef.current = null;
-    }
 
     setDeleteDialogState({
       isOpen: true,
@@ -1180,11 +1175,6 @@ export const HomeScreen = ({
       return;
     }
 
-    if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
-      previouslyFocusedElementRef.current = document.activeElement;
-    } else {
-      previouslyFocusedElementRef.current = null;
-    }
 
     setCancelSubmissionDialogState({
       isOpen: true,
@@ -1253,153 +1243,25 @@ export const HomeScreen = ({
     };
   }, [submittedProjectNotice, onDismissSubmittedProjectNotice]);
 
-  useEffect(() => {
-    if (!deleteDialogState.isOpen) {
-      if (
-        previouslyFocusedElementRef.current &&
-        typeof previouslyFocusedElementRef.current.focus === 'function'
-      ) {
-        const shouldRestoreFocus =
-          typeof document === 'undefined' ||
-          document.contains(previouslyFocusedElementRef.current);
-
-        if (shouldRestoreFocus) {
-          previouslyFocusedElementRef.current.focus();
-        }
-
-        previouslyFocusedElementRef.current = null;
-      }
-      return undefined;
-    }
-
-    const timeoutId = typeof window !== 'undefined'
-      ? window.setTimeout(() => {
-        if (deleteCancelButtonRef.current && typeof deleteCancelButtonRef.current.focus === 'function') {
-          deleteCancelButtonRef.current.focus();
-        }
-      }, 0)
-      : null;
-
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        handleCancelDeleteProject();
-        return;
-      }
-
-      if (event.key === 'Tab') {
-        const focusableElements = [deleteCancelButtonRef.current, deleteConfirmButtonRef.current].filter(
-          (element) => element && typeof element.focus === 'function'
-        );
-
-        if (focusableElements.length === 0) {
-          return;
-        }
-
-        const activeElement = typeof document !== 'undefined' ? document.activeElement : null;
-        const currentIndex = focusableElements.indexOf(activeElement);
-        let nextIndex = currentIndex;
-
-        if (event.shiftKey) {
-          nextIndex = currentIndex <= 0 ? focusableElements.length - 1 : currentIndex - 1;
-        } else {
-          nextIndex = currentIndex === focusableElements.length - 1 ? 0 : currentIndex + 1;
-        }
-
-        event.preventDefault();
-        focusableElements[nextIndex]?.focus();
-      }
-    };
-
-    if (typeof document !== 'undefined') {
-      document.addEventListener('keydown', handleKeyDown);
-    }
-
-    return () => {
-      if (typeof document !== 'undefined') {
-        document.removeEventListener('keydown', handleKeyDown);
-      }
-      if (timeoutId !== null && typeof window !== 'undefined') {
-        window.clearTimeout(timeoutId);
-      }
-    };
-  }, [deleteDialogState.isOpen, handleCancelDeleteProject]);
-
-  useEffect(() => {
-    if (!cancelSubmissionDialogState.isOpen) {
-      if (
-        previouslyFocusedElementRef.current &&
-        typeof previouslyFocusedElementRef.current.focus === 'function'
-      ) {
-        const shouldRestoreFocus =
-          typeof document === 'undefined' ||
-          document.contains(previouslyFocusedElementRef.current);
-
-        if (shouldRestoreFocus) {
-          previouslyFocusedElementRef.current.focus();
-        }
-
-        previouslyFocusedElementRef.current = null;
-      }
-      return undefined;
-    }
-
-    const timeoutId = typeof window !== 'undefined'
-      ? window.setTimeout(() => {
-        if (
-          cancelSubmissionDismissButtonRef.current &&
-          typeof cancelSubmissionDismissButtonRef.current.focus === 'function'
-        ) {
-          cancelSubmissionDismissButtonRef.current.focus();
-        }
-      }, 0)
-      : null;
-
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        handleDismissCancelSubmissionDialog();
-        return;
-      }
-
-      if (event.key === 'Tab') {
-        const focusableElements = [
-          cancelSubmissionDismissButtonRef.current,
-          cancelSubmissionConfirmButtonRef.current
-        ].filter((element) => element && typeof element.focus === 'function');
-
-        if (focusableElements.length === 0) {
-          return;
-        }
-
-        const activeElement = typeof document !== 'undefined' ? document.activeElement : null;
-        const currentIndex = focusableElements.indexOf(activeElement);
-        let nextIndex = currentIndex;
-
-        if (event.shiftKey) {
-          nextIndex = currentIndex <= 0 ? focusableElements.length - 1 : currentIndex - 1;
-        } else {
-          nextIndex = currentIndex === focusableElements.length - 1 ? 0 : currentIndex + 1;
-        }
-
-        event.preventDefault();
-        focusableElements[nextIndex]?.focus();
-      }
-    };
-
-    if (typeof document !== 'undefined') {
-      document.addEventListener('keydown', handleKeyDown);
-    }
-
-    return () => {
-      if (typeof document !== 'undefined') {
-        document.removeEventListener('keydown', handleKeyDown);
-      }
-      if (timeoutId !== null && typeof window !== 'undefined') {
-        window.clearTimeout(timeoutId);
-      }
-    };
-  }, [cancelSubmissionDialogState.isOpen, handleDismissCancelSubmissionDialog]);
+  const deleteDialogRef = useModalDialog({
+    isOpen: deleteDialogState.isOpen,
+    onClose: handleCancelDeleteProject,
+    initialFocusRef: deleteCancelButtonRef
+  });
+  const cancelSubmissionDialogRef = useModalDialog({
+    isOpen: cancelSubmissionDialogState.isOpen,
+    onClose: handleDismissCancelSubmissionDialog,
+    initialFocusRef: cancelSubmissionDismissButtonRef
+  });
+  const claimTakeoverDialogRef = useModalDialog({
+    isOpen: Boolean(claimTakeoverTarget),
+    onClose: () => setClaimTakeoverTarget(null)
+  });
+  const committeeSelectionDialogRef = useModalDialog({
+    isOpen: committeeSelectionModal.isOpen,
+    onClose: () => setCommitteeSelectionModal({ isOpen: false, project: null, committees: [] })
+  });
+  const trashDialogRef = useModalDialog({ isOpen: isTrashOpen, onClose: closeTrash });
 
   useEffect(() => {
     setFiltersState(prevState => {
@@ -2544,7 +2406,7 @@ export const HomeScreen = ({
               <button
                 type="button"
                 onClick={onStartNewProject}
-                className="inline-flex items-center justify-center gap-2 px-5 py-3 text-base font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md transition-all"
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-base font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-md transition-all"
                 data-tour-id="home-create-project"
               >
                 <Plus className="w-5 h-5" aria-hidden="true" />
@@ -2565,7 +2427,7 @@ export const HomeScreen = ({
                 <button
                   type="button"
                   onClick={onStartNewProject}
-                  className="inline-flex items-center justify-center gap-3 px-5 py-3 text-base font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md transition-all"
+                  className="inline-flex items-center justify-center gap-3 px-5 py-2.5 text-base font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-md transition-all"
                   data-tour-id="home-create-project"
                 >
                   <Plus className="w-5 h-5" aria-hidden="true" />
@@ -2759,7 +2621,7 @@ export const HomeScreen = ({
                                         <button
                                           type="button"
                                           onClick={() => handleClaimPerimeter(projectEntry, perimeter)}
-                                          className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1 font-semibold text-white shadow-sm hover:bg-blue-700"
+                                          className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 font-semibold text-white shadow-sm hover:bg-blue-700"
                                         >
                                           <CheckCircle className="w-3.5 h-3.5" aria-hidden="true" />
                                           {t('home.claim.claimButton')}
@@ -2769,7 +2631,7 @@ export const HomeScreen = ({
                                         <button
                                           type="button"
                                           onClick={() => handleReleasePerimeter(projectEntry, perimeter)}
-                                          className="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-2.5 py-1 font-semibold text-gray-600 hover:bg-gray-100"
+                                          className="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 font-semibold text-gray-600 hover:bg-gray-100"
                                         >
                                           <Undo className="w-3.5 h-3.5" aria-hidden="true" />
                                           {t('home.claim.releaseButton')}
@@ -2779,7 +2641,7 @@ export const HomeScreen = ({
                                         <button
                                           type="button"
                                           onClick={() => handleOpenClaimTakeover(projectEntry, perimeter)}
-                                          className="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-white px-2.5 py-1 font-semibold text-amber-700 hover:bg-amber-50"
+                                          className="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-white px-3 py-1.5 font-semibold text-amber-700 hover:bg-amber-50"
                                         >
                                           <Redo className="w-3.5 h-3.5" aria-hidden="true" />
                                           {t('home.claim.takeOverButton')}
@@ -2832,7 +2694,7 @@ export const HomeScreen = ({
                             <button
                               type="button"
                               onClick={() => handleReintegrateInCommittee(projectEntry)}
-                              className="inline-flex items-center gap-2 rounded-lg border border-amber-200 px-3 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-50"
+                              className="inline-flex items-center gap-2 rounded-lg border border-amber-200 px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-50"
                             >
                               {t('home.reintegrateInCommittee')}
                             </button>
@@ -2851,7 +2713,7 @@ export const HomeScreen = ({
                                   : null
                               });
                             }}
-                            className="inline-flex items-center gap-2 rounded-lg border border-blue-200 px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"
+                            className="inline-flex items-center gap-2 rounded-lg border border-blue-200 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"
                           >
                             <Eye className="h-4 w-4" aria-hidden="true" />
                             {t('home.open')}
@@ -3077,7 +2939,7 @@ export const HomeScreen = ({
                     <button
                       type="button"
                       onClick={handleResetFilters}
-                      className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                      className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                         hasActiveFilters
                           ? 'bg-blue-600 text-white hover:bg-blue-700'
                           : 'bg-gray-100 text-gray-400 cursor-not-allowed'
@@ -3282,7 +3144,7 @@ export const HomeScreen = ({
                     <button
                       type="button"
                       onClick={handleResetInspirationFilters}
-                      className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                      className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                         hasActiveInspirationFilters
                           ? 'bg-blue-600 text-white hover:bg-blue-700'
                           : 'bg-gray-100 text-gray-400 cursor-not-allowed'
@@ -3477,6 +3339,7 @@ export const HomeScreen = ({
           role="dialog"
           aria-modal="true"
           aria-labelledby="claim-takeover-title"
+          ref={claimTakeoverDialogRef}
         >
           <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl space-y-4">
             <h3 id="claim-takeover-title" className="text-lg font-semibold text-gray-900">
@@ -3542,8 +3405,14 @@ export const HomeScreen = ({
 
       {committeeSelectionModal.isOpen && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">{t('home.chooseCommitteeTitle')}</h3>
+          <div
+            className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl space-y-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="committee-selection-title"
+            ref={committeeSelectionDialogRef}
+          >
+            <h3 id="committee-selection-title" className="text-lg font-semibold text-gray-900">{t('home.chooseCommitteeTitle')}</h3>
             <p className="text-sm text-gray-600">{t('home.chooseCommitteeDescription')}</p>
             <div className="space-y-2">
               {committeeSelectionModal.committees.map((committee) => (
@@ -3554,7 +3423,7 @@ export const HomeScreen = ({
                     onReintegrateProjectInCommittee?.(committeeSelectionModal.project?.project?.id, committee.id);
                     setCommitteeSelectionModal({ isOpen: false, project: null, committees: [] });
                   }}
-                  className="w-full rounded-xl border border-blue-200 px-4 py-3 text-left text-sm font-semibold text-blue-700 hover:bg-blue-50"
+                  className="w-full rounded-lg border border-blue-200 px-5 py-2.5 text-left text-sm font-semibold text-blue-700 hover:bg-blue-50"
                 >
                   {committee.name || committee.id}
                 </button>
@@ -3584,6 +3453,7 @@ export const HomeScreen = ({
             role="dialog"
             aria-modal="true"
             aria-labelledby="project-trash-dialog-title"
+            ref={trashDialogRef}
             className="relative z-10 flex max-h-full w-full max-w-2xl flex-col rounded-2xl bg-white p-6 shadow-2xl focus:outline-none"
           >
             <div className="flex items-start justify-between gap-3">
@@ -3714,6 +3584,7 @@ export const HomeScreen = ({
             aria-modal="true"
             aria-labelledby="delete-project-dialog-title"
             aria-describedby="delete-project-dialog-description"
+            ref={deleteDialogRef}
             className="relative z-10 w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl focus:outline-none"
           >
             <div className="flex items-start gap-3">
@@ -3768,6 +3639,7 @@ export const HomeScreen = ({
             aria-modal="true"
             aria-labelledby="cancel-submission-dialog-title"
             aria-describedby="cancel-submission-dialog-description"
+            ref={cancelSubmissionDialogRef}
             className="relative z-10 w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl focus:outline-none"
           >
             <div className="flex items-start gap-3">

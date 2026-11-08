@@ -166,7 +166,7 @@ test.describe('Prise en charge d’un projet par un membre d’équipe', () => {
       .toBe(3);
 
     // La charge de l'équipe montre la prise en charge de laure.chevalier@lfb.fr…
-    await expect(page.getByText('1 projet(s) suivi(s)').first()).toBeVisible();
+    await expect(page.getByText('1 projet suivi').first()).toBeVisible();
 
     // …et retirer ce contact demande d'abord ce que deviennent ses projets.
     await page.getByRole('button', { name: 'Retirer laure.chevalier@lfb.fr' }).click();
