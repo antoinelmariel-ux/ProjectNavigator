@@ -8,7 +8,8 @@ import {
   grantSelfComplianceExpertAndCommitteeAccess,
   openTriggeredProjectAndExpandTeam,
   patchStateOnBoot,
-  readStoredState
+  readStoredState,
+  openBackOfficeTab
 } from './fixtures.js';
 
 // Injecte une prise en charge sur le périmètre « Contrôle pub » du projet soumis. Comme pour les
@@ -148,7 +149,7 @@ test.describe('Prise en charge d’un projet par un membre d’équipe', () => {
     await injectClaim(page, 'laure.chevalier@lfb.fr');
 
     await grantAdminAccess(page);
-    await page.getByRole('tab', { name: /Équipes/ }).click();
+    await openBackOfficeTab(page, /Équipes/);
 
     const staleInput = page.getByLabel('Afficher « sans activité » sur le projet après').first();
     await expect(staleInput).toHaveValue('6');

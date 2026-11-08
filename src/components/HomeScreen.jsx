@@ -126,6 +126,12 @@ const TOUR_STEP_SCROLL_TARGETS = {
   'inspiration-visibility': '[data-tour-id="home-inspiration-block"]'
 };
 const PROJECTS_PAGE_SIZE = 6;
+const FILTERS_MIN_PROJECT_COUNT = 4;
+// Deux colonnes seulement quand il y a de quoi les remplir : une carte seule prend la largeur
+// au lieu de laisser une demi-page vide à côté d'elle.
+const projectGridClassName = (count) => (count > 1
+  ? 'grid grid-cols-1 md:grid-cols-2 gap-6'
+  : 'grid grid-cols-1 gap-6');
 const INSPIRATIONS_PAGE_SIZE = 6;
 
 const normalizeComplianceComments = (value) => {
@@ -1807,7 +1813,12 @@ export const HomeScreen = ({
   const enabledFilterFields = Array.isArray(normalizedFilters.fields)
     ? normalizedFilters.fields.filter(field => field && field.enabled && field.id !== 'dateOrder')
     : [];
-  const shouldShowFiltersCard = hasProjects && (enabledFilterFields.length > 0 || (sortFilterConfig && sortFilterConfig.enabled));
+  // Filtrer ou trier trois projets n'aide personne : le bloc n'apparaît qu'à partir de
+  // FILTERS_MIN_PROJECT_COUNT projets, ou tant qu'un filtre est actif (sinon on ne pourrait
+  // plus le retirer), ou pendant la visite guidée qui le présente.
+  const shouldShowFiltersCard = hasProjects
+    && (enabledFilterFields.length > 0 || (sortFilterConfig && sortFilterConfig.enabled))
+    && (totalProjectsCount >= FILTERS_MIN_PROJECT_COUNT || hasActiveFilters || Boolean(tourContext?.isActive));
   const currentSortOrder = filtersState.sortOrder || sortFilterConfig?.defaultValue || 'desc';
   const inspirationFilterFields = Array.isArray(normalizedInspirationFilters.fields)
     ? normalizedInspirationFilters.fields.filter((field) => field && field.enabled)
@@ -2092,7 +2103,7 @@ export const HomeScreen = ({
           </div>
         )}
         <div className="flex items-start justify-between gap-4">
-          <div>
+          <div className="min-w-0 flex-1">
             <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2 flex-wrap">
               <span>
                 {hasExpertNews && (
@@ -2120,11 +2131,11 @@ export const HomeScreen = ({
                   : t('home.submittedOn', { date: formatDate(project.submittedAt || project.lastUpdated, language, t('home.dateUnknown')) })}
             </p>
           </div>
-          <div className="flex items-start gap-3">
+          <div className="flex shrink-0 items-start gap-3">
             <div className="flex flex-col items-end gap-2">
               {validationBadge ? (
                 <span
-                  className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full border ${validationBadge.className}`}
+                  className={`inline-flex items-center gap-1 whitespace-nowrap px-3 py-1 text-xs font-semibold rounded-full border ${validationBadge.className}`}
                   title={t(validationBadge.tooltipKey, {
                     approved: validation.approvedCount,
                     total: validation.requiredCount,
@@ -2140,7 +2151,7 @@ export const HomeScreen = ({
                 </span>
               ) : (
                 <span
-                  className={`px-3 py-1 text-xs font-semibold rounded-full border ${projectStatus.className}`.trim()}
+                  className={`whitespace-nowrap px-3 py-1 text-xs font-semibold rounded-full border ${projectStatus.className}`.trim()}
                 >
                   {projectStatus.label}
                 </span>
@@ -2431,10 +2442,7 @@ export const HomeScreen = ({
                   data-tour-id="home-create-project"
                 >
                   <Plus className="w-5 h-5" aria-hidden="true" />
-                  <span className="flex flex-col leading-tight text-left">
-                    <span>{t('home.createNewProjectLine1')}</span>
-                    <span>{t('home.createNewProjectLine2')}</span>
-                  </span>
+                  <span>{t('home.createProject')}</span>
                 </button>
               </div>
             </div>
@@ -2731,7 +2739,7 @@ export const HomeScreen = ({
 
         <section aria-labelledby="projects-heading" className="space-y-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between" data-tour-id="home-inspiration-block">
-            <div>
+            <div className="min-w-0">
               <h2 id="projects-heading" className="text-2xl font-bold text-gray-900">
                 {isInspirationView ? t('home.inspiringProjectsHeading') : isTeamView ? t('home.team.heading') : t('home.savedProjectsHeading')}
               </h2>
@@ -2739,7 +2747,7 @@ export const HomeScreen = ({
                 {isInspirationView ? t('home.inspirationSectionSubtitle') : isTeamView ? t('home.team.subtitle') : t('home.projectsSectionSubtitle')}
               </p>
             </div>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center lg:shrink-0 lg:flex-nowrap">
               <SegmentedTabs
                 ariaLabel={t('home.blockSelectionAriaLabel')}
                 value={isInspirationView ? 'inspiration' : isTeamView ? 'team' : 'platform'}
@@ -2764,7 +2772,7 @@ export const HomeScreen = ({
                 </button>
               ) : isTeamView ? null : (
                 <>
-                  <span className="inline-flex items-center text-sm font-semibold text-blue-600 bg-blue-50 border border-blue-200 rounded-full px-3 py-1">
+                  <span className="inline-flex shrink-0 items-center whitespace-nowrap text-sm font-semibold text-blue-600 bg-blue-50 border border-blue-200 rounded-full px-3 py-1">
                     <CheckCircle className="w-4 h-4 mr-2" />{' '}
                     {t(displayedProjectsCount > 1 ? 'home.projectCountPlural' : 'home.projectCountSingular', { count: displayedProjectsCount })}
                     {hasActiveFilters ? ` ${t('home.outOfTotal', { total: totalProjectsCount })}` : ''}
@@ -2773,7 +2781,7 @@ export const HomeScreen = ({
                     <button
                       type="button"
                       onClick={() => setIsTrashOpen(true)}
-                      className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-3 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-100"
+                      className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border border-gray-300 bg-white px-3 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-100"
                       aria-label={t('home.trash.openAriaLabel', { count: ownerTrashProjects.length })}
                       title={t('home.trash.title')}
                       data-testid="home-trash-button"
@@ -2896,13 +2904,6 @@ export const HomeScreen = ({
             <div className="bg-white border border-dashed border-blue-200 rounded-3xl p-8 text-center text-gray-600" role="status" aria-live="polite">
               <p className="text-lg font-medium text-gray-800">{t('home.noProjectsYetTitle')}</p>
               <p className="mt-2">{t('home.noProjectsYetBody')}</p>
-              <button
-                type="button"
-                onClick={onStartNewProject}
-                className="mt-4 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition-all"
-              >
-                <Plus className="w-4 h-4 mr-2" /> {t('home.createProject')}
-              </button>
             </div>
           )}
 
@@ -2936,18 +2937,15 @@ export const HomeScreen = ({
                     <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-700">
                       {t('home.availableFilters')}
                     </h3>
-                    <button
-                      type="button"
-                      onClick={handleResetFilters}
-                      className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                        hasActiveFilters
-                          ? 'bg-blue-600 text-white hover:bg-blue-700'
-                          : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                      }`}
-                      disabled={!hasActiveFilters}
-                    >
-                      {t('home.clearAllFilters')}
-                    </button>
+                    {hasActiveFilters && (
+                      <button
+                        type="button"
+                        onClick={handleResetFilters}
+                        className="inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-100"
+                      >
+                        {t('home.clearAllFilters')}
+                      </button>
+                    )}
                   </div>
                   {activeProjectFilterChips.length > 0 && (
                     <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
@@ -3049,7 +3047,7 @@ export const HomeScreen = ({
 
               {hasFilteredProjects ? (
                 <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6" role="list">
+                  <div className={projectGridClassName(paginatedProjects.length)} role="list">
                     {paginatedProjects.map(project => renderProjectCard(project, { isLeaving: isProjectLeaving(project.id) }))}
                   </div>
                   <PaginationControls
@@ -3080,37 +3078,28 @@ export const HomeScreen = ({
                 </div>
               )}
 
+              {hasSubmittedProjects && (
               <section className="space-y-4" aria-labelledby="submitted-projects-heading">
                 <div className="flex items-center justify-between gap-3">
                   <h3 id="submitted-projects-heading" className="text-xl font-bold text-gray-900">
                     {t('home.submittedProjectsHeading')}
                   </h3>
-                  {hasSubmittedProjects && (
-                    <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-                      {t(submittedProjects.length > 1 ? 'home.projectCountPlural' : 'home.projectCountSingular', { count: submittedProjects.length })}
-                    </span>
-                  )}
+                  <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                    {t(submittedProjects.length > 1 ? 'home.projectCountPlural' : 'home.projectCountSingular', { count: submittedProjects.length })}
+                  </span>
                 </div>
-
-                {hasSubmittedProjects ? (
-                  <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6" role="list">
-                      {paginatedSubmittedProjects.map((project) => renderProjectCard(project, { isLeaving: isSubmittedProjectLeaving(project.id) }))}
-                    </div>
-                    <PaginationControls
-                      page={submittedProjectsPage}
-                      totalPages={totalSubmittedProjectPages}
-                      onPrevious={() => setSubmittedProjectsPage((prev) => Math.max(1, prev - 1))}
-                      onNext={() => setSubmittedProjectsPage((prev) => Math.min(totalSubmittedProjectPages, prev + 1))}
-                      scrollTargetId="submitted-projects-heading"
-                    />
-                  </>
-                ) : (
-                  <div className="bg-white border border-dashed border-emerald-200 rounded-3xl p-6 text-center text-gray-600">
-                    <p className="text-lg font-medium text-gray-800">{t('home.noSubmittedProjects')}</p>
-                  </div>
-                )}
+                <div className={projectGridClassName(paginatedSubmittedProjects.length)} role="list">
+                  {paginatedSubmittedProjects.map((project) => renderProjectCard(project, { isLeaving: isSubmittedProjectLeaving(project.id) }))}
+                </div>
+                <PaginationControls
+                  page={submittedProjectsPage}
+                  totalPages={totalSubmittedProjectPages}
+                  onPrevious={() => setSubmittedProjectsPage((prev) => Math.max(1, prev - 1))}
+                  onNext={() => setSubmittedProjectsPage((prev) => Math.min(totalSubmittedProjectPages, prev + 1))}
+                  scrollTargetId="submitted-projects-heading"
+                />
               </section>
+              )}
             </>
           )}
 
@@ -3319,7 +3308,7 @@ export const HomeScreen = ({
               </h2>
               <p className="text-sm text-gray-600">{t('home.publicProjectsSubtitle')}</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6" role="list" aria-label={t('home.publicProjectsListAriaLabel')}>
+            <div className={projectGridClassName(paginatedOtherPublicProjects.length)} role="list" aria-label={t('home.publicProjectsListAriaLabel')}>
               {paginatedOtherPublicProjects.map(project => renderProjectCard(project))}
             </div>
             <PaginationControls

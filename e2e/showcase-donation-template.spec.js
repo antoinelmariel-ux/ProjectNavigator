@@ -6,7 +6,8 @@ import {
   patchStateOnBoot,
   proceedThroughMandatorySummary,
   readStoredState,
-  walkQuestionnaireToShowcase
+  walkQuestionnaireToShowcase,
+  openBackOfficeTab
 } from './fixtures.js';
 import { initialShowcaseTemplates } from '../src/data/showcaseTemplates.js';
 
@@ -167,7 +168,7 @@ test('le back-office masque un emplacement, renomme une section et prévisualise
   await page.setViewportSize({ width: 1440, height: 900 });
   await gotoHome(page);
   await grantAdminAccess(page);
-  await page.getByRole('tab', { name: /Modèles de vitrine/ }).click();
+  await openBackOfficeTab(page, /Modèles de vitrine/);
 
   const donation = page.getByTestId('showcase-template-card').first();
   await donation.getByRole('button', { name: 'Éditer sur la vitrine' }).click();

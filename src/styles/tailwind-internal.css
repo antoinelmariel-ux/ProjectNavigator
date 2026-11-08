@@ -706,6 +706,10 @@
   flex-direction: column-reverse;
 }
 
+.flex-row {
+  flex-direction: row;
+}
+
 .flex-shrink-0 {
   flex-shrink: 0;
 }
@@ -876,6 +880,10 @@
 
 .h-full {
   height: 100%;
+}
+
+.hidden {
+  display: none;
 }
 
 .inline-block {
@@ -1189,10 +1197,6 @@
 
 .mt-1 {
   margin-top: 0.25rem;
-}
-
-.mt-10 {
-  margin-top: 2.5rem;
 }
 
 .mt-2 {
@@ -2327,6 +2331,12 @@
 }
 
 @media (min-width: 640px) {
+  .sm\:inline {
+    display: inline;
+  }
+}
+
+@media (min-width: 640px) {
   .sm\:inline-flex {
     display: inline-flex;
   }
@@ -2465,8 +2475,9 @@
 }
 
 @media (min-width: 640px) {
-  .sm\:self-center {
-    align-self: center;
+  .sm\:py-4 {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
   }
 }
 
@@ -2704,6 +2715,12 @@
 }
 
 @media (min-width: 1024px) {
+  .lg\:flex-nowrap {
+    flex-wrap: nowrap;
+  }
+}
+
+@media (min-width: 1024px) {
   .lg\:flex-row {
     flex-direction: row;
   }
@@ -2778,6 +2795,12 @@
 @media (min-width: 1024px) {
   .lg\:max-w-md {
     max-width: 28rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .lg\:order-none {
+    order: 0;
   }
 }
 

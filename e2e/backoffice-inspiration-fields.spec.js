@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { gotoHome, grantAdminAccess, collectConsoleErrors } from './fixtures.js';
+import { gotoHome, grantAdminAccess, collectConsoleErrors, openBackOfficeTab } from './fixtures.js';
 
 async function openInspirationTab(page) {
   await gotoHome(page);
   await grantAdminAccess(page);
-  await page.getByRole('tab', { name: /^Inspiration/ }).click();
+  await openBackOfficeTab(page, /^Inspiration/);
 }
 
 const fieldCards = (page) => page.locator('ol > li').filter({ has: page.getByRole('button', { name: /^Modifier le champ/ }) });
@@ -57,7 +57,7 @@ test.describe('Back-office : champs du formulaire inspiration', () => {
     await card.getByRole('button', { name: 'Supprimer le champ Budget estimé' }).click();
     await expect(fieldCards(page)).toHaveCount(initialCount);
 
-    await page.getByRole('button', { name: /Annuler/ }).filter({ hasText: /Ctrl/ }).click();
+    await page.getByRole('button', { name: 'Annuler la dernière suppression' }).click();
     await expect(fieldCards(page).filter({ hasText: 'Budget estimé' })).toHaveCount(1);
 
     expect(errors).toEqual([]);

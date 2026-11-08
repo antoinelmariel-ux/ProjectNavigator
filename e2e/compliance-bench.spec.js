@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoHome, grantAdminAccess, createAndSubmitProject } from './fixtures.js';
+import { gotoHome, grantAdminAccess, createAndSubmitProject, openBackOfficeTab } from './fixtures.js';
 
 
 // Le questionnaire de revue commence par des questions en texte libre (non modifiables ici).
@@ -23,7 +23,7 @@ test('banc d essai : charger un projet type puis creer une regle depuis ses repo
   await createAndSubmitProject(page);
   await grantAdminAccess(page);
 
-  await page.getByRole('tab', { name: /Revue des règles/i }).click();
+  await openBackOfficeTab(page, /Revue des règles/i);
   await expect(page.getByRole('heading', { name: 'Mode revue des règles' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Projet type' })).toBeVisible();
   await page.screenshot({ path: `${SHOT}/01-bench-empty.png`, fullPage: true });
@@ -71,7 +71,7 @@ test('banc d essai : charger un projet type puis creer une regle depuis ses repo
   await expect(editor).toBeHidden();
 
   // La règle existe désormais dans le référentiel et se déclenche sur le projet chargé.
-  await page.getByRole('tab', { name: /^Règles/ }).click();
+  await openBackOfficeTab(page, /^Règles/);
   // La liste des règles est virtualisée : on filtre pour amener la nouvelle règle à l'écran.
   await page.locator('#rule-title-filter').fill('banc');
   await expect(page.getByRole('heading', { name: /banc/ })).toBeVisible();
@@ -82,7 +82,7 @@ test('projets types enregistres : la portee et le pouvoir discriminant des condi
   await gotoHome(page);
   await createAndSubmitProject(page);
   await grantAdminAccess(page);
-  await page.getByRole('tab', { name: /Revue des règles/i }).click();
+  await openBackOfficeTab(page, /Revue des règles/i);
 
   const sampleSelect = page.getByLabel('Charger un projet type');
 
@@ -123,7 +123,7 @@ test('projets types enregistres : la portee et le pouvoir discriminant des condi
 test('un projet type survit au rechargement de la page', async ({ page }) => {
   await gotoHome(page);
   await grantAdminAccess(page);
-  await page.getByRole('tab', { name: /Revue des règles/i }).click();
+  await openBackOfficeTab(page, /Revue des règles/i);
 
   expect(await pickFirstSelectableAnswer(page)).toBe(true);
   await page.getByRole('button', { name: 'Enregistrer comme projet type' }).click();
@@ -134,7 +134,7 @@ test('un projet type survit au rechargement de la page', async ({ page }) => {
   // Le rechargement ramene a l'accueil : il faut rouvrir le back-office.
   await page.reload();
   await page.getByRole('button', { name: /Accéder au Back-office/ }).click();
-  await page.getByRole('tab', { name: /Revue des règles/i }).click();
+  await openBackOfficeTab(page, /Revue des règles/i);
   await expect(
     page.getByLabel('Charger un projet type').locator('option', { hasText: 'Cas persistant' })
   ).toHaveCount(1);
@@ -143,7 +143,7 @@ test('un projet type survit au rechargement de la page', async ({ page }) => {
 test('le module de revue montre le perimetre d activite issu de l onboarding', async ({ page }) => {
   await gotoHome(page);
   await grantAdminAccess(page);
-  await page.getByRole('tab', { name: /Revue des règles/i }).click();
+  await openBackOfficeTab(page, /Revue des règles/i);
 
   await expect(page.getByRole('heading', { name: 'Votre profil (onboarding)' })).toBeVisible();
   await expect(page.getByText(/Les conditions portant sur le périmètre d’activité/)).toBeVisible();
@@ -156,7 +156,7 @@ test('le module de revue liste les regles existantes et permet de les ouvrir', a
   await gotoHome(page);
   await createAndSubmitProject(page);
   await grantAdminAccess(page);
-  await page.getByRole('tab', { name: /Revue des règles/i }).click();
+  await openBackOfficeTab(page, /Revue des règles/i);
 
   const sampleSelect = page.getByLabel('Charger un projet type');
   const projectValue = await sampleSelect
@@ -188,7 +188,7 @@ test('l apercu de regle montre les groupes reels et non une liste a plat', async
   await gotoHome(page);
   await createAndSubmitProject(page);
   await grantAdminAccess(page);
-  await page.getByRole('tab', { name: /Revue des règles/i }).click();
+  await openBackOfficeTab(page, /Revue des règles/i);
 
   const sampleSelect = page.getByLabel('Charger un projet type');
   const projectValue = await sampleSelect
@@ -229,7 +229,7 @@ test('l apercu de regle montre les groupes reels et non une liste a plat', async
 test('le perimetre d activite est simulable et change ce que le banc evalue', async ({ page }) => {
   await gotoHome(page);
   await grantAdminAccess(page);
-  await page.getByRole('tab', { name: /Revue des règles/i }).click();
+  await openBackOfficeTab(page, /Revue des règles/i);
 
   const scopeGroup = page.getByRole('group', { name: /Périmètre d’activité utilisé/ });
   await expect(scopeGroup).toBeVisible();
@@ -258,7 +258,7 @@ test('le perimetre simule est proposable comme condition de regle', async ({ pag
   await gotoHome(page);
   await createAndSubmitProject(page);
   await grantAdminAccess(page);
-  await page.getByRole('tab', { name: /Revue des règles/i }).click();
+  await openBackOfficeTab(page, /Revue des règles/i);
 
   const sampleSelect = page.getByLabel('Charger un projet type');
   const projectValue = await sampleSelect

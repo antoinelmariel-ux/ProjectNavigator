@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoHome, grantAdminAccess, collectConsoleErrors } from './fixtures.js';
+import { gotoHome, grantAdminAccess, collectConsoleErrors, openBackOfficeTab } from './fixtures.js';
 
 // L'équipe « Affaires Publiques » du référentiel par défaut a déjà deux contacts, donc le
 // panneau de routage par membre est visible sans setup supplémentaire.
@@ -8,7 +8,7 @@ const MULTI_MEMBER_TEAM = 'Affaires Publiques';
 async function openTeamsTab(page) {
   await gotoHome(page);
   await grantAdminAccess(page);
-  await page.getByRole('tab', { name: /Équipes/ }).click();
+  await openBackOfficeTab(page, /Équipes/);
 }
 
 const teamCard = (page) => page.locator('article').filter({ hasText: MULTI_MEMBER_TEAM }).first();

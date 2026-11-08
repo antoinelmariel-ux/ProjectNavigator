@@ -9064,7 +9064,7 @@ const updateProjectFilters = useCallback((updater) => {
   ]);
 
   return (
-    <div className={`min-h-screen ${annotationOffsetClass}`}>
+    <div className={`flex min-h-screen flex-col ${annotationOffsetClass}`}>
       {isSimulatedSession && (
         <ImpersonationBanner simulatedEmail={currentUserEmail} realEmail={realUserEmail} />
       )}
@@ -9200,8 +9200,8 @@ const updateProjectFilters = useCallback((updater) => {
       </div>
       {!shouldShowOnboarding && !shouldHideMainNav && (
       <nav className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-4">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3 sm:py-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-3 self-center">
               <button
                 type="button"
@@ -9221,7 +9221,7 @@ const updateProjectFilters = useCallback((updater) => {
             </div>
 
             <div
-              className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3 lg:justify-end"
+              className="flex flex-row flex-wrap items-center justify-center gap-2 sm:gap-3 lg:justify-end"
               role="group"
               aria-label={t('app.nav.groupAriaLabel')}
             >
@@ -9229,7 +9229,7 @@ const updateProjectFilters = useCallback((updater) => {
                 <button
                   type="button"
                   onClick={handleToggleAnnotationMode}
-                  className={`order-first self-start sm:order-last sm:self-center inline-flex h-10 px-4 items-center justify-center gap-2 rounded-lg border text-blue-700 shadow-sm transition hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                  className={`order-first sm:order-last inline-flex h-10 px-4 items-center justify-center gap-2 rounded-lg border text-blue-700 shadow-sm transition hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
                     isAnnotationModeEnabled ? 'bg-blue-50 border-blue-200' : 'bg-white border-blue-100'
                   }`}
                   aria-pressed={isAnnotationModeEnabled}
@@ -9239,27 +9239,27 @@ const updateProjectFilters = useCallback((updater) => {
                   data-tour-id="showcase-comment-toggle"
                 >
                   <MessageSquare className="h-5 w-5" />
-                  <span>{t('app.nav.commentLabel')}</span>
+                  <span className="hidden sm:inline">{t('app.nav.commentLabel')}</span>
                 </button>
               )}
               {screen === 'showcase' && canShareActiveProjectShowcase && (
                 <button
                   type="button"
                   onClick={handleOpenShowcaseShare}
-                  className="order-first self-start sm:order-last sm:self-center inline-flex h-10 px-4 items-center justify-center gap-2 rounded-lg border bg-white border-blue-100 text-blue-700 shadow-sm transition hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  className="order-first sm:order-last inline-flex h-10 px-4 items-center justify-center gap-2 rounded-lg border bg-white border-blue-100 text-blue-700 shadow-sm transition hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   aria-label={t('app.nav.shareShowcase')}
                   title={t('app.nav.shareShowcase')}
                   data-tour-id="showcase-share-trigger"
                 >
                   <Link className="h-5 w-5" />
-                  <span>{t('app.nav.shareSrOnly')}</span>
+                  <span className="hidden sm:inline">{t('app.nav.shareSrOnly')}</span>
                 </button>
               )}
               {mode === 'user' && screen === 'showcase' && showcaseProjectContext && (
                 <button
                   type="button"
                   onClick={handleReturnToComplianceReport}
-                  className="w-full sm:w-auto px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition-all bg-blue-600 text-white"
+                  className="px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition-all bg-blue-600 text-white"
                   aria-label={t('app.nav.returnToReport')}
                   title={t('app.nav.returnToReport')}
                   data-tour-id="showcase-back-to-report"
@@ -9271,7 +9271,7 @@ const updateProjectFilters = useCallback((updater) => {
                 <button
                   type="button"
                   onClick={handleStartOnboarding}
-                  className={`w-full sm:w-auto px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition-all flex items-center justify-center gap-2 ${
+                  className={`px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition-all flex items-center justify-center gap-2 ${
                     isOnboardingActive
                       ? 'bg-blue-600 text-white'
                       : tourGuideStatus === 'ready'
@@ -9299,7 +9299,7 @@ const updateProjectFilters = useCallback((updater) => {
                   ) : (
                     <Sparkles className="text-lg sm:text-xl" aria-hidden="true" />
                   )}
-                  <span>
+                  <span className="hidden sm:inline">
                     {tourGuideStatus === 'loading'
                       ? t('app.nav.guidePreparing')
                       : tourGuideStatus === 'error'
@@ -9312,7 +9312,7 @@ const updateProjectFilters = useCallback((updater) => {
                 <button
                   type="button"
                   onClick={() => setScreen('home')}
-                  className={`w-full sm:w-auto px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition-all bg-gray-100 text-gray-700 hover:bg-gray-200`}
+                  className={`px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition-all bg-gray-100 text-gray-700 hover:bg-gray-200`}
                   aria-pressed={false}
                   aria-label={t('app.nav.backToHomeAriaLabel')}
                 >
@@ -9324,18 +9324,18 @@ const updateProjectFilters = useCallback((updater) => {
                   href="https://forms.cloud.microsoft/e/92Dm7HM5du"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition-all text-white bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 hover:from-pink-600 hover:via-red-600 hover:to-yellow-600 focus-visible:ring-pink-400"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition-all text-white bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 hover:from-pink-600 hover:via-red-600 hover:to-yellow-600 focus-visible:ring-pink-400"
                   aria-label={t('app.nav.feedbackAriaLabel')}
                 >
                   <Sparkles className="text-lg sm:text-xl" aria-hidden="true" />
-                  <span>{t('app.nav.feedbackLabel')}</span>
+                  <span className="hidden sm:inline">{t('app.nav.feedbackLabel')}</span>
                 </a>
               )}
               {mode === 'admin' && (
                 <button
                   type="button"
                   onClick={handleReturnToProjectMode}
-                  className={`w-full sm:w-auto px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition-all ${
+                  className={`px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition-all ${
                     mode === 'user'
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -9350,7 +9350,7 @@ const updateProjectFilters = useCallback((updater) => {
                 <button
                   type="button"
                   onClick={handleActivateAdminOnHome}
-                  className={`w-full sm:w-auto px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition-all flex items-center justify-center ${
+                  className={`px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition-all flex items-center justify-center ${
                     isAdminBackOfficeView
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -9367,7 +9367,7 @@ const updateProjectFilters = useCallback((updater) => {
                 <button
                   type="button"
                   onClick={handleBackOfficeClick}
-                  className={`w-full sm:w-auto px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition-all flex items-center justify-center gap-3 ${
+                  className={`px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition-all flex items-center justify-center gap-3 ${
                     isAdminBackOfficeView
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -9781,7 +9781,7 @@ const updateProjectFilters = useCallback((updater) => {
         </div>
       )}
 
-      <main id="main-content" tabIndex="-1" className="focus:outline-none">
+      <main id="main-content" tabIndex="-1" className="flex-1 focus:outline-none">
         {!isHydrated ? (
           <div className="flex min-h-[60vh] items-center justify-center">
             <LoadingFallback
@@ -10220,7 +10220,7 @@ const updateProjectFilters = useCallback((updater) => {
       </button>
     )}
 
-    <footer className="bg-white border-t border-gray-200 mt-10" aria-label={t('app.footer.ariaLabel')}>
+    <footer className="shrink-0 bg-white border-t border-gray-200" aria-label={t('app.footer.ariaLabel')}>
       <p className="text-xs text-gray-400 text-center py-4">
         Project Navigator · Version {APP_VERSION} · {syncStatusLabel}{syncStatusMeta ? ` · ${syncStatusMeta}` : ''} ·{' '}
         <a

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoHome, grantAdminAccess, collectConsoleErrors } from './fixtures.js';
+import { gotoHome, grantAdminAccess, collectConsoleErrors, openBackOfficeTab } from './fixtures.js';
 
 // L'organigramme fictif (src/data/mockOrgDirectory.js) place le porteur des quatre projets
 // soumis de démonstration deux niveaux sous l'utilisateur simulé : c'est ce qui fait apparaître
@@ -48,7 +48,7 @@ test('un administrateur ouvre les brouillons de l’équipe aux managers depuis 
   await expect(tabs.getByRole('button', { name: 'Mon équipe (4)' })).toBeVisible();
 
   await grantAdminAccess(page);
-  await page.getByRole('tab', { name: /Administrateurs/ }).click();
+  await openBackOfficeTab(page, /Administrateurs/);
   const privateOption = page.getByRole('button', { name: /Projets envoyés uniquement/ });
   const draftsOption = page.getByRole('button', { name: /Projets envoyés et brouillons/ });
   await expect(privateOption).toHaveAttribute('aria-pressed', 'true');

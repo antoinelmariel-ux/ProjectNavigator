@@ -4,7 +4,8 @@ import {
   patchStateOnBoot,
   readStoredState,
   grantSelfComplianceExpertAndCommitteeAccess,
-  collectConsoleErrors
+  collectConsoleErrors,
+  openBackOfficeTab
 } from './fixtures.js';
 
 const openFaqDialog = (page) =>
@@ -49,7 +50,7 @@ test.describe('Fenêtre d’aide : manuels en lecture seule', () => {
     await gotoHome(page);
     await grantSelfComplianceExpertAndCommitteeAccess(page);
     await page.getByRole('button', { name: 'Accéder au Back-office' }).click();
-    await page.getByRole('tab', { name: /FAQ/ }).click();
+    await openBackOfficeTab(page, /FAQ/);
 
     const smeInput = page.locator('#help-manual-sme-fr');
     await smeInput.fill(MANUALS.sme.fr);

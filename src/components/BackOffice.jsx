@@ -16,6 +16,7 @@ import {
   CheckCircle,
   ChevronRight,
   ChevronLeft,
+  Undo,
   Sparkles,
   Save,
   LayoutList,
@@ -738,6 +739,22 @@ const TEAM_VISIBILITY_OPTION_SELECTED = 'border-indigo-600 bg-indigo-50 ring-2 r
 const TEAM_VISIBILITY_OPTION_IDLE = 'border-gray-200 bg-white hover:bg-gray-50';
 
 let rememberedBackOfficeTab = 'dashboard';
+
+const BACK_OFFICE_TAB_GROUPS = [
+  { id: 'dashboard', labelKey: 'backOffice.main.tabGroupDashboard', tabIds: ['dashboard'] },
+  {
+    id: 'content',
+    labelKey: 'backOffice.main.tabGroupContent',
+    tabIds: ['questions', 'rules', 'teams', 'validationCommittee', 'complianceReview']
+  },
+  { id: 'home', labelKey: 'backOffice.main.tabGroupHome', tabIds: ['filters', 'inspiration', 'faq', 'onboarding'] },
+  { id: 'showcase', labelKey: 'backOffice.main.tabGroupShowcase', tabIds: ['themes', 'showcaseTemplates'] },
+  {
+    id: 'system',
+    labelKey: 'backOffice.main.tabGroupSystem',
+    tabIds: ['administrators', 'currencies', 'translations', 'riskLevels']
+  }
+];
 
 export const BackOffice = ({
   launchSignals = {},
@@ -4176,6 +4193,28 @@ export const BackOffice = ({
     }
   ].filter((tab) => !allowedTabIds || allowedTabIds.has(tab.id));
 
+  // Deux niveaux : un groupe, puis les onglets de ce groupe. Seize onglets à plat sur deux
+  // lignes ne disaient ni ce qui va ensemble ni où chercher. Un groupe réduit à un seul
+  // onglet (le tableau de bord, ou un groupe filtré par `allowedTabIds`) est cet onglet.
+  const tabGroups = BACK_OFFICE_TAB_GROUPS
+    .map((group) => ({
+      ...group,
+      tabs: group.tabIds
+        .map((tabId) => tabDefinitions.find((tab) => tab.id === tabId))
+        .filter(Boolean)
+    }))
+    .filter((group) => group.tabs.length > 0);
+  const activeTabGroup = tabGroups.find((group) => group.tabs.some((tab) => tab.id === activeTab)) || null;
+  const lastTabByGroupRef = useRef({});
+  if (activeTabGroup) {
+    lastTabByGroupRef.current[activeTabGroup.id] = activeTab;
+  }
+  const handleSelectTabGroup = (group) => {
+    const remembered = lastTabByGroupRef.current[group.id];
+    const nextTab = group.tabs.some((tab) => tab.id === remembered) ? remembered : group.tabs[0].id;
+    setActiveTab(nextTab);
+  };
+
   useEffect(() => {
     if (tabDefinitions.some((tab) => tab.id === activeTab)) {
       return;
@@ -5165,18 +5204,20 @@ export const BackOffice = ({
                 <p className="text-sm text-gray-500">{t('backOffice.main.backOfficeSubtitle')}</p>
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 w-full lg:w-auto">
-              <button
-                type="button"
-                onClick={handleUndo}
-                disabled={!canUndo}
-                title={t('backOffice.main.undoLastDeletionTitle')}
-                className="inline-flex items-center justify-center px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg shadow-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 text-sm sm:text-base"
-              >
-                <ChevronLeft className="w-5 h-5 mr-2" />
-                {t('backOffice.main.undoCtrlZButton')}
-              </button>
-            </div>
+            {canUndo && (
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 w-full lg:w-auto">
+                <button
+                  type="button"
+                  onClick={handleUndo}
+                  title={t('backOffice.main.undoLastDeletionTitle')}
+                  aria-keyshortcuts="Control+Z"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg shadow-sm hover:bg-gray-50 text-sm"
+                >
+                  <Undo className="w-4 h-4" aria-hidden="true" />
+                  {t('backOffice.main.undoCtrlZButton')}
+                </button>
+              </div>
+            )}
           </header>
 
           {undoMessage ? (
@@ -5190,7 +5231,7 @@ export const BackOffice = ({
           ) : null}
 
           <section
-            className="mb-6"
+            className={dataIntegrityIssues.length > 0 ? 'mb-6' : ''}
             aria-label={t('backOffice.main.inconsistencyDetectionAriaLabel')}
             aria-live="polite"
           >
@@ -5226,19 +5267,8 @@ export const BackOffice = ({
                   </div>
                 </div>
               </div>
-            ) : (
-              <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-                <CheckCircle className="w-6 h-6 text-emerald-600 mt-1" />
-                <div>
-                  <p className="text-sm font-semibold text-emerald-800">
-                    {t('backOffice.main.noInconsistencyDetected')}
-                  </p>
-                  <p className="mt-1 text-xs text-emerald-700">
-                    {t('backOffice.main.conditionsAndTeamsAligned')}
-                  </p>
-                </div>
-              </div>
-            )}
+            ) : null
+}
           </section>
 
           {isSharePointMode() && dirtyReferentialItems.length > 0 && (
@@ -5264,25 +5294,80 @@ export const BackOffice = ({
             </section>
           )}
 
-          <nav className="flex flex-wrap gap-2 border-b border-gray-200 pb-2 mb-6" role="tablist" aria-label={t('backOffice.main.backOfficeNavAriaLabel')}>
-            {tabDefinitions.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                id={`backoffice-tab-${tab.id}`}
-                role="tab"
-                aria-controls={tab.panelId}
-                aria-selected={activeTab === tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-4 py-2 rounded-t-md text-sm font-medium ${
-                  activeTab === tab.id
-                    ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-600'
-                    : 'text-gray-600 hover:text-gray-800'
-                }`}
+          <nav className="mb-6 space-y-3" aria-label={t('backOffice.main.backOfficeNavAriaLabel')}>
+            <div
+              className="flex flex-wrap gap-1 rounded-xl border border-gray-200 bg-white p-1 shadow-sm"
+              role="tablist"
+              aria-label={t('backOffice.main.tabGroupsAriaLabel')}
+            >
+              {tabGroups.map((group) => {
+                const isActiveGroup = activeTabGroup?.id === group.id;
+                if (group.tabs.length === 1) {
+                  const [tab] = group.tabs;
+                  return (
+                    <button
+                      key={group.id}
+                      type="button"
+                      id={`backoffice-tab-${tab.id}`}
+                      role="tab"
+                      aria-controls={tab.panelId}
+                      aria-selected={activeTab === tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      data-backoffice-group={group.id}
+                      className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+                        isActiveGroup ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  );
+                }
+                return (
+                  <button
+                    key={group.id}
+                    type="button"
+                    id={`backoffice-group-${group.id}`}
+                    role="tab"
+                    aria-controls={`backoffice-subtabs-${group.id}`}
+                    aria-selected={isActiveGroup}
+                    onClick={() => handleSelectTabGroup(group)}
+                    data-backoffice-group={group.id}
+                    className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+                      isActiveGroup ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    {t(group.labelKey)}
+                  </button>
+                );
+              })}
+            </div>
+            {activeTabGroup && activeTabGroup.tabs.length > 1 && (
+              <div
+                id={`backoffice-subtabs-${activeTabGroup.id}`}
+                className="flex flex-wrap gap-2 border-b border-gray-200 pb-2"
+                role="tablist"
+                aria-label={t(activeTabGroup.labelKey)}
               >
-                {tab.label}
-              </button>
-            ))}
+                {activeTabGroup.tabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    id={`backoffice-tab-${tab.id}`}
+                    role="tab"
+                    aria-controls={tab.panelId}
+                    aria-selected={activeTab === tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`px-4 py-2 rounded-t-md text-sm font-medium ${
+                      activeTab === tab.id
+                        ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-600'
+                        : 'text-gray-600 hover:text-gray-800'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </nav>
 
           {activeTab === 'dashboard' && (

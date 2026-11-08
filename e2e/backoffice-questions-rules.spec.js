@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoHome, grantAdminAccess, collectConsoleErrors } from './fixtures.js';
+import { gotoHome, grantAdminAccess, collectConsoleErrors, openBackOfficeTab } from './fixtures.js';
 
 async function openBackOffice(page) {
   await gotoHome(page);
@@ -35,13 +35,15 @@ test.describe('Bouton d’accès au back-office (cadenas)', () => {
 test.describe('Back-office : éditeurs Questions & Règles', () => {
   test('le référentiel de démonstration ne signale aucune incohérence', async ({ page }) => {
     await openBackOffice(page);
-    await expect(page.getByText('Aucune incohérence détectée dans les données de configuration.')).toBeVisible();
+    // Sans incohérence, le back-office n'affiche plus de bandeau : la zone reste vide.
+    await expect(page.getByRole('tab', { name: 'Tableau de bord' })).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Détection des incohérences' })).toBeEmpty();
   });
 
   test('annuler la création d\'une question ne laisse pas d\'entrée fantôme', async ({ page }) => {
     await openBackOffice(page);
     const questionsTab = page.getByRole('tab', { name: /Questions/ });
-    await questionsTab.click();
+    await openBackOfficeTab(page, /Questions/);
     const before = await questionsTab.textContent();
 
     await page.getByRole('button', { name: 'Ajouter une question' }).click();
@@ -55,7 +57,7 @@ test.describe('Back-office : éditeurs Questions & Règles', () => {
     const errors = collectConsoleErrors(page);
     await openBackOffice(page);
     const questionsTab = page.getByRole('tab', { name: /Questions/ });
-    await questionsTab.click();
+    await openBackOfficeTab(page, /Questions/);
     const beforeCount = parseInt((await questionsTab.textContent()).match(/\((\d+)\)/)[1], 10);
 
     await page.getByRole('button', { name: 'Ajouter une question' }).click();
@@ -71,7 +73,7 @@ test.describe('Back-office : éditeurs Questions & Règles', () => {
   test('annuler la duplication d\'une question ne laisse pas d\'entrée fantôme', async ({ page }) => {
     await openBackOffice(page);
     const questionsTab = page.getByRole('tab', { name: /Questions/ });
-    await questionsTab.click();
+    await openBackOfficeTab(page, /Questions/);
     const before = await questionsTab.textContent();
 
     const duplicateButtons = page.locator('button[aria-label*="Dupliquer"], button[title*="Dupliquer"]');
@@ -85,7 +87,7 @@ test.describe('Back-office : éditeurs Questions & Règles', () => {
   test('annuler la création d\'une règle ne laisse pas d\'entrée fantôme', async ({ page }) => {
     await openBackOffice(page);
     const rulesTab = page.getByRole('tab', { name: /Règles/ });
-    await rulesTab.click();
+    await openBackOfficeTab(page, /Règles/);
     const before = await rulesTab.textContent();
 
     await page.getByRole('button', { name: 'Ajouter une règle' }).click();
@@ -101,7 +103,7 @@ test.describe('Back-office : éditeurs Questions & Règles', () => {
     const errors = collectConsoleErrors(page);
     await openBackOffice(page);
     const rulesTab = page.getByRole('tab', { name: /Règles/ });
-    await rulesTab.click();
+    await openBackOfficeTab(page, /Règles/);
     const beforeCount = parseInt((await rulesTab.textContent()).match(/\((\d+)\)/)[1], 10);
 
     await page.getByRole('button', { name: 'Ajouter une règle' }).click();
@@ -121,7 +123,7 @@ test.describe('Back-office : éditeurs Questions & Règles', () => {
     const errors = collectConsoleErrors(page);
     await openBackOffice(page);
     const rulesTab = page.getByRole('tab', { name: /Règles/ });
-    await rulesTab.click();
+    await openBackOfficeTab(page, /Règles/);
     const before = await rulesTab.textContent();
 
     await page.locator('button[aria-label^="Afficher la règle"]').first().click();
@@ -141,7 +143,7 @@ test.describe('Back-office : éditeurs Questions & Règles', () => {
   test('le constructeur de conditions s\'ouvre sans erreur sur une question existante', async ({ page }) => {
     const errors = collectConsoleErrors(page);
     await openBackOffice(page);
-    await page.getByRole('tab', { name: /Questions/ }).click();
+    await openBackOfficeTab(page, /Questions/);
 
     const editButtons = page.locator('button[aria-label*="Modifier"], button[title*="Modifier"]');
     await editButtons.first().click();

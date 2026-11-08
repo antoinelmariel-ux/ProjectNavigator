@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoHome, grantAdminAccess, collectConsoleErrors, readStoredState } from './fixtures.js';
+import { gotoHome, grantAdminAccess, collectConsoleErrors, readStoredState, openBackOfficeTab } from './fixtures.js';
 
 // Les projets de démonstration (mock-sharepoint-lists/projects.json) appartiennent à d'autres
 // personnes que l'utilisateur simulé : quatre projets soumis de chef.projet@entreprise.com et
@@ -9,7 +9,7 @@ const projectRow = (page, name) => consoleProjects(page).filter({ hasText: name 
 
 const openAdminConsole = async (page) => {
   await grantAdminAccess(page);
-  await page.getByRole('tab', { name: /Administrateurs/ }).click();
+  await openBackOfficeTab(page, /Administrateurs/);
   const launcher = page.getByTestId('admin-console-launcher');
   await expect(launcher).toContainText('Console d’administration des projets');
   const [consolePage] = await Promise.all([

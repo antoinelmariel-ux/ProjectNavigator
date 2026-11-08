@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoHome, grantAdminAccess, collectConsoleErrors } from './fixtures.js';
+import { gotoHome, grantAdminAccess, collectConsoleErrors, openBackOfficeTab } from './fixtures.js';
 
 const openFaqDialog = (page) =>
   page.evaluate(() =>
@@ -16,7 +16,7 @@ test.describe('Back-office : FAQ', () => {
     await page.getByRole('button', { name: 'Fermer' }).click();
 
     await grantAdminAccess(page);
-    await page.getByRole('tab', { name: /FAQ/ }).click();
+    await openBackOfficeTab(page, /FAQ/);
     await page.getByRole('button', { name: 'Ajouter une question' }).click();
 
     const card = page.locator('[data-faq-id]').first();
@@ -44,7 +44,7 @@ test.describe('Back-office : FAQ', () => {
   test('une question dépubliée n’apparaît plus dans la fenêtre d’aide', async ({ page }) => {
     await gotoHome(page);
     await grantAdminAccess(page);
-    await page.getByRole('tab', { name: /FAQ/ }).click();
+    await openBackOfficeTab(page, /FAQ/);
     await page.getByRole('button', { name: 'Ajouter une question' }).click();
     const card = page.locator('[data-faq-id]').first();
     await card.getByRole('textbox', { name: 'Question' }).fill('Question masquée');

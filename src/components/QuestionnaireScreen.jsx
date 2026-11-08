@@ -219,7 +219,13 @@ export const QuestionnaireScreen = ({
   const currentQuestionPlaceholder = resolveLocalizedText(currentQuestion.placeholder, language).trim();
   const currentQuestionNumberUnit = resolveLocalizedText(currentQuestion.numberUnit, language).trim();
 
-  const [isOutlineOpen, setIsOutlineOpen] = useState(true);
+  // Sur un petit écran le sommaire passe sous la question et reste replié : déplié, il
+  // faisait défiler 400 px avant d'atteindre ce qu'il fallait remplir.
+  const [isOutlineOpen, setIsOutlineOpen] = useState(() => (
+    typeof window === 'undefined' || typeof window.matchMedia !== 'function'
+      ? true
+      : window.matchMedia('(min-width: 1024px)').matches
+  ));
   const [visitedQuestionIds, setVisitedQuestionIds] = useState(() => new Set());
   const activeQuestionId = activeQuestion?.id || null;
   useEffect(() => {
@@ -1350,7 +1356,7 @@ export const QuestionnaireScreen = ({
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 px-4 py-6 sm:px-8 sm:py-10">
       <div className="max-w-6xl mx-auto flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
         <aside
-          className="w-full lg:w-72 lg:shrink-0 lg:sticky lg:top-6"
+          className="order-last w-full lg:order-none lg:w-72 lg:shrink-0 lg:sticky lg:top-6"
           aria-label={t('questionnaire.summaryAriaLabel')}
           data-tour-id="question-summary-panel"
         >

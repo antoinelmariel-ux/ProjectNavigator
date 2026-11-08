@@ -2478,6 +2478,7 @@ export const ProjectShowcase = ({
     normalizeSectionAccents(answers?.showcaseSectionAccents)
   );
   const [isLightConfigOpen, setIsLightConfigOpen] = useState(false);
+  const [isModePanelExpanded, setIsModePanelExpanded] = useState(false);
   const [documentUploadErrors, setDocumentUploadErrors] = useState({});
   const [documentUploadPending, setDocumentUploadPending] = useState({});
   const [documentUploadProgress, setDocumentUploadProgress] = useState({});
@@ -5522,7 +5523,27 @@ export const ProjectShowcase = ({
     </div>
   );
 
-  const modeSelectionPanel = resolvedDisplayModeLock || !canConfigureDisplayModes ? null : (
+  // Le choix Light / complet n'intéresse pas qui découvre sa vitrine en sortant du
+  // questionnaire : replié par défaut en un seul bouton, il s'ouvre à la demande, quand la
+  // vitrine est déjà en Light (il faut voir pourquoi des sections manquent), quand on règle
+  // les sections Light, et pendant l'étape de la visite guidée qui le présente.
+  const isModePanelOpen = isModePanelExpanded
+    || isLightMode
+    || isLightConfigOpen
+    || (Boolean(tourContext?.isActive) && tourContext?.activeStep === 'showcase-usage-mode-selection');
+  const modeSelectionPanel = resolvedDisplayModeLock || !canConfigureDisplayModes ? null : !isModePanelOpen ? (
+    <div className="sge mb-4 flex justify-end" data-tour-id="showcase-display-modes">
+      <button
+        type="button"
+        onClick={() => setIsModePanelExpanded(true)}
+        className="sge-btn sge-btn--outline"
+        aria-expanded="false"
+        data-testid="showcase-mode-panel-toggle"
+      >
+        {t('projectShowcase.usageModeToggle')}
+      </button>
+    </div>
+  ) : (
     <div className="sge sge-surface mb-6" data-tour-id="showcase-display-modes">
       <div
         className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
@@ -5558,6 +5579,15 @@ export const ProjectShowcase = ({
           <button type="button" onClick={handleOpenLightConfig} className="sge-btn sge-btn--outline">
             {t('projectShowcase.configureButton')}
           </button>
+          {!isLightMode && !isLightConfigOpen && isModePanelExpanded && (
+            <button
+              type="button"
+              onClick={() => setIsModePanelExpanded(false)}
+              className="sge-btn sge-btn--ghost"
+            >
+              {t('projectShowcase.usageModeCollapse')}
+            </button>
+          )}
         </div>
       </div>
 
