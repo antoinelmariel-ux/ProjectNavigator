@@ -2354,21 +2354,14 @@ export default {
       updateWithoutReferenceHeading: 'Ce projet a été envoyé avant le suivi des modifications',
       updateWithoutReferenceHint: 'Son état au moment de l’envoi n’a pas été conservé : une mise à jour demandera donc à toutes les équipes concernées de ré-examiner le projet. Les envois suivants seront ciblés.',
       ariaLabel: 'Ce que la compliance peut faire à ce stade',
-      heading: 'Où en est votre projet',
+      heading: 'Prochaine étape',
       intro: 'Vous n’avez pas besoin d’un projet terminé pour interroger les experts. Voici ce qu’ils peuvent faire avec ce que vous avez déjà saisi.',
-      level: {
-        orientation: 'Orientation possible',
-        advice: 'Avis technique possible',
-        validation: 'Validation possible'
-      },
-      levelRequirement: {
-        orientation: 'Les questions du socle sont renseignées.',
-        advice: 'Toutes les réponses obligatoires doivent être remplies',
-        validation: 'Vos réponses doivent être définitives'
-      },
-      stepperAriaLabel: 'Paliers de consultation de la compliance',
       sameBaseNote: 'Avis technique et validation demandent le même dossier : toutes les questions obligatoires déclenchées par votre projet. Ce qui les sépare, ce n’est pas la quantité de réponses mais leur fermeté — et le fait qu’un avis porte sur un projet encore modifiable.',
-      nextLevelHeading: 'Pour atteindre « {{level}} »',
+      nextStepHeading: {
+        orientation: 'Pour demander un avis préliminaire',
+        advice: 'Pour demander la validation',
+        validation: 'Pour demander la validation'
+      },
       missingIntro: {
         orientation: 'Il reste {{count}} [[count|question|questions]] du socle à renseigner.',
         advice: 'Il reste {{count}} [[count|question obligatoire|questions obligatoires]] sans réponse.',

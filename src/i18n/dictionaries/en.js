@@ -2345,21 +2345,14 @@ export default {
       updateWithoutReferenceHeading: 'This project was submitted before change tracking existed',
       updateWithoutReferenceHint: 'Its state at submission time was not kept, so an update will ask every concerned team to review the project again. Later updates will be targeted.',
       ariaLabel: 'What compliance can do at this stage',
-      heading: 'Where your project stands',
+      heading: 'Next step',
       intro: 'You do not need a finished project to consult the experts. Here is what they can do with what you have already entered.',
-      level: {
-        orientation: 'Guidance possible',
-        advice: 'Technical opinion possible',
-        validation: 'Validation possible'
-      },
-      levelRequirement: {
-        orientation: 'The core questions are answered.',
-        advice: 'All mandatory questions must be answered.',
-        validation: 'Your answers must be final.'
-      },
-      stepperAriaLabel: 'Compliance consultation levels',
       sameBaseNote: 'Technical advice and validation need the same file: every mandatory question your project triggers. What sets them apart is not how many answers you give but how firm they are — and the fact that advice is given on a project that can still change.',
-      nextLevelHeading: 'To reach “{{level}}”',
+      nextStepHeading: {
+        orientation: 'To ask for preliminary advice',
+        advice: 'To request validation',
+        validation: 'To request validation'
+      },
       missingIntro: {
         orientation: '{{count}} core [[count|question still needs|questions still need]] an answer.',
         advice: '{{count}} mandatory [[count|question still has|questions still have]] no answer.',

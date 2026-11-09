@@ -2355,21 +2355,14 @@ export default {
       updateWithoutReferenceHeading: 'Dieses Projekt wurde vor der Änderungsverfolgung eingereicht',
       updateWithoutReferenceHint: 'Sein Zustand bei der Einreichung wurde nicht gespeichert; eine Aktualisierung bittet daher alle betroffenen Teams um erneute Prüfung. Spätere Aktualisierungen sind gezielt.',
       ariaLabel: 'Was Compliance in dieser Phase leisten kann',
-      heading: 'Wo Ihr Projekt steht',
+      heading: 'Nächster Schritt',
       intro: 'Sie brauchen kein fertiges Projekt, um die Experten zu befragen. Das können sie mit Ihren bisherigen Angaben tun.',
-      level: {
-        orientation: 'Orientierung möglich',
-        advice: 'Fachliche Stellungnahme möglich',
-        validation: 'Validierung möglich'
-      },
-      levelRequirement: {
-        orientation: 'Die Basisfragen sind beantwortet.',
-        advice: 'Alle Pflichtfragen müssen beantwortet sein.',
-        validation: 'Ihre Antworten müssen endgültig sein.'
-      },
-      stepperAriaLabel: 'Stufen der Compliance-Konsultation',
       sameBaseNote: 'Fachliche Stellungnahme und Validierung verlangen dieselben Unterlagen: alle Pflichtfragen, die Ihr Projekt auslöst. Der Unterschied liegt nicht in der Zahl der Antworten, sondern in ihrer Verbindlichkeit — und darin, dass eine Stellungnahme zu einem noch änderbaren Projekt erfolgt.',
-      nextLevelHeading: 'Um „{{level}}“ zu erreichen',
+      nextStepHeading: {
+        orientation: 'Um eine vorläufige Einschätzung anzufragen',
+        advice: 'Um die Validierung anzufragen',
+        validation: 'Um die Validierung anzufragen'
+      },
       missingIntro: {
         orientation: 'Es [[count|fehlt|fehlen]] noch {{count}} [[count|Basisfrage|Basisfragen]].',
         advice: 'Es [[count|fehlt|fehlen]] noch {{count}} [[count|Pflichtfrage|Pflichtfragen]] ohne Antwort.',

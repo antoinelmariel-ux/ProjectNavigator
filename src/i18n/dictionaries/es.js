@@ -2345,21 +2345,14 @@ export default {
       updateWithoutReferenceHeading: 'Este proyecto se presentó antes del seguimiento de cambios',
       updateWithoutReferenceHint: 'No se conservó su estado en el momento del envío, así que una actualización pedirá a todos los equipos afectados que vuelvan a examinarlo. Los envíos posteriores serán selectivos.',
       ariaLabel: 'Lo que compliance puede hacer en esta fase',
-      heading: 'Dónde está su proyecto',
+      heading: 'Siguiente paso',
       intro: 'No necesita un proyecto terminado para consultar a los expertos. Esto es lo que pueden hacer con lo que ya ha indicado.',
-      level: {
-        orientation: 'Orientación posible',
-        advice: 'Dictamen técnico posible',
-        validation: 'Validación posible'
-      },
-      levelRequirement: {
-        orientation: 'Las preguntas básicas están respondidas.',
-        advice: 'Todas las preguntas obligatorias deben estar respondidas.',
-        validation: 'Sus respuestas deben ser definitivas.'
-      },
-      stepperAriaLabel: 'Niveles de consulta a compliance',
       sameBaseNote: 'El dictamen técnico y la validación exigen el mismo expediente: todas las preguntas obligatorias que activa su proyecto. Lo que los distingue no es la cantidad de respuestas sino su firmeza, y el hecho de que un dictamen se emite sobre un proyecto aún modificable.',
-      nextLevelHeading: 'Para alcanzar «{{level}}»',
+      nextStepHeading: {
+        orientation: 'Para pedir un dictamen preliminar',
+        advice: 'Para solicitar la validación',
+        validation: 'Para solicitar la validación'
+      },
       missingIntro: {
         orientation: '[[count|Queda|Quedan]] {{count}} [[count|pregunta básica|preguntas básicas]] por responder.',
         advice: '[[count|Queda|Quedan]] {{count}} [[count|pregunta obligatoria|preguntas obligatorias]] sin respuesta.',
