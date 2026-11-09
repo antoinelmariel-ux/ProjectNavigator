@@ -57,6 +57,13 @@ export const normalizeLaunchReminderDays = (value) => {
   };
 };
 
+// Rien à demander : aucun avis rendu n'a été contredit depuis. Sans cette garde, on proposait un
+// tour qui se refermait aussitôt, et on rappelait la date de lancement pour rien.
+const hasNothingToConfirm = (roundStatus) => Boolean(roundStatus)
+  && !roundStatus.isRequested
+  && Array.isArray(roundStatus.outdated)
+  && roundStatus.outdated.length === 0;
+
 export const getLaunchConfirmationSignal = ({
   answers,
   roundStatus,
@@ -75,6 +82,10 @@ export const getLaunchConfirmationSignal = ({
 
   if (isComplete) {
     return LAUNCH_CONFIRMATION_CONFIRMED;
+  }
+
+  if (hasNothingToConfirm(roundStatus)) {
+    return LAUNCH_CONFIRMATION_NONE;
   }
 
   const days = getDaysUntilLaunch(answers, now);
@@ -97,7 +108,7 @@ export const getLaunchConfirmationSignal = ({
 export const getDueLaunchReminder = ({ answers, roundStatus, isSettled = false, now = new Date(), reminderDays } = {}) => {
   // Rappeler une date de lancement à un projet déjà parti n'a plus d'objet, ni à un projet dont
   // tous les avis sont favorables et à jour : il n'y a rien à demander avant de lancer.
-  if (roundStatus?.isComplete || isSettled || isProjectLaunched(answers)) {
+  if (roundStatus?.isComplete || isSettled || isProjectLaunched(answers) || hasNothingToConfirm(roundStatus)) {
     return null;
   }
 

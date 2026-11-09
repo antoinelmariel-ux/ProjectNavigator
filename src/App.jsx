@@ -8365,6 +8365,9 @@ const updateProjectFilters = useCallback((updater) => {
 
     const roundPerimeters = buildRoundPerimeters(project).filter((perimeter) => perimeter.hasOpinion);
     const perimeters = roundPerimeters.filter((perimeter) => !perimeter.isOpinionCurrent);
+    if (perimeters.length === 0) {
+      return null;
+    }
     const nextAnswers = startFinalValidationRound(project.answers || {}, {
       by: currentUserEmail,
       version: getSubmissionVersion(project)

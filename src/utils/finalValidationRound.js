@@ -202,6 +202,9 @@ export const getFinalValidationRoundStatus = (answers, perimeters = []) => {
   });
 
   const isRequested = round.round > 0;
+  // Avis que le projet a contredits (ou qu'on ne peut pas dire intacts) : les seuls dont la
+  // confirmation a un objet. Vide, le tour se refermerait aussitôt — on ne le propose pas.
+  const outdated = concerned.filter((perimeter) => perimeter.isOpinionCurrent !== true).map((perimeter) => perimeter.id);
 
   return {
     round: round.round,
@@ -212,6 +215,7 @@ export const getFinalValidationRoundStatus = (answers, perimeters = []) => {
     confirmed,
     reexamining,
     unchanged,
+    outdated,
     // Un round est complet quand chaque avis déjà rendu a été confirmé — et un « je dois
     // réexaminer » non suivi d'un nouvel avis laisse volontairement le round ouvert.
     isComplete: isRequested && concerned.length > 0 && pending.length === 0 && reexamining.length === 0
