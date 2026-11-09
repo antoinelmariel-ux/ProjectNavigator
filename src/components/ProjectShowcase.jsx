@@ -3298,6 +3298,27 @@ export const ProjectShowcase = ({
   // Les jalons sont repérés par leur rang : le focus et le halo suivent le jalon une fois replacé.
   const milestoneReorder = useReorderFeedback('ms');
 
+  const itemReorder = useReorderFeedback('it');
+
+  const handleCustomSectionItemMove = useCallback((sectionId, index, direction) => {
+    const source = customSections.find(section => section && section.id === sectionId);
+    const total = Array.isArray(source?.items) ? source.items.length : 0;
+    const target = index + direction;
+    if (target < 0 || target >= total) {
+      return;
+    }
+    itemReorder.prepareMove(target, {
+      announce: t('common.feedback.movedPosition', { position: target + 1, total })
+    });
+    setCustomSections(prev =>
+      prev.map(section => (
+        section && section.id === sectionId
+          ? { ...section, items: moveArrayItem(Array.isArray(section.items) ? section.items : [], index, target) }
+          : section
+      ))
+    );
+  }, [customSections, itemReorder, t]);
+
   const handleMoveSection = useCallback((fromIndex, toIndex) => {
     const canvas = canvasReorderRef.current;
     const frame = canvas ? canvas.querySelector(`[data-sge-section-index="${fromIndex}"]`) : null;
@@ -6230,11 +6251,32 @@ export const ProjectShowcase = ({
                 : 'projectShowcase.listItemsLabel')}
             </p>
             {Array.isArray(section.items) && section.items.length > 0 ? (
-              <div className="sge-stack">
+              <div className="sge-stack" ref={itemReorder.containerRef}>
+                <span className="sr-only" role="status" aria-live="polite">{itemReorder.announcement}</span>
                 {section.items.map((item, itemIndex) => (
-                  <div key={`${section.id}-item-${itemIndex}`} className="sge-listrow">
+                  <div key={`${section.id}-item-${itemIndex}`} className="sge-listrow" data-reorder-it-key={itemIndex}>
                     <div className="sge-listrow__head">
                       <p className="sge-listrow__label">{t('projectShowcase.itemNumberLabel', { index: itemIndex + 1 })}</p>
+                      <button
+                        type="button"
+                        onClick={() => handleCustomSectionItemMove(section.id, itemIndex, -1)}
+                        disabled={itemIndex === 0}
+                        data-reorder-it-action="up"
+                        aria-label={t('projectShowcase.moveItemUp', { index: itemIndex + 1 })}
+                        className="sge-icon-btn sge-icon-btn--hit"
+                      >
+                        <ArrowUp className="sge-icon-btn__icon" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleCustomSectionItemMove(section.id, itemIndex, 1)}
+                        disabled={itemIndex === section.items.length - 1}
+                        data-reorder-it-action="down"
+                        aria-label={t('projectShowcase.moveItemDown', { index: itemIndex + 1 })}
+                        className="sge-icon-btn sge-icon-btn--hit"
+                      >
+                        <ArrowDown className="sge-icon-btn__icon" />
+                      </button>
                       <button
                         type="button"
                         onClick={() => handleCustomSectionItemRemove(section.id, itemIndex)}
