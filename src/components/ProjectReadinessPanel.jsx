@@ -474,6 +474,7 @@ export const ProjectReadinessPanel = ({
 
       {/* Le fond de l'affaire — pourquoi avis et validation demandent le même dossier, et ce
           que l'envoi engage — reste disponible, mais ne s'impose plus à chaque ouverture. */}
+      {!(isSubmitted && opinionsSummary) && (
       <div className="mt-4 border-t border-gray-200 pt-3">
         <button
           type="button"
@@ -498,6 +499,7 @@ export const ProjectReadinessPanel = ({
           </div>
         )}
       </div>
+      )}
 
       {/* Dernier tour avant lancement. Rien ne peut le rendre obligatoire — il n'existe pas de
           jalon opposable — donc sa force est d'être visible et de ne coûter qu'un clic à

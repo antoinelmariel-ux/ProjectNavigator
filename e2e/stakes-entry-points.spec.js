@@ -407,6 +407,16 @@ test.describe('Page réunie : les nouveaux messages sont mis en avant à l’arr
     await expect(page.locator('#compliance-message-reply-owner-x')).toBeVisible();
   });
 
+  test('« pas encore écrit » ne liste pas une équipe qui a déjà rendu un avis', async ({ page }) => {
+    const projectId = await setUpSubmittedProject(page);
+    await seedProject(page, {
+      teams: { juridique_international: { status: 'validated', comment: '', statusUpdatedAt: '2026-11-02T09:00:00.000Z' } }
+    });
+    await page.goto(stakesUrl(projectId));
+    await expect(page.getByTestId('stakes-unwritten-pi')).toBeVisible();
+    await expect(page.getByTestId('stakes-unwritten-juridique_international')).toHaveCount(0);
+  });
+
   test('la frise indique l’étape en cours après une demande de validation', async ({ page }) => {
     const projectId = await setUpSubmittedProject(page);
     await page.goto(stakesUrl(projectId));

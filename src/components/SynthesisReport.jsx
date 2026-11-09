@@ -2460,7 +2460,12 @@ export const SynthesisReport = ({
           }
           : { elementId: `compliance-opinion-team-${team.id}`, date: entry?.statusUpdatedAt, author: t('synthesisReport.expertAuthorLabel') };
         newsEntries.push({ team, teamName, ...target });
-      } else if (isSubmitted && hasPoints && !replies.some((reply) => normalizeEmail(reply?.authorEmail) === currentUserEmail)) {
+      } else if (
+        isSubmitted
+        && hasPoints
+        && !getStoredTeamStatus(team.id)
+        && !replies.some((reply) => normalizeEmail(reply?.authorEmail) === currentUserEmail)
+      ) {
         unwrittenTeams.push({ team, teamName });
       }
     });
@@ -2731,7 +2736,7 @@ export const SynthesisReport = ({
       <div className="max-w-6xl mx-auto flex flex-col gap-4">
         {isProjectEditable && (
           <>
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2" data-testid="stakes-top">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start" data-testid="stakes-top">
               <section
                 aria-labelledby="stakes-maturing-heading"
                 className="flex flex-col gap-4 rounded-2xl bg-white p-5 shadow-xl"
