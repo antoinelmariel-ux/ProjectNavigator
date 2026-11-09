@@ -2538,6 +2538,7 @@ export default {
     adminProxyEditorNotice: 'Está actuando como administrador en lugar de este perímetro: su dictamen se indicará como tal a todos los lectores del expediente.',
     projectOwnerRoleLabel: 'Responsable del proyecto',
     seeMore: 'Ver más',
+    answersPanelHint: 'El hilo sigue abierto al lado: puede leer las respuestas y escribir al mismo tiempo.',
     rowAuthorYou: 'usted',
     rowAuthorOwner: 'responsable del proyecto',
     rowRisksTemplate: '{{count}} [[count|riesgo|riesgos]]',

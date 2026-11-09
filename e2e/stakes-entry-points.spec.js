@@ -417,6 +417,32 @@ test.describe('Page réunie : les nouveaux messages sont mis en avant à l’arr
     await expect(page.getByTestId('stakes-unwritten-juridique_international')).toHaveCount(0);
   });
 
+  test('expert : les réponses du porteur s’ouvrent dans un panneau à côté du fil, qui reste utilisable', async ({ page }) => {
+    const projectId = await setUpSubmittedProject(page);
+    await seedProject(page, { owner: OTHER_OWNER, teams: { [TEAM]: { replies: [ownerReply('reply-owner-y', 'Réponse du porteur.')] } } });
+    await page.goto(stakesUrl(projectId, { focusKind: 'team', focusId: TEAM }));
+    const trigger = page.getByTestId(`owner-answers-${TEAM}`).getByRole('button', { name: 'Voir toutes les réponses' });
+    await trigger.click();
+    const panel = page.getByTestId('owner-answers-panel');
+    await expect(panel).toBeVisible();
+    await expect(panel.getByRole('heading', { name: 'Réponses du porteur' })).toBeVisible();
+    await expect(panel.locator('.bg-white.rounded-lg').first()).toBeVisible();
+    // Le fil reste à l'écran et l'on peut ouvrir la zone de message sans fermer le panneau.
+    const composer = page.getByTestId(`team-composer-${TEAM}`);
+    await expect.poll(() => composer.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      const panelRect = document.querySelector('[data-testid="owner-answers-panel"]').getBoundingClientRect();
+      return rect.right <= panelRect.left;
+    })).toBe(true);
+    await composer.click();
+    await expect(panel).toBeVisible();
+    await expect(page.locator(`#team-${TEAM}-reply-editor, [id="team-${TEAM}-reply-editor"]`).first()).toBeAttached();
+    await panel.getByRole('button', { name: 'Fermer' }).focus();
+    await page.keyboard.press('Escape');
+    await expect(panel).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+  });
+
   test('la frise indique l’étape en cours après une demande de validation', async ({ page }) => {
     const projectId = await setUpSubmittedProject(page);
     await page.goto(stakesUrl(projectId));

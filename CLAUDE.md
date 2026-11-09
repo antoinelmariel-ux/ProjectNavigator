@@ -833,7 +833,10 @@ side rail or table of contents any more. An expert gets no top block, only the l
   solicit another team sits after the cards.
 - **Expert view**: own teams in `stakes-own-team` (« Votre équipe »), the rest in
   `stakes-other-teams`; the own team card starts with a one-line « Réponses du porteur » (open
-  doubts, link to the answers recap). The claim and followers blocks are plain lines of grey text
+  doubts, « Voir toutes les réponses »). That link opens the owner's answers in a **non-modal side
+  panel** (`owner-answers-panel`, same cards as the recap via `renderAnswerCards`): the page makes room
+  for it on large screens (`.cn-answers-panel-open`, `cn-motion.css`) so the thread stays readable and
+  writable while reading; Échap or « Fermer » closes it and gives the focus back to the link. The claim and followers blocks are plain lines of grey text
   (no frame) above it: they matter the first time, then the points and the thread do.
 
 ## Editing a reply in the expert ↔ owner thread

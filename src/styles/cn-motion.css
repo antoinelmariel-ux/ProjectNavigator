@@ -126,3 +126,11 @@
     animation: none;
   }
 }
+
+/* Panneau des réponses du porteur ouvert à côté des enjeux : la page lui laisse sa place sur grand
+   écran, pour que le fil reste lisible et utilisable pendant la lecture. */
+@media (min-width: 1024px) {
+  .cn-answers-panel-open {
+    padding-right: 30rem;
+  }
+}

@@ -713,6 +713,9 @@ export const SynthesisReport = ({
   const { t, language } = useTranslation();
   const [isShowcaseFallbackOpen, setIsShowcaseFallbackOpen] = useState(false);
   const [isOverviewOpen, setIsOverviewOpen] = useState(false);
+  const [isAnswersPanelOpen, setIsAnswersPanelOpen] = useState(false);
+  const answersPanelCloseRef = useRef(null);
+  const answersPanelTriggerRef = useRef(null);
   const [openSections, setOpenSections] = useState({
     teams: true,
     risks: false,
@@ -2099,6 +2102,11 @@ export const SynthesisReport = ({
     revealTimeoutRef.current = setTimeout(tryReveal, 50);
   }, [openSection]);
   useEffect(() => () => clearTimeout(revealTimeoutRef.current), []);
+  useEffect(() => {
+    if (isAnswersPanelOpen) {
+      answersPanelCloseRef.current?.focus();
+    }
+  }, [isAnswersPanelOpen]);
   const toggleThreadExpanded = useCallback((threadKey) => {
     setExpandedThreads(prev => ({
       ...prev,
@@ -2545,6 +2553,116 @@ export const SynthesisReport = ({
     submissionVersion > 0 ? t('synthesisReport.versionTemplate', { version: submissionVersion }) : ''
   ].filter(Boolean).join(' · ');
 
+  const openAnswersPanel = (trigger) => {
+    answersPanelTriggerRef.current = trigger || null;
+    setIsAnswersPanelOpen(true);
+  };
+  const closeAnswersPanel = () => {
+    setIsAnswersPanelOpen(false);
+    const trigger = answersPanelTriggerRef.current;
+    if (trigger && typeof trigger.focus === 'function') {
+      trigger.focus();
+    }
+  };
+
+  const renderAnswerCards = () => (Array.isArray(questions) ? questions : []).map(q => {
+                    if (!q || typeof q !== 'object') {
+                      return null;
+                    }
+
+                    const answerValue = answers[q.id];
+                    // Le doute ne remplace jamais la réponse : c'est une note à part, affichée en
+                    // plus de la valeur donnée, jamais à sa place — y compris quand cette valeur
+                    // est encore vide.
+                    const hasDoubt = hasQuestionDoubt(answers, q.id);
+                    const doubtText = getQuestionDoubtText(answers, q.id);
+                    const shouldRenderCard = isAnswerProvided(answerValue) || q.required || hasDoubt;
+
+                    if (!shouldRenderCard) {
+                      return null;
+                    }
+
+                    const missingInfoLabel = t('synthesisReport.missingInfoLabel');
+                    const displayValue = formatOverviewValue(q, answerValue, missingInfoLabel, language);
+                    const questionText = resolveLocalizedText(q.question, language);
+
+                    return (
+                      <div key={q.id} className="bg-white rounded-lg p-4 border border-gray-200">
+                        <div className="flex items-start justify-between gap-3 mb-1">
+                          <p className="m-0 text-sm text-gray-600">{questionText}</p>
+                          {typeof onNavigateToQuestion === 'function' && isProjectEditable && (
+                            <button
+                              type="button"
+                              onClick={() => onNavigateToQuestion(q.id)}
+                              className="flex items-center justify-center w-8 h-8 rounded-full border border-gray-200 text-gray-500 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-colors"
+                              aria-label={t('synthesisReport.editAnswerAriaLabelTemplate', { question: questionText })}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                        {(() => {
+                          const resolvedValue = displayValue || missingInfoLabel;
+                          const isMissingInfo = resolvedValue === missingInfoLabel;
+                          const answerFiles = q.type === 'file'
+                            ? (Array.isArray(answerValue) ? answerValue : answerValue ? [answerValue] : [])
+                                .filter((file) => file && typeof file === 'object' && typeof file.url === 'string' && file.url.trim().length > 0)
+                            : [];
+
+                          return (
+                            <>
+                              {answerFiles.length > 0 ? (
+                                <ul className="space-y-1">
+                                  {answerFiles.map((file, index) => (
+                                    <li key={`${file.url}-${index}`} className="font-semibold text-gray-900">
+                                      <a
+                                        href={file.url.trim()}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 underline"
+                                      >
+                                        {file.name || resolvedValue}
+                                      </a>
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <p
+                                  className={`m-0 font-semibold whitespace-pre-line ${
+                                    isMissingInfo ? 'text-rose-400' : 'text-gray-900'
+                                  }`}
+                                >
+                                  {renderTextWithLinks(resolvedValue)}
+                                </p>
+                              )}
+                              {hasDoubt && (
+                                <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                                  <p className="flex items-center gap-2 text-sm font-semibold text-amber-900">
+                                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                                    {t('synthesisReport.overviewDoubtHeading')}
+                                  </p>
+                                  {doubtText.trim().length > 0 && (
+                                    <p className="mt-1 text-xs text-amber-800 whitespace-pre-line">
+                                      {doubtText}
+                                    </p>
+                                  )}
+                                  {/* La validation définitive n'accepte aucun doute : le dire ici,
+                                      là où le porteur relit ses réponses, plutôt qu'au moment où
+                                      le bouton est grisé. */}
+                                  <p className="mt-1 text-xs text-amber-700">
+                                    {canReplyAsProjectContributor
+                                      ? t('synthesisReport.overviewDoubtBlocksValidation')
+                                      : t('synthesisReport.overviewDoubtRaisedByOwner')}
+                                  </p>
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
+                      </div>
+                    );
+                  });
+
   const renderOpinionsSummary = () => {
     const givenCount = ['validated', 'validated_with_conditions', 'not_concerned', 'rejected']
       .reduce((sum, status) => sum + (teamStatusSummary[status] || 0), 0);
@@ -2653,7 +2771,7 @@ export const SynthesisReport = ({
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 px-4 py-6 sm:px-8 sm:py-10">
+    <div className={`min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 px-4 py-6 sm:px-8 sm:py-10 ${isAnswersPanelOpen ? 'cn-answers-panel-open' : ''}`}>
       {/* Titre, rail et colonne forment une seule cible pour le tour guidé : l'étape qui
           présente les enjeux décrit les trois ensemble. */}
       <div className="max-w-6xl mx-auto" data-tour-id="synthesis-summary">
@@ -3442,7 +3560,9 @@ export const SynthesisReport = ({
                             </span>
                             <button
                               type="button"
-                              onClick={() => handleNavigateToSection('overview', 'synthesis-section-overview')}
+                              onClick={(event) => openAnswersPanel(event.currentTarget)}
+                              aria-expanded={isAnswersPanelOpen}
+                              aria-controls="owner-answers-panel"
                               className="ml-auto font-semibold text-blue-700 underline underline-offset-2 hover:text-blue-800"
                             >
                               {t('synthesisReport.seeAllAnswersAction')}
@@ -4712,103 +4832,7 @@ export const SynthesisReport = ({
                 className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-5 sm:p-6"
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {(Array.isArray(questions) ? questions : []).map(q => {
-                    if (!q || typeof q !== 'object') {
-                      return null;
-                    }
-
-                    const answerValue = answers[q.id];
-                    // Le doute ne remplace jamais la réponse : c'est une note à part, affichée en
-                    // plus de la valeur donnée, jamais à sa place — y compris quand cette valeur
-                    // est encore vide.
-                    const hasDoubt = hasQuestionDoubt(answers, q.id);
-                    const doubtText = getQuestionDoubtText(answers, q.id);
-                    const shouldRenderCard = isAnswerProvided(answerValue) || q.required || hasDoubt;
-
-                    if (!shouldRenderCard) {
-                      return null;
-                    }
-
-                    const missingInfoLabel = t('synthesisReport.missingInfoLabel');
-                    const displayValue = formatOverviewValue(q, answerValue, missingInfoLabel, language);
-                    const questionText = resolveLocalizedText(q.question, language);
-
-                    return (
-                      <div key={q.id} className="bg-white rounded-lg p-4 border border-gray-200">
-                        <div className="flex items-start justify-between gap-3 mb-1">
-                          <p className="text-sm text-gray-600">{questionText}</p>
-                          {typeof onNavigateToQuestion === 'function' && isProjectEditable && (
-                            <button
-                              type="button"
-                              onClick={() => onNavigateToQuestion(q.id)}
-                              className="flex items-center justify-center w-8 h-8 rounded-full border border-gray-200 text-gray-500 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-colors"
-                              aria-label={t('synthesisReport.editAnswerAriaLabelTemplate', { question: questionText })}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                        {(() => {
-                          const resolvedValue = displayValue || missingInfoLabel;
-                          const isMissingInfo = resolvedValue === missingInfoLabel;
-                          const answerFiles = q.type === 'file'
-                            ? (Array.isArray(answerValue) ? answerValue : answerValue ? [answerValue] : [])
-                                .filter((file) => file && typeof file === 'object' && typeof file.url === 'string' && file.url.trim().length > 0)
-                            : [];
-
-                          return (
-                            <>
-                              {answerFiles.length > 0 ? (
-                                <ul className="space-y-1">
-                                  {answerFiles.map((file, index) => (
-                                    <li key={`${file.url}-${index}`} className="font-semibold text-gray-900">
-                                      <a
-                                        href={file.url.trim()}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-blue-600 underline"
-                                      >
-                                        {file.name || resolvedValue}
-                                      </a>
-                                    </li>
-                                  ))}
-                                </ul>
-                              ) : (
-                                <p
-                                  className={`font-semibold whitespace-pre-line ${
-                                    isMissingInfo ? 'text-rose-400' : 'text-gray-900'
-                                  }`}
-                                >
-                                  {renderTextWithLinks(resolvedValue)}
-                                </p>
-                              )}
-                              {hasDoubt && (
-                                <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
-                                  <p className="flex items-center gap-2 text-sm font-semibold text-amber-900">
-                                    <AlertTriangle className="w-4 h-4 shrink-0" />
-                                    {t('synthesisReport.overviewDoubtHeading')}
-                                  </p>
-                                  {doubtText.trim().length > 0 && (
-                                    <p className="mt-1 text-xs text-amber-800 whitespace-pre-line">
-                                      {doubtText}
-                                    </p>
-                                  )}
-                                  {/* La validation définitive n'accepte aucun doute : le dire ici,
-                                      là où le porteur relit ses réponses, plutôt qu'au moment où
-                                      le bouton est grisé. */}
-                                  <p className="mt-1 text-xs text-amber-700">
-                                    {canReplyAsProjectContributor
-                                      ? t('synthesisReport.overviewDoubtBlocksValidation')
-                                      : t('synthesisReport.overviewDoubtRaisedByOwner')}
-                                  </p>
-                                </div>
-                              )}
-                            </>
-                          );
-                        })()}
-                      </div>
-                    );
-                  })}
+                  {renderAnswerCards()}
                 </div>
               </div>
             )}
@@ -4816,6 +4840,40 @@ export const SynthesisReport = ({
         </div>
       </div>
       </div>
+      {isAnswersPanelOpen && (
+        <aside
+          id="owner-answers-panel"
+          aria-labelledby="owner-answers-panel-title"
+          data-testid="owner-answers-panel"
+          className="fixed inset-y-0 right-0 z-40 flex w-full flex-col border-l border-gray-200 bg-white shadow-2xl sm:w-[28rem]"
+          onKeyDown={(event) => {
+            if (event.key === 'Escape' && !event.defaultPrevented) {
+              event.preventDefault();
+              closeAnswersPanel();
+            }
+          }}
+        >
+          <div className="flex items-start justify-between gap-3 border-b border-gray-200 px-5 py-4">
+            <div>
+              <h2 id="owner-answers-panel-title" className="m-0 text-lg font-bold text-gray-900">{overviewTitleLabel}</h2>
+              <p className="m-0 mt-1 text-xs text-gray-500">{t('synthesisReport.answersPanelHint')}</p>
+            </div>
+            <button
+              ref={answersPanelCloseRef}
+              type="button"
+              onClick={closeAnswersPanel}
+              className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+            >
+              {t('synthesisReport.closeButton')}
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto bg-blue-50 p-4">
+            <div className="grid grid-cols-1 gap-3">
+              {renderAnswerCards()}
+            </div>
+          </div>
+        </aside>
+      )}
       {isShowcaseFallbackOpen && (
         <div ref={showcaseFallbackRef}>
           <ProjectShowcase

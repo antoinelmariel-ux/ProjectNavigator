@@ -2538,6 +2538,7 @@ export default {
     adminProxyEditorNotice: 'You are acting as an administrator in place of this perimeter: your opinion will be flagged as such to everyone reading the file.',
     projectOwnerRoleLabel: 'Project owner',
     seeMore: 'See more',
+    answersPanelHint: 'The thread stays open alongside: you can read the answers and write at the same time.',
     rowAuthorYou: 'you',
     rowAuthorOwner: 'project owner',
     rowRisksTemplate: '{{count}} [[count|risk|risks]]',

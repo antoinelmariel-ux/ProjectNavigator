@@ -2547,6 +2547,7 @@ export default {
     adminProxyEditorNotice: 'Vous agissez en tant qu’administrateur, à la place de ce périmètre : votre avis sera signalé comme tel à tous les lecteurs du dossier.',
     projectOwnerRoleLabel: 'Porteur de projet',
     seeMore: 'Voir plus',
+    answersPanelHint: 'Le fil d’échanges reste ouvert à côté : vous pouvez lire les réponses et écrire en même temps.',
     rowAuthorYou: 'vous',
     rowAuthorOwner: 'porteur',
     rowRisksTemplate: '{{count}} [[count|risque|risques]]',

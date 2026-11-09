@@ -2548,6 +2548,7 @@ export default {
     adminProxyEditorNotice: 'Sie handeln als Administrator anstelle dieses Bereichs: Ihre Stellungnahme wird für alle Leser der Akte entsprechend gekennzeichnet.',
     projectOwnerRoleLabel: 'Projektverantwortlicher',
     seeMore: 'Mehr anzeigen',
+    answersPanelHint: 'Der Austausch bleibt daneben geöffnet: Sie können die Antworten lesen und gleichzeitig schreiben.',
     rowAuthorYou: 'Sie',
     rowAuthorOwner: 'Projektverantwortlicher',
     rowRisksTemplate: '{{count}} [[count|Risiko|Risiken]]',
