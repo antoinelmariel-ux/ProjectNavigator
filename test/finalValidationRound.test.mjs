@@ -341,3 +341,16 @@ test('réglé : un lancement déclaré n’est pas « sans confirmation »', () 
     LAUNCH_CONFIRMATION_CONFIRMED
   );
 });
+
+test('tour : rien à confirmer quand aucun avis rendu n\'a été contredit', () => {
+  const answers = { launchDate: '2026-05-21' };
+  const now = new Date('2026-05-10T00:00:00Z');
+  const intact = getFinalValidationRoundStatus(answers, [{ id: 'legal', hasOpinion: true, entry: {}, isOpinionCurrent: true }]);
+  assert.deepEqual(intact.outdated, []);
+  assert.equal(getLaunchConfirmationSignal({ answers, roundStatus: intact, now }), LAUNCH_CONFIRMATION_NONE);
+  assert.equal(getDueLaunchReminder({ answers, roundStatus: intact, now }), null);
+
+  const stale = getFinalValidationRoundStatus(answers, [{ id: 'legal', hasOpinion: true, entry: {}, isOpinionCurrent: false }]);
+  assert.deepEqual(stale.outdated, ['legal']);
+  assert.equal(getLaunchConfirmationSignal({ answers, roundStatus: stale, now }), LAUNCH_CONFIRMATION_DUE);
+});

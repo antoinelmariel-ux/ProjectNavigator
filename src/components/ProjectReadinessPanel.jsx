@@ -82,7 +82,8 @@ export const ProjectReadinessPanel = ({
   const launchCopyKey = launchSignal === LAUNCH_CONFIRMATION_CONFIRMED && !roundStatus?.isRequested
     ? 'settled'
     : null;
-  const resolvedLaunchSignal = launchSignal === 'none' && canRequestValidation && !roundStatus?.isRequested
+  const hasOutdatedOpinion = !roundStatus || !Array.isArray(roundStatus.outdated) || roundStatus.outdated.length > 0;
+  const resolvedLaunchSignal = launchSignal === 'none' && canRequestValidation && !roundStatus?.isRequested && hasOutdatedOpinion
     ? LAUNCH_CONFIRMATION_DUE
     : launchSignal;
   const isStaged = isPreliminaryPending && deferredPerimeters.length > 0;
