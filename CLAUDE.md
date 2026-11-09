@@ -794,6 +794,7 @@ the usual intro / facts / expectations / footer. Every other type keeps the form
   fails silently and a 400 on create retries without them: one mail per message, as before. The
   local journal (`window.__cnMockNotifications`) groups the same way, entries carry `groupKey`/
   `messages`.
+- **Arrival contract, pinned for the « Enjeux du projet » redesign**: `e2e/stakes-entry-points.spec.js` arrives by the exact URLs the mails build (state seeded, not UI-driven) and from the home cards, and only reads the heading, `#compliance-team-block-*`/`#compliance-committee-block-*` (with an `aria-expanded` toggle inside), `#compliance-opinion-*`, `#compliance-message-*` and `data-cn-link-target` — keep those through any layout change. Its `test.fixme` block is the acceptance test of the new page (new messages since the last visit, teams with news first, own team first for an expert, the step line) and names the `data-testid`s to add when integrating.
 - Outside SharePoint, no mail leaves: `queueNotification` keeps the last 50 in
   `window.__cnMockNotifications` (subject, body, recipients), which is what `e2e/notification-message-links.spec.js` reads.
   Local mode does not persist post-its, so the post-it reveal itself is only exercised in SharePoint mode.
