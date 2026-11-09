@@ -43,7 +43,7 @@ test.describe('Questionnaire adaptatif -> Vitrine -> Enjeux du projet', () => {
     // moteur de règles a bien été piloté par les réponses saisies dans l'UI.
     // getByRole plutôt que getByText : l'intitulé de la section apparaît aussi dans le
     // sommaire du rail latéral, ce qui ferait deux correspondances en mode strict.
-    await expect(page.getByRole('heading', { name: /Équipes à solliciter/ })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Équipes concernées/ })).toBeVisible();
     expect(errors).toEqual([]);
   });
 
@@ -241,6 +241,6 @@ test.describe('Enjeux du projet tolérants à une analyse absente', () => {
     // grille vide était du bruit. La section des équipes, elle, reste rendue même à zéro parce
     // qu'elle porte le bouton « solliciter une autre équipe ».
     await expect(page.getByRole('heading', { name: /Risques identifiés/ })).toHaveCount(0);
-    await expect(page.getByRole('heading', { name: /Équipes à solliciter \(0\)/ })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Équipes concernées \(0\)/ })).toBeVisible();
   });
 });

@@ -25,9 +25,8 @@ import {
 // fabriquent les mails : la génération des mails eux-mêmes est couverte par
 // notification-message-links.spec.js, qui passe par l'interface actuelle.
 //
-// Les tests `test.fixme` décrivent ce que la maquette ajoute (nouveaux messages mis en avant,
-// équipe concernée en tête, frise). Ils ne tournent pas tant que la page n'est pas intégrée : à
-// l'intégration, on retire le `.fixme` et on pose les `data-testid` qu'ils nomment.
+// Le dernier bloc décrit ce que la page réunie ajoute : nouveaux messages mis en avant, équipes
+// qui ont du nouveau en tête, équipe de l'expert d'abord, frise des étapes.
 
 const OTHER_OWNER = 'porteur.externe@lfb.fr';
 const TEAM = 'controle_pub';
@@ -55,6 +54,10 @@ const stakesUrl = (projectId, params = {}) => {
 // Le compte de test est porteur du projet et contact de « Contrôle pub » (fixtures). `owner`
 // confie le projet à quelqu'un d'autre : le compte de test n'est alors plus qu'expert.
 async function seedProject(page, { owner, teams = {}, committees = {} } = {}) {
+  // Quitter les enjeux marque la visite au rendu suivant : on laisse ce marquage se faire avant de
+  // dater les messages injectés, sinon un message « nouveau » serait plus ancien que la visite.
+  await page.waitForTimeout(300);
+  const seededAt = new Date().toISOString();
   await patchStateOnBoot(page, (stored, arg) => {
     const state = stored || {};
     (state.projects || []).forEach((project) => {
@@ -73,7 +76,7 @@ async function seedProject(page, { owner, teams = {}, committees = {} } = {}) {
           const replies = (entry.replies || []).map((reply) => ({
             authorName: reply.authorEmail,
             ...reply,
-            createdAt: reply.createdAt === 'now' ? new Date().toISOString() : reply.createdAt
+            createdAt: reply.createdAt === 'now' ? arg.seededAt : reply.createdAt
           }));
           next[id] = { ...(next[id] || {}), ...entry, ...(entry.replies ? { replies } : {}) };
         });
@@ -86,7 +89,9 @@ async function seedProject(page, { owner, teams = {}, committees = {} } = {}) {
       };
     });
     return state;
-  }, { owner, teams, committees });
+    // « now » est figé au moment où le test injecte : le patch rejoue à chaque navigation, et un
+    // message daté à chaque chargement resterait « nouveau » pour toujours.
+  }, { owner, teams, committees, seededAt });
   await page.reload();
 }
 
@@ -316,17 +321,14 @@ test.describe('Accueil : chaque carte mène au bon affichage', () => {
   });
 });
 
-// ---------------------------------------------------------------------------------------------
-// Nouvelle maquette (« Enjeux du projet » en une colonne, bloc du haut en deux colonnes).
-// À activer à l'intégration : retirer `.fixme` et poser les data-testid nommés ici.
-//   stakes-since-last-visit         bloc « Depuis votre dernière visite » (colonne gauche)
+// Page réunie (« Enjeux du projet » en une colonne, bloc du haut en deux colonnes) :
+//   stakes-since-last-visit         bloc « Équipes · depuis votre dernière visite » (colonne gauche)
 //   stakes-news-<teamId>            une ligne de ce bloc, avec son lien « lire »
-//   team-news-badge-<teamId>        étiquette « nouveau » sur la ligne repliée d'une équipe
+//   team-news-badge-<teamId>        étiquette « nouveau » sur l'en-tête d'une équipe
 //   data-cn-new-message="true"      sur chaque message arrivé depuis la dernière visite
 //   stakes-own-team / stakes-other-teams   vue expert : son équipe, puis les autres
 //   ol[aria-label="Étapes du projet"] li[aria-current="step"]   la frise
-// ---------------------------------------------------------------------------------------------
-test.describe('Nouvelle maquette : les nouveaux messages sont mis en avant à l’arrivée', () => {
+test.describe('Page réunie : les nouveaux messages sont mis en avant à l’arrivée', () => {
   async function ownerWithUnreadReplies(page) {
     const projectId = await setUpSubmittedProject(page);
     await seedProject(page, {
@@ -338,7 +340,7 @@ test.describe('Nouvelle maquette : les nouveaux messages sont mis en avant à l�
     return projectId;
   }
 
-  test.fixme('porteur depuis l’accueil : « Depuis votre dernière visite » liste les équipes qui ont écrit, et « lire » mène au message', async ({ page }) => {
+  test('porteur depuis l’accueil : « Depuis votre dernière visite » liste les équipes qui ont écrit, et « lire » mène au message', async ({ page }) => {
     await ownerWithUnreadReplies(page);
     const card = page.locator('article[id^="project-card-"]', { has: page.getByTestId('owner-expert-news-dot') });
     await card.getByRole('button', { name: 'Consulter les enjeux' }).click();
@@ -353,9 +355,10 @@ test.describe('Nouvelle maquette : les nouveaux messages sont mis en avant à l�
     await expect.poll(() => isInViewport(reply)).toBe(true);
   });
 
-  test.fixme('les équipes qui ont du nouveau sont dépliées d’office, en tête de liste, avec l’étiquette « nouveau »', async ({ page }) => {
+  test('les équipes qui ont du nouveau sont dépliées d’office, en tête de liste, avec l’étiquette « nouveau »', async ({ page }) => {
     const projectId = await ownerWithUnreadReplies(page);
     await page.goto(stakesUrl(projectId));
+    await expect(page.getByTestId(`team-news-badge-${TEAM}`)).toBeVisible();
     const blocks = page.locator('[id^="compliance-team-block-"]');
     const firstTwo = await blocks.evaluateAll((nodes) => nodes.slice(0, 2).map((node) => node.id));
     expect(firstTwo.sort()).toEqual(['compliance-team-block-controle_pub', 'compliance-team-block-dpo'].sort());
@@ -364,7 +367,7 @@ test.describe('Nouvelle maquette : les nouveaux messages sont mis en avant à l�
     await expect(page.getByTestId(`team-news-badge-${TEAM}`)).toBeVisible();
   });
 
-  test.fixme('seuls les messages arrivés depuis la dernière visite portent « nouveau », et plus à la visite suivante', async ({ page }) => {
+  test('seuls les messages arrivés depuis la dernière visite portent « nouveau », et plus à la visite suivante', async ({ page }) => {
     const projectId = await ownerWithUnreadReplies(page);
     await page.goto(stakesUrl(projectId));
     await expect(page.locator('#compliance-message-reply-new')).toHaveAttribute('data-cn-new-message', 'true');
@@ -378,7 +381,7 @@ test.describe('Nouvelle maquette : les nouveaux messages sont mis en avant à l�
     await expect(page.getByTestId('stakes-since-last-visit')).toHaveCount(0);
   });
 
-  test.fixme('arrivée par le lien d’un mail : le message est cerné et marqué nouveau, les autres nouveautés restent listées', async ({ page }) => {
+  test('arrivée par le lien d’un mail : le message est cerné et marqué nouveau, les autres nouveautés restent listées', async ({ page }) => {
     const projectId = await ownerWithUnreadReplies(page);
     await page.goto(stakesUrl(projectId, { focusKind: 'team', focusId: TEAM, focusMessage: 'reply-new' }));
     const reply = page.locator('#compliance-message-reply-new');
@@ -387,7 +390,7 @@ test.describe('Nouvelle maquette : les nouveaux messages sont mis en avant à l�
     await expect(page.getByTestId('stakes-since-last-visit').getByTestId('stakes-news-dpo')).toBeVisible();
   });
 
-  test.fixme('expert : son équipe avant les autres équipes consultées, dépliée sur la réponse du porteur', async ({ page }) => {
+  test('expert : son équipe avant les autres équipes consultées, dépliée sur la réponse du porteur', async ({ page }) => {
     const projectId = await setUpSubmittedProject(page);
     await seedProject(page, { owner: OTHER_OWNER, teams: { [TEAM]: { replies: [ownerReply('reply-owner-x', 'Réponse du porteur.')] } } });
     await page.goto(stakesUrl(projectId, { focusKind: 'team', focusId: TEAM }));
@@ -404,7 +407,7 @@ test.describe('Nouvelle maquette : les nouveaux messages sont mis en avant à l�
     await expect(page.locator('#compliance-message-reply-owner-x')).toBeVisible();
   });
 
-  test.fixme('la frise indique l’étape en cours après une demande de validation', async ({ page }) => {
+  test('la frise indique l’étape en cours après une demande de validation', async ({ page }) => {
     const projectId = await setUpSubmittedProject(page);
     await page.goto(stakesUrl(projectId));
     await expect(page.locator('ol[aria-label="Étapes du projet"] li[aria-current="step"]')).toContainText('Validation');
