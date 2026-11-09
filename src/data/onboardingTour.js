@@ -516,10 +516,10 @@ export const initialOnboardingTourConfig = {
         "es": "Consultar a compliance antes de terminar"
       },
       "content": {
-        "en": "Orientation, technical advice or validation: this ladder shows exactly what the experts can already do with what you have filled in, and what is still missing to go further.",
-        "fr": "Orientation, avis technique ou validation : ce palier montre exactement ce que les experts peuvent déjà faire avec ce que vous avez renseigné, et ce qu’il manque pour aller plus loin.",
-        "de": "Orientierung, fachliche Einschätzung oder Validierung: Diese Stufenleiter zeigt genau, was die Experten mit Ihren bisherigen Angaben bereits tun können und was noch fehlt, um weiterzukommen.",
-        "es": "Orientación, dictamen técnico o validación: esta escala muestra exactamente lo que los expertos ya pueden hacer con lo que ha completado y lo que falta para ir más lejos."
+        "en": "Preliminary advice or validation: this block shows what is still missing to ask the experts for each, and lets you send the request as soon as it is possible.",
+        "fr": "Avis préliminaire ou validation : ce bloc montre ce qu’il manque pour solliciter les experts dans chaque cas, et vous laisse envoyer la demande dès que c’est possible.",
+        "de": "Vorläufige Einschätzung oder Validierung: Dieser Block zeigt, was jeweils noch fehlt, um die Experten anzufragen, und lässt Sie die Anfrage senden, sobald es möglich ist.",
+        "es": "Dictamen preliminar o validación: este bloque muestra lo que falta para consultar a los expertos en cada caso y le permite enviar la solicitud en cuanto sea posible."
       },
       "placement": "bottom",
       "highlightScope": "target",

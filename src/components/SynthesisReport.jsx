@@ -2789,7 +2789,7 @@ export const SynthesisReport = ({
                 </React.Fragment>
               )}
             </h1>
-            {projectStatusLabel && (
+            {projectStatusLabel && !(isProjectEditable && normalizedProjectStatus !== 'cancelled') && (
               <span
                 className={`inline-flex items-center self-start rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${projectStatusClasses}`}
               >
@@ -2854,6 +2854,7 @@ export const SynthesisReport = ({
       <div className="max-w-6xl mx-auto flex flex-col gap-4">
         {isProjectEditable && (
           <>
+            {renderProjectSteps()}
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start" data-testid="stakes-top">
               <section
                 aria-labelledby="stakes-maturing-heading"
@@ -2931,7 +2932,6 @@ export const SynthesisReport = ({
                 />
               </div>
             </div>
-            {renderProjectSteps()}
           </>
         )}
 

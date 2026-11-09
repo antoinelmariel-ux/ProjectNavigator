@@ -218,62 +218,20 @@ export const ProjectReadinessPanel = ({
       <h2 className="text-sm font-bold uppercase tracking-wide text-gray-600">
         {t('synthesisReport.readiness.heading')}
       </h2>
-
-      {/* Une échelle, pas trois cartes côte à côte : chacune portait sa propre liste « il
-          manque », ce qui laissait croire que l'avis technique et la validation reposaient sur
-          des réponses différentes. Ils demandent le même dossier — seule la fermeté des
-          réponses les sépare — donc une seule liste, celle du prochain palier. */}
-      <ol className="mt-3 flex flex-col" aria-label={t('synthesisReport.readiness.stepperAriaLabel')}>
-        {LEVEL_ORDER.map((levelId, index) => {
-          const entry = levelById.get(levelId);
-          const reached = entry?.reached === true;
-          const isNext = nextEntry?.id === levelId;
-
-          return (
-            <li key={levelId} className="flex gap-3">
-              <div className="flex flex-col items-center">
-                <span
-                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                    reached
-                      ? 'bg-emerald-600 text-white'
-                      : isNext
-                        ? 'bg-white text-blue-700 ring-2 ring-blue-500'
-                        : 'bg-white text-gray-400 ring-1 ring-gray-300'
-                  }`}
-                >
-                  {reached ? <CheckCircle className="w-4 h-4" /> : index + 1}
-                </span>
-                {index < LEVEL_ORDER.length - 1 && (
-                  <span
-                    aria-hidden="true"
-                    className={`mt-1 w-0.5 flex-1 rounded-full ${reached ? 'bg-emerald-500' : 'bg-gray-200'}`}
-                  />
-                )}
-              </div>
-              <div className="pb-3">
-                <p className={`text-sm font-semibold ${reached ? 'text-emerald-800' : isNext ? 'text-blue-800' : 'text-gray-500'}`}>
-                  {t(`synthesisReport.readiness.level.${levelId}`)}
-                </p>
-                {isNext && (
-                  <p className="mt-0.5 text-xs text-gray-600">
-                    {t(`synthesisReport.readiness.levelRequirement.${levelId}`)}
-                  </p>
-                )}
-              </div>
-            </li>
-          );
-        })}
-      </ol>
       </>
       ) : null}
 
+      {/* Le panneau ne dessine plus d'échelle : le parcours (brouillon, avis préliminaire,
+          validation, lancement) est porté par la frise en tête de page, et en répéter une
+          seconde ici — avec des intitulés voisins — faisait croire à deux axes qui se
+          recoupent. Ici, une seule chose : ce qu'il reste à faire pour ouvrir la prochaine
+          porte, et les portes elles-mêmes. Avis technique et validation demandent le même
+          dossier, donc une seule liste. */}
       {nextEntry ? (
         nextEntry.missing.length > 0 && (
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+          <div className="mt-3 rounded-xl border border-gray-200 bg-gray-50 p-3">
             <p className="text-xs font-semibold text-gray-900">
-              {t('synthesisReport.readiness.nextLevelHeading', {
-                level: t(`synthesisReport.readiness.level.${nextEntry.id}`)
-              })}
+              {t(`synthesisReport.readiness.nextStepHeading.${nextEntry.id}`)}
             </p>
             <p className="mt-1 text-xs text-gray-600">
               {t(`synthesisReport.readiness.missingIntro.${nextEntry.id}`, { count: nextEntry.missing.length })}

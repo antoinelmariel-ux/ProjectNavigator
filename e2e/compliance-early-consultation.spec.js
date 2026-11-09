@@ -42,8 +42,9 @@ test.describe('Consultation compliance en amont', () => {
     await page.getByRole('button', { name: /Créer un projet/ }).first().click();
     await answerEverything(page);
 
-    await expect(page.getByText('Où en est votre projet', { exact: true })).toBeVisible();
-    await expect(page.getByText('Orientation possible')).toBeVisible();
+    await expect(page.getByText('Prochaine étape', { exact: true })).toBeVisible();
+    await expect(page.getByText('Tout est réuni', { exact: false })).toBeVisible();
+    await expect(page.locator('ol[aria-label="Étapes du projet"] li[aria-current="step"]')).toContainText('Brouillon');
     await expect(page.getByRole('button', { name: 'Demander un avis préliminaire' })).toBeEnabled();
     await expect(page.getByRole('button', { name: 'Demander la validation' })).toBeEnabled();
   });
