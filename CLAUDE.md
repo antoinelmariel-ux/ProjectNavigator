@@ -805,8 +805,10 @@ The synthesis is one column under a **top block in two columns** (owner only, `i
 left « Faire mûrir votre projet » (`renderMaturingTeams`: teams with something new since the last
 visit, `stakes-since-last-visit`/`stakes-news-<teamId>` with a « lire » link that unfolds the card
 and reveals the message; teams the owner has not written to yet; the showcase and its feedback
-count; the form's missing answers and open doubts), right `ProjectReadinessPanel` unchanged except
-that the showcase now lives on the left (it gets no `onOpenShowcase`). Under it, the step line
+count; the form's missing answers and open doubts), right `ProjectReadinessPanel`, which once the project is sent opens on
+« Avis des équipes » (`opinionsSummary`: what was requested and when, counts of opinions given /
+awaiting information / expected) instead of the readiness ladder; the showcase lives on the left
+(the panel gets no `onOpenShowcase`). The header carries « Modifier les réponses » and « Membres (N) ». Under it, the step line
 (`renderProjectSteps`, `ol[aria-label="Étapes du projet"]`, `aria-current="step"`). There is no
 side rail or table of contents any more. An expert gets no top block, only the launch declaration.
 
@@ -824,6 +826,11 @@ side rail or table of contents any more. An expert gets no top block, only the l
   messages plus every new one stay visible, older ones collapse into « Afficher N messages plus
   anciens »; a committee's opinion stays pinned. A link to a precise message expands the whole
   thread (`expandedThreads`), which `e2e/stakes-entry-points.spec.js` relies on.
+- **Team cards are rows**: name, a one-line summary (risks, points, last message and who wrote it)
+  and the status chip; no status-coloured border (only chips carry colour). Under each thread an
+  input-like button (accessible name « Répondre : … ») opens the editor; experts also get « Donner
+  votre avis » there, and a request banner (preliminary / validation) under the title. The form to
+  solicit another team sits after the cards.
 - **Expert view**: own teams in `stakes-own-team` (« Votre équipe »), the rest in
   `stakes-other-teams`; the own team card starts with a one-line « Réponses du porteur » (open
   doubts, link to the answers recap). The claim and followers blocks are plain lines of grey text

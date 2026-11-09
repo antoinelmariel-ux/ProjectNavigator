@@ -81,7 +81,7 @@ test.describe('Corrections de l’audit UX', () => {
     await proceedThroughMandatorySummary(page);
     await page.getByTestId('showcase-next-step').getByRole('button', { name: 'Consulter les enjeux du projet' }).click();
 
-    await expect(page.getByText(/\d+ points? à préparer · 0 échange$/).first()).toBeVisible();
+    await expect(page.getByText(/\d+ points? à préparer · aucun message pour l’instant$/).first()).toBeVisible();
     await expect(page.getByText(/\(s\)/)).toHaveCount(0);
   });
 
