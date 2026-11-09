@@ -794,9 +794,50 @@ the usual intro / facts / expectations / footer. Every other type keeps the form
   fails silently and a 400 on create retries without them: one mail per message, as before. The
   local journal (`window.__cnMockNotifications`) groups the same way, entries carry `groupKey`/
   `messages`.
+- **Arrival contract, pinned for the « Enjeux du projet » redesign**: `e2e/stakes-entry-points.spec.js` arrives by the exact URLs the mails build (state seeded, not UI-driven) and from the home cards, and only reads the heading, `#compliance-team-block-*`/`#compliance-committee-block-*` (with an `aria-expanded` toggle inside), `#compliance-opinion-*`, `#compliance-message-*` and `data-cn-link-target` — keep those through any layout change. Its last block pins what the reunited page adds (new messages since the last visit, teams with news first, own team first for an expert, the step line) through the `data-testid`s listed at its head.
 - Outside SharePoint, no mail leaves: `queueNotification` keeps the last 50 in
   `window.__cnMockNotifications` (subject, body, recipients), which is what `e2e/notification-message-links.spec.js` reads.
   Local mode does not persist post-its, so the post-it reveal itself is only exercised in SharePoint mode.
+
+## « Enjeux du projet » as one page (top block, teams, threads)
+
+The synthesis is one column under a **top block in two columns** (owner only, `isProjectEditable`):
+left « Faire mûrir votre projet » (`renderMaturingTeams`: teams with something new since the last
+visit, `stakes-since-last-visit`/`stakes-news-<teamId>` with a « lire » link that unfolds the card
+and reveals the message; teams the owner has not written to yet; the showcase and its feedback
+count; the form's missing answers and open doubts), right `ProjectReadinessPanel`, which once the project is sent opens on
+« Avis des équipes » (`opinionsSummary`: what was requested and when, counts of opinions given /
+awaiting information / expected) instead of the readiness ladder; the showcase lives on the left
+(the panel gets no `onOpenShowcase`). The header carries « Modifier les réponses » and « Membres (N) ». Under it, the step line
+(`renderProjectSteps`, `ol[aria-label="Étapes du projet"]`, `aria-current="step"`). There is no
+side rail or table of contents any more. An expert gets no top block, only the launch declaration.
+
+- **Risks live in the team that carries them** (`risksByTeamId`): full card while the reader has
+  not exchanged with that team, one line afterwards (a message of theirs in the thread, or an
+  opinion they gave), a click toggles it. Only risks no displayed team carries keep the
+  « Autres risques » section. Points à préparer are the blue box at the head of the card.
+- **« Nouveau » is personal and per visit.** `App.jsx` reads `getSynthesisSeenAt` *during render*,
+  before the effect marks the visit, and hands it as `lastVisitAt`; the visit is now marked for
+  everyone, not only owners (the home dot still only reads it for owners). A message written by
+  someone else after that date gets `data-cn-new-message="true"` and a « nouveau » chip; its team
+  gets `team-news-badge-<teamId>`, is expanded by default and sorted first on arrival
+  (`useStableList`, so it does not move afterwards). Never during a tour.
+- **Long threads fold from the top** (`src/utils/threadFold.js`): the last `THREAD_VISIBLE_TAIL`
+  messages plus every new one stay visible, older ones collapse into « Afficher N messages plus
+  anciens »; a committee's opinion stays pinned. A link to a precise message expands the whole
+  thread (`expandedThreads`), which `e2e/stakes-entry-points.spec.js` relies on.
+- **Team cards are rows**: name, a one-line summary (risks, points, last message and who wrote it)
+  and the status chip; no status-coloured border (only chips carry colour). Under each thread an
+  input-like button (accessible name « Répondre : … ») opens the editor; experts also get « Donner
+  votre avis » there, and a request banner (preliminary / validation) under the title. The form to
+  solicit another team sits after the cards.
+- **Expert view**: own teams in `stakes-own-team` (« Votre équipe »), the rest in
+  `stakes-other-teams`; the own team card starts with a one-line « Réponses du porteur » (open
+  doubts, « Voir toutes les réponses »). That link opens the owner's answers in a **non-modal side
+  panel** (`owner-answers-panel`, same cards as the recap via `renderAnswerCards`): the page makes room
+  for it on large screens (`.cn-answers-panel-open`, `cn-motion.css`) so the thread stays readable and
+  writable while reading; Échap or « Fermer » closes it and gives the focus back to the link. The claim and followers blocks are plain lines of grey text
+  (no frame) above it: they matter the first time, then the points and the thread do.
 
 ## Editing a reply in the expert ↔ owner thread
 

@@ -50,7 +50,8 @@ export const ProjectReadinessPanel = ({
   onRequestFinalValidation,
   isLaunched = false,
   canDeclareLaunch = false,
-  onDeclareLaunch
+  onDeclareLaunch,
+  opinionsSummary = null
 }) => {
   const { t, language } = useTranslation();
   // Déclaré avant toute sortie anticipée : un `return` placé au-dessus d'un hook casserait les
@@ -168,9 +169,10 @@ export const ProjectReadinessPanel = ({
       aria-label={t('synthesisReport.readiness.ariaLabel')}
       data-tour-id="synthesis-readiness"
     >
+      {isSubmitted && opinionsSummary}
       {isSubmitted && typeof onSendUpdate === 'function' && (hasChangesToSend || !hasSentSnapshot) && (
-        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3" role="status">
-          <p className="text-xs font-semibold text-amber-900">
+        <div className="mb-4 rounded-xl border-2 border-blue-200 bg-white p-3" role="status">
+          <p className="text-sm font-semibold text-gray-900">
             {hasChangesToSend
               ? t(
                 pendingChanges.length > 1
@@ -180,7 +182,7 @@ export const ProjectReadinessPanel = ({
               )
               : t('synthesisReport.readiness.updateWithoutReferenceHeading')}
           </p>
-          <p className="mt-1 text-xs text-amber-800">
+          <p className="mt-1 text-xs text-gray-600">
             {hasChangesToSend
               ? t('synthesisReport.readiness.pendingChangesHint')
               : t('synthesisReport.readiness.updateWithoutReferenceHint')}
@@ -194,7 +196,7 @@ export const ProjectReadinessPanel = ({
                 '#f59e0b'
               ))}
               {pendingChanges.length > 3 && (
-                <li className="text-xs leading-loose text-amber-800">
+                <li className="text-xs leading-loose text-gray-600">
                   {t('synthesisReport.readiness.moreChanges', { count: pendingChanges.length - 3 })}
                 </li>
               )}
@@ -203,7 +205,7 @@ export const ProjectReadinessPanel = ({
           <button
             type="button"
             onClick={onSendUpdate}
-            className="mt-3 w-full px-4 py-2 rounded-lg font-semibold text-xs transition-all flex items-center justify-center bg-amber-600 text-white hover:bg-amber-700 shadow-md"
+            className="mt-3 px-4 py-2 rounded-lg font-semibold text-sm transition-all flex items-center justify-center bg-blue-600 text-white hover:bg-blue-700"
           >
             <Send className="w-4 h-4 mr-2" />
             {t('synthesisReport.readiness.sendUpdateAction')}
@@ -211,6 +213,8 @@ export const ProjectReadinessPanel = ({
         </div>
       )}
 
+      {!opinionsSummary || !isSubmitted ? (
+      <>
       <h2 className="text-sm font-bold uppercase tracking-wide text-gray-600">
         {t('synthesisReport.readiness.heading')}
       </h2>
@@ -260,6 +264,8 @@ export const ProjectReadinessPanel = ({
           );
         })}
       </ol>
+      </>
+      ) : null}
 
       {nextEntry ? (
         nextEntry.missing.length > 0 && (
@@ -275,7 +281,7 @@ export const ProjectReadinessPanel = ({
             {renderMissing(nextEntry.missing)}
           </div>
         )
-      ) : (
+      ) : !(isSubmitted && opinionsSummary) && (
         <p className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-semibold text-emerald-800">
           <CheckCircle className="w-4 h-4 shrink-0" />
           {t('synthesisReport.readiness.allLevelsReached')}
@@ -468,6 +474,7 @@ export const ProjectReadinessPanel = ({
 
       {/* Le fond de l'affaire — pourquoi avis et validation demandent le même dossier, et ce
           que l'envoi engage — reste disponible, mais ne s'impose plus à chaque ouverture. */}
+      {!(isSubmitted && opinionsSummary) && (
       <div className="mt-4 border-t border-gray-200 pt-3">
         <button
           type="button"
@@ -492,6 +499,7 @@ export const ProjectReadinessPanel = ({
           </div>
         )}
       </div>
+      )}
 
       {/* Dernier tour avant lancement. Rien ne peut le rendre obligatoire — il n'existe pas de
           jalon opposable — donc sa force est d'être visible et de ne coûter qu'un clic à

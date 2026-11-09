@@ -74,6 +74,7 @@ import { isLanguageAcceptedBy, normalizeAcceptedLanguages } from '../utils/trans
 import { isTeamAutoValidated, resolveEffectiveTeamComplianceEntry } from '../utils/complianceAutoValidation.js';
 import { MANUAL_TEAM_REQUESTS_KEY, normalizeManualTeamRequests } from '../utils/manualTeamRequests.js';
 import { getAppScrollTopForElement, scrollAppTo } from '../utils/scrollContainer.js';
+import { foldThreadMessages } from '../utils/threadFold.js';
 import {
   PERIMETER_TYPE_COMMITTEE,
   PERIMETER_TYPE_TEAM,
@@ -173,7 +174,8 @@ const CollapsibleSection = ({
         className="flex w-full items-center gap-3 rounded-lg border border-gray-200 bg-white px-5 py-4 text-left transition-colors hover:bg-gray-50"
       >
         <svg
-          className={`h-4 w-4 flex-shrink-0 text-gray-400 transition-transform duration-200 ${isOpen ? '' : '-rotate-90'}`}
+          className="h-4 w-4 flex-shrink-0 text-gray-400 transition-transform duration-200"
+          style={{ transform: isOpen ? undefined : 'rotate(-90deg)' }}
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -649,6 +651,7 @@ export const SynthesisReport = ({
   questions,
   projectStatus,
   projectId,
+  lastVisitAt = '',
   projectName: providedProjectName,
   onOpenProjectShowcase,
   canOpenProjectShowcase = true,
@@ -710,6 +713,9 @@ export const SynthesisReport = ({
   const { t, language } = useTranslation();
   const [isShowcaseFallbackOpen, setIsShowcaseFallbackOpen] = useState(false);
   const [isOverviewOpen, setIsOverviewOpen] = useState(false);
+  const [isAnswersPanelOpen, setIsAnswersPanelOpen] = useState(false);
+  const answersPanelCloseRef = useRef(null);
+  const answersPanelTriggerRef = useRef(null);
   const [openSections, setOpenSections] = useState({
     teams: true,
     risks: false,
@@ -728,6 +734,7 @@ export const SynthesisReport = ({
   const [complianceReplyDrafts, setComplianceReplyDrafts] = useState({});
   const [replyEdit, setReplyEdit] = useState(null);
   const [teamCollapsedOverrides, setTeamCollapsedOverrides] = useState({});
+  const [riskExpandOverrides, setRiskExpandOverrides] = useState({});
   const [openTeamCommentEditors, setOpenTeamCommentEditors] = useState({});
   const [openTeamReplyBoxes, setOpenTeamReplyBoxes] = useState({});
   const [shareMemberFeedback, setShareMemberFeedback] = useState('');
@@ -850,26 +857,6 @@ export const SynthesisReport = ({
     ).status,
     [complianceComments, analysis, language]
   );
-  const rankedRelevantTeams = useMemo(() => {
-    return [...relevantTeams].sort((a, b) => {
-      const statusRankA = TEAM_STATUS_RANK[getStoredTeamStatus(a.id)] ?? 1;
-      const statusRankB = TEAM_STATUS_RANK[getStoredTeamStatus(b.id)] ?? 1;
-      if (statusRankA !== statusRankB) {
-        return statusRankA - statusRankB;
-      }
-      const priorityRankA = TEAM_PRIORITY_RANK[getTeamPriority(analysis, a.id)] ?? 1;
-      const priorityRankB = TEAM_PRIORITY_RANK[getTeamPriority(analysis, b.id)] ?? 1;
-      return priorityRankA - priorityRankB;
-    });
-  }, [relevantTeams, getStoredTeamStatus, analysis]);
-  // Enregistrer un avis change le rang de la carte (un avis validé descend) : trié en direct,
-  // la carte que l'expert vient de traiter quitterait l'écran. L'ordre par urgence ne
-  // s'applique donc qu'à l'ouverture de la synthèse, les cartes restent en place ensuite ; le
-  // liseré et le résumé replié disent le nouveau statut.
-  const { items: sortedRelevantTeams } = useStableList(rankedRelevantTeams, {
-    getId: getTeamId,
-    resetKey: String(projectId ?? '')
-  });
   const teamStatusSummary = useMemo(() => {
     const counts = {};
     relevantTeams.forEach((team) => {
@@ -1062,6 +1049,76 @@ export const SynthesisReport = ({
   // Expert = contact d'une équipe ou membre d'un comité qui n'est pas porteur du projet.
   const isExpertViewer = !canReplyAsProjectContributor
     && (isComplianceExpertUser || committeeIdsForUser.size > 0);
+  // « Nouveau » = écrit par quelqu'un d'autre depuis la visite précédente de cette personne
+  // (synthesisSeen.js, lu par App.jsx avant de marquer la visite en cours).
+  const isNewSinceLastVisit = useCallback(
+    (date, authorEmail) => Boolean(lastVisitAt)
+      && typeof date === 'string'
+      && date > lastVisitAt
+      && normalizeEmail(authorEmail) !== currentUserEmail,
+    [currentUserEmail, lastVisitAt]
+  );
+  const teamsWithNews = useMemo(() => {
+    const ids = new Set();
+    if (!lastVisitAt) {
+      return ids;
+    }
+    relevantTeams.forEach((team) => {
+      const entry = complianceComments.teams?.[team.id];
+      const replies = Array.isArray(entry?.replies) ? entry.replies : [];
+      const hasNewReply = replies.some((reply) => isNewSinceLastVisit(reply?.createdAt, reply?.authorEmail));
+      const hasOpinion = Boolean(entry?.status) || Boolean(String(entry?.comment || '').trim());
+      const hasNewOpinion = hasOpinion
+        && !complianceTeamIdsForUser.has(team.id)
+        && isNewSinceLastVisit(entry?.statusUpdatedAt, '');
+      if (hasNewReply || hasNewOpinion) {
+        ids.add(team.id);
+      }
+    });
+    return ids;
+  }, [complianceComments, complianceTeamIdsForUser, isNewSinceLastVisit, lastVisitAt, relevantTeams]);
+  // Chaque risque se lit dans la carte de l'équipe qui le porte ; seuls ceux qu'aucune équipe
+  // affichée ne porte gardent une section à part.
+  const risksByTeamId = useMemo(() => {
+    const displayedTeamIds = new Set(relevantTeams.map((team) => team.id));
+    const byTeam = new Map();
+    const unattached = [];
+    (Array.isArray(analysis?.risks) ? analysis.risks : []).forEach((risk, index) => {
+      const teamId = risk?.teamId || (Array.isArray(risk?.teams) ? risk.teams[0] : null);
+      const keyed = { risk, key: `${teamId || 'none'}-${risk?.id || index}` };
+      if (teamId && displayedTeamIds.has(teamId)) {
+        byTeam.set(teamId, [...(byTeam.get(teamId) || []), keyed]);
+      } else {
+        unattached.push(keyed);
+      }
+    });
+    return { byTeam, unattached };
+  }, [analysis, relevantTeams]);
+  const rankedRelevantTeams = useMemo(() => {
+    return [...relevantTeams].sort((a, b) => {
+      const newsRankA = teamsWithNews.has(a.id) ? 0 : 1;
+      const newsRankB = teamsWithNews.has(b.id) ? 0 : 1;
+      if (newsRankA !== newsRankB) {
+        return newsRankA - newsRankB;
+      }
+      const statusRankA = TEAM_STATUS_RANK[getStoredTeamStatus(a.id)] ?? 1;
+      const statusRankB = TEAM_STATUS_RANK[getStoredTeamStatus(b.id)] ?? 1;
+      if (statusRankA !== statusRankB) {
+        return statusRankA - statusRankB;
+      }
+      const priorityRankA = TEAM_PRIORITY_RANK[getTeamPriority(analysis, a.id)] ?? 1;
+      const priorityRankB = TEAM_PRIORITY_RANK[getTeamPriority(analysis, b.id)] ?? 1;
+      return priorityRankA - priorityRankB;
+    });
+  }, [relevantTeams, getStoredTeamStatus, analysis, teamsWithNews]);
+  // Enregistrer un avis change le rang de la carte (un avis validé descend) : trié en direct,
+  // la carte que l'expert vient de traiter quitterait l'écran. L'ordre par urgence ne
+  // s'applique donc qu'à l'ouverture de la synthèse, les cartes restent en place ensuite ; le
+  // liseré et le résumé replié disent le nouveau statut.
+  const { items: sortedRelevantTeams } = useStableList(rankedRelevantTeams, {
+    getId: getTeamId,
+    resetKey: String(projectId ?? '')
+  });
   const orderedRelevantTeams = useMemo(() => {
     if (!isExpertViewer) {
       return sortedRelevantTeams;
@@ -1070,6 +1127,14 @@ export const SynthesisReport = ({
     const others = sortedRelevantTeams.filter((team) => !complianceTeamIdsForUser.has(team.id));
     return [...mine, ...others];
   }, [isExpertViewer, sortedRelevantTeams, complianceTeamIdsForUser]);
+  const ownTeams = useMemo(
+    () => (isExpertViewer ? orderedRelevantTeams.filter((team) => complianceTeamIdsForUser.has(team.id)) : []),
+    [complianceTeamIdsForUser, isExpertViewer, orderedRelevantTeams]
+  );
+  const otherTeams = useMemo(
+    () => (isExpertViewer ? orderedRelevantTeams.filter((team) => !complianceTeamIdsForUser.has(team.id)) : []),
+    [complianceTeamIdsForUser, isExpertViewer, orderedRelevantTeams]
+  );
   const expertPerimeterNames = useMemo(() => {
     if (!isExpertViewer) {
       return [];
@@ -1981,20 +2046,6 @@ export const SynthesisReport = ({
     );
   };
 
-  const shouldCollapseThread = useCallback((messages) => {
-    if (!Array.isArray(messages)) {
-      return false;
-    }
-
-    if (messages.length > 3) {
-      return true;
-    }
-
-    const totalLength = messages.reduce((sum, message) => sum + (message.message || '').length, 0);
-    const hasLongMessage = messages.some((message) => (message.message || '').length > 280);
-
-    return totalLength > 600 || hasLongMessage;
-  }, []);
 
   const getThreadMessages = useCallback((entry, authorLabel) => {
     const normalized = normalizeCommentEntry(entry);
@@ -2027,6 +2078,35 @@ export const SynthesisReport = ({
     return messages;
   }, [t]);
 
+  const revealTimeoutRef = useRef(null);
+  const revealTeamTarget = useCallback((teamId, elementId) => {
+    openSection('teams');
+    setTeamCollapsedOverrides((previous) => ({ ...previous, [teamId]: false }));
+    setExpandedThreads((previous) => ({ ...previous, [`team-${teamId}`]: true }));
+    if (typeof document === 'undefined') {
+      return;
+    }
+    let attempts = 0;
+    clearTimeout(revealTimeoutRef.current);
+    const tryReveal = () => {
+      attempts += 1;
+      const element = document.getElementById(elementId) || document.getElementById(`compliance-team-block-${teamId}`);
+      if (element && (document.getElementById(elementId) || attempts >= 20)) {
+        revealLinkTarget(element);
+        return;
+      }
+      if (attempts < 20) {
+        revealTimeoutRef.current = setTimeout(tryReveal, 100);
+      }
+    };
+    revealTimeoutRef.current = setTimeout(tryReveal, 50);
+  }, [openSection]);
+  useEffect(() => () => clearTimeout(revealTimeoutRef.current), []);
+  useEffect(() => {
+    if (isAnswersPanelOpen) {
+      answersPanelCloseRef.current?.focus();
+    }
+  }, [isAnswersPanelOpen]);
   const toggleThreadExpanded = useCallback((threadKey) => {
     setExpandedThreads(prev => ({
       ...prev,
@@ -2282,6 +2362,377 @@ export const SynthesisReport = ({
     [handleSubmitProject]
   );
 
+  const renderTeamRisk = ({ risk, key }, { isCollapsedByDefault }) => {
+    const isExpanded = riskExpandOverrides[key] !== undefined ? riskExpandOverrides[key] : !isCollapsedByDefault;
+    const levelLabel = String(riskLevelLabels[risk.level] || risk.level).replace(/\s*\(.*\)\s*$/, '');
+    const priorityLabel = riskPriorityLabels[risk.priority] || risk.priority;
+    const descriptionText = resolveLocalizedText(risk.description, language);
+    const mitigationText = resolveLocalizedText(risk.mitigation, language);
+    const timingViolationMessage = formatRiskTimingViolation(risk.timingViolation, language, t);
+    const toggle = () => setRiskExpandOverrides((previous) => ({ ...previous, [key]: !isExpanded }));
+    const chips = (
+      <>
+        <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${riskColors[risk.level] || ''}`}>{levelLabel}</span>
+        {priorityLabel && (
+          <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${priorityColors[risk.priority] || ''}`}>{priorityLabel}</span>
+        )}
+      </>
+    );
+    if (!isExpanded) {
+      return (
+        <div
+          key={key}
+          role="group"
+          aria-label={t('synthesisReport.riskAriaLabelTemplate', { level: levelLabel })}
+          className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700"
+          data-testid={`team-risk-${key}`}
+        >
+          <button
+            type="button"
+            onClick={toggle}
+            aria-expanded="false"
+            title={t('synthesisReport.riskExpandAction')}
+            className="inline-flex items-center gap-2 text-sm font-semibold text-gray-900"
+          >
+            <span aria-hidden="true" className="text-gray-500">▸</span>
+            {t('synthesisReport.riskCardLabel')}
+          </button>
+          {chips}
+          <span className="min-w-0 text-gray-900">{renderTextWithLinks(descriptionText)}</span>
+        </div>
+      );
+    }
+    return (
+      <div
+        key={key}
+        role="group"
+        aria-label={t('synthesisReport.riskAriaLabelTemplate', { level: levelLabel })}
+        className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3"
+        data-testid={`team-risk-${key}`}
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={toggle}
+            aria-expanded="true"
+            className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500"
+          >
+            <span aria-hidden="true">▾</span>
+            {t('synthesisReport.riskCardLabel')}
+          </button>
+          {chips}
+        </div>
+        <p className="text-base font-semibold text-gray-900">{renderTextWithLinks(descriptionText)}</p>
+        {timingViolationMessage && (
+          <p className="text-xs text-red-600">{timingViolationMessage}</p>
+        )}
+        {mitigationText && (
+          <p className="text-sm leading-relaxed text-gray-700">
+            <span className="font-semibold">{t('synthesisReport.riskMitigationLabel')}</span>{' '}
+            {renderTextWithLinks(mitigationText)}
+          </p>
+        )}
+      </div>
+    );
+  };
+
+  const formMissingCount = Array.isArray(readiness?.levels)
+    ? (readiness.levels.find((level) => level.id === 'advice')?.missing?.length || 0)
+    : 0;
+
+  const renderMaturingTeams = () => {
+    const isSubmitted = normalizedProjectStatus === 'submitted';
+    const linkClass = 'font-semibold text-blue-700 underline underline-offset-2 hover:text-blue-800';
+    const newsEntries = [];
+    const unwrittenTeams = [];
+    let teamsWithPointsCount = 0;
+    orderedRelevantTeams.forEach((team) => {
+      const teamName = resolveLocalizedText(team.name, language);
+      const entry = complianceComments.teams?.[team.id];
+      const replies = Array.isArray(entry?.replies) ? entry.replies : [];
+      const contacts = new Set(normalizeTeamContacts(team).map((contact) => normalizeEmail(contact)));
+      const hasPoints = Array.isArray(analysis.questions?.[team.id]) && analysis.questions[team.id].length > 0;
+      if (hasPoints) {
+        teamsWithPointsCount += 1;
+      }
+      if (teamsWithNews.has(team.id)) {
+        const newReplies = replies.filter((reply) => isNewSinceLastVisit(reply?.createdAt, reply?.authorEmail));
+        const latestReply = newReplies[newReplies.length - 1];
+        const target = latestReply
+          ? {
+            elementId: `compliance-message-${latestReply.id}`,
+            date: latestReply.createdAt,
+            author: contacts.has(normalizeEmail(latestReply.authorEmail))
+              ? t('synthesisReport.expertAuthorLabel')
+              : (latestReply.authorName || latestReply.authorEmail || '')
+          }
+          : { elementId: `compliance-opinion-team-${team.id}`, date: entry?.statusUpdatedAt, author: t('synthesisReport.expertAuthorLabel') };
+        newsEntries.push({ team, teamName, ...target });
+      } else if (
+        isSubmitted
+        && hasPoints
+        && !getStoredTeamStatus(team.id)
+        && !replies.some((reply) => normalizeEmail(reply?.authorEmail) === currentUserEmail)
+      ) {
+        unwrittenTeams.push({ team, teamName });
+      }
+    });
+    return (
+      <div className="flex flex-col gap-1.5">
+        <p className="m-0 text-xs font-semibold uppercase tracking-wide text-gray-500">
+          {newsEntries.length > 0 ? t('synthesisReport.sinceLastVisitLabel') : t('synthesisReport.teamsLabel')}
+        </p>
+        {newsEntries.length > 0 && (
+          <ul className="m-0 flex list-none flex-col gap-1 p-0 text-sm text-gray-700" data-testid="stakes-since-last-visit">
+            {newsEntries.map((news) => (
+              <li key={news.team.id} data-testid={`stakes-news-${news.team.id}`}>
+                <strong className="text-gray-900">{news.teamName}</strong>
+                {' · '}
+                {t('synthesisReport.newsEntryTemplate', {
+                  author: news.author,
+                  date: news.date ? formatTimestamp(news.date, language) : ''
+                })}
+                <span className="ml-1.5 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-900">
+                  {t('synthesisReport.newBadge')}
+                </span>
+                {' — '}
+                <a
+                  href={`#${news.elementId}`}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    revealTeamTarget(news.team.id, news.elementId);
+                  }}
+                  className={linkClass}
+                >
+                  {t('synthesisReport.readAction')}
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+        {unwrittenTeams.length > 0 && (
+          <ul className="m-0 flex list-none flex-col gap-1 p-0 text-sm text-gray-700">
+            {unwrittenTeams.map((entry) => (
+              <li key={entry.team.id} data-testid={`stakes-unwritten-${entry.team.id}`}>
+                <strong className="text-gray-900">{entry.teamName}</strong>
+                {' · '}
+                {t('synthesisReport.notWrittenYet')}
+                {' — '}
+                <a
+                  href={`#team-points-${entry.team.id}`}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    revealTeamTarget(entry.team.id, `team-points-${entry.team.id}`);
+                  }}
+                  className={linkClass}
+                >
+                  {t('synthesisReport.seePointsAction')}
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+        {!isSubmitted && teamsWithPointsCount > 0 && (
+          <p className="m-0 text-sm text-gray-700">
+            {t('synthesisReport.pointsReceivedTemplate', { count: teamsWithPointsCount })}
+          </p>
+        )}
+        {isSubmitted && newsEntries.length === 0 && unwrittenTeams.length === 0 && (
+          <p className="m-0 text-sm text-gray-700">{t('synthesisReport.noNewsSinceLastVisit')}</p>
+        )}
+      </div>
+    );
+  };
+
+  const requestKindLabel = submissionKind === SUBMISSION_KIND_PRELIMINARY
+    ? t('synthesisReport.requestPreliminaryLabel')
+    : t('synthesisReport.requestFinalLabel');
+  const requestMetaLine = [
+    requestKindLabel,
+    lastSentAt ? t('synthesisReport.sentOnTemplate', { date: formatTimestamp(lastSentAt, language) }) : '',
+    submissionVersion > 0 ? t('synthesisReport.versionTemplate', { version: submissionVersion }) : ''
+  ].filter(Boolean).join(' · ');
+
+  const openAnswersPanel = (trigger) => {
+    answersPanelTriggerRef.current = trigger || null;
+    setIsAnswersPanelOpen(true);
+  };
+  const closeAnswersPanel = () => {
+    setIsAnswersPanelOpen(false);
+    const trigger = answersPanelTriggerRef.current;
+    if (trigger && typeof trigger.focus === 'function') {
+      trigger.focus();
+    }
+  };
+
+  const renderAnswerCards = () => (Array.isArray(questions) ? questions : []).map(q => {
+                    if (!q || typeof q !== 'object') {
+                      return null;
+                    }
+
+                    const answerValue = answers[q.id];
+                    // Le doute ne remplace jamais la réponse : c'est une note à part, affichée en
+                    // plus de la valeur donnée, jamais à sa place — y compris quand cette valeur
+                    // est encore vide.
+                    const hasDoubt = hasQuestionDoubt(answers, q.id);
+                    const doubtText = getQuestionDoubtText(answers, q.id);
+                    const shouldRenderCard = isAnswerProvided(answerValue) || q.required || hasDoubt;
+
+                    if (!shouldRenderCard) {
+                      return null;
+                    }
+
+                    const missingInfoLabel = t('synthesisReport.missingInfoLabel');
+                    const displayValue = formatOverviewValue(q, answerValue, missingInfoLabel, language);
+                    const questionText = resolveLocalizedText(q.question, language);
+
+                    return (
+                      <div key={q.id} className="bg-white rounded-lg p-4 border border-gray-200">
+                        <div className="flex items-start justify-between gap-3 mb-1">
+                          <p className="m-0 text-sm text-gray-600">{questionText}</p>
+                          {typeof onNavigateToQuestion === 'function' && isProjectEditable && (
+                            <button
+                              type="button"
+                              onClick={() => onNavigateToQuestion(q.id)}
+                              className="flex items-center justify-center w-8 h-8 rounded-full border border-gray-200 text-gray-500 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-colors"
+                              aria-label={t('synthesisReport.editAnswerAriaLabelTemplate', { question: questionText })}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                        {(() => {
+                          const resolvedValue = displayValue || missingInfoLabel;
+                          const isMissingInfo = resolvedValue === missingInfoLabel;
+                          const answerFiles = q.type === 'file'
+                            ? (Array.isArray(answerValue) ? answerValue : answerValue ? [answerValue] : [])
+                                .filter((file) => file && typeof file === 'object' && typeof file.url === 'string' && file.url.trim().length > 0)
+                            : [];
+
+                          return (
+                            <>
+                              {answerFiles.length > 0 ? (
+                                <ul className="space-y-1">
+                                  {answerFiles.map((file, index) => (
+                                    <li key={`${file.url}-${index}`} className="font-semibold text-gray-900">
+                                      <a
+                                        href={file.url.trim()}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 underline"
+                                      >
+                                        {file.name || resolvedValue}
+                                      </a>
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <p
+                                  className={`m-0 font-semibold whitespace-pre-line ${
+                                    isMissingInfo ? 'text-rose-400' : 'text-gray-900'
+                                  }`}
+                                >
+                                  {renderTextWithLinks(resolvedValue)}
+                                </p>
+                              )}
+                              {hasDoubt && (
+                                <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                                  <p className="flex items-center gap-2 text-sm font-semibold text-amber-900">
+                                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                                    {t('synthesisReport.overviewDoubtHeading')}
+                                  </p>
+                                  {doubtText.trim().length > 0 && (
+                                    <p className="mt-1 text-xs text-amber-800 whitespace-pre-line">
+                                      {doubtText}
+                                    </p>
+                                  )}
+                                  {/* La validation définitive n'accepte aucun doute : le dire ici,
+                                      là où le porteur relit ses réponses, plutôt qu'au moment où
+                                      le bouton est grisé. */}
+                                  <p className="mt-1 text-xs text-amber-700">
+                                    {canReplyAsProjectContributor
+                                      ? t('synthesisReport.overviewDoubtBlocksValidation')
+                                      : t('synthesisReport.overviewDoubtRaisedByOwner')}
+                                  </p>
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
+                      </div>
+                    );
+                  });
+
+  const renderOpinionsSummary = () => {
+    const givenCount = ['validated', 'validated_with_conditions', 'not_concerned', 'rejected']
+      .reduce((sum, status) => sum + (teamStatusSummary[status] || 0), 0);
+    const pendingCount = teamStatusSummary.pending_information || 0;
+    const awaitedCount = teamStatusSummary[''] || 0;
+    const chipClass = 'rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-700';
+    return (
+      <div className="mb-4 flex flex-col gap-2" data-testid="stakes-opinions-summary">
+        <h2 className="m-0 text-lg font-bold text-gray-800">{t('synthesisReport.opinionsTitle')}</h2>
+        <p className="m-0 text-sm text-gray-600">{requestMetaLine}</p>
+        <div className="flex flex-wrap gap-1.5">
+          {givenCount > 0 && <span className={chipClass}>{t('synthesisReport.opinionsGivenTemplate', { count: givenCount })}</span>}
+          {pendingCount > 0 && <span className={chipClass}>{t('synthesisReport.opinionsPendingInfoTemplate', { count: pendingCount })}</span>}
+          {awaitedCount > 0 && <span className={chipClass}>{t('synthesisReport.opinionsAwaitedTemplate', { count: awaitedCount })}</span>}
+        </div>
+        <button
+          type="button"
+          onClick={() => handleNavigateToSection('teams', 'synthesis-section-teams')}
+          className="self-start text-sm font-semibold text-blue-700 underline underline-offset-2 hover:text-blue-800"
+        >
+          {t('synthesisReport.opinionsDetailAction')}
+        </button>
+      </div>
+    );
+  };
+
+  const renderProjectSteps = () => {
+    const isSubmitted = normalizedProjectStatus === 'submitted';
+    const steps = ['draft', 'preliminary', 'validation', 'launch'];
+    const currentStep = isLaunched || roundStatus?.isRequested
+      ? 'launch'
+      : isSubmitted
+        ? (submissionKind === SUBMISSION_KIND_PRELIMINARY ? 'preliminary' : 'validation')
+        : 'draft';
+    const currentIndex = steps.indexOf(currentStep);
+    const labels = {
+      draft: t('synthesisReport.stepDraft'),
+      preliminary: t('synthesisReport.stepPreliminary'),
+      validation: t('synthesisReport.stepValidation'),
+      launch: t('synthesisReport.stepLaunch')
+    };
+    return (
+      <ol
+        aria-label={t('synthesisReport.stepsAriaLabel')}
+        className="m-0 flex list-none flex-wrap items-center gap-x-2.5 gap-y-1 p-0 px-1 text-xs"
+      >
+        {steps.map((step, index) => {
+          const isCurrent = index === currentIndex;
+          const isDone = index < currentIndex;
+          return (
+            <React.Fragment key={step}>
+              {index > 0 && <li aria-hidden="true" className="h-px w-6 bg-slate-300" />}
+              <li
+                aria-current={isCurrent ? 'step' : undefined}
+                className={`flex items-center gap-2 ${isCurrent ? 'font-semibold text-blue-800' : isDone ? 'text-gray-700' : 'text-gray-500'}`}
+              >
+                <span
+                  aria-hidden="true"
+                  className={`h-2.5 w-2.5 rounded-full ${isCurrent ? 'bg-blue-600' : isDone ? 'bg-gray-500' : 'border-2 border-gray-400'}`}
+                />
+                {labels[step]}
+                {isCurrent && <span className="font-normal">{t('synthesisReport.stepCurrentSuffix')}</span>}
+              </li>
+            </React.Fragment>
+          );
+        })}
+      </ol>
+    );
+  };
+
   const teamsHeadingLabel = t('synthesisReport.teamsHeadingLabel');
   const headingProjectName = stripRichTextToPlainText(effectiveProjectName).trim();
 
@@ -2318,59 +2769,9 @@ export const SynthesisReport = ({
     [teamStatusSummary]
   );
 
-  // Le sommaire ne liste que les sections réellement présentes : un intitulé « (0) » dans le
-  // rail ferait exactement ce qu'on cherche à supprimer, du bruit à lire avant d'agir.
-  const sectionNavItems = useMemo(() => {
-    const items = [{
-      key: 'teams',
-      elementId: 'synthesis-section-teams',
-      label: t('synthesisReport.teamsHeadingTemplate', { label: teamsHeadingLabel, count: relevantTeams.length })
-    }];
-
-    if (analysis.risks.length > 0) {
-      items.push({
-        key: 'risks',
-        elementId: 'synthesis-section-risks',
-        label: t('synthesisReport.risksHeadingTemplate', { count: analysis.risks.length })
-      });
-    }
-
-    if (vigilanceAlerts.length > 0) {
-      items.push({
-        key: 'vigilance',
-        elementId: 'synthesis-section-vigilance',
-        label: t('synthesisReport.vigilanceHeadingTemplate', { count: vigilanceAlerts.length })
-      });
-    }
-
-    if (shouldShowCommitteeSection) {
-      items.push({
-        key: 'committees',
-        elementId: 'synthesis-section-committees',
-        label: t('synthesisReport.committeeOpinionsTemplate', { count: committeesToDisplay.length })
-      });
-    }
-
-    items.push({
-      key: 'overview',
-      elementId: 'synthesis-section-overview',
-      label: overviewTitleLabel
-    });
-
-    return items;
-  }, [
-    analysis.risks.length,
-    committeesToDisplay.length,
-    relevantTeams.length,
-    shouldShowCommitteeSection,
-    teamsHeadingLabel,
-    vigilanceAlerts.length,
-    overviewTitleLabel,
-    t
-  ]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 px-4 py-6 sm:px-8 sm:py-10">
+    <div className={`min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 px-4 py-6 sm:px-8 sm:py-10 ${isAnswersPanelOpen ? 'cn-answers-panel-open' : ''}`}>
       {/* Titre, rail et colonne forment une seule cible pour le tour guidé : l'étape qui
           présente les enjeux décrit les trois ensemble. */}
       <div className="max-w-6xl mx-auto" data-tour-id="synthesis-summary">
@@ -2411,9 +2812,23 @@ export const SynthesisReport = ({
                 <button
                   type="button"
                   onClick={onBack}
-                  className="text-sm font-medium text-gray-600 underline underline-offset-4 hover:text-gray-800 transition-all w-full sm:w-auto text-center"
+                  className="px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all w-full sm:w-auto text-center"
                 >
-                  {t('synthesisReport.backToQuestionnaire')}
+                  {t('synthesisReport.editAnswersAction')}
+                </button>
+              )}
+              {(onShareProjectMember || onRemoveProjectMember) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const element = typeof document !== 'undefined' ? document.getElementById('synthesis-share-section') : null;
+                    if (element) {
+                      revealLinkTarget(element);
+                    }
+                  }}
+                  className="px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all w-full sm:w-auto text-center"
+                >
+                  {t('synthesisReport.membersButtonTemplate', { count: 1 + normalizedSharedMembers.length })}
                 </button>
               )}
               {canOpenProjectShowcase && (
@@ -2436,88 +2851,129 @@ export const SynthesisReport = ({
           atteint, action, sommaire) et reste visible au défilement, la colonne de droite porte
           ce qu'il faut lire. Avant, l'action principale disparaissait dès qu'on descendait
           consulter ses risques. */}
-      <div className="max-w-6xl mx-auto flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
-        <aside className="w-full lg:w-72 lg:shrink-0 lg:sticky lg:top-6">
-          <div className="bg-white rounded-2xl shadow-xl divide-y divide-gray-100">
-            {isProjectEditable && (
-              <ProjectReadinessPanel
-                readiness={readiness}
-                openQuestionDoubts={openQuestionDoubts}
-                isSubmitted={normalizedProjectStatus === 'submitted'}
-                submissionKind={submissionKind}
-                notifiedTeamNames={relevantTeams.map((team) => resolveLocalizedText(team.name, language))}
-                onSubmitPreliminary={handleSubmitPreliminary}
-                onSubmitFinal={handleSubmitFinal}
-                onNavigateToQuestion={onNavigateToQuestion}
-                onOpenShowcase={canOpenProjectShowcase ? handleOpenShowcase : undefined}
-                showcaseFeedbackCount={showcaseFeedbackCount}
-                pendingChanges={pendingChanges}
-                hasSentSnapshot={hasSentSnapshot}
-                submissionVersion={submissionVersion}
-                lastSentAt={lastSentAt}
-                onSendUpdate={onSendUpdate}
-                solicitablePerimeters={solicitablePerimeters}
-                deferredPerimeters={deferredPerimeters}
-                hasSolicitedOpinion={hasSolicitedOpinion}
-                onSolicitPerimeters={canSolicitPerimeters ? onSolicitPerimeters : undefined}
-                onEditProject={onBack}
-                launchSignal={launchSignal}
-                roundStatus={roundStatus}
-                onRequestFinalValidation={onRequestFinalValidation}
-                isLaunched={isLaunched}
-                canDeclareLaunch={canDeclareLaunch}
-                onDeclareLaunch={onDeclareLaunch}
-              />
-            )}
-
-            {!isProjectEditable && canDeclareLaunch && typeof onDeclareLaunch === 'function' && (
-              <div className="p-4">
-                <p className="text-sm font-semibold text-gray-800">
-                  {isLaunched
-                    ? t('synthesisReport.launchDeclaredTitle')
-                    : t('synthesisReport.launchQuestionTitle')}
-                </p>
-                <p className="mt-1 text-xs text-gray-600">
-                  {isLaunched
-                    ? t('synthesisReport.launchDeclaredHint')
-                    : t('synthesisReport.launchQuestionHint')}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => onDeclareLaunch(!isLaunched)}
-                  className="mt-3 w-full px-4 py-2 rounded-lg border border-gray-300 bg-white text-xs font-semibold text-gray-800 hover:bg-gray-100 transition-all"
-                >
-                  {isLaunched
-                    ? t('synthesisReport.readiness.launch.revertLaunchAction')
-                    : t('synthesisReport.readiness.launch.declareLaunchAction')}
-                </button>
+      <div className="max-w-6xl mx-auto flex flex-col gap-4">
+        {isProjectEditable && (
+          <>
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start" data-testid="stakes-top">
+              <section
+                aria-labelledby="stakes-maturing-heading"
+                className="flex flex-col gap-4 rounded-2xl bg-white p-5 shadow-xl"
+              >
+                <h2 id="stakes-maturing-heading" className="m-0 text-lg font-bold text-gray-800">
+                  {t('synthesisReport.maturingTitle')}
+                </h2>
+                {renderMaturingTeams()}
+                <div className="flex flex-col gap-1.5 border-t border-gray-100 pt-3">
+                  <p className="m-0 text-xs font-semibold uppercase tracking-wide text-gray-500">{t('synthesisReport.showcaseLabel')}</p>
+                  <p className="m-0 text-sm text-gray-700">
+                    {showcaseFeedbackCount > 0
+                      ? t('synthesisReport.showcaseFeedbackTemplate', { count: showcaseFeedbackCount })
+                      : `${t('synthesisReport.showcaseInviteHint')} ${t('synthesisReport.showcaseNoFeedback')}`}
+                  </p>
+                  {canOpenProjectShowcase && (
+                    <button
+                      type="button"
+                      onClick={handleOpenShowcase}
+                      className="self-start rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                    >
+                      {t('synthesisReport.openShowcaseAction')}
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-col gap-1.5 border-t border-gray-100 pt-3">
+                  <p className="m-0 text-xs font-semibold uppercase tracking-wide text-gray-500">{t('synthesisReport.formLabel')}</p>
+                  <p className="m-0 text-sm text-gray-700">
+                    {formMissingCount === 0 && openQuestionDoubts.length === 0
+                      ? t('synthesisReport.formComplete')
+                      : [
+                        formMissingCount > 0 ? t('synthesisReport.formMissingTemplate', { count: formMissingCount }) : '',
+                        openQuestionDoubts.length > 0 ? t('synthesisReport.formDoubtsTemplate', { count: openQuestionDoubts.length }) : ''
+                      ].filter(Boolean).join(' · ')}
+                  </p>
+                  {typeof onBack === 'function' && (
+                    <button
+                      type="button"
+                      onClick={onBack}
+                      className="self-start rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                    >
+                      {t('synthesisReport.editAnswersAction')}
+                    </button>
+                  )}
+                </div>
+              </section>
+              <div className="rounded-2xl bg-white shadow-xl">
+                <ProjectReadinessPanel
+                  readiness={readiness}
+                  openQuestionDoubts={openQuestionDoubts}
+                  isSubmitted={normalizedProjectStatus === 'submitted'}
+                  submissionKind={submissionKind}
+                  notifiedTeamNames={relevantTeams.map((team) => resolveLocalizedText(team.name, language))}
+                  onSubmitPreliminary={handleSubmitPreliminary}
+                  onSubmitFinal={handleSubmitFinal}
+                  onNavigateToQuestion={onNavigateToQuestion}
+                  pendingChanges={pendingChanges}
+                  hasSentSnapshot={hasSentSnapshot}
+                  submissionVersion={submissionVersion}
+                  lastSentAt={lastSentAt}
+                  onSendUpdate={onSendUpdate}
+                  solicitablePerimeters={solicitablePerimeters}
+                  deferredPerimeters={deferredPerimeters}
+                  hasSolicitedOpinion={hasSolicitedOpinion}
+                  onSolicitPerimeters={canSolicitPerimeters ? onSolicitPerimeters : undefined}
+                  onEditProject={onBack}
+                  launchSignal={launchSignal}
+                  roundStatus={roundStatus}
+                  onRequestFinalValidation={onRequestFinalValidation}
+                  isLaunched={isLaunched}
+                  canDeclareLaunch={canDeclareLaunch}
+                  onDeclareLaunch={onDeclareLaunch}
+                  opinionsSummary={renderOpinionsSummary()}
+                />
               </div>
-            )}
+            </div>
+            {renderProjectSteps()}
+          </>
+        )}
 
-            {sectionNavItems.length > 0 && (
-              <nav className="p-4" aria-label={t('synthesisReport.tocTitle')}>
-                <p className="text-sm font-bold uppercase tracking-wide text-gray-600">
-                  {t('synthesisReport.tocTitle')}
-                </p>
-                <ul className="mt-2 list-none space-y-0.5 p-0">
-                  {sectionNavItems.map((item) => (
-                    <li key={item.key}>
-                      <button
-                        type="button"
-                        onClick={() => handleNavigateToSection(item.key, item.elementId)}
-                        className="w-full rounded-lg px-3 py-1.5 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 hover:text-blue-700"
-                      >
-                        {item.label}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </nav>
+        {isExpertViewer && normalizedProjectStatus === 'submitted' && (
+          <p
+            role="status"
+            className="m-0 flex flex-wrap items-center gap-2.5 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700"
+            data-testid="stakes-request-banner"
+          >
+            <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-800">{requestKindLabel}</span>
+            <span>
+              {submissionKind === SUBMISSION_KIND_PRELIMINARY
+                ? t('synthesisReport.requestPreliminaryHint')
+                : t('synthesisReport.requestFinalHint')}
+            </span>
+            {lastSentAt && (
+              <span className="text-gray-500">· {t('synthesisReport.sentOnTemplate', { date: formatTimestamp(lastSentAt, language) })}</span>
             )}
+          </p>
+        )}
+
+        {!isProjectEditable && canDeclareLaunch && typeof onDeclareLaunch === 'function' && (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700">
+            <span className="font-semibold text-gray-900">
+              {isLaunched ? t('synthesisReport.launchDeclaredTitle') : t('synthesisReport.launchQuestionTitle')}
+            </span>
+            <span className="text-xs text-gray-500">
+              {isLaunched ? t('synthesisReport.launchDeclaredHint') : t('synthesisReport.launchQuestionHint')}
+            </span>
+            <button
+              type="button"
+              onClick={() => onDeclareLaunch(!isLaunched)}
+              className="ml-auto px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-xs font-semibold text-gray-800 hover:bg-gray-100 transition-all"
+            >
+              {isLaunched
+                ? t('synthesisReport.readiness.launch.revertLaunchAction')
+                : t('synthesisReport.readiness.launch.declareLaunchAction')}
+            </button>
           </div>
-        </aside>
+        )}
         <div
-          className="w-full min-w-0 flex-1 bg-white rounded-2xl shadow-xl p-6 sm:p-8 mb-6"
+          className="w-full min-w-0 bg-white rounded-2xl shadow-xl p-6 sm:p-8 mb-6"
           role="region"
           aria-label={t('synthesisReport.projectSynthesisAriaLabel')}
         >
@@ -2591,43 +3047,6 @@ export const SynthesisReport = ({
                 })}
               </div>
             )}
-            {canRequestAdditionalTeam && (
-              <div className="mb-4 rounded-xl border border-dashed border-blue-200 bg-blue-50/50 p-4">
-                <label htmlFor="additional-team-select" className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('synthesisReport.requestAdditionalTeamLabel')}
-                </label>
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <select
-                    id="additional-team-select"
-                    value={additionalTeamSelection}
-                    onChange={(event) => setAdditionalTeamSelection(event.target.value)}
-                    className="w-full sm:flex-1 px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="">{t('synthesisReport.requestAdditionalTeamPlaceholder')}</option>
-                    {teamsAvailableForRequest.map((team) => (
-                      <option key={team.id} value={team.id}>
-                        {resolveLocalizedText(team.name, language)}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={handleRequestAdditionalTeam}
-                    disabled={!additionalTeamSelection}
-                    className={`inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium text-white transition-all ${
-                      additionalTeamSelection ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-300 cursor-not-allowed'
-                    }`}
-                  >
-                    {t('synthesisReport.requestAdditionalTeamButton')}
-                  </button>
-                </div>
-                {getComplianceFeedbackMessage('additional-team-request') && (
-                  <p className="mt-2 text-sm text-emerald-700" role="status" aria-live="polite">
-                    {getComplianceFeedbackMessage('additional-team-request')}
-                  </p>
-                )}
-              </div>
-            )}
             <div className="grid grid-cols-1 gap-4">
               {sharedTeamBlocks.map((block) => (
                 <div
@@ -2657,7 +3076,8 @@ export const SynthesisReport = ({
                   )}
                 </div>
               ))}
-              {orderedRelevantTeams.map(team => {
+              {(() => {
+                const renderTeamCard = (team) => {
                 const teamPriority = getTeamPriority(analysis, team.id);
                 const teamQuestions = analysis.questions?.[team.id];
                 // Les membres réellement sollicités pour ce projet : une équipe peut router
@@ -2714,7 +3134,6 @@ export const SynthesisReport = ({
                 );
                 const draftEntry = complianceCommentDrafts.teams?.[team.id] || storedEntry;
                 const headerStatusMeta = getCommentStatusMeta(storedEntry.status, t);
-                const statusMeta = getCommentStatusMeta(canBypassCompliancePerimeter ? draftEntry.status : storedEntry.status, t);
                 const isDirty =
                   draftEntry.comment !== storedEntry.comment
                   || draftEntry.status !== storedEntry.status
@@ -2754,14 +3173,43 @@ export const SynthesisReport = ({
                 // couvre que les échanges de discussion qui suivent (expert <-> porteur).
                 const replyMessages = threadMessages.filter((message) => !message.id.startsWith('comment-'));
                 const isThreadExpanded = Boolean(expandedThreads[threadKey]);
-                const shouldCollapse = !isThreadExpanded && shouldCollapseThread(replyMessages);
-                const visibleMessages = shouldCollapse ? replyMessages.slice(0, 2) : replyMessages;
+                const isThreadMessageNew = (message) => isNewSinceLastVisit(message.createdAt, message.authorEmail);
+                const { visible: visibleMessages, hiddenCount: hiddenMessageCount } = foldThreadMessages(replyMessages, {
+                  isExpanded: isThreadExpanded,
+                  isNewMessage: isThreadMessageNew
+                });
+                const hasTeamNews = teamsWithNews.has(team.id);
+                const teamRisks = risksByTeamId.byTeam.get(team.id) || [];
+                // Repliée après la première lecture : dès qu'on a échangé avec l'équipe (un message,
+                // ou l'avis qu'on a soi-même rendu), la carte du risque tient en une ligne.
+                const hasWrittenToTeam = replyMessages.some((message) => normalizeEmail(message.authorEmail) === currentUserEmail)
+                  || (canEditTeamComment && hasExpertOpinion);
+                const composerPlaceholder = isExpertViewer && canEditTeamComment
+                  ? t('synthesisReport.composerExpertPlaceholder')
+                  : t('synthesisReport.composerOwnerPlaceholder', { team: teamDisplayName });
+                const lastThreadMessage = replyMessages[replyMessages.length - 1];
+                const lastMessageAuthor = !lastThreadMessage
+                  ? ''
+                  : normalizeEmail(lastThreadMessage.authorEmail) === currentUserEmail
+                    ? t('synthesisReport.rowAuthorYou')
+                    : teamContactEmailSet.has(normalizeEmail(lastThreadMessage.authorEmail))
+                      ? t('synthesisReport.expertAuthorLabel')
+                      : t('synthesisReport.rowAuthorOwner');
+                const teamRowSummary = [
+                  teamRisks.length > 0 ? t('synthesisReport.rowRisksTemplate', { count: teamRisks.length }) : '',
+                  formattedTeamQuestions.length > 0 ? t('synthesisReport.rowPointsTemplate', { count: formattedTeamQuestions.length }) : '',
+                  lastThreadMessage
+                    ? t('synthesisReport.rowLastMessageTemplate', {
+                      author: lastMessageAuthor,
+                      date: lastThreadMessage.createdAt ? formatTimestamp(lastThreadMessage.createdAt, language) : ''
+                    })
+                    : t('synthesisReport.rowNoMessage')
+                ].filter(Boolean).join(' · ');
                 const isCommentEditorOpen = Boolean(openTeamCommentEditors[team.id]);
                 const isReplyBoxOpen = Boolean(openTeamReplyBoxes[team.id]);
                 const isTeamCollapsed = teamCollapsedOverrides[team.id] !== undefined
                   ? teamCollapsedOverrides[team.id]
-                  : !(isExpertViewer && complianceTeamIdsForUser.has(team.id));
-                const teamAccentColor = TEAM_STATUS_ACCENT_COLOR[storedEntry.status] ?? TEAM_STATUS_ACCENT_COLOR[''];
+                  : !((isExpertViewer && complianceTeamIdsForUser.has(team.id)) || teamsWithNews.has(team.id));
                 const teamPerimeterKey = buildPerimeterKey(PERIMETER_TYPE_TEAM, team.id);
                 const isTeamDeferred = deferredPerimeterKeys.has(teamPerimeterKey);
 
@@ -2770,54 +3218,46 @@ export const SynthesisReport = ({
                     key={team.id}
                     id={`compliance-team-block-${team.id}`}
                     data-tour-id={complianceTeamIdsForUser.has(team.id) ? 'synthesis-team-card' : undefined}
-                    className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-200 transition-all overflow-hidden"
-                    style={{ borderLeftWidth: '4px', borderLeftColor: teamAccentColor }}
+                    className="bg-white rounded-xl border border-gray-200 transition-colors hover:border-blue-200 overflow-hidden"
                     role="article"
                     aria-label={t('synthesisReport.teamAriaLabelTemplate', { teamName: teamDisplayName })}
                   >
                     <button
                       type="button"
                       onClick={() => toggleTeamCollapsed(team.id, isTeamCollapsed)}
-                      className="flex w-full items-start justify-between gap-4 px-6 py-5 text-left hover:bg-gray-50 transition-colors"
+                      className="flex w-full items-center justify-between gap-4 px-5 py-3 text-left hover:bg-gray-50 transition-colors"
                       aria-expanded={!isTeamCollapsed}
                     >
-                      <div className="flex min-w-0 items-start gap-3">
-                        <span className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-gray-500">
                           <svg
-                            className={`h-4 w-4 transition-transform duration-200 ${isTeamCollapsed ? '-rotate-90' : ''}`}
+                            className="h-4 w-4 transition-transform duration-200"
+                            style={{ transform: isTeamCollapsed ? 'rotate(-90deg)' : undefined }}
                             viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
                           >
                             <polyline points="6 9 12 15 18 9" />
                           </svg>
                         </span>
-                        <div className="min-w-0">
-                          <h3 className="text-lg font-bold text-gray-800">{resolveLocalizedText(team.name, language)}</h3>
-                          {isTeamCollapsed && (
-                            <p className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
-                              {/* La pastille reprend la couleur du liseré : le code couleur reste
-                                  lisible sans avoir à décoder une bordure de 4 px. */}
-                              <span
-                                className="h-2 w-2 flex-shrink-0 rounded-full"
-                                style={{ backgroundColor: teamAccentColor }}
-                                aria-hidden="true"
-                              />
-                              {/* Replié, ce qu'on cherche c'est « qui, et où ça en est » — pas un
-                                  volume. L'interlocuteur nommé passe donc devant les compteurs. */}
-                              <span>
-                                {teamClaim && `${teamClaimAssigneeLabel} · `}
-                                {t('synthesisReport.teamCollapsedSummaryTemplate', {
-                                  prepCount: formattedTeamQuestions.length,
-                                  exchangeCount: threadMessages.length
-                                })}
-                              </span>
-                            </p>
-                          )}
+                        <div className="min-w-0 sm:flex sm:items-baseline sm:gap-4">
+                          <h3 className="m-0 shrink-0 text-base font-semibold text-gray-900">{resolveLocalizedText(team.name, language)}</h3>
+                          <p className="m-0 text-xs text-gray-500" data-testid={`team-row-summary-${team.id}`}>
+                            {teamClaim && isTeamCollapsed && `${teamClaimAssigneeLabel} · `}
+                            {teamRowSummary}
+                          </p>
                         </div>
                       </div>
                       {/* Une seule marque de sévérité dans l'en-tête : la bordure de gauche et
                           le statut suffisent. La priorité ne s'affiche que lorsqu'elle sort de
                           l'ordinaire, et le détail reste dans la carte dépliée. */}
                       <div className="flex flex-shrink-0 flex-col items-end gap-2 sm:flex-row sm:items-center">
+                        {hasTeamNews && (
+                          <span
+                            className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-900"
+                            data-testid={`team-news-badge-${team.id}`}
+                          >
+                            {t('synthesisReport.newBadge')}
+                          </span>
+                        )}
                         {isTeamDeferred ? (
                           <span className="px-3 py-1 rounded-full text-xs font-semibold border border-gray-300 bg-gray-50 text-gray-700">
                             {t('synthesisReport.stagedConsultation.deferredBadge')}
@@ -2850,16 +3290,11 @@ export const SynthesisReport = ({
                     )}
 
                     {!isTeamCollapsed && (
-                      <div className="border-t border-gray-100 px-6 pb-6 pt-5">
-                        {teamPriority === 'standard' && (
-                          <span className={`mb-3 inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${priorityColors[teamPriority]}`}>
-                            {riskPriorityLabels[teamPriority] || teamPriority}
-                          </span>
-                        )}
-                        <p className="text-sm text-gray-600 mb-3">{renderTextWithLinks(resolveLocalizedText(team.expertise, language))}</p>
+                      <div className="border-t border-gray-100 px-5 pb-5 pt-4">
+                        <p className="m-0 text-xs text-gray-500">{renderTextWithLinks(resolveLocalizedText(team.expertise, language))}</p>
                         {teamContactLabel && (
-                          <div className="mt-2 text-sm text-blue-600 font-medium flex items-center gap-2">
-                            <Mail className="w-4 h-4" />
+                          <div className="mt-1 flex items-center gap-1.5 text-xs text-gray-500">
+                            <Mail className="h-3.5 w-3.5" aria-hidden="true" />
                             {renderTextWithLinks(teamContactLabel)}
                           </div>
                         )}
@@ -2891,7 +3326,7 @@ export const SynthesisReport = ({
 
                         {(teamClaim || canActOnTeamClaim) && (
                           <div
-                            className="mt-3 space-y-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-700"
+                            className="mt-3 space-y-1 text-xs text-gray-600"
                             data-tour-id="synthesis-team-claim"
                           >
                             <div className="flex flex-wrap items-center gap-2">
@@ -3045,15 +3480,16 @@ export const SynthesisReport = ({
 
                         {(canManageTeamFollowers || teamFollowerContacts.length > 0) && (
                           <div
-                            className="mt-3 space-y-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700"
+                            className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-600"
                             data-testid={`team-followers-${team.id}`}
                             data-tour-id="synthesis-team-followers"
+                            title={canManageTeamFollowers && teamFollowerCandidates.length > 0 ? t('synthesisReport.followers.hint') : undefined}
                           >
-                            <p className="font-semibold text-gray-800">{t('synthesisReport.followers.label')}</p>
+                            <span className="text-gray-700">{t('synthesisReport.followers.label')}</span>
                             {teamFollowerContacts.length === 0 ? (
-                              <p className="text-gray-500">{t('synthesisReport.followers.none')}</p>
+                              <span className="text-gray-500">{t('synthesisReport.followers.none')}</span>
                             ) : (
-                              <ul className="flex flex-wrap gap-1.5">
+                              <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0">
                                 {teamFollowerContacts.map((contact) => {
                                   const followerEntry = teamFollowerEntries.find(
                                     (entry) => entry.email === normalizeEmail(contact)
@@ -3083,7 +3519,7 @@ export const SynthesisReport = ({
                               </ul>
                             )}
                             {canManageTeamFollowers && teamFollowerCandidates.length > 0 && (
-                              <div className="flex flex-wrap items-center gap-2">
+                              <div className="flex flex-wrap items-center gap-1.5">
                                 <select
                                   value={teamFollowerDraft}
                                   onChange={(event) => {
@@ -3108,20 +3544,50 @@ export const SynthesisReport = ({
                                 </button>
                               </div>
                             )}
-                            {canManageTeamFollowers && teamFollowerCandidates.length > 0 && (
-                              <p className="text-gray-500">{t('synthesisReport.followers.hint')}</p>
-                            )}
+                          </div>
+                        )}
+
+                        {isExpertViewer && complianceTeamIdsForUser.has(team.id) && (
+                          <div
+                            className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-600"
+                            data-testid={`owner-answers-${team.id}`}
+                          >
+                            <span className="font-semibold text-gray-900">{t('synthesisReport.ownerAnswersTitle')}</span>
+                            <span className={openQuestionDoubts.length > 0 ? 'font-semibold text-amber-800' : ''}>
+                              {openQuestionDoubts.length > 0
+                                ? t('synthesisReport.ownerAnswersDoubtsTemplate', { count: openQuestionDoubts.length })
+                                : t('synthesisReport.ownerAnswersNoDoubt')}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(event) => openAnswersPanel(event.currentTarget)}
+                              aria-expanded={isAnswersPanelOpen}
+                              aria-controls="owner-answers-panel"
+                              className="ml-auto font-semibold text-blue-700 underline underline-offset-2 hover:text-blue-800"
+                            >
+                              {t('synthesisReport.seeAllAnswersAction')}
+                            </button>
+                          </div>
+                        )}
+
+                        {teamRisks.length > 0 && (
+                          <div className="mt-4 flex flex-col gap-2" data-testid={`team-risks-${team.id}`}>
+                            {teamRisks.map((entry) => renderTeamRisk(entry, { isCollapsedByDefault: hasWrittenToTeam }))}
                           </div>
                         )}
 
                         {formattedTeamQuestions.length > 0 && (
-                          <div className="mt-4">
-                            <h4 className="text-sm font-semibold text-gray-800 mb-2">{t('synthesisReport.pointsToPrepareTitle')}</h4>
+                          <div id={`team-points-${team.id}`} className="mt-4 rounded-xl border-2 border-blue-200 bg-blue-50 px-4 py-3" data-testid={`team-points-${team.id}`}>
+                            <h4 className="mb-2 mt-0 text-xs font-semibold uppercase tracking-wide text-blue-800">
+                              {canEditTeamComment && !canReplyAsProjectContributor
+                                ? t('synthesisReport.pointsToPrepareExpertTitle')
+                                : t('synthesisReport.pointsToPrepareOwnerTitle', { team: teamDisplayName })}
+                            </h4>
                             <ul className="space-y-1">
                               {formattedTeamQuestions.map((question, idx) => {
                                 const timingMessage = formatTeamQuestionTimingMessage(questions, question.timingViolation, language, t);
                                 return (
-                                  <li key={idx} className="text-sm text-gray-700 flex flex-col">
+                                  <li key={idx} className="text-sm text-gray-900 flex flex-col">
                                     <div className="flex">
                                       <span className="text-blue-500 mr-2">•</span>
                                       <span>{renderTextWithLinks(question.text)}</span>
@@ -3147,17 +3613,6 @@ export const SynthesisReport = ({
                                 })}
                               </div>
                             )}
-                            <div className="flex items-start justify-between gap-2">
-                              <div>
-                                <h4 className="text-sm font-semibold text-gray-800">{t('synthesisReport.expertCommentTitle')}</h4>
-                                <p className="text-xs text-gray-500 mt-0.5">{t('synthesisReport.expertCommentSubtitleTemplate', { teamName: teamDisplayName })}</p>
-                              </div>
-                              {statusMeta && shouldShowOpinionCard && (
-                                <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${statusMeta.badgeClass}`}>
-                                  {statusMeta.label}
-                                </span>
-                              )}
-                            </div>
 
                             {isTeamConfirmationPending && canEditTeamComment && (
                               <div className="rounded-xl border border-blue-200 bg-blue-50 p-3">
@@ -3316,10 +3771,24 @@ export const SynthesisReport = ({
                                   {t('synthesisReport.discussionThreadLabel')}
                                 </p>
                                 <div className="space-y-2">
+                                  {hiddenMessageCount > 0 && (
+                                    <div className="flex items-center gap-3 text-xs text-gray-500">
+                                      <span aria-hidden="true" className="h-px flex-1 bg-gray-200" />
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleThreadExpanded(threadKey)}
+                                        aria-expanded="false"
+                                        className="font-semibold text-blue-600 underline underline-offset-2 hover:text-blue-700"
+                                        data-testid={`thread-older-${threadKey}`}
+                                      >
+                                        {t('synthesisReport.showOlderMessages', { count: hiddenMessageCount })}
+                                      </button>
+                                      <span aria-hidden="true" className="h-px flex-1 bg-gray-200" />
+                                    </div>
+                                  )}
                                   {visibleMessages.map((message) => {
-                                    const trimmedMessage = message.message.trim();
-                                    const isTruncated = shouldCollapse && trimmedMessage.length > 240;
-                                    const preview = isTruncated ? `${trimmedMessage.slice(0, 240)}…` : trimmedMessage;
+                                    const preview = message.message.trim();
+                                    const isMessageNew = isThreadMessageNew(message);
                                     const isExpertAuthor = teamContactEmailSet.has(normalizeEmail(message.authorEmail));
                                     const isAdminAuthor = isAdminAuthoredMessage({
                                       authorEmail: message.authorEmail,
@@ -3336,6 +3805,7 @@ export const SynthesisReport = ({
                                       <div
                                         key={message.id}
                                         id={`compliance-message-${message.id}`}
+                                        data-cn-new-message={isMessageNew ? 'true' : undefined}
                                         className={`flex ${isExpertAuthor ? 'justify-start' : 'justify-end'}`}
                                       >
                                         <div
@@ -3359,6 +3829,11 @@ export const SynthesisReport = ({
                                             {message.createdAt && (
                                               <span className="text-gray-400">{formatTimestamp(message.createdAt, language)}</span>
                                             )}
+                                            {isMessageNew && (
+                                              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-900">
+                                                {t('synthesisReport.newBadge')}
+                                              </span>
+                                            )}
                                           </div>
                                           {renderThreadMessageBody(message, { targetType: 'team', targetId: team.id, preview })}
                                           {normalizeCommentAttachments(message.attachments).length > 0 && (
@@ -3376,15 +3851,6 @@ export const SynthesisReport = ({
                                       </div>
                                     );
                                   })}
-                                  {shouldCollapse && (
-                                    <button
-                                      type="button"
-                                      onClick={() => toggleThreadExpanded(threadKey)}
-                                      className="text-xs font-semibold text-blue-600 hover:text-blue-700"
-                                    >
-                                      {t('synthesisReport.seeMore')}
-                                    </button>
-                                  )}
                                 </div>
                               </div>
                             )}
@@ -3503,18 +3969,35 @@ export const SynthesisReport = ({
                             {canReplyTeamThread && (
                               <div className="border-t border-gray-200 pt-3">
                                 <div className="flex flex-wrap items-center gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => toggleTeamReplyBox(team.id)}
-                                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold shadow-sm transition-colors ${
-                                    isReplyBoxOpen
-                                      ? 'border border-gray-300 bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                      : 'border border-blue-200 bg-blue-50 text-blue-700 hover:border-blue-300 hover:bg-blue-100'
-                                  }`}
-                                >
-                                  {!isReplyBoxOpen && <MessageSquare className="w-3.5 h-3.5" />}
-                                  {isReplyBoxOpen ? t('synthesisReport.closeToggle') : t('synthesisReport.replyToggle')}
-                                </button>
+                                {isExpertViewer && canEditTeamComment && !isCommentEditorOpen && (
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleTeamCommentEditor(team.id)}
+                                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                                  >
+                                    {t('synthesisReport.giveOpinionAction')}
+                                  </button>
+                                )}
+                                {isReplyBoxOpen ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleTeamReplyBox(team.id)}
+                                    className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                                  >
+                                    {t('synthesisReport.closeToggle')}
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleTeamReplyBox(team.id)}
+                                    aria-label={`${t('synthesisReport.replyToggle')} : ${composerPlaceholder}`}
+                                    className="min-w-[14rem] flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-left text-sm text-gray-500 hover:border-blue-300"
+                                    data-testid={`team-composer-${team.id}`}
+                                  >
+                                    <MessageSquare className="mr-2 inline h-4 w-4 text-gray-400" aria-hidden="true" />
+                                    {composerPlaceholder}
+                                  </button>
+                                )}
                                 {canEditTeamComment && reintegrableCommittees.map((committee) => (
                                   <button
                                     key={`reintegrate-${team.id}-${committee.id}`}
@@ -3605,22 +4088,81 @@ export const SynthesisReport = ({
                     )}
                   </div>
                 );
-              })}
+              };
+                if (!isExpertViewer || ownTeams.length === 0) {
+                  return orderedRelevantTeams.map(renderTeamCard);
+                }
+                return (
+                  <>
+                    <section data-testid="stakes-own-team" aria-labelledby="stakes-own-team-heading" className="flex flex-col gap-3">
+                      <h3 id="stakes-own-team-heading" className="text-xs font-semibold uppercase tracking-wide text-blue-800">
+                        {ownTeams.length > 1 ? t('synthesisReport.ownTeamsHeading') : t('synthesisReport.ownTeamHeading')}
+                      </h3>
+                      {ownTeams.map(renderTeamCard)}
+                    </section>
+                    {otherTeams.length > 0 && (
+                      <section data-testid="stakes-other-teams" aria-labelledby="stakes-other-teams-heading" className="flex flex-col gap-3">
+                        <h3 id="stakes-other-teams-heading" className="text-sm font-semibold text-gray-700">
+                          {t('synthesisReport.otherTeamsHeadingTemplate', { count: otherTeams.length })}
+                        </h3>
+                        {otherTeams.map(renderTeamCard)}
+                      </section>
+                    )}
+                  </>
+                );
+              })()}
             </div>
+            {canRequestAdditionalTeam && (
+              <div className="mt-4 rounded-xl border border-dashed border-gray-300 bg-white p-4">
+                <label htmlFor="additional-team-select" className="block text-sm font-medium text-gray-700 mb-2">
+                  {t('synthesisReport.requestAdditionalTeamLabel')}
+                </label>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <select
+                    id="additional-team-select"
+                    value={additionalTeamSelection}
+                    onChange={(event) => setAdditionalTeamSelection(event.target.value)}
+                    className="w-full sm:flex-1 px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">{t('synthesisReport.requestAdditionalTeamPlaceholder')}</option>
+                    {teamsAvailableForRequest.map((team) => (
+                      <option key={team.id} value={team.id}>
+                        {resolveLocalizedText(team.name, language)}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={handleRequestAdditionalTeam}
+                    disabled={!additionalTeamSelection}
+                    className={`inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium text-white transition-all ${
+                      additionalTeamSelection ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-300 cursor-not-allowed'
+                    }`}
+                  >
+                    {t('synthesisReport.requestAdditionalTeamButton')}
+                  </button>
+                </div>
+                {getComplianceFeedbackMessage('additional-team-request') && (
+                  <p className="mt-2 text-sm text-emerald-700" role="status" aria-live="polite">
+                    {getComplianceFeedbackMessage('additional-team-request')}
+                  </p>
+                )}
+              </div>
+            )}
           </CollapsibleSection>
 
-          {analysis.risks.length > 0 && (
+          {risksByTeamId.unattached.length > 0 && (
             <CollapsibleSection
               sectionId="synthesis-section-risks"
               headingId="risks-heading"
               tourId="synthesis-risks"
               icon={<AlertTriangle className="w-5 h-5 flex-shrink-0 text-red-500" aria-hidden="true" />}
-              title={t('synthesisReport.risksHeadingTemplate', { count: analysis.risks.length })}
+              title={t('synthesisReport.otherRisksHeadingTemplate', { count: risksByTeamId.unattached.length })}
               isOpen={openSections.risks}
               onToggle={() => toggleSection('risks')}
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {analysis.risks.map((risk, idx) => {
+                {risksByTeamId.unattached.map(({ risk }, idx) => {
                   const timingViolationMessage = formatRiskTimingViolation(risk.timingViolation, language, t);
                   const riskDescriptionText = resolveLocalizedText(risk.description, language);
                   const riskMitigationText = resolveLocalizedText(risk.mitigation, language);
@@ -3838,8 +4380,14 @@ export const SynthesisReport = ({
                     const threadKey = `committee-${committee.id}`;
                     const threadMessages = getThreadMessages(committeeCommentEntry, committee.name);
                     const isThreadExpanded = Boolean(expandedThreads[threadKey]);
-                    const shouldCollapse = !isThreadExpanded && shouldCollapseThread(threadMessages);
-                    const visibleMessages = shouldCollapse ? threadMessages.slice(0, 2) : threadMessages;
+                    const isThreadMessageNew = (message) => !message.id.startsWith('comment-')
+                      && isNewSinceLastVisit(message.createdAt, message.authorEmail);
+                    const {
+                      pinned: pinnedMessages,
+                      visible: foldedMessages,
+                      hiddenCount: hiddenMessageCount
+                    } = foldThreadMessages(threadMessages, { isExpanded: isThreadExpanded, isNewMessage: isThreadMessageNew });
+                    const visibleMessages = [...pinnedMessages, ...foldedMessages];
 
                     return (
                       <article
@@ -4033,13 +4581,28 @@ export const SynthesisReport = ({
                         <div className="mt-4 space-y-3">
                           {visibleMessages.length > 0 ? (
                             <div className="space-y-3">
-                              {visibleMessages.map((message) => {
-                                const trimmedMessage = message.message.trim();
-                                const isTruncated = shouldCollapse && trimmedMessage.length > 240;
-                                const preview = isTruncated ? `${trimmedMessage.slice(0, 220)}…` : trimmedMessage;
+                              {visibleMessages.map((message, messageIndex) => {
+                                const preview = message.message.trim();
+                                const isMessageNew = isThreadMessageNew(message);
                                 return (
+                                  <React.Fragment key={message.id}>
+                                  {messageIndex === pinnedMessages.length && (hiddenMessageCount > 0) && (
+                                    <div className="flex items-center gap-3 text-xs text-gray-500">
+                                      <span aria-hidden="true" className="h-px flex-1 bg-gray-200" />
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleThreadExpanded(threadKey)}
+                                        aria-expanded="false"
+                                        className="font-semibold text-blue-600 underline underline-offset-2 hover:text-blue-700"
+                                        data-testid={`thread-older-${threadKey}`}
+                                      >
+                                        {t('synthesisReport.showOlderMessages', { count: hiddenMessageCount })}
+                                      </button>
+                                      <span aria-hidden="true" className="h-px flex-1 bg-gray-200" />
+                                    </div>
+                                  )}
                                   <div
-                                    key={message.id}
+                                    data-cn-new-message={isMessageNew ? 'true' : undefined}
                                     id={message.id.startsWith('comment-')
                                       ? `compliance-opinion-committee-${committee.id}`
                                       : `compliance-message-${message.id}`}
@@ -4063,6 +4626,11 @@ export const SynthesisReport = ({
                                           {t('synthesisReport.adminRoleLabel')}
                                         </span>
                                       )}
+                                      {isMessageNew && (
+                                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-900">
+                                          {t('synthesisReport.newBadge')}
+                                        </span>
+                                      )}
                                       {message.createdAt && <span>{formatTimestamp(message.createdAt, language)}</span>}
                                     </div>
                                     {renderThreadMessageBody(message, { targetType: 'committee', targetId: committee.id, preview })}
@@ -4078,17 +4646,9 @@ export const SynthesisReport = ({
                                       </ul>
                                     )}
                                   </div>
+                                  </React.Fragment>
                                 );
                               })}
-                              {shouldCollapse && (
-                                <button
-                                  type="button"
-                                  onClick={() => toggleThreadExpanded(threadKey)}
-                                  className="text-xs font-semibold text-blue-600 hover:text-blue-700"
-                                >
-                                  {t('synthesisReport.seeMore')}
-                                </button>
-                              )}
                             </div>
                           ) : (
                             <p className="text-sm text-gray-500">
@@ -4183,7 +4743,7 @@ export const SynthesisReport = ({
           {/* Le partage est de la logistique de projet, pas un enjeu : il descend sous les
               sections plutôt que de s'intercaler entre le titre et ce qu'il faut décider. */}
           {(onShareProjectMember || onRemoveProjectMember) && (
-            <div className="mb-4 rounded-xl border border-gray-200 bg-gray-50 p-4" data-tour-id="synthesis-share-member">
+            <div id="synthesis-share-section" className="mb-4 rounded-xl border border-gray-200 bg-gray-50 p-4" data-tour-id="synthesis-share-member">
               <div>
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-600">
                   {t('synthesisReport.shareSectionTitle')}
@@ -4245,7 +4805,8 @@ export const SynthesisReport = ({
                 aria-controls="overview-panel"
               >
                 <svg
-                  className={`h-4 w-4 flex-shrink-0 text-gray-400 transition-transform duration-200 ${isOverviewOpen ? '' : '-rotate-90'}`}
+                  className="h-4 w-4 flex-shrink-0 text-gray-400 transition-transform duration-200"
+                  style={{ transform: isOverviewOpen ? undefined : 'rotate(-90deg)' }}
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -4271,103 +4832,7 @@ export const SynthesisReport = ({
                 className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-5 sm:p-6"
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {(Array.isArray(questions) ? questions : []).map(q => {
-                    if (!q || typeof q !== 'object') {
-                      return null;
-                    }
-
-                    const answerValue = answers[q.id];
-                    // Le doute ne remplace jamais la réponse : c'est une note à part, affichée en
-                    // plus de la valeur donnée, jamais à sa place — y compris quand cette valeur
-                    // est encore vide.
-                    const hasDoubt = hasQuestionDoubt(answers, q.id);
-                    const doubtText = getQuestionDoubtText(answers, q.id);
-                    const shouldRenderCard = isAnswerProvided(answerValue) || q.required || hasDoubt;
-
-                    if (!shouldRenderCard) {
-                      return null;
-                    }
-
-                    const missingInfoLabel = t('synthesisReport.missingInfoLabel');
-                    const displayValue = formatOverviewValue(q, answerValue, missingInfoLabel, language);
-                    const questionText = resolveLocalizedText(q.question, language);
-
-                    return (
-                      <div key={q.id} className="bg-white rounded-lg p-4 border border-gray-200">
-                        <div className="flex items-start justify-between gap-3 mb-1">
-                          <p className="text-sm text-gray-600">{questionText}</p>
-                          {typeof onNavigateToQuestion === 'function' && isProjectEditable && (
-                            <button
-                              type="button"
-                              onClick={() => onNavigateToQuestion(q.id)}
-                              className="flex items-center justify-center w-8 h-8 rounded-full border border-gray-200 text-gray-500 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-colors"
-                              aria-label={t('synthesisReport.editAnswerAriaLabelTemplate', { question: questionText })}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                        {(() => {
-                          const resolvedValue = displayValue || missingInfoLabel;
-                          const isMissingInfo = resolvedValue === missingInfoLabel;
-                          const answerFiles = q.type === 'file'
-                            ? (Array.isArray(answerValue) ? answerValue : answerValue ? [answerValue] : [])
-                                .filter((file) => file && typeof file === 'object' && typeof file.url === 'string' && file.url.trim().length > 0)
-                            : [];
-
-                          return (
-                            <>
-                              {answerFiles.length > 0 ? (
-                                <ul className="space-y-1">
-                                  {answerFiles.map((file, index) => (
-                                    <li key={`${file.url}-${index}`} className="font-semibold text-gray-900">
-                                      <a
-                                        href={file.url.trim()}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-blue-600 underline"
-                                      >
-                                        {file.name || resolvedValue}
-                                      </a>
-                                    </li>
-                                  ))}
-                                </ul>
-                              ) : (
-                                <p
-                                  className={`font-semibold whitespace-pre-line ${
-                                    isMissingInfo ? 'text-rose-400' : 'text-gray-900'
-                                  }`}
-                                >
-                                  {renderTextWithLinks(resolvedValue)}
-                                </p>
-                              )}
-                              {hasDoubt && (
-                                <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
-                                  <p className="flex items-center gap-2 text-sm font-semibold text-amber-900">
-                                    <AlertTriangle className="w-4 h-4 shrink-0" />
-                                    {t('synthesisReport.overviewDoubtHeading')}
-                                  </p>
-                                  {doubtText.trim().length > 0 && (
-                                    <p className="mt-1 text-xs text-amber-800 whitespace-pre-line">
-                                      {doubtText}
-                                    </p>
-                                  )}
-                                  {/* La validation définitive n'accepte aucun doute : le dire ici,
-                                      là où le porteur relit ses réponses, plutôt qu'au moment où
-                                      le bouton est grisé. */}
-                                  <p className="mt-1 text-xs text-amber-700">
-                                    {canReplyAsProjectContributor
-                                      ? t('synthesisReport.overviewDoubtBlocksValidation')
-                                      : t('synthesisReport.overviewDoubtRaisedByOwner')}
-                                  </p>
-                                </div>
-                              )}
-                            </>
-                          );
-                        })()}
-                      </div>
-                    );
-                  })}
+                  {renderAnswerCards()}
                 </div>
               </div>
             )}
@@ -4375,6 +4840,40 @@ export const SynthesisReport = ({
         </div>
       </div>
       </div>
+      {isAnswersPanelOpen && (
+        <aside
+          id="owner-answers-panel"
+          aria-labelledby="owner-answers-panel-title"
+          data-testid="owner-answers-panel"
+          className="fixed inset-y-0 right-0 z-40 flex w-full flex-col border-l border-gray-200 bg-white shadow-2xl sm:w-[28rem]"
+          onKeyDown={(event) => {
+            if (event.key === 'Escape' && !event.defaultPrevented) {
+              event.preventDefault();
+              closeAnswersPanel();
+            }
+          }}
+        >
+          <div className="flex items-start justify-between gap-3 border-b border-gray-200 px-5 py-4">
+            <div>
+              <h2 id="owner-answers-panel-title" className="m-0 text-lg font-bold text-gray-900">{overviewTitleLabel}</h2>
+              <p className="m-0 mt-1 text-xs text-gray-500">{t('synthesisReport.answersPanelHint')}</p>
+            </div>
+            <button
+              ref={answersPanelCloseRef}
+              type="button"
+              onClick={closeAnswersPanel}
+              className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+            >
+              {t('synthesisReport.closeButton')}
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto bg-blue-50 p-4">
+            <div className="grid grid-cols-1 gap-3">
+              {renderAnswerCards()}
+            </div>
+          </div>
+        </aside>
+      )}
       {isShowcaseFallbackOpen && (
         <div ref={showcaseFallbackRef}>
           <ProjectShowcase

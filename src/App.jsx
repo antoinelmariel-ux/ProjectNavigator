@@ -188,7 +188,7 @@ import {
 import { canQuestionHaveDoubt, withQuestionDoubt, withoutQuestionDoubt, getOpenQuestionDoubts } from './utils/questionDoubts.js';
 import { getCurrentUser, getRealUser } from './utils/spContext.js';
 import { isImpersonating } from './utils/impersonation.js';
-import { getProjectOwnerEmails, markSynthesisSeen } from './utils/synthesisSeen.js';
+import { ensureSynthesisSeenRecord, getSynthesisSeenAt, markSynthesisSeen } from './utils/synthesisSeen.js';
 import { buildAdminConsoleUrl, isAdminConsoleActive } from './utils/adminConsole.js';
 import { dataProvider } from './utils/dataProvider.js';
 import { inspirationDataProvider, buildOnboardingDemoInspirations } from './utils/inspirationDataProvider.js';
@@ -4041,18 +4041,25 @@ const updateProjectFilters = useCallback((updater) => {
     () => projects.find(project => project.id === activeProjectId) || null,
     [projects, activeProjectId]
   );
-  // Ouvrir les enjeux de son projet vaut lecture de ce que les experts y ont écrit : la pastille de
-  // la carte s'éteint. Marqué à l'entrée et à la sortie, pour couvrir ce qui arrive pendant la lecture.
-  const isActiveProjectOwnedByCurrentUser = Boolean(
-    activeProject && currentUserEmail && getProjectOwnerEmails(activeProject).includes(currentUserEmail)
-  );
+  // Ouvrir les enjeux d'un projet vaut lecture de ce qui y a été écrit : la pastille de la carte
+  // du porteur s'éteint, et la visite suivante ne marque « nouveau » que ce qui arrive après.
+  // Marqué à l'entrée et à la sortie, pour couvrir ce qui arrive pendant la lecture. La date de
+  // la visite précédente est lue pendant le rendu, avant ce marquage : c'est elle qui dit ce qui
+  // est nouveau pendant toute cette visite.
+  const isSynthesisScreen = screen === 'synthesis';
+  const synthesisLastVisitAt = useMemo(() => {
+    if (!isSynthesisScreen || !activeProjectId || !currentUserEmail) {
+      return '';
+    }
+    return getSynthesisSeenAt(ensureSynthesisSeenRecord(currentUserEmail), activeProjectId);
+  }, [activeProjectId, currentUserEmail, isSynthesisScreen]);
   useEffect(() => {
-    if (screen !== 'synthesis' || !activeProjectId || !isActiveProjectOwnedByCurrentUser) {
+    if (!isSynthesisScreen || !activeProjectId) {
       return undefined;
     }
     markSynthesisSeen(currentUserEmail, activeProjectId);
     return () => markSynthesisSeen(currentUserEmail, activeProjectId);
-  }, [activeProjectId, currentUserEmail, isActiveProjectOwnedByCurrentUser, screen]);
+  }, [activeProjectId, currentUserEmail, isSynthesisScreen]);
   // Un projet ouvert depuis le cache local (lien d'e-mail, accueil) copie ses réponses dans `answers`
   // avant que SharePoint ait répondu ; la liste `projects` se met ensuite à jour mais cette copie
   // restait figée sur l'ancienne version. Tant que personne n'y a touché (même référence qu'à
@@ -10040,6 +10047,7 @@ const updateProjectFilters = useCallback((updater) => {
               questions={activeQuestions}
               projectStatus={activeProject?.status || null}
               projectId={activeProjectId}
+              lastVisitAt={tourContext || isExpertTourActive ? '' : synthesisLastVisitAt}
               projectName={activeProjectName}
               onOpenProjectShowcase={handleOpenActiveProjectShowcase}
               isProjectEditable={isSynthesisEditable}
