@@ -2965,6 +2965,8 @@ export default {
     stackItemsLabel: 'Stack cards — one item = one card',
     listItemsLabel: 'List (each item can be rich text)',
     itemNumberLabel: 'Item {{index}}',
+    moveItemUp: 'Move item {{index}} up',
+    moveItemDown: 'Move item {{index}} down',
     removeButton: 'Remove',
     itemPlaceholder: 'List item',
     itemAriaLabelTemplate: 'List item {{index}}',

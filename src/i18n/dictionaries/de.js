@@ -2975,6 +2975,8 @@ export default {
     stackItemsLabel: 'Kartenstapel — ein Element = eine Karte',
     listItemsLabel: 'Liste (jedes Element kann formatiert werden)',
     itemNumberLabel: 'Element {{index}}',
+    moveItemUp: 'Element {{index}} nach oben',
+    moveItemDown: 'Element {{index}} nach unten',
     removeButton: 'Entfernen',
     itemPlaceholder: 'Listenelement',
     itemAriaLabelTemplate: 'Listenelement {{index}}',

@@ -2974,6 +2974,8 @@ export default {
     stackItemsLabel: 'Cartes de la pile — un élément = une carte',
     listItemsLabel: 'Liste (chaque élément peut être enrichi)',
     itemNumberLabel: 'Élément {{index}}',
+    moveItemUp: 'Monter l’élément {{index}}',
+    moveItemDown: 'Descendre l’élément {{index}}',
     removeButton: 'Supprimer',
     itemPlaceholder: 'Élément de liste',
     itemAriaLabelTemplate: 'Élément de liste {{index}}',

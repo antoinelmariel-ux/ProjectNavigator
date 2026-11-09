@@ -2965,6 +2965,8 @@ export default {
     stackItemsLabel: 'Tarjetas de la pila — un elemento = una tarjeta',
     listItemsLabel: 'Lista (cada elemento puede enriquecerse)',
     itemNumberLabel: 'Elemento {{index}}',
+    moveItemUp: 'Subir el elemento {{index}}',
+    moveItemDown: 'Bajar el elemento {{index}}',
     removeButton: 'Eliminar',
     itemPlaceholder: 'Elemento de la lista',
     itemAriaLabelTemplate: 'Elemento de la lista {{index}}',
