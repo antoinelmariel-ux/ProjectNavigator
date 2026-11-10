@@ -10,7 +10,7 @@
 
 | # | Flux | Nécessaire ? | Durée | Section |
 |---|---|---|---|---|
-| 1 | **Envoi des notifications** | ✅ **Obligatoire** — sans lui, aucun e-mail ne part | 20 min | [§3](#3-flux-1--envoi-des-notifications-obligatoire) |
+| 1 | **Envoi des notifications** | ✅ **Obligatoire** — sans lui, aucun e-mail ne part | 25 min | [§3](#3-flux-1--envoi-des-notifications-obligatoire) |
 | 2 | Récapitulatif hebdomadaire des projets soumis | Optionnel | 15 min | [§5](#5-flux-2--récapitulatif-hebdomadaire-optionnel) |
 | 3 | Relance des commentaires non résolus | Optionnel | 10 min | [§6](#6-flux-3--relance-des-commentaires-non-résolus-optionnel) |
 | 4 | Purge du journal des notifications | Optionnel (entretien) | 10 min | [§7](#7-flux-4--purge-du-journal-optionnel) |
@@ -35,7 +35,10 @@ L'app crée une ligne « Pending » dans la liste CN_NotificationsQueue
           ↓
 Power Automate détecte la nouvelle ligne  ← c'est le flux 1
           ↓
-Il envoie l'e-mail, puis passe la ligne à « Sent »
+(messages d'un échange : il attend 5 minutes, pendant lesquelles
+ l'app peut ajouter à la même ligne les messages écrits dans la foulée)
+          ↓
+Il relit la ligne, envoie l'e-mail, puis la passe à « Sent »
 ```
 
 Bénéfice secondaire pour un outil de conformité : la liste devient un **journal auditable** de
@@ -52,6 +55,18 @@ toutes les notifications, avec leur statut.
 | `NotificationType` | Le type d'action (pour filtrer ou faire des statistiques) |
 | `ProjectId` | L'identifiant du projet concerné |
 | `Status` | `Pending` — c'est le flux qui le passera à `Sent` |
+| `GroupKey` | **Vide pour la plupart des notifications.** Renseignée pour les mails qui relaient un message (avis d'expert, réponse dans un fil, post-it de la vitrine) : c'est elle qui permet de regrouper ceux écrits coup sur coup |
+| `MessagesJson` | Les messages regroupés dans la ligne (auteur, texte, heure, lien). Sert à l'application seule : le flux n'a pas à le lire, `Body` est déjà refait à chaque ajout |
+
+> ℹ️ **Pourquoi le flux attend 5 minutes sur ces lignes.** Quand quelqu'un enchaîne plusieurs
+> réponses dans un même fil, ou pose plusieurs post-its sur une vitrine, l'application ne crée pas
+> une ligne par message : tant qu'une ligne de même `GroupKey` attend encore son envoi
+> (`Status` = `Pending`, créée il y a **moins de 4 minutes**), elle y ajoute le message et réécrit
+> `Title` et `Body`. Le destinataire reçoit alors **un seul mail** (« 3 messages ») au lieu de
+> trois. Le délai de 5 minutes du flux laisse **une minute de marge** après cette fenêtre de 4
+> minutes. Les deux valeurs vont ensemble : si tu changes l'une, change l'autre (côté application :
+> `src/utils/notificationGrouping.js`). Les autres notifications (`GroupKey` vide) partent sans
+> attendre.
 
 ⚠️ **Le point le plus important de tout ce document : `Body` contient du HTML.** Si tu ne
 configures pas le champ Corps en mode HTML ([§3.4](#34-envoyer-le-mail--létape-à-ne-pas-rater)),
@@ -107,6 +122,70 @@ Deux réflexes utiles :
 
 Toute la suite se place dans la branche **« Si oui »**.
 
+### 3.3 bis Regrouper les messages écrits coup sur coup (délai et relecture)
+
+Ces trois étapes, **dans le « Si oui » du §3.3**, évitent qu'un échange rapide (plusieurs réponses
+dans un fil, plusieurs post-its) produise un mail par message. **Elles sont obligatoires dès que
+les colonnes `GroupKey` et `MessagesJson` existent** : voir l'encadré d'ordre de déploiement en
+fin de sous-section.
+
+**Étape 1 — Attendre, mais seulement pour les messages regroupables.**
+
+1. **Ajouter une action** → **Condition**. Passe en **mode avancé** (« Modifier en mode
+   avancé ») et saisis :
+
+   ```
+   @not(empty(triggerOutputs()?['body/GroupKey']))
+   ```
+
+   *(En clair : « la colonne `GroupKey` n'est pas vide ».)*
+2. Dans la branche **« Si oui »** de cette condition : **Contrôle → « Délai »**, **Nombre : `5`**,
+   **Unité : `Minute`**.
+3. Branche **« Si non »** : laisse-la vide. Les notifications sans `GroupKey` partent sans attendre.
+
+**Étape 2 — Relire la ligne après le délai.**
+
+Juste **après** cette condition (en dehors de ses deux branches) → **Ajouter une action** →
+SharePoint → **« Obtenir l'élément »** :
+
+| Champ | Valeur |
+|---|---|
+| Adresse du site | la même que le déclencheur |
+| Nom de la liste | `CN_NotificationsQueue` |
+| Id | contenu dynamique **`ID`** du déclencheur |
+
+Renomme cette action **`Relire la notification`**. C'est elle qui contient le **corps à jour** :
+pendant les 5 minutes, l'application a pu réécrire `Title` et `Body` pour y ajouter les messages
+suivants. Les champs du déclencheur, eux, restent ceux de la première version.
+
+**Étape 3 — Ne rien envoyer si la ligne a changé de statut entre-temps.**
+
+Après « Relire la notification » → **Condition** : contenu dynamique **`Status Value`** *de
+« Relire la notification »* · **est égal à** · `Pending`. C'est un garde-fou : une ligne passée à
+`Error` ou `Sent` à la main pendant le délai ne doit pas partir.
+
+> ⚠️ **À partir d'ici, tout ce qui suit (§3.4, §3.5, §3.6) se place dans le « Si oui » de cette
+> dernière condition, et utilise les champs de « Relire la notification », pas ceux du
+> déclencheur.** C'est le point que l'on rate le plus facilement : un flux qui garde les champs du
+> déclencheur envoie la première version du mail et perd les messages ajoutés ensuite.
+
+**Contrôle de concurrence du déclencheur.** Ouvre les **paramètres** du déclencheur
+(« Lorsqu'un élément est créé » → **⋯** → **Paramètres**) et vérifie que le **contrôle de
+concurrence n'est pas activé avec un degré de 1** : chaque exécution reste en attente 5 minutes,
+et un degré de 1 ferait attendre toutes les autres notifications derrière elle. Laisse-le
+désactivé, ou règle un degré d'au moins 20.
+
+> ❗ **Ordre de déploiement — à respecter.**
+> 1. **Avant tout** : crée les deux colonnes `GroupKey` (ligne de texte, **à indexer**) et
+>    `MessagesJson` (texte long, **texte brut**) dans `CN_NotificationsQueue`
+>    (voir `PREPARATION-SHAREPOINT-POWERAUTOMATE.md` et le script de
+>    `VERIFICATION-CONFIGURATION-SHAREPOINT.md`).
+> 2. **Au même moment, ou avant** : mets en place les trois étapes ci-dessus dans le flux.
+>
+> Sans les colonnes, l'application envoie simplement un mail par message, comme avant : rien ne
+> casse. Mais **avec les colonnes et sans le délai**, le premier message part tout de suite, et
+> ceux qui arrivent ensuite sont ajoutés à une ligne déjà envoyée : **ils ne partiraient jamais**.
+
 ### 3.4 Envoyer l'e-mail — l'étape à ne pas rater
 
 Dans **« Si oui »** → **Ajouter une action** → cherche `Outlook` →
@@ -114,19 +193,24 @@ Dans **« Si oui »** → **Ajouter une action** → cherche `Outlook` →
 
 | Champ | Contenu dynamique à insérer |
 |---|---|
-| À | `ToEmails` |
-| Objet | `Title` |
-| Corps | `Body` |
+| À | `ToEmails` de **« Relire la notification »** |
+| Objet | `Title` de **« Relire la notification »** |
+| Corps | `Body` de **« Relire la notification »** |
 
 Pour le champ **Cc** : clique sur **Paramètres avancés** (ou « Afficher tout ») et insère
-`CcEmails`.
+`CcEmails` de **« Relire la notification »**.
+
+> 💡 Dans le sélecteur de contenu dynamique, les champs portent le nom de l'action qui les
+> produit : choisis ceux de **« Relire la notification »**, pas ceux de « Lorsqu'un élément est
+> créé ». Si tu vois deux fois `Body`, c'est normal : c'est celui de la relecture qu'il faut.
 
 **➡️ Basculer le champ Corps en mode HTML — obligatoire :**
 
 1. Clique dans le champ **Corps**.
 2. Dans la barre d'outils qui apparaît au-dessus, clique sur l'icône **`</>`**
    (« Affichage du code »). Le champ devient un simple champ texte.
-3. **Efface tout** ce qu'il contient, puis insère le contenu dynamique **`Body`**, et rien d'autre.
+3. **Efface tout** ce qu'il contient, puis insère le contenu dynamique **`Body`** de
+   « Relire la notification », et rien d'autre.
 
 Si tu ne trouves pas l'icône `</>` : ouvre les **Paramètres avancés** de l'action et vérifie
 qu'une option **« Is HTML »** est bien sur **Oui**.
@@ -144,9 +228,12 @@ Toujours dans « Si oui », après l'envoi → **Ajouter une action** → ShareP
 | Adresse du site | la même que le déclencheur |
 | Nom de la liste | `CN_NotificationsQueue` |
 | Id | contenu dynamique **`ID`** (celui du déclencheur) |
-| Titre | contenu dynamique **`Title`** (à recopier : ce champ est obligatoire) |
+| Titre | contenu dynamique **`Title`** *de « Relire la notification »* (à recopier : ce champ est obligatoire) |
 | Status Value | `Sent` |
 | SentAt | expression `utcNow()` |
+
+> ⚠️ **Laisse vides tous les autres champs**, `Body` et `MessagesJson` en particulier : ils
+> contiennent le message et son historique, et ne doivent pas être réécrits par le flux.
 
 > Pour saisir une expression : dans le champ, onglet **Expression**, tape `utcNow()`, puis **OK**.
 
@@ -155,7 +242,8 @@ Toujours dans « Si oui », après l'envoi → **Ajouter une action** → ShareP
 Sans cette étape, une notification qui échoue disparaît silencieusement.
 
 1. Ajoute une **deuxième** action « Mettre à jour l'élément » (même liste, même `Id`, même
-   `Titre`), avec **Status Value** = `Error` et **ErrorMessage** = un texte explicite, par exemple
+   `Titre` — celui de « Relire la notification »), avec **Status Value** = `Error` et
+   **ErrorMessage** = un texte explicite, par exemple
    `Échec de l'envoi Outlook`.
 2. Sur cette nouvelle action : **⋯** → **Configurer l'exécution après** → décoche « a réussi »,
    coche **« a échoué »** et **« a expiré »**.
@@ -210,6 +298,29 @@ Ce test ne nécessite pas l'application.
    - [ ] Dans la liste, la ligne est passée à **`Sent`** avec une date dans `SentAt`
 
 Si le mot apparaît entouré de balises, reprends l'étape [§3.4](#34-envoyer-le-mail--létape-à-ne-pas-rater).
+
+### 4 bis. Recette du regroupement — 10 minutes
+
+À faire **après** avoir mis en place le §3.3 bis. Ce test ne nécessite pas non plus l'application.
+
+1. Dans `CN_NotificationsQueue` → **Nouveau** :
+   - **Titre** : `[Project Navigator] Projet test - Essai groupé`
+   - **ToEmails** : ta propre adresse
+   - **Body** : `<p>Premier message</p>`
+   - **GroupKey** : `test-groupe`
+   - **Status** : `Pending`
+2. Enregistre. **Dans les 2 minutes**, modifie la ligne (⋯ → **Modifier**) : mets
+   `<p>Premier message</p><p>Second message</p>` dans **Body**, puis enregistre.
+3. Attends **5 à 6 minutes** après la création. Contrôle :
+   - [ ] **Un seul** e-mail arrive, et il contient **les deux** messages → la relecture après le
+     délai fonctionne
+   - [ ] Dans l'historique des exécutions du flux, l'étape « Délai » a bien duré 5 minutes
+   - [ ] La ligne est passée à **`Sent`**
+4. Refais le test du §4 (ligne **sans** `GroupKey`) : l'e-mail doit toujours arriver en une à deux
+   minutes, **sans** attendre 5 minutes.
+
+Si l'e-mail n'arrive qu'avec le premier message, le flux envoie encore les champs du déclencheur :
+reprends le §3.4 en choisissant ceux de « Relire la notification ».
 
 ---
 
@@ -584,7 +695,9 @@ Dans la branche **« Si oui »** :
    | `ProjectId` | `items('Appliquer_à_chacun')?['ProjectId']` |
    | `Status` | `Pending` |
 
-   *(Le flux 1 se charge de l'envoi — aucune action Outlook à ajouter ici. Le texte anglais
+   *(Laisse `GroupKey` vide : une relance n'est pas un message à regrouper, elle part sans le
+   délai de 5 minutes du §3.3 bis. Le flux 1 se charge de l'envoi — aucune action Outlook à
+   ajouter ici. Le texte anglais
    reprend volontairement le gabarit `PERIMETER_STALE_REMINDER` de
    `src/utils/notificationTemplates.js`, pour que cette relance ressemble aux autres.)*
 
@@ -793,6 +906,12 @@ Le flux 1 traite **tous** ces messages : aucune configuration supplémentaire n'
 | 8 | Réponse dans un fil du **rapport** | `Réponse à votre commentaire` | Auteur du message précédent | Prendre connaissance de la réponse |
 | 9 | **Réintégration en comité** | `Réintégration en comité de validation` | Porteur + co-porteurs | Vérifier le dossier, préparer le passage |
 
+> ℹ️ **Les lignes 4 à 8 sont des mails qui relaient un message, et c'est à elles que s'applique le
+> regroupement** (§3.3 bis) : plusieurs messages écrits coup sur coup dans le même fil, ou sur la
+> même vitrine, vers les mêmes destinataires, partent dans un seul mail dont l'objet se termine par
+> « (3 messages) ». L'avis ou le statut rendu par un expert (ligne 6) en fait partie, décision d'un
+> comité comprise. Aucun autre mail du tableau n'est regroupé.
+
 > ℹ️ **La relance des dossiers pris en charge (« Reminder: project waiting for your review ») n'est
 > volontairement pas dans ce tableau.** En mode SharePoint, l'application ne la déclenche plus du
 > tout — c'est le flux 6 ([§7 ter](#7-ter-flux-6--relance-des-dossiers-pris-en-charge-recommandé))
@@ -807,8 +926,19 @@ Le flux 1 traite **tous** ces messages : aucune configuration supplémentaire n'
 > dans la file. Le lien n'est que dans l'invitation Outlook (flux 7) et dans l'application. Les
 > invitations Outlook elles-mêmes ne sont **pas** des notifications : elles vont par le flux 7.
 
-**Deux règles appliquées automatiquement par l'application :**
+**Règles appliquées automatiquement par l'application :**
 
+- **Pas de mail quand rien n'a changé pour le lecteur.** Une confirmation de revue finale, une
+  pièce jointe seule ajoutée à un avis ou un avis réenregistré à l'identique ne produisent aucun
+  mail. Un post-it ne notifie le porteur qu'**une fois**, quand son auteur le quitte (ou après
+  30 secondes sans frappe), et la **première** réponse à un post-it prévient son auteur.
+- **Une réponse n'arrive qu'une fois à la même personne.** Quand l'auteur du message précédent
+  reçoit déjà le mail principal de la réponse, il ne reçoit pas en plus « Réponse à votre
+  commentaire ».
+- **Rien à une équipe qui n'a pas pris le projet en charge.** Ce que le porteur écrit sur le
+  périmètre d'une équipe dont personne n'est référent ne prévient aucun de ses membres : le projet
+  les attend dans « À prendre », avec sa pastille. (Les comités ne se prennent pas en charge et
+  restent prévenus.)
 - **On ne se notifie jamais soi-même.** L'auteur d'une action est retiré des destinataires — sauf
   pour la confirmation de soumission (ligne 2), volontairement envoyée au porteur.
 - **Le réglage « notifier l'équipe » du back-office est respecté.** Une règle peut mobiliser une
@@ -820,7 +950,17 @@ Le flux 1 traite **tous** ces messages : aucune configuration supplémentaire n'
 
 ### Structure des e-mails
 
-Chaque message suit la même trame, pour qu'aucun destinataire ne se demande pourquoi il l'a reçu :
+**Les mails qui relaient un message (lignes 4 à 8)** s'ouvrent sur **ce qui a été écrit, en
+entier** (« Laure wrote: », puis le texte ; pour un avis, le statut d'abord), suivi d'un encadré
+**« Do not reply to this email »** avec un bouton **« Reply in Project Navigator »**. Ce bouton
+ouvre « Enjeux du projet » (ou la vitrine, pour un post-it) **directement sur le message** :
+carte dépliée, avis ou réponse entouré. Le reste suit : tableau récapitulatif, « Ce qui est
+attendu de vous », « Pourquoi recevez-vous ce message ? ». Un mail regroupé liste tous ses messages
+dans l'ordre, chacun avec son auteur et son heure, et son bouton mène au **premier**. Au-delà de
+20 000 caractères, le texte s'arrête avec une mention (la file coupe les corps à 30 000).
+
+**Tous les autres mails** suivent cette trame, pour qu'aucun destinataire ne se demande pourquoi
+il l'a reçu :
 
 1. **Ce qui s'est passé** — une phrase : qui a fait quoi, sur quel projet
 2. **Un tableau récapitulatif** — projet, porteur, auteur de l'action, équipes concernées, date
@@ -851,6 +991,10 @@ Astuce : crée une vue SharePoint « Anomalies » filtrée sur `Status` différe
 | Le flux ne se déclenche pas du tout | Mauvais site ou mauvaise liste dans le déclencheur | Revérifier l'adresse du site et le nom exact `CN_NotificationsQueue` |
 | E-mails classés en indésirables | Expéditeur inhabituel | Passer à une boîte partagée ([§3.8](#38-de-quelle-adresse-partiront-les-e-mails-)) et demander une mise en liste sûre |
 | Le flux s'est arrêté seul | Aucune exécution pendant 90 jours, ou connexion expirée | Le réactiver et vérifier les connexions en haut du flux |
+| Un message écrit coup sur coup n'arrive pas dans le mail, ou n'arrive jamais | Le flux envoie les champs du déclencheur au lieu de ceux de « Relire la notification », ou le **délai** manque alors que les colonnes `GroupKey`/`MessagesJson` existent | Reprendre le [§3.3 bis](#33-bis-regrouper-les-messages-écrits-coup-sur-coup-délai-et-relecture) et le [§3.4](#34-envoyer-le-mail--létape-à-ne-pas-rater) ; un message déjà ajouté à une ligne envoyée est à rejouer à la main |
+| Plusieurs mails pour un même échange rapide | La colonne `GroupKey` n'existe pas, ou n'est pas **indexée** (au-delà de 5 000 lignes SharePoint refuse alors le filtre) | Créer ou indexer `GroupKey` ; sans la colonne, l'application envoie un mail par message |
+| Toutes les notifications arrivent avec 5 minutes de retard, ou les unes derrière les autres | Le contrôle de concurrence du déclencheur est limité à 1 | Désactiver le contrôle de concurrence, ou le régler à 20 au moins ([§3.3 bis](#33-bis-regrouper-les-messages-écrits-coup-sur-coup-délai-et-relecture)) |
+| Un message de fil ou un post-it arrive 5 minutes après l'action | C'est le délai voulu, qui laisse le temps de regrouper | Rien à corriger ; pour le changer, modifier le délai du flux **et** `NOTIFICATION_FLOW_DELAY_MINUTES` dans l'application |
 | Erreur « The expression is invalid » | Nom d'action différent dans une expression | Les noms d'actions dans les expressions utilisent des `_` : adapte-les à tes intitulés réels |
 
 ### Relancer une notification manuellement
@@ -864,6 +1008,7 @@ et `Body`.
 
 - [ ] Flux 1 créé, testé ([§4](#4-recette-du-flux-1--5-minutes)) et **Activé**
 - [ ] Branche d'erreur configurée ([§3.6](#36-tracer-les-échecs-fortement-recommandé))
+- [ ] Colonnes `GroupKey` (**indexée**) et `MessagesJson` créées, délai de 5 minutes et relecture en place, recette du regroupement passée ([§3.3 bis](#33-bis-regrouper-les-messages-écrits-coup-sur-coup-délai-et-relecture), [§4 bis](#4-bis-recette-du-regroupement--10-minutes))
 - [ ] Co-propriétaire ajouté sur chaque flux
 - [ ] Boîte d'envoi décidée (personnelle ou partagée)
 - [ ] Vue « Anomalies » créée sur `CN_NotificationsQueue`
