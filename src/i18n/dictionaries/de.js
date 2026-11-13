@@ -323,6 +323,9 @@ export default {
       heading: 'Übernahmen',
       teamLabel: 'Benachrichtigung erhalten, wenn ein Mitglied des Teams {{team}} ein Projekt übernimmt'
     },
+    completeValidationSection: {
+      teamLabel: 'Benachrichtigt werden, wenn ein Projekt, das ich für das Team {{team}} übernommen habe, von allen Teams und Gremien validiert wurde'
+    },
     absenceSection: {
       heading: 'Abwesenheit und Vertretung',
       description: 'In diesem Zeitraum gehen neue Anfragen an Ihre Vertretung, und Ihre Teams können die von Ihnen betreuten Projekte übernehmen.',

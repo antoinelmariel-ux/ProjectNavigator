@@ -6,6 +6,10 @@ import { normalizeTeamContacts } from './teamContacts.js';
 //   - `teamPreferences[teamId].claimCopy` : recevoir en copie l'annonce de prise en charge d'un
 //     collègue sur cette équipe. Activé par défaut : un contact routé sur le projet doit savoir
 //     qu'il n'a pas à s'en occuper. Seul le refus explicite (`claimCopy: false`) est stocké.
+//   - `teamPreferences[teamId].completeValidationCopy` : être prévenu quand un projet dont on
+//     s'est saisi pour cette équipe est validé par tous les périmètres. Désactivé par défaut (le
+//     porteur est déjà prévenu, c'est une commodité de l'expert) : seul l'accord explicite
+//     (`completeValidationCopy: true`) est stocké.
 //   - `absence` : une période d'indisponibilité et un suppléant. Modifiable par un tiers
 //     (back-office), parce qu'une absence imprévue n'est jamais déclarée par l'absent.
 
@@ -32,11 +36,16 @@ export const normalizeTeamPreferences = (value) => {
     if (typeof teamId !== 'string' || teamId.trim().length === 0) {
       return accumulator;
     }
-    const isOptedOut = (entry && typeof entry === 'object' ? entry.claimCopy : entry) === false;
-    if (!isOptedOut) {
+    const isObject = entry && typeof entry === 'object' && !Array.isArray(entry);
+    const isOptedOut = (isObject ? entry.claimCopy : entry) === false;
+    const wantsCompleteValidation = isObject && entry.completeValidationCopy === true;
+    if (!isOptedOut && !wantsCompleteValidation) {
       return accumulator;
     }
-    accumulator[teamId.trim()] = { claimCopy: false };
+    accumulator[teamId.trim()] = {
+      ...(isOptedOut ? { claimCopy: false } : {}),
+      ...(wantsCompleteValidation ? { completeValidationCopy: true } : {})
+    };
     return accumulator;
   }, {});
 };
@@ -60,6 +69,17 @@ export const wantsClaimCopy = (profile, teamId) => {
 
 export const wantsClaimCopyForTeam = (profiles, email, teamId) =>
   wantsClaimCopy(readProfile(profiles, email), teamId);
+
+export const wantsCompleteValidationCopy = (profile, teamId) => {
+  const key = typeof teamId === 'string' ? teamId.trim() : '';
+  if (!key) {
+    return false;
+  }
+  return normalizeTeamPreferences(profile?.teamPreferences)[key]?.completeValidationCopy === true;
+};
+
+export const wantsCompleteValidationCopyForTeam = (profiles, email, teamId) =>
+  wantsCompleteValidationCopy(readProfile(profiles, email), teamId);
 
 const toDayString = (value) => {
   if (typeof value !== 'string' || value.trim().length === 0) {
