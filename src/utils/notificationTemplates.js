@@ -17,8 +17,10 @@ export const NOTIFICATION_TYPES = {
   FINAL_CONFIRMATION_REMINDER: 'final-confirmation-reminder',
   FINAL_CONFIRMATION_REEXAMINING: 'final-confirmation-reexamining',
   PROJECT_LAUNCHED_WITHOUT_CONFIRMATION: 'project-launched-without-confirmation',
+  PROJECT_FULLY_VALIDATED_OWNER: 'project-fully-validated-owner',
+  PROJECT_FULLY_VALIDATED_TEAM: 'project-fully-validated-team',
   PROJECT_SHARED: 'project-shared',
-  SHOWCASE_COMMENT: 'showcase-comment',
+  SHOWCASE_COMMENT:'showcase-comment',
   SHOWCASE_COMMENT_REPLY: 'showcase-comment-reply',
   SYNTHESIS_COMMENT_TO_OWNER: 'synthesis-comment-to-owner',
   SYNTHESIS_COMMENT_TO_TEAM: 'synthesis-comment-to-team',
@@ -216,6 +218,38 @@ export const NOTIFICATION_CATALOG = {
       'Nothing could have prevented the launch — this notice exists so that it is not discovered later.'
     ],
     reason: () => 'you are involved in the compliance review of this project.'
+  },
+
+  // Envoyée une seule fois, au moment où le dernier périmètre requis se prononce favorablement.
+  // Elle dit aussi ce qu'elle ne garantit pas : une modification ultérieure du projet peut
+  // redemander un avis, auquel cas la validation redevient « à revoir ».
+  [NOTIFICATION_TYPES.PROJECT_FULLY_VALIDATED_OWNER]: {
+    actionType: 'Project validated by all teams',
+    intro: (ctx) =>
+      `Your project ${quoted(ctx.projectName)} has now been validated by all the teams and committees concerned.`,
+    expected: () => [
+      'No immediate action is required from you.',
+      'Open the project stakes page to read the opinions and any conditions attached to them.',
+      'If you change the project later on, the teams affected by the change will be asked to review it again and this validation will be flagged as outdated until they do.'
+    ],
+    reason: () => 'you are the owner or co-owner of this project.'
+  },
+
+  // Copie facultative pour l'expert qui s'est saisi du projet : elle ne part que s'il l'a
+  // demandé dans « Mon profil », et seulement pour les équipes dont il est le référent.
+  [NOTIFICATION_TYPES.PROJECT_FULLY_VALIDATED_TEAM]: {
+    actionType: 'Project validated by all teams',
+    intro: (ctx) =>
+      ctx.teamNames.length > 0
+        ? `The project ${quoted(ctx.projectName)}, which you are handling for ${ctx.teamNames.join(', ')}, has now been validated by all the teams and committees concerned.`
+        : `The project ${quoted(ctx.projectName)}, which you are handling, has now been validated by all the teams and committees concerned.`,
+    expected: () => [
+      'Nothing is expected from you: this message is for information only.',
+      'Open the project stakes page to see the opinions given by every team.',
+      'If the project changes later on, you may be asked to review it again.'
+    ],
+    reason: () =>
+      'you asked to be notified when a project you took in charge is fully validated. You can turn this off in "My profile".'
   },
 
   [NOTIFICATION_TYPES.PROJECT_SHARED]: {

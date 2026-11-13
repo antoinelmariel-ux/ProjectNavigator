@@ -9,7 +9,8 @@ import {
   normalizeTeamPreferences,
   resolveAbsenceBackupContact,
   setTeamPreference,
-  wantsClaimCopy
+  wantsClaimCopy,
+  wantsCompleteValidationCopy
 } from '../src/utils/teamMemberProfile.js';
 
 const TEAM = { id: 'quality', contacts: ['alice@lfb.fr', 'bob@lfb.fr'] };
@@ -30,6 +31,26 @@ test('les copies sont activées par défaut et ne stockent que les refus explici
   const optedOut = setTeamPreference({}, 'quality', { claimCopy: false });
   assert.deepEqual(optedOut, { quality: { claimCopy: false } });
   assert.deepEqual(setTeamPreference(optedOut, 'quality', { claimCopy: true }), {});
+});
+
+test('la copie « validation complète » est désactivée par défaut et ne stocke que l’accord explicite', () => {
+  assert.equal(wantsCompleteValidationCopy(null, 'quality'), false);
+  assert.equal(wantsCompleteValidationCopy({ teamPreferences: {} }, 'quality'), false);
+  assert.equal(wantsCompleteValidationCopy({ teamPreferences: { quality: { completeValidationCopy: true } } }, 'quality'), true);
+  assert.equal(wantsCompleteValidationCopy({ teamPreferences: { quality: { completeValidationCopy: true } } }, 'legal'), false);
+
+  assert.deepEqual(normalizeTeamPreferences({ quality: { completeValidationCopy: false } }), {});
+  assert.deepEqual(
+    normalizeTeamPreferences({ quality: { claimCopy: false, completeValidationCopy: true } }),
+    { quality: { claimCopy: false, completeValidationCopy: true } }
+  );
+
+  const enabled = setTeamPreference({}, 'quality', { completeValidationCopy: true });
+  assert.deepEqual(enabled, { quality: { completeValidationCopy: true } });
+  assert.deepEqual(setTeamPreference(enabled, 'quality', { claimCopy: false }), {
+    quality: { claimCopy: false, completeValidationCopy: true }
+  });
+  assert.deepEqual(setTeamPreference(enabled, 'quality', { completeValidationCopy: false }), {});
 });
 
 test('une absence sans borne ni suppléant n’est pas une absence', () => {

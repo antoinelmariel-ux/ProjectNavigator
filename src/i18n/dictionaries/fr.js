@@ -323,6 +323,9 @@ export default {
       heading: 'Prises en charge',
       teamLabel: 'Recevoir une notification en cas de prise en charge par un membre de l’équipe {{team}}'
     },
+    completeValidationSection: {
+      teamLabel: 'Recevoir une notification quand un projet pris en charge pour l’équipe {{team}} est validé par tous les périmètres'
+    },
     absenceSection: {
       heading: 'Absence et suppléance',
       description: 'Pendant cette période, les nouvelles sollicitations partent à votre suppléant et vos équipes peuvent reprendre les projets que vous suivez.',

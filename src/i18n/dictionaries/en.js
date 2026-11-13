@@ -323,6 +323,9 @@ export default {
       heading: 'Take-overs',
       teamLabel: 'Receive a notification when a member of the {{team}} team takes a project in charge'
     },
+    completeValidationSection: {
+      teamLabel: 'Be notified when a project I took in charge for the {{team}} team is validated by all teams and committees'
+    },
     absenceSection: {
       heading: 'Absence and backup',
       description: 'During this period, new solicitations go to your backup and your teams can take over the projects you are handling.',

@@ -724,6 +724,24 @@ expert one click** in the nominal case, and makes a project that ships without i
   session of whoever opens the app — here the owner, since they are the one who decides to launch
   — and `remindersSent` keeps it idempotent. The nearest threshold wins.
 
+## Complete validation mail (owner side + optional copy for the handling expert)
+
+When the last required perimeter gives a favourable opinion, `computeProjectValidationStatus` goes
+from something else to `validated`: `notifyCompleteValidation` (`App.jsx`) mails the owner and
+co-owners (`PROJECT_FULLY_VALIDATED_OWNER`). It is **transition-based** (`isCompleteValidationReached`,
+`src/utils/completeValidation.js`: status before the write ≠ `validated`, after = `validated`), called
+from the two opinion write paths only — `handleUpdateComplianceComments` (not when `silent`) and
+`handleSetCommitteePassageDecision` — never from an effect over `projects`, which would mail on every
+hydration. Preliminary requests (`preliminary`), `outdated` and `partial` are not `validated`; a validation
+that went `outdated` and is re-confirmed does fire again, since it is a new full validation.
+
+The expert side is **opt-in per team** in « Mon profil » (`teamPreferences[teamId].completeValidationCopy: true`,
+stored in `TeamPreferencesJson`, no new column; the opposite default of `claimCopy`, which only stores refusals).
+Only the person who **took the perimeter in charge** (`claim.assigneeEmail`, still a team contact) is mailed
+(`PROJECT_FULLY_VALIDATED_TEAM`), for the teams where they ticked it — followers and the rest of the team are not.
+Owner-side recipients are never mailed twice, and `notify` drops the actor. Nothing leaves in a « Voir en tant que » session.
+Tests: `test/completeValidation.test.mjs`, `test/teamMemberProfile.test.mjs`.
+
 ## Mails relaying a message (text first, no-reply warning, link to the message itself)
 
 Five notification types relay something a person wrote — an expert's or committee's opinion

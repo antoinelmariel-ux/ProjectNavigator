@@ -74,6 +74,7 @@ import {
 } from './utils/launchConfirmation.js';
 import { isProjectLaunched, withProjectLaunch, withoutProjectLaunch } from './utils/projectLaunch.js';
 import { computeProjectValidationStatus, getProjectCompliancePerimeters } from './utils/projectValidationStatus.js';
+import { isCompleteValidationReached, resolveCompleteValidationCopyRecipients } from './utils/completeValidation.js';
 import {
   PERIMETER_TYPE_TEAM,
   buildPerimeterKey,
@@ -3801,6 +3802,10 @@ const updateProjectFilters = useCallback((updater) => {
     setProfileDraftTeamPreferences((previous) => setTeamPreference(previous, teamId, { claimCopy: enabled }));
   }, []);
 
+  const handleToggleProfileCompleteValidationCopy = useCallback((teamId, enabled) => {
+    setProfileDraftTeamPreferences((previous) => setTeamPreference(previous, teamId, { completeValidationCopy: enabled }));
+  }, []);
+
   // Une absence imprévue n'est jamais déclarée par l'absent : un administrateur (ou un collègue
   // via le back-office) doit pouvoir la renseigner à sa place. La file de profils accepte déjà
   // une adresse arbitraire, et saveProfile fusionne avec la ligne existante — le périmètre
@@ -5101,6 +5106,44 @@ const updateProjectFilters = useCallback((updater) => {
     });
   }, [notify, resolveTeamMailRecipients, userProfilesByEmail]);
 
+  // Validation complète : le projet vient de passer à `validated` à la suite de cet avis. Prévient
+  // le porteur et les co-porteurs, puis, en copie facultative, les référents qui l'ont demandé
+  // dans leur profil (équipes dont ils se sont saisis uniquement). Seule la transition notifie.
+  const notifyCompleteValidation = useCallback((previousProject, nextProject) => {
+    if (isSimulatedSession || !previousProject || !nextProject) {
+      return;
+    }
+
+    const options = { teams, validationCommitteeConfig };
+    if (!isCompleteValidationReached(previousProject, nextProject, options)) {
+      return;
+    }
+
+    notifyOwnerAndCoOwners(nextProject, NOTIFICATION_TYPES.PROJECT_FULLY_VALIDATED_OWNER, { view: 'synthesis' });
+
+    const ownerSide = new Set([
+      normalizeEmail(nextProject.ownerEmail),
+      ...(Array.isArray(nextProject.sharedWith) ? nextProject.sharedWith : []).map(normalizeEmail)
+    ]);
+    const copiesByEmail = new Map();
+    resolveCompleteValidationCopyRecipients(nextProject, { teams, profiles: userProfilesByEmail })
+      .filter(({ email }) => !ownerSide.has(email))
+      .forEach(({ email, teamId }) => {
+        const teamName = resolveLocalizedText(teams.find((team) => team?.id === teamId)?.name, DEFAULT_LANGUAGE);
+        copiesByEmail.set(email, [...(copiesByEmail.get(email) || []), teamName].filter(Boolean));
+      });
+
+    copiesByEmail.forEach((teamNames, email) => {
+      notify({
+        type: NOTIFICATION_TYPES.PROJECT_FULLY_VALIDATED_TEAM,
+        project: nextProject,
+        to: [email],
+        teamNames,
+        view: 'synthesis'
+      });
+    });
+  }, [isSimulatedSession, notify, notifyOwnerAndCoOwners, teams, userProfilesByEmail, validationCommitteeConfig]);
+
   // Revendiquer / reprendre / libérer un périmètre. Une seule action pour les trois, parce que
   // l'écriture est la même : l'état vit dans le commentaire de conformité de l'équipe
   // (answers['__compliance_team_comments__'].teams[teamId].claim), est répercuté dans
@@ -6109,6 +6152,10 @@ const updateProjectFilters = useCallback((updater) => {
         });
       }
 
+      if (!silent && project) {
+        notifyCompleteValidation(project, { ...project, answers: sanitizedResult });
+      }
+
       setHasUnsavedChanges(true);
       setProjects(prevProjects => {
         const projectIndex = prevProjects.findIndex(project => project.id === activeProjectId);
@@ -6140,6 +6187,7 @@ const updateProjectFilters = useCallback((updater) => {
     injectImplicitClaims,
     isSimulatedSession,
     notify,
+    notifyCompleteValidation,
     notifyOwnerAndCoOwners,
     notifyPerimeterClaimEvent,
     projects,
@@ -6206,6 +6254,7 @@ const updateProjectFilters = useCallback((updater) => {
             focus: decisionMessage.focus
           });
         }
+        notifyCompleteValidation(project, { ...project, answers: nextAnswers });
       }
     }
     return { ok: true };
@@ -6216,6 +6265,7 @@ const updateProjectFilters = useCallback((updater) => {
     currentUserEmail,
     hasFullBackOfficeRights,
     isSimulatedSession,
+    notifyCompleteValidation,
     notifyOwnerAndCoOwners,
     projects,
     setHasUnsavedChanges
@@ -9534,6 +9584,16 @@ const updateProjectFilters = useCallback((updater) => {
                             onChange={(event) => handleToggleProfileTeamCopy(team.id, event.target.checked)}
                           />
                           <span>{t('profile.claimCopySection.teamLabel', { team: teamLabel })}</span>
+                        </label>
+                        <label className="mt-1 flex items-start gap-2 text-sm text-gray-700">
+                          <input
+                            type="checkbox"
+                            className="mt-1"
+                            data-testid={`profile-complete-validation-copy-${team.id}`}
+                            checked={normalizeTeamPreferences(profileDraftTeamPreferences)[team.id]?.completeValidationCopy === true}
+                            onChange={(event) => handleToggleProfileCompleteValidationCopy(team.id, event.target.checked)}
+                          />
+                          <span>{t('profile.completeValidationSection.teamLabel', { team: teamLabel })}</span>
                         </label>
                       </div>
                     );

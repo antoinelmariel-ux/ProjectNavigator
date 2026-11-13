@@ -323,6 +323,9 @@ export default {
       heading: 'Tomas a cargo',
       teamLabel: 'Recibir una notificación cuando un miembro del equipo {{team}} asuma un proyecto'
     },
+    completeValidationSection: {
+      teamLabel: 'Recibir un aviso cuando un proyecto que asumí para el equipo {{team}} sea validado por todos los equipos y comités'
+    },
     absenceSection: {
       heading: 'Ausencia y suplencia',
       description: 'Durante ese periodo, las nuevas solicitudes van a su suplente y sus equipos pueden retomar los proyectos que usted sigue.',
