@@ -221,7 +221,7 @@ import {
 } from './utils/committeeSessions.js';
 import { committeeSessionsProvider } from './utils/committeeSessionsProvider.js';
 import { committeeInvitationsProvider } from './utils/committeeInvitationsProvider.js';
-import { computeSessionInvitations, selectInvitationsToSync } from './utils/committeeInvitations.js';
+import { applyProjectMembers, computeSessionInvitations, selectInvitationsToSync } from './utils/committeeInvitations.js';
 import { describeCommitteeSessionForEmail } from './utils/committeeSessionEmails.js';
 import { useCommitteeSessionActions } from './hooks/useCommitteeSessionActions.js';
 import { CommitteeAgendaScreen } from './components/committee/CommitteeAgendaScreen.jsx';
@@ -1676,14 +1676,45 @@ export const App = () => {
   // Invitations Outlook des chefs de projet (étape 2) : après chaque changement de séance, on décrit
   // dans CN_CommitteeInvitations les invitations telles qu'elles doivent être ; le flux Power
   // Automate fait le reste. Rien n'est écrit hors mode SharePoint ni en simulation d'identité.
-  const handleCommitteeSessionChanged = useCallback(({ before, after, committee }) => {
+  // Les co-porteurs ne sont chargés qu'à l'ouverture d'un projet : on les relit ici pour chaque
+  // projet de la séance, sinon l'invitation partirait au porteur seul. Lecture en échec : le projet
+  // est écarté, donc ni invité ni annulé (jamais réécrit « porteur seul »).
+  const loadInvitationProjects = useCallback(async (sessions) => {
+    const projectsById = new Map(projectsRef.current
+      .filter((project) => project?.id && !isProjectTrashed(project))
+      .map((project) => [project.id, project]));
+    if (!isSharePointMode()) {
+      return projectsById;
+    }
+    const projectIds = new Set();
+    sessions.filter(Boolean).forEach((session) => {
+      (Array.isArray(session.agenda) ? session.agenda : []).forEach((passage) => {
+        if (passage?.kind !== 'topic' && projectsById.has(passage?.projectId)) {
+          projectIds.add(passage.projectId);
+        }
+      });
+    });
+    const membersByProjectId = new Map();
+    await Promise.all(Array.from(projectIds).map(async (projectId) => {
+      try {
+        const members = await projectMembersProvider.listMembers(projectId);
+        membersByProjectId.set(projectId, Array.isArray(members) ? members.map((member) => member.email) : null);
+      } catch (error) {
+        membersByProjectId.set(projectId, null);
+        if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+          console.warn('[Invitations] Membres du projet illisibles :', error);
+        }
+      }
+    }));
+    return applyProjectMembers(projectsById, membersByProjectId);
+  }, []);
+
+  const handleCommitteeSessionChanged = useCallback(async ({ before, after, committee }) => {
     const queue = committeeInvitationsQueueRef.current;
     if (!queue) {
       return;
     }
-    const projectsById = new Map(projectsRef.current
-      .filter((project) => project?.id && !isProjectTrashed(project))
-      .map((project) => [project.id, project]));
+    const projectsById = await loadInvitationProjects([before, after]);
     selectInvitationsToSync(computeSessionInvitations({
       before,
       after,
@@ -1693,7 +1724,7 @@ export const App = () => {
       buildAgendaUrl: buildCommitteeSessionUrl,
       recordsById: committeeInvitationRecordsRef.current
     }), committeeInvitationRecordsRef.current).forEach((invitation) => queue.enqueue(invitation));
-  }, [buildCommitteeSessionUrl, buildProjectUrl]);
+  }, [buildCommitteeSessionUrl, buildProjectUrl, loadInvitationProjects]);
 
   const {
     runAction: runCommitteeSessionAction,
@@ -5943,12 +5974,9 @@ const updateProjectFilters = useCallback((updater) => {
     committeeInvitationsReconciledRef.current = signature;
 
     const now = new Date();
-    const projectsById = new Map(projectsRef.current
-      .filter((project) => project?.id && !isProjectTrashed(project))
-      .map((project) => [project.id, project]));
-    committeeSessionsRef.current
-      .filter((session) => !isSessionPast(session, now))
-      .forEach((session) => {
+    const upcomingSessions = committeeSessionsRef.current.filter((session) => !isSessionPast(session, now));
+    loadInvitationProjects(upcomingSessions).then((projectsById) => {
+      upcomingSessions.forEach((session) => {
         selectInvitationsToSync(computeSessionInvitations({
           after: session,
           committee: committeesById[session.committeeId] || null,
@@ -5959,12 +5987,14 @@ const updateProjectFilters = useCallback((updater) => {
           now
         }), committeeInvitationRecordsRef.current).forEach((invitation) => queue.enqueue(invitation));
       });
+    });
   }, [
     areCommitteeInvitationsLoaded,
     buildCommitteeSessionUrl,
     buildProjectUrl,
     committeeSessionsRef,
     committeesById,
+    loadInvitationProjects,
     isSimulatedSession,
     sharePointSync.state
   ]);
