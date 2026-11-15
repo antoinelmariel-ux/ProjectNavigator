@@ -72,12 +72,14 @@ test('SharePointRestProvider : listProjects convertit les lignes en projets', as
             SubmissionDate: '2026-08-01T09:00:00Z',
             LastAutosaveAt: '2026-08-02T09:00:00Z',
             RowVersion: 2,
-            UpdatedByEmail: 'b@lfb.fr'
+            UpdatedByEmail: 'b@lfb.fr',
+            Created: '2026-07-20T08:00:00Z'
           }
         ]
       }),
-    async () => {
+    async (calls) => {
       const projects = await new SharePointRestProvider().listProjects();
+      assert.ok(decodeURIComponent(calls[0].url).includes(',Created'), 'la colonne native Created est lue');
       assert.equal(projects.length, 1);
       assert.deepEqual(projects[0], {
         id: 'p-1',
@@ -91,6 +93,7 @@ test('SharePointRestProvider : listProjects convertit les lignes en projets', as
         submittedAt: '2026-08-01T09:00:00Z',
         cancelledAt: null,
         ownerEmail: 'a@lfb.fr',
+        createdAt: '2026-07-20T08:00:00Z',
         rowVersion: 2,
         lastModifiedBy: 'b@lfb.fr'
       });

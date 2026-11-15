@@ -152,6 +152,7 @@ import { applyConditionFieldChange } from '../utils/conditionValueUnit.js';
 import { BackOfficeShowcaseTemplates } from './BackOfficeShowcaseTemplates.jsx';
 import { isSharePointMode } from '../config/sharepointConfig.js';
 import { scrollAppTo } from '../utils/scrollContainer.js';
+import { BackOfficeProjectSearch } from './projectSearch/BackOfficeProjectSearch.jsx';
 
 const QUESTION_TYPE_KEYS = {
   choice: 'choice',
@@ -743,6 +744,7 @@ let rememberedBackOfficeTab = 'dashboard';
 
 const BACK_OFFICE_TAB_GROUPS = [
   { id: 'dashboard', labelKey: 'backOffice.main.tabGroupDashboard', tabIds: ['dashboard'] },
+  { id: 'projectSearch', labelKey: 'projectSearch.tab', tabIds: ['projectSearch'] },
   {
     id: 'content',
     labelKey: 'backOffice.main.tabGroupContent',
@@ -800,6 +802,9 @@ export const BackOffice = ({
   sampleProjectServerMetaRef,
   helpManuals,
   setHelpManuals,
+  projectSearchDefaults = null,
+  setProjectSearchDefaults,
+  projectSearchConfigQueueRef,
   faqEntries,
   setFaqEntries,
   faqQueueRef,
@@ -1143,7 +1148,8 @@ export const BackOffice = ({
       return null;
     }
 
-    const ids = new Set(['dashboard']);
+    // Tous les experts et membres de comité retrouvent tous les projets, au-delà de leur périmètre.
+    const ids = new Set(['dashboard', 'projectSearch']);
 
     if (hasComplianceTeamScopedAccess) {
       ids.add('teams');
@@ -4116,6 +4122,11 @@ export const BackOffice = ({
       panelId: 'backoffice-tabpanel-dashboard'
     },
     {
+      id: 'projectSearch',
+      label: t('projectSearch.tab'),
+      panelId: 'backoffice-tabpanel-projectSearch'
+    },
+    {
       id: 'filters',
       label: t('backOffice.main.tabFiltersTemplate', { count: filterFields.length }),
       panelId: 'backoffice-tabpanel-filters'
@@ -5384,6 +5395,29 @@ export const BackOffice = ({
                 scopeTeamIds={dashboardScope ? dashboardScope.teamIds : null}
                 launchSignals={launchSignals}
                 neverSolicitedPerimeters={neverSolicitedPerimeters}
+              />
+            </section>
+          )}
+
+          {activeTab === 'projectSearch' && (
+            <section
+              id="backoffice-tabpanel-projectSearch"
+              role="tabpanel"
+              aria-labelledby="backoffice-tab-projectSearch"
+              className="space-y-6"
+            >
+              <BackOfficeProjectSearch
+                projects={projects}
+                questions={questions}
+                teams={teams}
+                validationCommitteeConfig={normalizedValidationCommitteeConfig}
+                currencies={currencies}
+                currentUserEmail={currentUserEmail}
+                canEditDefaults={isCurrentUserAdmin || !allowedTabIds}
+                projectSearchDefaults={projectSearchDefaults}
+                setProjectSearchDefaults={setProjectSearchDefaults}
+                configQueueRef={projectSearchConfigQueueRef}
+                publishControl={renderReferentialPublishControl('settings', { noteKey: 'referentialSettingsSharedNote' })}
               />
             </section>
           )}

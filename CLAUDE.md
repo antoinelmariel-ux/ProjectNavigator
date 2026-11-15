@@ -246,6 +246,49 @@ tab the home is replaced by `AdminProjectsConsole.jsx` (own chunk) under a red
 word must match, owner matches first, owner and status filters). The back-office's own
 `isAdminMode` gates are unchanged. Tests: `test/adminConsole.test.mjs`, `e2e/admin-console.spec.js`.
 
+## Project search in the back-office (every project, configurable table)
+
+Back-office tab `projectSearch` (« Recherche de projets »), its own top-level group right after
+« Tableau de bord », open to admins **and** every scoped expert/committee member (`allowedTabIds`
+includes it). Pure logic in `src/utils/projectSearch.js` (`test/projectSearch.test.mjs`), UI in
+`src/components/projectSearch/` (table + filters, `ProjectSearchCharts`, `ProjectSearchConfigEditor`),
+strings in `src/i18n/dictionaries/projectSearch/*.js`, e2e `e2e/backoffice-project-search.spec.js`.
+
+- **Every live project, drafts of other people included, on purpose.** This was asked for explicitly
+  and is the one place where an expert reads a draft before it is sent — it deliberately departs from
+  the « a draft is private » principle of « Mon équipe » (`teamVisibility`). Don't « fix » it into a
+  scoped list. Trashed projects (the tab gets `liveProjects`) and the tour's `isDemo` ones are out.
+- **No question id is hard-coded in the table.** Columns are either built-ins (`BUILTIN_COLUMNS`:
+  name, owner, `createdAt`, status, verdict — `computeProjectValidationStatus`, submitted projects
+  only —, teams) or *custom* columns reading one or more questions of the **loaded** referential,
+  merged (`first` filled in order / `sum` / `concat`), with a user-chosen name. Numbers are converted
+  into the column `unit` with the currency rates (frozen at send first, like the rules engine); a
+  value that cannot be converted is flagged (`unconverted`), never counted. A source question missing
+  from the referential is ignored and flagged in the editor (`getMissingColumnSources`). The default
+  config (`buildDefaultProjectSearchConfig`) only adds description / launch / amount
+  (`BUDGET` then `donationAmount`) when those questions exist.
+- **Config resolution: personal > admin default > built-in.** Personal config lives in the
+  `ProjectSearchConfigJson` column of `CN_UserProfiles`, read and written by
+  `src/utils/projectSearchConfigProvider.js` **separately from `userProfileProvider.js`**: naming a
+  missing column makes SharePoint reject the whole request, and adding it to the shared schema would
+  have broken every profile read (onboarding included). Missing column (400), no profile row
+  (never created here — it would reopen onboarding) or local mode → `localStorage`
+  (`complianceNavigatorProjectSearchConfig`); writes go through `projectSearchConfigQueueRef`. The
+  admin default is `projectSearchDefaults` in `settings.json` (`SETTINGS_KEYS`), offered by anyone
+  with full back-office rights.
+- **Search** = every word, accent/case-insensitive, over every formatted answer (option labels
+  included), name, owner/co-owners and cell values. Filters are per column kind (enum values with
+  « Non renseigné », date range, number range, contains). Charts and the two KPI tiles use the ticked
+  rows still visible, else every filtered row; a project with several values counts in each group.
+- **Export is a real `.xlsx`** built by `src/utils/xlsxWriter.js` (stored ZIP + SpreadsheetML, no
+  dependency; numbers and dates typed), ticked rows × displayed columns. The showcase button opens a
+  `?sv=` share link (full, no comments) in a new tab: read-only by construction; cancelled sends
+  get no button (a link never opens them).
+- **`createdAt`** now exists: SharePoint's native `Created` is read through
+  `readOnlyColumns` of the `projects` schema (selected, never written, not in the provisioning
+  script), and local mode stamps it in `upsertProject` on first insertion only — a project older
+  than that shows « — » rather than today's date.
+
 ## Where the questionnaire lets you out (showcase first)
 
 Finishing the creation form lands on the **project showcase**, not on the compliance report:
@@ -1171,6 +1214,6 @@ then another effect reorders it back, so asserting only the final order proves n
 - Rich text is sanitized through an allow-list in `src/utils/richText.js` before any `dangerouslySetInnerHTML` — route user HTML through it, don't bypass.
 - Rules of Hooks matters here: several components are huge; never place an early `return` before hooks (a real bug of this kind was fixed in `QuestionnaireScreen.jsx` using a stable sentinel + guard-after-hooks). `npm run lint` enforces `react-hooks/rules-of-hooks`.
 - Memoize any array/object built with `.filter()`/`.map()`/`.slice()` that a `useEffect` depends on, or that effect refires on *every* unrelated render of that component (a new array reference each time never equals the previous one). A real instance of this in `SynthesisReport.jsx` (`relevantTeams` computed inline, feeding an effect that rebuilds `complianceCommentDrafts` from whatever's already persisted) made the compliance status `<select>` functionally unusable — any re-render, including the one caused by picking a status, instantly reset the draft back to empty before it could be saved. Fixed via `useMemo`; watch for the same pattern elsewhere in the huge components.
-- **Back-office tabs are two-level** (`BACK_OFFICE_TAB_GROUPS` in `BackOffice.jsx`: Tableau de bord, Contenu, Accueil, Vitrine, Système). Only the active group's tabs are rendered, a group reduced to one tab (dashboard, or after `allowedTabIds` filtering) *is* that tab (`id="backoffice-tab-<id>"`), and each group remembers its last tab. A new tab must be added to a group or it is never reachable. In e2e, open a tab with `openBackOfficeTab(page, name)` (`e2e/fixtures.js`), never `getByRole('tab').click()` directly. The inconsistency banner only renders when there are issues, and the undo button only while there is something to undo.
+- **Back-office tabs are two-level** (`BACK_OFFICE_TAB_GROUPS` in `BackOffice.jsx`: Tableau de bord, Recherche de projets, Contenu, Accueil, Vitrine, Système). Only the active group's tabs are rendered, a group reduced to one tab (dashboard, or after `allowedTabIds` filtering) *is* that tab (`id="backoffice-tab-<id>"`), and each group remembers its last tab. A new tab must be added to a group or it is never reachable. In e2e, open a tab with `openBackOfficeTab(page, name)` (`e2e/fixtures.js`), never `getByRole('tab').click()` directly. The inconsistency banner only renders when there are issues, and the undo button only while there is something to undo.
 - **Home layout rules**: the filters card appears from `FILTERS_MIN_PROJECT_COUNT` projects (or while a filter is active, or during the tour), « Effacer tous les filtres » only while a filter is active, project grids use `projectGridClassName(count)` (one card = full width), and « Projets soumis » is not rendered while empty. The first-access hero holds the only « Créer un projet » button; the empty state points to it. On the showcase, the Light/complete panel is collapsed into one button unless Light is active, its sections are being configured, or the tour step presents it. On phones the nav keeps icon-only buttons on one row and the questionnaire outline sits under the question, collapsed below `lg`.
-- Back-office access has a second, finer gate beyond the shared password: in `BackOffice.jsx`, `allowedTabIds` collapses the UI to a restricted "scoped compliance lead" view (only `dashboard`/`teams`/`rules`/`complianceReview`/`validationCommittee`, filtered to that person's own teams/committees) for anyone who isn't in `adminEmails` but *is* listed as a team contact or validation-committee member — with **no on-screen explanation** and the `Administrateurs` tab itself hidden, so there's no way back through the UI except removing yourself from that team/committee again. It's pure display filtering (the underlying `questions`/`rules`/`teams` state is untouched, verified via `complianceNavigatorState`), not data loss — but if you're setting up a test/demo session as a team contact or committee member, add that email to `adminEmails` *first* or you'll immediately lose the rest of the back-office.
+- Back-office access has a second, finer gate beyond the shared password: in `BackOffice.jsx`, `allowedTabIds` collapses the UI to a restricted "scoped compliance lead" view (only `dashboard`/`projectSearch`/`teams`/`rules`/`complianceReview`/`validationCommittee`, filtered to that person's own teams/committees) for anyone who isn't in `adminEmails` but *is* listed as a team contact or validation-committee member — with **no on-screen explanation** and the `Administrateurs` tab itself hidden, so there's no way back through the UI except removing yourself from that team/committee again. It's pure display filtering (the underlying `questions`/`rules`/`teams` state is untouched, verified via `complianceNavigatorState`), not data loss — but if you're setting up a test/demo session as a team contact or committee member, add that email to `adminEmails` *first* or you'll immediately lose the rest of the back-office.

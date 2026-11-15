@@ -44,6 +44,7 @@ const toProjectEntry = (item) => {
     submittedAt: item.SubmissionDate || null,
     cancelledAt: item.CancelledDate || null,
     ownerEmail: item.OwnerEmail || '',
+    createdAt: item.Created || null,
     rowVersion: Number(item.RowVersion) || 1,
     lastModifiedBy: item.UpdatedByEmail || item.CreatedByEmail || ''
   };
@@ -104,7 +105,8 @@ class MockSharePointProvider {
     const nextVersion = existing ? (Number(existing.RowVersion) || 1) + 1 : 1;
     const nextItem = {
       ...toListItem(project, userEmail),
-      RowVersion: nextVersion
+      RowVersion: nextVersion,
+      Created: existing?.Created || project.createdAt || new Date().toISOString()
     };
 
     this.projects.set(project.id, nextItem);

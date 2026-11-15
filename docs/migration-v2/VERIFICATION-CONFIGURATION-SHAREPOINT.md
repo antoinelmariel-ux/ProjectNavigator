@@ -96,7 +96,7 @@ script (nécessaire au-delà de 5 000 éléments).
 | `CN_FilesIndex` | FileId, EntityType📌, EntityId📌, Path, UploadedBy, UploadedAt (date), Checksum |
 | `CN_NotificationsQueue` | NotificationType, ToEmails (texte long), CcEmails (texte long), Body (texte long), ProjectId, Status📌 (Choix : Pending/Sent/Error, défaut Pending), SentAt (date), ErrorMessage (texte long), GroupKey📌, MessagesJson (texte long) |
 | `CN_SiteAccessRequests` | TargetEmail📌, DisplayName, RequestedByEmail, Context, Status📌 (Choix : Pending/Done/Error, défaut Pending), ProcessedAt (date), ErrorMessage (texte long) |
-| `CN_UserProfiles` | UserEmail📌, ActivityScopeJson (texte long), PreferredLanguage, HasCompletedOnboarding (oui/non), TeamPreferencesJson (texte long), AbsenceJson (texte long), UpdatedAt (date) |
+| `CN_UserProfiles` | UserEmail📌, ActivityScopeJson (texte long), PreferredLanguage, HasCompletedOnboarding (oui/non), TeamPreferencesJson (texte long), AbsenceJson (texte long), ProjectSearchConfigJson (texte long, facultative : lue à part, son absence n'empêche rien), UpdatedAt (date) |
 | `CN_Rules` | RuleId📌, PayloadJson (texte long), SortOrder (nombre), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
 | `CN_Teams` | TeamId📌, ContactsJson (texte long), NameJson (texte long), Expertise (texte long), AcceptedLanguagesJson (texte long), MemberRulesJson (texte long), ClaimStaleDays (nombre), ClaimReminderDays (nombre), SortOrder (nombre), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
 | `CN_Committees` | CommitteeId📌, PayloadJson (texte long), SortOrder (nombre), RowVersion (nombre), CreatedByEmail, UpdatedByEmail, UpdatedAt (date) |
@@ -352,6 +352,7 @@ existaient auparavant dans `CN-Config` — une ligne par règle/équipe plutôt 
         { name: 'HasCompletedOnboarding', type: 'Boolean' },
         { name: 'TeamPreferencesJson', type: 'Note' },
         { name: 'AbsenceJson', type: 'Note' },
+        { name: 'ProjectSearchConfigJson', type: 'Note' },
         { name: 'UpdatedAt', type: 'DateTime' }
       ]
     },

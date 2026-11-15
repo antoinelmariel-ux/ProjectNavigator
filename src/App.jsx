@@ -236,6 +236,8 @@ import {
 } from './utils/userCommitteePassages.js';
 import { normalizeFaqEntries } from './utils/faqEntries.js';
 import { normalizeHelpManuals } from './utils/helpManuals.js';
+import { normalizeProjectSearchConfig } from './utils/projectSearch.js';
+import { projectSearchConfigStore } from './utils/projectSearchConfigProvider.js';
 import { mergeComplianceComments } from './utils/mergeComplianceComments.js';
 import { createAutosaveQueue } from './utils/autosaveQueue.js';
 import { createRetryQueue } from './utils/retryQueue.js';
@@ -926,6 +928,7 @@ const buildInitialAdminEmailsState = () => {
 const buildInitialTeamVisibility = () => normalizeTeamVisibility(loadPersistedState()?.teamVisibility);
 
 const buildInitialHelpManuals = () => normalizeHelpManuals(loadPersistedState()?.helpManuals);
+const buildInitialProjectSearchDefaults = () => normalizeProjectSearchConfig(loadPersistedState()?.projectSearchDefaults);
 
 const buildInitialTechnicalContactEmailsState = () => {
   const savedState = loadPersistedState();
@@ -1049,6 +1052,9 @@ export const App = () => {
   const [technicalContactEmails, setTechnicalContactEmails] = useState(buildInitialTechnicalContactEmailsState);
   const [teamVisibility, setTeamVisibility] = useState(buildInitialTeamVisibility);
   const [helpManuals, setHelpManualsState] = useState(buildInitialHelpManuals);
+  // Configuration par défaut de la recherche de projets, proposée par un administrateur à tous les
+  // experts (settings.json) ; chacun la personnalise ensuite dans son profil.
+  const [projectSearchDefaults, setProjectSearchDefaults] = useState(buildInitialProjectSearchDefaults);
   const [complianceSampleProjects, setComplianceSampleProjects] = useState(buildInitialComplianceSampleProjectsState);
   const [faqEntries, setFaqEntries] = useState(buildInitialFaqEntriesState);
   const [committeeSessions, setCommitteeSessions] = useState(buildInitialCommitteeSessionsState);
@@ -1299,6 +1305,7 @@ export const App = () => {
   const complianceCommentsQueueRef = useRef(null);
   const filesIndexQueueRef = useRef(null);
   const userProfileQueueRef = useRef(null);
+  const projectSearchConfigQueueRef = useRef(null);
   const rulesQueueRef = useRef(null);
   const sampleProjectsQueueRef = useRef(null);
   const committeeInvitationsQueueRef = useRef(null);
@@ -1802,7 +1809,8 @@ export const App = () => {
       projectFilters,
       inspirationFilters,
       teamVisibility,
-      helpManuals
+      helpManuals,
+      projectSearchDefaults
     })
   }), [
     questions,
@@ -1820,7 +1828,8 @@ export const App = () => {
     projectFilters,
     inspirationFilters,
     teamVisibility,
-    helpManuals
+    helpManuals,
+    projectSearchDefaults
   ]);
 
   useEffect(() => {
@@ -2204,6 +2213,9 @@ const updateProjectFilters = useCallback((updater) => {
       if (slices.helpManuals && typeof slices.helpManuals === 'object') {
         setHelpManualsState(normalizeHelpManuals(slices.helpManuals));
       }
+      if (slices.projectSearchDefaults !== undefined) {
+        setProjectSearchDefaults(normalizeProjectSearchConfig(slices.projectSearchDefaults));
+      }
       if (Array.isArray(slices.complianceSampleProjects)) setComplianceSampleProjects(slices.complianceSampleProjects);
       if (slices.projectFilters && typeof slices.projectFilters === 'object') {
         setProjectFiltersState(normalizeProjectFilterConfig(stripRetiredProjectFilterFields(slices.projectFilters)));
@@ -2508,6 +2520,7 @@ const updateProjectFilters = useCallback((updater) => {
       technicalContactEmails,
       teamVisibility,
       helpManuals,
+      projectSearchDefaults,
       complianceSampleProjects,
       faqEntries,
       committeeSessions
@@ -2556,6 +2569,7 @@ const updateProjectFilters = useCallback((updater) => {
     technicalContactEmails,
     teamVisibility,
     helpManuals,
+    projectSearchDefaults,
     complianceSampleProjects,
     faqEntries,
     committeeSessions,
@@ -3645,6 +3659,11 @@ const updateProjectFilters = useCallback((updater) => {
       getItemKey: (payload) => payload.email
     });
 
+    projectSearchConfigQueueRef.current = createRetryQueue({
+      processItem: (payload) => projectSearchConfigStore.save(payload.email, payload.config),
+      getItemKey: (payload) => payload.email
+    });
+
     inspirationsQueueRef.current = createRetryQueue({
       processItem: (payload) => inspirationDataProvider.upsertInspiration(payload.inspiration, { userEmail: currentUserEmail }),
       getItemKey: (payload) => payload.inspiration.id
@@ -3872,6 +3891,7 @@ const updateProjectFilters = useCallback((updater) => {
       complianceCommentsQueueRef.current?.flush();
       filesIndexQueueRef.current?.flush();
       userProfileQueueRef.current?.flush();
+      projectSearchConfigQueueRef.current?.flush();
       rulesQueueRef.current?.flush();
       teamsQueueRef.current?.flush();
       committeesQueueRef.current?.flush();
@@ -7198,6 +7218,7 @@ const updateProjectFilters = useCallback((updater) => {
         analysis: computedAnalysis,
         status: 'draft',
         lastUpdated: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
         lastQuestionIndex: 0,
         totalQuestions,
         answeredQuestions: Math.min(answeredQuestionsCount, totalQuestions || answeredQuestionsCount),
@@ -7784,8 +7805,12 @@ const updateProjectFilters = useCallback((updater) => {
         return prevProjects;
       }
 
+      // La date de création n'est posée qu'à la première insertion : un projet déjà présent sans
+      // elle (créé avant qu'on la retienne) reste « inconnue » plutôt que de dater d'aujourd'hui.
+      const previous = prevProjects.find(project => project.id === entry.id);
+      const createdAt = entry.createdAt || previous?.createdAt || (previous ? null : new Date().toISOString());
       const filtered = prevProjects.filter(project => project.id !== entry.id);
-      return [entry, ...filtered];
+      return [createdAt ? { ...entry, createdAt } : entry, ...filtered];
     };
   }, []);
 
@@ -8873,6 +8898,8 @@ const updateProjectFilters = useCallback((updater) => {
           adminEmails,
           technicalContactEmails,
           teamVisibility,
+          helpManuals,
+          projectSearchDefaults,
           userEmail: currentUserEmail
         },
         { files: selectedFileKeys, rules: includeRules, teams: includeTeams, committees: includeCommittees }
@@ -8905,6 +8932,8 @@ const updateProjectFilters = useCallback((updater) => {
     adminEmails,
     technicalContactEmails,
     teamVisibility,
+    helpManuals,
+    projectSearchDefaults,
     launchReminderDays,
     currentUserEmail,
     inspirationFilters,
@@ -8996,7 +9025,9 @@ const updateProjectFilters = useCallback((updater) => {
           currencies,
           adminEmails,
           technicalContactEmails,
-          teamVisibility
+          teamVisibility,
+          helpManuals,
+          projectSearchDefaults
         },
         selectedKeys
       );
@@ -9028,6 +9059,8 @@ const updateProjectFilters = useCallback((updater) => {
     adminEmails,
     technicalContactEmails,
     teamVisibility,
+    helpManuals,
+    projectSearchDefaults,
     launchReminderDays,
     inspirationFilters,
     inspirationFormFields,
@@ -9078,7 +9111,9 @@ const updateProjectFilters = useCallback((updater) => {
           currencies,
           adminEmails,
           technicalContactEmails,
-          teamVisibility
+          teamVisibility,
+          helpManuals,
+          projectSearchDefaults
         },
         new Set([key])
       );
@@ -9105,6 +9140,8 @@ const updateProjectFilters = useCallback((updater) => {
     adminEmails,
     technicalContactEmails,
     teamVisibility,
+    helpManuals,
+    projectSearchDefaults,
     launchReminderDays,
     inspirationFilters,
     inspirationFormFields,
@@ -9959,6 +9996,9 @@ const updateProjectFilters = useCallback((updater) => {
                 ruleServerMetaRef={ruleServerMetaRef}
                 teamServerMetaRef={teamServerMetaRef}
                 helpManuals={helpManuals}
+                projectSearchDefaults={projectSearchDefaults}
+                setProjectSearchDefaults={(next) => setProjectSearchDefaults(normalizeProjectSearchConfig(next))}
+                projectSearchConfigQueueRef={projectSearchConfigQueueRef}
                 setHelpManuals={(next) => setHelpManualsState(normalizeHelpManuals(next))}
                 faqEntries={faqEntries}
                 setFaqEntries={setFaqEntries}
