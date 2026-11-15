@@ -68,6 +68,7 @@ export const initialMockSharePointProjects = [
     "ProgressTotal": 42,
     "SubmissionDate": "2025-10-19T06:20:22.807Z",
     "LastAutosaveAt": "2025-10-19T06:20:22.807Z",
+    "Created": "2025-09-28T06:20:22Z",
     "RowVersion": 1,
     "CreatedByEmail": "chef.projet@entreprise.com",
     "UpdatedByEmail": "chef.projet@entreprise.com"
@@ -143,6 +144,7 @@ export const initialMockSharePointProjects = [
     "ProgressTotal": 42,
     "SubmissionDate": "2026-02-17T10:30:00.000Z",
     "LastAutosaveAt": "2026-02-17T10:30:00.000Z",
+    "Created": "2026-01-27T10:30:00Z",
     "RowVersion": 1,
     "CreatedByEmail": "chef.projet@entreprise.com",
     "UpdatedByEmail": "chef.projet@entreprise.com"
@@ -220,6 +222,7 @@ export const initialMockSharePointProjects = [
     "ProgressTotal": 42,
     "SubmissionDate": "2026-02-17T10:35:00.000Z",
     "LastAutosaveAt": "2026-02-17T10:35:00.000Z",
+    "Created": "2026-01-27T10:35:00Z",
     "RowVersion": 1,
     "CreatedByEmail": "chef.projet@entreprise.com",
     "UpdatedByEmail": "chef.projet@entreprise.com"
@@ -294,6 +297,7 @@ export const initialMockSharePointProjects = [
     "ProgressTotal": 42,
     "SubmissionDate": "2026-02-17T10:40:00.000Z",
     "LastAutosaveAt": "2026-02-17T10:40:00.000Z",
+    "Created": "2026-01-27T10:40:00Z",
     "RowVersion": 1,
     "CreatedByEmail": "chef.projet@entreprise.com",
     "UpdatedByEmail": "chef.projet@entreprise.com"
@@ -362,6 +366,7 @@ export const initialMockSharePointProjects = [
     "ProgressTotal": 42,
     "SubmissionDate": "2026-02-27T09:00:00.000Z",
     "LastAutosaveAt": "2026-02-27T09:00:00.000Z",
+    "Created": "2026-02-06T09:00:00Z",
     "RowVersion": 1,
     "CreatedByEmail": "nathan.auvray@lfb.fr",
     "UpdatedByEmail": "nathan.auvray@lfb.fr"

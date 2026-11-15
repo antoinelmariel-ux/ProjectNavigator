@@ -1,4 +1,5 @@
 import committeeSessions from './committeeSessions/fr.js';
+import projectSearch from './projectSearch/fr.js';
 
 export default {
   common: {
@@ -3100,5 +3101,6 @@ export default {
     editModeActivatedHint: 'Le rendu est temporairement masqué pendant vos ajustements.',
     marketingShowcaseAriaLabel: 'Vitrine marketing du projet'
   },
-  committeeSessions
+  committeeSessions,
+  projectSearch
 };

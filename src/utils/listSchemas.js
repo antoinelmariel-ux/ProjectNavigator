@@ -27,7 +27,10 @@ export const LIST_SCHEMAS = {
     ],
     json: { AnswersJson: OBJECT, AnalysisJson: OBJECT },
     numbers: ['ProgressAnswered', 'ProgressTotal', 'RowVersion'],
-    booleans: []
+    booleans: [],
+    // Colonne native de toute liste SharePoint (date de création de l'élément) : lue, jamais
+    // écrite, et absente du script de création puisque SharePoint la fournit lui-même.
+    readOnlyColumns: ['Created']
   },
   inspirations: {
     keyField: 'InspirationId',
@@ -400,6 +403,10 @@ export const rowToRecord = (schema, row) => {
     record[column] = value === undefined ? null : value;
   });
 
+  (schema.readOnlyColumns || []).forEach((column) => {
+    record[column] = row[column] === undefined ? null : row[column];
+  });
+
   return record;
 };
 
@@ -428,4 +435,4 @@ export const recordToFields = (schema, record) => {
   return fields;
 };
 
-export const selectColumns = (schema) => ['Id', ...schema.columns].join(',');
+export const selectColumns = (schema) => ['Id', ...schema.columns, ...(schema.readOnlyColumns || [])].join(',');

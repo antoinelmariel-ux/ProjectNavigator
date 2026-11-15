@@ -269,6 +269,7 @@ première connexion, et modifiable ensuite depuis la section « Mon profil » de
 | HasCompletedOnboarding | Oui/Non |
 | TeamPreferencesJson | Texte long (refus de copie par équipe, ex. `{"controle_pub":{"claimCopy":false}}` ; vide = copie reçue) |
 | AbsenceJson | Texte long (absence et suppléant, ex. `{"from":"2026-09-14","to":"2026-09-25","backupEmail":"queres@entreprise-demo.example"}`) |
+| ProjectSearchConfigJson | Texte long (colonnes et graphiques de la « Recherche de projets » du back-office, propres à la personne) |
 | UpdatedAt | Date et heure |
 
 `TeamPreferencesJson` est le réglage **par personne** des copies d'annonce de prise en charge :
@@ -276,6 +277,12 @@ désactivé par défaut, il n'apparaît que pour les équipes dont la personne e
 porte une période d'indisponibilité et un suppléant (qui doit être contact de la même équipe pour
 recevoir les sollicitations) ; il est modifiable par un tiers depuis l'onglet **Équipes** du
 back-office, puisqu'une absence imprévue n'est jamais déclarée par l'absent.
+
+`ProjectSearchConfigJson` garde la configuration personnelle de l'onglet **Recherche de projets**
+(colonnes, fusions, graphiques), pour qu'un expert la retrouve sur tous ses postes. L'application la
+lit et l'écrit **à part** du reste du profil : tant que la colonne n'existe pas, rien ne casse, la
+configuration reste simplement dans le navigateur (l'onglet le dit). La configuration **par défaut**
+proposée par un administrateur, elle, est dans `settings.json` (`projectSearchDefaults`).
 
 ### `CN_Rules` — les règles de conformité (une ligne par règle)
 Remplace le fichier `rules.json` qu'une version antérieure de ce document proposait de mettre
