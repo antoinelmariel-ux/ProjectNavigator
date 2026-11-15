@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  applyProjectMembers,
   buildInvitationId,
   computeSessionInvitations,
   getInvitationFingerprint,
@@ -49,6 +50,26 @@ test('une invitation par passage, sur toute la séance, au porteur, aux co-porte
   assert.match(first.bodyHtml, /keep the whole session free/);
   assert.match(first.bodyHtml, /https:\/\/teams\.microsoft\.com/);
   assert.match(second.bodyHtml, /Projet &lt;B&gt;/);
+});
+
+test('les membres lus à la demande rejoignent les invités, un projet dont la lecture échoue n’est pas décidé', () => {
+  const withMembers = applyProjectMembers(projectsById, new Map([
+    ['p1', ['co2@lfb.fr', 'co@lfb.fr']],
+    ['p2', null]
+  ]));
+  assert.equal(withMembers.has('p2'), false);
+  assert.deepEqual(projectsById.get('p1').sharedWith, ['co@lfb.fr']);
+  const [first, ...rest] = computeSessionInvitations({
+    after: session(),
+    committee,
+    projectsById: withMembers,
+    now
+  }).filter((invitation) => invitation.kind === 'presentation');
+  assert.deepEqual(first.attendees, ['owner@lfb.fr', 'co@lfb.fr', 'co2@lfb.fr', 'guest@lfb.fr']);
+  assert.equal(rest.length, 0);
+
+  const bare = applyProjectMembers(new Map([['p2', projectsById.get('p2')]]), new Map([['p2', ['co3@lfb.fr']]]));
+  assert.deepEqual(bare.get('p2').sharedWith, ['co3@lfb.fr']);
 });
 
 test('réordonner ou changer une durée ne change aucune invitation', () => {

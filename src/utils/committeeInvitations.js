@@ -75,6 +75,27 @@ export const getInvitationAttendees = (project, passage) => {
     .filter((email) => email.length > 0 && !seen.has(email) && seen.add(email));
 };
 
+// Les co-porteurs ne sont pas chargés avec les projets (CN_ProjectMembers, lus à la demande) :
+// sans eux l'invitation partirait au porteur seul. `membersByProjectId` associe à un projet la liste
+// de ses membres, ou `null` quand la lecture a échoué — le projet est alors retiré, donc ni
+// invité ni annulé, plutôt qu'écrit « porteur seul » (voir computeSessionInvitations).
+export const applyProjectMembers = (projectsById, membersByProjectId) => {
+  const result = new Map();
+  projectsById.forEach((project, projectId) => {
+    if (!membersByProjectId.has(projectId)) {
+      result.set(projectId, project);
+      return;
+    }
+    const members = membersByProjectId.get(projectId);
+    if (!Array.isArray(members)) {
+      return;
+    }
+    const known = Array.isArray(project?.sharedWith) ? project.sharedWith : [];
+    result.set(projectId, { ...project, sharedWith: [...known, ...members] });
+  });
+  return result;
+};
+
 // Une séance invite tant qu'elle est publiée et pas encore passée. Une séance repassée en
 // brouillon ou annulée retire ses invitations ; une séance passée ne touche plus à rien.
 export const isSessionInvitable = (session, now = new Date()) => {
