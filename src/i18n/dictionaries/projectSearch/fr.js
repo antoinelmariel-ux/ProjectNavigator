@@ -7,6 +7,7 @@ export default {
   queryPlaceholder: 'Nom, porteur, réponse au questionnaire…',
   cancel: 'Annuler',
   emptyValue: 'Non renseigné',
+  noUnit: 'sans unité',
   columns: {
     projectName: 'Nom du projet',
     owner: 'Porteur du projet',
@@ -42,7 +43,9 @@ export default {
     sum: '{{name}} cumulé',
     filled: 'Renseigné pour {{count}} [[count|projet|projets]] sur {{total}}',
     unconverted: '{{count}} non [[count|converti|convertis]] (unité sans taux)',
-    noSumColumn: 'Aucune colonne numérique choisie pour le cumul. Choisissez-la dans « Personnaliser le tableau ».'
+    noSumColumn: 'Aucune colonne numérique choisie pour le cumul. Choisissez-la dans « Personnaliser le tableau ».',
+    mixedUnits: 'Total impossible : les montants sont dans des unités différentes ({{units}}). Donnez une unité à cette colonne dans « Personnaliser le tableau » pour les convertir.',
+    mixedCells: '{{count}} [[count|projet additionnant|projets additionnant]] des unités différentes, non [[count|compté|comptés]]'
   },
   filters: {
     title: 'Filtres',
@@ -71,6 +74,7 @@ export default {
     openShowcase: 'Voir la vitrine complète de « {{name}} » dans un nouvel onglet',
     showcaseCancelled: 'L’envoi de ce projet a été annulé : sa vitrine ne s’ouvre plus par lien.',
     unconverted: 'Montant non converti : aucun taux pour passer à l’unité {{unit}}.',
+    mixedUnits: 'Montants en unités différentes, non additionnés : donnez une unité à cette colonne pour les convertir.',
     noProjects: 'Aucun projet pour l’instant.',
     noResults: 'Aucun projet ne correspond à la recherche et aux filtres.',
     showMore: 'Afficher plus ({{shown}} sur {{total}})'
@@ -103,7 +107,8 @@ export default {
     autoTitleCount: 'Projets par {{group}}',
     autoTitle: { sum: '{{measure}} (somme) par {{group}}', avg: '{{measure}} (moyenne) par {{group}}' },
     otherGroup: 'Autres',
-    multiValueHint: 'Un projet qui porte plusieurs valeurs compte dans chacune d’elles.'
+    multiValueHint: 'Un projet qui porte plusieurs valeurs compte dans chacune d’elles.',
+    mixedUnits: 'Graphique impossible : la colonne mesurée mélange des unités ({{units}}). Donnez-lui une unité dans « Personnaliser le tableau ».'
   },
   config: {
     toggle: 'Personnaliser le tableau',
@@ -134,7 +139,9 @@ export default {
       concat: 'Mettre bout à bout'
     },
     unitLabel: 'Unité de la colonne',
-    noUnit: 'Aucune (valeurs telles quelles)',
+    noUnit: 'Aucune (pas de conversion)',
+    noUnitWarning: 'Sans unité, les montants ne sont pas convertis : le total et les graphiques sont refusés dès que les projets utilisent des unités différentes.',
+    kpiNoUnitOption: '{{name}} (sans unité, pas de conversion)',
     numberHint: 'Chaque montant est converti dans l’unité de la colonne avec les taux des devises (ceux figés à l’envoi pour un projet envoyé), puis multiplié par le coefficient. Un montant impossible à convertir est signalé, jamais compté.',
     mergeHint: 'L’ordre des questions compte pour « Première réponse renseignée ».',
     addCustomColumn: 'Créer une colonne qui fusionne plusieurs questions',

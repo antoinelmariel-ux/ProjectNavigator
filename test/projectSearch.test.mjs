@@ -12,7 +12,10 @@ import {
   filterProjectSearchRows,
   getColumnKind,
   getMissingColumnSources,
+  addColumnSource,
+  getChartMixedUnits,
   listActiveFilterIds,
+  listNumberCellUnits,
   listColumnFilterValues,
   listSearchableQuestions,
   normalizeProjectSearchConfig,
@@ -147,10 +150,12 @@ test('une source absente du référentiel est ignorée et signalée', () => {
 });
 
 test('somme, concaténation et coefficient', () => {
-  const sum = { id: 's', kind: 'custom', label: 'S', sources: [{ questionId: 'BUDGET', factor: 1000 }, { questionId: 'donationAmount', factor: 1 }], merge: 'sum', unit: '' };
+  const sum = { id: 's', kind: 'custom', label: 'S', sources: [{ questionId: 'BUDGET', factor: 1 }, { questionId: 'donationAmount', factor: 2 }], merge: 'sum', unit: '€' };
   const concat = { id: 'c', kind: 'custom', label: 'C', sources: [{ questionId: 'solutionDescription', factor: 1 }, { questionId: 'q10', factor: 1 }], merge: 'concat', unit: '' };
   const [row] = buildProjectSearchRows([{ ...projects[0], answers: { ...projects[0].answers, donationAmount: '500' } }], [sum, concat], ctx);
-  assert.equal(row.cells.s.number, 30500);
+  // 30 K€ convertis en € (30 000) + 500 € × 2.
+  assert.equal(row.cells.s.number, 31000);
+  assert.equal(row.cells.s.unit, '€');
   assert.equal(getColumnKind(concat, questions), 'text');
   assert.match(row.cells.c.display, /vaccin.* ; Agence, Expert/);
 });
@@ -257,4 +262,48 @@ test('seuls les filtres réellement actifs sont listés', () => {
     e: { min: '3' }
   }), ['a', 'c', 'e']);
   assert.deepEqual(listActiveFilterIds(null), []);
+});
+
+test('sans unité de colonne, des montants d’unités différentes ne sont jamais additionnés', () => {
+  const answers = { ...projects[0].answers, donationAmount: '500' };
+  const sum = { id: 's', kind: 'custom', label: 'S', sources: [{ questionId: 'BUDGET', factor: 1 }, { questionId: 'donationAmount', factor: 1 }], merge: 'sum', unit: '' };
+  const [row] = buildProjectSearchRows([{ ...projects[0], answers }], [sum], ctx);
+  assert.equal(row.cells.s.number, null);
+  assert.equal(row.cells.s.mixedUnits, true);
+  assert.match(row.cells.s.display, /30\u00a0K€ \+ 500\u00a0€/);
+
+  // Même chose d'un projet à l'autre : une colonne « première réponse » sans unité garde l'unité
+  // de chaque projet, et le total est refusé au lieu d'additionner des K€, des € et des $.
+  const amount = { id: 'a', kind: 'custom', label: 'A', sources: [{ questionId: 'BUDGET', factor: 1 }], merge: 'first', unit: '' };
+  const mixedRows = buildProjectSearchRows([
+    { id: 'k', answers: { BUDGET: '30' } },
+    { id: 'd', answers: { BUDGET: '5', BUDGET__number_unit: '$' } }
+  ], [amount], ctx);
+  assert.deepEqual(listNumberCellUnits(mixedRows, 'a').sort(), ['$', 'K€']);
+  const totals = computeProjectSearchTotals(mixedRows, 'a');
+  assert.equal(totals.sum, null);
+  assert.deepEqual(totals.mixedUnits.sort(), ['$', 'K€']);
+  assert.deepEqual(getChartMixedUnits(mixedRows, { measure: 'sum', measureColumnId: 'a' }).sort(), ['$', 'K€']);
+  assert.deepEqual(getChartMixedUnits(mixedRows, { measure: 'count', measureColumnId: '' }), []);
+
+  // Une seule unité : le total reste possible, même sans unité de colonne.
+  const sameUnit = buildProjectSearchRows([{ id: 'k1', answers: { BUDGET: '30' } }, { id: 'k2', answers: { BUDGET: '12' } }], [amount], ctx);
+  const single = computeProjectSearchTotals(sameUnit, 'a');
+  assert.equal(single.sum, 42);
+  assert.equal(single.unit, 'K€');
+  assert.deepEqual(single.mixedUnits, []);
+});
+
+test('un montant ajouté à une colonne sans unité lui donne la sienne', () => {
+  const budget = questions.find((question) => question.id === 'BUDGET');
+  const donation = questions.find((question) => question.id === 'donationAmount');
+  const empty = { id: 'x', kind: 'custom', label: '', sources: [], merge: 'first', unit: '' };
+  const withBudget = addColumnSource(empty, budget);
+  assert.equal(withBudget.unit, 'K€');
+  const withBoth = addColumnSource(withBudget, donation);
+  assert.equal(withBoth.unit, 'K€');
+  assert.equal(withBoth.sources.length, 2);
+  assert.equal(addColumnSource(withBoth, donation), withBoth);
+  const text = addColumnSource(empty, questions.find((question) => question.id === 'q10'));
+  assert.equal(text.unit, '');
 });

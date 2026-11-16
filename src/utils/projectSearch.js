@@ -299,6 +299,20 @@ export const searchQuestionOptions = (options, query = '', { excludeIds = [], li
 // Colonne créée d'un clic à partir d'une question : son nom reste vide (le libellé de la question
 // s'affiche par défaut) et un montant prend d'emblée l'unité de la question, sinon il ne serait
 // jamais converti.
+// Ajoute une question à une colonne. Une colonne de montants encore sans unité prend celle de la
+// question : sans unité, rien n'est converti et le total refuse les unités mélangées.
+export const addColumnSource = (column, question) => {
+  const questionId = toText(question?.id);
+  if (!column || !questionId || column.sources.some((source) => source.questionId === questionId)) {
+    return column;
+  }
+  const next = { ...column, sources: [...column.sources, { questionId, factor: 1 }] };
+  if (!next.unit && (question.type || '') === 'number') {
+    next.unit = cleanLabel(getDefaultNumberUnit(question), 16);
+  }
+  return next;
+};
+
 export const buildQuestionColumn = (question) => {
   const questionId = toText(question?.id);
   if (!questionId) {
@@ -451,9 +465,15 @@ const resolveCustomCell = (column, project, ctx) => {
     let number = null;
     let unit = column.unit;
     if (column.merge === 'sum') {
+      const units = new Set(numbers.map((part) => part.unit || ''));
+      // Sans unité de colonne, rien n'est converti : additionner des K€ et des $ donnerait un
+      // chiffre faux. Les montants restent affichés côte à côte, et ne sont pas comptés.
+      if (!unit && units.size > 1) {
+        const display = numbers.map((part) => part.text).join(' + ');
+        return { display, sort: null, number: null, values: [], date: '', unit: '', unconverted: false, mixedUnits: true, title: display };
+      }
       number = numbers.length ? numbers.reduce((total, part) => total + part.number, 0) : null;
       if (!unit) {
-        const units = new Set(numbers.map((part) => part.unit).filter(Boolean));
         unit = units.size === 1 ? Array.from(units)[0] : '';
       }
     } else if (numbers.length) {
@@ -717,26 +737,55 @@ export const sortProjectSearchRows = (rows, { columnId = '', direction = 'asc' }
 
 // --- Indicateurs et graphiques -------------------------------------------------------------
 
+// Unités distinctes des montants d'une colonne ('' = sans unité). Une colonne qui a une unité
+// convertit tout dans celle-ci et n'en a donc qu'une ; plusieurs veulent dire qu'aucun total
+// n'a de sens.
+export const listNumberCellUnits = (rows, columnId) => {
+  const units = new Set();
+  (Array.isArray(rows) ? rows : []).forEach((row) => {
+    const cell = row?.cells?.[columnId];
+    if (cell && typeof cell.number === 'number') {
+      units.add(cell.unit || '');
+    }
+  });
+  return Array.from(units);
+};
+
 export const computeProjectSearchTotals = (rows, kpiColumnId = '') => {
   const list = Array.isArray(rows) ? rows : [];
   if (!kpiColumnId) {
-    return { count: list.length, sum: null, filledCount: 0, unconvertedCount: 0, unit: '' };
+    return { count: list.length, sum: null, filledCount: 0, unconvertedCount: 0, mixedCount: 0, mixedUnits: [], unit: '' };
   }
   let sum = 0;
   let filledCount = 0;
   let unconvertedCount = 0;
-  let unit = '';
+  let mixedCount = 0;
   list.forEach((row) => {
     const cell = row.cells[kpiColumnId];
     if (cell && typeof cell.number === 'number') {
       sum += cell.number;
       filledCount += 1;
-      unit = unit || cell.unit || '';
     } else if (cell?.unconverted) {
       unconvertedCount += 1;
+    } else if (cell?.mixedUnits) {
+      mixedCount += 1;
     }
   });
-  return { count: list.length, sum: filledCount ? sum : null, filledCount, unconvertedCount, unit };
+  const units = listNumberCellUnits(list, kpiColumnId);
+  if (units.length > 1) {
+    return { count: list.length, sum: null, filledCount, unconvertedCount, mixedCount, mixedUnits: units, unit: '' };
+  }
+  return { count: list.length, sum: filledCount ? sum : null, filledCount, unconvertedCount, mixedCount, mixedUnits: [], unit: units[0] || '' };
+};
+
+// Un graphique en somme ou moyenne sur des montants d'unités différentes additionnerait des
+// chiffres incomparables : il est refusé, avec la liste des unités en cause.
+export const getChartMixedUnits = (rows, chart) => {
+  if (!chart || chart.measure === 'count' || !chart.measureColumnId) {
+    return [];
+  }
+  const units = listNumberCellUnits(rows, chart.measureColumnId);
+  return units.length > 1 ? units : [];
 };
 
 const groupKeysOf = (cell, kind, bucket) => {

@@ -7,6 +7,7 @@ export default {
   queryPlaceholder: 'Nombre, responsable, respuesta del cuestionario…',
   cancel: 'Cancelar',
   emptyValue: 'Sin informar',
+  noUnit: 'sin unidad',
   columns: {
     projectName: 'Nombre del proyecto',
     owner: 'Responsable del proyecto',
@@ -42,7 +43,9 @@ export default {
     sum: '{{name}} acumulado',
     filled: 'Informado en {{count}} de {{total}} [[total|proyecto|proyectos]]',
     unconverted: '{{count}} sin convertir (unidad sin tipo de cambio)',
-    noSumColumn: 'Ninguna columna numérica elegida para el acumulado. Elíjala en «Personalizar la tabla».'
+    noSumColumn: 'Ninguna columna numérica elegida para el acumulado. Elíjala en «Personalizar la tabla».',
+    mixedUnits: 'Total imposible: los importes están en unidades distintas ({{units}}). Asigne una unidad a esta columna en «Personalizar la tabla» para convertirlos.',
+    mixedCells: '{{count}} [[count|proyecto suma|proyectos suman]] unidades distintas, no [[count|contado|contados]]'
   },
   filters: {
     title: 'Filtros',
@@ -71,6 +74,7 @@ export default {
     openShowcase: 'Ver la vitrina completa de «{{name}}» en una pestaña nueva',
     showcaseCancelled: 'El envío de este proyecto se canceló: su vitrina ya no se abre mediante un enlace.',
     unconverted: 'Importe sin convertir: no hay tipo de cambio para la unidad {{unit}}.',
+    mixedUnits: 'Importes en unidades distintas, no sumados: asigne una unidad a esta columna para convertirlos.',
     noProjects: 'Todavía no hay proyectos.',
     noResults: 'Ningún proyecto coincide con la búsqueda y los filtros.',
     showMore: 'Mostrar más ({{shown}} de {{total}})'
@@ -103,7 +107,8 @@ export default {
     autoTitleCount: 'Proyectos por {{group}}',
     autoTitle: { sum: '{{measure}} (suma) por {{group}}', avg: '{{measure}} (media) por {{group}}' },
     otherGroup: 'Otros',
-    multiValueHint: 'Un proyecto con varios valores cuenta en cada uno de ellos.'
+    multiValueHint: 'Un proyecto con varios valores cuenta en cada uno de ellos.',
+    mixedUnits: 'Gráfico imposible: la columna medida mezcla unidades ({{units}}). Asígnele una unidad en «Personalizar la tabla».'
   },
   config: {
     toggle: 'Personalizar la tabla',
@@ -134,7 +139,9 @@ export default {
       concat: 'Poner una tras otra'
     },
     unitLabel: 'Unidad de la columna',
-    noUnit: 'Ninguna (valores tal cual)',
+    noUnit: 'Ninguna (sin conversión)',
+    noUnitWarning: 'Sin unidad, los importes no se convierten: el total y los gráficos se rechazan en cuanto los proyectos usan unidades distintas.',
+    kpiNoUnitOption: '{{name}} (sin unidad, sin conversión)',
     numberHint: 'Cada importe se convierte a la unidad de la columna con los tipos de cambio (los fijados en el envío para un proyecto enviado) y luego se multiplica por el coeficiente. Un importe que no se puede convertir se señala, nunca se cuenta.',
     mergeHint: 'El orden de las preguntas cuenta para «Primera respuesta informada».',
     addCustomColumn: 'Crear una columna que fusione varias preguntas',

@@ -157,3 +157,33 @@ test('un contact d’équipe sans droits d’administration a l’onglet et voit
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog', { name: 'Personnaliser le tableau' })).toHaveCount(0);
 });
+
+test('une colonne de montants prend une unité d’office, et l’absence d’unité est signalée', async ({ page }) => {
+  await gotoHome(page);
+  await grantAdminAccess(page);
+  await openProjectSearch(page);
+  await expect(page.getByTestId('project-search-kpi-sum')).toHaveText('123 K€');
+
+  await page.getByRole('button', { name: 'Personnaliser le tableau' }).click();
+  const drawer = page.getByRole('dialog', { name: 'Personnaliser le tableau' });
+
+  // Une colonne de fusion créée vide prend l'unité du premier montant qu'on lui donne.
+  await drawer.getByTestId('project-search-add-custom-column').click();
+  const created = drawer.getByTestId('project-search-config-column').last();
+  await created.getByLabel('Rechercher la question à afficher').fill('montant total du soutien');
+  await created.getByRole('button', { name: /Ajouter « Quel est le montant total du soutien/ }).click();
+  await expect(created.getByLabel('Unité de la colonne')).not.toHaveValue('');
+  await expect(created.getByTestId('project-search-no-unit-warning')).toHaveCount(0);
+
+  // Retirer l'unité de la colonne « Montant » : l'éditeur prévient, et l'indicateur la signale.
+  const amount = drawer.getByTestId('project-search-config-column').filter({ hasText: 'Montant' }).first();
+  await amount.getByRole('button', { name: /Modifier la colonne « Montant »/ }).click();
+  await amount.getByLabel('Unité de la colonne').selectOption('');
+  await expect(amount.getByTestId('project-search-no-unit-warning')).toBeVisible();
+  await expect(drawer.getByLabel(/Colonne dont le total/).locator('option', { hasText: 'sans unité, pas de conversion' })).toHaveCount(1);
+  await drawer.getByRole('button', { name: 'Terminé' }).click();
+
+  // Les projets de démonstration sont tous en K€ : une seule unité, le total reste juste.
+  await expect(page.getByTestId('project-search-kpi-sum')).toHaveText('123 K€');
+  await expect(page.getByTestId('project-search-kpi-mixed-units')).toHaveCount(0);
+});
