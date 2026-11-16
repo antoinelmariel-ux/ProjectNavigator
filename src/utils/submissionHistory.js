@@ -16,7 +16,8 @@ const KEYS_EXCLUDED_FROM_SNAPSHOT = new Set([
   '__compliance_team_comments__',
   '__compliance_manual_teams__',
   '__submission_kind__',
-  '__staged_consultation__'
+  '__staged_consultation__',
+  '__committee_requests__'
 ]);
 
 const toPositiveInteger = (value) => (Number.isInteger(value) && value > 0 ? value : 0);

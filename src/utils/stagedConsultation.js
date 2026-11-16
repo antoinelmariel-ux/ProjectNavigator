@@ -1,5 +1,6 @@
 import { getTriggeredValidationCommittees } from './validationCommittee.js';
 import { isTeamAutoValidated } from './complianceAutoValidation.js';
+import { getForcedCommitteeIds } from './committeeRequests.js';
 
 // Une demande d'avis préliminaire peut ne solliciter d'abord qu'une partie des périmètres
 // détectés : le porteur consulte l'équipe (ou le comité) qui conditionne le reste, ajuste son
@@ -17,9 +18,6 @@ export const STAGED_CONSULTATION_KEY = '__staged_consultation__';
 
 export const PERIMETER_TYPE_TEAM = 'team';
 export const PERIMETER_TYPE_COMMITTEE = 'committee';
-
-// Écrit en dur plutôt qu'importé de `projectValidationStatus.js`, qui consomme ce module.
-const COMPLIANCE_COMMENTS_KEY = '__compliance_team_comments__';
 
 export const buildPerimeterKey = (type, id) => `${type}:${id}`;
 
@@ -64,8 +62,7 @@ export const getSolicitablePerimeters = (project, options = {}) => {
   const analysis = project?.analysis && typeof project.analysis === 'object' ? project.analysis : {};
   const analysisTeamIds = Array.isArray(analysis.teams) ? analysis.teams : [];
   const relevantTeams = teams.filter((team) => team?.id && analysisTeamIds.includes(team.id));
-  const comments = answers[COMPLIANCE_COMMENTS_KEY];
-  const forcedCommitteeIds = Array.isArray(comments?.forcedCommitteeIds) ? comments.forcedCommitteeIds : [];
+  const forcedCommitteeIds = getForcedCommitteeIds(answers);
 
   const committees = getTriggeredValidationCommittees(options.validationCommitteeConfig, {
     answers,

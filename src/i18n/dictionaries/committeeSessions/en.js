@@ -317,5 +317,26 @@ export default {
       deleted: 'Session deleted.',
       cancelled: 'Session cancelled, registered projects have been notified.'
     }
+  },
+  request: {
+    sectionTitle: 'Request a committee',
+    title: 'Committees you can request',
+    requestButton: 'Request the {{name}} committee',
+    withdrawButton: 'Cancel the request',
+    withdrawConfirm: {
+      title: 'Cancel the request for the {{name}} committee?',
+      message: 'Your upcoming slot with this committee will be released.',
+      confirm: 'Release the slot and cancel the request',
+      keep: 'Keep the request'
+    }
+  },
+  onDemand: {
+    title: 'Triggered on the project owner’s request',
+    description: 'The project owner can request this committee from their project’s report, even if the automatic criteria do not trigger it.',
+    enabledLabel: 'Open this committee to requests from the project owner',
+    criteriaHeading: 'Criteria to be able to request it',
+    criteriaHint: 'With no criteria, the project owner can always request this committee. With criteria, they can only do so if their project meets at least one.',
+    conditionsHeading: 'Conditions on the answers',
+    conditionsEmpty: 'No condition on the answers.'
   }
 };

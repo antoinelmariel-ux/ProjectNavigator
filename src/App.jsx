@@ -76,7 +76,16 @@ import { isProjectLaunched, withProjectLaunch, withoutProjectLaunch } from './ut
 import { computeProjectValidationStatus, getProjectCompliancePerimeters } from './utils/projectValidationStatus.js';
 import { isCompleteValidationReached, resolveCompleteValidationCopyRecipients } from './utils/completeValidation.js';
 import {
+  COMMITTEE_REQUESTS_KEY,
+  getForcedCommitteeIds,
+  isCommitteeRequested,
+  withCommitteeRequestWithdrawn,
+  withCommitteeRequested
+} from './utils/committeeRequests.js';
+import {
+  PERIMETER_TYPE_COMMITTEE,
   PERIMETER_TYPE_TEAM,
+  STAGED_CONSULTATION_KEY,
   buildPerimeterKey,
   getDeferredPerimeterKeys,
   getSolicitablePerimeters,
@@ -122,7 +131,10 @@ import {
   normalizeInspirationFiltersConfig,
   normalizeInspirationFormConfig
 } from './utils/inspirationConfig.js';
-import { normalizeValidationCommitteeConfig } from './utils/validationCommittee.js';
+import {
+  getRequestableValidationCommittees,
+  normalizeValidationCommitteeConfig
+} from './utils/validationCommittee.js';
 import {
   SHOWCASE_SHARE_PARAM,
   LEGACY_SHOWCASE_SHARE_PARAMS,
@@ -7041,6 +7053,93 @@ const updateProjectFilters = useCallback((updater) => {
     });
   }, [activeProjectId, handleReintegrateProjectInCommittee]);
 
+  // Le porteur sollicite un comité ouvert à la demande (cf. committeeRequests.js). La demande
+  // vaut sollicitation : sur une consultation par vagues, le comité entre dans les périmètres
+  // sollicités, sinon sa séance ne serait pas réservable.
+  const applyCommitteeRequestAnswers = useCallback((projectId, nextAnswers) => {
+    const patch = { [COMMITTEE_REQUESTS_KEY]: nextAnswers[COMMITTEE_REQUESTS_KEY] };
+    if (nextAnswers[STAGED_CONSULTATION_KEY] !== undefined) {
+      patch[STAGED_CONSULTATION_KEY] = nextAnswers[STAGED_CONSULTATION_KEY];
+    }
+
+    setAnswers((prevAnswers) => ({ ...prevAnswers, ...patch }));
+    setHasUnsavedChanges(true);
+    setProjects((prevProjects) => prevProjects.map((entry) => (
+      entry?.id === projectId
+        ? { ...entry, answers: { ...entry.answers, ...patch }, lastUpdated: new Date().toISOString() }
+        : entry
+    )));
+  }, [setHasUnsavedChanges]);
+
+  const handleRequestCommittee = useCallback((committeeId) => {
+    const project = projectsRef.current.find((entry) => entry?.id === activeProjectId);
+    if (!project || !committeeId || project.status !== 'submitted' || !canManageProject(project)) {
+      return null;
+    }
+
+    const projectAnswers = project.answers && typeof project.answers === 'object' ? project.answers : {};
+    const analysisTeamIds = Array.isArray(project.analysis?.teams) ? project.analysis.teams : [];
+    const isRequestable = getRequestableValidationCommittees(validationCommitteeConfig, {
+      answers: projectAnswers,
+      analysis: project.analysis || {},
+      relevantTeams: teams.filter((team) => team?.id && analysisTeamIds.includes(team.id)),
+      forcedCommitteeIds: getForcedCommitteeIds(projectAnswers)
+    }).some((committee) => committee.id === committeeId);
+    if (!isRequestable) {
+      return null;
+    }
+
+    const requestedAnswers = withCommitteeRequested(projectAnswers, committeeId, { by: currentUserEmail });
+    const nextAnswers = withPerimetersSolicited(requestedAnswers, {
+      keys: [buildPerimeterKey(PERIMETER_TYPE_COMMITTEE, committeeId)],
+      solicitableKeys: getSolicitablePerimeters(
+        { ...project, answers: requestedAnswers },
+        { teams, validationCommitteeConfig }
+      ).map((perimeter) => perimeter.key),
+      by: currentUserEmail
+    });
+
+    applyCommitteeRequestAnswers(project.id, nextAnswers);
+    return nextAnswers;
+  }, [
+    activeProjectId,
+    applyCommitteeRequestAnswers,
+    canManageProject,
+    currentUserEmail,
+    teams,
+    validationCommitteeConfig
+  ]);
+
+  // Retirer la demande libère les passages à venir du projet dans ce comité — sauf si le comité
+  // reste déclenché autrement (critères automatiques, réintégration par un expert) : le passage
+  // garde alors tout son sens.
+  const handleWithdrawCommitteeRequest = useCallback(async (committeeId) => {
+    const project = projectsRef.current.find((entry) => entry?.id === activeProjectId);
+    if (!project || !committeeId || !canManageProject(project) || !isCommitteeRequested(project.answers, committeeId)) {
+      return null;
+    }
+
+    const projectAnswers = project.answers && typeof project.answers === 'object' ? project.answers : {};
+    const nextAnswers = withCommitteeRequestWithdrawn(projectAnswers, committeeId);
+    const stillTriggered = getSolicitablePerimeters(
+      { ...project, answers: nextAnswers },
+      { teams, validationCommitteeConfig }
+    ).some((perimeter) => perimeter.key === buildPerimeterKey(PERIMETER_TYPE_COMMITTEE, committeeId));
+
+    if (!stillTriggered) {
+      await releaseProjectCommitteePassages(project.id, committeeId);
+    }
+    applyCommitteeRequestAnswers(project.id, nextAnswers);
+    return nextAnswers;
+  }, [
+    activeProjectId,
+    applyCommitteeRequestAnswers,
+    canManageProject,
+    releaseProjectCommitteePassages,
+    teams,
+    validationCommitteeConfig
+  ]);
+
   const trashResponseOptions = useMemo(() => ({
     contactsByTeamId: (Array.isArray(teams) ? teams : []).reduce((acc, team) => {
       if (team?.id) {
@@ -10228,6 +10327,8 @@ const updateProjectFilters = useCallback((updater) => {
               canDeclareLaunch={canDeclareProjectLaunch(activeProject)}
               onDeclareLaunch={activeProjectId ? handleDeclareProjectLaunch : undefined}
               onReintegrateInCommittee={activeProjectId && !isSimulatedSession ? handleReintegrateActiveProjectInCommittee : undefined}
+              onRequestCommittee={activeProjectId && !isSimulatedSession && !isExpertTourActive ? handleRequestCommittee : undefined}
+              onWithdrawCommitteeRequest={activeProjectId && !isSimulatedSession && !isExpertTourActive ? handleWithdrawCommitteeRequest : undefined}
               committeeSessions={isOnboardingActive ? [] : committeeSessions}
               committeeInvitationRecords={committeeInvitationRecords}
               canBookCommitteeSessions={Boolean(activeProject) && canManageProject(activeProject) && !isOnboardingActive}

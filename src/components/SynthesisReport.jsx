@@ -24,13 +24,16 @@ import { ProjectShowcase } from './ProjectShowcase.jsx';
 import { RichTextEditor } from './RichTextEditor.jsx';
 import { PeoplePicker } from './PeoplePicker.jsx';
 import { CommitteeSessionPanel } from './committee/CommitteeSessionPanel.jsx';
-import { isCommitteeChair } from '../utils/committeeSessions.js';
+import { isCommitteeChair, removeUpcomingProjectPassages } from '../utils/committeeSessions.js';
+import { getCommitteeRequests, getRequestedCommitteeIds } from '../utils/committeeRequests.js';
+import { requestConfirmation } from './ConfirmDialog.jsx';
 import { UploadProgressBar } from './UploadProgressBar.jsx';
 import { extractProjectName } from '../utils/projects.js';
 import { getTeamPriority } from '../utils/projectExport.js';
 import { normalizeAnalysis } from '../utils/rules.js';
 import {
   DEFAULT_COMMITTEE_ID,
+  getRequestableValidationCommittees,
   getTriggeredValidationCommittees,
   normalizeValidationCommitteeConfig
 } from '../utils/validationCommittee.js';
@@ -708,7 +711,9 @@ export const SynthesisReport = ({
   isLaunched = false,
   canDeclareLaunch = false,
   onDeclareLaunch,
-  onReintegrateInCommittee
+  onReintegrateInCommittee,
+  onRequestCommittee,
+  onWithdrawCommitteeRequest
 }) => {
   const { t, language } = useTranslation();
   const [isShowcaseFallbackOpen, setIsShowcaseFallbackOpen] = useState(false);
@@ -1019,15 +1024,22 @@ export const SynthesisReport = ({
     [validationCommitteeConfig]
   );
   const validationCommittees = normalizedValidationCommitteeConfig.committees;
+  const forcedCommitteeIds = useMemo(
+    () => Array.from(new Set([
+      ...(Array.isArray(complianceComments.forcedCommitteeIds) ? complianceComments.forcedCommitteeIds : []),
+      ...getRequestedCommitteeIds(answers)
+    ])),
+    [answers, complianceComments.forcedCommitteeIds]
+  );
   const triggeredValidationCommittees = useMemo(
     () =>
       getTriggeredValidationCommittees(normalizedValidationCommitteeConfig, {
         answers,
         analysis,
         relevantTeams,
-        forcedCommitteeIds: complianceComments.forcedCommitteeIds
+        forcedCommitteeIds
       }),
-    [analysis, answers, complianceComments.forcedCommitteeIds, normalizedValidationCommitteeConfig, relevantTeams]
+    [analysis, answers, forcedCommitteeIds, normalizedValidationCommitteeConfig, relevantTeams]
   );
   const requiredValidationCommittees = useMemo(
     () => triggeredValidationCommittees.filter((committee) => committee.commentRequired),
@@ -1199,6 +1211,44 @@ export const SynthesisReport = ({
         && !triggeredValidationCommittees.some((entry) => entry.id === committee.id)
     );
   }, [currentUserEmail, onReintegrateInCommittee, projectStatus, triggeredValidationCommittees, validationCommittees]);
+
+  // Le porteur peut solliciter lui-même un comité ouvert à la demande (committeeRequests.js), sur
+  // un projet déjà envoyé : les critères posés par le back-office disent quand il en a le droit.
+  const canManageCommitteeRequests = projectStatus === 'submitted'
+    && isProjectEditable
+    && typeof onRequestCommittee === 'function';
+  const requestableCommittees = useMemo(
+    () => (canManageCommitteeRequests
+      ? getRequestableValidationCommittees(normalizedValidationCommitteeConfig, {
+        answers,
+        analysis,
+        relevantTeams,
+        forcedCommitteeIds
+      })
+      : []),
+    [analysis, answers, canManageCommitteeRequests, forcedCommitteeIds, normalizedValidationCommitteeConfig, relevantTeams]
+  );
+  const committeeRequests = useMemo(() => getCommitteeRequests(answers), [answers]);
+  const handleWithdrawCommitteeRequest = useCallback(async (committee) => {
+    if (typeof onWithdrawCommitteeRequest !== 'function') {
+      return;
+    }
+    const hasUpcomingPassage = Boolean(projectId)
+      && removeUpcomingProjectPassages(committeeSessions, projectId, { committeeId: committee.id }).length > 0;
+    if (hasUpcomingPassage) {
+      const confirmed = await requestConfirmation({
+        title: t('committeeSessions.request.withdrawConfirm.title', { name: committee.name }),
+        message: t('committeeSessions.request.withdrawConfirm.message'),
+        confirmLabel: t('committeeSessions.request.withdrawConfirm.confirm'),
+        cancelLabel: t('committeeSessions.request.withdrawConfirm.keep'),
+        tone: 'danger'
+      });
+      if (!confirmed) {
+        return;
+      }
+    }
+    onWithdrawCommitteeRequest(committee.id);
+  }, [committeeSessions, onWithdrawCommitteeRequest, projectId, t]);
 
   // Consultation par vagues (cf. stagedConsultation.js) : les périmètres que le porteur peut
   // choisir de solliciter, ceux qui attendent encore, et la vague de chacun des autres.
@@ -2313,7 +2363,7 @@ export const SynthesisReport = ({
       (a, b) => Number(committeeIdsForUser.has(b.id)) - Number(committeeIdsForUser.has(a.id))
     );
   }
-  const shouldShowCommitteeSection = committeesToDisplay.length > 0;
+  const shouldShowCommitteeSection = committeesToDisplay.length > 0 || requestableCommittees.length > 0;
   const shouldShowComplianceCommentsSection =
     canBypassCompliancePerimeter || relevantTeams.length > 0 || shouldShowCommitteeSection || hasLegacyComplianceComment;
 
@@ -4351,12 +4401,37 @@ export const SynthesisReport = ({
               headingId="compliance-comments-heading"
               tourId="synthesis-committees"
               icon={<Info className="w-5 h-5 flex-shrink-0 text-blue-600" aria-hidden="true" />}
-              title={t('synthesisReport.committeeOpinionsTemplate', { count: committeesToDisplay.length })}
+              title={committeesToDisplay.length > 0
+                ? t('synthesisReport.committeeOpinionsTemplate', { count: committeesToDisplay.length })
+                : t('committeeSessions.request.sectionTitle')}
               isOpen={openSections.committees}
               onToggle={() => toggleSection('committees')}
             >
               <div className="rounded-xl border border-blue-200 bg-white p-6 space-y-6">
                 <div className="space-y-4">
+                  {requestableCommittees.length > 0 && (
+                    <div
+                      className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900"
+                      data-testid="committee-request-block"
+                    >
+                      <p className="font-medium">{t('committeeSessions.request.title')}</p>
+                      <ul className="mt-3 space-y-2">
+                        {requestableCommittees.map((committee) => (
+                          <li key={`requestable-${committee.id}`} className="flex flex-wrap items-center justify-between gap-2">
+                            <span className="font-semibold">{committee.name}</span>
+                            <button
+                              type="button"
+                              onClick={() => onRequestCommittee(committee.id)}
+                              className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
+                              data-testid={`committee-request-${committee.id}`}
+                            >
+                              {t('committeeSessions.request.requestButton', { name: committee.name })}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                   {requiredValidationCommittees.length > 0 && (
                     <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                       <p className="font-medium">{t('synthesisReport.requiredCommitteesTitle', { count: requiredValidationCommittees.length })}</p>
@@ -4411,17 +4486,31 @@ export const SynthesisReport = ({
                                 : t('synthesisReport.committeeOptionalHint')}
                             </p>
                           </div>
-                          {deferredPerimeterKeys.has(buildPerimeterKey(PERIMETER_TYPE_COMMITTEE, committee.id)) ? (
-                            <span className="px-3 py-1 rounded-full text-xs font-semibold border border-gray-300 bg-white text-gray-700">
-                              {t('synthesisReport.stagedConsultation.deferredBadge')}
-                            </span>
-                          ) : committeeStatusMeta && (
-                            <span
-                              className={`px-3 py-1 rounded-full text-xs font-semibold border ${committeeStatusMeta.badgeClass}`}
-                            >
-                              {committeeStatusMeta.label}
-                            </span>
-                          )}
+                          <div className="flex flex-wrap items-center gap-2">
+                            {canManageCommitteeRequests
+                              && typeof onWithdrawCommitteeRequest === 'function'
+                              && committeeRequests[committee.id] && (
+                              <button
+                                type="button"
+                                onClick={() => handleWithdrawCommitteeRequest(committee)}
+                                className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                                data-testid={`committee-request-withdraw-${committee.id}`}
+                              >
+                                {t('committeeSessions.request.withdrawButton')}
+                              </button>
+                            )}
+                            {deferredPerimeterKeys.has(buildPerimeterKey(PERIMETER_TYPE_COMMITTEE, committee.id)) ? (
+                              <span className="px-3 py-1 rounded-full text-xs font-semibold border border-gray-300 bg-white text-gray-700">
+                                {t('synthesisReport.stagedConsultation.deferredBadge')}
+                              </span>
+                            ) : committeeStatusMeta && (
+                              <span
+                                className={`px-3 py-1 rounded-full text-xs font-semibold border ${committeeStatusMeta.badgeClass}`}
+                              >
+                                {committeeStatusMeta.label}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         {renderPerimeterStage(
                           buildPerimeterKey(PERIMETER_TYPE_COMMITTEE, committee.id),

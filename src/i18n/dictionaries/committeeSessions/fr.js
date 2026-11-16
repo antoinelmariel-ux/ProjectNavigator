@@ -317,5 +317,26 @@ export default {
       deleted: 'Séance supprimée.',
       cancelled: 'Séance annulée, les inscrits sont prévenus.'
     }
+  },
+  request: {
+    sectionTitle: 'Solliciter un comité',
+    title: 'Comités que vous pouvez solliciter',
+    requestButton: 'Solliciter le comité {{name}}',
+    withdrawButton: 'Annuler la demande',
+    withdrawConfirm: {
+      title: 'Annuler la demande pour le comité {{name}} ?',
+      message: 'Votre passage à venir dans ce comité sera libéré.',
+      confirm: 'Libérer le passage et annuler la demande',
+      keep: 'Conserver la demande'
+    }
+  },
+  onDemand: {
+    title: 'Déclenchement à la demande du porteur',
+    description: 'Le porteur peut solliciter ce comité depuis la synthèse de son projet, même si les critères automatiques ne le déclenchent pas.',
+    enabledLabel: 'Ouvrir ce comité à la demande du porteur',
+    criteriaHeading: 'Critères pour pouvoir le solliciter',
+    criteriaHint: 'Sans critère, le porteur peut toujours solliciter ce comité. Avec des critères, il ne le peut que si son projet en remplit au moins un.',
+    conditionsHeading: 'Conditions sur les réponses',
+    conditionsEmpty: 'Aucune condition sur les réponses.'
   }
 };
