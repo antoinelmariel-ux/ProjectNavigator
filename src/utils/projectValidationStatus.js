@@ -3,6 +3,7 @@ import { resolveEffectiveTeamComplianceEntry } from './complianceAutoValidation.
 import { isPreliminarySubmission } from './submissionKind.js';
 import { isPerimeterReviewPending } from './perimeterReview.js';
 import { getDeferredPerimeters } from './stagedConsultation.js';
+import { getForcedCommitteeIds } from './committeeRequests.js';
 
 export const COMPLIANCE_COMMENTS_KEY = '__compliance_team_comments__';
 
@@ -63,7 +64,7 @@ export const getProjectCompliancePerimeters = (project, options = {}) => {
     answers: project?.answers || {},
     analysis,
     relevantTeams,
-    forcedCommitteeIds: comments.forcedCommitteeIds
+    forcedCommitteeIds: getForcedCommitteeIds(project?.answers)
   });
 
   return [

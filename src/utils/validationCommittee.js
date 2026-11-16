@@ -77,6 +77,22 @@ const normalizeDefaultPassageMinutes = (value) => {
   return Math.max(10, Math.round(minutes / 5) * 5);
 };
 
+// Déclenchement à la demande du porteur : mêmes critères que le déclenchement automatique, mais
+// ils disent quand le porteur a le droit de solliciter le comité, pas quand celui-ci s'impose.
+// Sans critère, un comité ouvert à la demande est toujours sollicitable.
+const normalizeOnDemand = (value) => {
+  const source = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  return applyRuleConditionGroups(
+    {
+      enabled: source.enabled === true,
+      ruleTriggers: normalizeRuleTriggers(source.ruleTriggers),
+      riskTriggers: normalizeRiskTriggers(source.riskTriggers),
+      teamTriggers: normalizeTeamTriggers(source.teamTriggers)
+    },
+    normalizeRuleConditionGroups(source)
+  );
+};
+
 const normalizeCommittee = (value = {}, index = 0) => {
   const id = sanitizeTextValue(value?.id) || `committee-${index + 1}`;
   // Ne pas trim() la valeur brute ici : cette normalisation tourne à chaque frappe (via
@@ -102,7 +118,8 @@ const normalizeCommittee = (value = {}, index = 0) => {
       acceptedLanguages: sanitizeAcceptedLanguages(value?.acceptedLanguages),
       ruleTriggers: normalizeRuleTriggers(value?.ruleTriggers),
       riskTriggers: normalizeRiskTriggers(value?.riskTriggers),
-      teamTriggers: normalizeTeamTriggers(value?.teamTriggers)
+      teamTriggers: normalizeTeamTriggers(value?.teamTriggers),
+      onDemand: normalizeOnDemand(value?.onDemand)
     },
     conditionGroups
   );
@@ -146,7 +163,7 @@ const getMinimumRiskScore = (risks) => {
   return Math.min(...weights);
 };
 
-const shouldTriggerCommittee = (committee, context = {}) => {
+const evaluateCommitteeTriggers = (committee, context = {}) => {
   const analysis = context?.analysis || {};
   const answers = context?.answers || {};
   const relevantTeams = Array.isArray(context?.relevantTeams) ? context.relevantTeams : [];
@@ -182,7 +199,37 @@ const shouldTriggerCommittee = (committee, context = {}) => {
     triggers.push(evaluation.triggered);
   }
 
-  return triggers.some(Boolean);
+  return { hasTriggers: triggers.length > 0, matched: triggers.some(Boolean) };
+};
+
+const shouldTriggerCommittee = (committee, context = {}) => evaluateCommitteeTriggers(committee, context).matched;
+
+// Le porteur peut-il solliciter ce comité ? Il faut qu'il soit ouvert à la demande et que les
+// critères posés pour cela, s'il y en a, soient remplis.
+export const isCommitteeRequestableByOwner = (committee, context = {}) => {
+  const onDemand = committee?.onDemand;
+  if (!onDemand || onDemand.enabled !== true) {
+    return false;
+  }
+  const evaluation = evaluateCommitteeTriggers(onDemand, context);
+  return !evaluation.hasTriggers || evaluation.matched;
+};
+
+// Les comités que le porteur peut solliciter maintenant : ouverts à la demande, critères remplis,
+// et pas déjà déclenchés (automatiquement, par un expert ou par une demande précédente).
+export const getRequestableValidationCommittees = (config, context = {}) => {
+  const normalized = normalizeValidationCommitteeConfig(config);
+  if (!normalized.enabled) {
+    return [];
+  }
+
+  const alreadyTriggeredIds = new Set(
+    getTriggeredValidationCommittees(normalized, context).map((committee) => committee.id)
+  );
+
+  return normalized.committees.filter(
+    (committee) => !alreadyTriggeredIds.has(committee.id) && isCommitteeRequestableByOwner(committee, context)
+  );
 };
 
 export const getTriggeredValidationCommittees = (config, context = {}) => {

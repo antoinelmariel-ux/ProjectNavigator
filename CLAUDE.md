@@ -746,6 +746,35 @@ in the synthesis committee block, `CommitteeAgendaScreen` = screen `committee-ag
   presenter Outlook invitations (adding it changed their body, so the reconciliation pass re-sends every
   upcoming invitation once). `e2e/my-committee-passages.spec.js`.
 
+## Committee requested by the project owner (« à la demande »)
+
+A committee can be opened to requests from the owner, who then triggers it from the synthesis
+even though no automatic criterion does. Back-office, per committee (`CommitteeOnDemandSettings.jsx`
+under the automatic criteria): a switch plus the **same criteria panel** (`ConditionGroupsEditor` for
+answers, and `CommitteeTriggerCards` — rules, minimum risk score, minimum teams — shared with the
+automatic panel). The criteria say when the owner *may* request, not when the committee imposes
+itself; **no criterion at all = always requestable**. Stored in the committee's `onDemand`
+(`validationCommittee.js`: `isCommitteeRequestableByOwner`, `getRequestableValidationCommittees`), so no
+new column on `CN_Committees`.
+
+- **The request is its own marker**, `__committee_requests__` in `answers` (`src/utils/committeeRequests.js`,
+  `{committeeId: {requestedAt, requestedBy}}`), *not* a field of the compliance comments: those are
+  rebuilt by every expert opinion from the keys they know and would drop it. It is distinct from
+  `forcedCommitteeIds` (an expert re-integrating a project) and excluded from the submission snapshot.
+  Everything that asks « which committees are triggered » goes through `getForcedCommitteeIds(answers)`
+  (forced ∪ requested): status, solicitable perimeters, home queue, synthesis, orphan-passage banner.
+- **Sent projects only**, by someone who can edit the project (`handleRequestCommittee` in `App.jsx`,
+  button in the committees section of the synthesis). On a staged consultation the request counts as
+  soliciting the committee (`withPerimetersSolicited`), otherwise its session could not be booked.
+  A requested committee is a required perimeter: the project cannot be « validé » before it answers
+  (unless the committee has `commentRequired === false`). A request is kept even if the criteria stop
+  matching later.
+- **Withdrawing** (`handleWithdrawCommitteeRequest`) releases the project's upcoming passages in that
+  committee (`releaseProjectCommitteePassages`), unless the committee stays triggered otherwise. When a
+  passage is booked the standard confirmation dialog comes first. No mail on request or withdrawal:
+  chairs hear about the booking, as before. Strings: `committeeSessions.request.*` / `.onDemand.*`.
+- Tests: `test/committeeRequests.test.mjs`.
+
 ## The final round before launch (and why it cannot block anything)
 
 There is no formal gate in the organisation: nothing can technically stop a launch. The whole

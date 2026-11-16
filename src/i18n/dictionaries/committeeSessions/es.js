@@ -317,5 +317,26 @@ export default {
       deleted: 'Sesión eliminada.',
       cancelled: 'Sesión cancelada, se ha avisado a los inscritos.'
     }
+  },
+  request: {
+    sectionTitle: 'Solicitar un comité',
+    title: 'Comités que puede solicitar',
+    requestButton: 'Solicitar el comité {{name}}',
+    withdrawButton: 'Cancelar la solicitud',
+    withdrawConfirm: {
+      title: '¿Cancelar la solicitud del comité {{name}}?',
+      message: 'Se liberará su próxima sesión en este comité.',
+      confirm: 'Liberar la sesión y cancelar la solicitud',
+      keep: 'Mantener la solicitud'
+    }
+  },
+  onDemand: {
+    title: 'Activación a petición del responsable del proyecto',
+    description: 'El responsable del proyecto puede solicitar este comité desde la síntesis de su proyecto, aunque los criterios automáticos no lo activen.',
+    enabledLabel: 'Abrir este comité a la solicitud del responsable del proyecto',
+    criteriaHeading: 'Criterios para poder solicitarlo',
+    criteriaHint: 'Sin criterios, el responsable del proyecto siempre puede solicitar este comité. Con criterios, solo puede hacerlo si su proyecto cumple al menos uno.',
+    conditionsHeading: 'Condiciones sobre las respuestas',
+    conditionsEmpty: 'Ninguna condición sobre las respuestas.'
   }
 };
