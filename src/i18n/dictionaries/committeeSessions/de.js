@@ -151,6 +151,7 @@ export default {
     decisionNone: 'Keine Entscheidung',
     decisionCommentLabel: 'Kommentar',
     decisionSave: 'Entscheidung speichern',
+    decisionEdit: 'Entscheidung bearbeiten',
     decisionNoneYet: 'Keine Entscheidung erfasst.',
     decisionLinkedHint: 'Diese Entscheidung ist die Stellungnahme des Ausschusses in „Projekt-Themen“: jede aktualisiert die andere.',
     decisionHistoryHint: 'Früherer Termin: Diese Entscheidung wird im Verlauf des Projekts festgehalten, die aktuelle Stellungnahme bleibt unverändert.',

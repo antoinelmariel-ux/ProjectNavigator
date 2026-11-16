@@ -151,6 +151,7 @@ export default {
     decisionNone: 'Pas de décision',
     decisionCommentLabel: 'Commentaire',
     decisionSave: 'Enregistrer la décision',
+    decisionEdit: 'Modifier la décision',
     decisionNoneYet: 'Aucune décision enregistrée.',
     decisionLinkedHint: 'Cette décision est l’avis du comité dans « Enjeux du projet » : l’une met à jour l’autre.',
     decisionHistoryHint: 'Passage précédent : cette décision est consignée dans l’historique du projet, l’avis courant n’est pas modifié.',

@@ -736,6 +736,7 @@ export const SynthesisReport = ({
   const [teamCollapsedOverrides, setTeamCollapsedOverrides] = useState({});
   const [riskExpandOverrides, setRiskExpandOverrides] = useState({});
   const [openTeamCommentEditors, setOpenTeamCommentEditors] = useState({});
+  const [closedCommitteeEditors, setClosedCommitteeEditors] = useState({});
   const [openTeamReplyBoxes, setOpenTeamReplyBoxes] = useState({});
   const [shareMemberFeedback, setShareMemberFeedback] = useState('');
   const [additionalTeamSelection, setAdditionalTeamSelection] = useState('');
@@ -1545,6 +1546,12 @@ export const SynthesisReport = ({
           return next;
         });
         setOpenTeamCommentEditors((prev) => ({ ...prev, [targetId]: false }));
+      }
+      if (isCommittee && targetId) {
+        const hasSavedContent = Boolean(currentEntry.status)
+          || trimmedDraft.length > 0
+          || normalizeCommentAttachments(currentEntry.attachments).length > 0;
+        setClosedCommitteeEditors((prev) => ({ ...prev, [targetId]: hasSavedContent }));
       }
 
       const savedMessage = (trimmedDraft.length > 0 || normalizeCommentAttachments(currentEntry.attachments).length > 0)
@@ -4454,7 +4461,20 @@ export const SynthesisReport = ({
                           </div>
                         )}
 
-                        {canEditCommitteeOpinion ? (
+                        {canEditCommitteeOpinion && closedCommitteeEditors[committee.id] ? (
+                          <div className="mt-4 flex flex-wrap items-center gap-3" data-testid={`committee-opinion-saved-${committee.id}`}>
+                            <span role="status" className="text-xs font-medium text-emerald-700">
+                              ✓ {feedbackMessage || t('synthesisReport.commentSavedMessage')}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setClosedCommitteeEditors((prev) => ({ ...prev, [committee.id]: false }))}
+                              className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                            >
+                              {t('synthesisReport.editCommentToggle')}
+                            </button>
+                          </div>
+                        ) : canEditCommitteeOpinion ? (
                           <form
                             onSubmit={(event) =>
                               handleComplianceCommentSubmit({

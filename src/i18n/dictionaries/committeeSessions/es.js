@@ -151,6 +151,7 @@ export default {
     decisionNone: 'Sin decisión',
     decisionCommentLabel: 'Comentario',
     decisionSave: 'Guardar la decisión',
+    decisionEdit: 'Editar la decisión',
     decisionNoneYet: 'Ninguna decisión registrada.',
     decisionLinkedHint: 'Esta decisión es el dictamen del comité en «Retos del proyecto»: una actualiza la otra.',
     decisionHistoryHint: 'Paso anterior: esta decisión consta en el historial del proyecto, el dictamen actual no cambia.',
