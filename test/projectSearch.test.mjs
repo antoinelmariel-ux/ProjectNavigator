@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   EMPTY_FILTER_VALUE,
   buildDefaultProjectSearchConfig,
+  buildQuestionColumn,
   buildProjectSearchContext,
   buildProjectSearchExportRows,
   buildProjectSearchRows,
@@ -11,9 +12,12 @@ import {
   filterProjectSearchRows,
   getColumnKind,
   getMissingColumnSources,
+  listActiveFilterIds,
   listColumnFilterValues,
+  listSearchableQuestions,
   normalizeProjectSearchConfig,
   resolveProjectSearchConfig,
+  searchQuestionOptions,
   sortProjectSearchRows
 } from '../src/utils/projectSearch.js';
 
@@ -218,4 +222,39 @@ test('export : en-têtes, nombres et dates typés', () => {
   const launchIndex = config.columns.findIndex((column) => column.id === 'default-launch');
   assert.deepEqual(exportRows[1][amountIndex], { type: 'number', value: 30 });
   assert.deepEqual(exportRows[1][launchIndex], { type: 'date', value: '2026-06-01' });
+});
+
+test('la recherche de questions ignore accents et majuscules, écarte les questions déjà utilisées et plafonne les résultats', () => {
+  const options = listSearchableQuestions(questions, 'fr');
+  assert.deepEqual(searchQuestionOptions(options, 'LANCEMENT').results.map((option) => option.id), ['launchDate']);
+  assert.deepEqual(searchQuestionOptions(options, 'budget').results.map((option) => option.id), ['BUDGET']);
+  assert.deepEqual(searchQuestionOptions(options, 'q10').results.map((option) => option.id), ['q10']);
+  const excluded = searchQuestionOptions(options, '', { excludeIds: ['BUDGET', 'q10'] });
+  assert.ok(!excluded.results.some((option) => option.id === 'BUDGET' || option.id === 'q10'));
+  const capped = searchQuestionOptions(options, '', { limit: 2 });
+  assert.equal(capped.results.length, 2);
+  assert.equal(capped.total, options.length);
+  assert.equal(searchQuestionOptions(options, 'introuvable').total, 0);
+});
+
+test('une colonne créée depuis une question porte cette question et, pour un montant, son unité', () => {
+  const amount = buildQuestionColumn(questions.find((question) => question.id === 'BUDGET'));
+  assert.equal(amount.kind, 'custom');
+  assert.equal(amount.label, '');
+  assert.deepEqual(amount.sources, [{ questionId: 'BUDGET', factor: 1 }]);
+  assert.equal(amount.unit, 'K€');
+  assert.equal(buildQuestionColumn(questions.find((question) => question.id === 'q10')).unit, '');
+  assert.equal(buildQuestionColumn(null), null);
+  assert.ok(normalizeProjectSearchConfig({ columns: [amount] }));
+});
+
+test('seuls les filtres réellement actifs sont listés', () => {
+  assert.deepEqual(listActiveFilterIds({
+    a: { values: ['x'] },
+    b: { values: [] },
+    c: { from: '2026-01-01' },
+    d: { contains: '  ' },
+    e: { min: '3' }
+  }), ['a', 'c', 'e']);
+  assert.deepEqual(listActiveFilterIds(null), []);
 });

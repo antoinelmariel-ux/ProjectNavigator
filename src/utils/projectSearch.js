@@ -280,6 +280,34 @@ export const listSearchableQuestions = (questions, language = DEFAULT_LANGUAGE) 
     label: stripTags(resolveLocalizedText(question.question, language)) || String(question.id)
   }));
 
+// Recherche dans les questions proposées à la configuration : un référentiel compte des centaines
+// de questions, une liste déroulante n'y suffit pas. Chaque mot doit figurer dans le libellé ou
+// l'identifiant, sans accents ni majuscules ; les questions déjà utilisées sont écartées.
+export const searchQuestionOptions = (options, query = '', { excludeIds = [], limit = 8 } = {}) => {
+  const excluded = new Set((Array.isArray(excludeIds) ? excludeIds : Array.from(excludeIds || [])).map(String));
+  const tokens = foldSearchText(query).split(/\s+/).filter(Boolean);
+  const matches = (Array.isArray(options) ? options : [])
+    .filter((option) => option && !excluded.has(String(option.id)))
+    .filter((option) => {
+      const haystack = foldSearchText(`${option.label} ${option.id}`);
+      return tokens.every((token) => haystack.includes(token));
+    });
+  const max = Number.isFinite(limit) && limit > 0 ? limit : matches.length;
+  return { results: matches.slice(0, max), total: matches.length };
+};
+
+// Colonne créée d'un clic à partir d'une question : son nom reste vide (le libellé de la question
+// s'affiche par défaut) et un montant prend d'emblée l'unité de la question, sinon il ne serait
+// jamais converti.
+export const buildQuestionColumn = (question) => {
+  const questionId = toText(question?.id);
+  if (!questionId) {
+    return null;
+  }
+  const unit = (question.type || '') === 'number' ? cleanLabel(getDefaultNumberUnit(question), 16) : '';
+  return { id: createProjectSearchId('col'), kind: 'custom', label: '', sources: [{ questionId, factor: 1 }], merge: 'first', unit };
+};
+
 // --- Valeurs ------------------------------------------------------------------------------
 
 const getMultiChoiceValues = (answer) => {
@@ -588,6 +616,10 @@ const isFilterActive = (filter) => {
 };
 
 export const countActiveFilters = (filters) => Object.values(isPlainObject(filters) ? filters : {}).filter(isFilterActive).length;
+
+export const listActiveFilterIds = (filters) => Object.entries(isPlainObject(filters) ? filters : {})
+  .filter(([, filter]) => isFilterActive(filter))
+  .map(([columnId]) => columnId);
 
 const matchesFilter = (cell, filter, kind) => {
   if (!isFilterActive(filter)) {

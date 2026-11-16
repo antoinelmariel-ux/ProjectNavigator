@@ -283,6 +283,14 @@ strings in `src/i18n/dictionaries/projectSearch/*.js`, e2e `e2e/backoffice-proje
   included), name, owner/co-owners and cell values. Filters are per column kind (enum values with
   « Non renseigné », date range, number range, contains). Charts and the two KPI tiles use the ticked
   rows still visible, else every filtered row; a project with several values counts in each group.
+- **Configuration is a side drawer** (« Personnaliser le tableau », modal via `useModalDialog`),
+  never an inline form pushing the table down. Columns are compact rows (name + one-line summary,
+  edit/reorder/remove), one expanded at a time. Questions are **searched, never picked from a
+  `<select>`** (`searchQuestionOptions`: every word, accent-insensitive, label or id, used ones
+  excluded, capped): a click adds a column (`buildQuestionColumn`, number questions get their unit).
+  Built-ins come back as one-click chips. Active filters show as removable chips under the search
+  bar (`listActiveFilterIds`); a value filter with more than 8 values gets its own search. The table
+  scrolls inside a `max-h-[75vh]` box with a sticky header.
 - **Export is a real `.xlsx`** built by `src/utils/xlsxWriter.js` (stored ZIP + SpreadsheetML, no
   dependency; numbers and dates typed), ticked rows × displayed columns. The showcase button opens a
   `?sv=` share link (full, no comments) in a new tab: read-only by construction; cancelled sends

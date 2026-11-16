@@ -41,6 +41,12 @@ test('un expert retrouve tous les projets par mots-clés, sélectionne, visualis
   await page.getByRole('button', { name: /^Filtres/ }).click();
   await page.getByTestId('project-search-filter-builtin-status').getByLabel('Brouillon').check();
   await expect(rows(page)).toHaveCount(1);
+  const activeFilters = page.getByTestId('project-search-active-filters');
+  await expect(activeFilters).toContainText('Statut : Brouillon');
+  await activeFilters.getByRole('button', { name: 'Retirer le filtre « Statut »' }).click();
+  await expect(rows(page)).toHaveCount(5);
+  await expect(activeFilters).toHaveCount(0);
+  await page.getByTestId('project-search-filter-builtin-status').getByLabel('Brouillon').check();
   await page.getByRole('button', { name: 'Effacer tous les filtres' }).click();
   await expect(rows(page)).not.toHaveCount(1);
 
@@ -93,19 +99,36 @@ test('chaque expert compose ses colonnes (fusion comprise), retrouvées au recha
   await grantAdminAccess(page);
   await openProjectSearch(page);
 
-  await page.getByRole('button', { name: 'Colonnes et graphiques' }).click();
+  await page.getByRole('button', { name: 'Personnaliser le tableau' }).click();
+  const drawer = page.getByRole('dialog', { name: 'Personnaliser le tableau' });
+  await expect(drawer).toBeVisible();
   await expect(page.getByTestId('project-search-storage-notice')).toContainText('navigateur');
-  await page.getByTestId('project-search-add-custom-column').click();
-  const column = page.getByTestId('project-search-config-column').last();
+
+  // Une question se retrouve en tapant un mot de son libellé, sans accents ni majuscules, et un
+  // clic l'ajoute comme colonne.
+  const columns = drawer.getByTestId('project-search-config-column');
+  const before = await columns.count();
+  const picker = drawer.getByTestId('project-search-question-picker');
+  await picker.getByLabel('Une réponse au questionnaire').fill('COLLABORER');
+  await picker.getByRole('button', { name: /Ajouter « Dans le cadre du projet, allez-vous collaborer avec/ }).click();
+  await expect(columns).toHaveCount(before + 1);
+  const column = columns.last();
+  await column.getByRole('button', { name: /Modifier la colonne/ }).click();
   await column.getByLabel(/Nom de la colonne/).fill('Partenaires');
-  await column.getByLabel('Ajouter une question').selectOption({ label: 'Dans le cadre du projet, allez-vous collaborer avec ...' });
-  await column.getByRole('button', { name: 'Ajouter', exact: true }).click();
+  await expect(column).toContainText('Liste de valeurs');
+
+  // Une information du projet s'ajoute d'un clic quand elle n'est pas affichée.
+  await drawer.getByRole('button', { name: 'Ajouter la colonne « Équipes concernées »' }).click();
+  await expect(columns.last()).toContainText('Équipes concernées');
+
   await expect(page.getByTestId('project-search-table').locator('thead')).toContainText('Partenaires');
   await expect(row(page, 'Vies Reliées')).toContainText('Prestataire de service');
 
   // L'administrateur propose sa configuration à tous les experts.
   await page.getByTestId('project-search-publish-default').click();
   await expect(page.getByTestId('project-search-admin-default')).toContainText('Une configuration par défaut est proposée');
+  await drawer.getByRole('button', { name: 'Terminé' }).click();
+  await expect(drawer).toHaveCount(0);
 
   await expect.poll(() => page.evaluate(() => window.localStorage.getItem('complianceNavigatorProjectSearchConfig') || '')).toContain('Partenaires');
   await page.reload();
@@ -128,6 +151,9 @@ test('un contact d’équipe sans droits d’administration a l’onglet et voit
   await expect(page.locator('[data-backoffice-group]').filter({ hasText: 'Administrateurs' })).toHaveCount(0);
   await openProjectSearch(page);
   await expect(row(page, 'Migration SharePoint LFB')).toBeVisible();
-  await page.getByRole('button', { name: 'Colonnes et graphiques' }).click();
+  await page.getByRole('button', { name: 'Personnaliser le tableau' }).click();
+  await expect(page.getByRole('dialog', { name: 'Personnaliser le tableau' })).toBeVisible();
   await expect(page.getByTestId('project-search-admin-default')).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'Personnaliser le tableau' })).toHaveCount(0);
 });

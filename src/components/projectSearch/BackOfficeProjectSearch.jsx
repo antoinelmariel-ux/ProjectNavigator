@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from '../../react.js';
 import { useTranslation } from '../../i18n/LanguageContext.jsx';
-import { AlertTriangle, ChevronDown, Download, Eye, Search, Settings } from '../icons.js';
+import { AlertTriangle, ChevronDown, Close, Download, Eye, Search, Settings } from '../icons.js';
 import { buttonClass } from '../../utils/buttonStyles.js';
 import { requestConfirmation } from '../ConfirmDialog.jsx';
 import { resolveLocalizedText } from '../../utils/localizedContent.js';
+import { foldSearchText } from '../../utils/adminProjectSearch.js';
 import { computeProjectValidationStatus } from '../../utils/projectValidationStatus.js';
 import { encodeShowcaseShareToken, SHOWCASE_SHARE_PARAM } from '../../utils/showcaseShareLink.js';
 import { isSharePointMode, withWebViewEnv } from '../../config/sharepointConfig.js';
@@ -18,8 +19,10 @@ import {
   computeProjectSearchTotals,
   countActiveFilters,
   filterProjectSearchRows,
+  formatProjectSearchDate,
   formatProjectSearchNumber,
   getColumnKind,
+  listActiveFilterIds,
   listColumnFilterValues,
   normalizeProjectSearchConfig,
   resolveProjectSearchConfig,
@@ -33,6 +36,9 @@ const SAVE_DEBOUNCE_MS = 600;
 const MAX_CELL_LENGTH = 160;
 // Une colonne de texte libre (description…) trop étroite étire chaque ligne sur vingt lignes.
 const COLUMN_MIN_WIDTH = { text: '16rem', enum: '12rem' };
+// Au-delà, une liste de valeurs (porteurs, équipes…) se filtre avant de se cocher.
+const FILTER_SEARCH_THRESHOLD = 8;
+const TEXT_CLAMP_STYLE = { display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' };
 
 const STATUS_CHIP = {
   draft: 'border-gray-200 bg-gray-50 text-gray-700',
@@ -71,10 +77,15 @@ const ColumnFilter = ({ column, kind, rows, filter, onChange, label }) => {
   const { t, language } = useTranslation();
   const id = `project-search-filter-${column.id}`;
   const safeFilter = filter || {};
+  const [optionQuery, setOptionQuery] = useState('');
 
   if (kind === 'enum') {
     const options = listColumnFilterValues(rows, column.id);
     const selected = Array.isArray(safeFilter.values) ? safeFilter.values : [];
+    const needle = foldSearchText(optionQuery).trim();
+    const visibleOptions = needle
+      ? options.filter((option) => selected.includes(option.value) || foldSearchText(option.value === EMPTY_FILTER_VALUE ? t('projectSearch.emptyValue') : option.value).includes(needle))
+      : options;
     const toggle = (value) => {
       const next = selected.includes(value) ? selected.filter((entry) => entry !== value) : [...selected, value];
       onChange({ values: next });
@@ -82,11 +93,23 @@ const ColumnFilter = ({ column, kind, rows, filter, onChange, label }) => {
     return (
       <fieldset className="space-y-1" data-testid={`project-search-filter-${column.id}`}>
         <legend className="text-sm font-medium text-gray-700">{label}</legend>
+        {options.length > FILTER_SEARCH_THRESHOLD && (
+          <input
+            type="search"
+            value={optionQuery}
+            onChange={(event) => setOptionQuery(event.target.value)}
+            placeholder={t('projectSearch.filters.searchValues', { count: options.length })}
+            aria-label={t('projectSearch.filters.searchValuesAria', { name: label })}
+            className={INPUT_CLASS}
+          />
+        )}
         {options.length === 0 ? (
           <p className="text-xs text-gray-500">{t('projectSearch.filters.noValue')}</p>
+        ) : visibleOptions.length === 0 ? (
+          <p className="text-xs text-gray-500">{t('projectSearch.filters.noMatchingValue')}</p>
         ) : (
-          <ul className="max-h-40 space-y-1 overflow-y-auto pr-1">
-            {options.map((option) => {
+          <ul className="max-h-48 space-y-1 overflow-y-auto pr-1">
+            {visibleOptions.map((option) => {
               const optionId = `${id}-${option.value}`;
               return (
                 <li key={option.value}>
@@ -155,6 +178,7 @@ export const BackOfficeProjectSearch = ({
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [personal, setPersonal] = useState({ status: 'loading', config: null, storage: 'local', reason: '' });
   const [adminNotice, setAdminNotice] = useState('');
+  const configButtonRef = useRef(null);
   const saveTimerRef = useRef(null);
 
   useEffect(() => {
@@ -269,6 +293,31 @@ export const BackOfficeProjectSearch = ({
     return teamsShown ? displayed : [...displayed, { id: 'builtin-teams', kind: 'builtin', builtinId: 'teams', label: '' }];
   }, [config.columns]);
   const activeFilterCount = countActiveFilters(filters);
+  const activeFilterChips = useMemo(() => listActiveFilterIds(filters)
+    .map((columnId) => {
+      const column = filterColumns.find((entry) => entry.id === columnId);
+      if (!column) {
+        return null;
+      }
+      const filter = filters[columnId];
+      let value = '';
+      if (Array.isArray(filter.values) && filter.values.length > 0) {
+        value = filter.values.map((entry) => (entry === EMPTY_FILTER_VALUE ? t('projectSearch.emptyValue') : entry)).join(', ');
+      } else if (filter.contains) {
+        value = `« ${filter.contains} »`;
+      } else {
+        const low = filter.from ? formatProjectSearchDate(filter.from, language) : filter.min;
+        const high = filter.to ? formatProjectSearchDate(filter.to, language) : filter.max;
+        value = low && high ? `${low} – ${high}` : low ? `≥ ${low}` : `≤ ${high}`;
+      }
+      return { columnId, label: getColumnLabel(column), value };
+    })
+    .filter(Boolean), [filterColumns, filters, getColumnLabel, language, t]);
+  const removeFilter = (columnId) => setFilters((previous) => {
+    const next = { ...previous };
+    delete next[columnId];
+    return next;
+  });
 
   const allVisibleSelected = sortedRows.length > 0 && sortedRows.every((row) => selectedIds.has(row.id));
   const someVisibleSelected = sortedRows.some((row) => selectedIds.has(row.id));
@@ -384,8 +433,9 @@ export const BackOfficeProjectSearch = ({
     }
     const text = truncate(cell.display);
     const isName = column.kind === 'builtin' && column.builtinId === 'projectName';
+    const isLongText = column.kind === 'custom' && columnKinds.get(column.id) === 'text';
     return (
-      <span className={isName ? 'font-semibold text-gray-900' : ''} title={cell.title || (text !== cell.display ? cell.display : undefined)}>
+      <span className={isName ? 'font-semibold text-gray-900' : ''} style={isLongText ? TEXT_CLAMP_STYLE : undefined} title={cell.title || (isLongText || text !== cell.display ? cell.display : undefined)}>
         {text}
       </span>
     );
@@ -439,11 +489,11 @@ export const BackOfficeProjectSearch = ({
             <ChevronDown className="h-4 w-4" />
           </button>
           <button
+            ref={configButtonRef}
             type="button"
             className={buttonClass('secondary', 'md')}
-            aria-expanded={isConfigOpen}
-            aria-controls="project-search-config-panel"
-            onClick={() => setIsConfigOpen((open) => !open)}
+            aria-haspopup="dialog"
+            onClick={() => setIsConfigOpen(true)}
           >
             <Settings className="h-4 w-4" />
             {t('projectSearch.config.toggle')}
@@ -477,35 +527,52 @@ export const BackOfficeProjectSearch = ({
               />
             ))}
           </div>
-          {activeFilterCount > 0 && (
-            <button type="button" className={buttonClass('ghost', 'sm')} onClick={() => setFilters({})}>
-              {t('projectSearch.filters.clear')}
-            </button>
-          )}
         </section>
       )}
 
-      {isConfigOpen && (
-        <div id="project-search-config-panel" className="space-y-2">
-          <p className="text-sm text-gray-600" data-testid="project-search-storage-notice">{storageNotice}</p>
-          {adminNotice && <p className="rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-sm text-emerald-800" role="status">{adminNotice}</p>}
-          <ProjectSearchConfigEditor
-            config={config}
-            questions={questions}
-            currencies={currencies}
-            getColumnLabel={getColumnLabel}
-            getDefaultColumnLabel={getDefaultColumnLabel}
-            onChange={handleConfigChange}
-            onReset={handleResetConfig}
-            hasPersonalConfig={Boolean(personal.config)}
-            canEditDefaults={canEditDefaults}
-            hasAdminDefault={Boolean(projectSearchDefaults)}
-            onPublishAsDefault={handlePublishAsDefault}
-            onClearDefault={handleClearDefault}
-            publishControl={publishControl}
-          />
+      {activeFilterChips.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2" data-testid="project-search-active-filters">
+          <span className="text-sm text-gray-600">{t('projectSearch.filters.activeLabel')}</span>
+          {activeFilterChips.map((chip) => (
+            <span key={chip.columnId} className="inline-flex max-w-full items-center gap-1 rounded-full border border-blue-200 bg-blue-50 py-0.5 pl-3 pr-1 text-sm text-blue-900">
+              <span className="min-w-0 truncate" title={`${chip.label} : ${chip.value}`}>
+                <span className="font-medium">{chip.label}</span> : {chip.value}
+              </span>
+              <button
+                type="button"
+                className="rounded-full p-0.5 hover:bg-blue-100"
+                onClick={() => removeFilter(chip.columnId)}
+                aria-label={t('projectSearch.filters.removeFilter', { name: chip.label })}
+              >
+                <Close className="h-3.5 w-3.5" />
+              </button>
+            </span>
+          ))}
+          <button type="button" className={buttonClass('ghost', 'sm')} onClick={() => setFilters({})}>
+            {t('projectSearch.filters.clear')}
+          </button>
         </div>
       )}
+
+      <ProjectSearchConfigEditor
+        isOpen={isConfigOpen}
+        onClose={() => setIsConfigOpen(false)}
+        config={config}
+        questions={questions}
+        currencies={currencies}
+        getColumnLabel={getColumnLabel}
+        getDefaultColumnLabel={getDefaultColumnLabel}
+        onChange={handleConfigChange}
+        onReset={handleResetConfig}
+        hasPersonalConfig={Boolean(personal.config)}
+        storageNotice={storageNotice}
+        canEditDefaults={canEditDefaults}
+        hasAdminDefault={Boolean(projectSearchDefaults)}
+        adminNotice={adminNotice}
+        onPublishAsDefault={handlePublishAsDefault}
+        onClearDefault={handleClearDefault}
+        publishControl={publishControl}
+      />
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2" aria-label={t('projectSearch.kpi.title')} data-testid="project-search-kpis">
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -556,9 +623,9 @@ export const BackOfficeProjectSearch = ({
             {rows.length === 0 ? t('projectSearch.table.noProjects') : t('projectSearch.table.noResults')}
           </p>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div className="max-h-[75vh] overflow-auto rounded-xl border border-gray-200 bg-white shadow-sm" data-testid="project-search-table-scroll">
             <table className="min-w-full divide-y divide-gray-200 text-sm" data-testid="project-search-table">
-              <thead className="bg-gray-50">
+              <thead className="sticky top-0 z-20 bg-gray-50 shadow-sm">
                 <tr>
                   <th scope="col" className="w-10 px-3 py-2 text-left">
                     <input
@@ -586,7 +653,7 @@ export const BackOfficeProjectSearch = ({
                       </th>
                     );
                   })}
-                  <th scope="col" className="sticky right-0 border-l border-gray-100 bg-gray-50 px-3 py-2 text-left font-semibold text-gray-700">
+                  <th scope="col" className="sticky right-0 z-20 border-l border-gray-100 bg-gray-50 px-3 py-2 text-left font-semibold text-gray-700">
                     <span className="sr-only">{t('projectSearch.table.actions')}</span>
                   </th>
                 </tr>
@@ -618,7 +685,7 @@ export const BackOfficeProjectSearch = ({
                           </td>
                         );
                       })}
-                      <td className={`sticky right-0 whitespace-nowrap border-l border-gray-100 px-3 py-2 align-top ${isSelected ? 'bg-blue-50' : 'bg-white'}`}>
+                      <td className={`sticky right-0 z-10 whitespace-nowrap border-l border-gray-100 px-3 py-2 align-top ${isSelected ? 'bg-blue-50' : 'bg-white'}`}>
                         <button
                           type="button"
                           className={buttonClass('secondary', 'sm', 'whitespace-nowrap')}
