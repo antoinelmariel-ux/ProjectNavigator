@@ -151,6 +151,7 @@ export default {
     decisionNone: 'No decision',
     decisionCommentLabel: 'Comment',
     decisionSave: 'Save the decision',
+    decisionEdit: 'Edit the decision',
     decisionNoneYet: 'No decision recorded.',
     decisionLinkedHint: 'This decision is the committee’s opinion in “Project stakes”: each one updates the other.',
     decisionHistoryHint: 'Earlier passage: this decision is kept in the project’s history, the current opinion is not changed.',

@@ -598,6 +598,7 @@ export const CommitteeAgendaScreen = ({
                       setFeedback(result?.ok
                         ? { tone: 'success', message: t('committeeSessions.agenda.feedback.decisionSaved') }
                         : { tone: 'error', message: t(`committeeSessions.errors.${result?.error || 'generic'}`, { minutes: 0 }) });
+                      return result;
                     }}
                   />
                 )}

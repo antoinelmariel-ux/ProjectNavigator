@@ -42,6 +42,9 @@ export const CommitteeAgendaDecision = ({ idPrefix, status, comment, canEdit, hi
   const [draftStatus, setDraftStatus] = useState(status || '');
   const [draftComment, setDraftComment] = useState(comment || '');
   const [isSaving, setIsSaving] = useState(false);
+  const hasContent = Boolean(status) || Boolean((comment || '').replace(/<[^>]+>/g, '').trim());
+  const [isEditing, setIsEditing] = useState(!hasContent);
+  const [justSaved, setJustSaved] = useState(false);
 
   useEffect(() => {
     setDraftStatus(status || '');
@@ -49,7 +52,18 @@ export const CommitteeAgendaDecision = ({ idPrefix, status, comment, canEdit, hi
   }, [status, comment]);
 
   const isDirty = draftStatus !== (status || '') || draftComment !== (comment || '');
-  const hasContent = Boolean(status) || Boolean((comment || '').replace(/<[^>]+>/g, '').trim());
+
+  useEffect(() => {
+    if (isDirty) {
+      setJustSaved(false);
+    }
+  }, [isDirty]);
+
+  const savedMessage = justSaved && (
+    <p role="status" data-testid="committee-agenda-decision-saved" className="text-xs font-medium text-emerald-700">
+      ✓ {t('committeeSessions.agenda.feedback.decisionSaved')}
+    </p>
+  );
 
   return (
     <section
@@ -59,14 +73,32 @@ export const CommitteeAgendaDecision = ({ idPrefix, status, comment, canEdit, hi
     >
       <h4 id={`${idPrefix}-title`} className="text-sm font-semibold text-gray-800">{t('committeeSessions.agenda.decisionTitle')}</h4>
       {hint && <p className="text-xs text-gray-500">{hint}</p>}
-      {canEdit ? (
+      {canEdit && !isEditing && hasContent ? (
+        <div className="space-y-2 text-sm text-gray-800">
+          <DecisionBadge status={status} />
+          {comment && <div dangerouslySetInnerHTML={{ __html: sanitizeRichText(comment) }} />}
+          {savedMessage}
+          <button
+            type="button"
+            onClick={() => setIsEditing(true)}
+            className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-100"
+          >
+            {t('committeeSessions.agenda.decisionEdit')}
+          </button>
+        </div>
+      ) : canEdit ? (
         <form
           className="space-y-2"
           onSubmit={async (event) => {
             event.preventDefault();
             setIsSaving(true);
             try {
-              await onSave({ status: draftStatus, comment: draftComment });
+              const result = await onSave({ status: draftStatus, comment: draftComment });
+              if (result?.ok !== false) {
+                setJustSaved(true);
+                const nextHasContent = Boolean(draftStatus) || Boolean((draftComment || '').replace(/<[^>]+>/g, '').trim());
+                setIsEditing(!nextHasContent);
+              }
             } finally {
               setIsSaving(false);
             }
@@ -107,6 +139,7 @@ export const CommitteeAgendaDecision = ({ idPrefix, status, comment, canEdit, hi
           >
             {t('committeeSessions.agenda.decisionSave')}
           </button>
+          {savedMessage}
         </form>
       ) : hasContent ? (
         <div className="space-y-1 text-sm text-gray-800">
