@@ -41,6 +41,8 @@ colonnes utilisées par le code — c'est la source de vérité. Le document jum
 > choix d'une colonne `Status` déjà créée sans `Cancelled` — ajoute ce choix à la main depuis les
 > paramètres de la colonne si besoin).
 
+> Pour recopier les données de PROD vers DEV, voir la section « Copier le contenu des listes de PROD vers DEV » en bas de ce document.
+
 ## Comment utiliser le script
 
 1. Ouvre une page de ton site SharePoint (par exemple `.../CN-App/index.aspx`, ou simplement la
@@ -542,6 +544,317 @@ existaient auparavant dans `CN-Config` — une ligne par règle/équipe plutôt 
 
   console.log(
     'Prêt. Lancez : await cnCheckSharePointConfig()  (diagnostic seul)  puis, si besoin :  await cnCheckSharePointConfig({ apply: true })  (crée ce qui manque).'
+  );
+})();
+```
+
+## Copier le contenu des listes de PROD vers DEV
+
+Second script, indépendant du précédent : il **recopie les éléments** des listes `CN_*` d'un site
+source (PROD) vers le site sur lequel tu l'exécutes (DEV), pour tester avec des données réalistes.
+Il suppose que la structure existe déjà sur DEV (lance d'abord `cnCheckSharePointConfig({ apply: true })`).
+
+### Garanties et précautions
+
+- **PROD n'est jamais modifié** : la source n'est lue que par des `GET`. Toutes les écritures vont sur
+  le site de la page où tu colles le script — **ouvre donc une page du site DEV**. Si source et cible
+  sont le même site, le script refuse.
+- **Simulation par défaut** : sans `apply: true`, rien n'est écrit ; le tableau indique ce qui serait fait.
+- **Trois comportements si la liste cible contient déjà des éléments** (`onExisting`) :
+  - `'skip'` (défaut) : la liste est ignorée, pour ne pas créer de doublons ;
+  - `'merge'` : n'ajoute que les éléments dont la clé métier (`ProjectId`, `RuleId`…) est absente de la cible ;
+  - `'replace'` : met d'abord les éléments de la cible **à la corbeille** (récupérables), puis recopie.
+- **Listes volontairement exclues** : `CN_NotificationsQueue`, `CN_SiteAccessRequests` et
+  `CN_CommitteeInvitations` déclenchent des flux Power Automate. Les recopier sur DEV enverrait de vrais
+  mails, accorderait de vrais accès au site et créerait de vrais événements Outlook, avec les adresses de
+  production. Pour les inclure quand même : `include: ['CN_SiteAccessRequests']` (etc.).
+- Les colonnes copiées sont découvertes dynamiquement (texte, texte long, nombre, oui/non, date, choix) et
+  limitées à celles présentes **des deux côtés** ; une colonne absente de DEV est signalée par un
+  avertissement dans la console.
+
+### Utilisation
+
+1. Ouvre une page du site **DEV** (par exemple `.../ProjectNavigator_DEV/SitePages/...`), F12, onglet **Console**.
+2. Colle le script ci-dessous, puis lance d'abord la simulation :
+   ```js
+   await cnCopyListContent({ source: 'https://<tenant>.sharepoint.com/sites/<site-prod>' })
+   ```
+3. Si le tableau te convient, lance la copie réelle :
+   ```js
+   await cnCopyListContent({ source: 'https://<tenant>.sharepoint.com/sites/<site-prod>', apply: true })
+   ```
+   Options : `lists: ['CN_Rules', 'CN_Teams']` pour limiter à certaines listes, `onExisting: 'merge' | 'replace'`,
+   `include: [...]` pour les listes exclues par défaut.
+
+**Limites à connaître** :
+- Les deux sites doivent être sur **le même tenant** (même domaine `*.sharepoint.com`) : le navigateur
+  refuse sinon de lire la source (CORS). Il faut aussi avoir les droits de lecture sur PROD et de
+  contribution sur DEV.
+- `Created`/`Modified`/`Author`/`Editor` sont gérés par SharePoint : les éléments copiés portent la date et
+  l'auteur de la copie. Les dates et e-mails *métier* (`SubmissionDate`, `OwnerEmail`, `UpdatedAt`…) sont,
+  eux, conservés tels quels.
+- Seul le **contenu des listes** est copié : pas les fichiers des bibliothèques `CN-Config` (référentiels
+  JSON, `settings.json`…) ni `CN-Documents`. Les pièces jointes référencées par les projets pointent donc
+  vers des fichiers absents de DEV.
+- Les données de PROD contiennent de vraies adresses e-mail : à copier vers un site DEV dont l'accès est
+  restreint aux personnes qui peuvent déjà voir PROD.
+- Le jeton de sécurité est renouvelé automatiquement ; en cas de limitation (429/503) le script patiente
+  et réessaie. Les erreurs ligne à ligne sont affichées dans la console et comptées dans le tableau.
+
+```js
+(() => {
+  const ORIGIN = window.location.origin;
+
+  const deriveWebUrl = () => {
+    const path = window.location.pathname;
+    const appIdx = path.indexOf('/CN-App/');
+    if (appIdx !== -1) return ORIGIN + path.slice(0, appIdx);
+    const siteMatch = path.match(/^(\/(?:sites|teams)\/[^/]+)/i);
+    return siteMatch ? ORIGIN + siteMatch[1] : ORIGIN;
+  };
+
+  // La cible est toujours le site de la page courante (DEV) ; la source (PROD) n'est que lue.
+  const TARGET_URL = deriveWebUrl();
+
+  // Clé métier de chaque liste (sert au mode « merge »). Une liste sans clé ne supporte pas « merge ».
+  const LISTS = {
+    CN_Projects: 'ProjectId',
+    CN_Inspirations: 'InspirationId',
+    CN_ComplianceComments: 'CommentId',
+    CN_ProjectMembers: 'EntryId',
+    CN_ShowcaseStickyNotes: 'StickyId',
+    CN_FilesIndex: 'FileId',
+    CN_UserProfiles: 'UserEmail',
+    CN_Rules: 'RuleId',
+    CN_Teams: 'TeamId',
+    CN_Committees: 'CommitteeId',
+    CN_SampleProjects: 'SampleId',
+    CN_Faq: 'FaqId',
+    CN_CommitteeSessions: 'SessionId',
+    // Listes qui déclenchent un flux Power Automate : exclues par défaut (voir « include »).
+    CN_NotificationsQueue: null,
+    CN_SiteAccessRequests: 'TargetEmail',
+    CN_CommitteeInvitations: 'InvitationId'
+  };
+
+  const EXCLUDED_BY_DEFAULT = ['CN_NotificationsQueue', 'CN_SiteAccessRequests', 'CN_CommitteeInvitations'];
+
+  const COPYABLE_TYPES = ['Text', 'Note', 'Number', 'Integer', 'Currency', 'Boolean', 'DateTime', 'Choice'];
+  const PAGE_SIZE = 200;
+  const WRITE_PARALLELISM = 5;
+
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const listPath = (title) => "/_api/web/lists/getbytitle('" + title.replace(/'/g, "''") + "')";
+
+  const spFetch = async (base, path, init = {}) => {
+    for (let attempt = 0; ; attempt += 1) {
+      const res = await fetch(base + path, {
+        credentials: 'same-origin',
+        ...init,
+        headers: { Accept: 'application/json;odata=nometadata', ...(init.headers || {}) }
+      });
+      if ((res.status === 429 || res.status === 503) && attempt < 5) {
+        const retryAfter = Number(res.headers.get('Retry-After'));
+        await sleep((retryAfter > 0 ? retryAfter : Math.pow(2, attempt)) * 1000);
+        continue;
+      }
+      return res;
+    }
+  };
+
+  const readJson = async (base, path) => {
+    const res = await spFetch(base, path);
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error('HTTP ' + res.status + ' sur ' + path + ' — ' + text.slice(0, 200));
+    }
+    return res.json();
+  };
+
+  let digestCache = null;
+  let digestAt = 0;
+  const getDigest = async () => {
+    if (digestCache && Date.now() - digestAt < 20 * 60 * 1000) return digestCache;
+    const res = await spFetch(TARGET_URL, '/_api/contextinfo', { method: 'POST' });
+    if (!res.ok) throw new Error('Impossible d’obtenir le jeton de sécurité (/_api/contextinfo).');
+    digestCache = (await res.json()).FormDigestValue;
+    digestAt = Date.now();
+    return digestCache;
+  };
+
+  const writeTarget = async (path, init) => {
+    const digest = await getDigest();
+    const res = await spFetch(TARGET_URL, path, {
+      method: 'POST',
+      ...init,
+      headers: { 'X-RequestDigest': digest, ...(init.headers || {}) }
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error('HTTP ' + res.status + ' — ' + text.slice(0, 300));
+    }
+    return res;
+  };
+
+  const getListInfo = async (base, title) => {
+    const res = await spFetch(base, listPath(title) + '?$select=Title,ItemCount,ListItemEntityTypeFullName');
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error('HTTP ' + res.status + ' en lisant la liste ' + title);
+    return res.json();
+  };
+
+  const getCopyableFields = async (base, title) => {
+    const data = await readJson(
+      base,
+      listPath(title) + '/fields?$select=InternalName,TypeAsString,ReadOnlyField,Hidden,FromBaseType&$top=500'
+    );
+    return (data.value || [])
+      .filter(
+        (f) =>
+          !f.Hidden &&
+          !f.ReadOnlyField &&
+          COPYABLE_TYPES.includes(f.TypeAsString) &&
+          (f.InternalName === 'Title' || !f.FromBaseType)
+      )
+      .map((f) => f.InternalName);
+  };
+
+  const readAllItems = async (base, title, fieldNames) => {
+    const items = [];
+    let lastId = 0;
+    for (;;) {
+      const query =
+        '/items?$select=' + ['Id'].concat(fieldNames).join(',') +
+        '&$orderby=Id&$top=' + PAGE_SIZE +
+        '&$filter=' + encodeURIComponent('Id gt ' + lastId);
+      const data = await readJson(base, listPath(title) + query);
+      const page = data.value || [];
+      if (!page.length) break;
+      items.push(...page);
+      lastId = page[page.length - 1].Id;
+    }
+    return items;
+  };
+
+  const inBatches = async (values, size, worker) => {
+    for (let i = 0; i < values.length; i += size) {
+      await Promise.all(values.slice(i, i + size).map(worker));
+    }
+  };
+
+  window.cnCopyListContent = async function (options) {
+    const opts = options || {};
+    const source = String(opts.source || '').replace(/\/+$/, '');
+    if (!source) {
+      throw new Error("Indiquez le site source : await cnCopyListContent({ source: 'https://…/sites/ProjectNavigator' })");
+    }
+    if (source.toLowerCase() === TARGET_URL.toLowerCase()) {
+      throw new Error('La source et la cible sont le même site (' + TARGET_URL + '). Ouvrez cette page sur le site DEV.');
+    }
+    const apply = !!opts.apply;
+    const onExisting = opts.onExisting || 'skip';
+    if (!['skip', 'merge', 'replace'].includes(onExisting)) {
+      throw new Error("onExisting doit valoir 'skip', 'merge' ou 'replace'.");
+    }
+    const include = Array.isArray(opts.include) ? opts.include : [];
+    const requested = Array.isArray(opts.lists) && opts.lists.length
+      ? opts.lists
+      : Object.keys(LISTS).filter((t) => !EXCLUDED_BY_DEFAULT.includes(t) || include.includes(t));
+    const unknown = requested.filter((t) => !(t in LISTS));
+    if (unknown.length) throw new Error('Liste(s) inconnue(s) : ' + unknown.join(', '));
+
+    console.log('Source (lecture seule) : ' + source);
+    console.log('Cible (écriture)       : ' + TARGET_URL);
+    console.log(
+      apply
+        ? 'Mode : copie réelle, si la cible n’est pas vide → ' + onExisting
+        : 'Mode : simulation (relancer avec { apply: true } pour copier)'
+    );
+
+    const report = [];
+    for (const title of requested) {
+      const row = { liste: title, source: '', 'cible avant': '', action: '', copiés: 0, erreurs: 0 };
+      report.push(row);
+      try {
+        const [srcInfo, dstInfo] = await Promise.all([getListInfo(source, title), getListInfo(TARGET_URL, title)]);
+        if (!srcInfo) { row.action = 'ignorée : absente de la source'; continue; }
+        if (!dstInfo) { row.action = 'ignorée : absente de la cible (lancer cnCheckSharePointConfig({ apply: true }))'; continue; }
+        row.source = srcInfo.ItemCount;
+        row['cible avant'] = dstInfo.ItemCount;
+
+        const keyField = LISTS[title];
+        if (dstInfo.ItemCount > 0 && onExisting === 'skip') { row.action = 'ignorée : la cible contient déjà des éléments'; continue; }
+        if (dstInfo.ItemCount > 0 && onExisting === 'merge' && !keyField) { row.action = 'ignorée : pas de clé pour fusionner'; continue; }
+
+        const [srcFields, dstFields] = await Promise.all([
+          getCopyableFields(source, title),
+          getCopyableFields(TARGET_URL, title)
+        ]);
+        const fields = srcFields.filter((f) => dstFields.includes(f));
+        const missingInTarget = srcFields.filter((f) => !dstFields.includes(f));
+        if (missingInTarget.length) {
+          console.warn(title + ' : colonne(s) absente(s) de la cible, non copiée(s) → ' + missingInTarget.join(', '));
+        }
+
+        if (!apply) {
+          row.action = dstInfo.ItemCount > 0
+            ? (onExisting === 'replace' ? 'REMPLACERAIT (' + dstInfo.ItemCount + ' supprimés puis ' + srcInfo.ItemCount + ' copiés)' : 'FUSIONNERAIT sur ' + keyField)
+            : 'COPIERAIT ' + srcInfo.ItemCount + ' élément(s)';
+          continue;
+        }
+
+        const items = await readAllItems(source, title, fields);
+
+        if (dstInfo.ItemCount > 0 && onExisting === 'replace') {
+          const existing = await readAllItems(TARGET_URL, title, []);
+          await inBatches(existing, WRITE_PARALLELISM, (it) =>
+            writeTarget(listPath(title) + '/items(' + it.Id + ')/recycle()', {})
+          );
+          console.log(title + ' : ' + existing.length + ' élément(s) de la cible mis à la corbeille.');
+        }
+
+        let toCopy = items;
+        if (dstInfo.ItemCount > 0 && onExisting === 'merge') {
+          const existingKeys = new Set((await readAllItems(TARGET_URL, title, [keyField])).map((it) => it[keyField]));
+          toCopy = items.filter((it) => !existingKeys.has(it[keyField]));
+        }
+
+        let done = 0;
+        await inBatches(toCopy, WRITE_PARALLELISM, async (item) => {
+          const body = { __metadata: { type: dstInfo.ListItemEntityTypeFullName } };
+          for (const f of fields) {
+            if (item[f] !== null && item[f] !== undefined) body[f] = item[f];
+          }
+          try {
+            await writeTarget(listPath(title) + '/items', {
+              headers: { 'Content-Type': 'application/json;odata=verbose' },
+              body: JSON.stringify(body)
+            });
+            row.copiés += 1;
+          } catch (e) {
+            row.erreurs += 1;
+            console.error(title + ' (source Id ' + item.Id + ') : ' + e.message);
+          }
+          done += 1;
+          if (done % 100 === 0) console.log(title + ' : ' + done + '/' + toCopy.length);
+        });
+        row.action = 'copiée' + (toCopy.length < items.length ? ' (fusion : ' + (items.length - toCopy.length) + ' déjà présents)' : '');
+      } catch (e) {
+        row.action = 'erreur : ' + e.message;
+        row.erreurs += 1;
+      }
+    }
+
+    console.table(report);
+    const excluded = EXCLUDED_BY_DEFAULT.filter((t) => !requested.includes(t));
+    if (excluded.length) {
+      console.log('Non copiées volontairement (déclenchent des flux Power Automate) : ' + excluded.join(', '));
+    }
+    return report;
+  };
+
+  console.log(
+    "Prêt. Simulation : await cnCopyListContent({ source: 'https://…/sites/ProjectNavigator' })  puis  await cnCopyListContent({ source: '…', apply: true })"
   );
 })();
 ```

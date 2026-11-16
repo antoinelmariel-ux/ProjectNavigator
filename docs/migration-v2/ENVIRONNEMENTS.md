@@ -28,6 +28,9 @@
 
 Rejouer le script de création de structure sur le site de production, puis compléter ce tableau.
 
+Pour alimenter DEV avec les données de PROD : script `cnCopyListContent` de
+[VERIFICATION-CONFIGURATION-SHAREPOINT.md](VERIFICATION-CONFIGURATION-SHAREPOINT.md) (lecture seule sur PROD).
+
 ## ⚠️ Les GUID ne doivent JAMAIS entrer dans le code applicatif
 
 Ils sont consignés ici **uniquement** pour la traçabilité et pour la configuration des flux
