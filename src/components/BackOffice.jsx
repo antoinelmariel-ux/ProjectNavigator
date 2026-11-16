@@ -107,6 +107,8 @@ import { CommitteeCalendar } from './committee/CommitteeCalendar.jsx';
 import { CommitteeSessionsGenerator } from './committee/CommitteeSessionsGenerator.jsx';
 import { CommitteeAgendaSearch } from './committee/CommitteeAgendaSearch.jsx';
 import { CommitteeChairSettings } from './committee/CommitteeChairSettings.jsx';
+import { CommitteeTriggerCards } from './committee/CommitteeTriggerCards.jsx';
+import { CommitteeOnDemandSettings } from './committee/CommitteeOnDemandSettings.jsx';
 import { isCommitteeChair } from '../utils/committeeSessions.js';
 import { buildImpersonationUrl, isImpersonating } from '../utils/impersonation.js';
 import { buildAdminConsoleUrl, isAdminConsoleActive } from '../utils/adminConsole.js';
@@ -1085,6 +1087,13 @@ export const BackOffice = ({
     },
     teamTriggers: {
       minTeamsCount: null
+    },
+    onDemand: {
+      enabled: false,
+      conditionGroups: [],
+      ruleTriggers: { matchMode: 'any', ruleIds: [] },
+      riskTriggers: { minRiskScore: null },
+      teamTriggers: { minTeamsCount: null }
     }
   }), [t]);
   const normalizedAdminEmails = useMemo(
@@ -8576,128 +8585,22 @@ export const BackOffice = ({
                           })()}
                         </div>
 
-                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                          <div className="space-y-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
-                            <div>
-                              <h4 className="text-base font-semibold text-gray-800">{t('backOffice.main.triggeringRulesHeading')}</h4>
-                              <p className="text-xs text-gray-600">
-                                {t('backOffice.main.triggerByRulesHint')}
-                              </p>
-                            </div>
-                            <div>
-                              <label
-                                htmlFor={`validation-committee-rules-${committee.id}`}
-                                className="text-sm font-medium text-gray-700"
-                              >
-                                {t('backOffice.main.targetedRulesLabel')}
-                              </label>
-                              <select
-                                id={`validation-committee-rules-${committee.id}`}
-                                multiple
-                                value={committee.ruleTriggers.ruleIds}
-                                onChange={(event) => {
-                                  const selected = Array.from(event.target.selectedOptions).map((option) => option.value);
-                                  updateCommitteeEntry(committee.id, (prev) => ({
-                                    ...prev,
-                                    ruleTriggers: {
-                                      ...prev.ruleTriggers,
-                                      ruleIds: selected
-                                    }
-                                  }));
-                                }}
-                                className="mt-2 h-36 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                              >
-                                {validationCommitteeRuleOptions.length === 0 && (
-                                  <option value="" disabled>
-                                    {t('backOffice.main.noRuleAvailable')}
-                                  </option>
-                                )}
-                                {validationCommitteeRuleOptions.map((option) => (
-                                  <option key={`validation-rule-${committee.id}-${option.value}`} value={option.value}>
-                                    {option.label}
-                                  </option>
-                                ))}
-                              </select>
-                              <p className="mt-2 text-xs text-gray-500">
-                                {t('backOffice.main.ctrlCmdMultiSelectHint')}
-                              </p>
-                            </div>
-                            <p className="text-xs text-gray-500">
-                              {t('backOffice.main.committeeTriggersOnRuleHint')}
-                            </p>
-                          </div>
+                        <CommitteeTriggerCards
+                          idPrefix="validation-committee"
+                          committeeId={committee.id}
+                          value={committee}
+                          ruleOptions={validationCommitteeRuleOptions}
+                          onChange={(key, next) =>
+                            updateCommitteeEntry(committee.id, (prev) => ({ ...prev, [key]: next }))}
+                        />
 
-                          <div className="space-y-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
-                            <div>
-                              <h4 className="text-base font-semibold text-gray-800">{t('backOffice.main.identifiedRisksHeading')}</h4>
-                              <p className="text-xs text-gray-600">
-                                {t('backOffice.main.linkRiskAnalysisHint')}
-                              </p>
-                            </div>
-                            <div>
-                              <label
-                                htmlFor={`validation-committee-risk-score-${committee.id}`}
-                                className="text-sm font-medium text-gray-700"
-                              >
-                                {t('backOffice.main.minRiskScoreLabel')}
-                              </label>
-                              <input
-                                id={`validation-committee-risk-score-${committee.id}`}
-                                type="number"
-                                min="0"
-                                step="0.5"
-                                value={committee.riskTriggers.minRiskScore ?? ''}
-                                onChange={(event) => {
-                                  const value = event.target.value;
-                                  updateCommitteeEntry(committee.id, (prev) => ({
-                                    ...prev,
-                                    riskTriggers: {
-                                      ...prev.riskTriggers,
-                                      minRiskScore: value === '' ? null : Number(value)
-                                    }
-                                  }));
-                                }}
-                                className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                                placeholder={t('backOffice.main.exampleThreeFivePlaceholder')}
-                              />
-                            </div>
-                          </div>
-
-                          <div className="space-y-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
-                            <div>
-                              <h4 className="text-base font-semibold text-gray-800">{t('backOffice.main.solicitedTeamsHeading')}</h4>
-                              <p className="text-xs text-gray-600">
-                                {t('backOffice.main.triggerByTeamCountHint')}
-                              </p>
-                            </div>
-                            <div>
-                              <label
-                                htmlFor={`validation-committee-team-count-${committee.id}`}
-                                className="text-sm font-medium text-gray-700"
-                              >
-                                {t('backOffice.main.minTeamsCountLabel')}
-                              </label>
-                              <input
-                                id={`validation-committee-team-count-${committee.id}`}
-                                type="number"
-                                min="1"
-                                value={committee.teamTriggers.minTeamsCount ?? ''}
-                                onChange={(event) => {
-                                  const value = event.target.value;
-                                  updateCommitteeEntry(committee.id, (prev) => ({
-                                    ...prev,
-                                    teamTriggers: {
-                                      ...prev.teamTriggers,
-                                      minTeamsCount: value === '' ? null : Number(value)
-                                    }
-                                  }));
-                                }}
-                                className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                                placeholder={t('backOffice.main.exampleThreePlaceholder')}
-                              />
-                            </div>
-                          </div>
-                        </div>
+                        <CommitteeOnDemandSettings
+                          committee={committee}
+                          questions={questions}
+                          language={language}
+                          ruleOptions={validationCommitteeRuleOptions}
+                          onUpdateCommittee={(updater) => updateCommitteeEntry(committee.id, updater)}
+                        />
 
                         <CommitteeChairSettings
                           committee={committee}

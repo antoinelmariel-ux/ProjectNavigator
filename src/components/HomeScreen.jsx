@@ -28,6 +28,7 @@ import { normalizeInspirationFiltersConfig } from '../utils/inspirationConfig.js
 import { isPerimeterFollower } from '../utils/perimeterFollowers.js';
 import { normalizeTeamContacts } from '../utils/teamContacts.js';
 import { MANUAL_TEAM_REQUESTS_KEY, normalizeManualTeamRequests } from '../utils/manualTeamRequests.js';
+import { getForcedCommitteeIds } from '../utils/committeeRequests.js';
 import {
   PERIMETER_TYPE_COMMITTEE,
   PERIMETER_TYPE_TEAM,
@@ -718,7 +719,7 @@ export const HomeScreen = ({
       .filter((project) => project?.status === 'submitted')
       .map((project) => {
         const comments = normalizeComplianceComments(project?.answers?.[COMPLIANCE_COMMENTS_KEY]);
-        const forcedCommitteeIds = comments.forcedCommitteeIds;
+        const forcedCommitteeIds = getForcedCommitteeIds(project?.answers);
         const analysisTeamIds = Array.isArray(project?.analysis?.teams) ? project.analysis.teams : [];
         // Une équipe sollicitée à la main (ajout explicite en synthèse, ou question ancrée posée
         // depuis le questionnaire) est un périmètre au même titre qu'une équipe déclenchée par une

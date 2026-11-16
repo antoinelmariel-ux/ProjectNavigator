@@ -317,5 +317,26 @@ export default {
       deleted: 'Sitzung gelöscht.',
       cancelled: 'Sitzung abgesagt, die Angemeldeten wurden informiert.'
     }
+  },
+  request: {
+    sectionTitle: 'Ausschuss anfragen',
+    title: 'Ausschüsse, die Sie anfragen können',
+    requestButton: 'Ausschuss {{name}} anfragen',
+    withdrawButton: 'Anfrage zurückziehen',
+    withdrawConfirm: {
+      title: 'Anfrage für den Ausschuss {{name}} zurückziehen?',
+      message: 'Ihr bevorstehender Termin bei diesem Ausschuss wird freigegeben.',
+      confirm: 'Termin freigeben und Anfrage zurückziehen',
+      keep: 'Anfrage beibehalten'
+    }
+  },
+  onDemand: {
+    title: 'Auslösung auf Anfrage der Projektleitung',
+    description: 'Die Projektleitung kann diesen Ausschuss über die Analyse ihres Projekts anfragen, auch wenn die automatischen Kriterien ihn nicht auslösen.',
+    enabledLabel: 'Diesen Ausschuss für Anfragen der Projektleitung öffnen',
+    criteriaHeading: 'Kriterien, um ihn anfragen zu können',
+    criteriaHint: 'Ohne Kriterien kann die Projektleitung diesen Ausschuss immer anfragen. Mit Kriterien nur, wenn ihr Projekt mindestens eines erfüllt.',
+    conditionsHeading: 'Bedingungen an die Antworten',
+    conditionsEmpty: 'Keine Bedingung an die Antworten.'
   }
 };
