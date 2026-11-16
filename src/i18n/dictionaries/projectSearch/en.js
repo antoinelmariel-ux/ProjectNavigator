@@ -7,6 +7,7 @@ export default {
   queryPlaceholder: 'Name, owner, questionnaire answer…',
   cancel: 'Cancel',
   emptyValue: 'Not provided',
+  noUnit: 'no unit',
   columns: {
     projectName: 'Project name',
     owner: 'Project owner',
@@ -42,7 +43,9 @@ export default {
     sum: 'Total {{name}}',
     filled: 'Provided for {{count}} [[count|project|projects]] out of {{total}}',
     unconverted: '{{count}} not converted (unit without a rate)',
-    noSumColumn: 'No numeric column chosen for the total. Choose it in “Customise the table”.'
+    noSumColumn: 'No numeric column chosen for the total. Choose it in “Customise the table”.',
+    mixedUnits: 'No total: the amounts are in different units ({{units}}). Give this column a unit in “Customise the table” to convert them.',
+    mixedCells: '{{count}} [[count|project adding|projects adding]] different units, not counted'
   },
   filters: {
     title: 'Filters',
@@ -71,6 +74,7 @@ export default {
     openShowcase: 'Open the full showcase of “{{name}}” in a new tab',
     showcaseCancelled: 'Sending this project was cancelled: its showcase no longer opens from a link.',
     unconverted: 'Amount not converted: no rate to convert to {{unit}}.',
+    mixedUnits: 'Amounts in different units, not added up: give this column a unit to convert them.',
     noProjects: 'No project yet.',
     noResults: 'No project matches the search and the filters.',
     showMore: 'Show more ({{shown}} of {{total}})'
@@ -103,7 +107,8 @@ export default {
     autoTitleCount: 'Projects by {{group}}',
     autoTitle: { sum: '{{measure}} (sum) by {{group}}', avg: '{{measure}} (average) by {{group}}' },
     otherGroup: 'Others',
-    multiValueHint: 'A project carrying several values counts in each of them.'
+    multiValueHint: 'A project carrying several values counts in each of them.',
+    mixedUnits: 'No chart: the measured column mixes units ({{units}}). Give it a unit in “Customise the table”.'
   },
   config: {
     toggle: 'Customise the table',
@@ -134,7 +139,9 @@ export default {
       concat: 'Put side by side'
     },
     unitLabel: 'Column unit',
-    noUnit: 'None (values as they are)',
+    noUnit: 'None (no conversion)',
+    noUnitWarning: 'Without a unit, amounts are not converted: the total and charts are refused as soon as projects use different units.',
+    kpiNoUnitOption: '{{name}} (no unit, no conversion)',
     numberHint: 'Each amount is converted into the column unit with the currency rates (those frozen when a project was sent), then multiplied by the factor. An amount that cannot be converted is flagged, never counted.',
     mergeHint: 'The order of the questions matters for “First answer provided”.',
     addCustomColumn: 'Create a column merging several questions',

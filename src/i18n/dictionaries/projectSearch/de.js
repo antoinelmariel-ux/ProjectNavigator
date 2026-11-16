@@ -7,6 +7,7 @@ export default {
   queryPlaceholder: 'Name, Projektverantwortliche, Antwort im Fragebogen…',
   cancel: 'Abbrechen',
   emptyValue: 'Nicht angegeben',
+  noUnit: 'ohne Einheit',
   columns: {
     projectName: 'Projektname',
     owner: 'Projektverantwortliche/r',
@@ -42,7 +43,9 @@ export default {
     sum: '{{name}} gesamt',
     filled: 'Angegeben für {{count}} von {{total}} [[total|Projekt|Projekten]]',
     unconverted: '{{count}} nicht umgerechnet (Einheit ohne Kurs)',
-    noSumColumn: 'Keine numerische Spalte für die Summe gewählt. Wählen Sie sie unter „Tabelle anpassen“.'
+    noSumColumn: 'Keine numerische Spalte für die Summe gewählt. Wählen Sie sie unter „Tabelle anpassen“.',
+    mixedUnits: 'Keine Summe möglich: Die Beträge haben unterschiedliche Einheiten ({{units}}). Geben Sie dieser Spalte unter „Tabelle anpassen“ eine Einheit, um sie umzurechnen.',
+    mixedCells: '{{count}} [[count|Projekt addiert|Projekte addieren]] unterschiedliche Einheiten, nicht mitgezählt'
   },
   filters: {
     title: 'Filter',
@@ -71,6 +74,7 @@ export default {
     openShowcase: 'Vollständiges Schaufenster von „{{name}}“ in einem neuen Tab öffnen',
     showcaseCancelled: 'Der Versand dieses Projekts wurde storniert: Sein Schaufenster öffnet sich nicht mehr über einen Link.',
     unconverted: 'Betrag nicht umgerechnet: kein Kurs für die Einheit {{unit}}.',
+    mixedUnits: 'Beträge in unterschiedlichen Einheiten, nicht addiert: Geben Sie dieser Spalte eine Einheit, um sie umzurechnen.',
     noProjects: 'Noch kein Projekt.',
     noResults: 'Kein Projekt entspricht der Suche und den Filtern.',
     showMore: 'Mehr anzeigen ({{shown}} von {{total}})'
@@ -103,7 +107,8 @@ export default {
     autoTitleCount: 'Projekte nach {{group}}',
     autoTitle: { sum: '{{measure}} (Summe) nach {{group}}', avg: '{{measure}} (Durchschnitt) nach {{group}}' },
     otherGroup: 'Sonstige',
-    multiValueHint: 'Ein Projekt mit mehreren Werten zählt in jedem davon.'
+    multiValueHint: 'Ein Projekt mit mehreren Werten zählt in jedem davon.',
+    mixedUnits: 'Kein Diagramm möglich: Die gemessene Spalte mischt Einheiten ({{units}}). Geben Sie ihr unter „Tabelle anpassen“ eine Einheit.'
   },
   config: {
     toggle: 'Tabelle anpassen',
@@ -134,7 +139,9 @@ export default {
       concat: 'Aneinanderreihen'
     },
     unitLabel: 'Einheit der Spalte',
-    noUnit: 'Keine (Werte unverändert)',
+    noUnit: 'Keine (keine Umrechnung)',
+    noUnitWarning: 'Ohne Einheit werden Beträge nicht umgerechnet: Summe und Diagramme werden verweigert, sobald Projekte unterschiedliche Einheiten verwenden.',
+    kpiNoUnitOption: '{{name}} (ohne Einheit, keine Umrechnung)',
     numberHint: 'Jeder Betrag wird mit den Währungskursen (bei gesendeten Projekten den beim Versand festgeschriebenen) in die Einheit der Spalte umgerechnet und dann mit dem Faktor multipliziert. Ein nicht umrechenbarer Betrag wird markiert, nie mitgezählt.',
     mergeHint: 'Die Reihenfolge der Fragen zählt für „Erste angegebene Antwort“.',
     addCustomColumn: 'Spalte erstellen, die mehrere Fragen verbindet',

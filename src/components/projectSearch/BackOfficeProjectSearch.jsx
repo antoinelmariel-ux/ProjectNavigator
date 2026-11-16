@@ -431,6 +431,15 @@ export const BackOfficeProjectSearch = ({
     if (!cell.display) {
       return <span className="text-gray-400">—</span>;
     }
+    if (cell.mixedUnits) {
+      return (
+        <span className="inline-flex items-center gap-1" title={t('projectSearch.table.mixedUnits')}>
+          <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
+          <span>{cell.display}</span>
+          <span className="sr-only">{t('projectSearch.table.mixedUnits')}</span>
+        </span>
+      );
+    }
     const text = truncate(cell.display);
     const isName = column.kind === 'builtin' && column.builtinId === 'projectName';
     const isLongText = column.kind === 'custom' && columnKinds.get(column.id) === 'text';
@@ -587,10 +596,18 @@ export const BackOfficeProjectSearch = ({
               <p className="text-3xl font-bold text-gray-900" data-testid="project-search-kpi-sum">
                 {totals.sum === null ? '—' : `${formatProjectSearchNumber(totals.sum, language)}${totals.unit ? `\u00a0${totals.unit}` : ''}`}
               </p>
-              <p className="text-xs text-gray-500">
-                {t('projectSearch.kpi.filled', { count: totals.filledCount, total: totals.count })}
-                {totals.unconvertedCount > 0 && ` · ${t('projectSearch.kpi.unconverted', { count: totals.unconvertedCount })}`}
-              </p>
+              {totals.mixedUnits.length > 0 ? (
+                <p role="alert" className="mt-1 flex items-start gap-2 text-xs text-amber-800" data-testid="project-search-kpi-mixed-units">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  {t('projectSearch.kpi.mixedUnits', { units: totals.mixedUnits.map((entry) => entry || t('projectSearch.noUnit')).join(', ') })}
+                </p>
+              ) : (
+                <p className="text-xs text-gray-500">
+                  {t('projectSearch.kpi.filled', { count: totals.filledCount, total: totals.count })}
+                  {totals.unconvertedCount > 0 && ` · ${t('projectSearch.kpi.unconverted', { count: totals.unconvertedCount })}`}
+                  {totals.mixedCount > 0 && ` · ${t('projectSearch.kpi.mixedCells', { count: totals.mixedCount })}`}
+                </p>
+              )}
             </>
           ) : (
             <p className="text-sm text-gray-500">{t('projectSearch.kpi.noSumColumn')}</p>

@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from '../../react.js';
 import { useTranslation } from '../../i18n/LanguageContext.jsx';
-import { Edit, Plus, Trash2 } from '../icons.js';
+import { AlertTriangle, Edit, Plus, Trash2 } from '../icons.js';
 import { buttonClass } from '../../utils/buttonStyles.js';
 import {
   BUILTIN_COLUMN_IDS,
@@ -11,7 +11,9 @@ import {
   computeProjectSearchChartData,
   createProjectSearchId,
   formatProjectSearchNumber,
-  getColumnKind
+  getChartMixedUnits,
+  getColumnKind,
+  listNumberCellUnits
 } from '../../utils/projectSearch.js';
 
 // Palette catégorielle de référence (ordre fixe, jamais recyclée) : au-delà de huit parts, un
@@ -276,7 +278,8 @@ export const ProjectSearchCharts = ({ rows, config, questions, getColumnLabel, o
           const data = computeProjectSearchChartData(rows, chart, { columns, questions, language });
           const entries = chart.type === 'donut' ? foldForDonut(data, chart.measure) : data;
           const measureColumn = allColumns.find((column) => column.id === chart.measureColumnId);
-          const unit = chart.measure === 'count' ? '' : (measureColumn?.unit || '');
+          const mixedUnits = getChartMixedUnits(rows, chart);
+          const unit = chart.measure === 'count' ? '' : (measureColumn?.unit || listNumberCellUnits(rows, chart.measureColumnId)[0] || '');
           const formatValue = (value) => {
             const formatted = formatProjectSearchNumber(value, language);
             return unit ? `${formatted}\u00a0${unit}` : formatted;
@@ -295,7 +298,12 @@ export const ProjectSearchCharts = ({ rows, config, questions, getColumnLabel, o
                   </button>
                 </div>
               </header>
-              {entries.length === 0 ? (
+              {mixedUnits.length > 0 ? (
+                <p role="alert" className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-2 text-sm text-amber-900" data-testid="project-search-chart-mixed-units">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  {t('projectSearch.charts.mixedUnits', { units: mixedUnits.map((entry) => entry || t('projectSearch.noUnit')).join(', ') })}
+                </p>
+              ) : entries.length === 0 ? (
                 <p className="text-sm text-gray-500">{t('projectSearch.charts.noData')}</p>
               ) : chart.type === 'donut' ? (
                 <DonutChart entries={entries} formatValue={formatValue} labelOf={labelOf} title={title} />

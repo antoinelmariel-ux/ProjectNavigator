@@ -9,6 +9,7 @@ import {
   MAX_COLUMN_SOURCES,
   MAX_PROJECT_SEARCH_COLUMNS,
   MERGE_MODES,
+  addColumnSource,
   buildQuestionColumn,
   createProjectSearchId,
   getColumnKind,
@@ -170,7 +171,7 @@ const CustomColumnSettings = ({ column, questions, questionOptions, questionById
             excludeIds={usedIds}
             testId="project-search-source-picker"
             onPick={(questionId) => {
-              updateSources([...column.sources, { questionId, factor: 1 }]);
+              onChange(addColumnSource(column, questionById.get(questionId)));
               setIsAddingSource(false);
             }}
           />
@@ -201,6 +202,12 @@ const CustomColumnSettings = ({ column, questions, questionOptions, questionById
             </label>
           )}
         </div>
+      )}
+      {kind === 'number' && !column.unit && (
+        <p className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900" data-testid="project-search-no-unit-warning">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          {t('projectSearch.config.noUnitWarning')}
+        </p>
       )}
       {(kind === 'number' || column.sources.length > 1) && (
         <p className="text-xs text-gray-500">
@@ -509,7 +516,11 @@ export const ProjectSearchConfigEditor = ({
               <span className="block text-xs font-medium text-gray-600">{t('projectSearch.config.kpiLabel')}</span>
               <select id="project-search-kpi-column" value={config.kpiColumnId} onChange={(event) => onChange({ ...config, kpiColumnId: event.target.value })} className={INPUT_CLASS}>
                 <option value="">{t('projectSearch.config.kpiNone')}</option>
-                {numberColumns.map((column) => <option key={column.id} value={column.id}>{getColumnLabel(column)}</option>)}
+                {numberColumns.map((column) => (
+                  <option key={column.id} value={column.id}>
+                    {column.unit ? `${getColumnLabel(column)} (${column.unit})` : t('projectSearch.config.kpiNoUnitOption', { name: getColumnLabel(column) })}
+                  </option>
+                ))}
               </select>
             </label>
             {numberColumns.length === 0 && <p className="text-xs text-gray-500">{t('projectSearch.config.kpiNoNumberColumn')}</p>}

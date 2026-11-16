@@ -266,7 +266,13 @@ strings in `src/i18n/dictionaries/projectSearch/*.js`, e2e `e2e/backoffice-proje
   only —, teams) or *custom* columns reading one or more questions of the **loaded** referential,
   merged (`first` filled in order / `sum` / `concat`), with a user-chosen name. Numbers are converted
   into the column `unit` with the currency rates (frozen at send first, like the rules engine); a
-  value that cannot be converted is flagged (`unconverted`), never counted. A source question missing
+  value that cannot be converted is flagged (`unconverted`), never counted. **Without a column unit
+  nothing is converted, so amounts of different units are never added up**: a `sum` merge over mixed
+  source units yields a `mixedUnits` cell (parts side by side, `number: null`), and the KPI total
+  (`computeProjectSearchTotals`) and sum/avg charts (`getChartMixedUnits`) are refused with the units
+  listed as soon as the rows carry more than one (`listNumberCellUnits`). A column gets a unit
+  automatically when a number question is added to it (`addColumnSource`/`buildQuestionColumn`), and
+  the editor warns while a number column has none. A source question missing
   from the referential is ignored and flagged in the editor (`getMissingColumnSources`). The default
   config (`buildDefaultProjectSearchConfig`) only adds description / launch / amount
   (`BUDGET` then `donationAmount`) when those questions exist.
