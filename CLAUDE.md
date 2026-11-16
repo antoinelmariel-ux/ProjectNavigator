@@ -152,7 +152,10 @@ language, stored as the `helpManuals` slice of `settings.json` (`SETTINGS_KEYS`;
 in local mode). `src/utils/helpManuals.js` holds the pure logic: language fallback (language → fr → any),
 https-only link normalisation (a pasted Office « Incorporer » `<iframe src>` is accepted), and the
 viewer URL (`embedview` for Office files/sharing links, `#toolbar=0` for PDF). The iframe has **no
-`allow-downloads`**. Hiding the download is cosmetic: SharePoint permissions still apply, and outside
+`allow-downloads`**, and a PDF gets **no `sandbox` at all** (`isHelpManualPdf`): Chromium/Edge render a
+sandboxed PDF as a blank page. Button names are kept untrimmed in state (trimmed on read), or a
+space typed between two words is eaten by the next keystroke. An « open the manual » link stays next
+to « Retour à l'aide » in case the tenant refuses the embed. Hiding the download is cosmetic: SharePoint permissions still apply, and outside
 SharePoint mode an Office file cannot be embedded, so the dialog offers an « open in a new tab » link.
 The button names are editable per language too (`helpManuals.names[manualId][lang]`, same fallback;
 empty = the dictionary label `app.staticPages.manuals.*`).

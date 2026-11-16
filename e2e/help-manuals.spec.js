@@ -39,7 +39,8 @@ test.describe('Fenêtre d’aide : manuels en lecture seule', () => {
     await dialog.locator('[data-help-manual="projectManager"]').click();
     const viewer = dialog.locator('[data-help-manual-viewer="projectManager"]');
     await expect(viewer).toHaveAttribute('src', /chef-de-projet\.pdf#toolbar=0/);
-    await expect(viewer).not.toHaveAttribute('sandbox', /allow-downloads/);
+    await expect(viewer).not.toHaveAttribute('sandbox', /.*/);
+    await expect(dialog.locator('[data-help-manual-open-external="projectManager"]')).toHaveAttribute('href', MANUALS.projectManager.fr);
 
     await dialog.getByRole('button', { name: /Retour à l’aide|Retour à l'aide/ }).click();
     await expect(dialog.locator('[data-help-manual="projectManager"]')).toBeVisible();
@@ -58,7 +59,8 @@ test.describe('Fenêtre d’aide : manuels en lecture seule', () => {
     await expect(page.getByRole('alert').filter({ hasText: 'https://' })).toBeVisible();
     await page.locator('#help-manual-projectManager-fr').fill(MANUALS.projectManager.fr);
     await expect(page.locator('#help-manual-name-sme-fr')).toHaveAttribute('placeholder', 'Manuel SME');
-    await page.locator('#help-manual-name-sme-fr').fill('Guide expert');
+    await page.locator('#help-manual-name-sme-fr').pressSequentially('Guide expert');
+    await expect(page.locator('#help-manual-name-sme-fr')).toHaveValue('Guide expert');
 
     await expect.poll(async () => (await readStoredState(page))?.helpManuals?.sme?.fr).toBe(MANUALS.sme.fr);
     expect((await readStoredState(page)).helpManuals.names.sme.fr).toBe('Guide expert');

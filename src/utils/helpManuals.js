@@ -9,6 +9,8 @@ const FALLBACK_LANGUAGE = 'fr';
 
 const createEmptyLanguageMap = () => Object.fromEntries(SUPPORTED_LANGUAGES.map((code) => [code, '']));
 
+// Les intitulés sont gardés tels que saisis (pas de trim) : le back-office repasse chaque frappe
+// par ici, et rogner l'espace final empêchait d'en taper un entre deux mots. Le trim se fait à la lecture.
 // `names` : intitulé du bouton, par manuel et par langue. Vide = intitulé par défaut du dictionnaire.
 export const createEmptyHelpManuals = () => ({
   ...Object.fromEntries(HELP_MANUAL_IDS.map((id) => [id, createEmptyLanguageMap()])),
@@ -21,13 +23,13 @@ export const normalizeHelpManuals = (value) => {
     return normalized;
   }
   HELP_MANUAL_IDS.forEach((id) => {
-    [[value[id], normalized[id]], [value.names?.[id], normalized.names[id]]].forEach(([source, target]) => {
+    [[value[id], normalized[id], true], [value.names?.[id], normalized.names[id], false]].forEach(([source, target, trim]) => {
       if (!source || typeof source !== 'object') {
         return;
       }
       SUPPORTED_LANGUAGES.forEach((code) => {
         if (typeof source[code] === 'string') {
-          target[code] = source[code].trim();
+          target[code] = trim ? source[code].trim() : source[code];
         }
       });
     });
@@ -73,7 +75,7 @@ export const resolveHelpManualName = (manuals, manualId, language) => {
   if (!names) {
     return '';
   }
-  return [language, FALLBACK_LANGUAGE, ...SUPPORTED_LANGUAGES].map((code) => names[code]).find(Boolean) || '';
+  return [language, FALLBACK_LANGUAGE, ...SUPPORTED_LANGUAGES].map((code) => names[code].trim()).find(Boolean) || '';
 };
 
 // Le manuel SME n'est destiné qu'aux experts (contact d'équipe ou membre de comité) ; celui du
@@ -87,6 +89,10 @@ export const getVisibleHelpManuals = (manuals, language, { isExpert = false } = 
       name: resolveHelpManualName(manuals, id, language)
     }))
     .filter((manual) => manual.url !== '');
+
+// Chromium (Edge compris) n'affiche pas un PDF dans un iframe `sandbox` : page blanche. La
+// visionneuse d'un PDF ne reçoit donc pas cet attribut.
+export const isHelpManualPdf = (url) => getPathname(normalizeHelpManualLink(url)).toLowerCase().endsWith('.pdf');
 
 const getPathname = (url) => {
   try {

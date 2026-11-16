@@ -4,7 +4,7 @@ import { useModalDialog } from '../hooks/useModalDialog.js';
 import { STATIC_PAGE_EVENT } from '../utils/staticPages.js';
 import { buildFaqPageHtml } from '../utils/faqEntries.js';
 import { sanitizeRichText } from '../utils/richText.js';
-import { buildHelpManualViewerSrc, getVisibleHelpManuals } from '../utils/helpManuals.js';
+import { buildHelpManualViewerSrc, getVisibleHelpManuals, isHelpManualPdf } from '../utils/helpManuals.js';
 import { getOrigin, getWebUrl, isSharePointMode } from '../config/sharepointConfig.js';
 import faqHtml from '../pages/faq.html?raw';
 import legalHtml from '../pages/mentions-legales.html?raw';
@@ -108,13 +108,27 @@ export const StaticPageDialog = ({ faqEntries = [], helpManuals = null, isExpert
           aria-label={t('app.staticPages.manualsNavLabel')}
         >
           {activeManual ? (
-            <button
-              type="button"
-              onClick={() => setManualId(null)}
-              className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100"
-            >
-              {t('app.staticPages.backToHelp')}
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => setManualId(null)}
+                className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100"
+              >
+                {t('app.staticPages.backToHelp')}
+              </button>
+              {manualSrc && (
+                <a
+                  href={activeManual.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-interception="off"
+                  data-help-manual-open-external={activeManual.id}
+                  className="rounded-lg px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-50"
+                >
+                  {t('app.staticPages.manualOpenExternal')}
+                </a>
+              )}
+            </>
           ) : (
             <>
               <span className="text-sm font-medium text-gray-700">{t('app.staticPages.manualsHeading')}</span>
@@ -139,8 +153,9 @@ export const StaticPageDialog = ({ faqEntries = [], helpManuals = null, isExpert
           title={manualLabel}
           src={manualSrc}
           data-help-manual-viewer={activeManual.id}
-          sandbox="allow-scripts allow-same-origin allow-popups"
-          referrerPolicy="no-referrer"
+          {...(isHelpManualPdf(activeManual.url)
+            ? {}
+            : { sandbox: 'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox' })}
           className="w-full flex-1 border-0"
         />
       ) : activeManual ? (
