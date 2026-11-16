@@ -252,8 +252,38 @@ test('étape 3 : sans lieu saisi, les passages reprennent le lien de la réunion
   assert.equal(getEffectiveSessionLocation(session(), recordsById), 'https://teams.microsoft.com/l/meetup-join/abc');
 
   const [passage] = computeSessionInvitations({ after: withoutLocation, committee, projectsById, recordsById, now });
-  assert.equal(passage.location, 'https://teams.microsoft.com/l/meetup-join/created-by-flow');
-  assert.match(passage.bodyHtml, /created-by-flow/);
+  assert.equal(passage.location, 'Microsoft Teams');
+  assert.match(passage.bodyHtml, /<a href="https:\/\/teams\.microsoft\.com\/l\/meetup-join\/created-by-flow">Join the meeting<\/a>/);
+});
+
+test('le lieu Outlook garde un nom lisible, le lien Teams reste dans le corps', async () => {
+  const { formatInvitationLocation } = await import('../src/utils/committeeInvitations.js');
+  assert.equal(formatInvitationLocation('https://teams.microsoft.com/l/meetup-join/abc'), 'Microsoft Teams');
+  assert.equal(formatInvitationLocation('https://zoom.us/j/123'), 'Online meeting');
+  assert.equal(formatInvitationLocation('  Salle Pasteur, bâtiment B '), 'Salle Pasteur, bâtiment B');
+  assert.equal(formatInvitationLocation(''), '');
+
+  const invitations = compute(null, session());
+  invitations.forEach((invitation) => assert.equal(invitation.location, 'Microsoft Teams'));
+  const passage = invitations.find((invitation) => invitation.kind === 'presentation');
+  assert.match(passage.bodyHtml, /meetup-join\/abc">Join the meeting/);
+
+  // Sans lieu saisi, l'invitation des membres ne porte pas le lien : c'est le flux qui l'ajoute
+  // au corps, si bien que l'arrivée du lien ne change pas l'invitation (aucune mise à jour).
+  const { buildMembersInvitationId } = await import('../src/utils/committeeInvitations.js');
+  const withoutLocation = session({ location: '' });
+  const membersBefore = computeSessionInvitations({ after: withoutLocation, committee: { ...committee, emails: ['m@lfb.fr'] }, projectsById, now })
+    .find((invitation) => invitation.kind === 'members');
+  const membersAfter = computeSessionInvitations({
+    after: withoutLocation,
+    committee: { ...committee, emails: ['m@lfb.fr'] },
+    projectsById,
+    recordsById: { [buildMembersInvitationId('s1')]: { onlineMeetingUrl: 'https://teams.microsoft.com/l/meetup-join/created-by-flow' } },
+    now
+  }).find((invitation) => invitation.kind === 'members');
+  assert.ok(membersBefore);
+  assert.equal(membersBefore.location, '');
+  assert.equal(getInvitationFingerprint(membersAfter), getInvitationFingerprint(membersBefore));
 });
 
 test('réconciliation : seules les invitations qui diffèrent de ce qui est enregistré sont réécrites', async () => {

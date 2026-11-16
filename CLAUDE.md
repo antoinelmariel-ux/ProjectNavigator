@@ -687,7 +687,12 @@ in the synthesis committee block, `CommitteeAgendaScreen` = screen `committee-ag
   never re-send it. Chairs enter **no location or Teams link** (the planner doesn't offer it): the
   flow creates the Teams meeting with the members' invitation and writes `OnlineMeetingUrl`;
   `getEffectiveSessionLocation` makes every passage invitation and the UI use it (a `location`
-  stored on an older session still wins). A **reconciliation pass** in `App.jsx` (after load, and again whenever the committees'
+  stored on an older session still wins). Outlook's location field is plain text, never a link: invitations
+  write only a readable name there (`formatInvitationLocation` → « Microsoft Teams »), the link
+  lives in the body (« Join the meeting »). The members' body deliberately carries **no** link from
+  the app — the flow appends it on create and on every PATCH (a Graph PATCH with `body` replaces
+  the whole body, Outlook's Teams block included, which is how members lost their link in
+  production); adding it app-side would re-send an update to every member when the link arrives. A **reconciliation pass** in `App.jsx` (after load, and again whenever the committees'
   members/names change) recomputes every upcoming session's invitations and enqueues only what
   `selectInvitationsToSync` finds different from the records in memory — that is how a new member,
   a renamed project or a flow-created Teams link reach Outlook without any session action.

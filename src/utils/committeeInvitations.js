@@ -30,7 +30,10 @@ export const buildInvitationId = (sessionId, passageId) => `${sessionId}::${pass
 // Deux sortes d'invitations dans la même liste : celle d'un passage (chef de projet ou
 // intervenants d'un sujet, étape 2) et celle des membres du comité pour la séance (étape 3), qui
 // remplace la série récurrente corrigée à la main. Le flux ne crée une réunion Teams que pour
-// l'invitation des membres, et seulement quand la séance n'a pas de lieu.
+// l'invitation des membres, et seulement quand la séance n'a pas de lieu. C'est alors le flux,
+// pas l'application, qui ajoute « Join the meeting » au corps de cette invitation (à la création
+// comme à chaque mise à jour) : le corps décrit ici ne change donc pas quand le lien arrive, et
+// les membres ne reçoivent pas de mise à jour pour ça.
 export const INVITATION_KIND_PRESENTATION = 'presentation';
 export const INVITATION_KIND_MEMBERS = 'members';
 export const MEMBERS_INVITATION_SUFFIX = 'members';
@@ -63,6 +66,23 @@ const linkifyEscaped = (value) => splitTextWithLinks(value)
   .join('');
 
 const isHttpUrl = (value) => /^https?:\/\//i.test(String(value || '').trim());
+
+const TEAMS_HOST_PATTERN = /(^|\.)teams\.(microsoft|live)\.com$/i;
+
+// Le champ « lieu » d'Outlook est du texte simple, jamais cliquable : un lien Teams y apparaît
+// tronqué et inutilisable. Le lien vit dans le corps (« Join the meeting ») ; le lieu n'en
+// garde qu'un nom lisible. Une salle saisie sur une ancienne séance est conservée telle quelle.
+export const formatInvitationLocation = (location) => {
+  const value = typeof location === 'string' ? location.trim() : '';
+  if (!isHttpUrl(value)) {
+    return value;
+  }
+  try {
+    return TEAMS_HOST_PATTERN.test(new URL(value).hostname) ? 'Microsoft Teams' : 'Online meeting';
+  } catch {
+    return 'Online meeting';
+  }
+};
 
 export const getInvitationAttendees = (project, passage) => {
   const seen = new Set();
@@ -148,7 +168,7 @@ export const buildPassageInvitation = ({ session, passage, committee, project, p
     bodyHtml: lines.join(''),
     startAt: normalizedSession.startAt,
     endAt: getSessionEndAt(normalizedSession),
-    location,
+    location: formatInvitationLocation(location),
     attendees: getInvitationAttendees(project, passage)
   };
 };
@@ -184,7 +204,7 @@ export const buildTopicInvitation = ({ session, passage, committee, agendaUrl = 
     bodyHtml: lines.join(''),
     startAt: normalizedSession.startAt,
     endAt: getSessionEndAt(normalizedSession),
-    location,
+    location: formatInvitationLocation(location),
     attendees: getInvitationAttendees(null, { guests: passage.presenterEmails })
   };
 };
@@ -218,7 +238,7 @@ export const buildMembersInvitation = ({ session, committee, agendaUrl = '' }) =
     bodyHtml: lines.join(''),
     startAt: normalizedSession.startAt,
     endAt: getSessionEndAt(normalizedSession),
-    location,
+    location: formatInvitationLocation(location),
     attendees: getInvitationAttendees(null, { guests: getCommitteeMemberEmails(committee) })
   };
 };

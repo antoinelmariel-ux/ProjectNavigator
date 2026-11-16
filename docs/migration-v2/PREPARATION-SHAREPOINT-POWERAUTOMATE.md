@@ -671,7 +671,7 @@ session du chef de projet).
 | BodyHtml | Texte long (**texte brut**, pas « texte enrichi » : le HTML doit arriver tel quel) | application |
 | StartAt | Une ligne de texte (date ISO en UTC, ex. `2026-11-10T13:00:00.000Z`) | application |
 | EndAt | Une ligne de texte (idem) | application |
-| Location | Texte long (lien Teams ou salle — un lien Teams dépasse souvent les 255 caractères d'une ligne de texte) | application |
+| Location | Texte long (nom lisible du lieu : « Microsoft Teams », ou la salle d'une ancienne séance — jamais l'URL, que le champ lieu d'Outlook n'affiche pas comme un lien) | application |
 | Attendees | Texte long (adresses séparées par `;`) | application |
 | Revision | Nombre | application |
 | ProcessedRevision | Nombre | flux |
@@ -693,6 +693,20 @@ séance n'étant ouverte aux inscriptions qu'une fois publiée, l'invitation des
 le lien) existe normalement avant la première inscription ; si un chef de projet s'inscrit avant
 que le flux ait répondu, son invitation reçoit **une** mise à jour avec le lien au chargement
 suivant de l'application.
+
+**Où se trouve le lien dans Outlook.** Le champ « lieu » d'Outlook est du texte simple, jamais
+cliquable : l'application n'y écrit que « Microsoft Teams ». Le lien cliquable est dans le
+**corps** :
+- invitations des chefs de projet et des intervenants : l'application écrit « Join the meeting »
+  dans `BodyHtml` ;
+- invitation des membres : c'est le **flux** qui ajoute « Join the meeting » au corps, à la
+  création comme à **chaque** mise à jour. L'application ne le fait pas, sinon l'arrivée du lien
+  changerait le corps et renverrait une mise à jour à tous les membres.
+
+> ⚠️ **Pourquoi c'est indispensable** : une mise à jour par Graph (PATCH) qui envoie un `body`
+> **remplace** tout le corps de l'événement, y compris le bloc « Rejoindre la réunion Teams »
+> qu'Outlook avait ajouté à la création. C'est ce qui s'est produit en production (novembre 2026) :
+> au premier ajout d'un membre au comité, l'invitation des membres a perdu son lien Teams.
 
 > ⚠️ **À vérifier avant de compter dessus** : je ne sais pas si Microsoft Graph accepte de créer une
 > réunion Teams dans le calendrier d'une **boîte partagée** (une boîte partagée n'a en général pas
@@ -746,17 +760,44 @@ administrateur Exchange).
          "allowNewTimeProposals": false
        }
        ```
-       puis **Condition** `OutlookEventId` est vide :
-       - **Si oui** : « Envoyer une requête HTTP », **POST**
-         `https://graph.microsoft.com/v1.0/users/comites@…/events`, corps = `evenement` — et,
-         **si** `Kind` est `members`, le même corps complété de `"isOnlineMeeting": true,
-         "onlineMeetingProvider": "teamsForBusiness"` (deux branches d'une condition, ou une
-         expression `if(...)` sur le corps) ; puis SharePoint « Mettre à jour l'élément » :
-         `OutlookEventId` = `id` de la réponse, et `OnlineMeetingUrl` =
-         `onlineMeeting.joinUrl` de la réponse (vide pour une invitation de chef de projet).
-       - **Si non** : « Envoyer une requête HTTP », **PATCH**
-         `https://graph.microsoft.com/v1.0/users/comites@…/events/<OutlookEventId>`, corps =
-         `evenement`.
+       puis **Condition** `Kind` est égal à `members` :
+       - **Si non** (invitation de chef de projet ou d'intervenant — le lien est déjà dans
+         `BodyHtml`) : **Condition** `OutlookEventId` est vide :
+         - **Si oui** : « Envoyer une requête HTTP », **POST**
+           `https://graph.microsoft.com/v1.0/users/comites@…/events`, corps = `evenement` ; puis
+           SharePoint « Mettre à jour l'élément » : `OutlookEventId` = `id` de la réponse.
+         - **Si non** : « Envoyer une requête HTTP », **PATCH**
+           `https://graph.microsoft.com/v1.0/users/comites@…/events/<OutlookEventId>`, corps =
+           `evenement`.
+       - **Si oui** (invitation des membres) : **Condition** `OutlookEventId` est vide :
+         - **Si oui** — création **en deux temps**, pour qu'une seule invitation parte, lien
+           compris :
+           1. « Envoyer une requête HTTP », **POST**
+              `https://graph.microsoft.com/v1.0/users/comites@…/events`, corps = `evenement`
+              **sans** `attendees` (aucune invitation ne part encore), complété de
+              `"isOnlineMeeting": true, "onlineMeetingProvider": "teamsForBusiness"`.
+           2. **Composer** `lienTeams` = `body('<POST>')?['onlineMeeting']?['joinUrl']`.
+           3. « Envoyer une requête HTTP », **PATCH**
+              `https://graph.microsoft.com/v1.0/users/comites@…/events/<id de la réponse du POST>`,
+              corps :
+              ```json
+              {
+                "body": { "contentType": "HTML", "content": "<BodyHtml><p><a href=\"<lienTeams>\">Join the meeting</a></p>" },
+                "attendees": <sortie de Sélectionner>
+              }
+              ```
+              C'est ce PATCH qui envoie l'invitation aux membres.
+           4. SharePoint « Mettre à jour l'élément » : `OutlookEventId` = `id` de la réponse du
+              POST, `OnlineMeetingUrl` = `lienTeams`.
+         - **Si non** — mise à jour : « Envoyer une requête HTTP », **PATCH**
+           `https://graph.microsoft.com/v1.0/users/comites@…/events/<OutlookEventId>`, corps =
+           `evenement` dont le `body.content` est `<BodyHtml>` suivi de
+           `<p><a href="<OnlineMeetingUrl>">Join the meeting</a></p>` (si `OnlineMeetingUrl`
+           n'est pas vide). **Ne jamais envoyer `BodyHtml` seul** à un événement des membres :
+           cela efface le lien (voir « Le lien Teams »). N'ajoutez pas `isOnlineMeeting` à ce
+           PATCH tant que le test 11 ci-dessous n'a pas montré qu'il garde la même réunion :
+           sur un événement qui aurait perdu sa réunion, il pourrait en créer une **nouvelle**,
+           avec un autre lien que celui déjà envoyé aux chefs de projet.
    - SharePoint « Mettre à jour l'élément » : `ProcessedRevision` = `revisionTraitee`,
      `SyncState` = `done`, `ProcessedAt` = `utcNow()`, `ErrorMessage` vide.
 4. **Étendue « En cas d'erreur »**, configurée pour s'exécuter **après** « Traiter » si elle a
@@ -766,7 +807,12 @@ administrateur Exchange).
 
 > 💡 Dans « Mettre à jour l'élément », ne renseignez que les colonnes du flux : laisser vides les
 > autres champs peut, selon la version de l'action, les effacer. Si c'est le cas chez vous,
-> recopiez-y les valeurs du déclencheur.
+> recopiez-y les valeurs du déclencheur — `OnlineMeetingUrl` compris : l'application en tire le
+> lien de toutes les invitations des chefs de projet, et le flux celui du corps des membres.
+>
+> 💡 `ProcessedAt` est une colonne texte : écrivez `utcNow()` tel quel (format ISO). Un
+> `formatDateTime` sans format explicite, ou l'affichage régional, donne un format américain
+> (mois/jour) trompeur à la lecture ; cela n'a aucun effet sur le fonctionnement.
 
 ### Le test (avant ouverture)
 
@@ -794,6 +840,22 @@ Puis pour les membres (étape 3) :
    l'avertissement de la section « Le lien Teams ».)
 10. Annulez la séance depuis la page « Ordre du jour ». → Membres et chefs de projet reçoivent
     l'annulation.
+
+Puis pour le lien Teams (à refaire après toute modification du flux) :
+
+11. Sur une nouvelle séance de test dont vous êtes le seul membre, publiez-la. → Vous recevez
+    **une seule** invitation, avec « Join the meeting » dans le corps et le lieu « Microsoft
+    Teams ». (Si aucune invitation n'arrive, Graph n'envoie pas l'invitation quand les
+    participants sont ajoutés par le PATCH : revenez à un POST avec participants et prévenez le
+    développeur — je n'ai pas pu le vérifier.)
+12. Ajoutez un deuxième membre au comité de test. → La mise à jour reçue contient **toujours**
+    « Join the meeting », avec le **même** lien.
+13. Inscrivez un projet de test. → Le chef de projet reçoit le même lien dans le corps ; le lieu
+    affiche « Microsoft Teams ».
+
+**Séances déjà publiées avant cette correction** : leur invitation des membres a pu perdre son
+lien. La prochaine mise à jour par le flux corrigé le remettra (il le lit dans
+`OnlineMeetingUrl`). D'ici là, transmettez aux membres le lien reçu par les chefs de projet.
 
 **Une fois ces tests passés**, supprimez de vos calendriers les occurrences futures de l'ancienne
 série récurrente (depuis l'organisateur actuel) : les invitations des membres viennent désormais
