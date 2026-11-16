@@ -67,3 +67,13 @@ test('resolveHelpManualName : intitulé saisi par langue, repli fr puis toute la
   assert.equal(resolveHelpManualName({}, 'sme', 'fr'), '');
   assert.equal(resolveHelpManualName(manuals, 'projectManager', 'fr'), '');
 });
+
+test('un intitulé garde ses espaces pendant la saisie et n’est rogné qu’à la lecture', async () => {
+  const { normalizeHelpManuals, resolveHelpManualName, isHelpManualPdf } = await import('../src/utils/helpManuals.js');
+  const typed = normalizeHelpManuals({ names: { projectManager: { fr: 'Guide ' } } });
+  assert.equal(typed.names.projectManager.fr, 'Guide ');
+  assert.equal(resolveHelpManualName({ names: { projectManager: { fr: ' Guide chef ' } } }, 'projectManager', 'fr'), 'Guide chef');
+  assert.equal(resolveHelpManualName({ names: { projectManager: { fr: '   ', en: 'Guide' } } }, 'projectManager', 'fr'), 'Guide');
+  assert.equal(isHelpManualPdf('https://x.sharepoint.com/sites/a/Docs/m.PDF'), true);
+  assert.equal(isHelpManualPdf('https://x.sharepoint.com/sites/a/Docs/m.pptx'), false);
+});
