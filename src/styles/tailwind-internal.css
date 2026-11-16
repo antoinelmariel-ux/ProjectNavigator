@@ -1035,12 +1035,12 @@
   max-height: 65vh;
 }
 
-.max-h-32 {
-  max-height: 8rem;
+.max-h-\[75vh\] {
+  max-height: 75vh;
 }
 
-.max-h-40 {
-  max-height: 10rem;
+.max-h-32 {
+  max-height: 8rem;
 }
 
 .max-h-48 {
@@ -1089,6 +1089,10 @@
 
 .max-w-7xl {
   max-width: 80rem;
+}
+
+.max-w-full {
+  max-width: 100%;
 }
 
 .max-w-lg {
@@ -1389,6 +1393,10 @@
 
 .pl-12 {
   padding-left: 3rem;
+}
+
+.pl-3 {
+  padding-left: 0.75rem;
 }
 
 .pl-4 {
@@ -2234,10 +2242,6 @@
   width: 5rem;
 }
 
-.w-28 {
-  width: 7rem;
-}
-
 .w-3 {
   width: 0.75rem;
 }
@@ -2304,6 +2308,10 @@
 
 .z-10 {
   z-index: 10;
+}
+
+.z-20 {
+  z-index: 20;
 }
 
 .z-40 {
@@ -3219,6 +3227,11 @@
 
 .hover\:via-red-600:hover {
   --tw-gradient-stops: var(--tw-gradient-from), rgb(220,38,38), var(--tw-gradient-to, rgba(255, 255, 255, 0));
+}
+
+.focus\:bg-blue-50:focus {
+  --tw-bg-opacity: 1;
+  background-color: rgba(239,246,255, var(--tw-bg-opacity));
 }
 
 .focus\:border-blue-500:focus {
