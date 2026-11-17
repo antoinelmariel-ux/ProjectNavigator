@@ -14,7 +14,8 @@ const SETTINGS_KEYS = [
   'inspirationFilters',
   'teamVisibility',
   'helpManuals',
-  'projectSearchDefaults'
+  'projectSearchDefaults',
+  'environmentBanner'
 ];
 
 // `validationCommitteesEnabled` : interrupteur global des comités (admin seul). Les comités eux-mêmes

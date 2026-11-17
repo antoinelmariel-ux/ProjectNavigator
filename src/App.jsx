@@ -271,6 +271,7 @@ import { injectStyles } from './styles/injectStyles.js';
 import { loadShowcaseStyles } from './styles/loadShowcaseStyles.js';
 import { scrollAppTo } from './utils/scrollContainer.js';
 import { openStaticPage, staticPageLinkProps } from './utils/staticPages.js';
+import { normalizeEnvironmentBanner, getEnvironmentBannerText } from './utils/environmentBanner.js';
 import { loadReportingHierarchy, normalizeTeamVisibility } from './utils/reportingHierarchy.js';
 import { StaticPageDialog } from './components/StaticPageDialog.jsx';
 
@@ -940,6 +941,17 @@ const buildInitialAdminEmailsState = () => {
 const buildInitialTeamVisibility = () => normalizeTeamVisibility(loadPersistedState()?.teamVisibility);
 
 const buildInitialHelpManuals = () => normalizeHelpManuals(loadPersistedState()?.helpManuals);
+// Sur SharePoint, le cache local est partagé par tous les sites du tenant (même origine) : une bande
+// lue depuis lui s'afficherait en production après un passage sur la démo. Seul settings.json du site
+// courant fait foi.
+const ENVIRONMENT_BANNER_STYLES = {
+  amber: { backgroundColor: '#fbbf24', color: '#451a03' },
+  violet: { backgroundColor: '#7c3aed', color: '#ffffff' },
+  blue: { backgroundColor: '#1d4ed8', color: '#ffffff' },
+  rose: { backgroundColor: '#be123c', color: '#ffffff' }
+};
+const buildInitialEnvironmentBanner = () =>
+  normalizeEnvironmentBanner(isSharePointMode() ? null : loadPersistedState()?.environmentBanner);
 const buildInitialProjectSearchDefaults = () => normalizeProjectSearchConfig(loadPersistedState()?.projectSearchDefaults);
 
 const buildInitialTechnicalContactEmailsState = () => {
@@ -1067,6 +1079,7 @@ export const App = () => {
   // Configuration par défaut de la recherche de projets, proposée par un administrateur à tous les
   // experts (settings.json) ; chacun la personnalise ensuite dans son profil.
   const [projectSearchDefaults, setProjectSearchDefaults] = useState(buildInitialProjectSearchDefaults);
+  const [environmentBanner, setEnvironmentBanner] = useState(buildInitialEnvironmentBanner);
   const [complianceSampleProjects, setComplianceSampleProjects] = useState(buildInitialComplianceSampleProjectsState);
   const [faqEntries, setFaqEntries] = useState(buildInitialFaqEntriesState);
   const [committeeSessions, setCommitteeSessions] = useState(buildInitialCommitteeSessionsState);
@@ -1853,7 +1866,8 @@ export const App = () => {
       inspirationFilters,
       teamVisibility,
       helpManuals,
-      projectSearchDefaults
+      projectSearchDefaults,
+      environmentBanner
     })
   }), [
     questions,
@@ -1872,7 +1886,8 @@ export const App = () => {
     inspirationFilters,
     teamVisibility,
     helpManuals,
-    projectSearchDefaults
+    projectSearchDefaults,
+    environmentBanner
   ]);
 
   useEffect(() => {
@@ -2256,6 +2271,8 @@ const updateProjectFilters = useCallback((updater) => {
       if (slices.helpManuals && typeof slices.helpManuals === 'object') {
         setHelpManualsState(normalizeHelpManuals(slices.helpManuals));
       }
+      // Clé absente = pas de bande (et non « on garde celle du cache »).
+      setEnvironmentBanner(normalizeEnvironmentBanner(slices.environmentBanner));
       if (slices.projectSearchDefaults !== undefined) {
         setProjectSearchDefaults(normalizeProjectSearchConfig(slices.projectSearchDefaults));
       }
@@ -2564,6 +2581,7 @@ const updateProjectFilters = useCallback((updater) => {
       teamVisibility,
       helpManuals,
       projectSearchDefaults,
+      environmentBanner,
       complianceSampleProjects,
       faqEntries,
       committeeSessions
@@ -2613,6 +2631,7 @@ const updateProjectFilters = useCallback((updater) => {
     teamVisibility,
     helpManuals,
     projectSearchDefaults,
+    environmentBanner,
     complianceSampleProjects,
     faqEntries,
     committeeSessions,
@@ -9029,6 +9048,7 @@ const updateProjectFilters = useCallback((updater) => {
           teamVisibility,
           helpManuals,
           projectSearchDefaults,
+          environmentBanner,
           userEmail: currentUserEmail
         },
         { files: selectedFileKeys, rules: includeRules, teams: includeTeams, committees: includeCommittees }
@@ -9063,6 +9083,7 @@ const updateProjectFilters = useCallback((updater) => {
     teamVisibility,
     helpManuals,
     projectSearchDefaults,
+    environmentBanner,
     launchReminderDays,
     currentUserEmail,
     inspirationFilters,
@@ -9156,7 +9177,8 @@ const updateProjectFilters = useCallback((updater) => {
           technicalContactEmails,
           teamVisibility,
           helpManuals,
-          projectSearchDefaults
+          projectSearchDefaults,
+          environmentBanner
         },
         selectedKeys
       );
@@ -9190,6 +9212,7 @@ const updateProjectFilters = useCallback((updater) => {
     teamVisibility,
     helpManuals,
     projectSearchDefaults,
+    environmentBanner,
     launchReminderDays,
     inspirationFilters,
     inspirationFormFields,
@@ -9242,7 +9265,8 @@ const updateProjectFilters = useCallback((updater) => {
           technicalContactEmails,
           teamVisibility,
           helpManuals,
-          projectSearchDefaults
+          projectSearchDefaults,
+          environmentBanner
         },
         new Set([key])
       );
@@ -9271,6 +9295,7 @@ const updateProjectFilters = useCallback((updater) => {
     teamVisibility,
     helpManuals,
     projectSearchDefaults,
+    environmentBanner,
     launchReminderDays,
     inspirationFilters,
     inspirationFormFields,
@@ -9441,6 +9466,16 @@ const updateProjectFilters = useCallback((updater) => {
       <div id="tour-onboarding-anchor" className="sr-only" aria-hidden="true">
         {t('app.nav.guideLabel')}
       </div>
+      {environmentBanner.enabled && !shouldHideMainNav && (
+        <div
+          data-testid="environment-banner"
+          role="note"
+          className="px-4 py-1 text-center text-xs font-semibold tracking-wide"
+          style={ENVIRONMENT_BANNER_STYLES[environmentBanner.tone] || ENVIRONMENT_BANNER_STYLES.amber}
+        >
+          {getEnvironmentBannerText(environmentBanner, t('app.environmentBanner.defaultLabel'))}
+        </div>
+      )}
       {!shouldShowOnboarding && !shouldHideMainNav && (
       <nav className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3 sm:py-4">
@@ -10100,6 +10135,8 @@ const updateProjectFilters = useCallback((updater) => {
                 setTechnicalContactEmails={setTechnicalContactEmails}
                 teamVisibility={teamVisibility}
                 setTeamVisibility={(next) => setTeamVisibility(normalizeTeamVisibility(next))}
+                environmentBanner={environmentBanner}
+                setEnvironmentBanner={(next) => setEnvironmentBanner(normalizeEnvironmentBanner(next))}
                 complianceSampleProjects={complianceSampleProjects}
                 setComplianceSampleProjects={setComplianceSampleProjects}
                 currentUserEmail={currentUserEmail}

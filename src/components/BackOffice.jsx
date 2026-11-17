@@ -798,6 +798,8 @@ export const BackOffice = ({
   setTechnicalContactEmails,
   teamVisibility,
   setTeamVisibility,
+  environmentBanner = null,
+  setEnvironmentBanner,
   complianceSampleProjects = [],
   setComplianceSampleProjects,
   sampleProjectsQueueRef,
@@ -8712,6 +8714,53 @@ export const BackOffice = ({
                         </button>
                       );
                     })}
+                  </div>
+                </div>
+              )}
+
+              {typeof setEnvironmentBanner === 'function' && (!allowedTabIds || isCurrentUserAdmin) && (
+                <div
+                  className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm space-y-4"
+                  data-testid="environment-banner-settings"
+                >
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800">{t('app.environmentBanner.heading')}</h3>
+                    <p className="text-sm text-gray-600 mt-1">{t('app.environmentBanner.subtitle')}</p>
+                  </div>
+                  <label className="flex items-center gap-2 text-sm font-medium text-gray-800">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(environmentBanner?.enabled)}
+                      onChange={(event) => setEnvironmentBanner({ ...(environmentBanner || {}), enabled: event.target.checked })}
+                    />
+                    {t('app.environmentBanner.enableLabel')}
+                  </label>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      {t('app.environmentBanner.textLabel')}
+                      <input
+                        type="text"
+                        maxLength={80}
+                        value={environmentBanner?.label || ''}
+                        placeholder={t('app.environmentBanner.textPlaceholder')}
+                        onChange={(event) => setEnvironmentBanner({ ...(environmentBanner || {}), label: event.target.value })}
+                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                      />
+                    </label>
+                    <label className="block text-sm font-medium text-gray-700">
+                      {t('app.environmentBanner.toneLabel')}
+                      <select
+                        value={environmentBanner?.tone || 'amber'}
+                        onChange={(event) => setEnvironmentBanner({ ...(environmentBanner || {}), tone: event.target.value })}
+                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                      >
+                        {['amber', 'violet', 'blue', 'rose'].map((tone) => (
+                          <option key={tone} value={tone}>
+                            {t(`app.environmentBanner.tones.${tone}`)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
                   </div>
                 </div>
               )}
