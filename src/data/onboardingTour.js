@@ -10,7 +10,7 @@
 // settings.json publié) est remplacée par celle-ci au démarrage — voir
 // normalizeOnboardingConfig dans src/utils/onboarding.js. L'incrémenter écrase donc les
 // personnalisations back-office du tour : à ne faire que pour une refonte assumée.
-export const ONBOARDING_TOUR_VERSION = 9;
+export const ONBOARDING_TOUR_VERSION = 10;
 
 // Une action réservée à un public (bouton d'entrée d'un parcours qui n'a de sens que pour lui)
 // est retirée du tour des autres au lancement, voir filterOnboardingStepsForAudience.
