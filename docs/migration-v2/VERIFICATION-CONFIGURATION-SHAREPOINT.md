@@ -550,8 +550,9 @@ existaient auparavant dans `CN-Config` — une ligne par règle/équipe plutôt 
 
 ## Copier le contenu des listes de PROD vers DEV
 
-Second script, indépendant du précédent : il **recopie les éléments** des listes `CN_*` d'un site
-source (PROD) vers le site sur lequel tu l'exécutes (DEV), pour tester avec des données réalistes.
+Second script, indépendant du précédent : il **recopie les éléments** des listes `CN_*` **et les fichiers JSON de `CN-Config`** (référentiels,
+`settings.json`…) d'un site source (PROD) vers le site sur lequel tu l'exécutes (DEV), pour tester avec des
+données réalistes.
 Il suppose que la structure existe déjà sur DEV (lance d'abord `cnCheckSharePointConfig({ apply: true })`).
 
 ### Garanties et précautions
@@ -564,6 +565,11 @@ Il suppose que la structure existe déjà sur DEV (lance d'abord `cnCheckSharePo
   - `'skip'` (défaut) : la liste est ignorée, pour ne pas créer de doublons ;
   - `'merge'` : n'ajoute que les éléments dont la clé métier (`ProjectId`, `RuleId`…) est absente de la cible ;
   - `'replace'` : met d'abord les éléments de la cible **à la corbeille** (récupérables), puis recopie.
+- **Fichiers `CN-Config`** : copiés par défaut (désactivable avec `config: false`). Seuls les fichiers à la
+  racine de la bibliothèque sont concernés. Selon `onExisting`, un fichier déjà présent sur DEV est conservé
+  (`'skip'`, `'merge'`) ou écrasé (`'replace'`) ; les fichiers absents de DEV sont toujours copiés.
+  Attention : `settings.json` contient notamment la liste des administrateurs (`adminEmails`) — après copie,
+  les administrateurs de PROD le deviennent sur DEV.
 - **Listes volontairement exclues** : `CN_NotificationsQueue`, `CN_SiteAccessRequests` et
   `CN_CommitteeInvitations` déclenchent des flux Power Automate. Les recopier sur DEV enverrait de vrais
   mails, accorderait de vrais accès au site et créerait de vrais événements Outlook, avec les adresses de
@@ -583,7 +589,8 @@ Il suppose que la structure existe déjà sur DEV (lance d'abord `cnCheckSharePo
    ```js
    await cnCopyListContent({ source: 'https://<tenant>.sharepoint.com/sites/<site-prod>', apply: true })
    ```
-   Options : `lists: ['CN_Rules', 'CN_Teams']` pour limiter à certaines listes, `onExisting: 'merge' | 'replace'`,
+   Options : `lists: ['CN_Rules', 'CN_Teams']` pour limiter à certaines listes, `config: false` pour ne pas copier
+   les fichiers `CN-Config`, `onExisting: 'merge' | 'replace'`,
    `include: [...]` pour les listes exclues par défaut.
 
 **Limites à connaître** :
@@ -593,9 +600,10 @@ Il suppose que la structure existe déjà sur DEV (lance d'abord `cnCheckSharePo
 - `Created`/`Modified`/`Author`/`Editor` sont gérés par SharePoint : les éléments copiés portent la date et
   l'auteur de la copie. Les dates et e-mails *métier* (`SubmissionDate`, `OwnerEmail`, `UpdatedAt`…) sont,
   eux, conservés tels quels.
-- Seul le **contenu des listes** est copié : pas les fichiers des bibliothèques `CN-Config` (référentiels
-  JSON, `settings.json`…) ni `CN-Documents`. Les pièces jointes référencées par les projets pointent donc
-  vers des fichiers absents de DEV.
+- Seuls le **contenu des listes** et les fichiers de `CN-Config` sont copiés, pas `CN-Documents` : les pièces
+  jointes référencées par les projets pointent donc vers des fichiers absents de DEV. Les fichiers copiés
+  portent la date et l'auteur de la copie ; un `rules.json`/`teams.json` hérité n'a pas d'effet (remplacés par
+  `CN_Rules`/`CN_Teams`).
 - Les données de PROD contiennent de vraies adresses e-mail : à copier vers un site DEV dont l'accès est
   restreint aux personnes qui peuvent déjà voir PROD.
 - Le jeton de sécurité est renouvelé automatiquement ; en cas de limitation (429/503) le script patiente
@@ -742,6 +750,50 @@ Il suppose que la structure existe déjà sur DEV (lance d'abord `cnCheckSharePo
     }
   };
 
+  const quote = (value) => String(value).replace(/'/g, "''");
+  const CONFIG_LIBRARY = 'CN-Config';
+
+  const getConfigFiles = async (base) => {
+    const root = await readJson(base, listPath(CONFIG_LIBRARY) + '/RootFolder?$select=ServerRelativeUrl');
+    const files = await readJson(base, listPath(CONFIG_LIBRARY) + '/RootFolder/Files?$select=Name&$top=500');
+    return { folder: root.ServerRelativeUrl, names: (files.value || []).map((f) => f.Name) };
+  };
+
+  const readFileText = async (base, folder, name) => {
+    const res = await spFetch(
+      base,
+      "/_api/web/GetFileByServerRelativeUrl('" + quote(folder + '/' + name) + "')/$value",
+      { headers: { Accept: '*/*' } }
+    );
+    if (!res.ok) throw new Error('HTTP ' + res.status + ' en lisant ' + name);
+    return res.text();
+  };
+
+  const copyConfigFiles = async (source, apply, onExisting, row) => {
+    const [src, dst] = await Promise.all([getConfigFiles(source), getConfigFiles(TARGET_URL)]);
+    row.source = src.names.length;
+    row['cible avant'] = dst.names.length;
+    const toCopy = src.names.filter((name) => onExisting === 'replace' || !dst.names.includes(name));
+    if (!apply) {
+      row.action = 'COPIERAIT ' + toCopy.length + ' fichier(s) : ' + (toCopy.join(', ') || '—');
+      return;
+    }
+    for (const name of toCopy) {
+      try {
+        const text = await readFileText(source, src.folder, name);
+        await writeTarget(
+          "/_api/web/GetFolderByServerRelativeUrl('" + quote(dst.folder) + "')/Files/add(url='" + quote(name) + "',overwrite=true)",
+          { headers: { 'Content-Type': 'application/json' }, body: text }
+        );
+        row.copiés += 1;
+      } catch (e) {
+        row.erreurs += 1;
+        console.error(CONFIG_LIBRARY + ' / ' + name + ' : ' + e.message);
+      }
+    }
+    row.action = 'copiés' + (toCopy.length < src.names.length ? ' (' + (src.names.length - toCopy.length) + ' déjà présents, conservés)' : '');
+  };
+
   window.cnCopyListContent = async function (options) {
     const opts = options || {};
     const source = String(opts.source || '').replace(/\/+$/, '');
@@ -756,6 +808,7 @@ Il suppose que la structure existe déjà sur DEV (lance d'abord `cnCheckSharePo
     if (!['skip', 'merge', 'replace'].includes(onExisting)) {
       throw new Error("onExisting doit valoir 'skip', 'merge' ou 'replace'.");
     }
+    const withConfig = opts.config !== false;
     const include = Array.isArray(opts.include) ? opts.include : [];
     const requested = Array.isArray(opts.lists) && opts.lists.length
       ? opts.lists
@@ -839,6 +892,17 @@ Il suppose que la structure existe déjà sur DEV (lance d'abord `cnCheckSharePo
           if (done % 100 === 0) console.log(title + ' : ' + done + '/' + toCopy.length);
         });
         row.action = 'copiée' + (toCopy.length < items.length ? ' (fusion : ' + (items.length - toCopy.length) + ' déjà présents)' : '');
+      } catch (e) {
+        row.action = 'erreur : ' + e.message;
+        row.erreurs += 1;
+      }
+    }
+
+    if (withConfig) {
+      const row = { liste: CONFIG_LIBRARY + ' (fichiers)', source: '', 'cible avant': '', action: '', copiés: 0, erreurs: 0 };
+      report.push(row);
+      try {
+        await copyConfigFiles(source, apply, onExisting, row);
       } catch (e) {
         row.action = 'erreur : ' + e.message;
         row.erreurs += 1;
