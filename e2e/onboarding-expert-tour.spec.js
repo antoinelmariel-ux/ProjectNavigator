@@ -72,7 +72,7 @@ test.describe('parcours expert du guide', () => {
       ['Commencez par la vitrine', 'synthesis-showcase'],
       ['Une première vue d’ensemble', 'showcase-hero'],
       ['Revenir aux enjeux', 'showcase-back-to-report'],
-      ['Toutes les réponses du porteur', 'synthesis-overview'],
+      ['Toutes les réponses du porteur', 'synthesis-owner-answers'],
       ['Prendre le projet en charge', 'synthesis-team-claim'],
       ['Passer la main', 'synthesis-team-claim'],
       ['Garder un collègue dans la boucle', 'synthesis-team-followers'],
