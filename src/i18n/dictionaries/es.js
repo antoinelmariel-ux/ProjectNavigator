@@ -77,6 +77,16 @@ export default {
     }
   },
   app: {
+    environmentBanner: {
+      defaultLabel: 'Plataforma de demostración',
+      heading: 'Banda de identificación de la plataforma',
+      subtitle: 'Muestra una banda fina en la parte superior de la aplicación para indicar que no es la plataforma de producción. Este ajuste es propio de este sitio de SharePoint: se configura en cada plataforma y no se copia de una a otra.',
+      enableLabel: 'Mostrar la banda',
+      textLabel: 'Texto de la banda',
+      textPlaceholder: 'Dejar vacío para « Plataforma de demostración »',
+      toneLabel: 'Color',
+      tones: { amber: 'Ámbar', violet: 'Violeta', blue: 'Azul', rose: 'Rosa' }
+    },
     errorBoundary: {
       title: 'Visualización interrumpida',
       message:

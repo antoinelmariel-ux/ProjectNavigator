@@ -1168,14 +1168,11 @@ export const SynthesisReport = ({
     hasOpenedOverviewForExpertRef.current = true;
     setIsOverviewOpen(true);
   }, [isExpertViewer]);
-  // Parcours expert du guide : les étapes qui montrent les réponses du porteur et l'éditeur
-  // d'avis pointeraient sinon une section repliée ou un formulaire fermé.
+  // Parcours expert du guide : l'étape qui montre l'éditeur d'avis pointerait sinon un
+  // formulaire fermé.
   useEffect(() => {
     if (!tourContext?.isActive) {
       return;
-    }
-    if (tourContext.activeStep === 'expert-answers') {
-      setIsOverviewOpen(true);
     }
     if (tourContext.activeStep === 'expert-opinion' && complianceTeamIdsForUser.size > 0) {
       setOpenTeamCommentEditors((previous) => {
@@ -3608,6 +3605,7 @@ export const SynthesisReport = ({
                           <div
                             className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-600"
                             data-testid={`owner-answers-${team.id}`}
+                            data-tour-id="synthesis-owner-answers"
                           >
                             <span className="font-semibold text-gray-900">{t('synthesisReport.ownerAnswersTitle')}</span>
                             <span className={openQuestionDoubts.length > 0 ? 'font-semibold text-amber-800' : ''}>

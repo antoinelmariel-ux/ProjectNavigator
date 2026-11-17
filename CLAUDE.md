@@ -143,6 +143,18 @@ The app is being migrated off mocks onto real SharePoint lists, using the **Shar
 - Never seed `createDemoProject()` when `isSharePointMode()` is true (see the `isSharePointMode()` guards around it in `App.jsx`, and the demo-project filter in `syncMerge.js`). The demo project only makes sense as first-run local filler; in SharePoint mode it raced the autosave effect and got written to the real `CN_Projects` list as a fake row before the server hydration had a chance to reconcile it away.
 - **The top-level `AppErrorBoundary` (`src/main.jsx`) reports every crash to `CN_NotificationsQueue` automatically**, in `componentDidCatch` — the maintenance team must hear about a crash even if the user closes the tab without clicking anything. The "send a report" button on screen is a second, optional step: with an empty comment it does nothing beyond confirming to the user that their incident is already known (no second network call); with a comment, it queues a follow-up notification (`buildErrorReportEmail({..., isFollowUp: true})`, subject prefixed "Error report - details added") carrying that context, so the technical team doesn't mistake it for a second, unrelated crash. `src/utils/notificationTemplates.js#buildErrorReportEmail` formats message/stack/component-stack/screen/user/comment into the same HTML-email shape `buildNotification()` uses elsewhere, and `queueNotification(...)` puts it on the existing notifications queue/Power Automate flow — no new list, no new flow. Recipients are read directly from `loadPersistedState().adminEmails` (falling back to `initialAdminEmails`) rather than from `App.jsx` state, since the boundary wraps `App` and can't assume it mounted.
 
+## Platform identification band (DEV / démo)
+
+The same `.sppkg` runs on every platform, so which one it is comes from data: `environmentBanner`
+(`{enabled, label, tone}`, `src/utils/environmentBanner.js`) in the site's own `settings.json`, edited
+by admins in the back-office `Administrateurs` tab. Enabled → a thin band above the nav in `App.jsx`
+(`data-testid="environment-banner"`, hidden with the nav in a shared showcase view); empty label →
+`app.environmentBanner.defaultLabel`. **Absent = no band** (a forgotten setting costs DEV its band,
+never PROD one). **In SharePoint mode it is never seeded from the local cache** (IndexedDB/`localStorage`
+are shared by every site of the tenant origin, so a DEV visit would paint PROD) and `applyReferentials`
+resets it when `settings.json` has no such key. Never copy a DEV `settings.json` onto PROD.
+Tests: `test/environmentBanner.test.mjs`, `e2e/environment-banner.spec.js`.
+
 ## Manuals in the help window (SME / Chef de projet)
 
 The help window (`StaticPageDialog`, FAQ page) offers two **fixed** manuals as read-only viewers:

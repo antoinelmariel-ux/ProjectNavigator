@@ -77,6 +77,16 @@ export default {
     }
   },
   app: {
+    environmentBanner: {
+      defaultLabel: 'Plateforme de démonstration',
+      heading: 'Bande d’identification de la plateforme',
+      subtitle: 'Affiche une fine bande en haut de l’application pour signaler qu’on n’est pas sur la plateforme de production. Ce réglage est propre à ce site SharePoint : il se règle sur chaque plateforme, et ne se copie pas de l’une à l’autre.',
+      enableLabel: 'Afficher la bande',
+      textLabel: 'Texte de la bande',
+      textPlaceholder: 'Laisser vide pour « Plateforme de démonstration »',
+      toneLabel: 'Couleur',
+      tones: { amber: 'Ambre', violet: 'Violet', blue: 'Bleu', rose: 'Rose' }
+    },
     errorBoundary: {
       title: 'Affichage interrompu',
       message:
