@@ -77,6 +77,16 @@ export default {
     }
   },
   app: {
+    environmentBanner: {
+      defaultLabel: 'Demonstrationsplattform',
+      heading: 'Kennzeichnungsband der Plattform',
+      subtitle: 'Zeigt oben in der Anwendung ein schmales Band an, das darauf hinweist, dass dies nicht die Produktionsplattform ist. Diese Einstellung gehört zu dieser SharePoint-Website: Sie wird auf jeder Plattform separat festgelegt und nicht von einer auf die andere kopiert.',
+      enableLabel: 'Band anzeigen',
+      textLabel: 'Text des Bands',
+      textPlaceholder: 'Leer lassen für « Demonstrationsplattform »',
+      toneLabel: 'Farbe',
+      tones: { amber: 'Bernstein', violet: 'Violett', blue: 'Blau', rose: 'Rosa' }
+    },
     errorBoundary: {
       title: 'Anzeige unterbrochen',
       message:

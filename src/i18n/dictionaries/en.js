@@ -77,6 +77,16 @@ export default {
     }
   },
   app: {
+    environmentBanner: {
+      defaultLabel: 'Demonstration platform',
+      heading: 'Platform identification band',
+      subtitle: 'Shows a thin band at the top of the application to signal that this is not the production platform. This setting belongs to this SharePoint site: set it on each platform, it is not copied from one to the other.',
+      enableLabel: 'Show the band',
+      textLabel: 'Band text',
+      textPlaceholder: 'Leave empty for “Demonstration platform”',
+      toneLabel: 'Colour',
+      tones: { amber: 'Amber', violet: 'Violet', blue: 'Blue', rose: 'Rose' }
+    },
     errorBoundary: {
       title: 'Display interrupted',
       message:
