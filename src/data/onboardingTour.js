@@ -10,7 +10,7 @@
 // settings.json publié) est remplacée par celle-ci au démarrage — voir
 // normalizeOnboardingConfig dans src/utils/onboarding.js. L'incrémenter écrase donc les
 // personnalisations back-office du tour : à ne faire que pour une refonte assumée.
-export const ONBOARDING_TOUR_VERSION = 9;
+export const ONBOARDING_TOUR_VERSION = 10;
 
 // Une action réservée à un public (bouton d'entrée d'un parcours qui n'a de sens que pour lui)
 // est retirée du tour des autres au lancement, voir filterOnboardingStepsForAudience.
@@ -25,7 +25,10 @@ export const SUPERSEDED_ONBOARDING_STEP_DEFAULTS = {
   'question-answer-types': { target: ['[data-tour-id="question-main-content"]'] },
   // Le seul titre de la fenêtre de partage était mis en avant, et la bulle, posée dessous,
   // masquait précisément les réglages que l'étape décrit.
-  'showcase-share-settings': { target: ['#showcase-share-title'], placement: ['bottom'] }
+  'showcase-share-settings': { target: ['#showcase-share-title'], placement: ['bottom'] },
+  // La section dépliée des réponses était mise en avant ; l'expert lit désormais les réponses
+  // depuis la ligne « Réponses du porteur » de sa carte, qui ouvre un panneau latéral.
+  'expert-answers': { target: ['[data-tour-id="synthesis-overview"]'] }
 };
 
 const ACTION_LABELS = {
@@ -187,9 +190,9 @@ export const initialOnboardingTourConfig = {
         "es": "Los expertos acuden a usted"
       },
       "content": {
-        "en": "Once the project is submitted, the right teams and committees are notified automatically. They give their opinion and ask their questions right here. Everything is traced and gathered in one place: no more emails getting lost.",
-        "fr": "Une fois le projet soumis, les bonnes équipes et les bons comités sont notifiés automatiquement. Ils rendent leur avis et posent leurs questions ici même. Tout est tracé et réuni au même endroit : fini les mails qui se perdent.",
-        "de": "Sobald das Projekt eingereicht ist, werden die richtigen Teams und Gremien automatisch benachrichtigt. Sie geben ihre Stellungnahme ab und stellen ihre Fragen genau hier. Alles ist nachvollziehbar und an einem Ort gebündelt: keine verlorenen E-Mails mehr.",
+        "en": "Once the project is sent, the right teams and committees are notified automatically. They give their opinion and ask their questions right here. Everything is traced and gathered in one place: no more emails getting lost.",
+        "fr": "Une fois le projet envoyé, les bonnes équipes et les bons comités sont notifiés automatiquement. Ils rendent leur avis et posent leurs questions ici même. Tout est tracé et réuni au même endroit : fini les mails qui se perdent.",
+        "de": "Sobald das Projekt gesendet ist, werden die richtigen Teams und Gremien automatisch benachrichtigt. Sie geben ihre Stellungnahme ab und stellen ihre Fragen genau hier. Alles ist nachvollziehbar und an einem Ort gebündelt: keine verlorenen E-Mails mehr.",
         "es": "Una vez enviado el proyecto, los equipos y comités adecuados son notificados automáticamente. Emiten su dictamen y plantean sus preguntas aquí mismo. Todo queda trazado y reunido en un solo lugar: se acabaron los correos que se pierden."
       },
       "placement": "top",
@@ -413,10 +416,10 @@ export const initialOnboardingTourConfig = {
         "es": "Terminar cuando quiera"
       },
       "content": {
-        "en": "“Finish” takes you straight to your project showcase, so you see the project you have just described. From there, “Project stakes” opens the compliance reading of it. Nothing is sent at this stage: your project stays a private draft, and you can come back to change any answer.",
-        "fr": "« Terminer » vous amène directement à la vitrine de votre projet, pour voir le projet que vous venez de décrire. De là, « Enjeux du projet » en ouvre la lecture compliance. Rien n’est envoyé à ce stade : votre projet reste un brouillon privé, et vous pourrez revenir modifier n’importe quelle réponse.",
-        "de": "„Fertigstellen“ führt Sie direkt zum Showcase Ihres Projekts, damit Sie das eben beschriebene Projekt sehen. Von dort öffnet „Projektherausforderungen“ die Compliance-Lesart. In diesem Stadium wird nichts versendet: Ihr Projekt bleibt ein privater Entwurf, und Sie können jede Antwort später ändern.",
-        "es": "«Terminar» le lleva directamente a la vitrina de su proyecto, para ver el proyecto que acaba de describir. Desde ahí, «Retos del proyecto» abre su lectura de cumplimiento. Nada se envía en esta fase: su proyecto sigue siendo un borrador privado y podrá volver para modificar cualquier respuesta."
+        "en": "“Finish and view the showcase” takes you straight to your project showcase, so you see the project you have just described. From there, “Project stakes” opens the compliance reading of it. Nothing is sent at this stage: your project stays a private draft, and you can come back to change any answer.",
+        "fr": "« Terminer et voir la vitrine » vous amène directement à la vitrine de votre projet, pour voir le projet que vous venez de décrire. De là, « Enjeux du projet » en ouvre la lecture compliance. Rien n’est envoyé à ce stade : votre projet reste un brouillon privé, et vous pourrez revenir modifier n’importe quelle réponse.",
+        "de": "„Fertigstellen und Showcase ansehen“ führt Sie direkt zum Showcase Ihres Projekts, damit Sie das eben beschriebene Projekt sehen. Von dort öffnet „Projektherausforderungen“ die Compliance-Lesart. In diesem Stadium wird nichts versendet: Ihr Projekt bleibt ein privater Entwurf, und Sie können jede Antwort später ändern.",
+        "es": "«Terminar y ver la vitrina» le lleva directamente a la vitrina de su proyecto, para ver el proyecto que acaba de describir. Desde ahí, «Retos del proyecto» abre su lectura de cumplimiento. Nada se envía en esta fase: su proyecto sigue siendo un borrador privado y podrá volver para modificar cualquier respuesta."
       },
       "placement": "top",
       "highlightScope": "target",
@@ -474,9 +477,9 @@ export const initialOnboardingTourConfig = {
         "es": "Su proyecto está encuadrado"
       },
       "content": {
-        "en": "The logical next step is to submit it to the experts. You can also discover the showcase or the inspiration area.",
-        "fr": "Prochaine étape logique : le soumettre aux experts. Vous pouvez aussi découvrir la vitrine ou l’espace inspiration.",
-        "de": "Der logische nächste Schritt: es den Experten vorlegen. Sie können auch die Vitrine oder den Inspirationsbereich entdecken.",
+        "en": "The logical next step is to send it to the experts. You can also discover the showcase or the inspiration area.",
+        "fr": "Prochaine étape logique : l’envoyer aux experts. Vous pouvez aussi découvrir la vitrine ou l’espace inspiration.",
+        "de": "Der logische nächste Schritt: es an die Experten senden. Sie können auch die Vitrine oder den Inspirationsbereich entdecken.",
         "es": "El siguiente paso lógico: enviarlo a los expertos. También puede descubrir la vitrina o el espacio de inspiración."
       },
       "placement": "bottom",
@@ -495,10 +498,10 @@ export const initialOnboardingTourConfig = {
         "es": "Leer los retos del proyecto"
       },
       "content": {
-        "en": "The project stakes gather everything without showing it all at once: the left rail says where your project stands and what you can ask for right now, while the right column files the teams, risks, points of attention and the recap of your answers.",
-        "fr": "Les enjeux rassemblent tout sans tout vous montrer d’un coup : le rail de gauche dit où en est votre projet et ce que vous pouvez demander maintenant, la colonne de droite range les équipes, les risques, les points de vigilance et le rappel de vos réponses.",
-        "de": "Die Projektherausforderungen bündeln alles, ohne alles auf einmal zu zeigen: Die linke Leiste zeigt, wo Ihr Projekt steht und was Sie jetzt anfordern können; die rechte Spalte ordnet Teams, Risiken, Aufmerksamkeitspunkte und die Übersicht Ihrer Antworten.",
-        "es": "Los retos lo reúnen todo sin mostrarlo todo de golpe: el panel de la izquierda indica en qué punto está su proyecto y qué puede pedir ahora, y la columna de la derecha ordena los equipos, los riesgos, los puntos de atención y el resumen de sus respuestas."
+        "en": "The project stakes fit on one page. At the top, on the left, what can still mature your project (news from the teams, the showcase, missing answers); on the right, the next step and what you can ask for now. Below, the steps of the project, then the teams with their risks and exchanges, and the recap of your answers.",
+        "fr": "Les enjeux tiennent sur une seule page. En tête, à gauche, ce qui peut faire mûrir votre projet (nouveautés des équipes, vitrine, réponses manquantes) ; à droite, la prochaine étape et ce que vous pouvez demander maintenant. En dessous, les étapes du projet, puis les équipes avec leurs risques et leurs échanges, et le rappel de vos réponses.",
+        "de": "Die Projektherausforderungen passen auf eine Seite. Oben links, was Ihr Projekt reifen lässt (Neuigkeiten der Teams, Showcase, fehlende Antworten); rechts der nächste Schritt und was Sie jetzt anfordern können. Darunter die Projektschritte, dann die Teams mit ihren Risiken und dem Austausch sowie die Übersicht Ihrer Antworten.",
+        "es": "Los retos caben en una sola página. Arriba, a la izquierda, lo que puede hacer madurar su proyecto (novedades de los equipos, vitrina, respuestas pendientes); a la derecha, el siguiente paso y lo que puede pedir ahora. Debajo, las etapas del proyecto y luego los equipos con sus riesgos e intercambios, y el resumen de sus respuestas."
       },
       "placement": "bottom",
       "highlightScope": "target",
@@ -578,10 +581,10 @@ export const initialOnboardingTourConfig = {
         "es": "Saber a quién se va a solicitar"
       },
       "content": {
-        "en": "Here are the expert teams your project calls on, with the points to prepare for each of them. Folded, a card tells you at a glance who is handling that perimeter and where it stands, through a colour dot: blue while the expert has not answered, amber when something is expected from you, green once it is settled. Unfold it for the points to prepare and the exchanges.",
-        "fr": "Voici les équipes expertes mobilisées par votre projet, avec les points à préparer pour chacune. Repliée, une carte vous dit d’un coup d’œil qui suit ce périmètre et où il en est, grâce à une pastille de couleur : bleu tant que l’expert n’a pas répondu, ambre quand quelque chose vous est demandé, vert quand c’est acquis. Dépliez-la pour les points à préparer et les échanges.",
-        "de": "Hier sind die von Ihrem Projekt einbezogenen Fachteams mit den jeweils vorzubereitenden Punkten. Eingeklappt zeigt eine Karte auf einen Blick, wer diesen Bereich betreut und wie es steht — über einen Farbpunkt: blau, solange der Experte nicht geantwortet hat, bernstein, wenn etwas von Ihnen erwartet wird, grün, wenn es erledigt ist. Klappen Sie sie auf für die vorzubereitenden Punkte und den Austausch.",
-        "es": "Estos son los equipos expertos que moviliza su proyecto, con los puntos que debe preparar para cada uno. Plegada, una tarjeta le dice de un vistazo quién lleva ese perímetro y en qué punto está, mediante un punto de color: azul mientras el experto no ha respondido, ámbar cuando se espera algo de usted, verde cuando está resuelto. Despliéguela para ver los puntos a preparar y los intercambios."
+        "en": "Here are the expert teams your project calls on, with the points to prepare for each of them. Folded, each team fits on one line: its risks, its points, the last message and who wrote it, plus the opinion label once the expert has given one. A team with something new for you comes first and opens by itself. Unfold it for the risks, the points to prepare and the exchanges.",
+        "fr": "Voici les équipes expertes mobilisées par votre projet, avec les points à préparer pour chacune. Repliée, chaque équipe tient sur une ligne : ses risques, ses points, le dernier message et son auteur, et l’étiquette de l’avis dès que l’expert en a rendu un. Une équipe qui a du nouveau pour vous passe en tête et s’ouvre d’elle-même. Dépliez-la pour les risques, les points à préparer et les échanges.",
+        "de": "Hier sind die von Ihrem Projekt einbezogenen Fachteams mit den jeweils vorzubereitenden Punkten. Eingeklappt passt jedes Team in eine Zeile: seine Risiken, seine Punkte, die letzte Nachricht und ihr Verfasser sowie das Etikett der Stellungnahme, sobald der Experte eine abgegeben hat. Ein Team mit Neuigkeiten für Sie steht oben und klappt von selbst auf. Klappen Sie es auf für die Risiken, die vorzubereitenden Punkte und den Austausch.",
+        "es": "Estos son los equipos expertos que moviliza su proyecto, con los puntos que debe preparar para cada uno. Plegado, cada equipo cabe en una línea: sus riesgos, sus puntos, el último mensaje y su autor, y la etiqueta del dictamen en cuanto el experto lo ha emitido. Un equipo con novedades para usted aparece primero y se abre solo. Despliéguelo para ver los riesgos, los puntos a preparar y los intercambios."
       },
       "placement": "top",
       "highlightScope": "target",
@@ -618,9 +621,9 @@ export const initialOnboardingTourConfig = {
         "es": "Usted mantiene el control"
       },
       "content": {
-        "en": "A project submitted for review stays editable: when you make changes, only the experts actually impacted are re-notified. Cancelling the submission goes further — it pulls the project entirely out of review, from your project list, so you can rework it before submitting again.",
-        "fr": "Un projet soumis pour avis reste modifiable : en cas de modifications, seuls les experts concernés par un changement sont re-notifiés. Annuler la soumission va plus loin — cela retire complètement le projet de la revue, depuis votre liste de projets, pour le retravailler avant de le soumettre à nouveau.",
-        "de": "Ein zur Prüfung eingereichtes Projekt bleibt bearbeitbar: Bei Änderungen werden nur die tatsächlich betroffenen Experten erneut benachrichtigt. Die Einreichung zurückzuziehen geht weiter — das Projekt wird aus Ihrer Projektliste komplett aus der Prüfung genommen, damit Sie es überarbeiten können, bevor Sie es erneut einreichen.",
+        "en": "A project sent to compliance stays editable: when you make changes, only the experts actually impacted are re-notified. “Cancel sending”, from your project list, goes further — it pulls the project entirely out of review, so you can rework it before sending it again.",
+        "fr": "Un projet envoyé à la compliance reste modifiable : en cas de modifications, seuls les experts concernés par un changement sont re-notifiés. « Annuler l’envoi », depuis votre liste de projets, va plus loin — cela retire complètement le projet de la revue, pour le retravailler avant de l’envoyer à nouveau.",
+        "de": "Ein an Compliance gesendetes Projekt bleibt bearbeitbar: Bei Änderungen werden nur die tatsächlich betroffenen Experten erneut benachrichtigt. Den Versand zurückzuziehen geht weiter — das Projekt wird aus Ihrer Projektliste komplett aus der Prüfung genommen, damit Sie es überarbeiten können, bevor Sie es erneut senden.",
         "es": "Un proyecto enviado para dictamen permanece modificable: al hacer cambios, solo se vuelve a notificar a los expertos realmente afectados. Anular el envío va más allá — retira por completo el proyecto de la revisión, desde su lista de proyectos, para poder retrabajarlo antes de enviarlo de nuevo."
       },
       "placement": "left",
@@ -659,10 +662,10 @@ export const initialOnboardingTourConfig = {
         "es": "El paso por comité"
       },
       "content": {
-        "en": "Some projects require going before a validation committee. To go before a committee, book one of the open sessions from Project Navigator.",
-        "fr": "Certains projets nécessitent un passage devant un comité de validation. Pour passer en comité, réservez depuis Project Navigator une séance parmi celles qui sont ouvertes.",
-        "de": "Für manche Projekte ist der Gang vor ein Validierungsgremium erforderlich. Für den Gang ins Gremium buchen Sie in Project Navigator eine der offenen Sitzungen.",
-        "es": "Algunos proyectos requieren pasar por un comité de validación. Para pasar por un comité, reserve desde Project Navigator una de las sesiones abiertas."
+        "en": "Some projects require going before a validation committee. To go before a committee, book one of the open sessions from Project Navigator. Some committees can also be requested by you once the project is sent, even when no criterion triggers them: “Request a committee”.",
+        "fr": "Certains projets nécessitent un passage devant un comité de validation. Pour passer en comité, réservez depuis Project Navigator une séance parmi celles qui sont ouvertes. Certains comités peuvent aussi être sollicités à votre demande une fois le projet envoyé, même si aucun critère ne les déclenche : « Solliciter un comité ».",
+        "de": "Für manche Projekte ist der Gang vor ein Validierungsgremium erforderlich. Für den Gang ins Gremium buchen Sie in Project Navigator eine der offenen Sitzungen. Manche Gremien können Sie nach dem Senden des Projekts auch selbst anfragen, selbst wenn kein Kriterium sie auslöst: „Ausschuss anfragen“.",
+        "es": "Algunos proyectos requieren pasar por un comité de validación. Para pasar por un comité, reserve desde Project Navigator una de las sesiones abiertas. Algunos comités también pueden solicitarse a petición suya una vez enviado el proyecto, aunque ningún criterio los active: «Solicitar un comité»."
       },
       "placement": "top",
       "highlightScope": "target",
@@ -787,10 +790,10 @@ export const initialOnboardingTourConfig = {
         "es": "La barra de edición"
       },
       "content": {
-        "en": "The Outline to navigate between sections, Undo/Redo to step back without fear, the Preview to hide the editing frame, the Light/Full display switch and the publish status.",
-        "fr": "Le Plan pour naviguer entre les sections, Annuler/Rétablir pour revenir en arrière sans crainte, l’Aperçu pour masquer le contour d’édition, le choix d’affichage Light/complet et le statut de publication.",
-        "de": "Die Gliederung zum Navigieren zwischen Abschnitten, Rückgängig/Wiederholen für angstfreies Zurückgehen, die Vorschau zum Ausblenden des Bearbeitungsrahmens, die Umschaltung Light/Vollansicht und der Veröffentlichungsstatus.",
-        "es": "El Esquema para navegar entre secciones, Deshacer/Rehacer para retroceder sin miedo, la Vista previa para ocultar el contorno de edición, el cambio de visualización Light/completa y el estado de publicación."
+        "en": "The Outline to navigate between sections, Undo/Redo to step back without fear, the Preview to hide the editing frame, the light/full version switch and the publish status.",
+        "fr": "Le Plan pour naviguer entre les sections, Annuler/Rétablir pour revenir en arrière sans crainte, l’Aperçu pour masquer le contour d’édition, le choix entre version allégée et complète et le statut de publication.",
+        "de": "Die Gliederung zum Navigieren zwischen Abschnitten, Rückgängig/Wiederholen für angstfreies Zurückgehen, die Vorschau zum Ausblenden des Bearbeitungsrahmens, die Umschaltung zwischen verkürzter und vollständiger Version und der Veröffentlichungsstatus.",
+        "es": "El Esquema para navegar entre secciones, Deshacer/Rehacer para retroceder sin miedo, la Vista previa para ocultar el contorno de edición, el cambio entre versión reducida y completa y el estado de publicación."
       },
       "placement": "bottom",
       "highlightScope": "target",
@@ -807,10 +810,10 @@ export const initialOnboardingTourConfig = {
         "es": "Cada sección se ajusta"
       },
       "content": {
-        "en": "Click a section in the showcase to select it: its texts become editable in place, and the panel shows its own settings — colour from the theme palette, visibility, and for your own blocks, content, formatting and template. You can hide a section from the “Light” display without losing its content.",
-        "fr": "Cliquez une section dans la vitrine pour la sélectionner : ses textes deviennent modifiables sur place, et le panneau affiche ses réglages propres — couleur parmi la palette du thème, visibilité, et pour vos propres blocs, contenu, mise en forme et gabarit. Vous pouvez masquer une section de l’affichage « Light » sans perdre son contenu.",
-        "de": "Klicken Sie in der Vitrine auf einen Abschnitt, um ihn auszuwählen: Seine Texte werden an Ort und Stelle bearbeitbar, und das Panel zeigt seine eigenen Einstellungen — Farbe aus der Themenpalette, Sichtbarkeit und, bei Ihren eigenen Blöcken, Inhalt, Gestaltung und Vorlage. Sie können einen Abschnitt aus der „Light“-Ansicht ausblenden, ohne seinen Inhalt zu verlieren.",
-        "es": "Haga clic en una sección de la vitrina para seleccionarla: sus textos se vuelven editables in situ y el panel muestra sus ajustes propios: color de la paleta del tema, visibilidad y, en sus propios bloques, contenido, formato y plantilla. Puede ocultar una sección de la visualización «Light» sin perder su contenido."
+        "en": "Click a section in the showcase to select it: its texts become editable in place, and the panel shows its own settings — colour from the theme palette, visibility, and for your own blocks, content, formatting and template. You can hide a section from the light version without losing its content.",
+        "fr": "Cliquez une section dans la vitrine pour la sélectionner : ses textes deviennent modifiables sur place, et le panneau affiche ses réglages propres — couleur parmi la palette du thème, visibilité, et pour vos propres blocs, contenu, mise en forme et gabarit. Vous pouvez masquer une section de la version allégée sans perdre son contenu.",
+        "de": "Klicken Sie in der Vitrine auf einen Abschnitt, um ihn auszuwählen: Seine Texte werden an Ort und Stelle bearbeitbar, und das Panel zeigt seine eigenen Einstellungen — Farbe aus der Themenpalette, Sichtbarkeit und, bei Ihren eigenen Blöcken, Inhalt, Gestaltung und Vorlage. Sie können einen Abschnitt aus der verkürzten Version ausblenden, ohne seinen Inhalt zu verlieren.",
+        "es": "Haga clic en una sección de la vitrina para seleccionarla: sus textos se vuelven editables in situ y el panel muestra sus ajustes propios: color de la paleta del tema, visibilidad y, en sus propios bloques, contenido, formato y plantilla. Puede ocultar una sección de la versión reducida sin perder su contenido."
       },
       "placement": "left",
       "highlightScope": "target",
@@ -1070,7 +1073,7 @@ export const initialOnboardingTourConfig = {
       },
       "content": {
         "en": "An inspiration is “Personal” at first. Switch it to “Shared” to make it visible to everyone: that is what makes the common base grow.",
-        "fr": "Une inspiration est d’abord « Personnelle ». Passez-la en « Partagé » pour la rendre visible de tous : c’est ce qui fait grandir la base commune.",
+        "fr": "Une inspiration est d’abord en mode « Personnel ». Passez-la en « Partagé » pour la rendre visible de tous : c’est ce qui fait grandir la base commune.",
         "de": "Eine Inspiration ist zunächst „Persönlich“. Stellen Sie sie auf „Geteilt“, um sie für alle sichtbar zu machen: Das lässt die gemeinsame Basis wachsen.",
         "es": "Una inspiración es al principio «Personal». Cámbiela a «Compartido» para hacerla visible para todos: eso es lo que hace crecer la base común."
       },
@@ -1134,10 +1137,10 @@ export const initialOnboardingTourConfig = {
         "es": "Su cola de trabajo"
       },
       "content": {
-        "en": "“To pick up”: nobody in your team has taken the project yet. “In progress”: projects you have taken in charge, until your final opinion; a red dot means the owner answered or changed the project since your last move, and preliminary opinions sit at the end of the list. “Handled by the team”: a colleague is taking care of it. “Reviewed”: your opinion has been given. “Abandoned”: the owner deleted a project you had answered on, and your work remains available. Committee members also have “Out of committee scope”.",
-        "fr": "« À prendre » : personne de votre équipe n’a encore pris le projet en charge. « En cours » : les projets que vous avez pris en charge, jusqu’à votre avis définitif ; une puce rouge signale que le porteur a répondu ou modifié le projet depuis votre dernier geste, et les avis préliminaires rendus sont en fin de liste. « Pris en charge par l’équipe » : un collègue s’en occupe. « Traités » : votre avis est rendu. « Abandonnés » : le porteur a supprimé un projet sur lequel vous aviez répondu, et votre travail reste consultable. Les membres d’un comité ont aussi « Hors scope comité ».",
-        "de": "„Zu übernehmen“: Niemand aus Ihrem Team hat das Projekt bisher übernommen. „In Bearbeitung“: die Projekte, die Sie übernommen haben, bis zu Ihrer abschließenden Stellungnahme; ein roter Punkt zeigt, dass der Projektverantwortliche seit Ihrer letzten Aktion geantwortet oder das Projekt geändert hat, vorläufige Stellungnahmen stehen am Ende der Liste. „Vom Team übernommen“: Ein Kollege kümmert sich darum. „Bearbeitet“: Ihre Stellungnahme ist abgegeben. „Aufgegeben“: Der Projektverantwortliche hat ein Projekt gelöscht, zu dem Sie geantwortet hatten, und Ihre Arbeit bleibt einsehbar. Ausschussmitglieder haben zusätzlich „Außerhalb des Ausschussbereichs“.",
-        "es": "«Por asumir»: nadie de su equipo ha asumido aún el proyecto. «En curso»: los proyectos que usted ha asumido, hasta su opinión definitiva; un punto rojo indica que el responsable ha respondido o modificado el proyecto desde su última acción, y las opiniones preliminares emitidas quedan al final de la lista. «Asumidos por el equipo»: un compañero se encarga. «Tratados»: su opinión está emitida. «Abandonados»: el responsable eliminó un proyecto en el que usted había respondido, y su trabajo sigue disponible. Los miembros de un comité también tienen «Fuera del alcance del comité»."
+        "en": "“To pick up”: nobody in your team has taken the project yet. “In progress”: projects you have taken in charge, until your final opinion; a pink dot means the owner answered or changed the project since your last move, and preliminary opinions sit at the end of the list. “Handled by the team”: a colleague is taking care of it. “Reviewed”: your opinion has been given. “Abandoned”: the owner deleted a project you had answered on, and your work remains available. Committee members also have “Outside committee”.",
+        "fr": "« À prendre » : personne de votre équipe n’a encore pris le projet en charge. « En cours » : les projets que vous avez pris en charge, jusqu’à votre avis définitif ; une pastille rose signale que le porteur a répondu ou modifié le projet depuis votre dernier geste, et les avis préliminaires rendus sont en fin de liste. « Pris en charge par l’équipe » : un collègue s’en occupe. « Traités » : votre avis est rendu. « Abandonnés » : le porteur a supprimé un projet sur lequel vous aviez répondu, et votre travail reste consultable. Les membres d’un comité ont aussi « Hors comité ».",
+        "de": "„Zu übernehmen“: Niemand aus Ihrem Team hat das Projekt bisher übernommen. „In Bearbeitung“: die Projekte, die Sie übernommen haben, bis zu Ihrer abschließenden Stellungnahme; ein rosa Punkt zeigt, dass der Projektverantwortliche seit Ihrer letzten Aktion geantwortet oder das Projekt geändert hat, vorläufige Stellungnahmen stehen am Ende der Liste. „Vom Team übernommen“: Ein Kollege kümmert sich darum. „Bearbeitet“: Ihre Stellungnahme ist abgegeben. „Aufgegeben“: Der Projektverantwortliche hat ein Projekt gelöscht, zu dem Sie geantwortet hatten, und Ihre Arbeit bleibt einsehbar. Ausschussmitglieder haben zusätzlich „Außerhalb des Ausschusses“.",
+        "es": "«Por asumir»: nadie de su equipo ha asumido aún el proyecto. «En curso»: los proyectos que usted ha asumido, hasta su opinión definitiva; un punto rosa indica que el responsable ha respondido o modificado el proyecto desde su última acción, y las opiniones preliminares emitidas quedan al final de la lista. «Asumidos por el equipo»: un compañero se encarga. «Tratados»: su opinión está emitida. «Abandonados»: el responsable eliminó un proyecto en el que usted había respondido, y su trabajo sigue disponible. Los miembros de un comité también tienen «Fuera del comité»."
       },
       "placement": "bottom",
       "highlightScope": "target",
@@ -1215,10 +1218,10 @@ export const initialOnboardingTourConfig = {
         "es": "Volver a los retos"
       },
       "content": {
-        "en": "Once you have the big picture in mind, this button takes you back to the summary and to your scope.",
-        "fr": "Une fois l’idée générale en tête, ce bouton vous ramène à la synthèse et à votre périmètre.",
-        "de": "Sobald Sie den Gesamtüberblick haben, bringt Sie diese Schaltfläche zurück zur Zusammenfassung und zu Ihrem Bereich.",
-        "es": "Una vez tenga la idea general, este botón le lleva de vuelta a la síntesis y a su ámbito."
+        "en": "Once you have the big picture in mind, this button takes you back to the project stakes and to your scope.",
+        "fr": "Une fois l’idée générale en tête, ce bouton vous ramène aux enjeux du projet et à votre périmètre.",
+        "de": "Sobald Sie den Gesamtüberblick haben, bringt Sie diese Schaltfläche zurück zu den Projektherausforderungen und zu Ihrem Bereich.",
+        "es": "Una vez tenga la idea general, este botón le lleva de vuelta a los retos del proyecto y a su ámbito."
       },
       "placement": "bottom",
       "highlightScope": "target",
@@ -1227,7 +1230,7 @@ export const initialOnboardingTourConfig = {
     },
     {
       "id": "expert-answers",
-      "target": "[data-tour-id=\"synthesis-overview\"]",
+      "target": "[data-tour-id=\"synthesis-owner-answers\"]",
       "title": {
         "en": "All the owner's answers",
         "fr": "Toutes les réponses du porteur",
@@ -1235,10 +1238,10 @@ export const initialOnboardingTourConfig = {
         "es": "Todas las respuestas del responsable"
       },
       "content": {
-        "en": "To get to the bottom of the file, the “Project owner’s answers” section holds the whole questionnaire; it opens already expanded for you. An item marked “I don't know yet” is not an answer, it is a question still open — it may well be addressed to you.",
-        "fr": "Pour aller au fond du dossier, la section « Réponses du porteur » reprend l’intégralité du questionnaire ; elle s’ouvre déjà dépliée pour vous. Un point marqué « je ne sais pas encore » n’est pas une réponse, c’est une question encore ouverte. Elle vous est peut-être adressée.",
-        "de": "Um der Akte auf den Grund zu gehen, enthält der Abschnitt „Antworten des Projektverantwortlichen“ den gesamten Fragebogen; er öffnet sich für Sie bereits aufgeklappt. Ein mit „Ich weiß es noch nicht“ markierter Punkt ist keine Antwort, sondern eine noch offene Frage. Vielleicht ist sie an Sie gerichtet.",
-        "es": "Para ir al fondo del expediente, la sección «Respuestas del responsable del proyecto» recoge todo el cuestionario; se abre ya desplegada para usted. Un punto marcado «todavía no lo sé» no es una respuesta, es una pregunta aún abierta. Quizá esté dirigida a usted."
+        "en": "In your team’s card, “Project owner’s answers” counts the doubts they flagged: they kept an answer but are not sure of it, and explain why. “See all the answers” opens the whole questionnaire in a side panel, which leaves the exchange readable and writable while you read.",
+        "fr": "Dans la carte de votre équipe, « Réponses du porteur » compte les doutes qu’il a signalés : il a gardé une réponse mais n’en est pas sûr, et explique pourquoi. « Voir toutes les réponses » ouvre l’intégralité du questionnaire dans un panneau latéral, qui laisse l’échange lisible et modifiable pendant votre lecture.",
+        "de": "In der Karte Ihres Teams zählt „Antworten des Projektverantwortlichen“ die gemeldeten Zweifel: Er hat eine Antwort gegeben, ist sich aber nicht sicher und erklärt warum. „Alle Antworten ansehen“ öffnet den gesamten Fragebogen in einem Seitenbereich, sodass der Austausch beim Lesen sichtbar und bearbeitbar bleibt.",
+        "es": "En la tarjeta de su equipo, «Respuestas del responsable del proyecto» cuenta las dudas que ha señalado: mantuvo una respuesta pero no está seguro y explica por qué. «Ver todas las respuestas» abre todo el cuestionario en un panel lateral, que deja el intercambio legible y editable mientras lee."
       },
       "placement": "bottom",
       "highlightScope": "target",
@@ -1355,10 +1358,10 @@ export const initialOnboardingTourConfig = {
         "es": "Una solicitud de opinión preliminar"
       },
       "content": {
-        "en": "An owner can call on you early, on a project still under construction: only the core questions are required, and some answers may still be “I don't know yet”. You can then give them a preliminary opinion or a first orientation: point out what to watch and the questions to prepare. It is not an approval: a favourable opinion shows as “Preliminary advice”, never as “Approved”.",
-        "fr": "Un porteur peut vous solliciter tôt, sur un projet encore en construction : seules les questions du socle sont exigées, et certaines réponses peuvent encore être « je ne sais pas encore ». Vous pouvez alors lui rendre un avis préliminaire ou une première orientation : signaler les points de vigilance et les questions à préparer. Ce n’est pas une validation : un avis favorable apparaît comme « Avis préliminaire », jamais comme « Validé ».",
-        "de": "Ein Projektverantwortlicher kann Sie früh hinzuziehen, bei einem Projekt, das noch im Aufbau ist: Nur die Kernfragen sind erforderlich, und manche Antworten können noch „Ich weiß es noch nicht“ lauten. Sie können ihm dann eine vorläufige Stellungnahme oder eine erste Orientierung geben: auf Punkte hinweisen, die Aufmerksamkeit verdienen, und auf vorzubereitende Fragen. Das ist keine Freigabe: Eine positive Stellungnahme erscheint als „Vorläufige Einschätzung“, nie als „Genehmigt“.",
-        "es": "Un responsable puede consultarle pronto, sobre un proyecto aún en construcción: solo se exigen las preguntas básicas, y algunas respuestas todavía pueden ser «todavía no lo sé». Puede entonces darle una opinión preliminar o una primera orientación: señalar los puntos de atención y las preguntas que preparar. No es una validación: una opinión favorable aparece como «Dictamen preliminar», nunca como «Validado»."
+        "en": "An owner can call on you early, on a project still under construction: only the core questions are required, and some answers may still carry a doubt flagged by the owner. You can then give them a preliminary opinion or a first orientation: point out what to watch and the questions to prepare. It is not an approval: a favourable opinion shows as “Preliminary advice”, never as “Approved”.",
+        "fr": "Un porteur peut vous solliciter tôt, sur un projet encore en construction : seules les questions du socle sont exigées, et certaines réponses peuvent encore porter un doute signalé par le porteur. Vous pouvez alors lui rendre un avis préliminaire ou une première orientation : signaler les points de vigilance et les questions à préparer. Ce n’est pas une validation : un avis favorable apparaît comme « Avis préliminaire », jamais comme « Validé ».",
+        "de": "Ein Projektverantwortlicher kann Sie früh hinzuziehen, bei einem Projekt, das noch im Aufbau ist: Nur die Kernfragen sind erforderlich, und manche Antworten können noch einen vom Projektverantwortlichen gemeldeten Zweifel tragen. Sie können ihm dann eine vorläufige Stellungnahme oder eine erste Orientierung geben: auf Punkte hinweisen, die Aufmerksamkeit verdienen, und auf vorzubereitende Fragen. Das ist keine Freigabe: Eine positive Stellungnahme erscheint als „Vorläufige Einschätzung“, nie als „Genehmigt“.",
+        "es": "Un responsable puede consultarle pronto, sobre un proyecto aún en construcción: solo se exigen las preguntas básicas, y algunas respuestas todavía pueden llevar una duda señalada por el responsable. Puede entonces darle una opinión preliminar o una primera orientación: señalar los puntos de atención y las preguntas que preparar. No es una validación: una opinión favorable aparece como «Dictamen preliminar», nunca como «Validado»."
       },
       "placement": "bottom",
       "highlightScope": "target",
@@ -1375,10 +1378,10 @@ export const initialOnboardingTourConfig = {
         "es": "Una solicitud de validación"
       },
       "content": {
-        "en": "Once the project is settled, the owner requests approval: every mandatory question then has a firm answer, with no “I don't know yet” left. You give a formal decision on your scope.",
-        "fr": "Quand le projet est arrêté, le porteur demande la validation : toutes les questions obligatoires ont alors une réponse ferme, sans plus aucun « je ne sais pas encore ». Vous vous prononcez formellement sur votre périmètre.",
-        "de": "Sobald das Projekt feststeht, beantragt der Projektverantwortliche die Freigabe: Alle Pflichtfragen haben dann eine feste Antwort, ohne ein einziges „Ich weiß es noch nicht“. Sie entscheiden formell über Ihren Bereich.",
-        "es": "Cuando el proyecto está cerrado, el responsable solicita la validación: todas las preguntas obligatorias tienen entonces una respuesta firme, sin ningún «todavía no lo sé». Usted se pronuncia formalmente sobre su ámbito."
+        "en": "Once the project is settled, the owner requests approval: every mandatory question then has a firm answer, with no doubt left open. You give a formal decision on your scope.",
+        "fr": "Quand le projet est arrêté, le porteur demande la validation : toutes les questions obligatoires ont alors une réponse ferme, sans plus aucun doute en suspens. Vous vous prononcez formellement sur votre périmètre.",
+        "de": "Sobald das Projekt feststeht, beantragt der Projektverantwortliche die Freigabe: Alle Pflichtfragen haben dann eine feste Antwort, ohne einen einzigen offenen Zweifel. Sie entscheiden formell über Ihren Bereich.",
+        "es": "Cuando el proyecto está cerrado, el responsable solicita la validación: todas las preguntas obligatorias tienen entonces una respuesta firme, sin ninguna duda pendiente. Usted se pronuncia formalmente sobre su ámbito."
       },
       "placement": "bottom",
       "highlightScope": "target",
