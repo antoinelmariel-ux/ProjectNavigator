@@ -560,38 +560,40 @@ Il suppose que la structure existe déjà sur DEV (lance d'abord `cnCheckSharePo
 - **PROD n'est jamais modifié** : la source n'est lue que par des `GET`. Toutes les écritures vont sur
   le site de la page où tu colles le script — **ouvre donc une page du site DEV**. Si source et cible
   sont le même site, le script refuse.
-- **Simulation par défaut** : sans `apply: true`, rien n'est écrit ; le tableau indique ce qui serait fait.
-- **Trois comportements si la liste cible contient déjà des éléments** (`onExisting`) :
-  - `'skip'` (défaut) : la liste est ignorée, pour ne pas créer de doublons ;
-  - `'merge'` : n'ajoute que les éléments dont la clé métier (`ProjectId`, `RuleId`…) est absente de la cible ;
-  - `'replace'` : met d'abord les éléments de la cible **à la corbeille** (récupérables), puis recopie.
-- **Fichiers `CN-Config`** : copiés par défaut (désactivable avec `config: false`). Seuls les fichiers à la
-  racine de la bibliothèque sont concernés. Selon `onExisting`, un fichier déjà présent sur DEV est conservé
-  (`'skip'`, `'merge'`) ou écrasé (`'replace'`) ; les fichiers absents de DEV sont toujours copiés.
-  Attention : `settings.json` contient notamment la liste des administrateurs (`adminEmails`) — après copie,
-  les administrateurs de PROD le deviennent sur DEV.
-- **Listes volontairement exclues** : `CN_NotificationsQueue`, `CN_SiteAccessRequests` et
-  `CN_CommitteeInvitations` déclenchent des flux Power Automate. Les recopier sur DEV enverrait de vrais
-  mails, accorderait de vrais accès au site et créerait de vrais événements Outlook, avec les adresses de
-  production. Pour les inclure quand même : `include: ['CN_SiteAccessRequests']` (etc.).
+- **C'est toi qui décides, liste par liste.** Le script analyse d'abord les deux sites (rien n'est écrit),
+  affiche un tableau, puis ouvre un **panneau** avec une ligne par liste et par action possible : *Ne pas
+  copier*, *Copier* / *Ajouter les éléments manquants* (selon que la liste de DEV est vide ou non), ou
+  *Écraser*. Les actions proposées d'office (copier les listes vides de DEV, ne rien toucher aux listes
+  déjà remplies) ne sont que des suggestions : tu peux les changer librement. *Annuler* ne copie rien.
+- **Écraser** met les éléments actuels de DEV **à la corbeille** (récupérables), puis recopie ceux de PROD.
+  Une confirmation est demandée avant de lancer si au moins une ligne est en « Écraser ». « Ajouter les
+  éléments manquants » ne compare que la clé métier (`ProjectId`, `RuleId`…) : un élément déjà présent
+  n'est pas mis à jour.
+- **Listes à flux Power Automate** : `CN_NotificationsQueue`, `CN_SiteAccessRequests` et
+  `CN_CommitteeInvitations` figurent dans le panneau, marquées ⚠ et sur « Ne pas copier ». Les copier sur DEV
+  enverrait de vrais mails, accorderait de vrais accès au site et créerait de vrais événements Outlook, avec
+  les adresses de production : ne les choisis que si le flux correspondant est désactivé sur DEV.
+- **Fichiers `CN-Config`** : une ligne du panneau (`CN-Config (fichiers)`), mêmes choix. Seuls les fichiers
+  à la racine de la bibliothèque sont concernés. `settings.json` contient notamment la liste des
+  administrateurs (`adminEmails`) : après copie, les administrateurs de PROD le deviennent sur DEV.
 - Les colonnes copiées sont découvertes dynamiquement (texte, texte long, nombre, oui/non, date, choix) et
-  limitées à celles présentes **des deux côtés** ; une colonne absente de DEV est signalée par un
-  avertissement dans la console.
+  limitées à celles présentes **des deux côtés** ; une colonne absente de DEV est signalée dans la console.
 
 ### Utilisation
 
 1. Ouvre une page du site **DEV** (par exemple `.../ProjectNavigator_DEV/SitePages/...`), F12, onglet **Console**.
-2. Colle le script ci-dessous, puis lance d'abord la simulation :
+2. Colle le script ci-dessous, puis lance :
    ```js
    await cnCopyListContent({ source: 'https://<tenant>.sharepoint.com/sites/<site-prod>' })
    ```
-3. Si le tableau te convient, lance la copie réelle :
-   ```js
-   await cnCopyListContent({ source: 'https://<tenant>.sharepoint.com/sites/<site-prod>', apply: true })
-   ```
-   Options : `lists: ['CN_Rules', 'CN_Teams']` pour limiter à certaines listes, `config: false` pour ne pas copier
-   les fichiers `CN-Config`, `onExisting: 'merge' | 'replace'`,
-   `include: [...]` pour les listes exclues par défaut.
+3. Le tableau d'analyse s'affiche dans la console et le panneau s'ouvre : choisis l'action de chaque ligne,
+   puis **Lancer la copie**. Le tableau final indique, par ligne, le nombre d'éléments copiés et les erreurs.
+
+Options : `ui: false` (analyse seule, sans panneau ni écriture), `lists: ['CN_Rules', 'CN_Teams']` pour ne
+proposer que certaines listes, `config: false` pour ne pas proposer `CN-Config`. Pour une exécution **sans
+panneau** (script automatisé), ajoute `apply: true` : le script applique alors `onExisting`
+(`'skip'` par défaut, `'merge'` ou `'replace'`) à toutes les listes, hors listes à flux (à ajouter
+explicitement avec `include: [...]`).
 
 **Limites à connaître** :
 - Les deux sites doivent être sur **le même tenant** (même domaine `*.sharepoint.com`) : le navigateur
@@ -769,156 +771,262 @@ Il suppose que la structure existe déjà sur DEV (lance d'abord `cnCheckSharePo
     return res.text();
   };
 
-  const copyConfigFiles = async (source, apply, onExisting, row) => {
-    const [src, dst] = await Promise.all([getConfigFiles(source), getConfigFiles(TARGET_URL)]);
-    row.source = src.names.length;
-    row['cible avant'] = dst.names.length;
-    const toCopy = src.names.filter((name) => onExisting === 'replace' || !dst.names.includes(name));
-    if (!apply) {
-      row.action = 'COPIERAIT ' + toCopy.length + ' fichier(s) : ' + (toCopy.join(', ') || '—');
-      return;
-    }
-    for (const name of toCopy) {
+  const CONFIG_ID = '__config__';
+  const CONFIG_LABEL = CONFIG_LIBRARY + ' (fichiers)';
+
+  const MODE_LABELS = {
+    none: 'Ne pas copier',
+    replace: 'Écraser (cible mise à la corbeille, puis copie)'
+  };
+  const mergeLabel = (row) =>
+    row.dst === 0 ? 'Copier' : row.id === CONFIG_ID ? 'Copier les fichiers manquants' : 'Ajouter les éléments manquants';
+
+  // Lit les deux sites (lecture seule) et décrit, pour chaque liste, ce qu'on peut en faire.
+  const analyze = async (source, titles, withConfig) => {
+    const rows = [];
+    for (const title of titles) {
+      const row = { id: title, label: title, kind: 'list', keyField: LISTS[title], warn: EXCLUDED_BY_DEFAULT.includes(title) };
+      rows.push(row);
       try {
-        const text = await readFileText(source, src.folder, name);
+        const [srcInfo, dstInfo] = await Promise.all([getListInfo(source, title), getListInfo(TARGET_URL, title)]);
+        if (!srcInfo) { row.problem = 'absente de la source'; continue; }
+        if (!dstInfo) { row.problem = 'absente de la cible (lancer cnCheckSharePointConfig({ apply: true }))'; continue; }
+        row.src = srcInfo.ItemCount;
+        row.dst = dstInfo.ItemCount;
+        row.entityType = dstInfo.ListItemEntityTypeFullName;
+        row.modes = ['none', 'merge', 'replace'];
+        if (row.dst > 0 && !row.keyField) row.modes = ['none', 'replace'];
+      } catch (e) {
+        row.problem = e.message;
+      }
+    }
+    if (withConfig) {
+      const row = { id: CONFIG_ID, label: CONFIG_LABEL, kind: 'config', warn: false };
+      rows.push(row);
+      try {
+        const [src, dst] = await Promise.all([getConfigFiles(source), getConfigFiles(TARGET_URL)]);
+        row.srcFiles = src;
+        row.dstFiles = dst;
+        row.src = src.names.length;
+        row.dst = dst.names.length;
+        row.modes = ['none', 'merge', 'replace'];
+      } catch (e) {
+        row.problem = e.message;
+      }
+    }
+    return rows;
+  };
+
+  // Choix proposé d'office ; l'utilisateur peut le changer librement dans le panneau.
+  const recommendedMode = (row, onExisting) => {
+    if (row.problem || row.warn || !row.src) return 'none';
+    if (row.dst === 0) return 'merge';
+    if (onExisting === 'merge' && row.modes.includes('merge')) return 'merge';
+    if (onExisting === 'replace') return 'replace';
+    return 'none';
+  };
+
+  const describe = (row, mode) => {
+    if (row.problem) return 'ignorée : ' + row.problem;
+    if (mode === 'none') return 'ne sera pas copiée';
+    if (mode === 'replace') return 'ÉCRASE (' + row.dst + ' supprimé(s), ' + row.src + ' copié(s))';
+    return row.dst === 0 ? 'COPIE ' + row.src + ' élément(s)' : 'AJOUTE les manquants';
+  };
+
+  const showPanel = (rows, source) =>
+    new Promise((resolve) => {
+      const el = (tag, css, text) => {
+        const node = document.createElement(tag);
+        if (css) node.style.cssText = css;
+        if (text !== undefined) node.textContent = text;
+        return node;
+      };
+      const overlay = el('div', 'position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;font:14px/1.4 Segoe UI,Arial,sans-serif');
+      const box = el('div', 'background:#fff;color:#222;border-radius:8px;padding:20px;max-width:900px;width:92vw;max-height:88vh;overflow:auto;box-shadow:0 8px 32px rgba(0,0,0,.4)');
+      box.appendChild(el('h2', 'margin:0 0 8px;font-size:18px', 'Que copier de PROD vers DEV ?'));
+      box.appendChild(el('div', 'margin-bottom:12px;color:#555', 'Source (lecture seule) : ' + source + '\nCible (écriture) : ' + TARGET_URL));
+      box.lastChild.style.whiteSpace = 'pre-line';
+
+      const table = el('table', 'border-collapse:collapse;width:100%');
+      const headRow = el('tr');
+      ['Liste', 'Source', 'Cible', 'Action'].forEach((h) => headRow.appendChild(el('th', 'text-align:left;padding:6px 8px;border-bottom:2px solid #ccc', h)));
+      table.appendChild(headRow);
+
+      const selects = new Map();
+      const note = el('div', 'margin-top:10px;min-height:20px;color:#b00020;font-weight:600');
+      const refreshNote = () => {
+        const overwritten = rows.filter((r) => selects.get(r.id) && selects.get(r.id).value === 'replace');
+        note.textContent = overwritten.length
+          ? 'Écrasement : le contenu actuel de DEV pour ' + overwritten.map((r) => r.label).join(', ') + ' sera mis à la corbeille.'
+          : '';
+      };
+      rows.forEach((row) => {
+        const tr = el('tr');
+        const nameCell = el('td', 'padding:6px 8px;border-bottom:1px solid #eee', row.label);
+        if (row.warn) nameCell.appendChild(el('div', 'color:#b26a00;font-size:12px', '⚠ déclenche un flux Power Automate (mails, accès, Outlook) si copiée'));
+        if (row.problem) nameCell.appendChild(el('div', 'color:#b00020;font-size:12px', row.problem));
+        tr.appendChild(nameCell);
+        tr.appendChild(el('td', 'padding:6px 8px;border-bottom:1px solid #eee', row.problem ? '—' : String(row.src)));
+        tr.appendChild(el('td', 'padding:6px 8px;border-bottom:1px solid #eee', row.problem ? '—' : String(row.dst)));
+        const actionCell = el('td', 'padding:6px 8px;border-bottom:1px solid #eee');
+        if (!row.problem) {
+          const select = el('select', 'padding:4px;max-width:100%');
+          row.modes.forEach((mode) => {
+            const option = el('option', '', mode === 'merge' ? mergeLabel(row) : MODE_LABELS[mode]);
+            option.value = mode;
+            select.appendChild(option);
+          });
+          select.value = row.mode;
+          select.addEventListener('change', refreshNote);
+          selects.set(row.id, select);
+          actionCell.appendChild(select);
+        }
+        tr.appendChild(actionCell);
+        table.appendChild(tr);
+      });
+      box.appendChild(table);
+      box.appendChild(note);
+
+      const buttons = el('div', 'margin-top:14px;display:flex;gap:8px;justify-content:flex-end');
+      const cancel = el('button', 'padding:6px 14px', 'Annuler');
+      const go = el('button', 'padding:6px 14px;background:#0f6cbd;color:#fff;border:0;border-radius:4px', 'Lancer la copie');
+      const close = (value) => { overlay.remove(); resolve(value); };
+      cancel.addEventListener('click', () => close(null));
+      go.addEventListener('click', () => {
+        const plan = {};
+        selects.forEach((select, id) => { plan[id] = select.value; });
+        if (Object.values(plan).some((m) => m === 'replace') && !window.confirm('Confirmer l’écrasement des données DEV sélectionnées ?')) return;
+        close(plan);
+      });
+      buttons.appendChild(cancel);
+      buttons.appendChild(go);
+      box.appendChild(buttons);
+      overlay.appendChild(box);
+      document.body.appendChild(overlay);
+    });
+
+  const copyList = async (row, mode, out) => {
+    if (row.dst > 0 && mode === 'merge' && !row.keyField) throw new Error('pas de clé pour fusionner');
+    const [srcFields, dstFields] = await Promise.all([getCopyableFields(SOURCE, row.id), getCopyableFields(TARGET_URL, row.id)]);
+    const fields = srcFields.filter((f) => dstFields.includes(f));
+    const missingInTarget = srcFields.filter((f) => !dstFields.includes(f));
+    if (missingInTarget.length) console.warn(row.id + ' : colonne(s) absente(s) de la cible, non copiée(s) → ' + missingInTarget.join(', '));
+
+    const items = await readAllItems(SOURCE, row.id, fields);
+    if (mode === 'replace' && row.dst > 0) {
+      const existing = await readAllItems(TARGET_URL, row.id, []);
+      await inBatches(existing, WRITE_PARALLELISM, (it) => writeTarget(listPath(row.id) + '/items(' + it.Id + ')/recycle()', {}));
+      console.log(row.id + ' : ' + existing.length + ' élément(s) de la cible mis à la corbeille.');
+    }
+    let toCopy = items;
+    if (mode === 'merge' && row.dst > 0) {
+      const existingKeys = new Set((await readAllItems(TARGET_URL, row.id, [row.keyField])).map((it) => it[row.keyField]));
+      toCopy = items.filter((it) => !existingKeys.has(it[row.keyField]));
+    }
+    let done = 0;
+    await inBatches(toCopy, WRITE_PARALLELISM, async (item) => {
+      const body = { __metadata: { type: row.entityType } };
+      for (const f of fields) if (item[f] !== null && item[f] !== undefined) body[f] = item[f];
+      try {
+        await writeTarget(listPath(row.id) + '/items', {
+          headers: { 'Content-Type': 'application/json;odata=verbose' },
+          body: JSON.stringify(body)
+        });
+        out.copiés += 1;
+      } catch (e) {
+        out.erreurs += 1;
+        console.error(row.id + ' (source Id ' + item.Id + ') : ' + e.message);
+      }
+      done += 1;
+      if (done % 100 === 0) console.log(row.id + ' : ' + done + '/' + toCopy.length);
+    });
+    return 'copiée' + (toCopy.length < items.length ? ' (' + (items.length - toCopy.length) + ' déjà présents)' : '');
+  };
+
+  const copyConfig = async (row, mode, out) => {
+    const names = row.srcFiles.names.filter((name) => mode === 'replace' || !row.dstFiles.names.includes(name));
+    for (const name of names) {
+      try {
+        const text = await readFileText(SOURCE, row.srcFiles.folder, name);
         await writeTarget(
-          "/_api/web/GetFolderByServerRelativeUrl('" + quote(dst.folder) + "')/Files/add(url='" + quote(name) + "',overwrite=true)",
+          "/_api/web/GetFolderByServerRelativeUrl('" + quote(row.dstFiles.folder) + "')/Files/add(url='" + quote(name) + "',overwrite=true)",
           { headers: { 'Content-Type': 'application/json' }, body: text }
         );
-        row.copiés += 1;
+        out.copiés += 1;
       } catch (e) {
-        row.erreurs += 1;
+        out.erreurs += 1;
         console.error(CONFIG_LIBRARY + ' / ' + name + ' : ' + e.message);
       }
     }
-    row.action = 'copiés' + (toCopy.length < src.names.length ? ' (' + (src.names.length - toCopy.length) + ' déjà présents, conservés)' : '');
+    return 'copiés' + (names.length < row.src ? ' (' + (row.src - names.length) + ' déjà présents, conservés)' : '');
   };
 
+  let SOURCE = '';
+
+  // Sans `apply` : analyse, puis panneau où l'on choisit quoi copier / écraser.
+  // Avec `apply: true` : exécution directe, sans panneau (scriptable).
   window.cnCopyListContent = async function (options) {
     const opts = options || {};
-    const source = String(opts.source || '').replace(/\/+$/, '');
-    if (!source) {
+    SOURCE = String(opts.source || '').replace(/\/+$/, '');
+    if (!SOURCE) {
       throw new Error("Indiquez le site source : await cnCopyListContent({ source: 'https://…/sites/ProjectNavigator' })");
     }
-    if (source.toLowerCase() === TARGET_URL.toLowerCase()) {
+    if (SOURCE.toLowerCase() === TARGET_URL.toLowerCase()) {
       throw new Error('La source et la cible sont le même site (' + TARGET_URL + '). Ouvrez cette page sur le site DEV.');
     }
     const apply = !!opts.apply;
     const onExisting = opts.onExisting || 'skip';
-    if (!['skip', 'merge', 'replace'].includes(onExisting)) {
-      throw new Error("onExisting doit valoir 'skip', 'merge' ou 'replace'.");
-    }
+    if (!['skip', 'merge', 'replace'].includes(onExisting)) throw new Error("onExisting doit valoir 'skip', 'merge' ou 'replace'.");
     const withConfig = opts.config !== false;
     const include = Array.isArray(opts.include) ? opts.include : [];
-    const requested = Array.isArray(opts.lists) && opts.lists.length
-      ? opts.lists
-      : Object.keys(LISTS).filter((t) => !EXCLUDED_BY_DEFAULT.includes(t) || include.includes(t));
-    const unknown = requested.filter((t) => !(t in LISTS));
+    const explicit = Array.isArray(opts.lists) && opts.lists.length ? opts.lists : null;
+    const unknown = (explicit || []).filter((t) => !(t in LISTS));
     if (unknown.length) throw new Error('Liste(s) inconnue(s) : ' + unknown.join(', '));
+    const titles = explicit || (apply
+      ? Object.keys(LISTS).filter((t) => !EXCLUDED_BY_DEFAULT.includes(t) || include.includes(t))
+      : Object.keys(LISTS));
 
-    console.log('Source (lecture seule) : ' + source);
+    console.log('Source (lecture seule) : ' + SOURCE);
     console.log('Cible (écriture)       : ' + TARGET_URL);
-    console.log(
-      apply
-        ? 'Mode : copie réelle, si la cible n’est pas vide → ' + onExisting
-        : 'Mode : simulation (relancer avec { apply: true } pour copier)'
-    );
+    console.log('Analyse des deux sites…');
+    const rows = await analyze(SOURCE, titles, withConfig);
+    rows.forEach((row) => {
+      if (apply) row.warn = false;
+      row.mode = recommendedMode(row, onExisting);
+    });
+
+    let plan;
+    if (apply) {
+      plan = {};
+      rows.forEach((row) => { plan[row.id] = row.mode; });
+    } else {
+      console.table(rows.map((r) => ({ liste: r.label, source: r.src === undefined ? '—' : r.src, cible: r.dst === undefined ? '—' : r.dst, 'proposition': describe(r, r.mode) })));
+      if (opts.ui === false) return rows;
+      const choose = typeof opts.choose === 'function' ? opts.choose : showPanel;
+      plan = await choose(rows, SOURCE);
+      if (!plan) { console.log('Annulé : rien n’a été copié.'); return null; }
+    }
 
     const report = [];
-    for (const title of requested) {
-      const row = { liste: title, source: '', 'cible avant': '', action: '', copiés: 0, erreurs: 0 };
-      report.push(row);
+    for (const row of rows) {
+      const mode = plan[row.id];
+      const out = { liste: row.label, source: row.src === undefined ? '' : row.src, 'cible avant': row.dst === undefined ? '' : row.dst, action: '', copiés: 0, erreurs: 0 };
+      report.push(out);
+      if (row.problem) { out.action = 'ignorée : ' + row.problem; continue; }
+      if (!mode || mode === 'none') { out.action = 'non copiée'; continue; }
       try {
-        const [srcInfo, dstInfo] = await Promise.all([getListInfo(source, title), getListInfo(TARGET_URL, title)]);
-        if (!srcInfo) { row.action = 'ignorée : absente de la source'; continue; }
-        if (!dstInfo) { row.action = 'ignorée : absente de la cible (lancer cnCheckSharePointConfig({ apply: true }))'; continue; }
-        row.source = srcInfo.ItemCount;
-        row['cible avant'] = dstInfo.ItemCount;
-
-        const keyField = LISTS[title];
-        if (dstInfo.ItemCount > 0 && onExisting === 'skip') { row.action = 'ignorée : la cible contient déjà des éléments'; continue; }
-        if (dstInfo.ItemCount > 0 && onExisting === 'merge' && !keyField) { row.action = 'ignorée : pas de clé pour fusionner'; continue; }
-
-        const [srcFields, dstFields] = await Promise.all([
-          getCopyableFields(source, title),
-          getCopyableFields(TARGET_URL, title)
-        ]);
-        const fields = srcFields.filter((f) => dstFields.includes(f));
-        const missingInTarget = srcFields.filter((f) => !dstFields.includes(f));
-        if (missingInTarget.length) {
-          console.warn(title + ' : colonne(s) absente(s) de la cible, non copiée(s) → ' + missingInTarget.join(', '));
-        }
-
-        if (!apply) {
-          row.action = dstInfo.ItemCount > 0
-            ? (onExisting === 'replace' ? 'REMPLACERAIT (' + dstInfo.ItemCount + ' supprimés puis ' + srcInfo.ItemCount + ' copiés)' : 'FUSIONNERAIT sur ' + keyField)
-            : 'COPIERAIT ' + srcInfo.ItemCount + ' élément(s)';
-          continue;
-        }
-
-        const items = await readAllItems(source, title, fields);
-
-        if (dstInfo.ItemCount > 0 && onExisting === 'replace') {
-          const existing = await readAllItems(TARGET_URL, title, []);
-          await inBatches(existing, WRITE_PARALLELISM, (it) =>
-            writeTarget(listPath(title) + '/items(' + it.Id + ')/recycle()', {})
-          );
-          console.log(title + ' : ' + existing.length + ' élément(s) de la cible mis à la corbeille.');
-        }
-
-        let toCopy = items;
-        if (dstInfo.ItemCount > 0 && onExisting === 'merge') {
-          const existingKeys = new Set((await readAllItems(TARGET_URL, title, [keyField])).map((it) => it[keyField]));
-          toCopy = items.filter((it) => !existingKeys.has(it[keyField]));
-        }
-
-        let done = 0;
-        await inBatches(toCopy, WRITE_PARALLELISM, async (item) => {
-          const body = { __metadata: { type: dstInfo.ListItemEntityTypeFullName } };
-          for (const f of fields) {
-            if (item[f] !== null && item[f] !== undefined) body[f] = item[f];
-          }
-          try {
-            await writeTarget(listPath(title) + '/items', {
-              headers: { 'Content-Type': 'application/json;odata=verbose' },
-              body: JSON.stringify(body)
-            });
-            row.copiés += 1;
-          } catch (e) {
-            row.erreurs += 1;
-            console.error(title + ' (source Id ' + item.Id + ') : ' + e.message);
-          }
-          done += 1;
-          if (done % 100 === 0) console.log(title + ' : ' + done + '/' + toCopy.length);
-        });
-        row.action = 'copiée' + (toCopy.length < items.length ? ' (fusion : ' + (items.length - toCopy.length) + ' déjà présents)' : '');
+        out.action = row.kind === 'config' ? await copyConfig(row, mode, out) : await copyList(row, mode, out);
       } catch (e) {
-        row.action = 'erreur : ' + e.message;
-        row.erreurs += 1;
+        out.action = 'erreur : ' + e.message;
+        out.erreurs += 1;
       }
     }
-
-    if (withConfig) {
-      const row = { liste: CONFIG_LIBRARY + ' (fichiers)', source: '', 'cible avant': '', action: '', copiés: 0, erreurs: 0 };
-      report.push(row);
-      try {
-        await copyConfigFiles(source, apply, onExisting, row);
-      } catch (e) {
-        row.action = 'erreur : ' + e.message;
-        row.erreurs += 1;
-      }
-    }
-
     console.table(report);
-    const excluded = EXCLUDED_BY_DEFAULT.filter((t) => !requested.includes(t));
-    if (excluded.length) {
-      console.log('Non copiées volontairement (déclenchent des flux Power Automate) : ' + excluded.join(', '));
-    }
     return report;
   };
 
   console.log(
-    "Prêt. Simulation : await cnCopyListContent({ source: 'https://…/sites/ProjectNavigator' })  puis  await cnCopyListContent({ source: '…', apply: true })"
+    "Prêt. Lancez : await cnCopyListContent({ source: 'https://…/sites/ProjectNavigator' })  (analyse, puis un panneau vous laisse choisir quoi copier ou écraser)"
   );
 })();
 ```
