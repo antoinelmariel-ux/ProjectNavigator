@@ -47,6 +47,7 @@ import {
   getConditionQuestionEntries,
   getNumberUnitOptions,
   getQuestionOptionEntries,
+  resolveConditionOptionValue,
   getQuestionOptionLabels,
   normalizeQuestionOptions,
   shouldShowOption as shouldShowOptionBase,
@@ -8499,7 +8500,7 @@ export const BackOffice = ({
                                                             if (usesOptions) {
                                                               return (
                                                                 <select
-                                                                  value={condition.value}
+                                                                  value={resolveConditionOptionValue(selectedQuestion, condition.value, { language })}
                                                                   onChange={(event) =>
                                                                     updateCommitteeConditionField(
                                                                       committee.id,
@@ -8512,9 +8513,9 @@ export const BackOffice = ({
                                                                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
                                                                 >
                                                                   <option value="">{t('backOffice.main.selectPlaceholder')}</option>
-                                                                  {getQuestionOptionLabels(selectedQuestion).map((option, optionIndex) => (
-                                                                    <option key={optionIndex} value={option}>
-                                                                      {option}
+                                                                  {getQuestionOptionEntries(selectedQuestion, { language }).map((entry, optionIndex) => (
+                                                                    <option key={optionIndex} value={entry.value}>
+                                                                      {entry.label}
                                                                     </option>
                                                                   ))}
                                                                 </select>

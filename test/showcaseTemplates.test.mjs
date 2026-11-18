@@ -727,3 +727,28 @@ test('l’atelier déplace, ajoute, retire et convertit les sections par leur cl
   assert.equal(removeTemplateSection(template, 'builtin:hero').sections.length, template.sections.length - 1);
   assert.equal(getTemplateEntrySectionId(template, findTemplateSection(template, 'block:block-1')), buildTemplateBlockSectionId('tpl', 'block-1'));
 });
+
+test('une condition de modèle porte l’identifiant de l’option, pas son libellé', async () => {
+  const { getQuestionOptionEntries, resolveConditionOptionValue } = await import('../src/utils/questions.js');
+  const question = initialQuestions.find((entry) => entry.id === 'q18');
+  const entry = getQuestionOptionEntries(question, { language: 'fr' }).find((option) => option.label === 'Don financier');
+  assert.equal(entry.value, 'don_financier');
+
+  const template = {
+    id: 'don',
+    name: { fr: 'Don financier' },
+    activation: {
+      conditionGroups: [{ logic: 'all', conditions: [{ type: 'question', question: 'q18', operator: 'equals', value: entry.value }] }]
+    },
+    sections: []
+  };
+  assert.equal(resolveShowcaseTemplate({ q18: ['don_financier'] }, [template])?.id, 'don');
+  assert.equal(resolveShowcaseTemplate({ q18: { values: ['don_financier'], children: {} } }, [template])?.id, 'don');
+
+  const legacy = { ...template, activation: { conditionGroups: [{ logic: 'all', conditions: [{ type: 'question', question: 'q18', operator: 'equals', value: 'Don financier' }] }] } };
+  assert.equal(resolveShowcaseTemplate({ q18: ['don_financier'] }, [legacy]), null);
+
+  assert.equal(resolveConditionOptionValue(question, 'Don financier', { language: 'fr' }), 'don_financier');
+  assert.equal(resolveConditionOptionValue(question, 'don_financier', { language: 'fr' }), 'don_financier');
+  assert.equal(resolveConditionOptionValue(question, '', { language: 'fr' }), '');
+});

@@ -435,6 +435,24 @@ export const getQuestionOptionEntries = (questionOrOptions, { includeChildren = 
   return entries;
 };
 
+// Une réponse est enregistrée sous l'identifiant de l'option, jamais sous son libellé : une
+// condition doit donc porter l'identifiant. Les conditions écrites avec un libellé (ancien
+// comportement de ConditionGroupsEditor) sont relues comme l'option qu'elles désignent, pour
+// que le sélecteur l'affiche et que l'enregistrement suivant les corrige.
+export const resolveConditionOptionValue = (question, value, { language = DEFAULT_LANGUAGE } = {}) => {
+  if (value === null || value === undefined || value === '') {
+    return '';
+  }
+  const stringValue = String(value);
+  const entries = getQuestionOptionEntries(question, { language });
+  const byValue = entries.find((entry) => entry.value === stringValue);
+  if (byValue) {
+    return byValue.value;
+  }
+  const byLabel = entries.find((entry) => entry.label === stringValue);
+  return byLabel ? byLabel.value : stringValue;
+};
+
 const resolveOptionLabelFromQuestion = (question, value, language = DEFAULT_LANGUAGE) => {
   if (value === null || value === undefined) {
     return '';

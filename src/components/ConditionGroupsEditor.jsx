@@ -7,7 +7,11 @@ import {
   sanitizeRuleCondition
 } from '../utils/ruleConditions.js';
 import { ensureOperatorForType, getOperatorOptionsForType } from '../utils/operatorOptions.js';
-import { getConditionQuestionEntries, getQuestionOptionLabels } from '../utils/questions.js';
+import {
+  getConditionQuestionEntries,
+  getQuestionOptionEntries,
+  resolveConditionOptionValue
+} from '../utils/questions.js';
 import { resolveLocalizedText } from '../utils/localizedContent.js';
 import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { ConditionValueUnit } from './ConditionValueUnit.jsx';
@@ -422,16 +426,16 @@ export const ConditionGroupsEditor = ({
                                   </select>
                                 ) : usesOptions ? (
                                   <select
-                                    value={condition.value}
+                                    value={resolveConditionOptionValue(selectedQuestion, condition.value, { language })}
                                     onChange={(event) =>
                                       updateConditionField(groupIdx, conditionIdx, 'value', event.target.value)
                                     }
                                     className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
                                   >
                                     <option value="">{t('backOffice.main.selectPlaceholder')}</option>
-                                    {getQuestionOptionLabels(selectedQuestion, { language }).map((option, optionIndex) => (
-                                      <option key={optionIndex} value={option}>
-                                        {option}
+                                    {getQuestionOptionEntries(selectedQuestion, { language }).map((entry, optionIndex) => (
+                                      <option key={optionIndex} value={entry.value}>
+                                        {entry.label}
                                       </option>
                                     ))}
                                   </select>
