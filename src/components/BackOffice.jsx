@@ -4869,7 +4869,7 @@ export const BackOffice = ({
 
   const addTeam = () => {
     const newTeam = {
-      id: getNextId(teams, 'team'),
+      id: getNextId(teams, 'equipe_'),
       name: { [language]: t('backOffice.main.newTeamNameDefault') },
       contacts: ['email@company.com'],
       expertise: { [language]: '' }
